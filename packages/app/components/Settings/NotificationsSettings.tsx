@@ -1,0 +1,187 @@
+import { MinusCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons'
+import { API } from '@koh/api-client'
+import {
+  DesktopNotifPartial,
+  ERROR_MESSAGES,
+  UpdateProfileParams,
+} from '@koh/common'
+import { Button, Form, List, message, Switch, Tooltip } from 'antd'
+import { pick } from 'lodash'
+import { HeaderTitle } from './Styled'
+import React, { ReactElement, useEffect, useState } from 'react'
+import styled from 'styled-components'
+import useSWR from 'swr'
+import {
+  getEndpoint,
+  getNotificationState,
+  NotificationStates,
+  registerNotificationSubscription,
+  requestNotificationPermission,
+} from '../../utils/notification'
+
+const DeviceAddHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+`
+
+export default function NotificationsSettings(): ReactElement {
+  const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
+    API.profile.index(),
+  )
+
+  const [form] = Form.useForm()
+
+  const editProfile = async (updateProfile: UpdateProfileParams) => {
+    const newProfile = { ...profile, ...updateProfile }
+    mutate(newProfile, false)
+    await API.profile.patch(pick(newProfile, ['desktopNotifsEnabled']))
+    mutate()
+    return newProfile
+  }
+
+  const handleOk = async () => {
+    const value = await form.validateFields()
+    try {
+      const newProfile = await editProfile(value)
+      form.setFieldsValue(newProfile)
+      message.success(
+        'Your notification settings have been successfully updated',
+      )
+    } catch (e) {
+      message.error(ERROR_MESSAGES[e.message] || e.message)
+    }
+  }
+
+  return (
+    profile && (
+      <>
+        <HeaderTitle>
+          <h1>Notifications</h1>
+        </HeaderTitle>
+        <Form wrapperCol={{ span: 10 }} form={form} initialValues={profile}>
+          <Form.Item
+            style={{ flex: 1 }}
+            label="Enable notifications on all devices"
+            name="desktopNotifsEnabled"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item shouldUpdate noStyle>
+            {() =>
+              form?.getFieldValue('desktopNotifsEnabled') && (
+                <DeviceNotifPanel />
+              )
+            }
+          </Form.Item>
+          <Tooltip title="Notification still doesn't work? Click here!">
+            <QuestionCircleOutlined
+              style={{ marginTop: '30px', float: 'right', fontSize: '25px' }}
+              onClick={() =>
+                window.open(
+                  'https://www.makeuseof.com/google-chrome-notifications-not-working-fixes/',
+                )
+              }
+            />
+          </Tooltip>
+        </Form>
+        <Button
+          key="submit"
+          type="primary"
+          onClick={handleOk}
+          style={{ marginTop: '30px', marginBottom: '15px' }}
+        >
+          Save
+        </Button>
+      </>
+    )
+  )
+}
+
+function useThisDeviceEndpoint(): null | string {
+  const [endpoint, setEndpoint] = useState(null)
+  useEffect(() => {
+    ;(async () => setEndpoint(await getEndpoint()))()
+  })
+  return endpoint
+}
+
+function renderDeviceInfo(
+  device: DesktopNotifPartial,
+  isThisDevice: boolean,
+): string {
+  if (device.name) {
+    return isThisDevice ? `${device.name} (This Device)` : device.name
+  } else {
+    return isThisDevice ? 'This Device' : 'Other Device'
+  }
+}
+
+function DeviceNotifPanel() {
+  const thisEndpoint = useThisDeviceEndpoint()
+  const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
+    API.profile.index(),
+  )
+  const thisDesktopNotif = profile?.desktopNotifs?.find(
+    (dn) => dn.endpoint === thisEndpoint,
+  )
+  return (
+    <div>
+      <DeviceAddHeader>
+        <h3>Your Devices</h3>
+        {!thisDesktopNotif && (
+          <Tooltip
+            title={
+              getNotificationState() ===
+                NotificationStates.browserUnsupported &&
+              'Browser does not support notifications. Please use Chrome or Firefox, and not Incognito Mode.'
+            }
+          >
+            <Button
+              onClick={async () => {
+                const canNotify = await requestNotificationPermission()
+                if (canNotify === NotificationStates.notAllowed) {
+                  message.warning('Please allow notifications in this browser')
+                }
+                if (canNotify === NotificationStates.granted) {
+                  await registerNotificationSubscription()
+                  mutate()
+                }
+              }}
+              disabled={
+                getNotificationState() === NotificationStates.browserUnsupported
+              }
+              style={{ marginBottom: '4px' }}
+            >
+              Add This Device
+            </Button>
+          </Tooltip>
+        )}
+      </DeviceAddHeader>
+      <List
+        bordered
+        dataSource={profile.desktopNotifs}
+        locale={{ emptyText: 'No Devices Registered To Receive Notifications' }}
+        renderItem={(device: DesktopNotifPartial) => (
+          <List.Item
+            actions={[
+              <MinusCircleOutlined
+                style={{ fontSize: '20px' }}
+                key={0}
+                onClick={async () => {
+                  await API.notif.desktop.unregister(device.id)
+                  mutate()
+                }}
+              />,
+            ]}
+          >
+            <List.Item.Meta
+              title={renderDeviceInfo(device, device.endpoint === thisEndpoint)}
+              description={`Registered ${device.createdAt.toLocaleDateString()}`}
+            />
+          </List.Item>
+        )}
+      />
+    </div>
+  )
+}
