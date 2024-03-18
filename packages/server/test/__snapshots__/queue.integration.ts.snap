@@ -1,0 +1,43 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Queue Integration GET /queues/:id returns 401 when not logged in 1`] = `
+Object {
+  "error": "Unauthorized",
+  "message": "Must be logged in",
+  "statusCode": 401,
+}
+`;
+
+exports[`Queue Integration GET /queues/:id/questions returns questions in the queue 1`] = `
+Object {
+  "groups": Array [],
+  "priorityQueue": Array [],
+  "questionsGettingHelp": Array [],
+  "queue": Array [
+    Object {
+      "closedAt": null,
+      "createdAt": "2020-03-01T05:00:00.000Z",
+      "creator": Object {
+        "id": 1,
+      },
+      "groupable": true,
+      "helpedAt": null,
+      "id": 1,
+      "location": null,
+      "questionTypes": Array [
+        Object {
+          "cid": 1,
+          "color": "#000000",
+          "id": 1,
+          "name": "Question Type",
+          "queueId": 1,
+        },
+      ],
+      "status": "Queued",
+      "taHelped": null,
+      "text": "in queue",
+    },
+  ],
+  "unresolvedAlerts": Array [],
+}
+`;

@@ -1,0 +1,62 @@
+version: '2'
+
+services:
+  postgresql:
+    image: ankane/pgvector
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./infrastructure/dev/docker-postgresql-multiple-databases:/docker-entrypoint-initdb.d
+      - pg:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_MULTIPLE_DATABASES=prod,dev,test,chatbot
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_NONROOT_USER=helpme
+      - POSTGRES_NONROOT_PASSWORD=mysecretpassword
+    networks:
+      - api
+  redis:
+    image: redis:alpine
+    ports:
+      - '6379:6379'
+    networks:
+      - api
+  frontend:
+    container_name: helpme_frontend
+    command: yarn workspace @koh/app dev
+    depends_on:
+      - backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - api
+  backend:
+    container_name: helpme_backend
+    command: yarn workspace @koh/server dev
+    depends_on:
+      - postgresql
+      - redis
+      - httpd
+    env_file:
+      - ./packages/server/.env.docker
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - api
+  httpd:
+    build:
+      context: .
+      dockerfile: Dockerfile.httpd
+    ports:
+      - '80:80'
+    networks:
+      - api
+volumes:
+  pg:
+
+networks:
+  api:
+    driver: bridge

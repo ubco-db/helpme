@@ -1,0 +1,47 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Profile Integration GET /profile returns the logged-in user profile 1`] = `
+Object {
+  "accountType": "legacy",
+  "courses": Array [
+    Object {
+      "course": Object {
+        "id": 1,
+        "name": "CS 2500",
+      },
+      "role": "student",
+    },
+  ],
+  "defaultMessage": null,
+  "desktopNotifs": Array [],
+  "desktopNotifsEnabled": false,
+  "email": "user@ubc.ca",
+  "emailVerified": true,
+  "firstName": "User",
+  "id": 1,
+  "includeDefaultMessage": true,
+  "insights": Array [
+    "TotalStudents",
+    "TotalQuestionsAsked",
+    "MedianWaitTime",
+    "QuestionTypeBreakdown",
+    "MostActiveStudents",
+    "QuestionToStudentRatio",
+    "MedianHelpingTime",
+  ],
+  "lastName": "Person",
+  "name": "User Person",
+  "organization": Object {
+    "id": 1,
+    "orgId": 1,
+    "organizationBannerUrl": null,
+    "organizationDescription": "UBC Okanagan",
+    "organizationLogoUrl": null,
+    "organizationName": "UBCO",
+    "organizationRole": "member",
+  },
+  "photoURL": null,
+  "sid": null,
+  "userRole": "user",
+}
+`;

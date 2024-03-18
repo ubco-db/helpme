@@ -1,0 +1,240 @@
+@import "custom_preflight.css";
+
+h1 {
+    display: block;
+    font-size: 2em;
+    font-weight: bold;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: inherit;
+    margin-bottom: inherit;
+}
+
+h2 {
+    display: block;
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: inherit;
+    margin-bottom: inherit;
+}
+
+h3 {
+    display: block;
+    font-size: 1.17em;
+    font-weight: bold;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+h4 {
+    display: block;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: inherit;
+    margin-bottom: inherit;
+}
+
+h5 {
+    display: block;
+    font-size: 0.83em;
+    font-weight: bold;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1.67em;
+    margin-bottom: 1.67em;
+}
+
+h6 {
+    display: block;
+    font-size: 0.67em;
+    font-weight: bold;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 2.33em;
+    margin-bottom: 2.33em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+a {
+    color: rgb(37 99 235);
+}
+
+@tailwind components;
+@tailwind utilities;
+
+body {
+    background: #f8f9fb;
+}
+
+.ant-radio-checked .ant-radio-inner {
+    border-color: #3684c6 !important ;
+}
+
+.ant-radio-checked .ant-radio-inner:after {
+    background-color: #3684c6;
+}
+
+.ant-radio:hover .ant-radio-inner {
+    border-color: #3684c6;
+}
+
+.ant-radio-button-checked {
+    border-color: #3684c6 !important ;
+}
+
+.ant-radio-button-wrapper-checked {
+    background-color: #3684c6 !important;
+}
+
+.ant-radio-button:hover {
+    color: #3684c6;
+}
+
+.ant-btn-primary {
+    border-color: #3684c6;
+    background-color: #3684c6;
+}
+
+.notion-image-inset {
+    width: 100%;
+}
+
+.notion-asset-wrapper {
+    width: 100% !important;
+}
+
+.notion-asset-wrapper > div {
+    padding-bottom: 0px !important;
+}
+
+.notion-list {
+    margin: 0px;
+    padding-inline-start: 20px;
+}
+
+.notion-toggle {
+    padding-inline-start: 5px;
+}
+
+.open-queue-card .ant-card-extra {
+    color: #ffffff;
+}
+
+@media only percy {
+    .hide-in-percy {
+        visibility: hidden;
+    }
+    .open-queue-card .ant-card-extra {
+        visibility: hidden;
+    }
+    .rbc-toolbar-label {
+        visibility: hidden;
+    }
+    .rbc-event {
+        visibility: hidden;
+    }
+    .rbc-current-time-indicator {
+        visibility: hidden;
+    }
+    .rbc-toolbar {
+        visibility: hidden;
+    }
+    .fc-col-header-cell-cushion {
+        visibility: hidden;
+    }
+
+    .fc-toolbar-title {
+        visibility: hidden;
+    }
+
+    .fc-event {
+        visibility: hidden;
+    }
+}
+
+.glowy:before, .glowy:after {
+	content: '';
+	position: absolute;
+	left: -1.5px;
+	top: -1.5px;
+	background: linear-gradient(45deg, #fb0094, #0000ff, #00ff00,#ffff00, #ff0000, #fb0094, 
+		#0000ff, #00ff00,#ffff00, #ff0000);
+	background-size: 400%;
+	width: calc(100% + 3px);
+	height: calc(100% + 3px);
+	z-index: -1;
+	animation: steam 20s linear infinite;
+    border-radius: 6px;
+}
+
+@keyframes steam {
+	0% {
+		background-position: 0 0;
+	}
+	50% {
+		background-position: 400% 0;
+	}
+	100% {
+		background-position: 0 0;
+	}
+}
+
+.glowy:after {
+	filter: blur(1.5px);
+}
+
+/* make selected links (i.e. the page you are currently on) hover a different colour (hovering on a selected link would appear the same)
+.ant-menu-horizontal > .ant-menu-item-selected.ant-menu-item a {
+    transition: text-shadow 0.3s ease;
+    text-shadow: 0px 0px 0px transparent;
+}
+.ant-menu-horizontal > .ant-menu-item-selected.ant-menu-item a:hover {
+    text-shadow: 0px 0px 1px #000;
+} */
+
+/* for testing -> all focussed elements get a yellow highlight background */
+/* *:focus {
+    background-color: blueviolet !important;
+} */
+
+ /* this is purely just to give the CustomCard the hover effect when it gets focused (when tabbing through the queues) */
+ a .ant-card.open-queue-card {
+    transition: box-shadow 0.3s ease;
+  }
+  
+  a:focus-within .ant-card.open-queue-card {
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.45);
+  }
+  
+  a:focus-within .ant-card.open-queue-card .ant-card-head {
+    background: rgb(47, 76, 128) !important;
+    transition: color 0.3s ease-in-out !important;
+  }
+  
+  /* // make the green arrow right on hover (still uncertain on whether to keep this) */
+  a:focus-within .ant-card.open-queue-card .anticon.anticon-right {
+    color: lightgreen;
+    transition: color 0.3s ease-in-out;
+  }
+
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #000;
+    color: #fff;
+    padding: 8px;
+    z-index: 100;
+    transition: top 0.3s ease;
+  }
+  
+  .skip-link:focus {
+    top: 0;
+  }

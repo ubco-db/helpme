@@ -1,0 +1,29 @@
+name: Lint
+
+on:
+  pull_request:
+    branches: [master, hybrid-queues, updated-login]
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: install node v14
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14
+      - uses: bahmutov/npm-install@v1
+      - run: yarn lint
+  typescript:
+    name: typescript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: install node v14
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14
+      - uses: bahmutov/npm-install@v1
+      - run: yarn tsc
