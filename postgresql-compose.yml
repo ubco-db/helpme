@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   postgresql:
@@ -15,3 +14,6 @@ services:
       - POSTGRES_PASSWORD=mysecretpassword
       - POSTGRES_NONROOT_USER=helpme
       - POSTGRES_NONROOT_PASSWORD=mysecretpassword
+volumes:
+  pg:
+    driver: local
