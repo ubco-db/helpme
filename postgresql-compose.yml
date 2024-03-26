@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  postgresql:
+    image: ankane/pgvector
+    restart: always
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./infrastructure/dev/docker-postgresql-multiple-databases:/docker-entrypoint-initdb.d
+      - pg:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_MULTIPLE_DATABASES=prod,dev,test,chatbot
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_NONROOT_USER=helpme
+      - POSTGRES_NONROOT_PASSWORD=mysecretpassword
