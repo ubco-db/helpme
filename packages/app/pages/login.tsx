@@ -52,11 +52,18 @@ export default function Login(): ReactElement {
   }
 
   const loginWithInstitution = async () => {
-    const lastVisited = encodeURIComponent(localStorage.getItem('lastVisited'))
-    localStorage.removeItem('lastVisited')
-    Router.push(
-      `/api/v1/auth/shibboleth/${organization.id}?lastVisited=${lastVisited}`,
-    )
+    // const lastVisited = encodeURIComponent(localStorage.getItem('lastVisited'))
+    // localStorage.removeItem('lastVisited')
+
+    const lastVisited = localStorage.getItem('lastVisited')
+
+    let redirectURL = `/api/v1/auth/shibboleth/${organization.id}`
+
+    if (lastVisited) {
+      redirectURL += `?lastVisited=${lastVisited}`
+      localStorage.removeItem('lastVisited')
+    }
+    Router.push(redirectURL)
   }
 
   function login() {
