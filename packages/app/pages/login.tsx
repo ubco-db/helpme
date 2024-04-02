@@ -59,9 +59,7 @@ export default function Login(): ReactElement {
     )
   }
 
-  async function login() {
-    const token = await recaptchaRef.current.executeAsync()
-
+  function login() {
     if (organization && !organization.legacyAuthEnabled) {
       message.error('Organization does not support legacy authentication')
       return
@@ -73,7 +71,6 @@ export default function Login(): ReactElement {
       body: JSON.stringify({
         email: uname,
         password: pass,
-        recaptchaToken: token,
       }),
     }
     fetch(`/api/v1/ubc_login`, loginRequest)
