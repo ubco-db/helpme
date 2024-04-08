@@ -116,11 +116,8 @@ If your tests are failing with a message about "deadlock something whatever", do
 
 If `yarn test` is not running all of the tests, navigate to `server/test` folder and run `yarn jest --config ./test/jest-integration.json -i --run-in-band` if you would like to run all the tests. To run the tests of a specific file (e.g. course.integration.ts), you can use `yarn jest --config ./test/jest-integration.json -i --run-in-band course`
 
-{% note %}
-
-**Note:** cypress is currently broken, only the endpoints are being tested right now
-
-{% endnote %}
+> [!NOTE]
+> cypress is currently broken (and its code was recently removed). Only the endpoints are being tested right now
 
 ### Installing new packages
 
