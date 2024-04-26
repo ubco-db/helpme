@@ -76,21 +76,18 @@ const ChatbotParameter: React.FC<ChatbotParameterProps> = ({
 
   const handleUpdate = async (values: any) => {
     const updateData = {
-      id: form.getFieldValue('id'),
-      pageContent: values.pageContent,
-      metadata: {
-        modelName: values.modelName,
-        prompt: values.prompt,
-        similarityThresholdDocuments: values.similarityThresholdDocuments,
-        similarityThresholdQuestions: values.similarityThresholdQuestions,
-        temperature: values.temperature,
-        topK: values.topK,
-      },
+      modelName: values.modelName,
+      prompt: values.prompt,
+      similarityThresholdDocuments: values.similarityThresholdDocuments,
+      similarityThresholdQuestions: values.similarityThresholdQuestions,
+      temperature: values.temperature,
+      topK: values.topK,
     }
 
     try {
       setLoading(true)
       await axios.patch(`/chat/${courseId}/updateChatbotSetting`, updateData)
+
       message.success('Settings updated successfully')
       onClose()
     } catch (error) {
