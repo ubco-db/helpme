@@ -46,20 +46,23 @@ export class LoginController {
     @Res() res: Response,
     @Body() body: UBCOloginParam,
   ): Promise<any> {
-    if (!body.recaptchaToken) {
-      return res.status(HttpStatus.BAD_REQUEST).send({
-        message: 'Recaptcha token missing',
-      });
-    }
+    // dev env bypass recaptcha
+    console.log(process.env.NODE_ENV);
+    if (process.env.NODE_ENV !== 'development') {
+      if (!body.recaptchaToken) {
+        return res.status(HttpStatus.BAD_REQUEST).send({
+          message: 'Recaptcha token missing',
+        });
+      }
+      const response = await request.post(
+        `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.PRIVATE_RECAPTCHA_SITE_KEY}&response=${body.recaptchaToken}`,
+      );
 
-    const response = await request.post(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.PRIVATE_RECAPTCHA_SITE_KEY}&response=${body.recaptchaToken}`,
-    );
-
-    if (!response.body.success) {
-      return res.status(HttpStatus.BAD_REQUEST).send({
-        message: 'Recaptcha token invalid',
-      });
+      if (!response.body.success) {
+        return res.status(HttpStatus.BAD_REQUEST).send({
+          message: 'Recaptcha token invalid',
+        });
+      }
     }
 
     const user = await UserModel.findOne({
