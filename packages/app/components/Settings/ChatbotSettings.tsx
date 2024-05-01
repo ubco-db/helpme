@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons'
 import { RcFile } from 'antd/lib/upload'
 import Dragger from 'antd/lib/upload/Dragger'
+import ChatbotParameter from './ChatbotParameter'
 
 export interface ChatbotDocument {
   id: number
@@ -28,7 +29,8 @@ export default function ChatbotSettings(): ReactElement {
   const [form] = Form.useForm()
   const router = useRouter()
   const { cid } = router.query
-
+  const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =
+    useState(false)
   const [addDocumentModalOpen, setAddDocumentModalOpen] = useState(false)
   const [documentType, setDocumentType] = useState('FILE')
   const [search, setSearch] = useState('')
@@ -329,6 +331,9 @@ export default function ChatbotSettings(): ReactElement {
             Configure the documents that your chatbot will have access to
           </p>
         </div>
+        <Button onClick={() => setChatbotParameterModalOpen(true)}>
+          Chatbot Parameters
+        </Button>
         <Button onClick={() => setAddDocumentModalOpen(true)}>
           Add Document
         </Button>
@@ -358,6 +363,13 @@ export default function ChatbotSettings(): ReactElement {
         pageSizeOptions={[10, 20, 30, 50]}
         showSizeChanger
       />
+      {chatbotParameterModalOpen && (
+        <ChatbotParameter
+          visible={chatbotParameterModalOpen}
+          onClose={() => setChatbotParameterModalOpen(false)}
+          courseId={Number(cid)}
+        />
+      )}
     </div>
   )
 }

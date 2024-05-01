@@ -582,7 +582,7 @@ export class UBCOloginParam {
 
   @IsOptional()
   @IsString()
-  recaptchaToken!: string
+  recaptchaToken?: string
 }
 export class UBCOuserParam {
   @IsString()
