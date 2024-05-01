@@ -80,6 +80,7 @@ export default function Login(): ReactElement {
         password: pass,
       }),
     }
+
     fetch(`/api/v1/ubc_login`, loginRequest)
       .then(async (response) => {
         const data = await response.json()
@@ -98,6 +99,7 @@ export default function Login(): ReactElement {
               break
             default:
               message.error(error)
+              console.error('There was an error!', error)
               break
           }
           return Promise.reject(error)
