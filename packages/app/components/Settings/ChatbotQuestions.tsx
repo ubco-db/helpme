@@ -1,4 +1,4 @@
-import { Button, Form, Input, Modal, Pagination, Table } from 'antd'
+import { Button, Form, Input, Modal, Pagination, Table, message } from 'antd'
 import React, { ReactElement, useEffect, useState } from 'react'
 import { API } from '@koh/api-client'
 import toast from 'react-hot-toast'
@@ -209,7 +209,6 @@ export default function ChatbotQuestions({
       if (!response.ok) {
         throw new Error('Network response was not ok')
       }
-
       const data: IncomingQuestionData[] = await response.json() // Assuming the response is an array of questions
       // Parse the data into the expected format
       const parsedQuestions = data.map((question) => ({

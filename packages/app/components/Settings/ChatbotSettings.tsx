@@ -1,4 +1,13 @@
-import { Button, Form, Input, Modal, Pagination, Table, Tooltip } from 'antd'
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  Pagination,
+  Table,
+  Tooltip,
+  message,
+} from 'antd'
 import { ColumnsType } from 'antd/es/table'
 import React, { ReactElement, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
@@ -115,7 +124,7 @@ export default function ChatbotSettings(): ReactElement {
         url: url,
       }
 
-      await fetch(`/chat/${cid}/document/url/github`, {
+      const response = await fetch(`/chat/${cid}/document/url/github`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,13 +132,18 @@ export default function ChatbotSettings(): ReactElement {
         body: JSON.stringify(data),
       })
 
-      toast.success('File uploaded.')
+      if (response.ok) {
+        message.success('File uploaded.')
+      } else {
+        message.warn(
+          `Failed to upload file, please check the file type of linked document`,
+        )
+      }
     } catch (e) {
-      toast.error('Failed to upload file. Make sure the URL is a PDF file.')
+      console.log(e)
     } finally {
       setLoading(false)
     }
-
     getDocuments()
   }
 
@@ -162,7 +176,7 @@ export default function ChatbotSettings(): ReactElement {
   const handleDeleteDocument = async (record: any) => {
     setLoading(true)
     try {
-      await fetch(`/chat/${record.docId}/document`, {
+      await fetch(`/chat/${cid}/${record.docId}/document`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

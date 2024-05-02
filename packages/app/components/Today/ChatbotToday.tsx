@@ -14,10 +14,9 @@ import { Feedback } from '../Chatbot/components/Feedback'
 const ChatbotContainer = styled.div`
   width: 100%;
   @media (min-width: 650px) {
-    width: 80%;
-    height: 80%;
+    width: 90%;
+    height: 100%;
   }
-  display: flex;
   overflow: hidden;
 `
 const StyledInput = styled(Input)`
@@ -25,7 +24,7 @@ const StyledInput = styled(Input)`
   margin-top: 0;
 
   @media (min-width: 650px) {
-    width: 80%;
+    width: 100%;
   }
 `
 export interface SourceDocument {
@@ -172,7 +171,7 @@ export const ChatbotToday: React.FC = () => {
       <ChatbotContainer>
         <Card
           title="Course chatbot"
-          className=" flex h-[85vh] w-full flex-col overflow-y-auto sm:h-[90vh]"
+          className=" flex h-full max-h-[750px] w-full flex-col overflow-y-auto"
         >
           <div className="grow-1 overflow-y-auto">
             {messages &&
@@ -303,21 +302,21 @@ export const ChatbotToday: React.FC = () => {
             )}
           </div>
         </Card>
+        <StyledInput
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask something..."
+          aria-label="Chatbot input field"
+          id="chatbot-input"
+          onPressEnter={handleAsk}
+          className="mt-0"
+          suffix={
+            <Button type="primary" className="bg-blue-900" onClick={handleAsk}>
+              Ask
+            </Button>
+          }
+        />
       </ChatbotContainer>
-      <StyledInput
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Ask something..."
-        aria-label="Chatbot input field"
-        id="chatbot-input"
-        onPressEnter={handleAsk}
-        className="mt-0 w-4/5"
-        suffix={
-          <Button type="primary" className="bg-blue-900" onClick={handleAsk}>
-            Ask
-          </Button>
-        }
-      />
     </>
   )
 }

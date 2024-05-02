@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { Modal, Form, Input, Button, Checkbox, Collapse, Select } from 'antd'
+import {
+  Modal,
+  Form,
+  Input,
+  Button,
+  Checkbox,
+  Collapse,
+  Select,
+  message,
+} from 'antd'
 import router from 'next/router'
 const { Panel } = Collapse
 interface EditChatbotQuestionModalProps {
@@ -17,7 +26,9 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
 }) => {
   const [form] = Form.useForm()
   const { cid } = router.query
+  // stores all related documents in db
   const [existingDocuments, setExistingDocuments] = useState([])
+  // stores selected documents for the question
   const [selectedDocuments, setSelectedDocuments] = useState([])
 
   useEffect(() => {
@@ -43,14 +54,20 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
     }
   }, [editingRecord, visible, form])
   const onFormSubmit = async (values) => {
-    const formattedSelectedDocuments = selectedDocuments.map((doc) => ({
-      docName: doc.docName,
-      sourceLink: doc.sourceLink,
-      pageNumbers: doc.pageNumbers.split(',').map(Number),
-    }))
+    values.sourceDocuments.forEach((doc) => {
+      if (typeof doc.pageNumbers === 'string') {
+        // Convert string to array of numbers, trimming spaces and ignoring empty entries
+        doc.pageNumbers = doc.pageNumbers
+          .split(',')
+          .map((page) => page.trim())
+          .filter((page) => page !== '')
+          .map((page) => parseInt(page, 10))
+      }
+    })
+
     const sourceDocumentsWithSelected = [
       ...(values.sourceDocuments || []),
-      ...formattedSelectedDocuments,
+      ...selectedDocuments,
     ]
 
     const valuesWithId = {
@@ -58,17 +75,21 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       id: editingRecord.id,
       sourceDocuments: sourceDocumentsWithSelected,
     }
+
     try {
-      const response = await fetch(`/chat/question`, {
+      const response = await fetch(`/chat/${cid}/question`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(valuesWithId),
       })
-      const json = await response.json()
+      if (!response.ok) {
+        throw new Error('Network response was not ok')
+      } else {
+        message.success('Question updated successfully')
+      }
       onSuccessfulUpdate()
-      return json
     } catch (error) {
       console.error('Error fetching from API:', error)
       return null
@@ -181,7 +202,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
                   (doc) => doc.docId === selectedDocId,
                 )
                 if (!isAlreadySelected) {
-                  return [...prev, { ...selectedDoc, pageNumbers: '' }]
+                  return [...prev, { ...selectedDoc, pageNumbers: [] }]
                 }
                 return prev
               })
@@ -204,10 +225,14 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
               value={doc.pageNumbers}
               onChange={(e) => {
                 const updatedPageNumbers = e.target.value
+                // Split by comma, trim whitespace, filter empty strings, convert to numbers
+                const pageNumbersArray = updatedPageNumbers
+                  .split(',')
+                  .map(Number)
                 setSelectedDocuments((prev) =>
                   prev.map((d, idx) =>
                     idx === index
-                      ? { ...d, pageNumbers: updatedPageNumbers }
+                      ? { ...d, pageNumbers: pageNumbersArray } // array of numbers
                       : d,
                   ),
                 )
@@ -215,6 +240,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
             />
           </div>
         ))}
+
         <Form.Item>
           <Button type="primary" htmlType="submit">
             Save Changes
