@@ -315,7 +315,6 @@ export default function ChatbotQuestions({
 
   const deleteQuestion = async (questionId) => {
     try {
-      console.log('Deleting question:', questionId)
       await fetch(`/chat/${courseId}/question/${questionId}`, {
         method: 'DELETE',
         headers: {
