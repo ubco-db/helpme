@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons'
 import router from 'next/router'
 import { useProfile } from '../../hooks/useProfile'
-import { Feedback } from '../Chatbot/components/Feedback'
+import axios from 'axios'
 
 const ChatbotContainer = styled.div`
   width: 100%;
@@ -52,8 +52,9 @@ export const ChatbotToday: React.FC = () => {
   const profile = useProfile()
   const [isLoading, setIsLoading] = useState(false)
   const [interactionId, setInteractionId] = useState<number | null>(null)
-  const [preDeterminedQuestions, setPreDeterminedQuestions] =
-    useState<PreDeterminedQuestion[]>(null)
+  const [preDeterminedQuestions, setPreDeterminedQuestions] = useState<
+    PreDeterminedQuestion[]
+  >([])
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -65,6 +66,18 @@ export const ChatbotToday: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
+    axios.get(`/chat/${cid}/allSuggestedQuestions`).then((res) => {
+      console.log(res.data)
+      res.data.forEach((question) => {
+        setPreDeterminedQuestions((prev) => [
+          ...prev,
+          {
+            question: question.pageContent,
+            answer: question.metadata.answer,
+          },
+        ])
+      })
+    })
     return () => {
       setInteractionId(null)
     }
@@ -148,19 +161,7 @@ export const ChatbotToday: React.FC = () => {
         message: answer,
       },
     ])
-  }
-
-  const handleFeedback = async (questionId: number, userScore: number) => {
-    try {
-      await API.chatbot.editQuestion({
-        data: {
-          userScore,
-        },
-        questionId,
-      })
-    } catch (e) {
-      console.log(e)
-    }
+    setPreDeterminedQuestions([])
   }
 
   if (!cid) {
@@ -171,7 +172,7 @@ export const ChatbotToday: React.FC = () => {
       <ChatbotContainer>
         <Card
           title="Course chatbot"
-          className=" flex h-full max-h-[750px] w-full flex-col overflow-y-auto"
+          className=" flex h-full max-h-[85vh] w-full flex-col overflow-y-auto"
         >
           <div className="grow-1 overflow-y-auto">
             {messages &&
@@ -216,16 +217,6 @@ export const ChatbotToday: React.FC = () => {
                               </Tooltip>
                             )}
                           </div>
-                          {item.questionId && (
-                            <div className="hidden items-center justify-end gap-2 group-hover:flex">
-                              <div className="flex w-fit gap-2 rounded-xl bg-slate-100 px-3 py-2">
-                                <Feedback
-                                  questionId={item.questionId}
-                                  handleFeedback={handleFeedback}
-                                />
-                              </div>
-                            </div>
-                          )}
                         </div>
                         <div className="flex flex-col gap-1">
                           {item.sourceDocuments &&

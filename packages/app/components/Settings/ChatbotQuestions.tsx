@@ -1,5 +1,6 @@
 import {
   Button,
+  Checkbox,
   Form,
   Input,
   Modal,
@@ -7,6 +8,7 @@ import {
   Select,
   Switch,
   Table,
+  Tooltip,
   message,
 } from 'antd'
 import React, { ReactElement, useEffect, useState } from 'react'
@@ -15,6 +17,8 @@ import toast from 'react-hot-toast'
 import ExpandableText from '../common/ExpandableText'
 import EditChatbotQuestionModal from './EditChatbotQuestionModal'
 import { add, get, set } from 'lodash'
+import { title } from 'process'
+import { on } from 'events'
 
 interface Loc {
   pageNumber: number
@@ -40,6 +44,7 @@ interface IncomingQuestionData {
     courseId: string
     verified: boolean
     sourceDocuments: SourceDocument[]
+    suggested: boolean
   }
 }
 
@@ -96,26 +101,6 @@ export default function ChatbotQuestions({
       render: (text) => <ExpandableText text={text} />,
     },
     {
-      title: 'Verified',
-      dataIndex: 'verified',
-      key: 'verified',
-      sorter: (a, b) => a.verified - b.verified,
-      filters: [
-        { text: 'Verified', value: true },
-        { text: 'Not Verified', value: false },
-      ],
-      onFilter: (value, record) => record.verified === value,
-      render: (verified) => (
-        <span
-          className={`rounded px-2 py-1 ${
-            verified ? 'bg-green-100' : 'bg-red-100'
-          }`}
-        >
-          {verified ? 'Verified' : 'Unverified'}
-        </span>
-      ),
-    },
-    {
       title: 'Source Documents',
       dataIndex: 'sourceDocuments',
       key: 'sourceDocuments',
@@ -152,32 +137,46 @@ export default function ChatbotQuestions({
         )
       },
     },
-    // {
-    //   title: () => (
-    //     <>
-    //       <Tooltip
-    //         title="Suggest this question to students when they initially start with the chatbot."
-    //         trigger="click"
-    //         defaultOpen
-    //       >
-    //         <p>Suggested</p>
-    //       </Tooltip>
-    //     </>
-    //   ),
-    //   dataIndex: 'suggested',
-    //   key: 'suggested',
-    //   render: (text, record, index) => {
-    //     return (
-    //       <Checkbox
-    //         disabled={loading}
-    //         checked={record.suggested}
-    //         onChange={(e) => {
-    //           toggleSuggested(e.target.checked, index, record.id)
-    //         }}
-    //       />
-    //     )
-    //   },
-    // },
+    {
+      title: 'Verified',
+      dataIndex: 'verified',
+      key: 'verified',
+      sorter: (a, b) => a.verified - b.verified,
+      filters: [
+        { text: 'Verified', value: true },
+        { text: 'Not Verified', value: false },
+      ],
+      onFilter: (value, record) => record.verified === value,
+      render: (verified) => (
+        <span
+          className={`rounded px-2 py-1 ${
+            verified ? 'bg-green-100' : 'bg-red-100'
+          }`}
+        >
+          {verified ? 'Verified' : 'Unverified'}
+        </span>
+      ),
+    },
+    {
+      title: 'Suggested',
+      dataIndex: 'suggested',
+      key: 'suggested',
+      sorter: (a, b) => a.suggested - b.suggested,
+      filters: [
+        { text: 'Suggested', value: true },
+        { text: 'Not Suggested', value: false },
+      ],
+      onFilter: (value, record) => record.suggested === value,
+      render: (suggested) => (
+        <span
+          className={`rounded px-2 py-1 ${
+            suggested ? 'bg-green-100' : 'bg-red-100'
+          }`}
+        >
+          {suggested ? 'Yes' : 'No'}
+        </span>
+      ),
+    },
     {
       title: 'Edit',
       dataIndex: 'edit',
@@ -215,31 +214,6 @@ export default function ChatbotQuestions({
     getQuestions()
   }, [editingRecord])
 
-  // const toggleSuggested = async (newValue, index, questionId) => {
-  //   // TODO: Loading & contextual disabling
-  //   setLoading(true)
-  //   try {
-  //     await API.chatbot.editQuestion({
-  //       data: {
-  //         suggested: newValue,
-  //       },
-  //       questionId,
-  //     })
-
-  //     setChatQuestions((prev) => {
-  //       const newChatQuestions = [...prev]
-  //       newChatQuestions[index] = {
-  //         ...newChatQuestions[index],
-  //         suggested: newValue,
-  //       }
-  //       return newChatQuestions
-  //     })
-  //   } catch (e) {
-  //     console.log(e)
-  //   }
-  //   setLoading(false)
-  // }
-
   const showModal = (record) => {
     setEditingRecord(record)
     setEditRecordModalVisible(true)
@@ -265,7 +239,7 @@ export default function ChatbotQuestions({
         answer: question.metadata.answer,
         verified: question.metadata.verified,
         sourceDocuments: question.metadata.sourceDocuments,
-        suggested: false,
+        suggested: question.metadata.suggested,
       }))
 
       setChatQuestions(parsedQuestions)
@@ -299,6 +273,7 @@ export default function ChatbotQuestions({
           question: formData.questionText,
           answer: formData.responseText,
           verified: formData.verified,
+          suggested: formData.suggested,
           sourceDocuments: selectedDocuments,
         }),
       })
@@ -330,7 +305,7 @@ export default function ChatbotQuestions({
   }
 
   return (
-    <div className="m-auto my-5 max-w-[800px]">
+    <div className="m-auto my-5 max-w-[1000px]">
       <Modal
         title="Create a new question for your students!"
         open={addModelOpen}
@@ -377,7 +352,14 @@ export default function ChatbotQuestions({
           >
             <Switch />
           </Form.Item>
-
+          <Form.Item
+            label="Suggested"
+            name="suggested"
+            valuePropName="checked"
+            initialValue={false}
+          >
+            <Switch />
+          </Form.Item>
           <Select
             className="my-4"
             placeholder="Select a document to add"

@@ -6,14 +6,15 @@ import { API } from '@koh/api-client'
 import { UserOutlined, RobotOutlined } from '@ant-design/icons'
 import router from 'next/router'
 import { useProfile } from '../../hooks/useProfile'
-import { Feedback } from './components/Feedback'
 import useSWR from 'swr'
+import axios from 'axios'
+import { ThumbsDown, ThumbsUp } from 'lucide-react'
 
 const ChatbotContainer = styled.div`
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 90vw;
+  width: 100vw;
   max-width: 400px;
   zindex: 9999;
 `
@@ -43,7 +44,9 @@ export const ChatbotComponent: React.FC = () => {
   const profile = useProfile()
   const [isLoading, setIsLoading] = useState(false)
   const [interactionId, setInteractionId] = useState<number | null>(null)
-  const [preDeterminedQuestions] = useState<PreDeterminedQuestion[]>(null)
+  const [preDeterminedQuestions, setPreDeterminedQuestions] = useState<
+    PreDeterminedQuestion[]
+  >([])
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -61,6 +64,18 @@ export const ChatbotComponent: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
+    axios.get(`/chat/${cid}/allSuggestedQuestions`).then((res) => {
+      console.log(res.data)
+      res.data.forEach((question) => {
+        setPreDeterminedQuestions((prev) => [
+          ...prev,
+          {
+            question: question.pageContent,
+            answer: question.metadata.answer,
+          },
+        ])
+      })
+    })
     return () => {
       setInteractionId(null)
     }
@@ -120,19 +135,7 @@ export const ChatbotComponent: React.FC = () => {
         message: answer,
       },
     ])
-  }
-
-  const handleFeedback = async (questionId: number, userScore: number) => {
-    try {
-      await API.chatbot.editQuestion({
-        data: {
-          userScore,
-        },
-        questionId,
-      })
-    } catch (e) {
-      console.log(e)
-    }
+    setPreDeterminedQuestions([])
   }
 
   if (!cid || !courseFeatures?.chatBotEnabled) {
@@ -180,17 +183,6 @@ export const ChatbotComponent: React.FC = () => {
                               </Tooltip>
                             )}
                           </div>
-
-                          {item.questionId && (
-                            <div className="hidden items-center justify-end gap-2 group-hover:flex">
-                              <div className="flex w-fit gap-2 rounded-xl bg-slate-100 px-3 py-2">
-                                <Feedback
-                                  questionId={item.questionId}
-                                  handleFeedback={handleFeedback}
-                                />
-                              </div>
-                            </div>
-                          )}
                         </div>
                         <div className="flex flex-col gap-1">
                           {item.sourceDocuments &&
@@ -236,7 +228,6 @@ export const ChatbotComponent: React.FC = () => {
 
             {preDeterminedQuestions &&
               !isLoading &&
-              messages.length < 2 &&
               preDeterminedQuestions.map((question) => (
                 <div
                   className="align-items-start m-1 mb-1 flex justify-end"
