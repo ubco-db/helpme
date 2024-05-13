@@ -1,10 +1,20 @@
-import { Button, Form, Input, Modal, Pagination, Table, message } from 'antd'
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  Pagination,
+  Select,
+  Switch,
+  Table,
+  message,
+} from 'antd'
 import React, { ReactElement, useEffect, useState } from 'react'
 import { API } from '@koh/api-client'
 import toast from 'react-hot-toast'
 import ExpandableText from '../common/ExpandableText'
 import EditChatbotQuestionModal from './EditChatbotQuestionModal'
-import { get, set } from 'lodash'
+import { add, get, set } from 'lodash'
 
 interface Loc {
   pageNumber: number
@@ -49,12 +59,27 @@ export default function ChatbotQuestions({
   const [form] = Form.useForm()
   const [addModelOpen, setAddModelOpen] = useState(false)
   const [search, setSearch] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
   const [editingRecord, setEditingRecord] = useState(null)
   const [editRecordModalVisible, setEditRecordModalVisible] = useState(false)
-  const [totalQuestions, setTotalQuestions] = useState(0)
   const [chatQuestions, setChatQuestions] = useState<ChatbotQuestion[]>([])
+  const [existingDocuments, setExistingDocuments] = useState([])
+  const [selectedDocuments, setSelectedDocuments] = useState([])
+
+  useEffect(() => {
+    fetch(`/chat/${courseId}/aggregateDocuments`)
+      .then((res) => res.json())
+      .then((json) => {
+        // Convert the json to the expected format
+        const formattedDocuments = json.map((doc) => ({
+          docId: doc.id,
+          docName: doc.pageContent,
+          sourceLink: doc.metadata.source,
+          pageNumbers: [],
+        }))
+        setExistingDocuments(formattedDocuments)
+      })
+  }, [addModelOpen, courseId])
+
   const columns = [
     {
       title: 'Question',
@@ -161,6 +186,29 @@ export default function ChatbotQuestions({
         <Button onClick={() => showModal(record)}>Edit</Button>
       ),
     },
+    {
+      title: 'Delete',
+      dataIndex: 'delete',
+      key: 'delete',
+      render: (_, record) => (
+        <Button
+          onClick={() => {
+            Modal.confirm({
+              title: 'Are you sure you want to delete this question?',
+              content: 'This action cannot be undone.',
+              okText: 'Yes',
+              okType: 'danger',
+              cancelText: 'No',
+              onOk() {
+                deleteQuestion(record.id)
+              },
+            })
+          }}
+        >
+          Delete
+        </Button>
+      ),
+    },
   ]
 
   useEffect(() => {
@@ -221,7 +269,6 @@ export default function ChatbotQuestions({
       }))
 
       setChatQuestions(parsedQuestions)
-      setTotalQuestions(parsedQuestions.length)
     } catch (e) {
       console.error('Failed to fetch questions:', e)
       toast.error('Failed to load questions.')
@@ -232,19 +279,54 @@ export default function ChatbotQuestions({
     const formData = await form.validateFields()
 
     try {
-      await API.chatbot.createQuestion({
-        questionText: formData.questionText,
-        responseText: formData.responseText,
-        suggested: formData.suggested,
+      selectedDocuments.forEach((doc) => {
+        if (typeof doc.pageNumbers === 'string') {
+          // Convert string to array of numbers, trimming spaces and ignoring empty entries
+          doc.pageNumbers = doc.pageNumbers
+            .split(',')
+            .map((page) => page.trim())
+            .filter((page) => page !== '')
+            .map((page) => parseInt(page, 10))
+        }
+      })
+
+      await fetch(`/chat/${courseId}/question`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: formData.questionText,
+          answer: formData.responseText,
+          verified: formData.verified,
+          sourceDocuments: selectedDocuments,
+        }),
       })
 
       getQuestions()
       setAddModelOpen(false)
       toast.success('Question added.')
     } catch (e) {
-      toast.error('Failed to add question.')
+      toast.error('Failed to add question.' + e)
     } finally {
       form.resetFields()
+    }
+  }
+
+  const deleteQuestion = async (questionId) => {
+    try {
+      console.log('Deleting question:', questionId)
+      await fetch(`/chat/${courseId}/question/${questionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      getQuestions()
+      toast.success('Question deleted.')
+    } catch (e) {
+      toast.error('Failed to delete question.')
     }
   }
 
@@ -265,23 +347,90 @@ export default function ChatbotQuestions({
       >
         <Form form={form}>
           <Form.Item
+            label="Question"
             name="questionText"
-            rules={[{ required: true, message: 'Please provide a question.' }]}
+            rules={[
+              {
+                required: true,
+                message: 'Please input a question!',
+              },
+            ]}
           >
-            <Input placeholder="Question" />
+            <Input />
           </Form.Item>
           <Form.Item
+            label="Answer"
             name="responseText"
-            rules={[{ required: true, message: 'Please provide an answer.' }]}
+            rules={[
+              {
+                required: true,
+                message: 'Please input an answer!',
+              },
+            ]}
           >
-            <Input placeholder="Answer" />
+            <Input />
           </Form.Item>
-          <Form.Item name="suggested" valuePropName="checked">
-            <div className="flex gap-2">
-              <input type="checkbox" />
-              <p>Suggested</p>
+          <Form.Item
+            label="Verified"
+            name="verified"
+            valuePropName="checked"
+            initialValue={true}
+          >
+            <Switch />
+          </Form.Item>
+
+          <Select
+            className="my-4"
+            placeholder="Select a document to add"
+            style={{ width: '100%' }}
+            onSelect={(selectedDocId) => {
+              const selectedDoc = existingDocuments.find(
+                (doc) => doc.docId === selectedDocId,
+              )
+              if (selectedDoc) {
+                setSelectedDocuments((prev) => {
+                  const isAlreadySelected = prev.some(
+                    (doc) => doc.docId === selectedDocId,
+                  )
+                  if (!isAlreadySelected) {
+                    return [...prev, { ...selectedDoc, pageNumbers: [] }]
+                  }
+                  return prev
+                })
+              }
+            }}
+          >
+            {existingDocuments.map((doc) => (
+              <Select.Option key={doc.docId} value={doc.docId}>
+                {doc.docName}
+              </Select.Option>
+            ))}
+          </Select>
+
+          {selectedDocuments.map((doc, index) => (
+            <div key={doc.docId}>
+              <span className="font-bold">{doc.docName}</span>
+              <Input
+                type="text"
+                placeholder="Enter page numbers (comma separated)"
+                value={doc.pageNumbers}
+                onChange={(e) => {
+                  const updatedPageNumbers = e.target.value
+                  // Split by comma, trim whitespace, filter empty strings, convert to numbers
+                  const pageNumbersArray = updatedPageNumbers
+                    .split(',')
+                    .map(Number)
+                  setSelectedDocuments((prev) =>
+                    prev.map((d, idx) =>
+                      idx === index
+                        ? { ...d, pageNumbers: pageNumbersArray } // array of numbers
+                        : d,
+                    ),
+                  )
+                }}
+              />
             </div>
-          </Form.Item>
+          ))}
         </Form>
       </Modal>
       <div className="flex w-full items-center justify-between">
@@ -293,7 +442,7 @@ export default function ChatbotQuestions({
             View and manage the questions being asked of your chatbot
           </p>
         </div>
-        {/* <Button onClick={() => setAddModelOpen(true)}>Add Question</Button> */}
+        <Button onClick={() => setAddModelOpen(true)}>Add Question</Button>
       </div>
       <hr className="my-5 w-full"></hr>
       <Input
@@ -309,24 +458,15 @@ export default function ChatbotQuestions({
       <Table
         columns={columns}
         dataSource={chatQuestions}
-        style={{ maxWidth: '800px' }}
-        pagination={false}
+        style={{ maxWidth: '1000px' }}
+        pagination={{ pageSize: 7 }}
       />
+
       <EditChatbotQuestionModal
         editingRecord={editingRecord}
         visible={editRecordModalVisible}
         setEditingRecord={setEditRecordModalVisible}
         onSuccessfulUpdate={getQuestions}
-      />
-      <Pagination
-        style={{ float: 'right' }}
-        current={currentPage}
-        pageSize={pageSize}
-        total={totalQuestions}
-        onChange={(page) => setCurrentPage(page)}
-        pageSizeOptions={[10, 20, 30, 50]}
-        showSizeChanger
-        onShowSizeChange={(current, pageSize) => setPageSize(pageSize)}
       />
     </div>
   )
