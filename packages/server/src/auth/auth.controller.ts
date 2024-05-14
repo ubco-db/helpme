@@ -131,7 +131,7 @@ export class AuthController {
         token,
         token_type: TokenType.EMAIL_VERIFICATION,
         token_action: TokenAction.ACTION_PENDING,
-        user: { id: (req.user as RequestUser).userId },
+        user: { id: Number((req.user as RequestUser).userId) },
       },
       relations: ['user'],
     });

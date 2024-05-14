@@ -13,7 +13,7 @@ import { ProfileService } from './profile.service';
 import { MailService } from 'mail/mail.service';
 import { UserModel } from './user.entity';
 
-jest.useFakeTimers();
+jest.useRealTimers();
 
 // Let's revisit theses tests later, we need to create new one since we changed a lot of the logic
 describe('ProfileService', () => {

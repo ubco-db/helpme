@@ -10,7 +10,6 @@ export class SetSemesterCommand {
   @Command({
     command: 'semester:toggleActiveSemester  <mode> <semester> <year>',
     describe: '(disable or enable) all the classes in a given semester',
-    autoExit: true,
   })
   async create(
     @Positional({
@@ -96,9 +95,6 @@ export class SetSemesterCommand {
 
   async getSemester(sea: Season, year: number) {
     // we need to some id matching
-    return await SemesterModel.findOne({
-      season: sea,
-      year: year,
-    });
+    return await SemesterModel.findOne({ where: { season: sea, year: year } });
   }
 }

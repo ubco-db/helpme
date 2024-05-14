@@ -65,7 +65,7 @@ export class QuestionService {
       oldStatus !== OpenQuestionStatus.Helping &&
       newStatus === OpenQuestionStatus.Helping
     ) {
-      question.taHelped = await UserModel.findOne(userId);
+      question.taHelped = await UserModel.findOne({ where: { id: userId } });
       question.helpedAt = new Date();
 
       // Set firstHelpedAt if it hasn't already
