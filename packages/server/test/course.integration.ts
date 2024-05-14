@@ -29,7 +29,6 @@ import {
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
-import s from 'connect-redis';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 
 describe('Course Integration', () => {

@@ -23,6 +23,7 @@ export const TestTypeOrmModule = TypeOrmModule.forRoot({
   database: 'test',
   entities: ['./**/*.entity.ts'],
   synchronize: true,
+  keepConnectionAlive: true,
 });
 
 export const TestConfigModule = ConfigModule.forRoot({
