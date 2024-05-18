@@ -39,7 +39,6 @@ import async from 'async';
 import { Response, Request } from 'express';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
-import { Connection } from 'typeorm';
 import { Roles } from '../decorators/roles.decorator';
 import { User, UserId } from '../decorators/user.decorator';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
@@ -47,7 +46,6 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { UserModel } from '../profile/user.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { CourseModel } from './course.entity';
-import { QueueCleanService } from '../queue/queue-clean/queue-clean.service';
 import { QueueSSEService } from '../queue/queue-sse.service';
 import { CourseService } from './course.service';
 import { HeatmapService } from './heatmap.service';
@@ -56,13 +54,13 @@ import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
 export class CourseController {
   constructor(
-    private connection: Connection,
-    private queueCleanService: QueueCleanService,
+    private configService: ConfigService,
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
     private courseService: CourseService,
@@ -209,6 +207,15 @@ export class CourseController {
       organizationCourse: organization,
       courseInviteCode: courseWithOrganization.courseInviteCode,
     };
+
+    res.cookie(
+      '__SECURE_REDIRECT',
+      Buffer.from(`/course/${id}/invite?code=${code}`).toString('base64'),
+      {
+        httpOnly: true,
+        secure: this.isSecure(),
+      },
+    );
 
     res.status(HttpStatus.OK).send(course_response);
     return;
@@ -679,15 +686,6 @@ export class CourseController {
     return users;
   }
 
-  @Post(':id/self_enroll')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
-  @Roles(Role.PROFESSOR)
-  async toggleSelfEnroll(@Param('id') courseId: number): Promise<void> {
-    const course = await CourseModel.findOne(courseId);
-    course.selfEnroll = !course.selfEnroll;
-    await course.save();
-  }
-
   @Post('enroll_by_invite_code/:code')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async enrollCourseByInviteCode(
@@ -731,20 +729,14 @@ export class CourseController {
 
     await this.courseService
       .addStudentToCourse(course.course, user)
-      .then((resp) => {
-        if (resp) {
-          res
-            .status(HttpStatus.OK)
-            .send({ message: 'User is added to this course' });
-        } else {
-          res.status(HttpStatus.BAD_REQUEST).send({
-            message:
-              'User cannot be added to course. Please check if the user is already in the course',
-          });
-        }
+      .then(() => {
+        res.clearCookie('__SECURE_REDIRECT', {
+          httpOnly: true,
+          secure: this.isSecure(),
+        });
+        res.status(HttpStatus.OK).send();
       })
       .catch((err) => {
-        console.log(err);
         res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
       });
     return;
@@ -910,5 +902,9 @@ export class CourseController {
     });
 
     return response;
+  }
+
+  private isSecure(): boolean {
+    return this.configService.get<string>('DOMAIN').startsWith('https://');
   }
 }

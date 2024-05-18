@@ -33,6 +33,7 @@ import {
 } from 'profile/user-token.entity';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import * as bcrypt from 'bcrypt';
+import { getCookie } from '../common/helpers';
 
 interface RequestUser {
   userId: string;
@@ -54,7 +55,6 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
     @Param('oid') organizationId: number,
-    @Query('lastVisited') lastVisited: string,
   ): Promise<any> {
     const organization = await OrganizationModel.findOne({
       where: { id: organizationId },
@@ -86,7 +86,7 @@ export class AuthController {
         organizationId,
       );
 
-      this.enter(res, userId, decodeURIComponent(lastVisited));
+      this.enter(req, res, userId);
     } catch (err) {
       return res.redirect(`/auth/failed/40001`);
     }
@@ -152,10 +152,17 @@ export class AuthController {
     emailToken.user.emailVerified = true;
     await emailToken.user.save();
     await emailToken.save();
+    const cookie = getCookie(req, '__SECURE_REDIRECT');
 
-    return res.status(HttpStatus.ACCEPTED).send({
-      message: 'Email verified',
-    });
+    if (cookie) {
+      return res.status(HttpStatus.TEMPORARY_REDIRECT).send({
+        redirectUri: Buffer.from(cookie, 'base64').toString('utf-8'),
+      });
+    } else {
+      return res.status(HttpStatus.ACCEPTED).send({
+        message: 'Email verified',
+      });
+    }
   }
 
   @Get('/password/reset/validate/:token')
@@ -411,7 +418,6 @@ export class AuthController {
         })
         .send({ message: 'Account created' });
     } catch (err) {
-      console.log(err);
       return res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
     }
   }
@@ -423,7 +429,7 @@ export class AuthController {
     @Query('code') auth_code: string,
     @Req() req: Request,
   ): Promise<Response<void>> {
-    const organizationId = this.getCookie(req, 'organization.id');
+    const organizationId = getCookie(req, 'organization.id');
 
     if (!organizationId) {
       res.redirect(`/auth/failed/40000`);
@@ -449,35 +455,15 @@ export class AuthController {
           secure: this.isSecure(),
         });
 
-        this.enter(res, payload);
+        this.enter(req, res, payload);
       } catch (err) {
         res.redirect(`/auth/failed/40001`);
       }
     }
   }
 
-  private getCookie(req: Request, cookieName: string): string {
-    const cookieHeader = req.headers.cookie;
-
-    if (!cookieHeader) {
-      return null;
-    }
-
-    const cookies: string[] = cookieHeader.split(';');
-    for (const cookie of cookies) {
-      const [name, value] = cookie.split('=');
-      if (name.trim() === cookieName) {
-        return value;
-      }
-    }
-  }
-
-  private async enter(res: Response, userId: number, lastVisited?: string) {
-    // Expires in 30 days
-    const authToken = await this.jwtService.signAsync({
-      userId,
-      expiresIn: 60 * 60 * 24 * 30,
-    });
+  private async enter(req: Request, res: Response, userId: number) {
+    const authToken = await this.createAuthToken(userId);
 
     if (authToken === null || authToken === undefined) {
       return res
@@ -485,14 +471,16 @@ export class AuthController {
         .send({ message: ERROR_MESSAGES.loginController.invalidTempJWTToken });
     }
 
-    const redirectUrl =
-      lastVisited && lastVisited !== 'undefined' ? lastVisited : '/courses';
+    const cookie = getCookie(req, '__SECURE_REDIRECT');
+    const redirectUrl = cookie
+      ? Buffer.from(cookie, 'base64').toString('utf-8')
+      : '/courses';
 
-    const isSecure = this.configService
-      .get<string>('DOMAIN')
-      .startsWith('https://');
     res
-      .cookie('auth_token', authToken, { httpOnly: true, secure: isSecure })
+      .cookie('auth_token', authToken, {
+        httpOnly: true,
+        secure: this.isSecure(),
+      })
       .redirect(HttpStatus.FOUND, redirectUrl);
   }
 

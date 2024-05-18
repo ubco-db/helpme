@@ -21,10 +21,6 @@ export default function Invite(): ReactElement {
   const cardMetaDescription = `This course is managed by ${course?.organizationCourse.name}`
 
   useEffect(() => {
-    if (!profile) {
-      localStorage.setItem('lastVisited', window.location.href)
-    }
-
     const fetchData = async () => {
       try {
         const response = await API.course.getLimitedCourseResponse(
@@ -43,7 +39,6 @@ export default function Invite(): ReactElement {
 
   const addStudent = async (userData: UBCOuserParam) => {
     await API.course.enrollByInviteCode(userData, String(code))
-    localStorage.removeItem('lastVisited')
     router.push('/courses')
   }
 
@@ -51,7 +46,6 @@ export default function Invite(): ReactElement {
     profile &&
     profile.courses.some((userCourse) => userCourse.course.id === Number(cid))
   ) {
-    localStorage.removeItem('lastVisited')
     router.push('/courses')
   }
 
@@ -100,7 +94,6 @@ export default function Invite(): ReactElement {
       {},
       'Back to my courses',
       () => {
-        localStorage.removeItem('lastVisited')
         router.push('/courses')
       },
     )
@@ -110,7 +103,6 @@ export default function Invite(): ReactElement {
       {},
       'Back to my courses',
       () => {
-        localStorage.removeItem('lastVisited')
         router.push('/courses')
       },
     )

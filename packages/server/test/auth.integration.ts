@@ -198,6 +198,43 @@ describe('Auth Integration', () => {
       expect(res.status).toBe(302);
       expect(res.header['location']).toBe('/courses');
     });
+
+    it('should sign in and redirect to /course/:cid/invite when __SECURE_REDIRECT cookie is present', async () => {
+      const organization = await OrganizationFactory.create({
+        ssoEnabled: true,
+      });
+      await UserFactory.create({
+        email: 'mocked_email@ubc.ca',
+        accountType: AccountType.SHIBBOLETH,
+      });
+
+      const res = await supertest()
+        .get(`/auth/shibboleth/${organization.id}`)
+        .set(
+          'Cookie',
+          `__SECURE_REDIRECT=${Buffer.from(`/course/1/invite`).toString(
+            'base64',
+          )}`,
+        )
+        .set('x-trust-auth-uid', '1')
+        .set('x-trust-auth-mail', 'mocked_email@ubc.ca')
+        .set('x-trust-auth-role', 'student@ubc.ca')
+        .set('x-trust-auth-givenname', 'John')
+        .set('x-trust-auth-lastname', 'Doe');
+
+      await mockAuthService.loginWithShibboleth(
+        'mocked_email@ubc.ca',
+        'student@ubc.ca',
+        'John',
+        'Doe',
+        organization.id,
+      );
+
+      await mockJWT.signAsync({ userId: 1 });
+
+      expect(res.status).toBe(302);
+      expect(res.header['location']).toBe('/course/1/invite');
+    });
   });
 
   describe('GET callback/:method', () => {
@@ -705,6 +742,32 @@ describe('Auth Integration', () => {
       });
 
       expect(res.status).toBe(202);
+    });
+
+    it('should return TEMPORARY REDIRECT when __SECURE_REDIRECT cookie is present', async () => {
+      const user = await UserFactory.create();
+      await mockJWT.signAsync({ userId: user.id });
+
+      const userToken = await UserTokenModel.create({
+        user,
+        token: 'valid',
+        token_type: TokenType.EMAIL_VERIFICATION,
+        token_action: TokenAction.ACTION_PENDING,
+        created_at: parseInt(new Date().getTime().toString()),
+        expires_at: parseInt(new Date().getTime().toString()) + 20_000,
+      }).save();
+
+      const res = await supertest()
+        .post('/auth/registration/verify')
+        .set(
+          'Cookie',
+          `__SECURE_REDIRECT=${Buffer.from(`/course`).toString('base64')}`,
+        )
+        .send({
+          token: userToken.token,
+        });
+
+      expect(res.status).toBe(307);
     });
   });
 });

@@ -3,7 +3,6 @@ import React, { ReactElement, useEffect } from 'react'
 import { StandardPageContainer } from '../components/common/PageContainer'
 import { useProfile } from '../hooks/useProfile'
 import { Button, Card, Form, Input, Spin, message } from 'antd'
-import Router from 'next/router'
 
 export default function Verify(): ReactElement {
   const profile = useProfile()
@@ -31,6 +30,11 @@ export default function Verify(): ReactElement {
     }
     fetch('api/v1/auth/registration/verify', request).then(async (response) => {
       const data = await response.json()
+
+      if (response.status == 307) {
+        window.location.href = data.redirectUri
+        return
+      }
       if (!response.ok) {
         const error = (data && data.message) || response.statusText
         message.error(error)
