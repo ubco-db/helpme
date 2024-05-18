@@ -7,7 +7,6 @@ import {
 } from '@ant-design/icons'
 import { Collapse } from 'antd'
 import { API } from '@koh/api-client'
-import { useWindowWidth } from '@react-hook/window-size'
 import { Button, Col, Menu, message, Row, Skeleton, Space, Upload } from 'antd'
 import React, { ReactElement, useEffect, useState } from 'react'
 import styled from 'styled-components'
@@ -59,7 +58,9 @@ export default function SettingsPage({
   )
   const [uploading, setUploading] = useState(false)
   const isMobile = useIsMobile()
-  const windowWidth = useWindowWidth()
+  // since this code runs on both client and server, we need to check if window is defined
+  const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 0
+
   const [avatarSize, setAvatarSize] = useState(windowWidth / 2)
 
   useEffect(() => {
