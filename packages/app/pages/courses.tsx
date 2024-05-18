@@ -137,7 +137,7 @@ export default function Courses(): ReactElement {
         src={`/api/v1/organization/${profile?.organization.orgId}/get_banner/${profile?.organization.organizationBannerUrl}`}
         style={{
           width: '100%',
-          height: '40vh',
+          height: '20vh',
           objectFit: 'cover',
           objectPosition: 'center',
         }}
