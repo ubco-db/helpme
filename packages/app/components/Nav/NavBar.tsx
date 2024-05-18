@@ -9,8 +9,7 @@ import { useRoleInCourse } from '../../hooks/useRoleInCourse'
 import AlertsContainer from './AlertsContainer'
 import NavBarTabs, { NavBarTabsItem } from './NavBarTabs'
 import ProfileDrawer from './ProfileDrawer'
-import useSWR from 'swr'
-import { API } from '@koh/api-client'
+import { useCourseFeatures } from '../../hooks/useCourseFeatures'
 
 const Nav = styled.nav`
   padding: 0px 0px;
@@ -125,10 +124,7 @@ export default function NavBar({ courseId }: NavBarProps): ReactElement {
 
   const openQueues = course?.queues?.filter((queue) => queue.isOpen)
 
-  const { data: courseFeatures } = useSWR(
-    `${courseId}/features`,
-    async () => await API.course.getCourseFeatures(courseId),
-  )
+  const courseFeatures = useCourseFeatures(courseId)
 
   const showDrawer = () => {
     setVisible(true)
