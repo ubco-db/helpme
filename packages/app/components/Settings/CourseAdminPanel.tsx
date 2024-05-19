@@ -26,8 +26,7 @@ import ChatbotQuestions from './ChatbotQuestions'
 import ToggleFeaturesPage from './ToggleFeaturesPage'
 import { ToasterProvider } from '../../providers/toast-provider'
 import EditCourse from './EditCourse'
-import useSWR from 'swr'
-import { API } from '@koh/api-client'
+import { useCourseFeatures } from '../../hooks/useCourseFeatures'
 
 export enum CourseAdminOptions {
   CHECK_IN = 'CHECK_IN',
@@ -63,10 +62,8 @@ export default function CourseAdminPanel({
 }: CourseAdminPageProps): ReactElement {
   const role = useRoleInCourse(Number(courseId))
   const profile = useProfile()
-  const { data: courseFeatures } = useSWR(
-    `${Number(courseId)}/features`,
-    async () => await API.course.getCourseFeatures(Number(courseId)),
-  )
+  const courseFeatures = useCourseFeatures(courseId)
+
   const [currentSettings, setCurrentSettings] = useState(
     defaultPage ||
       (courseFeatures?.queueEnabled

@@ -3,7 +3,8 @@ import { API } from '@koh/api-client'
 import { Form, Spin, message, Switch, Tooltip } from 'antd'
 import { ReactElement } from 'react'
 import styled from 'styled-components'
-import useSWR, { mutate } from 'swr'
+import { mutate } from 'swr'
+import { useCourseFeatures } from '../../hooks/useCourseFeatures'
 
 type ToggleFeaturesPageProps = { courseId: number }
 
@@ -79,10 +80,7 @@ const FeatureSwitch = ({
 export default function ToggleFeaturesPage({
   courseId,
 }: ToggleFeaturesPageProps): ReactElement {
-  const { data: courseFeatures } = useSWR(
-    `${courseId}/features`,
-    async () => await API.course.getCourseFeatures(courseId),
-  )
+  const courseFeatures = useCourseFeatures(courseId)
 
   if (!courseFeatures) {
     return <Spin tip="Loading..." size="large" />
