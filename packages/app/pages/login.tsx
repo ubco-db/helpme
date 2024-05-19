@@ -66,7 +66,9 @@ export default function Login(): ReactElement {
     Router.push(redirectURL)
   }
 
-  function login() {
+  async function login() {
+    const token = await recaptchaRef.current.executeAsync()
+
     if (organization && !organization.legacyAuthEnabled) {
       message.error('Organization does not support legacy authentication')
       return
@@ -78,6 +80,7 @@ export default function Login(): ReactElement {
       body: JSON.stringify({
         email: uname,
         password: pass,
+        recaptchaToken: token,
       }),
     }
 

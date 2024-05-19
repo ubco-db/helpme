@@ -48,6 +48,7 @@ import { ConfigService } from '@nestjs/config';
 import { MailService } from 'mail/mail.service';
 import { OrganizationService } from '../organization/organization.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { ChatTokenModel } from 'chatbot/chat-token.entity';
 @Controller('profile')
 export class ProfileController {
   constructor(
@@ -143,7 +144,7 @@ export class ProfileController {
   @Get()
   @UseGuards(JwtAuthGuard)
   async get(
-    @User(['courses', 'courses.course', 'desktopNotifs'])
+    @User(['courses', 'courses.course', 'desktopNotifs', 'chat_token'])
     user: UserModel,
   ): Promise<GetProfileResponse> {
     if (user === null || user === undefined) {
@@ -199,6 +200,7 @@ export class ProfileController {
       'userRole',
       'accountType',
       'emailVerified',
+      'chat_token',
     ]);
 
     if (userResponse === null || userResponse === undefined) {

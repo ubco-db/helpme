@@ -20,6 +20,7 @@ import { AccountType, UserRole } from '@koh/common';
 import { OrganizationUserModel } from '../organization/organization-user.entity';
 import { InteractionModel } from '../chatbot/interaction.entity';
 import { UserTokenModel } from './user-token.entity';
+import { ChatTokenModel } from '../chatbot/chat-token.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -100,6 +101,11 @@ export class UserModel extends BaseEntity {
   @OneToMany((type) => UserTokenModel, (userToken) => userToken.user)
   tokens: UserTokenModel[];
 
+  @OneToOne((type) => ChatTokenModel, (chatToken) => chatToken.user, {
+    cascade: true,
+  })
+  chat_token: ChatTokenModel;
+
   @AfterLoad()
   computeInsights(): void {
     let hideInsights = this.hideInsights;
@@ -116,10 +122,4 @@ export class UserModel extends BaseEntity {
   setFullNames(): void {
     this.name = this.firstName + ' ' + this.lastName;
   }
-  // @BeforeInsert()
-  // async setPassword(password:string) {
-  //   const saltRounds = 10;
-  //   const salt = await bcrypt.genSalt(saltRounds);
-  //   this.password = await bcrypt.hash(password||this.password, salt);
-  // }
 }

@@ -12,7 +12,7 @@ import { QuestionGroupModel } from 'question/question-group.entity';
 import { SemesterModel } from 'semester/semester.entity';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { OrganizationModel } from 'organization/organization.entity';
-import { Connection, getManager } from 'typeorm';
+import { getManager } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import {
   CourseFactory,
@@ -27,6 +27,7 @@ import {
   OrganizationCourseFactory,
   CourseSettingsFactory,
   QuestionTypeFactory,
+  ChatTokenFactory,
 } from '../../test/util/factories';
 import { CourseModel } from '../course/course.entity';
 import { NonProductionGuard } from '../guards/non-production.guard';
@@ -39,14 +40,12 @@ import { CourseSettingsModel } from '../course/course_settings.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { InteractionModel } from 'chatbot/interaction.entity';
 import { ChatbotQuestionModel } from 'chatbot/question.entity';
+import { ChatTokenModel } from 'chatbot/chat-token.entity';
 
 @UseGuards(NonProductionGuard)
 @Controller('seeds')
 export class SeedController {
-  constructor(
-    private _connection: Connection,
-    private seedService: SeedService,
-  ) {}
+  constructor(private seedService: SeedService) {}
 
   @Get('delete')
   async deleteAll(): Promise<string> {
@@ -67,6 +66,7 @@ export class SeedController {
     await this.seedService.deleteAll(AlertModel);
     await this.seedService.deleteAll(ChatbotQuestionModel);
     await this.seedService.deleteAll(InteractionModel);
+    await this.seedService.deleteAll(ChatTokenModel);
     await this.seedService.deleteAll(UserModel);
     await this.seedService.deleteAll(CourseSectionMappingModel);
     await this.seedService.deleteAll(CourseModel);
@@ -143,6 +143,13 @@ export class SeedController {
         emailVerified: true,
       });
 
+      await ChatTokenFactory.create({
+        user: user1,
+        used: 0,
+        max_uses: 20,
+        token: 'test_token',
+      });
+
       await UserCourseFactory.create({
         user: user1,
         role: Role.STUDENT,
@@ -156,6 +163,13 @@ export class SeedController {
         lastName: 'studentTwo',
         password: hashedPassword1,
         emailVerified: true,
+      });
+
+      await ChatTokenFactory.create({
+        user: user2,
+        used: 0,
+        max_uses: 20,
+        token: 'test_token2',
       });
 
       await UserCourseFactory.create({
@@ -173,6 +187,13 @@ export class SeedController {
         emailVerified: true,
       });
 
+      await ChatTokenFactory.create({
+        user: user3,
+        used: 0,
+        max_uses: 20,
+        token: 'test_token3',
+      });
+
       await UserCourseFactory.create({
         user: user3,
         role: Role.TA,
@@ -186,6 +207,13 @@ export class SeedController {
         lastName: 'TaTwo',
         password: hashedPassword1,
         emailVerified: true,
+      });
+
+      await ChatTokenFactory.create({
+        user: user4,
+        used: 0,
+        max_uses: 20,
+        token: 'test_token4',
       });
 
       await UserCourseFactory.create({
@@ -206,6 +234,13 @@ export class SeedController {
         ],
         password: hashedPassword1,
         emailVerified: true,
+      });
+
+      await ChatTokenFactory.create({
+        user: user5,
+        used: 0,
+        max_uses: 20,
+        token: 'test_token5',
       });
 
       await UserCourseFactory.create({
