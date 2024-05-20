@@ -17,7 +17,6 @@ const CoursesSection = styled.div`
 `
 const OrganizationCard = styled.div`
   margin-top: -100px;
-  z-index: 2;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 1px 3px rgba(26, 26, 26, 0.1);
