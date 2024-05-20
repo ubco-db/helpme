@@ -3,6 +3,12 @@
 exports[`Profile Integration GET /profile returns the logged-in user profile 1`] = `
 Object {
   "accountType": "legacy",
+  "chat_token": Object {
+    "id": 1,
+    "max_uses": 30,
+    "token": "test",
+    "used": 0,
+  },
   "courses": Array [
     Object {
       "course": Object {

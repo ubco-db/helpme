@@ -26,7 +26,7 @@ import { CourseSettingsModel } from '../../src/course/course_settings.entity';
 import { AsyncQuestionModel } from '../../src/asyncQuestion/asyncQuestion.entity';
 import { AsyncQuestionVotesModel } from '../../src/asyncQuestion/asyncQuestionVotes.entity';
 import { ChatTokenModel } from '../../src/chatbot/chat-token.entity';
-import { uuid } from 'uuidv4';
+import { v4 } from 'uuid';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)
@@ -166,7 +166,7 @@ export const OrganizationUserFactory = new Factory(OrganizationUserModel)
   .attr('role', OrganizationRole.MEMBER);
 
 export const ChatTokenFactory = new Factory(ChatTokenModel)
-  .attr('token', uuid())
+  .attr('token', v4())
   .attr('used', 0)
   .attr('max_uses', 30)
   .assocOne('user', UserFactory);
