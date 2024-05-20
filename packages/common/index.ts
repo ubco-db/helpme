@@ -902,10 +902,6 @@ export class GetOrganizationUserResponse {
   courses!: OrganizationCourse[]
 }
 
-export class GetSelfEnrollResponse {
-  courses!: CoursePartial[]
-}
-
 export class InteractionParams {
   @IsInt()
   courseId!: number

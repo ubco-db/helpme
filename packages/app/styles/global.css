@@ -190,6 +190,14 @@ body {
 	filter: blur(1.5px);
 }
 
+/* make the border a static blue if the person has prefers-reduce-motion on their system */
+@media (prefers-reduced-motion: reduce) {
+    .glowy:before, .glowy:after {
+        background: #0000ff;
+        animation: none;
+    }
+}
+
 /* make selected links (i.e. the page you are currently on) hover a different colour (hovering on a selected link would appear the same)
 .ant-menu-horizontal > .ant-menu-item-selected.ant-menu-item a {
     transition: text-shadow 0.3s ease;
