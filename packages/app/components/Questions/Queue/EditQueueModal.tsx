@@ -24,6 +24,8 @@ const NotesInput = styled(Input.TextArea)`
   border: 1px solid #b8c4ce;
 `
 
+const { TextArea } = Input
+
 const CustomFormItem = styled(Form.Item)`
   padding-bottom: 1.75rem;
   margin-bottom: 1.75rem;
@@ -81,6 +83,20 @@ export function EditQueueModal({
   const [zoomLink, setZoomLink] = useState('')
   useEffect(() => {
     getQuestions()
+  }, [])
+
+  const [localQueueConfig, setLocalQueueConfig] = useState({} as JSON)
+  // on first render, fetch the queue config and set it to local state
+  useEffect(() => {
+    API.queues
+      .getConfig(queue.id)
+      .then((config) => {
+        setLocalQueueConfig(config)
+      })
+      .catch((error) => {
+        console.error(error)
+        message.error('Failed to fetch queue config')
+      })
   }, [])
 
   const editQueue = async (updateQueue: UpdateQueueParams) => {
@@ -284,6 +300,27 @@ export function EditQueueModal({
                 </ClearQueueButton>
               </Popconfirm>
             </div>
+          </CustomFormItem>
+          <CustomFormItem>
+            <TextArea
+              defaultValue={JSON.stringify(localQueueConfig, null, 2)}
+              onChange={(e) => {
+                setLocalQueueConfig(JSON.parse(e.target.value))
+              }}
+              className="!h-64 w-full"
+            />
+            <Button
+              onClick={async () => {
+                try {
+                  await API.queues.updateConfig(queue.id, localQueueConfig)
+                  message.success('Queue config saved')
+                } catch (error) {
+                  message.error('Failed to save queue config')
+                }
+              }}
+            >
+              Save & Parse
+            </Button>
           </CustomFormItem>
         </Form>
       )}

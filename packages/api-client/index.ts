@@ -293,6 +293,7 @@ class APIClient {
     ): Promise<TACheckoutResponse> =>
       this.req('DELETE', `/api/v1/courses/${courseId}/ta_location/${room}`),
     makeQueue: async (
+      // TODO: move this out of taStatus and into queues. It was originally put here when you could only create queues when clicking the 'checkin' button
       courseId: number,
       room: string,
       isProfessorQueue: boolean,
@@ -393,6 +394,10 @@ class APIClient {
       this.req('POST', `/api/v1/queues/${queueId}/clean`),
     disable: async (queueId: number): Promise<void> =>
       this.req('DELETE', `/api/v1/queues/${queueId}`),
+    getConfig: async (queueId: number): Promise<JSON> =>
+      this.req('GET', `/api/v1/queues/${queueId}/config`),
+    updateConfig: async (queueId: number, config: JSON): Promise<JSON> =>
+      this.req('PATCH', `/api/v1/queues/${queueId}/config`, undefined, config),
   }
   notif = {
     desktop: {

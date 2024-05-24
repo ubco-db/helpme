@@ -62,6 +62,10 @@ export class QueueModel extends BaseEntity {
   @Column('json', { nullable: true })
   config: JSON;
 
+  // when the proffesor selects "start lab 1", lab 1's config is loaded into this field
+  @Column('json', { nullable: true })
+  queueSessionConfig: JSON;
+
   @OneToMany((type) => QuestionTypeModel, (qtm) => qtm.queue)
   questionTypes: QuestionTypeModel[];
 

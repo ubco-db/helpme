@@ -4,7 +4,17 @@ import {
   RightOutlined,
   StopOutlined,
 } from '@ant-design/icons'
-import { Button, Card, Divider, Input, Row, Skeleton, Tag, Tooltip } from 'antd'
+import {
+  Button,
+  Card,
+  Divider,
+  Input,
+  Row,
+  Skeleton,
+  Tag,
+  Tooltip,
+  Modal,
+} from 'antd'
 import Linkify from 'react-linkify'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -12,6 +22,7 @@ import React, { ReactElement, useState } from 'react'
 import styled from 'styled-components'
 import { QueuePartial } from '../../../common/index'
 import { KOHAvatar } from '../common/SelfAvatar'
+import { API } from '@koh/api-client'
 
 type QueueCard = {
   queue: QueuePartial
@@ -135,8 +146,27 @@ const QueueCard = ({
 
   const staffList = queue.staffList
 
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const [localQueueConfig, setLocalQueueConfig] = useState({} as JSON)
+
+  const showModal = () => {
+    API.queues.getConfig(queue.id).then((config) => {
+      setLocalQueueConfig(config)
+    })
+    setIsModalOpen(true)
+  }
+
+  const handleOk = () => {
+    setIsModalOpen(false)
+  }
+
+  const handleCancel = () => {
+    setIsModalOpen(false)
+  }
+
   const handleUpdate = (e) => {
-    e.stopPropagation()
+    e.preventDefault()
     setIsLinkEnabled(true)
     setEditingNotes(false)
     updateQueueNotes(queue, updatedNotes)
@@ -262,7 +292,7 @@ const QueueCard = ({
                   {isTA && (
                     <EditNotesButton
                       onClick={(e) => {
-                        e.stopPropagation()
+                        e.preventDefault()
                         setIsLinkEnabled(false)
                         setEditingNotes(true)
                       }}
@@ -271,6 +301,25 @@ const QueueCard = ({
                   )}
                 </QueueCardButtonRow>
               )}
+              {/* button to open "start lab" modal */}
+              <Button
+                type="primary"
+                onClick={(e) => {
+                  e.preventDefault()
+                  showModal()
+                }}
+              >
+                Start Lab
+              </Button>
+              <Modal
+                title="Basic Modal"
+                open={isModalOpen}
+                onOk={handleOk}
+                onCancel={handleCancel}
+              >
+                <h2>Queue Config:</h2>
+                <p>{JSON.stringify(localQueueConfig, null, 2)}</p>
+              </Modal>
             </RightQueueNotesRow>
           </Row>
         </CustomCard>
