@@ -3,7 +3,7 @@ import { StandardPageContainer } from '../../components/common/PageContainer'
 import Head from 'next/head'
 import { useProfile } from '../../hooks/useProfile'
 import { Col, Menu, MenuProps, Row, Spin } from 'antd'
-import { OrganizationRole } from '@koh/common'
+import { OrganizationRole, UserRole } from '@koh/common'
 import { useOrganization } from '../../hooks/useOrganization'
 import NavBar from '../../components/Nav/NavBar'
 import {
@@ -11,12 +11,14 @@ import {
   TeamOutlined,
   ExperimentOutlined,
   SettingOutlined,
+  CodeOutlined,
 } from '@ant-design/icons'
 import MainTab from '../../components/Organization/MainTab'
 import SettingsTab from '../../components/Organization/SettingsTab'
 import UsersTab from '../../components/Organization/UsersTab'
 import DefaultErrorPage from 'next/error'
 import CoursesTab from '../../components/Organization/CoursesTab'
+import DevelopmentTab from '../../components/Organization/DevelopmentTab'
 
 type MenuItem = Required<MenuProps>['items'][number]
 
@@ -41,6 +43,7 @@ const items: MenuItem[] = [
   getItem('Users', 'users', <TeamOutlined />),
   getItem('Courses', 'courses', <ExperimentOutlined />),
   getItem('Settings', 'settings', <SettingOutlined />),
+  getItem('Devevelopment Tools', 'dev', <CodeOutlined />),
 ]
 
 export default function Settings(): React.ReactElement {
@@ -78,7 +81,11 @@ export default function Settings(): React.ReactElement {
               defaultOpenKeys={['main']}
               selectedKeys={[selectedMenuItem]}
               mode="vertical"
-              items={items}
+              items={
+                profile && profile.userRole === UserRole.ADMIN
+                  ? items
+                  : items.filter((item) => item.key !== 'dev')
+              }
               onSelect={handleMenuItemSelect}
             />
           </Col>
@@ -100,6 +107,10 @@ export default function Settings(): React.ReactElement {
 
             {selectedMenuItem === 'settings' && (
               <SettingsTab organization={organization} />
+            )}
+
+            {selectedMenuItem === 'dev' && (
+              <DevelopmentTab organizationId={organization?.id} />
             )}
           </Col>
         </Row>

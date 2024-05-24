@@ -101,7 +101,7 @@ export class ProfileController {
   @Get()
   @UseGuards(JwtAuthGuard)
   async get(
-    @User(['courses', 'courses.course', 'desktopNotifs'])
+    @User(['courses', 'courses.course', 'desktopNotifs', 'chat_token'])
     user: UserModel,
   ): Promise<GetProfileResponse> {
     if (user === null || user === undefined) {
@@ -157,6 +157,7 @@ export class ProfileController {
       'userRole',
       'accountType',
       'emailVerified',
+      'chat_token',
     ]);
 
     if (userResponse === null || userResponse === undefined) {

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import ExpandableText from '../common/ExpandableText'
 import EditChatbotQuestionModal from './EditChatbotQuestionModal'
 import { get, set } from 'lodash'
+import { useProfile } from '../../hooks/useProfile'
 
 interface Loc {
   pageNumber: number
@@ -48,6 +49,7 @@ export default function ChatbotQuestions({
 }: ChatbotQuestionsProps): ReactElement {
   const [form] = Form.useForm()
   const [addModelOpen, setAddModelOpen] = useState(false)
+  const profile = useProfile()
   const [search, setSearch] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -203,6 +205,7 @@ export default function ChatbotQuestions({
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          HMS_API_TOKEN: profile.chat_token.token,
         },
       })
 
