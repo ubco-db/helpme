@@ -397,4 +397,107 @@ describe('Queue Integration', () => {
       await supertest({ userId: stu.userId }).delete(`/queues/998`).expect(404);
     });
   });
+
+  describe('PATCH /queues/:id/config', () => {
+    it('updates queue config', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+      });
+
+      expect(queue.config).toEqual(null);
+
+      await supertest({ userId: ta.userId })
+        .patch(`/queues/${queue.id}/config`)
+        .send({ foo: 'bar' })
+        .expect(200);
+
+      const postQueue = await QueueModel.findOne({ id: queue.id });
+      expect(postQueue.config).toEqual({ foo: 'bar' });
+    });
+
+    it('returns the updated config', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+      });
+
+      expect(queue.config).toEqual(null);
+
+      const res = await supertest({ userId: ta.userId })
+        .patch(`/queues/${queue.id}/config`)
+        .send({ foo: 'bar' })
+        .expect(200);
+
+      expect(res.body).toEqual({ foo: 'bar' });
+    });
+
+    it('doesnt allow students to update config', async () => {
+      const course = await CourseFactory.create();
+      const stu = await StudentCourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+      });
+
+      expect(queue.config).toEqual(null);
+
+      await supertest({ userId: stu.userId })
+        .patch(`/queues/${queue.id}/config`)
+        .send({ foo: 'bar' })
+        .expect(401);
+
+      const postQueue = await QueueModel.findOne({ id: queue.id });
+      expect(postQueue.config).toEqual(null);
+    });
+
+    it('returns 404 on nonexistent queues', async () => {
+      const stu = await StudentCourseFactory.create({
+        user: await UserFactory.create(),
+      });
+      await supertest({ userId: stu.userId })
+        .patch(`/queues/998/config`)
+        .send({ foo: 'bar' })
+        .expect(404);
+    });
+  });
+
+  describe('GET /queues/:id/config', () => {
+    it('returns the queue config', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+        config: { foo: 'bar' } as any,
+      });
+
+      const res = await supertest({ userId: ta.userId })
+        .get(`/queues/${queue.id}/config`)
+        .expect(200);
+
+      expect(res.body).toEqual({ foo: 'bar' });
+    });
+
+    it('returns 404 on nonexistent queues', async () => {
+      const stu = await StudentCourseFactory.create({
+        user: await UserFactory.create(),
+      });
+      await supertest({ userId: stu.userId })
+        .get(`/queues/998/config`)
+        .expect(404);
+    });
+  });
 });

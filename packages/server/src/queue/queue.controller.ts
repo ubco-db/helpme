@@ -197,4 +197,43 @@ export class QueueController {
       );
     }
   }
+
+  // returns the JSON config for a queue. Can return null if no config is set
+  @Get(':queueId/config')
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+  async getConfig(queueId: number): Promise<JSON> {
+    const queue = await this.queueService.getQueue(queueId);
+    if (!queue) {
+      throw new NotFoundException();
+    }
+
+    return queue.config;
+  }
+
+  // Sets the JSON config for a queue and then returns the updated json
+  @Patch(':queueId/config')
+  @Roles(Role.TA, Role.PROFESSOR)
+  async setConfig(
+    @Param('queueId') queueId: number,
+    @Body() config: JSON,
+  ): Promise<JSON> {
+    // set config for a queue
+    const queue = await this.queueService.getQueue(queueId);
+    if (!queue) {
+      throw new NotFoundException();
+    }
+
+    queue.config = config;
+
+    try {
+      await queue.save();
+    } catch (err) {
+      console.error(err);
+      throw new HttpException(
+        ERROR_MESSAGES.queueController.saveQueue,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+    return queue.config;
+  }
 }

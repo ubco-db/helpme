@@ -59,6 +59,9 @@ export class QueueModel extends BaseEntity {
   @Column({ default: false })
   isDisabled: boolean;
 
+  @Column('json', { nullable: true })
+  config: JSON;
+
   @OneToMany((type) => QuestionTypeModel, (qtm) => qtm.queue)
   questionTypes: QuestionTypeModel[];
 
