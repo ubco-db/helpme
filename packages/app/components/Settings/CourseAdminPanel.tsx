@@ -80,7 +80,7 @@ export default function CourseAdminPanel({
         <CenteredText>
           Welcome back
           <br />
-          {profile?.firstName} {profile?.lastName}
+          {profile?.firstName} {profile?.lastName ?? ''}
           {!profile?.photoURL && (
             <Tooltip
               title={

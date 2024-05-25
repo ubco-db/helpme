@@ -22,7 +22,6 @@ import { ReactElement, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import useSWR, { mutate } from 'swr'
 import { useProfile } from '../../hooks/useProfile'
-import AvatarWithInitals from '../common/AvatarWithInitials'
 
 const TableBackground = styled.div`
   background-color: white;
@@ -173,8 +172,7 @@ export default function UsersTab({
                           item.organizationRole.toLowerCase() ===
                             OrganizationRole.ADMIN.toLowerCase() ||
                           item.userRole.toLowerCase() ===
-                            UserRole.ADMIN.toLowerCase() ||
-                          organization.ssoEnabled
+                            UserRole.ADMIN.toLowerCase()
                         }
                         options={Object.keys(OrganizationRole).map((role) => ({
                           label: role.toLowerCase(),
@@ -184,8 +182,7 @@ export default function UsersTab({
                             item.userRole.toLowerCase() ===
                               UserRole.ADMIN.toLowerCase() ||
                             role.toLowerCase() ===
-                              item.organizationRole.toLowerCase() ||
-                            organization.ssoEnabled,
+                              item.organizationRole.toLowerCase(),
                         }))}
                       />,
 
@@ -206,7 +203,7 @@ export default function UsersTab({
                   >
                     <List.Item.Meta
                       avatar={getUserProfilePicture(item.photoUrl)}
-                      title={item.firstName + ' ' + item.lastName}
+                      title={item.firstName + ' ' + (item.lastName ?? '')}
                       description={item.email}
                     />
                   </List.Item>
@@ -235,7 +232,7 @@ export default function UsersTab({
         {organization.ssoEnabled && (
           <Alert
             message="System Notice"
-            description="Organizations with SSO/Shibboleth authentication enabled have a limited editing permissions for users. Changes must be made in the SSO provider."
+            description="Organizations with SSO/Shibboleth authentication enabled have limited editing permissions for users. Changes must be made in the SSO provider."
             type="error"
             style={{ marginBottom: 20 }}
           />
@@ -254,7 +251,7 @@ export default function UsersTab({
             <>
               You are about to change the role of{' '}
               <strong>
-                {selectedUserData.firstName} {selectedUserData.lastName}
+                {selectedUserData.firstName} {selectedUserData.lastName ?? ''}
               </strong>{' '}
               to <strong>{updatedRole}</strong>. <br />
               <br />

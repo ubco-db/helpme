@@ -72,7 +72,7 @@ export default function Edit(): ReactElement {
     const [formGeneral] = Form.useForm()
     const semesters = useSemester()
 
-    const { data: courseData, error } = useSWR(
+    const { data: courseData, _error } = useSWR(
       `api/v1/organization/[oid]/course/[cid]`,
       async () =>
         await API.organizations.getCourse(organization.id, Number(cid)),
