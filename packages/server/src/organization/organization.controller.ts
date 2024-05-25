@@ -1267,7 +1267,7 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getProfessors(@Param('oid') oid: number): Promise<any> {
-    const orgProfs = OrganizationUserModel.find({
+    const orgProfs = await OrganizationUserModel.find({
       where: {
         organizationId: oid,
         role: In([OrganizationRole.PROFESSOR, OrganizationRole.ADMIN]),
