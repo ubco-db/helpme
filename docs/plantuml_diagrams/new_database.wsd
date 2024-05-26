@@ -1,0 +1,71 @@
+@startuml
+
+skin rose
+
+title new database again vfinal?
+
+
+class queue {
+  +json config
+  +int currentQueueSessionId
+  '+json currentQueueSessionConfig
+}
+
+class course
+
+class calendar {
+  +varchar        title
+  +timestamp   start 
+  +timestamp   end
+  +textarray      daysOfWeek
+  +bool             allDay [unused]
+}
+
+class course
+
+class question {
+  +bool isTaskQuestion
+}
+
+class thing as "studentTaskProgress" {
+  +json taskProgress
+}
+
+class questionType { 
+  ' questionTypes are only going to be tags, not tasks
+  '+bool isTask
+  '+varchar shortName
+  '+bool blocking
+}
+
+class queueSession {
+  '+varchar sessionName //e.g. "Lab 1"
+  +json queueSessionConfig
+  +timestamp start //maybe
+  +timestamp end //maybe
+}
+note left : queueSession keeps a history\n of all past queue sessions as \n well as the current one
+
+queue "0..*" -- "1" course
+question "0..*" -- "1" queue
+question "0..*" -- "1" user
+thing "0..*" -- "1" user
+thing "0..*" -- "1" queue
+calendar "0..*" --right "1" course
+questionType "0..*" -- "0..*" question
+' still not sure whether to remove this connection EDIT: i think removing it is a good idea since that way queues don't have access to all the previous questionTypes
+' questionType "0..*" -- "1" queue 
+queueSession "0..*" -- "1" queue
+queueSession "1" -- "0..*" questionType
+
+queueSession .. calendar : ?
+
+hide empty methods
+' hide circle
+
+' NOTE: does it make sense to have a connection between question and queueSession?
+' from a histroy standpoint, yes, but the connection might be unused otherwise
+
+' Note to self: we are not hijacking the "event" table since then events would need to store session configs as well as have a connection to questionType, and it makes more sense to keep those things seperate
+
+@enduml
