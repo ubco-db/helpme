@@ -26,6 +26,7 @@ import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { CourseSettingsModel } from '../../src/course/course_settings.entity';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { AsyncQuestionVotesModel } from 'asyncQuestion/asyncQuestionVotes.entity';
+import { StudentTaskProgress } from 'studentTaskProgress/studentTaskProgress.entity';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)
@@ -163,3 +164,8 @@ export const OrganizationUserFactory = new Factory(OrganizationUserModel)
   .assocOne('organization', OrganizationFactory)
   .assocOne('organizationUser', UserFactory)
   .attr('role', OrganizationRole.MEMBER);
+
+export const StudentTaskProgressFactory = new Factory(StudentTaskProgress)
+  .assocOne('user', UserFactory)
+  .assocOne('queue', QueueFactory)
+  .attr('taskProgress', {});

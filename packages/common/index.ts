@@ -7,6 +7,7 @@ import {
   IsEnum,
   IsIn,
   IsInt,
+  IsJSON,
   IsNotEmpty,
   IsNumber,
   IsObject,
@@ -1460,6 +1461,23 @@ export class CourseSettingsRequestBody {
   static isValidFeature(feature: string): boolean {
     return validFeatures.includes(feature)
   }
+}
+
+export class StudentTaskProgressRequest {
+  @IsInt()
+  qid!: number
+
+  @IsInt()
+  uid!: number
+
+  @IsString()
+  sessionName!: string
+}
+
+export type StudentTaskProgressResponse = {
+  qid: number
+  uid: number
+  taskProgress: object
 }
 
 export const ERROR_MESSAGES = {
