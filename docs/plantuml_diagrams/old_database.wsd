@@ -1,0 +1,34 @@
+@startuml
+
+skin rose
+
+title CURRENT database
+
+
+class queue {
+}
+
+class course
+
+class questionType 
+class question 
+class user
+
+class calendar {
+  +varchar        title
+  +timestamp   start 
+  +timestamp   end
+  +textarray      daysOfWeek
+  +bool             allDay [unused]
+}
+
+class course
+
+
+queue "0..*" -- "1" course
+question "0..*" -- "1" queue
+question "0..*" -- "1" user
+calendar "0..*" -- "1" course
+question "0..*" -- "0..*" questionType
+queue "0..*" -- "1" questionType
+@enduml
