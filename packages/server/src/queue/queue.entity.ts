@@ -84,6 +84,18 @@ export class QueueModel extends BaseEntity {
     this.queueSize = await QuestionModel.waitingInQueue(this.id).getCount();
   }
 
+  /*
+  QUEUE CONFIG
+  this doesn't get processed at all in the backend, 
+  only stored (thus meaning you don't need to have all your labs setup by day 1).
+  Once loaded into the frontend, it then gets parsed (and any issues with it are displayed)
+  and from there the professor can choose to load any of the listed sessions that was
+  parsed. If they choose to start session "lab1", then backend changes are made
+  (a new queueSession is created with just the config for "lab1", questionTypes for the
+  session are created, and currentQueueSessionId gets set to the newly created
+  queueSession). If the professor then finds an issue with the "lab1" config, they
+  can simply adjust the master JSON and it will get updated accordingly.
+*/
   @Column('json', { nullable: true })
   config: JSON;
 
