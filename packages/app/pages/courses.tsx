@@ -17,7 +17,6 @@ const CoursesSection = styled.div`
 `
 const OrganizationCard = styled.div`
   margin-top: -100px;
-  z-index: 2;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 1px 3px rgba(26, 26, 26, 0.1);
@@ -137,7 +136,7 @@ export default function Courses(): ReactElement {
         src={`/api/v1/organization/${profile?.organization.orgId}/get_banner/${profile?.organization.organizationBannerUrl}`}
         style={{
           width: '100%',
-          height: '40vh',
+          height: '20vh',
           objectFit: 'cover',
           objectPosition: 'center',
         }}

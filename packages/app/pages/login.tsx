@@ -52,21 +52,12 @@ export default function Login(): ReactElement {
   }
 
   const loginWithInstitution = async () => {
-    // const lastVisited = encodeURIComponent(localStorage.getItem('lastVisited'))
-    // localStorage.removeItem('lastVisited')
-
-    const lastVisited = localStorage.getItem('lastVisited')
-
-    let redirectURL = `/api/v1/auth/shibboleth/${organization.id}`
-
-    if (lastVisited) {
-      redirectURL += `?lastVisited=${lastVisited}`
-      localStorage.removeItem('lastVisited')
-    }
-    Router.push(redirectURL)
+    Router.push(`/api/v1/auth/shibboleth/${organization.id}`)
   }
 
-  function login() {
+  async function login() {
+    const token = await recaptchaRef.current.executeAsync()
+
     if (organization && !organization.legacyAuthEnabled) {
       message.error('Organization does not support legacy authentication')
       return
@@ -78,9 +69,9 @@ export default function Login(): ReactElement {
       body: JSON.stringify({
         email: uname,
         password: pass,
+        recaptchaToken: token,
       }),
     }
-
     fetch(`/api/v1/ubc_login`, loginRequest)
       .then(async (response) => {
         const data = await response.json()
@@ -99,21 +90,11 @@ export default function Login(): ReactElement {
               break
             default:
               message.error(error)
-              console.error('There was an error!', error)
               break
           }
           return Promise.reject(error)
         } else {
-          const lastVisited = localStorage.getItem('lastVisited')
-
-          let redirectURL = `/api/v1/login/entry?token=${data.token}`
-
-          if (lastVisited) {
-            redirectURL += `&redirect=${encodeURIComponent(lastVisited)}`
-            localStorage.removeItem('lastVisited')
-          }
-
-          Router.push(redirectURL)
+          Router.push(`/api/v1/login/entry?token=${data.token}`)
         }
       })
       .catch((error) => {
@@ -154,7 +135,6 @@ export default function Login(): ReactElement {
   useEffect(() => {
     if (organizations && organizations.length === 1) {
       setOrganization(organizations[0])
-      setLoginMenu(true)
       localStorage.setItem('organizationId', `${organizations[0].id}`)
     }
   }, [organizations, setLoginMenu])

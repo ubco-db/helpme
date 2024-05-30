@@ -4,6 +4,7 @@ import styled from 'styled-components'
 import { API } from '@koh/api-client'
 import { useRouter } from 'next/router'
 import { QuestionTypeParams } from '@koh/common'
+import { useProfile } from '../../../hooks/useProfile'
 
 const Container = styled.div`
   max-width: 960px;
@@ -28,6 +29,7 @@ const CreateAsyncQuestionForm = ({
   onStatusChange,
 }: CreateAsyncQuestionFormProps) => {
   const router = useRouter()
+  const profile = useProfile()
   const courseId = Number(router.query['cid'])
   const [form] = Form.useForm()
   const [questionsTypeState, setQuestionsTypeState] = useState<
@@ -53,6 +55,7 @@ const CreateAsyncQuestionForm = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          HMS_API_TOKEN: profile.chat_token.token,
         },
         body: JSON.stringify(data),
       })

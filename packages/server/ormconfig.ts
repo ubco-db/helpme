@@ -26,6 +26,7 @@ import { ChatbotDocumentModel } from './src/chatbot/chatbotDocument.entity';
 import { CourseSettingsModel } from './src/course/course_settings.entity';
 import { AsyncQuestionVotesModel } from './src/asyncQuestion/asyncQuestionVotes.entity';
 import { UserTokenModel } from './src/profile/user-token.entity';
+import { ChatTokenModel } from './src/chatbot/chat-token.entity';
 
 config();
 
@@ -71,6 +72,7 @@ const typeorm = {
     CourseSettingsModel,
     AsyncQuestionVotesModel,
     UserTokenModel,
+    ChatTokenModel,
   ],
   keepConnectionAlive: true,
   logging:

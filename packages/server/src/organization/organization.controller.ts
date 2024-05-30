@@ -56,10 +56,57 @@ import { In } from 'typeorm';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { ChatTokenModel } from 'chatbot/chat-token.entity';
+import { v4 } from 'uuid';
 
 @Controller('organization')
 export class OrganizationController {
   constructor(private organizationService: OrganizationService) {}
+
+  @Post(':oid/populate_chat_token_table')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN)
+  async populateChatTokenTable(
+    @Res() res: Response,
+    @Param('oid') oid: number,
+  ): Promise<Response<void>> {
+    const organizationUsers = await OrganizationUserModel.find({
+      where: {
+        organizationId: oid,
+      },
+      relations: ['organizationUser', 'organizationUser.chat_token'],
+    });
+
+    let chatTokenCount = 0;
+    organizationUsers.forEach(async (organizationUser) => {
+      const ou = organizationUser.organizationUser;
+
+      if (!ou.chat_token) {
+        await ChatTokenModel.create({
+          user: ou,
+          token: v4(),
+        }).save();
+      } else {
+        chatTokenCount += 1;
+      }
+    });
+
+    if (chatTokenCount === organizationUsers.length) {
+      return res.status(HttpStatus.OK).send({
+        message: 'Chat token table already populated',
+      });
+    }
+
+    return res.status(HttpStatus.OK).send({
+      message: 'Chat token table populated',
+    });
+  }
+
   @Post(':oid/create_course')
   @UseGuards(
     JwtAuthGuard,

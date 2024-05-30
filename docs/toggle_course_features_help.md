@@ -22,12 +22,5 @@ Current features that can be toggled for a course:
 ### Frontend
 - `/api-client/index.ts`: no changes needed here. Can use the setCourseFeature and getCourseFeatures functions.
 - `ToggleFeaturesPage.tsx`: create a FeatureSwitch component for the new feature, following a similar format to the other features
-- Now, you can add a call by using the function below (and import useSWR and API if need be) and just use `courseFeatures.myNewFeature` to check if the feature is enabled or not (some examples are in `today.tsx`).
 - `pages/organization/course/add.tsx`: optionally, add the new feature to the form for creating a course.
-
-```tsx
-const { data: courseFeatures } = useSWR(
-    `${courseId}/features`,
-    async () => await API.course.getCourseFeatures(courseId),
-  )
-```
+- Now, you can add a call by using the `useCourseFeatures` hook and just use `courseFeatures.myNewFeature` to check if the feature is enabled or not (some examples are in `today.tsx`).

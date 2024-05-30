@@ -12,7 +12,6 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  ValidateIf,
 } from 'class-validator'
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
@@ -72,8 +71,16 @@ export class User {
   insights!: string[]
   userRole!: string
   organization?: OrganizationUserPartial
+  chat_token!: ChatTokenPartial
   accountType!: AccountType
   emailVerified!: boolean
+}
+
+export class ChatTokenPartial {
+  id!: number
+  token!: string
+  used!: number
+  max_uses!: number
 }
 
 export class OrganizationResponse {
@@ -893,10 +900,6 @@ export class GetOrganizationUserResponse {
   organizationRole!: string
   user!: OrganizationUser
   courses!: OrganizationCourse[]
-}
-
-export class GetSelfEnrollResponse {
-  courses!: CoursePartial[]
 }
 
 export class InteractionParams {

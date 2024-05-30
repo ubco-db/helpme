@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { Input, Button, Card, Avatar, Spin, Tooltip } from 'antd'
+import { Input, Button, Card, Avatar, Spin, Tooltip, message } from 'antd'
 import { CheckCircleOutlined } from '@ant-design/icons'
 import styled from 'styled-components'
 import { API } from '@koh/api-client'
 import { UserOutlined, RobotOutlined } from '@ant-design/icons'
 import router from 'next/router'
 import { useProfile } from '../../hooks/useProfile'
-import useSWR from 'swr'
 import axios from 'axios'
-import { ThumbsDown, ThumbsUp } from 'lucide-react'
+import { useCourseFeatures } from '../../hooks/useCourseFeatures'
 
 const ChatbotContainer = styled.div`
   position: fixed;
@@ -43,10 +42,11 @@ export const ChatbotComponent: React.FC = () => {
   const { cid } = router.query
   const profile = useProfile()
   const [isLoading, setIsLoading] = useState(false)
-  const [interactionId, setInteractionId] = useState<number | null>(null)
+  const [_interactionId, setInteractionId] = useState<number | null>(null)
   const [preDeterminedQuestions, setPreDeterminedQuestions] = useState<
     PreDeterminedQuestion[]
   >([])
+  const [questionsLeft, setQuestionsLeft] = useState<number>(0)
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -56,30 +56,33 @@ export const ChatbotComponent: React.FC = () => {
     },
   ])
 
-  const { data: courseFeatures } = useSWR(
-    `${Number(cid)}/features`,
-    async () => await API.course.getCourseFeatures(Number(cid)),
-  )
+  const courseFeatures = useCourseFeatures(Number(cid))
 
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
-    axios.get(`/chat/${cid}/allSuggestedQuestions`).then((res) => {
-      console.log(res.data)
-      res.data.forEach((question) => {
-        setPreDeterminedQuestions((prev) => [
-          ...prev,
-          {
-            question: question.pageContent,
-            answer: question.metadata.answer,
-          },
-        ])
+    axios
+      .get(`/chat/${cid}/allSuggestedQuestions`, {
+        headers: { HMS_API_TOKEN: profile.chat_token.token },
       })
-    })
+      .then((res) => {
+        res.data.forEach((question) => {
+          setPreDeterminedQuestions((prev) => [
+            ...prev,
+            {
+              question: question.pageContent,
+              answer: question.metadata.answer,
+            },
+          ])
+        })
+      })
+    if (profile && profile.chat_token) {
+      setQuestionsLeft(profile.chat_token.max_uses - profile.chat_token.used)
+    }
     return () => {
       setInteractionId(null)
     }
-  }, [])
+  }, [profile])
 
   const query = async () => {
     try {
@@ -91,13 +94,19 @@ export const ChatbotComponent: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          HMS_API_TOKEN: profile.chat_token.token,
         },
         body: JSON.stringify(data),
       })
       const json = await response.json()
+      if (questionsLeft > 0) {
+        setQuestionsLeft(questionsLeft - 1)
+      }
       return json
     } catch (error) {
-      console.error('Error fetching from API:', error)
+      if (questionsLeft > 0) {
+        setQuestionsLeft(questionsLeft - 1)
+      }
       return null
     }
   }
@@ -107,8 +116,13 @@ export const ChatbotComponent: React.FC = () => {
 
     const result = await query()
 
-    const answer = result.answer || "Sorry, I couldn't find the answer"
-    const sourceDocuments = result.sourceDocuments || []
+    if (result && result.error) {
+      message.error(result.error)
+      return
+    }
+
+    const answer = result ? result.answer : "Sorry, I couldn't find the answer"
+    const sourceDocuments = result ? result.sourceDocuments : []
 
     setMessages([
       ...messages,
@@ -116,9 +130,9 @@ export const ChatbotComponent: React.FC = () => {
       {
         type: 'apiMessage',
         message: answer,
-        verified: result.verified,
+        verified: result ? result.verified : true,
         sourceDocuments: sourceDocuments,
-        questionId: result.questionId,
+        questionId: result ? result.questionId : null,
       },
     ])
 
@@ -141,6 +155,7 @@ export const ChatbotComponent: React.FC = () => {
   if (!cid || !courseFeatures?.chatBotEnabled) {
     return <></>
   }
+
   return (
     <ChatbotContainer className="max-h-[90vh]" style={{ zIndex: 1000 }}>
       {isOpen ? (
@@ -261,17 +276,25 @@ export const ChatbotComponent: React.FC = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask something..."
-            onPressEnter={handleAsk}
+            onPressEnter={input.trim().length > 0 ? handleAsk : undefined}
             suffix={
               <Button
                 type="primary"
                 className="bg-blue-900"
                 onClick={handleAsk}
+                disabled={input.trim().length == 0 || isLoading}
               >
                 Ask
               </Button>
             }
           />
+
+          {profile && profile.chat_token && (
+            <Card.Meta
+              description={`You can ask chatbot ${questionsLeft} more question(s)`}
+              className="mt-3"
+            />
+          )}
         </Card>
       ) : (
         <Button

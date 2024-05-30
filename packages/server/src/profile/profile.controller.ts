@@ -2,7 +2,6 @@ import {
   DesktopNotifPartial,
   ERROR_MESSAGES,
   GetProfileResponse,
-  // isProd,
   QuestionStatusKeys,
   UpdateProfileParams,
   AccountType,
@@ -33,9 +32,7 @@ import { pick } from 'lodash';
 import { memoryStorage } from 'multer';
 import * as path from 'path';
 import * as sharp from 'sharp';
-import { Connection } from 'typeorm';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { NotificationService } from '../notification/notification.service';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from './user.entity';
 import { ProfileService } from './profile.service';
@@ -43,20 +40,13 @@ import { UserCourseModel } from './user-course.entity';
 import { Role } from '@koh/common';
 import { throwError } from 'rxjs';
 import { QuestionModel } from 'question/question.entity';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import { MailService } from 'mail/mail.service';
 import { OrganizationService } from '../organization/organization.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+
 @Controller('profile')
 export class ProfileController {
   constructor(
-    private connection: Connection,
-    private notifService: NotificationService,
     private profileService: ProfileService,
-    private jwtService: JwtService,
-    private configService: ConfigService,
-    private mailService: MailService,
     private organizationService: OrganizationService,
   ) {}
 
@@ -82,36 +72,6 @@ export class ProfileController {
       res.status(200).send(temp);
       return temp;
     }
-    // const usersNotInQueue=await getRepository(UserModel).createQueryBuilder()
-    // .leftJoin(UserCourseModel,'QuestionModel', '"UserModel".id!= "QuestionModel"."creator"')
-    // const students = [];
-    // // const query = await getRepository(UserModel)
-    // // .createQueryBuilder()
-    // // .leftJoin(
-    // //   UserCourseModel,
-    // //   'UserCourseModel',
-    // //   '"UserModel".id = "UserCourseModel"."userId"',
-    // // )
-    // // .where('"UserCourseModel"."courseId" = :courseId', { courseId });
-
-    // studentIds.forEach((userCourse, i) => {
-    //   const tempId = userCourse.userId;
-    //   UserModel.findOne({
-    //     where: {
-    //       id: userCourse.userId,
-    //     },
-    //   })
-    //     .then(function (result) {
-    //       students.push({ value: result.name, id: tempId });
-    //       if (i + 1 === studentIds.length) {
-    //         res.status(200).send(students);
-    //         return students;
-    //       }
-    //     })
-    //     .catch((e) => {
-    //       console.error(e);
-    //     });
-    // });
   }
 
   @Get(':id/inQueue')
@@ -130,8 +90,6 @@ export class ProfileController {
     }
     for (let i = 0; i < questions.length; i++) {
       if (questions[i]?.status === QuestionStatusKeys.Queued) {
-        console.log(questions[i].status);
-        console.log(QuestionStatusKeys.Queued);
         res.status(200).send(true);
         return true;
       }
@@ -143,7 +101,7 @@ export class ProfileController {
   @Get()
   @UseGuards(JwtAuthGuard)
   async get(
-    @User(['courses', 'courses.course', 'desktopNotifs'])
+    @User(['courses', 'courses.course', 'desktopNotifs', 'chat_token'])
     user: UserModel,
   ): Promise<GetProfileResponse> {
     if (user === null || user === undefined) {
@@ -199,6 +157,7 @@ export class ProfileController {
       'userRole',
       'accountType',
       'emailVerified',
+      'chat_token',
     ]);
 
     if (userResponse === null || userResponse === undefined) {
@@ -307,7 +266,7 @@ export class ProfileController {
 
       const spaceLeft = await checkDiskSpace(path.parse(process.cwd()).root);
 
-      if (spaceLeft.free < 1000000000) {
+      if (spaceLeft.free < 1_000_000_000) {
         // if less than a gigabyte left
         throw new ServiceUnavailableException(
           ERROR_MESSAGES.profileController.noDiskSpace,

@@ -1,7 +1,6 @@
 import { QuestionGroupModel } from 'question/question-group.entity';
 import {
   AlertType,
-  AsyncQuestion,
   OrganizationRole,
   Role,
   asyncQuestionStatus,
@@ -19,13 +18,15 @@ import { QueueModel } from '../../src/queue/queue.entity';
 import { LastRegistrationModel } from 'login/last-registration-model.entity';
 import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
 import { OrganizationModel } from '../../src/organization/organization.entity';
-import { InteractionModel } from 'chatbot/interaction.entity';
-import { OrganizationCourseModel } from 'organization/organization-course.entity';
-import { QuestionTypeModel } from 'questionType/question-type.entity';
-import { OrganizationUserModel } from 'organization/organization-user.entity';
+import { InteractionModel } from '../../src/chatbot/interaction.entity';
+import { OrganizationCourseModel } from '../../src/organization/organization-course.entity';
+import { QuestionTypeModel } from '../../src/questionType/question-type.entity';
+import { OrganizationUserModel } from '../../src/organization/organization-user.entity';
 import { CourseSettingsModel } from '../../src/course/course_settings.entity';
-import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
-import { AsyncQuestionVotesModel } from 'asyncQuestion/asyncQuestionVotes.entity';
+import { AsyncQuestionModel } from '../../src/asyncQuestion/asyncQuestion.entity';
+import { AsyncQuestionVotesModel } from '../../src/asyncQuestion/asyncQuestionVotes.entity';
+import { ChatTokenModel } from '../../src/chatbot/chat-token.entity';
+import { v4 } from 'uuid';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)
@@ -163,3 +164,9 @@ export const OrganizationUserFactory = new Factory(OrganizationUserModel)
   .assocOne('organization', OrganizationFactory)
   .assocOne('organizationUser', UserFactory)
   .attr('role', OrganizationRole.MEMBER);
+
+export const ChatTokenFactory = new Factory(ChatTokenModel)
+  .attr('token', v4())
+  .attr('used', 0)
+  .attr('max_uses', 30)
+  .assocOne('user', UserFactory);

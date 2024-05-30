@@ -16,9 +16,7 @@ import { API } from '@koh/api-client'
 import toast from 'react-hot-toast'
 import ExpandableText from '../common/ExpandableText'
 import EditChatbotQuestionModal from './EditChatbotQuestionModal'
-import { add, get, set } from 'lodash'
-import { title } from 'process'
-import { on } from 'events'
+import { useProfile } from '../../hooks/useProfile'
 
 interface Loc {
   pageNumber: number
@@ -63,6 +61,7 @@ export default function ChatbotQuestions({
 }: ChatbotQuestionsProps): ReactElement {
   const [form] = Form.useForm()
   const [addModelOpen, setAddModelOpen] = useState(false)
+  const profile = useProfile()
   const [search, setSearch] = useState('')
   const [editingRecord, setEditingRecord] = useState(null)
   const [editRecordModalVisible, setEditRecordModalVisible] = useState(false)
@@ -225,6 +224,7 @@ export default function ChatbotQuestions({
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          HMS_API_TOKEN: profile.chat_token.token,
         },
       })
 

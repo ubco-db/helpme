@@ -13,7 +13,6 @@ import {
   GetQuestionResponse,
   GetQueueResponse,
   GroupQuestionsParams,
-  GetSelfEnrollResponse,
   ListInsightsResponse,
   ListQuestionsResponse,
   RegisterCourseParams,
@@ -250,10 +249,6 @@ class APIClient {
         {},
         { startDate, endDate },
       ),
-    toggleSelfEnroll: async (courseId: number): Promise<void> =>
-      this.req('POST', `/api/v1/courses/${courseId}/self_enroll`),
-    selfEnrollCourses: async (): Promise<GetSelfEnrollResponse> =>
-      this.req('GET', '/api/v1/self_enroll_courses'),
     getLimitedCourseResponse: async (
       courseId: number,
       code: string,
@@ -449,12 +444,6 @@ class APIClient {
       this.req('PATCH', `/api/v1/insights`, undefined, { insightName }),
     toggleOff: async (insightName: string): Promise<void> =>
       this.req('DELETE', `/api/v1/insights`, undefined, { insightName }),
-  }
-  image = {
-    get: async (imageId: number): Promise<any> =>
-      this.req('GET', `/api/v1/image/${imageId}`, undefined, undefined),
-    getAllImageIds: async (qid: number): Promise<number[]> =>
-      this.req('GET', `/api/v1/image/${qid}/getImageIdsByQuestion`),
   }
   alerts = {
     get: async (courseId: number): Promise<GetAlertsResponse> =>
