@@ -20,6 +20,7 @@ import { AccountType, UserRole } from '@koh/common';
 import { OrganizationUserModel } from '../organization/organization-user.entity';
 import { InteractionModel } from '../chatbot/interaction.entity';
 import { UserTokenModel } from './user-token.entity';
+import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -122,4 +123,11 @@ export class UserModel extends BaseEntity {
   //   const salt = await bcrypt.genSalt(saltRounds);
   //   this.password = await bcrypt.hash(password||this.password, salt);
   // }
+
+  @OneToMany(
+    (type) => StudentTaskProgressModel,
+    (taskProgress) => taskProgress.user,
+  )
+  @Exclude()
+  taskProgress: StudentTaskProgressModel[];
 }

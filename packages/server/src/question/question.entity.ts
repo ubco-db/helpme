@@ -76,6 +76,9 @@ export class QuestionModel extends BaseEntity {
   @Column()
   groupable: boolean;
 
+  @Column()
+  isTaskQuestion: boolean;
+
   @ManyToOne((type) => QuestionGroupModel, { nullable: true })
   @JoinColumn({ name: 'groupId' })
   group: QuestionGroupModel;

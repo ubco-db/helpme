@@ -26,8 +26,9 @@ import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
 import { MailModule } from 'mail/mail.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
 import { OrganizationModule } from 'organization/organization.module';
-import { QuestionTypeModule } from 'questionType/questionType.module';
+import { QuestionTypeModule } from './questionType/questionType.module';
 import { StudentTaskProgressModule } from 'studentTaskProgress/studentTaskProgress.module';
+import { QueueSessionModule } from './queueSession/queueSession.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { StudentTaskProgressModule } from 'studentTaskProgress/studentTaskProgre
     AuthModule,
     QuestionTypeModule,
     StudentTaskProgressModule,
+    QueueSessionModule,
   ],
 })
 export class AppModule {}
