@@ -70,7 +70,9 @@ export default function ChatbotQuestions({
   const [selectedDocuments, setSelectedDocuments] = useState([])
 
   useEffect(() => {
-    fetch(`/chat/${courseId}/aggregateDocuments`)
+    fetch(`/chat/${courseId}/aggregateDocuments`, {
+      headers: { HMS_API_TOKEN: profile.chat_token.token },
+    })
       .then((res) => res.json())
       .then((json) => {
         // Convert the json to the expected format
