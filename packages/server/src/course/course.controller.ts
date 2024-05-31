@@ -469,7 +469,7 @@ export class CourseController {
     return queue;
   }
 
-  @Post(':id/generate_queue/:room')
+  @Post(':id/create_queue/:room')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async generateQueue(

@@ -211,7 +211,7 @@ Object {
 }
 `;
 
-exports[`Course Integration POST /courses/:id/generate_queue/:room correctly propagates notes,profq,and name 1`] = `
+exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 1`] = `
 Object {
   "allowQuestions": true,
   "courseId": Any<Number>,
@@ -223,7 +223,7 @@ Object {
 }
 `;
 
-exports[`Course Integration POST /courses/:id/generate_queue/:room correctly propagates notes,profq,and name 2`] = `
+exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 2`] = `
 Object {
   "allowQuestions": true,
   "courseId": Any<Number>,
@@ -235,7 +235,7 @@ Object {
 }
 `;
 
-exports[`Course Integration POST /courses/:id/generate_queue/:room correctly propagates notes,profq,and name 3`] = `
+exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 3`] = `
 Object {
   "allowQuestions": true,
   "courseId": Any<Number>,

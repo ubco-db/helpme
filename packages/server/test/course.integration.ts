@@ -523,7 +523,7 @@ describe('Course Integration', () => {
     });
   });
 
-  describe('POST /courses/:id/generate_queue/:room', () => {
+  describe('POST /courses/:id/create_queue/:room', () => {
     it('correctly propagates notes,profq,and name', async () => {
       const ucp = await UserCourseFactory.create({
         role: Role.PROFESSOR,
@@ -535,17 +535,17 @@ describe('Course Integration', () => {
       });
 
       await supertest({ userId: ucp.user.id })
-        .post(`/courses/${ucp.course.id}/generate_queue/abcd1`)
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
         .send({ notes: 'example note 1', isProfessorQueue: false })
         .expect(201);
 
       await supertest({ userId: ucp.user.id })
-        .post(`/courses/${ucp.course.id}/generate_queue/abcd2`)
+        .post(`/courses/${ucp.course.id}/create_queue/abcd2`)
         .send({ notes: 'example note 7', isProfessorQueue: true })
         .expect(201);
 
       await supertest({ userId: uct.user.id })
-        .post(`/courses/${uct.course.id}/generate_queue/abcd3`)
+        .post(`/courses/${uct.course.id}/create_queue/abcd3`)
         .send({ notes: 'ta queue', isProfessorQueue: false })
         .expect(201);
 
@@ -578,7 +578,7 @@ describe('Course Integration', () => {
         role: Role.TA,
       });
       await supertest({ userId: uct.user.id })
-        .post(`/courses/${uct.course.id}/generate_queue/abcd3`)
+        .post(`/courses/${uct.course.id}/create_queue/abcd3`)
         .send({ notes: 'ta queue', isProfessorQueue: true })
         .expect(401); // unauthorized
     });
@@ -589,11 +589,11 @@ describe('Course Integration', () => {
       });
 
       await supertest({ userId: ucp.user.id })
-        .post(`/courses/${ucp.course.id}/generate_queue/abcd1`)
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
         .send({ notes: 'example note 1', isProfessorQueue: false })
         .expect(201);
       await supertest({ userId: ucp.user.id })
-        .post(`/courses/${ucp.course.id}/generate_queue/abcd1`)
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
         .send({ notes: 'example note 2', isProfessorQueue: false })
         .expect(400);
     });
@@ -612,7 +612,7 @@ describe('Course Integration', () => {
 
       // recreate a disabled queue.
       await supertest({ userId: ucp.user.id })
-        .post(`/courses/${ucp.course.id}/generate_queue/${queue1.room}`)
+        .post(`/courses/${ucp.course.id}/create_queue/${queue1.room}`)
         .send({
           notes: queue1.notes,
           isProfessorQueue: queue1.isProfessorQueue,

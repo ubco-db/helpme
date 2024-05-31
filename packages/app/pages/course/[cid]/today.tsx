@@ -1,6 +1,6 @@
 import { API } from '@koh/api-client'
 import { Heatmap, QueuePartial, Role } from '@koh/common'
-import { Col, Row, Spin, Button } from 'antd'
+import { Col, Row, Spin, Button, message } from 'antd'
 import { chunk, mean } from 'lodash'
 import moment from 'moment'
 import Head from 'next/head'
@@ -121,6 +121,24 @@ export default function Today(): ReactElement {
     mutateCourse()
   }
 
+  const submitCreateQueue = async (submittedForm) => {
+    const queueRequest = await submittedForm.validateFields()
+    try {
+      await API.queues.createQueue(
+        Number(cid),
+        queueRequest.officeHourName,
+        !queueRequest.allowTA,
+        queueRequest.notes,
+      )
+      message.success(`Created a new queue ${queueRequest.officeHourName}`)
+      mutateCourse()
+
+      setCreateQueueModalVisible(false)
+    } catch (err) {
+      message.error(err.response?.data?.message)
+    }
+  }
+
   const firstContentItemId = courseFeatures?.queueEnabled
     ? 'first-queue'
     : courseFeatures?.asyncQueueEnabled
@@ -152,12 +170,7 @@ export default function Today(): ReactElement {
               <TodayCol md={12} xs={24}>
                 <Row justify="space-between">
                   <Title>{course?.name} Help Centre</Title>
-                  {courseFeatures.queueEnabled && (
-                    <TodayPageCheckinButton
-                      createQueueModalVisible={createQueueModalVisible}
-                      setCreateQueueModalVisible={setCreateQueueModalVisible}
-                    />
-                  )}
+                  {courseFeatures.queueEnabled && <TodayPageCheckinButton />}
                 </Row>
                 <Row>
                   <div>

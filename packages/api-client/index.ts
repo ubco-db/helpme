@@ -292,19 +292,6 @@ class APIClient {
       room: string,
     ): Promise<TACheckoutResponse> =>
       this.req('DELETE', `/api/v1/courses/${courseId}/ta_location/${room}`),
-    makeQueue: async (
-      // TODO: move this out of taStatus and into queues. It was originally put here when you could only create queues when clicking the 'checkin' button
-      courseId: number,
-      room: string,
-      isProfessorQueue: boolean,
-      notes: string,
-    ): Promise<TAUpdateStatusResponse> =>
-      this.req(
-        'POST',
-        `/api/v1/courses/${courseId}/generate_queue/${room}`,
-        QueuePartial,
-        { notes, isProfessorQueue },
-      ),
   }
   asyncQuestions = {
     create: async (body: CreateAsyncQuestions, cid: number) =>
@@ -398,6 +385,18 @@ class APIClient {
       this.req('GET', `/api/v1/queues/${queueId}/config`),
     updateConfig: async (queueId: number, config: JSON): Promise<JSON> =>
       this.req('PATCH', `/api/v1/queues/${queueId}/config`, undefined, config),
+    createQueue: async (
+      courseId: number,
+      room: string,
+      isProfessorQueue: boolean,
+      notes: string,
+    ): Promise<TAUpdateStatusResponse> =>
+      this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/create_queue/${room}`,
+        QueuePartial,
+        { notes, isProfessorQueue },
+      ),
   }
   notif = {
     desktop: {
