@@ -1,0 +1,50 @@
+@startuml
+
+skin rose
+
+title "mark question sequence diagram"
+
+actor User as "TA"
+participant frontend
+participant server
+database db
+
+User -> frontend : request queue page
+frontend -> server : request queue page
+server -> db : request queue data
+server <- db : queue data (+config)
+frontend <- server : queue page
+frontend -> frontend : parse queue data and save in variables
+User <- frontend : queue page
+
+
+
+frontend <- server : new task question for "part 2"
+frontend -> frontend : renders new task question, needs \n to know what tasks are already done
+User <- frontend : sees new task question
+frontend --> server : get current task list for \n the student (asynchronous)
+server -> db : get current task list for student
+server <- db : current task list for student (if any)
+frontend <- server : current task list for student
+User <- frontend : sees what tasks the \n student has already done
+note right : not much time has passed, \n shouldn't really be noticable
+
+User -> frontend : task question looks good, \n mark as done
+frontend -> server : mark done task for student for \n "lab 1". 
+server -> db : get current task list for student
+server <- db : current task list for student (if any)
+alt no task list made for student yet
+    server -> db : create new task list with \n new task appended
+else task list already made
+    server -> server : check to see if this is a new task
+    alt new task
+        server -> db : append onto task list
+    else not new task
+        server -> db : replace old task item
+    end
+end
+frontend <- server : done
+User <- frontend : done
+
+
+@enduml

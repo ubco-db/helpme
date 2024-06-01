@@ -1,0 +1,42 @@
+@startuml
+
+skin rose
+
+title "create task question sequence diagram"
+
+actor User as "Student"
+participant frontend
+participant server
+database db
+
+User -> frontend : request queue page
+frontend -> server : request queue page
+server -> db : request queue data
+server <- db : queue data (+config)
+frontend <- server : queue page
+frontend -> frontend : parse config and save in variables \n (note: assignment_name="lab1")
+frontend -> frontend : check if any tasks are defined \n (if not, no need to get task progress data)
+User <- frontend : queue page
+
+
+frontend --> server : get task progress \n for the student in this course for "lab1"
+server -> db : get task progress data for student in course
+server <- db : task progress data for student in course
+server -> server : parse for task progress data for "lab1"
+frontend <- server : task progress data for "lab1"
+frontend -> frontend : save task progress data in variables
+
+User -> frontend : create task question\n for "part2"
+frontend -> server : create task question\n for "part2"
+server -> db : get queue config
+server <- db : queue config
+server -> server : check to make sure "part2" is a valid task
+server -> db : create question with "isTaskQuestion" flag\n enabled and text with "Mark "part2""
+
+== Database change triggers update to all clients (push) ==
+
+frontend <- server : updated queue
+frontend -> frontend : sees task question, \n parses "part 2" from question text, \n renders the task question based \n on the config 
+User <- frontend : sees new task question
+
+@enduml

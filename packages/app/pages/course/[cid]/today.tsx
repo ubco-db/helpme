@@ -15,7 +15,6 @@ import QueueCard, {
 import TodayPageCheckinButton from '../../../components/Today/QueueCheckInButton'
 import QueueCreateModal from '../../../components/Today/QueueCreateModal'
 import { useCourse } from '../../../hooks/useCourse'
-import { useRoleInCourse } from '../../../hooks/useRoleInCourse'
 import PopularTimes from '../../../components/Today/PopularTimes/PopularTimes'
 import AsyncQuestionCard from '../../../components/Questions/AsyncQuestions/AsyncQuestionCard'
 import { orderBy } from 'lodash'

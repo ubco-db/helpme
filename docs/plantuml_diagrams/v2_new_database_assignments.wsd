@@ -2,7 +2,7 @@
 
 skin rose
 
-title new database again vfinal? different
+title new database again vfinal? with assignments
 
 
 class queue {
@@ -25,9 +25,14 @@ class question {
   +bool isTaskQuestion
 }
 
-class thing as "studentTaskProgress" {
-  +json taskProgress
+class thing as "assignment" {
++varchar name
 }
+
+class studentTaskProgress as "studentAssignmentProgress" {
+  +json assignmentProgress
+}
+note right : "task1":{"isDone":true},\n"task2":{"isDone":true}
 
 class questionType { 
   ' questionTypes are only going to be tags, not tasks
@@ -40,14 +45,14 @@ class questionType {
 queue "0..*" -- "1" course
 question "0..*" -- "1" queue
 question "0..*" -- "1" user
-thing "0..*" -- "1" user
+studentTaskProgress "0..*" -- "1" user
 thing "0..*" -- "1" course
 calendar "0..*" --right "1" course
 questionType "0..*" -- "0..*" question
 ' still not sure whether to remove this connection EDIT: i think removing it is a good idea since that way queues don't have access to all the previous questionTypes
 ' questionType "0..*" -- "1" queue 
 queue "1" -- "0..*" questionType
-
+studentTaskProgress "0..*" -- "1" thing
 
 hide empty methods
 ' hide circle

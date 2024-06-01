@@ -1,0 +1,61 @@
+@startuml
+
+skin rose
+
+title new database again vfinal? different
+
+
+class queue {
+  +json config
+}
+
+class course
+
+class calendar {
+  +varchar        title
+  +timestamp   start 
+  +timestamp   end
+  +textarray      daysOfWeek
+  +bool             allDay [unused]
+}
+
+class course
+
+class question {
+  +bool isTaskQuestion
+}
+
+class thing as "studentTaskProgress" {
+  +json taskProgress
+}
+note right : "lab1": {"task1":{"isDone":true},\n\t   "task2":{"isDone":true}}, \n"lab2": {"task1":{"isDone":true}}
+
+class questionType { 
+  ' questionTypes are only going to be tags, not tasks
+  '+bool isTask
+  '+varchar shortName
+  '+bool blocking
+}
+
+
+queue "0..*" -- "1" course
+question "0..*" -- "1" queue
+question "0..*" -- "1" user
+thing "0..*" -- "1" user
+thing "0..*" -- "1" course
+calendar "0..*" --right "1" course
+questionType "0..*" -- "0..*" question
+' still not sure whether to remove this connection EDIT: i think removing it is a good idea since that way queues don't have access to all the previous questionTypes
+' questionType "0..*" -- "1" queue 
+queue "1" -- "0..*" questionType
+
+
+hide empty methods
+' hide circle
+
+' NOTE: does it make sense to have a connection between question and queueSession?
+' from a histroy standpoint, yes, but the connection might be unused otherwise
+
+' Note to self: we are not hijacking the "event" table since then events would need to store session configs as well as have a connection to questionType, and it makes more sense to keep those things seperate
+
+@enduml
