@@ -112,6 +112,7 @@ export class QuestionController {
     });
     return questionRes;
   }
+
   @Post('TAcreate/:userId')
   async TAcreateQuestion(
     @Body() body: CreateQuestionParams,
@@ -290,6 +291,7 @@ export class QuestionController {
       where: { id: questionId },
       relations: ['creator', 'queue', 'taHelped'],
     });
+
     if (question === undefined) {
       throw new NotFoundException();
     }

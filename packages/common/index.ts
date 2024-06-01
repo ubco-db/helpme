@@ -343,7 +343,7 @@ export class Question {
   location?: string
 }
 
-export const QuestionTypes: QuestionTypeParams[] = [
+export const QuestionTypes: QuestionTypeParamsWithOptionalQueueId[] = [
   {
     id: 1,
     cid: 1,
@@ -1110,8 +1110,27 @@ export class QuestionTypeParams {
   cid?: number
 
   @IsString()
+  name!: string
+
+  @IsString()
   @IsOptional()
-  name?: string
+  color?: string
+
+  @IsInt()
+  queueId!: number
+}
+
+export class QuestionTypeParamsWithOptionalQueueId {
+  @IsInt()
+  @IsOptional()
+  id?: number
+
+  @IsInt()
+  @IsOptional()
+  cid?: number
+
+  @IsString()
+  name!: string
 
   @IsString()
   @IsOptional()
@@ -1121,7 +1140,6 @@ export class QuestionTypeParams {
   @IsOptional()
   queueId?: number
 }
-
 export class TACheckinTimesResponse {
   @Type(() => TACheckinPair)
   taCheckinTimes!: TACheckinPair[]
