@@ -161,15 +161,27 @@ export class OrganizationController {
       });
     }
 
-    if (courseDetails.semesterId) {
-      const semesterInfo = await SemesterModel.findOne({
-        where: { id: courseDetails.semesterId },
+    if (
+      !courseDetails.semesterName &&
+      courseDetails.semesterName.trim().length < 2
+    ) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterNameTooShort,
       });
-      if (!semesterInfo) {
-        return res.status(HttpStatus.BAD_REQUEST).send({
-          message: ERROR_MESSAGES.courseController.semesterNotFound,
-        });
-      }
+    }
+
+    const semesterDetails = courseDetails.semesterName.split(',');
+
+    if (semesterDetails.length !== 2) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterNameFormat,
+      });
+    }
+
+    if (isNaN(parseInt(semesterDetails[1]))) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterYearInvalid,
+      });
     }
 
     const course = {
@@ -178,7 +190,6 @@ export class OrganizationController {
       sectionGroupName: courseDetails.sectionGroupName,
       zoomLink: courseDetails.zoomLink,
       timezone: courseDetails.timezone,
-      semesterId: courseDetails.semesterId,
       enabled: true,
     };
     try {
@@ -208,6 +219,25 @@ export class OrganizationController {
         organizationId: oid,
         course: newCourse,
       }).save();
+
+      const semester = await SemesterModel.findOne({
+        where: {
+          season: semesterDetails[0],
+          year: parseInt(semesterDetails[1]),
+        },
+        relations: ['courses'],
+      });
+
+      if (!semester) {
+        await SemesterModel.create({
+          season: semesterDetails[0],
+          year: parseInt(semesterDetails[1]),
+          courses: [newCourse],
+        }).save();
+      } else {
+        semester.courses.push(newCourse);
+        await semester.save();
+      }
 
       // create courseSettingsModel for the new course (all checks are performed by typescript)
       const newCourseSettings = new CourseSettingsModel();
@@ -265,7 +295,7 @@ export class OrganizationController {
         organizationId: oid,
         courseId: cid,
       },
-      relations: ['course'],
+      relations: ['course', 'course.semester'],
     });
 
     if (!courseInfo) {
@@ -320,20 +350,66 @@ export class OrganizationController {
       });
     }
 
-    if (courseDetails.semesterId) {
-      const semesterInfo = await SemesterModel.findOne({
+    if (
+      courseDetails.semesterName &&
+      courseDetails.semesterName.trim().length < 2
+    ) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterNameTooShort,
+      });
+    }
+
+    const semesterDetails = courseDetails.semesterName.split(',');
+    if (semesterDetails.length !== 2) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterNameFormat,
+      });
+    }
+
+    if (isNaN(parseInt(semesterDetails[1]))) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterYearInvalid,
+      });
+    }
+
+    const semester = await SemesterModel.findOne({
+      where: {
+        season: semesterDetails[0],
+        year: parseInt(semesterDetails[1]),
+      },
+      relations: ['courses'],
+    });
+
+    if (courseInfo.course.semester?.id) {
+      const prevSemester = await SemesterModel.findOne({
         where: {
-          id: courseDetails.semesterId,
+          id: courseInfo.course.semester.id,
         },
+        relations: ['courses'],
       });
 
-      if (!semesterInfo) {
-        return res.status(HttpStatus.BAD_REQUEST).send({
-          message: ERROR_MESSAGES.courseController.semesterNotFound,
-        });
+      if (prevSemester) {
+        prevSemester.courses = prevSemester.courses.filter(
+          (course) => course.id !== cid,
+        );
+        await prevSemester.save();
       }
+    }
 
-      courseInfo.course.semesterId = courseDetails.semesterId;
+    if (!semester) {
+      const newSemester = await SemesterModel.create({
+        season: semesterDetails[0],
+        year: parseInt(semesterDetails[1]),
+        courses: [courseInfo.course],
+      }).save();
+
+      courseInfo.course.semester = newSemester;
+      await courseInfo.course.save();
+    } else {
+      courseInfo.course.semester = semester;
+      await courseInfo.course.save();
+      semester.courses.push(courseInfo.course);
+      await semester.save();
     }
 
     courseInfo.course.name = courseDetails.name;
@@ -783,23 +859,23 @@ export class OrganizationController {
     @Param('oid') oid: string,
     @Body() organizationUserRolePatch: UpdateOrganizationUserRole,
   ): Promise<void> {
-    OrganizationModel.findOne({
+    await OrganizationModel.findOne({
       where: { id: oid },
     })
-      .then((organization) => {
+      .then(async (organization) => {
         if (!organization) {
           return res.status(HttpStatus.NOT_FOUND).send({
             message: ERROR_MESSAGES.organizationController.organizationNotFound,
           });
         }
 
-        OrganizationUserModel.findOne({
+        await OrganizationUserModel.findOne({
           where: {
             userId: organizationUserRolePatch.userId,
             organizationId: oid,
           },
         })
-          .then((organizationUser) => {
+          .then(async (organizationUser) => {
             if (!organizationUser) {
               return res.status(HttpStatus.NOT_FOUND).send({
                 message:
@@ -821,7 +897,7 @@ export class OrganizationController {
 
             organizationUser.role = organizationUserRolePatch.organizationRole;
 
-            organizationUser
+            await organizationUser
               .save()
               .then((_) => {
                 res.status(HttpStatus.OK).send({
@@ -1216,7 +1292,7 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getProfessors(@Param('oid') oid: number): Promise<any> {
-    const orgProfs = OrganizationUserModel.find({
+    const orgProfs = await OrganizationUserModel.find({
       where: {
         organizationId: oid,
         role: In([OrganizationRole.PROFESSOR, OrganizationRole.ADMIN]),

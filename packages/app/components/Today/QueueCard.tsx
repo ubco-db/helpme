@@ -136,7 +136,7 @@ const QueueCard = ({
   const staffList = queue.staffList
 
   const handleUpdate = (e) => {
-    e.stopPropagation()
+    e.preventDefault()
     setIsLinkEnabled(true)
     setEditingNotes(false)
     updateQueueNotes(queue, updatedNotes)
@@ -262,7 +262,7 @@ const QueueCard = ({
                   {isTA && (
                     <EditNotesButton
                       onClick={(e) => {
-                        e.stopPropagation()
+                        e.preventDefault()
                         setIsLinkEnabled(false)
                         setEditingNotes(true)
                       }}

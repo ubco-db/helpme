@@ -262,7 +262,7 @@ export class OrganizationService {
         courseId,
         organizationId,
       },
-      relations: ['course'],
+      relations: ['course', 'course.semester'],
     });
 
     if (!organizationCourse) {
