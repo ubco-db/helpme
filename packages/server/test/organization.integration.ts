@@ -1148,7 +1148,7 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(400);
     });
 
-    it('should return 400 when semester id is not found', async () => {
+    it('should return 400 when semester id is not in valid form', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
@@ -1170,41 +1170,12 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterId: 230,
+          semesterName: 'invalid_semester_name',
         });
 
-      expect(res.body.message).toBe('Semester not found');
-      expect(res.status).toBe(400);
-    });
-
-    it('should return 400 when semester id is not an integer', async () => {
-      const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
-      const course = await CourseFactory.create();
-
-      await SemesterFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationCourseModel.create({
-        courseId: course.id,
-        organizationId: organization.id,
-      }).save();
-
-      const res = await supertest({ userId: user.id })
-        .patch(`/organization/${organization.id}/update_course/${course.id}`)
-        .send({
-          name: 'newName',
-          timezone: 'America/Los_Angeles',
-          sectionGroupName: 'test',
-          semesterId: 'invalid_integer',
-        });
-
-      expect(res.body.message[0]).toBe('semesterId must be an integer number');
+      expect(res.body.message).toBe(
+        'Semester must be in the format "season,year". E.g. Fall,2021',
+      );
       expect(res.status).toBe(400);
     });
 
@@ -1214,7 +1185,6 @@ describe('Organization Integration', () => {
       const professor2 = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-      const semester = await SemesterFactory.create();
 
       await OrganizationUserModel.create({
         userId: user.id,
@@ -1233,7 +1203,7 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterId: semester.id,
+          semesterName: 'Fall,2021',
           profIds: [professor1.id, professor2.id],
         });
 
@@ -1363,30 +1333,6 @@ describe('Organization Integration', () => {
       );
 
       expect(res.status).toBe(404);
-    });
-
-    it('should return course when course is found', async () => {
-      const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
-      const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationCourseModel.create({
-        courseId: course.id,
-        organizationId: organization.id,
-      }).save();
-
-      const res = await supertest({ userId: user.id }).get(
-        `/organization/${organization.id}/get_course/${course.id}`,
-      );
-
-      expect(res.status).toBe(200);
-      expect(res.body).toMatchSnapshot();
     });
   });
 
@@ -2363,73 +2309,10 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(400);
     });
 
-    it('should return 400 when semester id is not found', async () => {
-      const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
-      const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationCourseModel.create({
-        courseId: course.id,
-        organizationId: organization.id,
-      }).save();
-
-      const res = await supertest({ userId: user.id })
-        .post(`/organization/${organization.id}/create_course`)
-        .send({
-          name: 'newName',
-          timezone: 'America/Los_Angeles',
-          sectionGroupName: 'test',
-          semesterId: 230,
-        });
-
-      expect(res.body.message).toBe('Semester not found');
-      expect(res.status).toBe(400);
-    });
-
-    it('should return 400 when semester id is not an integer', async () => {
-      const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
-      const course = await CourseFactory.create();
-
-      await SemesterFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationCourseModel.create({
-        courseId: course.id,
-        organizationId: organization.id,
-      }).save();
-
-      const res = await supertest({ userId: user.id })
-        .post(`/organization/${organization.id}/create_course`)
-        .send({
-          name: 'newName',
-          timezone: 'America/Los_Angeles',
-          sectionGroupName: 'test',
-          semesterId: 'invalid_integer',
-        });
-
-      expect(res.body.message[0]).toBe('semesterId must be an integer number');
-      expect(res.status).toBe(400);
-    });
-
     it('should return 202 when no professors are given', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-      const semester = await SemesterFactory.create();
-
-      await SemesterFactory.create();
 
       await OrganizationUserModel.create({
         userId: user.id,
@@ -2447,7 +2330,7 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterId: semester.id,
+          semesterName: 'Fall,2024',
           courseSettings: [
             {
               feature: 'asyncQueueEnabled',
@@ -2466,7 +2349,6 @@ describe('Organization Integration', () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-      const semester = await SemesterFactory.create();
       const professor1 = await UserFactory.create();
 
       await SemesterFactory.create();
@@ -2487,7 +2369,7 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterId: semester.id,
+          semesterName: 'Fall,2024',
           profIds: [professor1.id],
           courseSettings: {
             invalidSetting: true,
@@ -2503,7 +2385,7 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterId: semester.id,
+          semesterName: 'Fall,2024',
           profIds: [professor1.id],
           courseSettings: [
             {
@@ -2540,7 +2422,7 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterId: semester.id,
+          semesterName: 'Fall,2024',
           profIds: [professor1.id],
         });
 
@@ -2571,7 +2453,6 @@ describe('Organization Integration', () => {
       const professor2 = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-      const semester = await SemesterFactory.create();
 
       await OrganizationUserModel.create({
         userId: user.id,
@@ -2590,7 +2471,7 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterId: semester.id,
+          semesterName: 'Fall,2024',
           profIds: [professor1.id, professor2.id],
           courseSettings: [
             {

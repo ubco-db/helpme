@@ -16,7 +16,6 @@ import Head from 'next/head'
 import { ReactElement, useState, useEffect } from 'react'
 import NavBar from '../../../components/Nav/NavBar'
 import { StandardPageContainer } from '../../../components/common/PageContainer'
-import { useSemester } from '../../../hooks/useSemester'
 import { useRouter } from 'next/router'
 import { useOrganization } from '../../../hooks/useOrganization'
 import { useProfile } from '../../../hooks/useProfile'
@@ -68,7 +67,6 @@ export default function Add(): ReactElement {
 
   function RenderAddCourse(): ReactElement {
     const [formGeneral] = Form.useForm()
-    const semesters = useSemester()
 
     const { data: professors } = useSWR(
       isAdmin ? `/api/v1/organization/[oid]/get_professors` : null,
@@ -82,7 +80,7 @@ export default function Add(): ReactElement {
       const sectionGroupNameField = formValues.sectionGroupName
       const zoomLinkField = formValues.zoomLink
       const courseTimezoneField = formValues.courseTimezone
-      const semesterIdField = formValues.semesterId
+      const semesterNameField = formValues.semesterName
       const profIds = isAdmin ? formValues.professorsUserId : [profile.id]
       const courseFeatures = [
         'chatBotEnabled',
@@ -93,14 +91,18 @@ export default function Add(): ReactElement {
         value: formValues['course-features'].includes(feature),
       }))
 
-      // if semesterIdField is not a number or not in semesters
-      if (
-        isNaN(semesterIdField) ||
-        !semesters.find((semester) => semester.id === semesterIdField)
-      ) {
-        message.error('Semester is invalid')
+      if (semesterNameField && semesterNameField.split(',').length !== 2) {
+        message.error(
+          'Semester must be in the format "season,year". E.g. Fall,2021',
+        )
         return
       }
+
+      if (isNaN(semesterNameField.split(',')[1])) {
+        message.error('Year must be a number')
+        return
+      }
+
       await API.organizations
         .createCourse(organization.id, {
           name: courseNameField,
@@ -108,7 +110,7 @@ export default function Add(): ReactElement {
           sectionGroupName: sectionGroupNameField,
           zoomLink: zoomLinkField ?? '',
           timezone: courseTimezoneField,
-          semesterId: semesterIdField,
+          semesterName: semesterNameField,
           profIds: profIds,
           courseSettings: courseFeatures,
         })
@@ -123,7 +125,7 @@ export default function Add(): ReactElement {
         })
     }
 
-    return semesters ? (
+    return (
       <>
         <Row>
           <Col xs={{ span: 24 }} sm={{ span: 24 }}>
@@ -203,17 +205,11 @@ export default function Add(): ReactElement {
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                     <Form.Item
                       label="Semester"
-                      name="semesterId"
+                      name="semesterName"
                       tooltip="Semester of the course"
                       rules={[{ required: true }]}
                     >
-                      <Select>
-                        {semesters.map((semester) => (
-                          <Select.Option value={semester.id} key={semester.id}>
-                            {semester.season + semester.year}
-                          </Select.Option>
-                        ))}
-                      </Select>
+                      <Input allowClear={true} placeholder="season,year" />
                     </Form.Item>
                   </Col>
 
@@ -319,15 +315,6 @@ export default function Add(): ReactElement {
           </Col>
         </Row>
       </>
-    ) : (
-      <Spin
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh',
-        }}
-      />
     )
   }
   return profile && isAuthorized && organization ? (

@@ -561,7 +561,7 @@ export class Image {
 /**
  * Represents one of the seasons in which a course can take place.
  */
-export type Season = 'Fall' | 'Spring' | 'Summer_1' | 'Summer_2' | 'Summer_Full'
+export type Season = string
 
 export type DesktopNotifBody = {
   endpoint: string
@@ -843,7 +843,7 @@ export class GetCourseResponse {
 
   timezone?: string
 
-  semesterId?: number
+  semester?: SemesterPartial
 
   sectionGroupName?: string
 
@@ -931,9 +931,9 @@ export class UpdateOrganizationCourseDetailsParams {
   @IsOptional()
   timezone?: string
 
-  @IsInt()
+  @IsString()
   @IsOptional()
-  semesterId?: number
+  semesterName?: string
 
   @IsArray()
   @IsOptional()
@@ -1493,6 +1493,10 @@ export const ERROR_MESSAGES = {
       cannotCheckIntoMultipleQueues:
         'Cannot check into multiple queues at the same time',
     },
+    semesterYearInvalid: 'Semester year must be a valid year',
+    semesterNameFormat:
+      'Semester must be in the format "season,year". E.g. Fall,2021',
+    semesterNameTooShort: 'Semester name must be at least 2 characters',
     invalidInviteCode: 'Invalid invite code',
     semesterNotFound: 'Semester not found',
     courseNameTooShort: 'Course name must be at least 1 character',
