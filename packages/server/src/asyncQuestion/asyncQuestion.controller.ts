@@ -23,9 +23,7 @@ import { Roles } from '../decorators/roles.decorator';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from '../profile/user.entity';
 import { AsyncQuestionModel } from './asyncQuestion.entity';
-import { asyncQuestionService } from './asyncQuestion.service';
 import { CourseModel } from 'course/course.entity';
-import { MailService } from 'mail/mail.service';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Response } from 'express';
 import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';
@@ -34,11 +32,6 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class asyncQuestionController {
-  constructor(
-    private mailService: MailService,
-    private questionService: asyncQuestionService,
-  ) {}
-
   @Post(':qid/:vote')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async voteQuestion(

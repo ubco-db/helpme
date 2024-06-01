@@ -1261,31 +1261,6 @@ export class questionTypeResponse {
   @Type(() => questionTypeParam)
   questions!: questionTypeParam[]
 }
-/**
- * Represents the parameters for a course being registered for register_courses endpoint.
- * @param sectionGroupName - The name of the section group.
- * @param name - user friendly display name entered by Prof
- * @param semester - The name of the semester.
- * @param iCalURL - The URL for the iCal calendar.
- * @param coordinator_email - The email for the course coordinator.
- * @param timezone - The timezone derived from the Campus field on the form.
- */
-export class RegisterCourseParams {
-  @IsString()
-  sectionGroupName!: string
-
-  @IsString()
-  name!: string
-
-  @IsString()
-  iCalURL?: string
-
-  @IsString()
-  coordinator_email!: string
-
-  @IsString()
-  timezone!: string
-}
 
 export class AccountRegistrationParams {
   @IsString()
@@ -1511,6 +1486,7 @@ export const ERROR_MESSAGES = {
       cannotCheckIntoMultipleQueues:
         'Cannot check into multiple queues at the same time',
     },
+    queueLimitReached: 'Queue limit per course reached',
     invalidInviteCode: 'Invalid invite code',
     semesterNotFound: 'Semester not found',
     courseNameTooShort: 'Course name must be at least 1 character',

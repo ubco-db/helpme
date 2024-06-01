@@ -12,7 +12,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { classToClass } from 'class-transformer';
 import { pick } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
-import { Connection, In } from 'typeorm';
+import { In } from 'typeorm';
 import { QueueModel } from './queue.entity';
 import { AlertsService } from '../alerts/alerts.service';
 
@@ -22,10 +22,9 @@ import { AlertsService } from '../alerts/alerts.service';
  */
 @Injectable()
 export class QueueService {
-  constructor(
-    private connection: Connection,
-    private alertsService: AlertsService,
-  ) {}
+  readonly MAX_QUESTIONS_PER_QUEUE = 30;
+
+  constructor(private alertsService: AlertsService) {}
 
   async getQueue(queueId: number): Promise<QueueModel> {
     const queue = await QueueModel.findOne(queueId, {
@@ -48,11 +47,11 @@ export class QueueService {
       throw new NotFoundException();
     }
 
-    const questionsFromDb = await QuestionModel.inQueueWithStatus(queueId, [
-      ...StatusInPriorityQueue,
-      ...StatusInQueue,
-      OpenQuestionStatus.Helping,
-    ])
+    const questionsFromDb = await QuestionModel.inQueueWithStatus(
+      queueId,
+      [...StatusInPriorityQueue, ...StatusInQueue, OpenQuestionStatus.Helping],
+      this.MAX_QUESTIONS_PER_QUEUE,
+    )
       .leftJoinAndSelect('question.questionTypes', 'questionTypes')
       .leftJoinAndSelect('question.creator', 'creator')
       .leftJoinAndSelect('question.taHelped', 'taHelped')

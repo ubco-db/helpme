@@ -22,6 +22,8 @@ import { CourseModel } from 'course/course.entity';
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionTypeController {
+  readonly MAX_QUESTION_TYPES_PER_QUEUE = 20;
+
   @Post(':c')
   @Roles(Role.TA, Role.PROFESSOR)
   async addQuestionType(
@@ -58,6 +60,20 @@ export class QuestionTypeController {
       res
         .status(HttpStatus.BAD_REQUEST)
         .send({ message: 'Queue does not exist' });
+      return;
+    }
+
+    const questionTypeCount = await QuestionTypeModel.count({
+      where: {
+        cid: courseId,
+        queueId: newQuestionType.queueId,
+      },
+    });
+
+    if (questionTypeCount >= this.MAX_QUESTION_TYPES_PER_QUEUE) {
+      res.status(HttpStatus.BAD_REQUEST).send({
+        message: 'Queue has reached maximum number of question types',
+      });
       return;
     }
 
@@ -98,7 +114,9 @@ export class QuestionTypeController {
         cid: course,
         queueId,
       },
+      take: this.MAX_QUESTION_TYPES_PER_QUEUE,
     });
+
     if (!questions) {
       res.status(400).send('None');
       return;

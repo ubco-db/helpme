@@ -4,8 +4,12 @@ import { SemesterModel } from './semester.entity';
 
 @Controller('semesters')
 export class SemesterController {
+  readonly MAX_SEMESTERS = 40;
+
   @Get()
   async get(): Promise<SemesterPartial[]> {
-    return SemesterModel.find();
+    return SemesterModel.find({
+      take: this.MAX_SEMESTERS,
+    });
   }
 }

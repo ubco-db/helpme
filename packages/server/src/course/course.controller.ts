@@ -1,6 +1,5 @@
 import {
   asyncQuestionStatus,
-  CoursePartial,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
   EditCourseInfoParams,
@@ -9,7 +8,6 @@ import {
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
   QueuePartial,
-  RegisterCourseParams,
   Role,
   TACheckinTimesResponse,
   TACheckoutResponse,
@@ -59,22 +57,15 @@ import { ConfigService } from '@nestjs/config';
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
 export class CourseController {
+  readonly MAX_ASYNC_QUESTIONS = 100;
+  readonly MAX_QUEUES_PER_COURSE = 30;
+
   constructor(
     private configService: ConfigService,
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
     private courseService: CourseService,
   ) {}
-
-  // get all courses
-  @Get()
-  async getAllCourses(): Promise<CoursePartial[]> {
-    const courses = await CourseModel.find();
-    if (!courses) {
-      throw new NotFoundException();
-    }
-    return courses.map((course) => ({ id: course.id, name: course.name }));
-  }
 
   @Get(':oid/organization_courses')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -86,6 +77,7 @@ export class CourseController {
       where: {
         organizationId: oid,
       },
+      take: 200,
       relations: ['course'],
     });
 
@@ -137,27 +129,16 @@ export class CourseController {
       order: {
         createdAt: 'DESC',
       },
+      take: this.MAX_ASYNC_QUESTIONS,
     });
+
     if (!all) {
       res.status(HttpStatus.NOT_FOUND).send({
         message: ERROR_MESSAGES.questionController.notFound,
       });
       return;
     }
-    // const course = await CourseModel.findOne({
-    //   where: {
-    //     id: cid,
-    //   },
-    // });
-    // This will enable viewing with displaytypes function
-    // let questionsDB = all;
-    // if (course.asyncQuestionDisplayTypes[0] !== 'all') {
-    //   questionsDB = all.filter((question) =>
-    //     question.course.asyncQuestionDisplayTypes.includes(
-    //       question.questionType,
-    //     ),
-    //   );
-    // }
+
     let questions;
 
     if (isStaff) {
@@ -514,6 +495,18 @@ export class CourseController {
         ERROR_MESSAGES.courseController.queueNotAuthorized,
       );
     }
+
+    const queuesCount = await QueueModel.count({
+      courseId,
+    });
+
+    if (queuesCount >= this.MAX_QUEUES_PER_COURSE) {
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.queueLimitReached,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     try {
       return await QueueModel.create({
         room,
@@ -628,16 +621,6 @@ export class CourseController {
       where: { courseId, userId },
     });
     await this.courseService.removeUserFromCourse(userCourse);
-  }
-
-  @Post('/register_courses')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  @Roles(Role.PROFESSOR)
-  async registerCourses(
-    @Body() body: RegisterCourseParams[],
-    @UserId() userId: number,
-  ): Promise<void> {
-    await this.courseService.registerCourses(body, userId);
   }
 
   @Get(':id/ta_check_in_times')
