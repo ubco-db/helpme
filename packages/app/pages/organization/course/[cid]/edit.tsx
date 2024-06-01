@@ -159,6 +159,11 @@ export default function Edit(): ReactElement {
         return
       }
 
+      if (isNaN(semesterNameField.split(',')[1])) {
+        message.error('Year must be a number')
+        return
+      }
+
       if (
         !Array.isArray(profIdsField) ||
         (professors &&

@@ -98,6 +98,11 @@ export default function Add(): ReactElement {
         return
       }
 
+      if (isNaN(semesterNameField.split(',')[1])) {
+        message.error('Year must be a number')
+        return
+      }
+
       await API.organizations
         .createCourse(organization.id, {
           name: courseNameField,

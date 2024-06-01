@@ -1493,6 +1493,7 @@ export const ERROR_MESSAGES = {
       cannotCheckIntoMultipleQueues:
         'Cannot check into multiple queues at the same time',
     },
+    semesterYearInvalid: 'Semester year must be a valid year',
     semesterNameFormat:
       'Semester must be in the format "season,year". E.g. Fall,2021',
     semesterNameTooShort: 'Semester name must be at least 2 characters',

@@ -178,6 +178,12 @@ export class OrganizationController {
       });
     }
 
+    if (isNaN(parseInt(semesterDetails[1]))) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterYearInvalid,
+      });
+    }
+
     const course = {
       name: courseDetails.name,
       coordinator_email: courseDetails.coordinator_email,
@@ -357,6 +363,12 @@ export class OrganizationController {
     if (semesterDetails.length !== 2) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: ERROR_MESSAGES.courseController.semesterNameFormat,
+      });
+    }
+
+    if (isNaN(parseInt(semesterDetails[1]))) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterYearInvalid,
       });
     }
 
