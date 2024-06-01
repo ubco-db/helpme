@@ -215,14 +215,6 @@ export default function Edit(): ReactElement {
                 }}
                 onFinish={updateGeneral}
               >
-                {courseData.profIds.length !== professors?.length && (
-                  <Alert
-                    message="System Notice"
-                    description="One or more professors in this organization is not assigned a professor role. Please assign a professor role to all professors in this course."
-                    type="error"
-                    style={{ marginBottom: 20 }}
-                  />
-                )}
                 <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                     <Form.Item
@@ -230,12 +222,7 @@ export default function Edit(): ReactElement {
                       name="courseName"
                       tooltip="Name of the course"
                     >
-                      <Input
-                        allowClear={true}
-                        disabled={
-                          courseData.profIds.length !== professors?.length
-                        }
-                      />
+                      <Input allowClear={true} />
                     </Form.Item>
                   </Col>
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>
@@ -244,12 +231,7 @@ export default function Edit(): ReactElement {
                       name="coordinatorEmail"
                       tooltip="Email of the coordinator of the course"
                     >
-                      <Input
-                        allowClear={true}
-                        disabled={
-                          courseData.profIds.length !== professors?.length
-                        }
-                      />
+                      <Input allowClear={true} />
                     </Form.Item>
                   </Col>
 
@@ -259,12 +241,7 @@ export default function Edit(): ReactElement {
                       name="sectionGroupName"
                       tooltip="Name of the section group"
                     >
-                      <Input
-                        allowClear={true}
-                        disabled={
-                          courseData.profIds.length !== professors?.length
-                        }
-                      />
+                      <Input allowClear={true} />
                     </Form.Item>
                   </Col>
 
@@ -274,12 +251,7 @@ export default function Edit(): ReactElement {
                       name="zoomLink"
                       tooltip="Link to the zoom meeting"
                     >
-                      <Input
-                        allowClear={true}
-                        disabled={
-                          courseData.profIds.length !== professors?.length
-                        }
-                      />
+                      <Input allowClear={true} />
                     </Form.Item>
                   </Col>
 
@@ -289,11 +261,7 @@ export default function Edit(): ReactElement {
                       name="courseTimezone"
                       tooltip="Timezone of the course"
                     >
-                      <Select
-                        disabled={
-                          courseData.profIds.length !== professors?.length
-                        }
-                      >
+                      <Select>
                         {COURSE_TIMEZONES.map((timezone) => (
                           <Select.Option value={timezone} key={timezone}>
                             {timezone}
@@ -309,11 +277,7 @@ export default function Edit(): ReactElement {
                       name="semesterId"
                       tooltip="Semester of the course"
                     >
-                      <Select
-                        disabled={
-                          courseData.profIds.length !== professors?.length
-                        }
-                      >
+                      <Select>
                         {semesters.map((semester) => (
                           <Select.Option value={semester.id} key={semester.id}>
                             {semester.season + semester.year}
@@ -330,13 +294,7 @@ export default function Edit(): ReactElement {
                         name="professorsUserId"
                         tooltip="Professors teaching the course"
                       >
-                        <Select
-                          mode="multiple"
-                          placeholder="Select professors"
-                          disabled={
-                            courseData.profIds.length !== professors?.length
-                          }
-                        >
+                        <Select mode="multiple" placeholder="Select professors">
                           {professors.map((prof) => (
                             <Select.Option
                               value={prof.organizationUser.id}
@@ -355,13 +313,7 @@ export default function Edit(): ReactElement {
                 <Row>
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                     <Form.Item>
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        disabled={
-                          courseData.profIds.length !== professors?.length
-                        }
-                      >
+                      <Button type="primary" htmlType="submit">
                         Update
                       </Button>
                     </Form.Item>
@@ -397,7 +349,6 @@ export default function Edit(): ReactElement {
                   danger
                   className="w-full md:w-auto"
                   onClick={updateCourseAccess}
-                  disabled={courseData.profIds.length !== professors?.length}
                 >
                   {courseData.course.enabled
                     ? 'Archive Course'
