@@ -106,7 +106,7 @@ export default function TodayPageCheckinButton({
           onSubmit={submitMakeQueue}
           onCancel={() => setCreateQueueModalVisible(false)}
           role={role}
-          lastName={profile?.lastName}
+          lastName={profile?.lastName ?? ''}
         />
       )}
       {!queueCheckedIn && role !== Role.STUDENT && (

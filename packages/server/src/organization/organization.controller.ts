@@ -834,23 +834,23 @@ export class OrganizationController {
     @Param('oid') oid: string,
     @Body() organizationUserRolePatch: UpdateOrganizationUserRole,
   ): Promise<void> {
-    OrganizationModel.findOne({
+    await OrganizationModel.findOne({
       where: { id: oid },
     })
-      .then((organization) => {
+      .then(async (organization) => {
         if (!organization) {
           return res.status(HttpStatus.NOT_FOUND).send({
             message: ERROR_MESSAGES.organizationController.organizationNotFound,
           });
         }
 
-        OrganizationUserModel.findOne({
+        await OrganizationUserModel.findOne({
           where: {
             userId: organizationUserRolePatch.userId,
             organizationId: oid,
           },
         })
-          .then((organizationUser) => {
+          .then(async (organizationUser) => {
             if (!organizationUser) {
               return res.status(HttpStatus.NOT_FOUND).send({
                 message:
@@ -872,7 +872,7 @@ export class OrganizationController {
 
             organizationUser.role = organizationUserRolePatch.organizationRole;
 
-            organizationUser
+            await organizationUser
               .save()
               .then((_) => {
                 res.status(HttpStatus.OK).send({
@@ -1267,7 +1267,7 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getProfessors(@Param('oid') oid: number): Promise<any> {
-    const orgProfs = OrganizationUserModel.find({
+    const orgProfs = await OrganizationUserModel.find({
       where: {
         organizationId: oid,
         role: In([OrganizationRole.PROFESSOR, OrganizationRole.ADMIN]),

@@ -92,7 +92,7 @@ export default function Settings(): React.ReactElement {
           <Col xs={{ span: 24 }} sm={{ span: 18 }}>
             {selectedMenuItem === 'main' && (
               <MainTab
-                userName={profile?.firstName + ' ' + profile?.lastName}
+                userName={profile?.firstName + ' ' + (profile?.lastName ?? '')}
                 organizationId={organization?.id}
               />
             )}

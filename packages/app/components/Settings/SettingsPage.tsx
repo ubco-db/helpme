@@ -136,7 +136,7 @@ export default function SettingsPage({
           <Col>
             {profile && (
               <h2>
-                {profile.firstName} {profile.lastName}
+                {profile.firstName} {profile.lastName ?? ''}
               </h2>
             )}
             <Upload

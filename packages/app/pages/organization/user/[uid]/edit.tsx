@@ -215,7 +215,7 @@ export default function Edit(): ReactElement {
         {organization?.ssoEnabled && (
           <Alert
             message="System Notice"
-            description="Organizations with SSO/Shibboleth authentication enabled have a limited editing permissions for users. Changes must be made in the SSO provider."
+            description="Organizations with SSO/Shibboleth authentication enabled have limited editing permissions for users. Changes must be made in the SSO provider."
             type="error"
             style={{ marginBottom: 20 }}
           />
