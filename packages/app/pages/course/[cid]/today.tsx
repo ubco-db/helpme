@@ -13,6 +13,7 @@ import QueueCard, {
   QueueCardSkeleton,
 } from '../../../components/Today/QueueCard'
 import TodayPageCheckinButton from '../../../components/Today/QueueCheckInButton'
+import QueueCreateModal from '../../../components/Today/QueueCreateModal'
 import { useCourse } from '../../../hooks/useCourse'
 import { useRoleInCourse } from '../../../hooks/useRoleInCourse'
 import PopularTimes from '../../../components/Today/PopularTimes/PopularTimes'
@@ -20,6 +21,7 @@ import AsyncQuestionCard from '../../../components/Questions/AsyncQuestions/Asyn
 import { orderBy } from 'lodash'
 import { ChatbotToday } from '../../../components/Today/ChatbotToday'
 import { useCourseFeatures } from '../../../hooks/useCourseFeatures'
+import { useProfile } from '../../../hooks/useProfile'
 
 const Container = styled.div`
   margin-top: 32px;
@@ -85,7 +87,8 @@ const collapseHeatmap = (heatmap: Heatmap): Heatmap =>
 export default function Today(): ReactElement {
   const router = useRouter()
   const { cid } = router.query
-  const role = useRoleInCourse(Number(cid))
+  const profile = useProfile()
+  const role = profile?.courses.find((e) => e.course.id === Number(cid))?.role
   const { course, mutateCourse } = useCourse(Number(cid))
   const [createQueueModalVisible, setCreateQueueModalVisible] = useState(false)
 
@@ -217,6 +220,16 @@ export default function Today(): ReactElement {
                       + Create Queue
                     </CreateQueueButton>
                   </Row>
+                )}
+
+                {createQueueModalVisible && role !== Role.STUDENT && (
+                  <QueueCreateModal
+                    visible={createQueueModalVisible}
+                    onSubmit={submitCreateQueue}
+                    onCancel={() => setCreateQueueModalVisible(false)}
+                    role={role}
+                    lastName={profile?.lastName}
+                  />
                 )}
                 {
                   // This only works with UTC offsets in the form N:00, to help with other offsets, the size of the array might have to change to a size of 24*7*4 (for every 15 min interval)

@@ -80,7 +80,7 @@ export default function TodayPageCheckinButton(): ReactElement {
           Check In
         </CheckinButton>
       )}
-      {queueCheckedIn && role !== Role.STUDENT && numQueues !== 0 && (
+      {queueCheckedIn && role !== Role.STUDENT && (
         <TACheckinButton
           courseId={Number(cid)}
           room={queueCheckedIn.room}
