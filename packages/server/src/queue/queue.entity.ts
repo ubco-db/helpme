@@ -18,8 +18,8 @@ import { QuestionModel } from '../question/question.entity';
 
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ERROR_MESSAGES } from '@koh/common';
-import { QueueSessionModel } from 'queueSession/queueSession.entity';
-import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
+// import { QueueSessionModel } from 'queueSession/queueSession.entity';
+// import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
 @Entity('queue_model')
 export class QueueModel extends BaseEntity {
@@ -101,14 +101,14 @@ export class QueueModel extends BaseEntity {
 
   // when the proffesor selects "start lab 1", it creates a new queueSession and assigns it to the currentQueueSessionId
   // Basically, this is a foreign key to queueSession, but it's also seperate from the many-to-one relationship between queueSession and queue (queue can have many queueSessions)
-  @OneToOne(() => QueueSessionModel)
-  @JoinColumn({ name: 'currentQueueSessionId' })
-  currentQueueSession: QueueSessionModel;
+  // @OneToOne(() => QueueSessionModel)
+  // @JoinColumn({ name: 'currentQueueSessionId' })
+  // currentQueueSession: QueueSessionModel;
 
-  // this is unused for now unless someone makes a feature that gets all the queueSessions for a queue (for insights maybe), allowing you to do queue.queueSessions
-  @OneToMany(() => QueueSessionModel, (qsm) => qsm.queue)
-  @Exclude()
-  queueSessions: QueueSessionModel[];
+  // // this is unused for now unless someone makes a feature that gets all the queueSessions for a queue (for insights maybe), allowing you to do queue.queueSessions
+  // @OneToMany(() => QueueSessionModel, (qsm) => qsm.queue)
+  // @Exclude()
+  // queueSessions: QueueSessionModel[];
 
   // TODO: eventually figure out how staff get sent to FE as well
 }

@@ -28,7 +28,7 @@ import { ChatbotModule } from './chatbot/chatbot.module';
 import { OrganizationModule } from 'organization/organization.module';
 import { QuestionTypeModule } from './questionType/questionType.module';
 import { StudentTaskProgressModule } from 'studentTaskProgress/studentTaskProgress.module';
-import { QueueSessionModule } from './queueSession/queueSession.module';
+// import { QueueSessionModule } from './queueSession/queueSession.module';
 
 @Module({
   imports: [
@@ -70,7 +70,7 @@ import { QueueSessionModule } from './queueSession/queueSession.module';
     AuthModule,
     QuestionTypeModule,
     StudentTaskProgressModule,
-    QueueSessionModule,
+    // QueueSessionModule,
   ],
 })
 export class AppModule {}

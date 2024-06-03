@@ -6,8 +6,8 @@ import {
   ManyToOne,
   PrimaryColumn,
 } from 'typeorm';
-import { UserModel } from 'profile/user.entity';
-import { CourseModel } from 'course/course.entity';
+import { UserModel } from '../profile/user.entity';
+import { CourseModel } from '../course/course.entity';
 
 /*
 Basically stores this:
@@ -41,12 +41,16 @@ export class StudentTaskProgressModel extends BaseEntity {
   taskProgress: object;
 
   @PrimaryColumn()
-  @ManyToOne(() => UserModel)
+  uid: number;
+
+  @ManyToOne(() => UserModel, (user) => user.taskProgress)
   @JoinColumn({ name: 'uid' })
   user: UserModel;
 
   @PrimaryColumn()
-  @ManyToOne(() => CourseModel)
+  cid: number;
+
+  @ManyToOne(() => CourseModel, (course) => course.taskProgresses)
   @JoinColumn({ name: 'cid' })
   course: CourseModel;
 }

@@ -7,7 +7,6 @@ import {
   IsEnum,
   IsIn,
   IsInt,
-  IsJSON,
   IsNotEmpty,
   IsNumber,
   IsObject,
@@ -335,6 +334,8 @@ export class Question {
   groupable!: boolean
 
   location?: string
+
+  isTaskQuestion?: boolean
 }
 
 export const QuestionTypes: QuestionTypeParams[] = [
@@ -1018,6 +1019,9 @@ export class CreateQuestionParams {
   @IsBoolean()
   groupable!: boolean
 
+  @IsBoolean()
+  isTaskQuestion!: boolean
+
   @IsInt()
   queueId!: number
 
@@ -1042,6 +1046,10 @@ export class UpdateQuestionParams {
   @IsBoolean()
   @IsOptional()
   groupable?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  isTaskQuestion?: boolean
 
   @IsInt()
   @IsOptional()
@@ -1478,6 +1486,19 @@ export type StudentTaskProgressResponse = {
   qid: number
   uid: number
   taskProgress: object
+}
+
+/* Essentially this:
+  {
+    "task1": { "isDone": true },
+    "task2": { "isDone": false }, <- not guaranteed for all tasks to be here
+    "task3": { "isDone": false },
+  }
+*/
+export interface StudentAssignmentProgress {
+  [taskKey: string]: {
+    isDone: boolean
+  } | null
 }
 
 export const ERROR_MESSAGES = {

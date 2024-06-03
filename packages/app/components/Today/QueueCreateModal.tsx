@@ -65,6 +65,7 @@ export default function QueueCreateModal({
       onCancel={onCancel}
       okText="Create"
       onOk={() => onSubmit(form)}
+      width={800}
     >
       <Form form={form} layout="vertical">
         <Form.Item
@@ -136,7 +137,7 @@ export default function QueueCreateModal({
             //   setLocalQueueConfig(JSON.parse(e.target.value))
             // }}
             className="!h-64 w-full"
-            value={JSON.stringify(
+            placeholder={JSON.stringify(
               {
                 queue_name: 'Lab 1 Queue',
                 fifo_queue_view_enabled: true,
@@ -171,14 +172,14 @@ export default function QueueCreateModal({
                     short_display_name: '2',
                     blocking: false,
                     color_hex: '#fadf8e',
-                    precondition: 'task2',
+                    precondition: 'task1',
                   },
                   task3: {
                     display_name: 'Task 3',
                     short_display_name: '3',
                     blocking: true,
                     color_hex: '#f7ce52',
-                    precondition: 'task3',
+                    precondition: 'task2',
                   },
                 },
               },
@@ -189,7 +190,7 @@ export default function QueueCreateModal({
         </Form.Item>
         <Collapse bordered={false}>
           <Collapse.Panel header="What does each key mean?" key="1">
-            <List size="small">
+            <List size="small" bordered>
               <List.Item>
                 {/* Note: All the quotes (") need to be escaped in JSX, I opted for template literals since they look the cleanest out of the options*/}
                 <strong>queue_name</strong>:{' '}
@@ -215,10 +216,12 @@ export default function QueueCreateModal({
                 <strong>tags</strong>:{' '}
                 {`The tags that students can put on their questions. Each tag has a key (e.g. "tag1", "tag2", etc.) and a value that contains the display name and color of the tag`}{' '}
                 <strong>{`No Spaces for the id (e.g. "tag1")`}</strong>
-                For example:
-                {JSON.stringify(
-                  {
-                    tags: {
+                Example:
+                <pre>
+                  {' '}
+                  {/* <pre> tag makes code look pretty, have to append on "tags" to workaround the outer bracket given by JSON.stringify*/}
+                  {`"tags": ${JSON.stringify(
+                    {
                       tag1: {
                         display_name: 'General',
                         color_hex: '#66FF66',
@@ -232,10 +235,10 @@ export default function QueueCreateModal({
                         color_hex: '#FF0000',
                       },
                     },
-                  },
-                  null,
-                  2,
-                )}
+                    null,
+                    2,
+                  )}`}
+                </pre>
               </List.Item>
               <List.Item>
                 <strong>assignment_id</strong>:{' '}
@@ -245,11 +248,11 @@ export default function QueueCreateModal({
               <List.Item>
                 <strong>tasks</strong>:{' '}
                 {`The tasks for the queue. A task is similar to a tag except it is 'check-able'. For example, a lab may have many parts or questions that require a TA to look at before the end of the lab.`}{' '}
-                <strong>{`No Spaces for the id (e.g. "task1")`}</strong>
-                For example:
-                {JSON.stringify(
-                  {
-                    tasks: {
+                <strong>{`No Spaces for the id (e.g. "task1"). `}</strong>
+                Example:
+                <pre>
+                  {`"tasks": ${JSON.stringify(
+                    {
                       task1: {
                         display_name: 'Task 1',
                         short_display_name: '1',
@@ -262,21 +265,21 @@ export default function QueueCreateModal({
                         short_display_name: '2',
                         blocking: false,
                         color_hex: '#fadf8e',
-                        precondition: 'task2',
+                        precondition: 'task1',
                       },
                       task3: {
                         display_name: 'Task 3',
                         short_display_name: '3',
                         blocking: true,
                         color_hex: '#f7ce52',
-                        precondition: 'task3',
+                        precondition: 'task2',
                       },
                     },
-                  },
-                  null,
-                  2,
-                )}
-                <List size="small">
+                    null,
+                    2,
+                  )}`}
+                </pre>
+                <List size="small" bordered>
                   <List.Item>
                     <strong>display_name</strong>:{' '}
                     {`The name of the task (e.g. "Task 1", "Task 2", etc.)`}

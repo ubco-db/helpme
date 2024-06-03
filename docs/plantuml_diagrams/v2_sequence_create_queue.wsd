@@ -16,7 +16,7 @@ User -> frontend : confirm create queue
 frontend -> server : create queue (with config)
 server -> server : parse json config \n (and send potential errors)
 server -> db : create queue
-server -> db : create new questionTypes\n for the queueSession for each tag
+server -> db : create new questionTypes\n for the queue for each tag
 server <- db : success
 frontend <- server : success
 User <- frontend : success

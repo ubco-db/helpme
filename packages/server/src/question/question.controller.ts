@@ -194,7 +194,8 @@ export class QuestionController {
     @Body() body: CreateQuestionParams,
     @User() user: UserModel,
   ): Promise<CreateQuestionResponse> {
-    const { text, questionTypes, groupable, queueId, force } = body;
+    const { text, questionTypes, groupable, isTaskQuestion, queueId, force } =
+      body;
 
     const queue = await QueueModel.findOne({
       where: { id: queueId },
@@ -266,6 +267,7 @@ export class QuestionController {
         text,
         questionTypes: types,
         groupable,
+        isTaskQuestion,
         status: QuestionStatusKeys.Drafting,
         createdAt: new Date(),
       }).save();

@@ -1,4 +1,4 @@
-import { Question } from '@koh/common'
+import { Question, StudentAssignmentProgress } from '@koh/common'
 import { Card, Col, Tooltip } from 'antd'
 import { ReactElement } from 'react'
 import { getWaitTime } from '../../../utils/TimeUtil'
@@ -30,6 +30,32 @@ interface StudentQueueCardProps {
   cid: number
   qid: number
   isStaff: boolean
+  studentTaskProgress?: StudentAssignmentProgress
+  configTasks?: object
+  /*
+    Comes in as:
+    "task1": {
+        "display_name": "Task 1",
+        "short_display_name": "1",
+        "blocking": false,
+        "color_hex": "#ffedb8",
+        "precondition": null
+    },
+    "task2": {
+        "display_name": "Task 2",
+        "short_display_name": "2",
+        "blocking": false,
+        "color_hex": "#fadf8e",
+        "precondition": "task1"
+    },
+    "task3": {
+        "display_name": "Task 3",
+        "short_display_name": "3",
+        "blocking": true,
+        "color_hex": "#f7ce52",
+        "precondition": "task2"
+    }
+  */
   className?: string // used to highlight questions or add other classes
 }
 
@@ -38,8 +64,16 @@ export default function StudentQueueCard({
   cid,
   qid,
   isStaff,
+  configTasks,
+  studentTaskProgress,
   className,
 }: StudentQueueCardProps): ReactElement {
+  //// Task question calculations
+  // first find what tasks are being marked
+  // task questions text comes in as "Mark "part1" "part2""
+  const tasks =
+    question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || [] // gives an array of "part1","part2",etc.
+
   return (
     <HorizontalStudentCard className={className}>
       <CenterRow>
@@ -57,26 +91,56 @@ export default function StudentQueueCard({
           </Col>
         )}
         <Col flex="1 1">
-          <Tooltip // only show tooltip if text is too long TODO: replace with expand card details feature
-            title={question.text.length > 110 ? question.text : ''}
-            overlayStyle={{ maxWidth: '60em' }}
-          >
-            <Text
-              style={
+          {
+            // if it's a task question, parse the task items and display them instead of the question text
+            question.isTaskQuestion && tasks && configTasks ? (
+              <div>
                 {
-                  // shorten question text dynamically
-                  display: '-webkit-box',
-                  WebkitLineClamp: 1,
-                  WebkitBoxOrient: 'vertical',
-                  textOverflow: 'ellipsis',
-                  overflow: 'hidden',
-                  maxWidth: '55em',
-                } as React.CSSProperties
-              }
-            >
-              {question.text}
-            </Text>
-          </Tooltip>
+                  // for every task defined in the config, display it but only highlight the ones that are in the question text
+                  Object.entries(configTasks).map(
+                    ([taskKey, taskValue], index) => (
+                      <QuestionType
+                        key={index}
+                        typeName={
+                          studentTaskProgress &&
+                          studentTaskProgress[taskKey] &&
+                          studentTaskProgress[taskKey].isDone
+                            ? '✔️'
+                            : taskValue.short_display_name
+                        }
+                        typeColor={
+                          tasks.includes(taskKey)
+                            ? taskValue.color_hex
+                            : '#f0f0f0'
+                        }
+                      />
+                    ),
+                  )
+                }
+              </div>
+            ) : (
+              <Tooltip // only show tooltip if text is too long TODO: replace with expand card details feature
+                title={question.text.length > 110 ? question.text : ''}
+                overlayStyle={{ maxWidth: '60em' }}
+              >
+                <Text
+                  style={
+                    {
+                      // shorten question text dynamically
+                      display: '-webkit-box',
+                      WebkitLineClamp: 1,
+                      WebkitBoxOrient: 'vertical',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
+                      maxWidth: '55em',
+                    } as React.CSSProperties
+                  }
+                >
+                  {question.text}
+                </Text>
+              </Tooltip>
+            )
+          }
           {isStaff && (
             <Text
               style={

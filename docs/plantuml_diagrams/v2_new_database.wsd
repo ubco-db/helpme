@@ -28,7 +28,7 @@ class question {
 class thing as "studentTaskProgress" {
   +json taskProgress
 }
-note right : "lab1": {"task1":{"isDone":true},\n\t   "task2":{"isDone":true}}, \n"lab2": {"task1":{"isDone":true}}
+note right : "lab1": {"lastEditedQueueId": 2,\n\t   "task1":{"isDone":true},\n\t   "task2":{"isDone":true}}, \n"lab2": {"lastEditedQueueId": 3,\n\t   "task1":{"isDone":true}}
 
 class questionType { 
   ' questionTypes are only going to be tags, not tasks
@@ -53,8 +53,6 @@ queue "1" -- "0..*" questionType
 hide empty methods
 ' hide circle
 
-' NOTE: does it make sense to have a connection between question and queueSession?
-' from a histroy standpoint, yes, but the connection might be unused otherwise
 
 ' Note to self: we are not hijacking the "event" table since then events would need to store session configs as well as have a connection to questionType, and it makes more sense to keep those things seperate
 

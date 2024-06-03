@@ -55,6 +55,8 @@ interface QuestionFormProps {
     router: NextRouter,
     courseId: number,
     location: string,
+    isTaskQuestion: boolean,
+    groupable?: boolean,
   ) => void
   position: number
   cancel: () => void
@@ -149,6 +151,8 @@ export default function QuestionForm({
         router,
         Number(courseId),
         inperson ? 'In Person' : 'Online',
+        false, //isTaskQuestion
+        false, //groupable
       )
     }
   }
