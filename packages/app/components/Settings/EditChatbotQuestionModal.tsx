@@ -132,6 +132,9 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         <Form.Item name="verified" valuePropName="checked">
           <Checkbox>Mark Q&A as Verified by Human</Checkbox>
         </Form.Item>
+        <Form.Item name="suggested" valuePropName="checked">
+          <Checkbox>Mark Q&A as Suggested </Checkbox>
+        </Form.Item>
         <span className="font-bold">Source Documents</span>
         <Form.List name="sourceDocuments">
           {(fields, { add, remove }) => (
