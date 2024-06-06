@@ -101,7 +101,9 @@ export default function QueueCreateModal({
           ]}
         >
           <Input
-            placeholder={'Ex: ISEC 102'}
+            placeholder={
+              'Ex: Lab name, lab section, physical room location, or a mix'
+            }
             disabled={!locEditable}
             style={{ width: 350 }}
           />
@@ -112,7 +114,10 @@ export default function QueueCreateModal({
           name="notes"
           style={{ width: '100%' }}
         >
-          <TextArea rows={4} placeholder="Notes" />
+          <TextArea
+            rows={4}
+            placeholder="Ex. Lab name, lab section, physical room location, any announcements, a mix of these, or any other details"
+          />
         </Form.Item>
 
         <Form.Item
@@ -139,7 +144,6 @@ export default function QueueCreateModal({
             className="!h-64 w-full"
             placeholder={JSON.stringify(
               {
-                queue_name: 'Lab 1 Queue',
                 fifo_queue_view_enabled: true,
                 tag_groups_queue_view_enabled: true,
                 default_view: 'fifo',
@@ -191,12 +195,12 @@ export default function QueueCreateModal({
         <Collapse bordered={false}>
           <Collapse.Panel header="What does each key mean?" key="1">
             <List size="small" bordered>
-              <List.Item>
-                {/* Note: All the quotes (") need to be escaped in JSX, I opted for template literals since they look the cleanest out of the options*/}
+              {/* <List.Item> Not doing this for now, it's more effort than it's worth to synchronize this json with the queue name
                 <strong>queue_name</strong>:{' '}
                 {`The name of the queue (e.g. "Lab 1 Queue", "Lab L05 Queue", "Help Queue", etc.)`}
-              </List.Item>
+              </List.Item> */}
               <List.Item>
+                {/* Note: All the quotes (") need to be escaped in JSX, I opted for template literals since they look the cleanest out of the options*/}
                 <strong>fifo_queue_view_enabled</strong>:{' '}
                 {`Whether the First In First Out queue view is enabled (standard queue view. Default = true)`}
               </List.Item>

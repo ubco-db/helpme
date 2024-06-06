@@ -141,6 +141,7 @@ export class QuestionController {
       );
     }
 
+    // don't allow more than 1 demo and 1 question per user per course
     const previousUserQuestions = await QuestionModel.find({
       relations: ['queue'],
       where: {
@@ -148,21 +149,35 @@ export class QuestionController {
         status: In(Object.values(OpenQuestionStatus)),
       },
     });
-
-    const previousCourseQuestion = previousUserQuestions.find(
+    const previousCourseQuestions = previousUserQuestions.filter(
       (question) => question.queue.courseId === queue.courseId,
     );
-
-    if (!!previousCourseQuestion) {
+    const studentDemo = previousCourseQuestions?.find(
+      (question) => question.isTaskQuestion,
+    );
+    const studentQuestion = previousCourseQuestions?.find(
+      (question) => !question.isTaskQuestion,
+    );
+    if (studentQuestion) {
       if (force) {
-        previousCourseQuestion.status = ClosedQuestionStatus.ConfirmedDeleted;
-        await previousCourseQuestion.save();
+        studentQuestion.status = ClosedQuestionStatus.ConfirmedDeleted;
+        await studentQuestion.save();
       } else {
         throw new BadRequestException(
           ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime,
         );
       }
+    } else if (studentDemo) {
+      if (force) {
+        studentDemo.status = ClosedQuestionStatus.ConfirmedDeleted;
+        await studentDemo.save();
+      } else {
+        throw new BadRequestException(
+          ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime,
+        );
+      }
     }
+
     const user = await UserModel.findOne({
       where: {
         id: userId,
@@ -219,6 +234,7 @@ export class QuestionController {
       );
     }
 
+    // don't allow more than 1 demo and 1 question per user per course
     const previousUserQuestions = await QuestionModel.find({
       relations: ['queue'],
       where: {
@@ -226,21 +242,35 @@ export class QuestionController {
         status: In(Object.values(OpenQuestionStatus)),
       },
     });
-
-    const previousCourseQuestion = previousUserQuestions.find(
+    const previousCourseQuestions = previousUserQuestions.filter(
       (question) => question.queue.courseId === queue.courseId,
     );
-
-    if (!!previousCourseQuestion) {
+    const studentDemo = previousCourseQuestions?.find(
+      (question) => question.isTaskQuestion,
+    );
+    const studentQuestion = previousCourseQuestions?.find(
+      (question) => !question.isTaskQuestion,
+    );
+    if (studentQuestion) {
       if (force) {
-        previousCourseQuestion.status = ClosedQuestionStatus.ConfirmedDeleted;
-        await previousCourseQuestion.save();
+        studentQuestion.status = ClosedQuestionStatus.ConfirmedDeleted;
+        await studentQuestion.save();
       } else {
         throw new BadRequestException(
           ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime,
         );
       }
+    } else if (studentDemo) {
+      if (force) {
+        studentDemo.status = ClosedQuestionStatus.ConfirmedDeleted;
+        await studentDemo.save();
+      } else {
+        throw new BadRequestException(
+          ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime,
+        );
+      }
     }
+
     let types = [];
     if (questionTypes) {
       types = await Promise.all(

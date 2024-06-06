@@ -983,7 +983,7 @@ export class GetCourseQueuesResponse extends Array<QueuePartial> {}
 
 export class ListQuestionsResponse {
   @Type(() => Question)
-  yourQuestion?: Question
+  yourQuestions?: Array<Question>
 
   @Type(() => Question)
   questionsGettingHelp!: Array<Question>
@@ -1567,6 +1567,7 @@ export const ERROR_MESSAGES = {
       noNewQuestions: 'Queue not allowing new questions',
       closedQueue: 'Queue is closed',
       oneQuestionAtATime: "You can't create more than one question at a time.",
+      oneDemoAtATime: "You can't create more than one demo at a time.",
       invalidQuestionType: 'Invalid question type',
     },
     updateQuestion: {

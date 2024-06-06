@@ -1,4 +1,3 @@
-//got rid of questiontype
 import { QuestionStatus, Role, StatusInQueue } from '@koh/common';
 import { Exclude } from 'class-transformer';
 import {

@@ -1,4 +1,4 @@
-import { ReactElement, useState } from 'react'
+import { ReactElement, useEffect, useState } from 'react'
 import { Text } from '../Shared/SharedComponents'
 import { CheckOutlined } from '@ant-design/icons'
 import { StudentAssignmentProgress } from '@koh/common'
@@ -199,9 +199,9 @@ function transformIntoTaskTree(
   precondition: string | null = null,
 ): TaskTree {
   /*
-    In the first iteration, it adds all null tasks to the tree. 
-    Then, in the second iteration, it cycles through all remaining tasks (i.e. the ones not already added to the tree) and any that have a precondition of a task that was added in the previous iteration are added to the tree with an object reference to that task (instead of a string). This continues for all future iterations until the list of remaining tasks is empty.
-    */
+      In the first iteration, it adds all null tasks to the tree. 
+      Then, in the second iteration, it cycles through all remaining tasks (i.e. the ones not already added to the tree) and any that have a precondition of a task that was added in the previous iteration are added to the tree with an object reference to that task (instead of a string). This continues for all future iterations until the list of remaining tasks is empty.
+      */
 
   // Object.entries is like a fancy for loop. Filter is a function that takes in a subfunction; if the subfunction returns false, the element is removed from the array.
   const tasksToAdd = Object.entries(remainingTasks).filter(
@@ -245,29 +245,29 @@ interface TaskSelectorProps {
   studentAssignmentProgress: StudentAssignmentProgress
   configTasks: object
   /* Comes in as:
-      "task1": {
-          "display_name": "Task 1",
-          "short_display_name": "1",
-          "blocking": false,
-          "color_hex": "#ffedb8",
-          "precondition": null
-      },
-      "task2": {
-          "display_name": "Task 2",
-          "short_display_name": "2",
-          "blocking": false,
-          "color_hex": "#fadf8e",
-          "precondition": "task1"
-      },
-      "task3": {
-          "display_name": "Task 3",
-          "short_display_name": "3",
-          "blocking": true,
-          "color_hex": "#f7ce52",
-          "precondition": "task2"
-      }
-      TODO: maybe turn this into an actual type so that this doesn't need to be written everywhere
-    */
+        "task1": {
+            "display_name": "Task 1",
+            "short_display_name": "1",
+            "blocking": false,
+            "color_hex": "#ffedb8",
+            "precondition": null
+        },
+        "task2": {
+            "display_name": "Task 2",
+            "short_display_name": "2",
+            "blocking": false,
+            "color_hex": "#fadf8e",
+            "precondition": "task1"
+        },
+        "task3": {
+            "display_name": "Task 3",
+            "short_display_name": "3",
+            "blocking": true,
+            "color_hex": "#f7ce52",
+            "precondition": "task2"
+        }
+        TODO: maybe turn this into an actual type so that this doesn't need to be written everywhere
+      */
 }
 
 export function TaskSelector({
@@ -279,25 +279,28 @@ export function TaskSelector({
   ariaLabel,
   ariaLabelledBy,
 }: TaskSelectorProps): React.ReactElement {
-  // First, assemble a tree data structure that will allow us to easily find the tasks that are prerequisites for each task.
-  // This turns all the preconditions into object references instead of strings
-  const configTasksCopy = { ...configTasks } // Create a copy of configTasks (since the function will mutate it)
-  // For each task that is marked as done, give it the isDone = true attribute
-  if (studentAssignmentProgress) {
-    for (const [taskKey, taskValue] of Object.entries(
-      studentAssignmentProgress,
-    )) {
-      if (taskValue.isDone) {
-        configTasksCopy[taskKey].isDone = true
-      }
-    }
-  }
-
-  const [taskTree, setTaskTree] = useState<TaskTree>(
-    transformIntoTaskTree(configTasksCopy),
-  )
+  const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree)
 
   const [selectedTasks, setSelectedTasks] = useState<string[]>(value || [])
+
+  // if either studentAssignmentProgress or configTasks changes, recompute the taskTree and reset selected tasks
+  useEffect(() => {
+    // First, assemble a tree data structure that will allow us to easily find the tasks that are prerequisites for each task.
+    // This turns all the preconditions into object references instead of strings
+    const configTasksCopy = { ...configTasks } // Create a copy of configTasks (since the function will mutate it)
+    // For each task that is marked as done, give it the isDone = true attribute
+    if (studentAssignmentProgress) {
+      for (const [taskKey, taskValue] of Object.entries(
+        studentAssignmentProgress,
+      )) {
+        if (taskValue.isDone) {
+          configTasksCopy[taskKey].isDone = true
+        }
+      }
+    }
+    setTaskTree(transformIntoTaskTree(configTasksCopy))
+    setSelectedTasks([])
+  }, [configTasks, studentAssignmentProgress])
 
   const handleTaskClick = (taskId, checked) => {
     const newSelectedTasks = [...selectedTasks]

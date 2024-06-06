@@ -30,7 +30,7 @@ interface StudentQueueCardProps {
   cid: number
   qid: number
   isStaff: boolean
-  studentTaskProgress?: StudentAssignmentProgress
+  studentAssignmentProgress?: StudentAssignmentProgress
   configTasks?: object
   /*
     Comes in as:
@@ -65,7 +65,7 @@ export default function StudentQueueCard({
   qid,
   isStaff,
   configTasks,
-  studentTaskProgress,
+  studentAssignmentProgress,
   className,
 }: StudentQueueCardProps): ReactElement {
   //// Task question calculations
@@ -102,9 +102,9 @@ export default function StudentQueueCard({
                       <QuestionType
                         key={index}
                         typeName={
-                          studentTaskProgress &&
-                          studentTaskProgress[taskKey] &&
-                          studentTaskProgress[taskKey].isDone
+                          studentAssignmentProgress &&
+                          studentAssignmentProgress[taskKey] &&
+                          studentAssignmentProgress[taskKey].isDone
                             ? '✔️'
                             : taskValue.short_display_name
                         }

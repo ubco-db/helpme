@@ -136,7 +136,7 @@ export class QueueService {
         },
       );
 
-      newLQR.yourQuestion = await QuestionModel.findOne({
+      newLQR.yourQuestions = await QuestionModel.find({
         relations: ['creator', 'taHelped'],
         where: {
           creatorId: userId,

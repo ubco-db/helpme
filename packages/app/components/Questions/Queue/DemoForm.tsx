@@ -85,7 +85,7 @@ export default function DemoForm({
   queueId,
 }: DemoFormProps): ReactElement {
   const [storageQuestion, setStoredQuestion] = useLocalStorage(
-    'draftQuestion',
+    'draftDemo',
     null,
   )
   const router = useRouter()
@@ -136,6 +136,8 @@ export default function DemoForm({
       false, //groupable
     )
   }
+
+  // TODO: need to make it so that when the demo is succesfully marked, to make sure to clear the storage
 
   // all possible questions, use courseId
   const courseNumber = Number(courseId)

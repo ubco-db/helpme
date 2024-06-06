@@ -76,6 +76,7 @@ describe('Question Integration', () => {
       queue: QueueModel,
       questionTypes: QuestionTypeModel[],
       force = false,
+      isTaskQuestion = false,
     ): supertest.Test =>
       supertest({ userId: user.id }).post('/questions').send({
         text: "Don't know recursion",
@@ -83,6 +84,7 @@ describe('Question Integration', () => {
         queueId: queue.id,
         force,
         groupable: true,
+        isTaskQuestion,
       });
 
     it('posts a new question', async () => {
@@ -319,6 +321,150 @@ describe('Question Integration', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.message).toBe(
+        ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime,
+      );
+    });
+    it("can't create more than one open demo for the same course at a time", async () => {
+      const course = await CourseFactory.create({});
+      const user = await UserFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const ta2 = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue1 = await QueueFactory.create({
+        allowQuestions: true,
+        course: course,
+        staffList: [ta2.user],
+      });
+      const queue2 = await QueueFactory.create({
+        allowQuestions: true,
+        course: course,
+        staffList: [ta.user],
+      });
+
+      expect(await queue1.checkIsOpen()).toBe(true);
+      expect(await queue2.checkIsOpen()).toBe(true);
+
+      await StudentCourseFactory.create({
+        userId: user.id,
+        courseId: course.id,
+      });
+      await QuestionFactory.create({
+        queueId: queue1.id,
+        creator: user,
+        queue: queue1,
+        isTaskQuestion: true,
+        status: OpenQuestionStatus.Drafting,
+      });
+
+      const questionTypes = [];
+      forEach(QuestionTypes, async (questionType) => {
+        const currentQuestionType = await QuestionTypeFactory.create({
+          name: questionType.name,
+          color: questionType.color,
+          cid: course.id,
+        });
+        questionTypes.push(currentQuestionType);
+      });
+
+      const response = await postQuestion(
+        user,
+        queue2,
+        questionTypes,
+        false,
+        true,
+      );
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe(
+        ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime,
+      );
+    });
+    it('can allow you to create one open demo and one open question for the same course at a time, but no more than that', async () => {
+      const course = await CourseFactory.create({});
+      const user = await UserFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const ta2 = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue1 = await QueueFactory.create({
+        allowQuestions: true,
+        course: course,
+        staffList: [ta2.user],
+      });
+      const queue2 = await QueueFactory.create({
+        allowQuestions: true,
+        course: course,
+        staffList: [ta.user],
+      });
+
+      expect(await queue1.checkIsOpen()).toBe(true);
+      expect(await queue2.checkIsOpen()).toBe(true);
+
+      await StudentCourseFactory.create({
+        userId: user.id,
+        courseId: course.id,
+      });
+      await QuestionFactory.create({
+        queueId: queue1.id,
+        creator: user,
+        queue: queue1,
+        isTaskQuestion: true,
+        status: OpenQuestionStatus.Drafting,
+      });
+
+      const questionTypes = [];
+      forEach(QuestionTypes, async (questionType) => {
+        const currentQuestionType = await QuestionTypeFactory.create({
+          name: questionType.name,
+          color: questionType.color,
+          cid: course.id,
+        });
+        questionTypes.push(currentQuestionType);
+      });
+
+      const response = await postQuestion(
+        user,
+        queue2,
+        questionTypes,
+        false,
+        false,
+      );
+
+      expect(response.status).toBe(201);
+
+      // now try to create a demo question and a regular question. It should fail
+      const response2 = await postQuestion(
+        user,
+        queue2,
+        questionTypes,
+        false,
+        true,
+      );
+
+      expect(response2.status).toBe(400);
+      expect(response2.body.message).toBe(
+        ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime,
+      );
+
+      const response3 = await postQuestion(
+        user,
+        queue2,
+        questionTypes,
+        false,
+        false,
+      );
+
+      expect(response3.status).toBe(400);
+      expect(response3.body.message).toBe(
         ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime,
       );
     });

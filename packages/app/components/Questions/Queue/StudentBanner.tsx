@@ -47,20 +47,28 @@ const PriorityQueuedBanner = styled.span`
 interface StudentBannerProps {
   queueId: number
   editQuestion: () => void
-  leaveQueue: () => void
+  leaveQueueQuestion: () => void
+  leaveQueueDemo: () => void
 }
 export default function StudentBanner({
   queueId,
   editQuestion,
-  leaveQueue,
+  leaveQueueQuestion,
+  leaveQueueDemo,
 }: StudentBannerProps): ReactElement {
-  const { studentQuestion, studentQuestionIndex } = useStudentQuestion(queueId)
+  const {
+    studentQuestion,
+    studentDemo,
+    studentQuestionIndex,
+    studentDemoIndex,
+  } = useStudentQuestion(queueId)
   const isQueueOnline = useQueue(queueId).queue?.room.startsWith('Online')
   const { cid } = router.query
   const { course } = useCourse(Number(cid))
 
   // for accessibility: focus the user on their current queue position when it changes
   // no idea if it actually works, since it's kinda hard to test that locally
+  // TODO: use aria-live for this exact thing
   useEffect(() => {
     const currentQueuePosition = document.getElementById(
       'current-queue-position',
@@ -69,6 +77,8 @@ export default function StudentBanner({
       currentQueuePosition.focus()
     }
   }, [studentQuestionIndex])
+
+  const leaveQueue = leaveQueueQuestion
 
   switch (studentQuestion?.status) {
     case 'Drafting':
@@ -118,7 +128,12 @@ export default function StudentBanner({
               </Tooltip>
             </>
           }
-          content={<QuestionDetailRow studentQuestion={studentQuestion} />}
+          content={
+            <>
+              <QuestionDetailRow studentQuestion={studentQuestion} />
+              <QuestionDetailRow studentQuestion={studentDemo} />
+            </>
+          }
         />
       )
     case 'Helping':
@@ -218,7 +233,12 @@ export default function StudentBanner({
               </Tooltip>
             </>
           }
-          content={<QuestionDetailRow studentQuestion={studentQuestion} />}
+          content={
+            <>
+              <QuestionDetailRow studentQuestion={studentQuestion} />
+              <QuestionDetailRow studentQuestion={studentDemo} />
+            </>
+          }
         />
       )
     default:
@@ -242,6 +262,9 @@ function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => void }) {
 }
 
 function QuestionDetailRow({ studentQuestion }: { studentQuestion: Question }) {
+  if (!studentQuestion) {
+    return <></>
+  }
   return (
     <QuestionDetails>
       <ColWithRightMargin flex="4 4">
