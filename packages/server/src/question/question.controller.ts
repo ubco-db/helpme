@@ -117,7 +117,8 @@ export class QuestionController {
     @Body() body: CreateQuestionParams,
     @Param('userId') userId: number,
   ): Promise<any> {
-    const { text, questionTypes, groupable, queueId, force } = body;
+    const { text, questionTypes, groupable, isTaskQuestion, queueId, force } =
+      body;
 
     const queue = await QueueModel.findOne({
       where: { id: queueId },
@@ -158,7 +159,7 @@ export class QuestionController {
     const studentQuestion = previousCourseQuestions?.find(
       (question) => !question.isTaskQuestion,
     );
-    if (studentQuestion) {
+    if (studentQuestion && !isTaskQuestion) {
       if (force) {
         studentQuestion.status = ClosedQuestionStatus.ConfirmedDeleted;
         await studentQuestion.save();
@@ -167,7 +168,7 @@ export class QuestionController {
           ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime,
         );
       }
-    } else if (studentDemo) {
+    } else if (studentDemo && isTaskQuestion) {
       if (force) {
         studentDemo.status = ClosedQuestionStatus.ConfirmedDeleted;
         await studentDemo.save();
@@ -190,6 +191,7 @@ export class QuestionController {
         text,
         questionTypes,
         groupable,
+        isTaskQuestion,
         status: QuestionStatusKeys.Queued,
         createdAt: new Date(),
       }).save();
@@ -251,7 +253,7 @@ export class QuestionController {
     const studentQuestion = previousCourseQuestions?.find(
       (question) => !question.isTaskQuestion,
     );
-    if (studentQuestion) {
+    if (studentQuestion && !isTaskQuestion) {
       if (force) {
         studentQuestion.status = ClosedQuestionStatus.ConfirmedDeleted;
         await studentQuestion.save();
@@ -260,7 +262,7 @@ export class QuestionController {
           ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime,
         );
       }
-    } else if (studentDemo) {
+    } else if (studentDemo && isTaskQuestion) {
       if (force) {
         studentDemo.status = ClosedQuestionStatus.ConfirmedDeleted;
         await studentDemo.save();

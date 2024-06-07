@@ -413,55 +413,21 @@ describe('Question Integration', () => {
         userId: user.id,
         courseId: course.id,
       });
-      await QuestionFactory.create({
-        queueId: queue1.id,
-        creator: user,
-        queue: queue1,
-        isTaskQuestion: true,
-        status: OpenQuestionStatus.Drafting,
-      });
 
-      const questionTypes = [];
-      forEach(QuestionTypes, async (questionType) => {
-        const currentQuestionType = await QuestionTypeFactory.create({
-          name: questionType.name,
-          color: questionType.color,
-          cid: course.id,
-        });
-        questionTypes.push(currentQuestionType);
-      });
-
-      const response = await postQuestion(
-        user,
-        queue2,
-        questionTypes,
-        false,
-        false,
-      );
+      await postQuestion(user, queue2, [], false, true);
+      const response = await postQuestion(user, queue2, [], false, false);
 
       expect(response.status).toBe(201);
 
       // now try to create a demo question and a regular question. It should fail
-      const response2 = await postQuestion(
-        user,
-        queue2,
-        questionTypes,
-        false,
-        true,
-      );
+      const response2 = await postQuestion(user, queue2, [], false, true);
 
       expect(response2.status).toBe(400);
       expect(response2.body.message).toBe(
         ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime,
       );
 
-      const response3 = await postQuestion(
-        user,
-        queue2,
-        questionTypes,
-        false,
-        false,
-      );
+      const response3 = await postQuestion(user, queue2, [], false, false);
 
       expect(response3.status).toBe(400);
       expect(response3.body.message).toBe(

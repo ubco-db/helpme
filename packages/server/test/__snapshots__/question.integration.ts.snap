@@ -32,6 +32,7 @@ Object {
   "groupable": true,
   "helpedAt": null,
   "id": 1,
+  "isTaskQuestion": false,
   "location": null,
   "questionTypes": Array [
     Object {
