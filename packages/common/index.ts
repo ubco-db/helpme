@@ -1020,7 +1020,7 @@ export class CreateQuestionParams {
   groupable!: boolean
 
   @IsBoolean()
-  isTaskQuestion!: boolean
+  isTaskQuestion = false
 
   @IsInt()
   queueId!: number

@@ -246,6 +246,9 @@ export default function StudentBanner({
   }
 }
 
+// shows the details of each student question
+// function studentQuestionCard()
+
 function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => void }) {
   return (
     <Popconfirm

@@ -1,5 +1,102 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`Course Integration GET /courses/:id cant get office hours if not a member of the course 1`] = `
+Object {
+  "allowQuestions": false,
+  "config": null,
+  "id": 2,
+  "isDisabled": false,
+  "isOpen": true,
+  "isProfessorQueue": false,
+  "notes": null,
+  "queueSize": 0,
+  "room": "room 2",
+  "staffList": Array [],
+}
+`;
+
+exports[`Course Integration GET /courses/:id cant get office hours if not a member of the course 2`] = `
+Object {
+  "allowQuestions": false,
+  "config": null,
+  "id": 3,
+  "isDisabled": false,
+  "isOpen": true,
+  "isProfessorQueue": false,
+  "notes": null,
+  "queueSize": 0,
+  "room": "room 3",
+  "staffList": Array [
+    Object {
+      "accountDeactivated": false,
+      "accountType": "legacy",
+      "defaultMessage": null,
+      "email": "user@ubc.ca",
+      "emailVerified": true,
+      "firstName": "User",
+      "id": 2,
+      "includeDefaultMessage": true,
+      "insights": Array [
+        "TotalStudents",
+        "TotalQuestionsAsked",
+        "MedianWaitTime",
+        "QuestionTypeBreakdown",
+        "MostActiveStudents",
+        "QuestionToStudentRatio",
+        "MedianHelpingTime",
+      ],
+      "lastName": "Person",
+      "name": "User Person",
+      "password": null,
+      "photoURL": null,
+      "sid": null,
+      "userRole": "user",
+    },
+  ],
+}
+`;
+
+exports[`Course Integration GET /courses/:id cant get office hours if not a member of the course 3`] = `
+Object {
+  "allowQuestions": false,
+  "config": null,
+  "id": 4,
+  "isDisabled": false,
+  "isOpen": true,
+  "isProfessorQueue": true,
+  "notes": null,
+  "queueSize": 0,
+  "room": "room 4",
+  "staffList": Array [
+    Object {
+      "accountDeactivated": false,
+      "accountType": "legacy",
+      "defaultMessage": null,
+      "email": "user@ubc.ca",
+      "emailVerified": true,
+      "firstName": "User",
+      "id": 2,
+      "includeDefaultMessage": true,
+      "insights": Array [
+        "TotalStudents",
+        "TotalQuestionsAsked",
+        "MedianWaitTime",
+        "QuestionTypeBreakdown",
+        "MostActiveStudents",
+        "QuestionToStudentRatio",
+        "MedianHelpingTime",
+      ],
+      "lastName": "Person",
+      "name": "User Person",
+      "password": null,
+      "photoURL": null,
+      "sid": null,
+      "userRole": "user",
+    },
+  ],
+}
+`;
+
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 1`] = `
 Object {
   "allowQuestions": false,
@@ -17,6 +114,7 @@ Object {
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 2`] = `
 Object {
   "allowQuestions": false,
+  "config": null,
   "id": 3,
   "isDisabled": false,
   "isOpen": true,
@@ -57,6 +155,7 @@ Object {
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 3`] = `
 Object {
   "allowQuestions": false,
+  "config": null,
   "id": 4,
   "isDisabled": false,
   "isOpen": true,
@@ -120,6 +219,7 @@ Object {
 exports[`Course Integration GET /courses/:id gets queues that are not disabled (TA) 1`] = `
 Object {
   "allowQuestions": false,
+  "config": null,
   "id": 2,
   "isDisabled": false,
   "isOpen": true,
@@ -134,6 +234,7 @@ Object {
 exports[`Course Integration GET /courses/:id gets queues that are not disabled (TA) 2`] = `
 Object {
   "allowQuestions": false,
+  "config": null,
   "id": 3,
   "isDisabled": false,
   "isOpen": true,
@@ -174,6 +275,7 @@ Object {
 exports[`Course Integration GET /courses/:id gets queues that are not disabled (TA) 3`] = `
 Object {
   "allowQuestions": false,
+  "config": null,
   "id": 4,
   "isDisabled": false,
   "isOpen": true,
@@ -211,9 +313,33 @@ Object {
 }
 `;
 
+exports[`Course Integration GET /courses/:id gets queues that are not disabled and staffed (student) 1`] = `
+Object {
+  "asyncQuestionDisplayTypes": Array [],
+  "coordinator_email": null,
+  "courseInviteCode": "invite-code",
+  "crns": Array [],
+  "deletedAt": null,
+  "enabled": true,
+  "heatmap": false,
+  "icalURL": "https://calendar.google.com/calendar/ical/t6lu2pic7u9otrbpkuk26sl34g%40group.calendar.google.com/public/basic.ics",
+  "id": 1,
+  "name": "CS 304",
+  "organizationCourse": null,
+  "questionTimer": null,
+  "queues": Array [],
+  "sectionGroupName": "CS 304",
+  "selfEnroll": false,
+  "semesterId": 1,
+  "timezone": "America/New_York",
+  "zoomLink": null,
+}
+`;
+
 exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 1`] = `
 Object {
   "allowQuestions": true,
+  "config": null,
   "courseId": Any<Number>,
   "id": Any<Number>,
   "isDisabled": false,
@@ -226,6 +352,7 @@ Object {
 exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 2`] = `
 Object {
   "allowQuestions": true,
+  "config": null,
   "courseId": Any<Number>,
   "id": Any<Number>,
   "isDisabled": false,
@@ -238,6 +365,7 @@ Object {
 exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 3`] = `
 Object {
   "allowQuestions": true,
+  "config": null,
   "courseId": Any<Number>,
   "id": Any<Number>,
   "isDisabled": false,
@@ -247,9 +375,88 @@ Object {
 }
 `;
 
+exports[`Course Integration POST /courses/:id/create_queue/:room prevents TAs from creating prof queues 1`] = `
+Object {
+  "allowQuestions": true,
+  "config": null,
+  "courseId": Any<Number>,
+  "id": Any<Number>,
+  "isDisabled": false,
+  "isProfessorQueue": false,
+  "notes": "example note 1",
+  "room": "abcd1",
+}
+`;
+
+exports[`Course Integration POST /courses/:id/create_queue/:room prevents TAs from creating prof queues 2`] = `
+Object {
+  "allowQuestions": true,
+  "config": null,
+  "courseId": Any<Number>,
+  "id": Any<Number>,
+  "isDisabled": false,
+  "isProfessorQueue": true,
+  "notes": "example note 7",
+  "room": "abcd2",
+}
+`;
+
+exports[`Course Integration POST /courses/:id/create_queue/:room prevents TAs from creating prof queues 3`] = `
+Object {
+  "allowQuestions": true,
+  "config": null,
+  "courseId": Any<Number>,
+  "id": Any<Number>,
+  "isDisabled": false,
+  "isProfessorQueue": false,
+  "notes": "ta queue",
+  "room": "abcd3",
+}
+`;
+
+exports[`Course Integration POST /courses/:id/ta_location/:room Doesn't allow student to check in 1`] = `
+Object {
+  "allowQuestions": true,
+  "config": null,
+  "id": 1,
+  "isDisabled": false,
+  "isProfessorQueue": false,
+  "notes": null,
+  "room": "Online",
+  "staffList": Array [
+    Object {
+      "accountDeactivated": false,
+      "accountType": "legacy",
+      "defaultMessage": null,
+      "email": "user@ubc.ca",
+      "emailVerified": true,
+      "firstName": "User",
+      "id": 1,
+      "includeDefaultMessage": true,
+      "insights": Array [
+        "TotalStudents",
+        "TotalQuestionsAsked",
+        "MedianWaitTime",
+        "QuestionTypeBreakdown",
+        "MostActiveStudents",
+        "QuestionToStudentRatio",
+        "MedianHelpingTime",
+      ],
+      "lastName": "Person",
+      "name": "User Person",
+      "password": null,
+      "photoURL": null,
+      "sid": null,
+      "userRole": "user",
+    },
+  ],
+}
+`;
+
 exports[`Course Integration POST /courses/:id/ta_location/:room checks a TA into an existing queue 1`] = `
 Object {
   "allowQuestions": true,
+  "config": null,
   "id": 1,
   "isDisabled": false,
   "isProfessorQueue": false,
