@@ -35,11 +35,14 @@ export interface ChatbotDocumentResponse {
   total: number
 }
 
-export default function ChatbotSettings(): ReactElement {
+interface ChatbotPanelProps {
+  cid: number
+}
+export default function ChatbotSettings({
+  cid,
+}: ChatbotPanelProps): ReactElement {
   const [form] = Form.useForm()
-  const router = useRouter()
   const profile = useProfile()
-  const { cid } = router.query
   const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =
     useState(false)
   const [addDocumentModalOpen, setAddDocumentModalOpen] = useState(false)

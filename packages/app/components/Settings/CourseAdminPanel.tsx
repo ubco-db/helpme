@@ -4,7 +4,6 @@ import {
   QuestionCircleOutlined,
   DownloadOutlined,
   AppstoreAddOutlined,
-  RobotOutlined,
   ScheduleOutlined,
   TableOutlined,
 } from '@ant-design/icons'
@@ -20,8 +19,6 @@ import ExportQuestions from './ExportQuestions'
 import EditQuestions from './EditQuestions'
 import { useRoleInCourse } from '../../hooks/useRoleInCourse'
 import { Role } from '@koh/common'
-import ChatbotSettings from './ChatbotSettings'
-import ChatbotQuestions from './ChatbotQuestions'
 import ToggleFeaturesPage from './ToggleFeaturesPage'
 import { ToasterProvider } from '../../providers/toast-provider'
 import EditCourse from './EditCourse'
@@ -35,8 +32,6 @@ export enum CourseAdminOptions {
   EXPORT = 'EXPORT',
   EDIT = 'EDIT',
   EDIT_COURSE = 'EDIT_COURSE',
-  CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
-  CHATBOT_QUESTIONS = 'CHATBOT_QUESTIONS',
 }
 
 interface CourseAdminPageProps {
@@ -119,9 +114,6 @@ export default function CourseAdminPanel({
               >
                 Course Roster
               </Menu.Item>
-              {/* <Menu.Item key={CourseAdminOptions.ADD} icon={<UploadOutlined />}>
-                Add students to course
-              </Menu.Item> */}
               <Menu.Item
                 key={CourseAdminOptions.EDIT_COURSE}
                 icon={<EditOutlined />}
@@ -145,18 +137,6 @@ export default function CourseAdminPanel({
           <Menu.Item key={CourseAdminOptions.EDIT} icon={<TableOutlined />}>
             Edit questions
           </Menu.Item>
-          <Menu.Item
-            key={CourseAdminOptions.CHATBOT_SETTINGS}
-            icon={<RobotOutlined />}
-          >
-            Chatbot Settings
-          </Menu.Item>
-          <Menu.Item
-            key={CourseAdminOptions.CHATBOT_QUESTIONS}
-            icon={<RobotOutlined />}
-          >
-            Chatbot Questions
-          </Menu.Item>
         </Menu>
       </Col>
       <VerticalDivider />
@@ -171,9 +151,6 @@ export default function CourseAdminPanel({
           {currentSettings === CourseAdminOptions.ROSTER && (
             <CourseRosterPage courseId={courseId} />
           )}
-          {/* {currentSettings === CourseAdminOptions.ADD && (
-            <AddStudentsToCourse courseId={courseId} />
-          )} */}
           {currentSettings === CourseAdminOptions.FEATURES && (
             <ToggleFeaturesPage courseId={courseId} />
           )}
@@ -182,12 +159,6 @@ export default function CourseAdminPanel({
           )}
           {currentSettings === CourseAdminOptions.EDIT && (
             <EditQuestions courseId={courseId} />
-          )}
-          {currentSettings === CourseAdminOptions.CHATBOT_SETTINGS && (
-            <ChatbotSettings courseId={courseId} />
-          )}
-          {currentSettings === CourseAdminOptions.CHATBOT_QUESTIONS && (
-            <ChatbotQuestions courseId={courseId} />
           )}
         </Col>
       </Space>

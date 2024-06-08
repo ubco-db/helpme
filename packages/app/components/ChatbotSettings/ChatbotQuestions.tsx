@@ -15,7 +15,7 @@ import React, { ReactElement, useEffect, useState } from 'react'
 import { API } from '@koh/api-client'
 import toast from 'react-hot-toast'
 import ExpandableText from '../common/ExpandableText'
-import EditChatbotQuestionModal from './EditChatbotQuestionModal'
+import EditChatbotQuestionModal from '../Settings/EditChatbotQuestionModal'
 import { useProfile } from '../../hooks/useProfile'
 
 interface Loc {
