@@ -53,18 +53,17 @@ import { OrganizationCourseModel } from 'organization/organization-course.entity
 import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
+import { ApplicationConfigService } from '../config/application_config.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
 export class CourseController {
-  readonly MAX_ASYNC_QUESTIONS = 100;
-  readonly MAX_QUEUES_PER_COURSE = 30;
-
   constructor(
     private configService: ConfigService,
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
     private courseService: CourseService,
+    private readonly appConfig: ApplicationConfigService,
   ) {}
 
   @Get(':oid/organization_courses')
@@ -129,7 +128,7 @@ export class CourseController {
       order: {
         createdAt: 'DESC',
       },
-      take: this.MAX_ASYNC_QUESTIONS,
+      take: this.appConfig.get('max_async_questions_per_course'),
     });
 
     if (!all) {
@@ -500,7 +499,7 @@ export class CourseController {
       courseId,
     });
 
-    if (queuesCount >= this.MAX_QUEUES_PER_COURSE) {
+    if (queuesCount >= this.appConfig.get('max_queues_per_course')) {
       throw new HttpException(
         ERROR_MESSAGES.courseController.queueLimitReached,
         HttpStatus.BAD_REQUEST,

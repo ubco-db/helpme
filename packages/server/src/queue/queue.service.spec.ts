@@ -13,6 +13,7 @@ import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { QueueModel } from './queue.entity';
 import { QueueService } from './queue.service';
 import { AlertsService } from '../alerts/alerts.service';
+import { ApplicationTestingConfigModule } from 'config/application_config.module';
 
 describe('QueueService', () => {
   let service: QueueService;
@@ -21,7 +22,11 @@ describe('QueueService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule],
+      imports: [
+        TestTypeOrmModule,
+        TestConfigModule,
+        ApplicationTestingConfigModule,
+      ],
       providers: [QueueService, AlertsService],
     }).compile();
 
@@ -153,6 +158,7 @@ describe('QueueService', () => {
     beforeEach(async () => {
       queue = await QueueFactory.create();
     });
+
     const personalize = (
       lqr: ListQuestionsResponse,
       userId: number,

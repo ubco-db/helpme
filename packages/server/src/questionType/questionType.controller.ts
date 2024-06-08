@@ -17,12 +17,13 @@ import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { QuestionTypeModel } from './question-type.entity';
 import { Response } from 'express';
 import { CourseModel } from 'course/course.entity';
+import { ApplicationConfigService } from 'config/application_config.service';
 
 @Controller('questionType')
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionTypeController {
-  readonly MAX_QUESTION_TYPES_PER_QUEUE = 20;
+  constructor(private readonly appConfig: ApplicationConfigService) {}
 
   @Post(':c')
   @Roles(Role.TA, Role.PROFESSOR)
@@ -70,7 +71,9 @@ export class QuestionTypeController {
       },
     });
 
-    if (questionTypeCount >= this.MAX_QUESTION_TYPES_PER_QUEUE) {
+    if (
+      questionTypeCount >= this.appConfig.get('max_question_types_per_queue')
+    ) {
       res.status(HttpStatus.BAD_REQUEST).send({
         message: 'Queue has reached maximum number of question types',
       });
@@ -114,7 +117,7 @@ export class QuestionTypeController {
         cid: course,
         queueId,
       },
-      take: this.MAX_QUESTION_TYPES_PER_QUEUE,
+      take: this.appConfig.get('max_question_types_per_queue'),
     });
 
     if (!questions) {

@@ -1,12 +1,5 @@
-import {
-  ERROR_MESSAGES,
-  KhouryProfCourse,
-  Role,
-  TACheckinTimesResponse,
-} from '@koh/common';
-import { CourseModel } from 'course/course.entity';
+import { ERROR_MESSAGES, Role, TACheckinTimesResponse } from '@koh/common';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
-import { LastRegistrationModel } from 'login/last-registration-model.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { CourseModule } from '../src/course/course.module';
@@ -18,7 +11,6 @@ import {
   OrganizationCourseFactory,
   OrganizationFactory,
   OrganizationUserFactory,
-  ProfSectionGroupsFactory,
   QueueFactory,
   SemesterFactory,
   StudentCourseFactory,

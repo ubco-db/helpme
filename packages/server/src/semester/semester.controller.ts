@@ -1,15 +1,16 @@
 import { SemesterPartial } from '@koh/common';
 import { Controller, Get } from '@nestjs/common';
 import { SemesterModel } from './semester.entity';
+import { ApplicationConfigService } from '../config/application_config.service';
 
 @Controller('semesters')
 export class SemesterController {
-  readonly MAX_SEMESTERS = 40;
+  constructor(private readonly appConfig: ApplicationConfigService) {}
 
   @Get()
   async get(): Promise<SemesterPartial[]> {
     return SemesterModel.find({
-      take: this.MAX_SEMESTERS,
+      take: this.appConfig.get('max_semesters'),
     });
   }
 }
