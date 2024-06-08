@@ -41,6 +41,7 @@ import { EditQueueModal } from './EditQueueModal'
 import PropTypes from 'prop-types'
 import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
 import { NextRouter } from 'next/router'
+import { ListTodoIcon } from 'lucide-react'
 
 const Container = styled.div`
   flex: 1;
@@ -61,7 +62,7 @@ const QueueListContainer = styled.div`
   }
 `
 
-const JoinButton = styled(QueueInfoColumnButton)`
+const JoinButton = styled(QueueInfoColumnButton)<{ hasDemos: boolean }>`
   background-color: #3684c6;
   color: white;
   align-items: center;
@@ -679,6 +680,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
       <QueueInfoColumn
         queueId={qid}
         isStaff={false}
+        hasDemos={!!configTasks}
         buttons={
           <>
             {!studentQuestion && (
@@ -700,6 +702,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                 <JoinButton
                   id="join-queue-button"
                   type="primary"
+                  hasDemos={!!configTasks} // for styles
                   disabled={
                     !queue?.allowQuestions ||
                     queue?.isDisabled ||
@@ -735,8 +738,9 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                 onVisibleChange={setShowJoinPopconfirm}
               >
                 <JoinButton
-                  id="join-queue-button"
+                  id="join-queue-button-demo"
                   type="primary"
+                  hasDemos={!!configTasks} // for styles
                   disabled={
                     !queue?.allowQuestions ||
                     queue?.isDisabled ||
@@ -744,7 +748,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                     queue.staffList.length < 1
                   }
                   onClick={createDemo}
-                  icon={<LoginOutlined aria-hidden="true" />}
+                  icon={<ListTodoIcon aria-hidden="true" className="mr-1" />}
                   title={
                     queue.staffList.length < 1
                       ? 'No staff are checked into this queue'
