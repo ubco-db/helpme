@@ -90,6 +90,7 @@
     "superagent": "^8.1.2",
     "typeorm": "^0.2.25",
     "typescript": "^5.2.2",
+    "uuid": "^9.0.1",
     "web-push": "3.4.4"
   },
   "devDependencies": {

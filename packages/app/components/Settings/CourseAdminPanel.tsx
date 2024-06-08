@@ -16,7 +16,6 @@ import { useProfile } from '../../hooks/useProfile'
 import CourseRosterPage from './CourseRosterPage'
 import { SettingsPanelAvatar } from './SettingsSharedComponents'
 import TACheckInCheckOutTimes from './TACheckInCheckOutTimes'
-// import AddStudentsToCourse from './AddStudentsToCourse'
 import ExportQuestions from './ExportQuestions'
 import EditQuestions from './EditQuestions'
 import { useRoleInCourse } from '../../hooks/useRoleInCourse'
@@ -26,8 +25,7 @@ import ChatbotQuestions from './ChatbotQuestions'
 import ToggleFeaturesPage from './ToggleFeaturesPage'
 import { ToasterProvider } from '../../providers/toast-provider'
 import EditCourse from './EditCourse'
-import useSWR from 'swr'
-import { API } from '@koh/api-client'
+import { useCourseFeatures } from '../../hooks/useCourseFeatures'
 
 export enum CourseAdminOptions {
   CHECK_IN = 'CHECK_IN',
@@ -63,10 +61,8 @@ export default function CourseAdminPanel({
 }: CourseAdminPageProps): ReactElement {
   const role = useRoleInCourse(Number(courseId))
   const profile = useProfile()
-  const { data: courseFeatures } = useSWR(
-    `${Number(courseId)}/features`,
-    async () => await API.course.getCourseFeatures(Number(courseId)),
-  )
+  const courseFeatures = useCourseFeatures(courseId)
+
   const [currentSettings, setCurrentSettings] = useState(
     defaultPage ||
       (courseFeatures?.queueEnabled
@@ -84,7 +80,7 @@ export default function CourseAdminPanel({
         <CenteredText>
           Welcome back
           <br />
-          {profile?.firstName} {profile?.lastName}
+          {profile?.firstName} {profile?.lastName ?? ''}
           {!profile?.photoURL && (
             <Tooltip
               title={

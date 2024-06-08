@@ -10,6 +10,8 @@ import { UserModel } from 'profile/user.entity';
 import * as bcrypt from 'bcrypt';
 import { TokenType, UserTokenModel } from 'profile/user-token.entity';
 import { MailService } from 'mail/mail.service';
+import { ChatTokenModel } from 'chatbot/chat-token.entity';
+import { v4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
@@ -64,6 +66,11 @@ export class AuthService {
           organizationId,
           userId: userId,
           role: OrganizationRole.MEMBER,
+        }).save();
+
+        await ChatTokenModel.create({
+          user: newUser,
+          token: v4(),
         }).save();
 
         return userId;
@@ -126,6 +133,11 @@ export class AuthService {
         await OrganizationUserModel.create({
           organizationId,
           userId: userId,
+        }).save();
+
+        await ChatTokenModel.create({
+          user: newUser,
+          token: v4(),
         }).save();
 
         return userId;
@@ -196,6 +208,11 @@ export class AuthService {
         organizationId,
         userId,
         role: OrganizationRole.MEMBER,
+      }).save();
+
+      await ChatTokenModel.create({
+        user: newUser,
+        token: v4(),
       }).save();
 
       return userId;

@@ -21,6 +21,7 @@ import {
 import { RcFile } from 'antd/lib/upload'
 import Dragger from 'antd/lib/upload/Dragger'
 import ChatbotParameter from './ChatbotParameter'
+import { useProfile } from '../../hooks/useProfile'
 
 export interface ChatbotDocument {
   id: number
@@ -37,6 +38,7 @@ export interface ChatbotDocumentResponse {
 export default function ChatbotSettings(): ReactElement {
   const [form] = Form.useForm()
   const router = useRouter()
+  const profile = useProfile()
   const { cid } = router.query
   const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =
     useState(false)
@@ -99,7 +101,9 @@ export default function ChatbotSettings(): ReactElement {
   const getDocuments = async () => {
     setLoading(true)
     try {
-      fetch(`/chat/${cid}/aggregateDocuments`)
+      fetch(`/chat/${cid}/aggregateDocuments`, {
+        headers: { HMS_API_TOKEN: profile.chat_token.token },
+      })
         .then((res) => res.json())
         .then((json) => {
           // Convert the json to the expected format
@@ -128,6 +132,7 @@ export default function ChatbotSettings(): ReactElement {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          HMS_API_TOKEN: profile.chat_token.token,
         },
         body: JSON.stringify(data),
       })
@@ -164,6 +169,7 @@ export default function ChatbotSettings(): ReactElement {
         await fetch(`/chat/${cid}/document`, {
           method: 'POST',
           body: formData,
+          headers: { HMS_API_TOKEN: profile.chat_token.token },
         })
 
         toast.success('File uploaded.')
@@ -180,6 +186,7 @@ export default function ChatbotSettings(): ReactElement {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          HMS_API_TOKEN: profile.chat_token.token,
         },
       })
       toast.success('Document deleted.')

@@ -46,6 +46,11 @@ exports[`OrganizationService getOrganizationCourse should return organization co
     "questionTimer": null,
     "sectionGroupName": "CS 304",
     "selfEnroll": false,
+    "semester": SemesterModel {
+      "id": 1,
+      "season": "Fall",
+      "year": 2022,
+    },
     "semesterId": 1,
     "timezone": null,
     "zoomLink": null,

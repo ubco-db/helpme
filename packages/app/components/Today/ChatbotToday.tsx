@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Input, Button, Card, Avatar, Spin, Tooltip } from 'antd'
+import { Input, Button, Card, Avatar, Spin, Tooltip, message } from 'antd'
 import styled from 'styled-components'
 import { API } from '@koh/api-client'
 import {
@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons'
 import router from 'next/router'
 import { useProfile } from '../../hooks/useProfile'
-import { Feedback } from '../Chatbot/components/Feedback'
+import axios from 'axios'
 
 const ChatbotContainer = styled.div`
   width: 100%;
@@ -52,8 +52,10 @@ export const ChatbotToday: React.FC = () => {
   const profile = useProfile()
   const [isLoading, setIsLoading] = useState(false)
   const [interactionId, setInteractionId] = useState<number | null>(null)
-  const [preDeterminedQuestions, setPreDeterminedQuestions] =
-    useState<PreDeterminedQuestion[]>(null)
+  const [preDeterminedQuestions, setPreDeterminedQuestions] = useState<
+    PreDeterminedQuestion[]
+  >([])
+  const [questionsLeft, setQuestionsLeft] = useState<number>(0)
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -62,13 +64,31 @@ export const ChatbotToday: React.FC = () => {
         'Hello, how can I assist you? I can help with anything course related.',
     },
   ])
-  const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
+    axios
+      .get(`/chat/${cid}/allSuggestedQuestions`, {
+        headers: { HMS_API_TOKEN: profile.chat_token.token },
+      })
+      .then((res) => {
+        console.log(res.data)
+        res.data.forEach((question) => {
+          setPreDeterminedQuestions((prev) => [
+            ...prev,
+            {
+              question: question.pageContent,
+              answer: question.metadata.answer,
+            },
+          ])
+        })
+      })
+    if (profile && profile.chat_token) {
+      setQuestionsLeft(profile.chat_token.max_uses - profile.chat_token.used)
+    }
     return () => {
       setInteractionId(null)
     }
-  }, [])
+  }, [profile])
 
   const query = async () => {
     try {
@@ -80,13 +100,19 @@ export const ChatbotToday: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          HMS_API_TOKEN: profile.chat_token.token,
         },
         body: JSON.stringify(data),
       })
       const json = await response.json()
+      if (questionsLeft > 0) {
+        setQuestionsLeft(questionsLeft - 1)
+      }
       return json
     } catch (error) {
-      console.error('Error fetching from API:', error)
+      if (questionsLeft > 0) {
+        setQuestionsLeft(questionsLeft - 1)
+      }
       return null
     }
   }
@@ -95,33 +121,15 @@ export const ChatbotToday: React.FC = () => {
     setIsLoading(true)
 
     const result = await query()
-    const answer = result.answer || "Sorry, I couldn't find the answer"
-    const sourceDocuments = result.sourceDocuments || []
-    //currently not using interactions and questions in the office hour repo
-    // let currentInteractionId = interactionId
 
-    // if (!interactionId) {
-    //   const interaction = await API.chatbot.createInteraction({
-    //     courseId: Number(cid),
-    //     userId: profile.id,
-    //   })
-    //   setInteractionId(interaction.id)
+    if (result && result.error) {
+      setIsLoading(false)
+      message.error(result.error)
+      return
+    }
 
-    //   currentInteractionId = interaction.id // Update the current value if a new interaction was created
-    // }
-
-    // const sourceDocumentPages = sourceDocuments.map((sourceDocument) => ({
-    //   ...sourceDocument,
-    //   parts: sourceDocument.parts.map((part) => part.pageNumber),
-    // }))
-
-    // const question = await API.chatbot.createQuestion({
-    //   interactionId: currentInteractionId,
-    //   questionText: input,
-    //   responseText: answer,
-    //   sourceDocuments: sourceDocumentPages,
-    //   vectorStoreId: result.questionId,
-    // })
+    const answer = result ? result.answer : "Sorry, I couldn't find the answer"
+    const sourceDocuments = result ? result.sourceDocuments : []
 
     setMessages([
       ...messages,
@@ -129,9 +137,9 @@ export const ChatbotToday: React.FC = () => {
       {
         type: 'apiMessage',
         message: answer,
-        verified: result.verified,
+        verified: result ? result.verified : true,
         sourceDocuments: sourceDocuments,
-        questionId: result.questionId,
+        questionId: result ? result.questionId : null,
       },
     ])
 
@@ -148,19 +156,7 @@ export const ChatbotToday: React.FC = () => {
         message: answer,
       },
     ])
-  }
-
-  const handleFeedback = async (questionId: number, userScore: number) => {
-    try {
-      await API.chatbot.editQuestion({
-        data: {
-          userScore,
-        },
-        questionId,
-      })
-    } catch (e) {
-      console.log(e)
-    }
+    setPreDeterminedQuestions([])
   }
 
   if (!cid) {
@@ -171,7 +167,7 @@ export const ChatbotToday: React.FC = () => {
       <ChatbotContainer>
         <Card
           title="Course chatbot"
-          className=" flex h-full max-h-[750px] w-full flex-col overflow-y-auto"
+          className="flex h-full max-h-[750px] w-full flex-col overflow-y-auto"
         >
           <div className="grow-1 overflow-y-auto">
             {messages &&
@@ -216,16 +212,6 @@ export const ChatbotToday: React.FC = () => {
                               </Tooltip>
                             )}
                           </div>
-                          {item.questionId && (
-                            <div className="hidden items-center justify-end gap-2 group-hover:flex">
-                              <div className="flex w-fit gap-2 rounded-xl bg-slate-100 px-3 py-2">
-                                <Feedback
-                                  questionId={item.questionId}
-                                  handleFeedback={handleFeedback}
-                                />
-                              </div>
-                            </div>
-                          )}
                         </div>
                         <div className="flex flex-col gap-1">
                           {item.sourceDocuments &&
@@ -308,10 +294,15 @@ export const ChatbotToday: React.FC = () => {
           placeholder="Ask something..."
           aria-label="Chatbot input field"
           id="chatbot-input"
-          onPressEnter={handleAsk}
+          onPressEnter={input.trim().length > 0 ? handleAsk : undefined}
           className="mt-0"
           suffix={
-            <Button type="primary" className="bg-blue-900" onClick={handleAsk}>
+            <Button
+              disabled={input.trim().length == 0 || isLoading}
+              type="primary"
+              className="bg-blue-900"
+              onClick={handleAsk}
+            >
               Ask
             </Button>
           }

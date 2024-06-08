@@ -165,6 +165,9 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
             ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime,
           )
         ) {
+          message.error(
+            'You already have a question in a queue for this course. Please delete your previous question before joining this queue.',
+          )
           return false
         }
         message.error(e.response?.data?.message)

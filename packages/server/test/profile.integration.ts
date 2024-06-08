@@ -6,6 +6,7 @@ import {
   CourseSectionFactory,
   LastRegistrationFactory,
   OrganizationFactory,
+  ChatTokenFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { ProfileModule } from '../src/profile/profile.module';
@@ -26,6 +27,8 @@ describe('Profile Integration', () => {
         userId: user.id,
         organizationId: organization.id,
       }).save();
+
+      await ChatTokenFactory.create({ user, token: 'test' });
 
       const res = await supertest({ userId: user.id })
         .get('/profile')

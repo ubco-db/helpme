@@ -19,7 +19,7 @@ import PopularTimes from '../../../components/Today/PopularTimes/PopularTimes'
 import AsyncQuestionCard from '../../../components/Questions/AsyncQuestions/AsyncQuestionCard'
 import { orderBy } from 'lodash'
 import { ChatbotToday } from '../../../components/Today/ChatbotToday'
-import useSWR from 'swr'
+import { useCourseFeatures } from '../../../hooks/useCourseFeatures'
 
 const Container = styled.div`
   margin-top: 32px;
@@ -89,10 +89,7 @@ export default function Today(): ReactElement {
   const { course, mutateCourse } = useCourse(Number(cid))
   const [createQueueModalVisible, setCreateQueueModalVisible] = useState(false)
 
-  const { data: courseFeatures } = useSWR(
-    `${Number(cid)}/features`,
-    async () => await API.course.getCourseFeatures(Number(cid)),
-  )
+  const courseFeatures = useCourseFeatures(Number(cid))
 
   const onlyChatBotEnabled =
     courseFeatures?.chatBotEnabled &&
@@ -127,10 +124,10 @@ export default function Today(): ReactElement {
   const firstContentItemId = courseFeatures?.queueEnabled
     ? 'first-queue'
     : courseFeatures?.asyncQueueEnabled
-    ? 'async-centre'
-    : courseFeatures?.chatBotEnabled
-    ? 'chatbot-input'
-    : ''
+      ? 'async-centre'
+      : courseFeatures?.chatBotEnabled
+        ? 'chatbot-input'
+        : ''
 
   if (!course || !courseFeatures) {
     return <Spin tip="Loading..." size="large" />

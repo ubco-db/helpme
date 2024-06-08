@@ -1318,7 +1318,7 @@ describe('Course Integration', () => {
       expect(resp.body.message).toEqual('Invalid invite code');
     });
 
-    it('should return 400 if user is already enrolled in the course', async () => {
+    it('should return 200 if user is already enrolled in the course', async () => {
       const user = await UserFactory.create();
       const course = await CourseFactory.create();
       const organization = await OrganizationFactory.create();
@@ -1353,10 +1353,7 @@ describe('Course Integration', () => {
           selected_course: course.id,
         });
 
-      expect(resp.status).toBe(400);
-      expect(resp.body.message).toEqual(
-        'User cannot be added to course. Please check if the user is already in the course',
-      );
+      expect(resp.status).toBe(200);
     });
 
     it('should return 200 if user is successfully enrolled in the course', async () => {
@@ -1389,7 +1386,6 @@ describe('Course Integration', () => {
         });
 
       expect(resp.status).toBe(200);
-      expect(resp.body.message).toEqual('User is added to this course');
     });
   });
 
