@@ -79,6 +79,7 @@ interface QueuePageProps {
 
 export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
   const { queue } = useQueue(qid)
+  const isQueueOnline = queue?.room.startsWith('Online')
   const { questions, mutateQuestions } = useQuestions(qid)
   const { isCheckedIn, isHelping } = useTAInQueueInfo(qid)
   const [queueSettingsModal, setQueueSettingsModal] = useState(false)
@@ -218,11 +219,11 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
   const studentAssignmentProgress: StudentAssignmentProgress | null =
     role === Role.STUDENT
       ? {
-          task1: { isDone: true },
-          task2: { isDone: true },
-          task3: { isDone: true },
-          task4: { isDone: true },
-          task5: { isDone: true },
+          task1: { isDone: false },
+          task2: { isDone: false },
+          task3: { isDone: false },
+          task4: { isDone: false },
+          task5: { isDone: false },
           Bonus1: { isDone: false },
           Bonus2: { isDone: false },
           attendance: { isDone: false },
@@ -244,251 +245,6 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
   const studentDemoId = studentDemo?.id
   const studentDemoStatus = studentDemo?.status
 
-  // yes, this is technically duplicate code, but refactoring it to a function would make it less readable
-  // const leaveQueueQuestion = useCallback(async () => {
-  //   await API.questions.update(studentQuestionId, {
-  //     status: ClosedQuestionStatus.ConfirmedDeleted,
-  //   })
-  //   setIsJoiningQuestion(false)
-  //   await mutateQuestions()
-  // }, [mutateQuestions, studentQuestionId])
-
-  // const leaveQueueDemo = useCallback(async () => {
-  //   await API.questions.update(studentDemoId, {
-  //     status: ClosedQuestionStatus.ConfirmedDeleted,
-  //   })
-  //   setIsJoiningDemo(false)
-  //   await mutateQuestions()
-  // }, [mutateQuestions, studentDemoId])
-
-  // const rejoinQueueQuestion = useCallback(async () => {
-  //   await API.questions.update(studentQuestionId, {
-  //     status: OpenQuestionStatus.Queued,
-  //   })
-  //   await mutateQuestions()
-  // }, [mutateQuestions, studentQuestionId])
-
-  // const rejoinQueueDemo = useCallback(async () => {
-  //   await API.questions.update(studentDemoId, {
-  //     status: OpenQuestionStatus.Queued,
-  //   })
-  //   await mutateQuestions()
-  // }, [mutateQuestions, studentDemoId])
-
-  // const joinQueueAfterDeletionQuestion = useCallback(async () => {
-  //   await API.questions.update(studentQuestionId, {
-  //     status: ClosedQuestionStatus.ConfirmedDeleted,
-  //   })
-  //   await mutateQuestions()
-  //   const newQuestion = await API.questions.create({
-  //     text: studentQuestion.text,
-  //     questionTypes: studentQuestion?.questionTypes ?? [],
-  //     queueId: qid,
-  //     location: studentQuestion?.location,
-  //     force: true,
-  //     groupable: false,
-  //     isTaskQuestion: false,
-  //   })
-  //   await API.questions.update(newQuestion.id, {
-  //     status: OpenQuestionStatus.Queued,
-  //   })
-  //   await mutateQuestions()
-  // }, [mutateQuestions, qid, studentQuestion])
-
-  // const joinQueueAfterDeletionDemo = useCallback(async () => {
-  //   await API.questions.update(studentDemoId, {
-  //     status: ClosedQuestionStatus.ConfirmedDeleted,
-  //   })
-  //   await mutateQuestions()
-  //   const newQuestion = await API.questions.create({
-  //     text: studentDemo.text,
-  //     questionTypes: studentDemo?.questionTypes ?? [],
-  //     queueId: qid,
-  //     location: studentDemo?.location,
-  //     force: true,
-  //     groupable: false,
-  //     isTaskQuestion: true,
-  //   })
-  //   await API.questions.update(newQuestion.id, {
-  //     status: OpenQuestionStatus.Queued,
-  //   })
-  //   await mutateQuestions()
-  // }, [mutateQuestions, qid, studentDemo])
-
-  // const joinQueueOpenModal = useCallback(
-  //   async (force: boolean) => {
-  //     try {
-  //       const createdQuestion = await API.questions.create({
-  //         queueId: Number(qid),
-  //         text: '',
-  //         force: force,
-  //         questionTypes: null,
-  //         groupable: false,
-  //         isTaskQuestion: false,
-  //       })
-  //       const newQuestionsInQueue = [...questions?.queue, createdQuestion]
-  //       await mutateQuestions({ ...questions, queue: newQuestionsInQueue })
-  //       setPopupEditQuestion(true)
-  //       return true
-  //     } catch (e) {
-  //       if (
-  //         e.response?.data?.message?.includes(
-  //           ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime,
-  //         )
-  //       ) {
-  //         message.error(
-  //           'You already have a question in a queue for this course. Please delete your previous question before joining this queue.',
-  //         )
-  //         return false
-  //       }
-  //       message.error(e.response?.data?.message)
-  //       return true
-  //     }
-  //   },
-  //   [mutateQuestions, qid, questions],
-  // )
-
-  // const createDemoOpenModal = useCallback(
-  //   async (force: boolean) => {
-  //     try {
-  //       const createdQuestion = await API.questions.create({
-  //         queueId: Number(qid),
-  //         text: '',
-  //         force: force,
-  //         questionTypes: null,
-  //         groupable: false,
-  //         isTaskQuestion: true, // this is a demo question
-  //       })
-  //       const newQuestionsInQueue = [...questions?.queue, createdQuestion]
-  //       await mutateQuestions({ ...questions, queue: newQuestionsInQueue })
-  //       setPopupEditDemo(true) //show right modal
-  //       return true
-  //     } catch (e) {
-  //       if (
-  //         e.response?.data?.message?.includes(
-  //           ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime,
-  //         )
-  //       ) {
-  //         message.error(
-  //           'You already have a demo in a queue for this course. Please delete your previous demo before joining this queue.',
-  //         )
-  //         return false
-  //       }
-  //       message.error(e.response?.data?.message)
-  //       return true
-  //     }
-  //   },
-  //   [mutateQuestions, qid, questions],
-  // )
-
-  // const leaveQueueAndCloseQuestion = useCallback(() => {
-  //   //delete draft when they leave the queue
-  //   deleteDraftQuestion()
-  //   leaveQueueQuestion()
-  //   closeEditQuestionModal()
-  // }, [deleteDraftQuestion, leaveQueueQuestion, closeEditQuestionModal])
-
-  // const leaveQueueAndCloseDemo = useCallback(() => {
-  //   //delete draft when they leave the queue
-  //   deleteDraftDemo()
-  //   leaveQueueDemo()
-  //   closeEditDemoModal()
-  // }, [deleteDraftDemo, leaveQueueDemo, closeEditDemoModal])
-
-  // const finishQuestion = useCallback(
-  //   async (
-  //     text: string,
-  //     questionTypes: QuestionTypeParams[],
-  //     groupable: boolean,
-  //     isTaskQuestion: false,
-  //     location: string,
-  //   ) => {
-  //     const updateStudent = {
-  //       text,
-  //       questionTypes,
-  //       groupable: groupable,
-  //       isTaskQuestion: isTaskQuestion,
-  //       status:
-  //         studentQuestionStatus === OpenQuestionStatus.Drafting
-  //           ? OpenQuestionStatus.Queued
-  //           : studentQuestionStatus,
-  //       location,
-  //     }
-
-  //     const updatedQuestionFromStudent = await API.questions.update(
-  //       studentQuestionId,
-  //       updateStudent,
-  //     )
-
-  //     // since yourQuestions is an array of questions, we need to map through it to find the question we want to update
-  //     const yourUpdatedQuestions = studentQuestions?.map((question: Question) =>
-  //       question.id === studentQuestionId
-  //         ? updatedQuestionFromStudent
-  //         : question,
-  //     )
-
-  //     const newQuestionsInQueue = questions?.queue?.map((question: Question) =>
-  //       question.id === studentQuestionId
-  //         ? updatedQuestionFromStudent
-  //         : question,
-  //     )
-
-  //     // questions are the old questions and newQuestionsInQueue are questions that've been added since.
-  //     mutateQuestions({
-  //       ...questions,
-  //       yourQuestions: yourUpdatedQuestions,
-  //       queue: newQuestionsInQueue,
-  //     })
-  //   },
-  //   [studentQuestionStatus, studentQuestionId, questions, mutateQuestions],
-  // )
-  // const finishDemo = useCallback(
-  //   async (
-  //     text: string,
-  //     questionTypes: QuestionTypeParams[],
-  //     groupable: boolean,
-  //     isTaskQuestion: true,
-  //     location: string,
-  //   ) => {
-  //     const updateStudent = {
-  //       text,
-  //       questionTypes,
-  //       groupable: groupable,
-  //       isTaskQuestion: isTaskQuestion,
-  //       status:
-  //         studentDemoStatus === OpenQuestionStatus.Drafting
-  //           ? OpenQuestionStatus.Queued
-  //           : studentDemoStatus,
-  //       location,
-  //     }
-
-  //     const updatedQuestionFromStudent = await API.questions.update(
-  //       studentDemoId,
-  //       updateStudent,
-  //     )
-
-  //     // since yourQuestions is an array of questions, we need to map through it to find the question we want to update
-  //     const yourUpdatedQuestions = studentQuestions?.map((question: Question) =>
-  //       question.id === studentDemoId
-  //         ? updatedQuestionFromStudent
-  //         : question,
-  //     )
-
-  //     const newQuestionsInQueue = questions?.queue?.map((question: Question) =>
-  //       question.id === studentDemoId
-  //         ? updatedQuestionFromStudent
-  //         : question,
-  //     )
-
-  //     // questions are the old questions and newQuestionsInQueue are questions that've been added since.
-  //     mutateQuestions({
-  //       ...questions,
-  //       yourQuestions: yourUpdatedQuestions,
-  //       queue: newQuestionsInQueue,
-  //     })
-  //   },
-  //   [studentDemoStatus, studentDemoId, questions, mutateQuestions],
-  // )
   const updateQuestionStatus = useCallback(
     async (id: number, status: QuestionStatus) => {
       await API.questions.update(id, { status })
@@ -1091,17 +847,20 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                   )
                 })}
               </>
-            ) : (
+            ) : !isStaff ? (
               <>
-                {/* TODO: add a "editdemo" parameter here */}
                 <StudentBanner
                   queueId={qid}
                   editQuestion={openEditQuestionModal}
+                  editDemo={openEditDemoModal}
                   leaveQueueQuestion={leaveQueueQuestion}
                   leaveQueueDemo={leaveQueueDemo}
+                  configTasks={configTasks}
+                  zoomLink={course?.zoomLink}
+                  isQueueOnline={isQueueOnline}
                 />
               </>
-            )}
+            ) : null}
             <RenderQueueQuestions questions={questions?.queue} />
           </QueueListContainer>
         </Container>

@@ -68,11 +68,10 @@ export default function StudentQueueCard({
   studentAssignmentProgress,
   className,
 }: StudentQueueCardProps): ReactElement {
-  //// Task question calculations
-  // first find what tasks are being marked
   // task questions text comes in as "Mark "part1" "part2""
-  const tasks =
-    question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || [] // gives an array of "part1","part2",etc.
+  const tasks = question.isTaskQuestion
+    ? question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || []
+    : [] // gives an array of "part1","part2",etc.
 
   return (
     <HorizontalStudentCard className={className}>
