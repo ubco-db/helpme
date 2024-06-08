@@ -146,25 +146,6 @@ const QueueCard = ({
 
   const staffList = queue.staffList
 
-  const [isModalOpen, setIsModalOpen] = useState(false)
-
-  const [localQueueConfig, setLocalQueueConfig] = useState({} as JSON)
-
-  const showModal = () => {
-    API.queues.getConfig(queue.id).then((config) => {
-      setLocalQueueConfig(config)
-    })
-    setIsModalOpen(true)
-  }
-
-  const handleOk = () => {
-    setIsModalOpen(false)
-  }
-
-  const handleCancel = () => {
-    setIsModalOpen(false)
-  }
-
   const handleUpdate = (e) => {
     e.preventDefault()
     setIsLinkEnabled(true)
@@ -301,25 +282,6 @@ const QueueCard = ({
                   )}
                 </QueueCardButtonRow>
               )}
-              {/* button to open "start lab" modal */}
-              <Button
-                type="primary"
-                onClick={(e) => {
-                  e.preventDefault()
-                  showModal()
-                }}
-              >
-                Start Lab
-              </Button>
-              <Modal
-                title="Basic Modal"
-                open={isModalOpen}
-                onOk={handleOk}
-                onCancel={handleCancel}
-              >
-                <h2>Queue Config:</h2>
-                <p>{JSON.stringify(localQueueConfig, null, 2)}</p>
-              </Modal>
             </RightQueueNotesRow>
           </Row>
         </CustomCard>

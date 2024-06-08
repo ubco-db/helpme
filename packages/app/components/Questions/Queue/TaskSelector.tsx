@@ -299,7 +299,7 @@ export function TaskSelector({
       }
     }
     setTaskTree(transformIntoTaskTree(configTasksCopy))
-    setSelectedTasks([])
+    setSelectedTasks(value || [])
   }, [configTasks, studentAssignmentProgress])
 
   const handleTaskClick = (taskId, checked) => {

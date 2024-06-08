@@ -104,6 +104,9 @@ export default function DemoForm({
   useEffect(() => {
     if (question && !visible) {
       setQuestionText(question.text)
+      setTasksInput(
+        question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || [],
+      )
     }
   }, [question, visible])
 

@@ -908,7 +908,6 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
               leaveQueue={leaveQueueAndCloseDemo}
               finishDemo={finishDemoAndClose}
               position={studentDemoIndex + 1}
-              value={[]}
               cancel={closeEditDemoModal}
               queueId={qid}
             />
