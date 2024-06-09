@@ -669,15 +669,11 @@ export class OrganizationController {
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
 
-    try {
-      const image = await Jimp.read(file.buffer);
-      image.resize(1920, 1080);
-      await image.writeAsync(
-        path.join(process.env.UPLOAD_LOCATION as string, fileName),
-      );
-    } catch (err) {
-      console.error('Error processing image:', err);
-    }
+    const image = await Jimp.read(file.buffer);
+    image.resize(1920, 1080);
+    await image.writeAsync(
+      path.join(process.env.UPLOAD_LOCATION as string, fileName),
+    );
     organization.bannerUrl = fileName;
 
     await organization
@@ -754,15 +750,12 @@ export class OrganizationController {
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
 
-    try {
-      const image = await Jimp.read(file.buffer); // Load the image
-      image.resize(256, Jimp.AUTO); // Resize the image to 256 pixels (width, maintaining aspect ratio)
-      await image.writeAsync(
-        path.join(process.env.UPLOAD_LOCATION as string, fileName),
-      ); //same old
-    } catch (err) {
-      console.error('Error processing image:', err);
-    }
+    const image = await Jimp.read(file.buffer); // Load the image
+    image.resize(256, Jimp.AUTO); // Resize the image to 256 pixels (width, maintaining aspect ratio)
+    await image.writeAsync(
+      path.join(process.env.UPLOAD_LOCATION as string, fileName),
+    ); //same old
+
     organization.logoUrl = fileName;
 
     await organization
