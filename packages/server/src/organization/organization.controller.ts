@@ -48,7 +48,7 @@ import {
 import { OrganizationGuard } from 'guards/organization.guard';
 import * as checkDiskSpace from 'check-disk-space';
 import * as path from 'path';
-import * as sharp from 'sharp';
+import Jimp from 'jimp';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SemesterModel } from 'semester/semester.entity';
@@ -669,10 +669,15 @@ export class OrganizationController {
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
 
-    await sharp(file.buffer)
-      .resize(1920, 1080)
-      .toFile(path.join(process.env.UPLOAD_LOCATION, fileName));
-
+    try {
+      const image = await Jimp.read(file.buffer);
+      image.resize(1920, 1080);
+      await image.writeAsync(
+        path.join(process.env.UPLOAD_LOCATION as string, fileName),
+      );
+    } catch (err) {
+      console.error('Error processing image:', err);
+    }
     organization.bannerUrl = fileName;
 
     await organization
@@ -749,10 +754,15 @@ export class OrganizationController {
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
 
-    await sharp(file.buffer)
-      .resize(256)
-      .toFile(path.join(process.env.UPLOAD_LOCATION, fileName));
-
+    try {
+      const image = await Jimp.read(file.buffer); // Load the image
+      image.resize(256, Jimp.AUTO); // Resize the image to 256 pixels (width, maintaining aspect ratio)
+      await image.writeAsync(
+        path.join(process.env.UPLOAD_LOCATION as string, fileName),
+      ); //same old
+    } catch (err) {
+      console.error('Error processing image:', err);
+    }
     organization.logoUrl = fileName;
 
     await organization
