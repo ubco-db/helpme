@@ -8,7 +8,7 @@ export const adminCredentialValidator = {
       username: string,
       password: string,
     ): Promise<AdminUserModel | null> {
-      const user = await AdminUserModel.findOne({ username });
+      const user = await AdminUserModel.findOne({ where: { username } });
       if (user) {
         if (await compare(password, user.passwordHash)) {
           return user;

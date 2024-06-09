@@ -10,7 +10,6 @@ import * as bodyParser from 'body-parser';
 import { AppModule } from './app.module';
 import { StripUndefinedPipe } from './stripUndefined.pipe';
 import * as expressSession from 'express-session';
-import * as passport from 'passport';
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function bootstrap(hot: any): Promise<void> {
@@ -46,9 +45,6 @@ export async function bootstrap(hot: any): Promise<void> {
       saveUninitialized: false,
     }),
   );
-
-  app.use(passport.initialize());
-  app.use(passport.session());
 
   app.enableCors({
     origin: '*',

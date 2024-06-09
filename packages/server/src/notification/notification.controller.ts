@@ -52,7 +52,9 @@ export class NotificationController {
     @Param('deviceId') deviceId: number,
     @UserId() userId: number,
   ): Promise<void> {
-    const dn = await DesktopNotifModel.find({ id: deviceId, userId });
+    const dn = await DesktopNotifModel.find({
+      where: { id: deviceId, userId },
+    });
     if (dn.length > 0) {
       await DesktopNotifModel.remove(dn);
     } else {
