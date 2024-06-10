@@ -72,7 +72,8 @@ export class QueueCleanService {
   }
 
   public async cleanQueue(queueId: number, force?: boolean): Promise<void> {
-    const queue = await QueueModel.findOne(queueId, {
+    const queue = await QueueModel.findOne({
+      where: { id: queueId },
       relations: ['staffList'],
     });
 

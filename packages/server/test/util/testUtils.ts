@@ -6,7 +6,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from 'nestjs-redis';
 import { NotificationService } from 'notification/notification.service';
 import * as supertest from 'supertest';
-import { mocked } from 'ts-jest/utils';
 import { Connection } from 'typeorm';
 import { addGlobalsToApp } from '../../src/bootstrap';
 import { LoginModule } from '../../src/login/login.module';
@@ -24,6 +23,7 @@ export const TestTypeOrmModule = TypeOrmModule.forRoot({
   database: 'test',
   entities: ['./**/*.entity.ts'],
   synchronize: true,
+  keepConnectionAlive: true,
 });
 
 export const TestConfigModule = ConfigModule.forRoot({
@@ -85,7 +85,8 @@ export function setupIntegrationTest(
   };
 }
 
-const notifMock = mocked({ notifyUser: jest.fn() }, true);
+const notifMock = { notifyUser: jest.fn() };
+
 /**
  * Module Modifier tests can pass to setupIntegrationTest to mock the notifService and to expect things
  * ex:

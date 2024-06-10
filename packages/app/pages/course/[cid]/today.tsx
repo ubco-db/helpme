@@ -124,10 +124,10 @@ export default function Today(): ReactElement {
   const firstContentItemId = courseFeatures?.queueEnabled
     ? 'first-queue'
     : courseFeatures?.asyncQueueEnabled
-    ? 'async-centre'
-    : courseFeatures?.chatBotEnabled
-    ? 'chatbot-input'
-    : ''
+      ? 'async-centre'
+      : courseFeatures?.chatBotEnabled
+        ? 'chatbot-input'
+        : ''
 
   if (!course || !courseFeatures) {
     return <Spin tip="Loading..." size="large" />
