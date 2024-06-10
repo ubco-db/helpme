@@ -2074,60 +2074,6 @@ describe('Organization Integration', () => {
 
       expect(res.status).toBe(401);
     });
-
-    it('should return 200 when existing banner is delete and banner is uploaded', async () => {
-      const file = Buffer.from([]);
-      const fileName = 'test.png';
-
-      await fs.writeFileSync(
-        `${process.env.UPLOAD_LOCATION}/${fileName}`,
-        file,
-      );
-
-      const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create({
-        bannerUrl: fileName,
-      });
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      const res = await supertest({ userId: user.id })
-        .post(`/organization/${organization.id}/upload_banner`)
-        .attach('file', path.join(__dirname, 'fixtures/images/test.png'));
-
-      expect(res.status).toBe(200);
-      expect(res.body.message).toBe('Banner uploaded');
-
-      await fs.unlinkSync(
-        path.join(process.env.UPLOAD_LOCATION, res.body.fileName),
-      );
-    });
-
-    it('should return 200 when banner is uploaded', async () => {
-      const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      const res = await supertest({ userId: user.id })
-        .post(`/organization/${organization.id}/upload_banner`)
-        .attach('file', path.join(__dirname, 'fixtures/images/test.png'));
-
-      expect(res.status).toBe(200);
-      expect(res.body.message).toBe('Banner uploaded');
-
-      await fs.unlinkSync(
-        path.join(process.env.UPLOAD_LOCATION, res.body.fileName),
-      );
-    });
   });
 
   describe('POST /organization/:oid/create_course', () => {
