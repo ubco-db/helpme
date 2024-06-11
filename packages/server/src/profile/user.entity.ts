@@ -20,7 +20,7 @@ import { AccountType, UserRole } from '@koh/common';
 import { OrganizationUserModel } from '../organization/organization-user.entity';
 import { InteractionModel } from '../chatbot/interaction.entity';
 import { UserTokenModel } from './user-token.entity';
-import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
+import { StudentTaskProgressModel } from '../course/studentTaskProgress.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {

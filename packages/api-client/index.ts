@@ -50,6 +50,8 @@ import {
   QuestionTypeParams,
   UBCOuserParam,
   CourseSettingsResponse,
+  StudentAssignmentProgress,
+  QueueConfig,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -280,6 +282,15 @@ class APIClient {
       courseId: number,
     ): Promise<CourseSettingsResponse> =>
       this.req('GET', `/api/v1/courses/${courseId}/features`),
+    getAssignmentProgress: async (
+      courseId: number,
+      userId: number,
+      assignmentName: string,
+    ): Promise<StudentAssignmentProgress> =>
+      this.req(
+        'GET',
+        `/api/v1/courses/${courseId}/studentTaskProgress/${userId}/${assignmentName}`,
+      ),
   }
   taStatus = {
     checkIn: async (
@@ -381,9 +392,12 @@ class APIClient {
       this.req('POST', `/api/v1/queues/${queueId}/clean`),
     disable: async (queueId: number): Promise<void> =>
       this.req('DELETE', `/api/v1/queues/${queueId}`),
-    getConfig: async (queueId: number): Promise<JSON> =>
+    getConfig: async (queueId: number): Promise<QueueConfig> =>
       this.req('GET', `/api/v1/queues/${queueId}/config`),
-    updateConfig: async (queueId: number, config: JSON): Promise<JSON> =>
+    updateConfig: async (
+      queueId: number,
+      config: QueueConfig,
+    ): Promise<QueueConfig> =>
       this.req('PATCH', `/api/v1/queues/${queueId}/config`, undefined, config),
     createQueue: async (
       courseId: number,

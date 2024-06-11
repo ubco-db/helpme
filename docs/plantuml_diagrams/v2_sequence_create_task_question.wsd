@@ -27,11 +27,10 @@ frontend <- server : task progress data for "lab1"
 frontend -> frontend : save task progress data in variables
 
 User -> frontend : create task question\n for "part2"
-frontend -> server : create task question\n for "part2"
-server -> db : get queue config
-server <- db : queue config
+frontend -> server : create question with "isTaskQuestion" flag\n enabled and text with "Mark "part2""
+
 server -> server : check to make sure "part2" is a valid task
-server -> db : create question with "isTaskQuestion" flag\n enabled and text with "Mark "part2""
+server -> db : create question
 
 == Database change triggers update to all clients (push) ==
 

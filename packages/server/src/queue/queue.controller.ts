@@ -5,6 +5,7 @@ import {
   LimboQuestionStatus,
   ListQuestionsResponse,
   OpenQuestionStatus,
+  QueueConfig,
   Role,
   UpdateQueueParams,
 } from '@koh/common';
@@ -201,7 +202,7 @@ export class QueueController {
   // returns the JSON config for a queue. Can return null if no config is set
   @Get(':queueId/config')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
-  async getConfig(queueId: number): Promise<JSON> {
+  async getConfig(queueId: number): Promise<QueueConfig | null> {
     const queue = await this.queueService.getQueue(queueId);
     if (!queue) {
       throw new NotFoundException();
@@ -215,8 +216,8 @@ export class QueueController {
   @Roles(Role.TA, Role.PROFESSOR)
   async setConfig(
     @Param('queueId') queueId: number,
-    @Body() config: JSON,
-  ): Promise<JSON> {
+    @Body() config: QueueConfig,
+  ): Promise<QueueConfig | null> {
     // set config for a queue
     const queue = await this.queueService.getQueue(queueId);
     if (!queue) {

@@ -19,6 +19,7 @@ import {
   QuestionTypeFactory,
   QueueFactory,
   StudentCourseFactory,
+  StudentTaskProgressFactory,
   TACourseFactory,
   UserCourseFactory,
   UserFactory,
@@ -30,6 +31,7 @@ import {
 } from './util/testUtils';
 import { forEach } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { StudentTaskProgressModel } from 'course/studentTaskProgress.entity';
 
 describe('Question Integration', () => {
   const supertest = setupIntegrationTest(QuestionModule, modifyMockNotifs);
@@ -672,7 +674,6 @@ describe('Question Integration', () => {
         })
         .expect(400);
     });
-
     it('PATCH status to helping as student not allowed', async () => {
       const course = await CourseFactory.create();
 
@@ -702,7 +703,6 @@ describe('Question Integration', () => {
         })
         .expect(401);
     });
-
     it('PATCH status to helping as TA works', async () => {
       const course = await CourseFactory.create();
       const ta = await UserFactory.create();
@@ -735,7 +735,6 @@ describe('Question Integration', () => {
       });
       expectUserNotified(question.creatorId);
     });
-
     it('PATCH status to Resolved as TA works', async () => {
       const course = await CourseFactory.create();
       const ta = await UserFactory.create();
@@ -763,7 +762,6 @@ describe('Question Integration', () => {
         status: QuestionStatusKeys.Resolved,
       });
     });
-
     it('PATCH anything other than status as TA not allowed', async () => {
       const course = await CourseFactory.create();
       const ta = await UserFactory.create();
@@ -867,6 +865,63 @@ describe('Question Integration', () => {
           status: QuestionStatusKeys.Helping,
         })
         .expect(400);
+    });
+    it('TaskQuestions: Will append on a newly completed task onto existing studentTaskProgress', async () => {
+      const course = await CourseFactory.create();
+      const queue = await QueueFactory.create({ courseId: course.id });
+      const student = await UserFactory.create();
+      const professor = await UserFactory.create();
+
+      await UserCourseFactory.create({
+        user: student,
+        role: Role.STUDENT,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course,
+      });
+      await StudentTaskProgressFactory.create({
+        user: student,
+        course: course,
+        taskProgress: {
+          assignment1: {
+            task1: {
+              isDone: true,
+            },
+          },
+        },
+      });
+
+      const q1 = await QuestionFactory.create({
+        text: 'Mark "part2"',
+        queue: queue,
+        isTaskQuestion: true,
+        status: QuestionStatusKeys.Helping,
+        creator: student,
+      });
+
+      await supertest({ userId: professor.id })
+        .patch(`/questions/${q1.id}`)
+        .send({
+          status: QuestionStatusKeys.Resolved,
+        })
+        .expect(200);
+
+      // retrieve studentTaskProgress and see if it updated
+      const updatedStudentTaskProgress = await StudentTaskProgressModel.findOne(
+        {
+          where: { userId: student.id, courseId: course.id },
+        },
+      );
+
+      expect(
+        updatedStudentTaskProgress.taskProgress.assignment1.task1.isDone,
+      ).toBe(true);
+      expect(
+        updatedStudentTaskProgress.taskProgress.assignment1.task2.isDone,
+      ).toBe(true);
     });
   });
 

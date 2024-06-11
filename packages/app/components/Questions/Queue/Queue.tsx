@@ -12,6 +12,7 @@ import {
   Role,
   StudentAssignmentProgress,
   QuestionStatus,
+  QueueConfig,
 } from '@koh/common'
 import { useTAInQueueInfo } from '../../../hooks/useTAInQueueInfo'
 import { useCourse } from '../../../hooks/useCourse'
@@ -93,11 +94,19 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     studentDemoIndex,
   } = useStudentQuestion(qid)
   const [showJoinPopconfirm, setShowJoinPopconfirm] = useState(false)
+  const [studentAssignmentProgress, setStudentAssignmentProgress] =
+    useState<StudentAssignmentProgress | null>(null)
   const profile = useProfile()
+  const profileId = profile?.id
+  const [isStaff, setIsStaff] = useState(false)
   const { course } = useCourse(cid)
   const [popupEditQuestion, setPopupEditQuestion] = useState(false)
   const [popupEditDemo, setPopupEditDemo] = useState(false)
   const role = useRoleInCourse(cid)
+  const [queueConfig, setQueueConfig] = useState<QueueConfig | null>(
+    {} as QueueConfig,
+  )
+
   // TODO: test to see if this works without the hook, if so delete it
   // const { deleteDraftQuestion } = useDraftQuestion()
   const [, , deleteDraftQuestion] = useLocalStorage('draftQuestion', null)
@@ -126,125 +135,94 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     true,
   )
 
-  const tempQueueConfig = {
-    queue_display_name: 'Lab 1 Queue',
-    fifo_queue_view_enabled: true,
-    tag_groups_queue_view_enabled: true,
-    default_view: 'fifo',
-    minimum_tags: 1,
-    tags: {
-      tag1: {
-        display_name: 'General',
-        color_hex: '#66FF66',
-      },
-      tag2: {
-        display_name: 'Bugs',
-        color_hex: '#66AA66',
-      },
-      tag3: {
-        display_name: 'Blocking',
-        color_hex: '#FF0000',
-      },
-    },
-    assignment_id: 'lab1',
-    tasks: {
-      task1: {
-        display_name: 'Task 1',
-        short_display_name: '1',
-        blocking: false,
-        color_hex: '#ffedb8',
-        precondition: null,
-      },
-      task2: {
-        display_name: 'Task 2',
-        short_display_name: '2',
-        blocking: false,
-        color_hex: '#fadf8e',
-        precondition: 'task1',
-      },
-      task3: {
-        display_name: 'Task 3',
-        short_display_name: '3',
-        blocking: false,
-        color_hex: '#f7ce52',
-        precondition: 'task2',
-      },
-      task4: {
-        display_name: 'Task 4',
-        short_display_name: '4',
-        blocking: true,
-        color_hex: '#EABA2B',
-        precondition: 'task3',
-      },
-      task5: {
-        display_name: 'Task 5',
-        short_display_name: '5',
-        blocking: true,
-        color_hex: '#DCAD20',
-        precondition: 'task4',
-      },
-      task6: {
-        display_name: 'Task 6',
-        short_display_name: '6',
-        blocking: false,
-        color_hex: '#DCAD20',
-        precondition: 'task5',
-      },
-      Bonus1: {
-        display_name: 'Bonus Pt1',
-        short_display_name: 'B1',
-        blocking: false,
-        color_hex: '#91EA2B',
-        precondition: 'task3',
-      },
-      Bonus2: {
-        display_name: 'Bonus Pt2',
-        short_display_name: 'B2',
-        blocking: false,
-        color_hex: '#71EA2B',
-        precondition: 'Bonus1',
-      },
-      attendance: {
-        display_name: 'Attendance',
-        short_display_name: 'here',
-        blocking: false,
-        color_hex: '#069F83',
-        precondition: null,
-      },
-    },
-  }
-  const configTasks = tempQueueConfig?.tasks
+  // this is a separate useEffect because we don't want to re-fetch the queue config every time the queue changes
+  useEffect(() => {
+    console.log('qid', qid)
+    if (qid)
+      API.queues
+        .getConfig(qid)
+        .then((config) => {
+          setQueueConfig(config)
+        })
+        .catch((error) => {
+          console.error(error)
+          message.error('Failed to fetch queue config')
+        })
+  }, [qid])
+  const configTasks = queueConfig?.tasks
+  console.log('configTasks', configTasks)
 
-  // get completed tasks
-  // TODO: replace this with a get request to the backend
-  const studentAssignmentProgress: StudentAssignmentProgress | null =
-    role === Role.STUDENT
-      ? {
-          task1: { isDone: false },
-          task2: { isDone: false },
-          task3: { isDone: false },
-          task4: { isDone: false },
-          task5: { isDone: false },
-          Bonus1: { isDone: false },
-          Bonus2: { isDone: false },
-          attendance: { isDone: false },
+  useEffect(() => {
+    if (profile && profile.courses) {
+      profile.courses.forEach((course) => {
+        if (
+          course.course.id === cid &&
+          (course.role === Role.PROFESSOR || course.role === Role.TA)
+        ) {
+          setIsStaff(true)
         }
-      : null
+      })
+    }
+  }, [profile, cid])
+
+  // TODO: do useSWR for this
+  // get my completed tasks for this lab
+  useEffect(() => {
+    if (
+      !isStaff &&
+      profileId &&
+      queueConfig &&
+      queueConfig.assignment_id &&
+      queueConfig.tasks &&
+      cid
+    ) {
+      ;(async () => {
+        console.log(
+          'cid:',
+          cid,
+          'profile.id:',
+          profileId,
+          'tempQueueConfig.assignment_id:',
+          queueConfig.assignment_id,
+        )
+        const progress = await API.course.getAssignmentProgress(
+          cid,
+          profileId,
+          queueConfig.assignment_id,
+        )
+        setStudentAssignmentProgress(progress)
+        console.log('task progress', progress)
+      })()
+    }
+  }, [cid, profileId, queueConfig?.assignment_id, configTasks, isStaff])
 
   const helpingQuestions = questions?.questionsGettingHelp?.filter(
-    (q) => q.taHelped.id === profile.id,
+    (q) => q.taHelped.id === profileId,
   )
 
   const staffCheckedIntoAnotherQueue = course?.queues.some(
     (q) =>
       q.id !== qid &&
-      q.staffList.some((staffMember) => staffMember.id === profile?.id),
+      q.staffList.some((staffMember) => staffMember.id === profileId),
   )
 
   const studentQuestionId = studentQuestion?.id
   const studentQuestionStatus = studentQuestion?.status
   const studentDemoId = studentDemo?.id
   const studentDemoStatus = studentDemo?.status
+
+  // delete draft demo if the studentDemoStatus changes to a ClosedQuestionStatus
+  useEffect(() => {
+    if (studentDemoStatus in ClosedQuestionStatus) {
+      deleteDraftDemo()
+    }
+  }, [studentDemo])
+  // delete draft question if the studentQuestionStatus changes to a ClosedQuestionStatus
+  useEffect(() => {
+    if (studentQuestionStatus in ClosedQuestionStatus) {
+      deleteDraftQuestion()
+    }
+  }, [studentQuestion])
 
   const updateQuestionStatus = useCallback(
     async (id: number, status: QuestionStatus) => {
@@ -463,20 +441,6 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     },
     [studentDemoStatus, studentDemoId],
   )
-
-  const [isStaff, setIsStaff] = useState(false)
-  useEffect(() => {
-    if (profile && profile.courses) {
-      profile.courses.forEach((course) => {
-        if (
-          course.course.id === cid &&
-          (course.role === Role.PROFESSOR || course.role === Role.TA)
-        ) {
-          setIsStaff(true)
-        }
-      })
-    }
-  }, [profile, cid])
 
   // const finishQuestionAndClose = useCallback(
   //   (
@@ -896,21 +860,23 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
               cancel={closeEditQuestionModal}
               queueId={qid}
             />
-            <DemoForm
-              configTasks={configTasks}
-              studentAssignmentProgress={studentAssignmentProgress}
-              visible={
-                (questions && !studentDemo && isJoiningDemo) ||
-                // && studentQuestion.status !== QuestionStatusKeys.Drafting)
-                popupEditDemo
-              }
-              question={studentDemo}
-              leaveQueue={leaveQueueAndCloseDemo}
-              finishDemo={finishDemoAndClose}
-              position={studentDemoIndex + 1}
-              cancel={closeEditDemoModal}
-              queueId={qid}
-            />
+            {configTasks && (
+              <DemoForm
+                configTasks={configTasks}
+                studentAssignmentProgress={studentAssignmentProgress}
+                visible={
+                  (questions && !studentDemo && isJoiningDemo) ||
+                  // && studentQuestion.status !== QuestionStatusKeys.Drafting)
+                  popupEditDemo
+                }
+                question={studentDemo}
+                leaveQueue={leaveQueueAndCloseDemo}
+                finishDemo={finishDemoAndClose}
+                position={studentDemoIndex + 1}
+                cancel={closeEditDemoModal}
+                queueId={qid}
+              />
+            )}
             <CantFindModal
               visible={studentQuestion?.status === LimboQuestionStatus.CantFind}
               leaveQueue={leaveQueueQuestion}

@@ -68,11 +68,6 @@ interface DemoFormProps {
   cancel: () => void
 }
 
-DemoForm.propTypes = {
-  value: PropTypes.any.isRequired,
-  onClose: PropTypes.func.isRequired,
-}
-
 export default function DemoForm({
   configTasks,
   studentAssignmentProgress,

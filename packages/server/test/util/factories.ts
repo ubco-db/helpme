@@ -26,7 +26,7 @@ import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { CourseSettingsModel } from '../../src/course/course_settings.entity';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { AsyncQuestionVotesModel } from 'asyncQuestion/asyncQuestionVotes.entity';
-// import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
+import { StudentTaskProgressModel } from 'course/studentTaskProgress.entity';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)
@@ -83,7 +83,8 @@ export const QueueFactory = new Factory(QueueModel)
   .attr('allowQuestions', false)
   .assocMany('staffList', UserFactory, 0)
   .attr('isProfessorQueue', false)
-  .attr('isDisabled', false);
+  .attr('isDisabled', false)
+  .attr('config', {});
 
 export const QuestionTypeFactory = new Factory(QuestionTypeModel)
   .attr('cid', 1)
@@ -166,7 +167,7 @@ export const OrganizationUserFactory = new Factory(OrganizationUserModel)
   .assocOne('organizationUser', UserFactory)
   .attr('role', OrganizationRole.MEMBER);
 
-// export const StudentTaskProgressFactory = new Factory(StudentTaskProgress)
-//   .assocOne('user', UserFactory)
-//   .assocOne('queue', QueueFactory)
-//   .attr('taskProgress', {});
+export const StudentTaskProgressFactory = new Factory(StudentTaskProgressModel)
+  .assocOne('course', CourseFactory)
+  .assocOne('user', UserFactory)
+  .attr('taskProgress', {});

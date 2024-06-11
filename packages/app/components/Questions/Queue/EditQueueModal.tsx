@@ -4,7 +4,7 @@ import { Input, Form, Button, message, Popconfirm, Switch } from 'antd'
 import styled from 'styled-components'
 import { API } from '@koh/api-client'
 import { useQueue } from '../../../hooks/useQueue'
-import { QuestionTypeParams, UpdateQueueParams } from '@koh/common'
+import { QuestionTypeParams, QueueConfig, UpdateQueueParams } from '@koh/common'
 import { pick } from 'lodash'
 import { default as React, useEffect, useCallback, useState } from 'react'
 import { useRouter } from 'next/router'
@@ -85,19 +85,23 @@ export function EditQueueModal({
     getQuestions()
   }, [])
 
-  const [localQueueConfig, setLocalQueueConfig] = useState({} as JSON)
+  const [localQueueConfig, setLocalQueueConfig] = useState<QueueConfig | null>(
+    {} as QueueConfig,
+  )
+  const [localQueueConfigString, setLocalQueueConfigString] = useState('')
   // on first render, fetch the queue config and set it to local state
   useEffect(() => {
-    API.queues
-      .getConfig(queue.id)
-      .then((config) => {
-        setLocalQueueConfig(config)
-      })
-      .catch((error) => {
-        console.error(error)
-        message.error('Failed to fetch queue config')
-      })
-  }, [])
+    if (queueId)
+      API.queues
+        .getConfig(queueId)
+        .then((config) => {
+          setLocalQueueConfig(config)
+        })
+        .catch((error) => {
+          console.error(error)
+          message.error('Failed to fetch queue config')
+        })
+  }, [queueId])
 
   const editQueue = async (updateQueue: UpdateQueueParams) => {
     const newQueue = { ...queue, ...updateQueue }
@@ -305,17 +309,22 @@ export function EditQueueModal({
             <TextArea
               defaultValue={JSON.stringify(localQueueConfig, null, 2)}
               onChange={(e) => {
-                setLocalQueueConfig(JSON.parse(e.target.value))
+                setLocalQueueConfigString(e.target.value)
               }}
               className="!h-64 w-full"
             />
             <Button
               onClick={async () => {
                 try {
-                  await API.queues.updateConfig(queue.id, localQueueConfig)
-                  message.success('Queue config saved')
+                  setLocalQueueConfig(JSON.parse(localQueueConfigString))
+                  try {
+                    await API.queues.updateConfig(queue.id, localQueueConfig)
+                    message.success('Queue config saved')
+                  } catch (error) {
+                    message.error('Failed to save queue config')
+                  }
                 } catch (error) {
-                  message.error('Failed to save queue config')
+                  message.error('Invalid JSON: ' + error.message)
                 }
               }}
             >

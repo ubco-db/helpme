@@ -11,6 +11,7 @@ import {
   QueuePartial,
   RegisterCourseParams,
   Role,
+  StudentAssignmentProgress,
   TACheckinTimesResponse,
   TACheckoutResponse,
   UBCOuserParam,
@@ -55,6 +56,7 @@ import { OrganizationCourseModel } from 'organization/organization-course.entity
 import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
+import { StudentTaskProgressModel } from 'course/studentTaskProgress.entity';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -906,5 +908,37 @@ export class CourseController {
 
   private isSecure(): boolean {
     return this.configService.get<string>('DOMAIN').startsWith('https://');
+  }
+
+  // TODO: make it so students can only retrieve their own taskProgress
+  // maybe make 3 endpoints. getMyAssignmentProgress (using @UserId), getStudentAssignmentProgress (only usable by TAs. Though, maybe instead just ship the assignment progress with the task question itself), and getAllAssignmentProgressForQueue (also only used by TAs. This can be called initially to save a lot of the initial calls.), can also have getAllAssignmentProgressForCourse
+  // will probably want to move the method to its own controller at that point (with a little note that mentions that the setting of taskProgress happens in the updateQuestion endpoint in the question controller).
+  @Get(':id/studentTaskProgress/:userId/:assignmentName')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+  async getStudentAssignmentProgress(
+    @Param('userId') userId: number,
+    @Param('id') courseId: number,
+    @Param('assignmentName') assignmentName: string,
+  ): Promise<StudentAssignmentProgress | null> {
+    const studentTaskProgress = await StudentTaskProgressModel.findOne({
+      where: {
+        uid: userId,
+        cid: courseId,
+      },
+    });
+
+    if (!studentTaskProgress || !studentTaskProgress.taskProgress) {
+      return null;
+    }
+
+    const studentAssignmentProgress =
+      studentTaskProgress.taskProgress[assignmentName];
+
+    if (studentAssignmentProgress === undefined) {
+      return null;
+    }
+
+    return studentAssignmentProgress;
   }
 }

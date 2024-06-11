@@ -20,7 +20,7 @@ export const TestTypeOrmModule = TypeOrmModule.forRoot({
   host: 'localhost',
   port: 5432,
   username: process.env.POSTGRES_USER || 'helpme',
-  password: process.env.TESTDBPASS || '',
+  password: process.env.TESTDBPASS || 'mysecretpassword',
   database: 'test',
   entities: ['./**/*.entity.ts'],
   synchronize: true,

@@ -1471,21 +1471,27 @@ export class CourseSettingsRequestBody {
   }
 }
 
-export class StudentTaskProgressRequest {
-  @IsInt()
-  qid!: number
-
-  @IsInt()
-  uid!: number
-
-  @IsString()
-  sessionName!: string
-}
-
-export type StudentTaskProgressResponse = {
-  qid: number
-  uid: number
-  taskProgress: object
+export interface QueueConfig {
+  fifo_queue_view_enabled?: boolean
+  tag_groups_queue_view_enabled?: boolean
+  default_view?: 'fifo' | 'tag_groups'
+  minimum_tags?: number
+  tags?: {
+    [tagKey: string]: {
+      display_name: string
+      color_hex: string
+    }
+  }
+  assignment_id?: string
+  tasks?: {
+    [taskKey: string]: {
+      display_name: string
+      short_display_name: string
+      blocking?: boolean
+      color_hex: string
+      precondition: string | null
+    }
+  }
 }
 
 /* Essentially this:
@@ -1499,6 +1505,10 @@ export interface StudentAssignmentProgress {
   [taskKey: string]: {
     isDone: boolean
   } | null
+}
+
+export interface StudentTaskProgress {
+  [assignmentKey: string]: StudentAssignmentProgress
 }
 
 export const ERROR_MESSAGES = {
@@ -1583,10 +1593,23 @@ export const ERROR_MESSAGES = {
       taHelpingOther: 'TA is already helping someone else',
       loginUserCantEdit: 'Logged-in user does not have edit access',
     },
+    studentTaskProgress: {
+      invalidAssignmentName:
+        'No assignment name set. Please set an assignment name in the queue config.',
+      invalidTaskName: (taskid: string): string =>
+        `Task ${taskid} does not exist in this queue.`,
+      queueDoesNotExist: 'Queue does not exist',
+      configDoesNotExist: 'Queue config does not exist',
+      assignmentDoesNotExist: 'Assignment does not exist',
+      notTaskQuestion: 'Question is not a task question',
+      taskParseError: 'No tasks parsed',
+      taskNotInConfig: 'Task does not exist in the config',
+    },
     groupQuestions: {
       notGroupable: 'One or more of the questions is not groupable',
     },
     saveQError: 'Unable to save a question',
+    deleteQError: 'Unable to delete a question',
     notFound: 'Question not found',
     unableToNotifyUser: 'Unable to notify user',
   },

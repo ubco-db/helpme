@@ -62,11 +62,6 @@ interface QuestionFormProps {
   cancel: () => void
 }
 
-QuestionForm.propTypes = {
-  value: PropTypes.any.isRequired,
-  onClose: PropTypes.func.isRequired,
-}
-
 export default function QuestionForm({
   visible,
   question,

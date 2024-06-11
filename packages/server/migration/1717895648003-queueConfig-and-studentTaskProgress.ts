@@ -1,11 +1,13 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class configTaskProgress1717380378232 implements MigrationInterface {
-  name = 'configTaskProgress1717380378232';
+export class queueConfigAndStudentTaskProgress1717895648003
+  implements MigrationInterface
+{
+  name = 'queueConfigAndStudentTaskProgress1717895648003';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "student_task_progress_model" ("taskProgress" json NOT NULL, "uid" integer NOT NULL, "cid" integer NOT NULL, CONSTRAINT "PK_4dd97a62b3d704dcd4cba229735" PRIMARY KEY ("uid", "cid"))`,
+      `CREATE TABLE "student_task_progress_model" ("taskProgress" json, "uid" integer NOT NULL, "cid" integer NOT NULL, CONSTRAINT "PK_4dd97a62b3d704dcd4cba229735" PRIMARY KEY ("uid", "cid"))`,
     );
     await queryRunner.query(
       `ALTER TABLE "user_model" DROP COLUMN "phoneNotifsEnabled"`,

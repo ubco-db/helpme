@@ -177,7 +177,7 @@ export default function StudentQueueCard({
               queueId={qid}
               question={question}
               hasUnresolvedRephraseAlert={false}
-              className="flex items-center justify-around sm:block"
+              className="align-center flex items-center justify-around"
             />
           </Col>
         )}

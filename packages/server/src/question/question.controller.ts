@@ -11,6 +11,7 @@ import {
   QuestionStatusKeys,
   QuestionTypeParams,
   Role,
+  StudentAssignmentProgress,
   UpdateQuestionParams,
   UpdateQuestionResponse,
 } from '@koh/common';
@@ -51,6 +52,7 @@ import { QuestionService } from './question.service';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { pick } from 'lodash';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { StudentTaskProgressModel } from '../course/studentTaskProgress.entity';
 
 // NOTE: FIXME: EVERY REQUEST INTO QUESTIONCONTROLLER REQUIRES THE BODY TO HAVE A
 // FIELD questionId OR queueId! If not, stupid weird untraceable bugs will happen
@@ -330,6 +332,7 @@ export class QuestionController {
 
     const isCreator = userId === question.creatorId;
 
+    // creating/editing your own question
     if (isCreator) {
       // Fail if student tries an invalid status change
       if (body.status && !question.changeStatus(body.status, Role.STUDENT)) {
@@ -358,6 +361,34 @@ export class QuestionController {
             return questionType;
           }),
         );
+      }
+
+      if (question.isTaskQuestion) {
+        const tasks =
+          question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) ||
+          [];
+        if (!tasks) {
+          throw new BadRequestException(
+            ERROR_MESSAGES.questionController.studentTaskProgress.taskParseError,
+          );
+        }
+        // check to make sure all tasks are in the config
+        let queue: QueueModel;
+        try {
+          queue = await QueueModel.findOneOrFail(question.queueId);
+        } catch (err) {
+          throw new BadRequestException(
+            ERROR_MESSAGES.questionController.studentTaskProgress.queueDoesNotExist,
+          );
+        }
+        const configTasks = queue.config?.tasks;
+        for (const task of tasks) {
+          if (!configTasks.hasOwnProperty(task)) {
+            throw new BadRequestException(
+              ERROR_MESSAGES.questionController.studentTaskProgress.taskNotInConfig,
+            );
+          }
+        }
       }
 
       try {
@@ -389,11 +420,15 @@ export class QuestionController {
         );
       }
       await this.questionService.validateNotHelpingOther(body.status, userId);
-      return await this.questionService.changeStatus(
-        body.status,
-        question,
-        userId,
-      );
+      await this.questionService.changeStatus(body.status, question, userId);
+      // if it's a task question, update the studentTaskProgress for the student
+      if (
+        question.status === ClosedQuestionStatus.Resolved &&
+        question.isTaskQuestion
+      ) {
+        await this.questionService.markTasksDone(question, question.creatorId);
+      }
+      return question;
     } else {
       throw new UnauthorizedException(
         ERROR_MESSAGES.questionController.updateQuestion.loginUserCantEdit,
@@ -521,7 +556,5 @@ export class QuestionController {
         );
       }
     }
-
-    return;
   }
 }

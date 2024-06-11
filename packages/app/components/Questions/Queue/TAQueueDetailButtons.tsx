@@ -3,6 +3,7 @@ import {
   CloseOutlined,
   DeleteOutlined,
   PhoneOutlined,
+  PlayCircleOutlined,
   QuestionOutlined,
   UndoOutlined,
 } from '@ant-design/icons'
@@ -32,6 +33,7 @@ import {
 //import { useTeams } from "../../../hooks/useTeams";
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useCourse } from '../../../hooks/useCourse'
+import { Play } from 'lucide-react'
 
 const PRORITY_QUEUED_MESSAGE_TEXT =
   'This student has been temporarily removed from the queue. They must select to rejoin the queue and will then be placed at the top of the queue'
@@ -128,16 +130,6 @@ export default function TAQueueDetailButtons({
     )
     await API.questions.notify(question.id)
   }
-
-  useHotkeys(
-    'shift+d',
-    () => {
-      if (isCheckedIn) {
-        deleteQuestion()
-      }
-    },
-    [question],
-  )
 
   if (question.status === OpenQuestionStatus.Helping) {
     return (
@@ -253,13 +245,14 @@ export default function TAQueueDetailButtons({
           <Tooltip title={helpTooltip}>
             <span>
               <BannerPrimaryButton
-                icon={<PhoneOutlined />}
+                icon={<Play size={22} className="shrink-0 pl-1" />}
                 onClick={() => {
                   // message.success("timer cleared")
                   // clearTimeout(timerCheckout.current);
                   helpStudent()
                 }}
                 disabled={!canHelp}
+                className="flex items-center justify-center"
               />
             </span>
           </Tooltip>

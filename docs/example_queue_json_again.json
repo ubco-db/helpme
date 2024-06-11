@@ -1,5 +1,4 @@
 {
-    "queue_display_name": "Lab 1 Queue",
     "fifo_queue_view_enabled": true,
     "tag_groups_queue_view_enabled": true,
     "default_view": "fifo",
