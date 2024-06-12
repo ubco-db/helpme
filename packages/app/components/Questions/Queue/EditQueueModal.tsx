@@ -86,22 +86,9 @@ export function EditQueueModal({
   }, [])
 
   const [localQueueConfig, setLocalQueueConfig] = useState<QueueConfig | null>(
-    {} as QueueConfig,
+    queue?.config || null,
   )
   const [localQueueConfigString, setLocalQueueConfigString] = useState('')
-  // on first render, fetch the queue config and set it to local state
-  useEffect(() => {
-    if (queueId)
-      API.queues
-        .getConfig(queueId)
-        .then((config) => {
-          setLocalQueueConfig(config)
-        })
-        .catch((error) => {
-          console.error(error)
-          message.error('Failed to fetch queue config')
-        })
-  }, [queueId])
 
   const editQueue = async (updateQueue: UpdateQueueParams) => {
     const newQueue = { ...queue, ...updateQueue }

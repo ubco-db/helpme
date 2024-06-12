@@ -10,9 +10,7 @@ import {
   OpenQuestionStatus,
   Question,
   Role,
-  StudentAssignmentProgress,
   QuestionStatus,
-  QueueConfig,
 } from '@koh/common'
 import { useTAInQueueInfo } from '../../../hooks/useTAInQueueInfo'
 import { useCourse } from '../../../hooks/useCourse'
@@ -22,7 +20,7 @@ import {
   VerticalDivider,
 } from '../Shared/SharedComponents'
 import { QueueInfoColumn } from '../Queue/QueueInfoColumn'
-import { Popconfirm, Tooltip, message, notification, Spin, Button } from 'antd'
+import { Tooltip, message, notification, Spin, Button } from 'antd'
 import TACheckinButton from '../../Today/TACheckinButton'
 import styled from 'styled-components'
 import { useStudentQuestion } from '../../../hooks/useStudentQuestion'
@@ -32,7 +30,7 @@ import CantFindModal from './StudentCantFindModal'
 import StudentRemovedFromQueueModal from './StudentRemovedFromQueueModal'
 import StudentQueueCard from './StudentQueueCard'
 import StudentBanner from './StudentBanner'
-import { mutate } from 'swr'
+import useSWR, { mutate } from 'swr'
 import QuestionForm from './QuestionForm'
 import DemoForm from './DemoForm'
 import { useDraftQuestion } from '../../../hooks/useDraftQuestion'
@@ -43,6 +41,7 @@ import PropTypes from 'prop-types'
 import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
 import { NextRouter } from 'next/router'
 import { ListTodoIcon } from 'lucide-react'
+import { useStudentAssignmentProgress } from '../../../hooks/useStudentAssignmentProgress'
 
 const Container = styled.div`
   flex: 1;
@@ -93,9 +92,6 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     studentQuestionIndex,
     studentDemoIndex,
   } = useStudentQuestion(qid)
-  const [showJoinPopconfirm, setShowJoinPopconfirm] = useState(false)
-  const [studentAssignmentProgress, setStudentAssignmentProgress] =
-    useState<StudentAssignmentProgress | null>(null)
   const profile = useProfile()
   const profileId = profile?.id
   const [isStaff, setIsStaff] = useState(false)
@@ -103,8 +99,18 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
   const [popupEditQuestion, setPopupEditQuestion] = useState(false)
   const [popupEditDemo, setPopupEditDemo] = useState(false)
   const role = useRoleInCourse(cid)
-  const [queueConfig, setQueueConfig] = useState<QueueConfig | null>(
-    {} as QueueConfig,
+  // const [queueConfig, setQueueConfig] = useState<QueueConfig | null>(
+  //   {} as QueueConfig,
+  // )
+  const queueConfig = queue?.config
+  const configTasks = queueConfig?.tasks
+  const isDemoQueue: boolean = !!configTasks && !!queueConfig.assignment_id
+  const studentAssignmentProgress = useStudentAssignmentProgress(
+    cid,
+    profileId,
+    queueConfig?.assignment_id,
+    isDemoQueue,
+    isStaff,
   )
 
   // TODO: test to see if this works without the hook, if so delete it
@@ -136,21 +142,19 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
   )
 
   // this is a separate useEffect because we don't want to re-fetch the queue config every time the queue changes
-  useEffect(() => {
-    console.log('qid', qid)
-    if (qid)
-      API.queues
-        .getConfig(qid)
-        .then((config) => {
-          setQueueConfig(config)
-        })
-        .catch((error) => {
-          console.error(error)
-          message.error('Failed to fetch queue config')
-        })
-  }, [qid])
-  const configTasks = queueConfig?.tasks
-  console.log('configTasks', configTasks)
+  // useEffect(() => {
+  //   console.log('qid', qid)
+  //   if (qid)
+  //     API.queues
+  //       .getConfig(qid)
+  //       .then((config) => {
+  //         setQueueConfig(config)
+  //       })
+  //       .catch((error) => {
+  //         console.error(error)
+  //         message.error('Failed to fetch queue config')
+  //       })
+  // }, [qid])
 
   useEffect(() => {
     if (profile && profile.courses) {
@@ -167,34 +171,25 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
 
   // TODO: do useSWR for this
   // get my completed tasks for this lab
-  useEffect(() => {
-    if (
-      !isStaff &&
-      profileId &&
-      queueConfig &&
-      queueConfig.assignment_id &&
-      queueConfig.tasks &&
-      cid
-    ) {
-      ;(async () => {
-        console.log(
-          'cid:',
-          cid,
-          'profile.id:',
-          profileId,
-          'tempQueueConfig.assignment_id:',
-          queueConfig.assignment_id,
-        )
-        const progress = await API.course.getAssignmentProgress(
-          cid,
-          profileId,
-          queueConfig.assignment_id,
-        )
-        setStudentAssignmentProgress(progress)
-        console.log('task progress', progress)
-      })()
-    }
-  }, [cid, profileId, queueConfig?.assignment_id, configTasks, isStaff])
+  // useEffect(() => {
+  //   if (
+  //     !isStaff &&
+  //     profileId &&
+  //     queueConfig &&
+  //     queueConfig.assignment_id &&
+  //     queueConfig.tasks &&
+  //     cid
+  //   ) {
+  //     (async () => {
+  //       const progress = await API.course.getAssignmentProgress(
+  //         cid,
+  //         profileId,
+  //         queueConfig.assignment_id,
+  //       )
+  //       setStudentAssignmentProgress(progress)
+  //     })()
+  //   }
+  // }, [cid, profileId, queueConfig?.assignment_id, configTasks, isStaff])
 
   const helpingQuestions = questions?.questionsGettingHelp?.filter(
     (q) => q.taHelped.id === profileId,
@@ -644,84 +639,66 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
       <QueueInfoColumn
         queueId={qid}
         isStaff={false}
-        hasDemos={!!configTasks}
+        hasDemos={isDemoQueue}
         buttons={
           <>
-            {!studentQuestion && (
-              <Popconfirm
-                title={
-                  <PopConfirmTitle>
-                    You already have a question in a queue for this course, so
-                    your previous question will be deleted in order to join this
-                    queue. Do you want to continue?
-                  </PopConfirmTitle>
-                }
-                onConfirm={() => joinQueueOpenModal(true)}
-                okText="Yes"
-                cancelText="No"
-                disabled
-                visible={showJoinPopconfirm}
-                onVisibleChange={setShowJoinPopconfirm}
-              >
+            <Tooltip
+              title={
+                studentQuestion
+                  ? 'You can have only one question in the queue at a time'
+                  : queue.staffList.length < 1
+                  ? 'No staff are checked into this queue'
+                  : ''
+              }
+            >
+              <div>
                 <JoinButton
                   id="join-queue-button"
                   type="primary"
-                  hasDemos={!!configTasks} // for styles
+                  hasDemos={isDemoQueue} // for styles
                   disabled={
                     !queue?.allowQuestions ||
                     queue?.isDisabled ||
                     isJoinQueueModalLoading ||
-                    queue.staffList.length < 1 // the endpoint will throw a 500 error if you try to join with no staff in the queue
+                    queue.staffList.length < 1 ||
+                    studentQuestion
                   }
                   onClick={joinQueue}
                   icon={<LoginOutlined aria-hidden="true" />}
-                  title={
-                    queue.staffList.length < 1
-                      ? 'No staff are checked into this queue'
-                      : ''
-                  }
                 >
-                  {configTasks ? 'Create Question' : 'Join Queue'}
+                  {isDemoQueue ? 'Create Question' : 'Join Queue'}
                 </JoinButton>
-              </Popconfirm>
-            )}
-            {!studentDemo && configTasks && (
-              <Popconfirm
+              </div>
+            </Tooltip>
+            {isDemoQueue && (
+              <Tooltip
                 title={
-                  <PopConfirmTitle>
-                    You already have a demo in a queue for this course, so your
-                    previous demo will be deleted in order to join this queue.
-                    Do you want to continue?
-                  </PopConfirmTitle>
+                  studentDemo
+                    ? 'You can have only one demo in the queue at a time'
+                    : queue.staffList.length < 1
+                    ? 'No staff are checked into this queue'
+                    : ''
                 }
-                onConfirm={() => createDemoOpenModal(true)}
-                okText="Yes"
-                cancelText="No"
-                disabled
-                visible={showJoinPopconfirm}
-                onVisibleChange={setShowJoinPopconfirm}
               >
-                <JoinButton
-                  id="join-queue-button-demo"
-                  type="primary"
-                  hasDemos={!!configTasks} // for styles
-                  disabled={
-                    !queue?.allowQuestions ||
-                    queue?.isDisabled ||
-                    isJoinQueueModalLoading ||
-                    queue.staffList.length < 1
-                  }
-                  onClick={createDemo}
-                  icon={<ListTodoIcon aria-hidden="true" className="mr-1" />}
-                  title={
-                    queue.staffList.length < 1
-                      ? 'No staff are checked into this queue'
-                      : ''
-                  }
-                >
-                  Create Demo
-                </JoinButton>
-              </Popconfirm>
+                <div>
+                  <JoinButton
+                    id="join-queue-button-demo"
+                    type="primary"
+                    hasDemos={isDemoQueue} // for styles
+                    disabled={
+                      !queue?.allowQuestions ||
+                      queue?.isDisabled ||
+                      isJoinQueueModalLoading ||
+                      queue.staffList.length < 1 ||
+                      studentDemo
+                    }
+                    onClick={createDemo}
+                    icon={<ListTodoIcon aria-hidden="true" className="mr-1" />}
+                  >
+                    Create Demo
+                  </JoinButton>
+                </div>
+              </Tooltip>
             )}
           </>
         }

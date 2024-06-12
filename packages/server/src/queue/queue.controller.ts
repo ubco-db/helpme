@@ -200,6 +200,7 @@ export class QueueController {
   }
 
   // returns the JSON config for a queue. Can return null if no config is set
+  // TODO: remove
   @Get(':queueId/config')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getConfig(queueId: number): Promise<QueueConfig | null> {
@@ -212,6 +213,7 @@ export class QueueController {
   }
 
   // Sets the JSON config for a queue and then returns the updated json
+  // TODO: add checking to make sure the config is good
   @Patch(':queueId/config')
   @Roles(Role.TA, Role.PROFESSOR)
   async setConfig(
