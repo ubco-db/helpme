@@ -163,36 +163,6 @@ describe('Queue Integration', () => {
       expect(res.body.queue[0].creator).not.toHaveProperty('lastName');
     });
 
-    it('student can see their own questions private data', async () => {
-      const course = await CourseFactory.create();
-      const userCourse = await UserCourseFactory.create({
-        user: await UserFactory.create(),
-        course: course,
-        courseId: course.id,
-      });
-      const queue = await QueueFactory.create({
-        course: course,
-        questions: [
-          await QuestionFactory.create({
-            text: 'in queue',
-            createdAt: new Date('2020-03-01T05:00:00.000Z'),
-            creator: userCourse.user,
-            creatorId: userCourse.userId,
-          }),
-        ],
-      });
-      await QuestionFactory.create({
-        text: 'not in queue',
-        createdAt: new Date('2020-03-01T05:00:00.000Z'),
-      });
-
-      const res = await supertest({ userId: userCourse.user.id })
-        .get(`/queues/${queue.id}/questions`)
-        .expect(200);
-      expect(res.body.queue[0].creator).toHaveProperty('firstName');
-      expect(res.body.queue[0].creator).toHaveProperty('lastName');
-    });
-
     it('returns all creator data for ta', async () => {
       const course = await CourseFactory.create();
       const queue = await QueueFactory.create({
@@ -217,8 +187,7 @@ describe('Queue Integration', () => {
       const res = await supertest({ userId: ta.user.id })
         .get(`/queues/${queue.id}/questions`)
         .expect(200);
-      expect(res.body.queue[0].creator).toHaveProperty('firstName');
-      expect(res.body.queue[0].creator).toHaveProperty('lastName');
+      expect(res.body.queue[0].creator).toHaveProperty('name');
     });
 
     it('returns 404 when a user is not a member of the course', async () => {

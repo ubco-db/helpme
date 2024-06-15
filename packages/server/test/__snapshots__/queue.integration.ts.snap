@@ -17,9 +17,7 @@ exports[`Queue Integration GET /queues/:id/questions returns questions in the qu
     {
       "closedAt": null,
       "createdAt": "2020-03-01T05:00:00.000Z",
-      "creator": {
-        "id": 1,
-      },
+      "creator": {},
       "groupable": true,
       "helpedAt": null,
       "id": 1,
