@@ -24,6 +24,9 @@ export async function bootstrap(hot: any): Promise<void> {
   addGlobalsToApp(app);
   app.setGlobalPrefix('api/v1');
 
+  const configService = app.get(ApplicationConfigService);
+  await configService.loadConfig();
+
   if (isProd()) {
     console.log(`Running production at ${process.env.DOMAIN}.`);
   } else {

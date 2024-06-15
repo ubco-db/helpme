@@ -1,12 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { Connection } from 'typeorm';
 import { SemesterModel } from './semester.entity';
 import { CourseModel } from '../course/course.entity';
 
 @Injectable()
 export class SemesterService {
-  constructor(private connection: Connection) {}
-
   async toggleActiveSemester(
     semester: SemesterModel,
     enable: boolean,

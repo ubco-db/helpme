@@ -13,7 +13,6 @@ import {
   Patch,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
-import { Connection } from 'typeorm';
 import {
   GetInsightOutputResponse,
   ERROR_MESSAGES,
@@ -33,10 +32,7 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class InsightsController {
-  constructor(
-    private connection: Connection,
-    private insightsService: InsightsService,
-  ) {}
+  constructor(private insightsService: InsightsService) {}
 
   @Get(':courseId/:insightName')
   async get(

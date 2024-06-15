@@ -18,7 +18,7 @@ export default function Invite(): ReactElement {
   const isLoading = !profile || !course
 
   const cardMetaTitle = `You have been invited to join '${course?.name}'`
-  const cardMetaDescription = `This course is managed by ${course?.organizationCourse.name}`
+  const cardMetaDescription = `This course is managed by ${course?.organizationCourse?.name}`
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,7 +88,7 @@ export default function Invite(): ReactElement {
 
   let cardElement
 
-  if (profile?.organization.orgId !== course?.organizationCourse.id) {
+  if (profile?.organization.orgId !== course?.organizationCourse?.id) {
     cardElement = renderCard(
       'You cannot join a course that is not in your organization',
       {},

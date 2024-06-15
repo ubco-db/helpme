@@ -1,4 +1,3 @@
-import { CalendarService } from './calendar.service';
 import {
   Controller,
   Get,
@@ -19,7 +18,6 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 @Controller('calendar')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class CalendarController {
-  constructor(private readonly calendarService: CalendarService) {}
   @Post()
   async addEvent(@Body() body: Calendar) {
     const course = await CourseModel.findOne(body.cid);
@@ -72,12 +70,11 @@ export class CalendarController {
   }
 
   @Delete(':id/delete')
-  async deleteQuestionType(
+  async deleteCalendarEvent(
     @Param('id') eventId: number,
   ): Promise<CalendarModel> {
     const event = await CalendarModel.findOne(eventId);
     if (!event) {
-      console.error('Event not found');
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
     }
     return event.remove();
