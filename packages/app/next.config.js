@@ -34,10 +34,6 @@ const config = {
     locales: ["en"],
     defaultLocale: "en",
   },
-  generateInDevMode: true,
-  experimental: {
-    productionBrowserSourceMaps: true,
-  },
   webpack: (config, options) => {
     patchWebpackConfig(config, options)
 
@@ -64,6 +60,7 @@ const config = {
     }
     return config;
   },
+  webpack5: false
 };
 
 module.exports = withPlugins(plugins, config);

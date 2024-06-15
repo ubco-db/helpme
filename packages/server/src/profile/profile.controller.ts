@@ -31,7 +31,7 @@ import * as fs from 'fs';
 import { pick } from 'lodash';
 import { memoryStorage } from 'multer';
 import * as path from 'path';
-import * as sharp from 'sharp';
+import Jimp from 'jimp';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from './user.entity';
@@ -283,8 +283,14 @@ export class ProfileController {
 
       const targetPath = path.join(process.env.UPLOAD_LOCATION, fileName);
 
-      await sharp(file.buffer).resize(256).toFile(targetPath);
-      user.photoURL = fileName;
+      try {
+        const image = await Jimp.read(file.buffer);
+        image.resize(256, Jimp.AUTO);
+        await image.writeAsync(targetPath);
+        user.photoURL = fileName;
+      } catch (err) {
+        console.error('Error processing image:', err);
+      }
       await user.save();
       response.status(200).send({ message: 'Image uploaded successfully' });
     } catch (error) {

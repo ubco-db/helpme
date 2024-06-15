@@ -2,10 +2,10 @@
 
 exports[`QueueService personalizeQuestions hides details of other students 1`] = `
 ListQuestionsResponse {
-  "groups": Array [],
-  "priorityQueue": Array [],
-  "questionsGettingHelp": Array [],
-  "queue": Array [
+  "groups": [],
+  "priorityQueue": [],
+  "questionsGettingHelp": [],
+  "queue": [
     QuestionModel {
       "closedAt": null,
       "createdAt": 2020-11-02T12:00:00.000Z,
@@ -28,7 +28,7 @@ ListQuestionsResponse {
       "helpedAt": null,
       "id": 1,
       "location": null,
-      "questionTypes": Array [
+      "questionTypes": [
         QuestionTypeModel {
           "cid": 1,
           "color": "#000000",
@@ -51,7 +51,7 @@ ListQuestionsResponse {
       "helpedAt": null,
       "id": 2,
       "location": null,
-      "questionTypes": Array [
+      "questionTypes": [
         QuestionTypeModel {
           "cid": 1,
           "color": "#000000",
@@ -65,7 +65,7 @@ ListQuestionsResponse {
       "text": "help someone else",
     },
   ],
-  "unresolvedAlerts": Array [],
+  "unresolvedAlerts": [],
   "yourQuestion": QuestionModel {
     "closedAt": null,
     "createdAt": 2020-11-02T12:00:00.000Z,
@@ -77,10 +77,10 @@ ListQuestionsResponse {
       "email": "user@ubc.ca",
       "emailVerified": true,
       "firstName": "User",
-      "hideInsights": Array [],
+      "hideInsights": [],
       "id": 1,
       "includeDefaultMessage": true,
-      "insights": Array [
+      "insights": [
         "TotalStudents",
         "TotalQuestionsAsked",
         "MedianWaitTime",
@@ -103,7 +103,7 @@ ListQuestionsResponse {
     "helpedAt": null,
     "id": 1,
     "location": null,
-    "questionTypes": Array [
+    "questionTypes": [
       QuestionTypeModel {
         "cid": 1,
         "color": "#000000",

@@ -31,7 +31,7 @@ export class MailController {
   ): Promise<Response<void>> {
     const user = await UserTokenModel.findOne({
       where: {
-        user: { id: (req.user as RequestUser).userId },
+        user: { id: Number((req.user as RequestUser).userId) },
         token_type: TokenType.EMAIL_VERIFICATION,
         token_action: TokenAction.ACTION_PENDING,
       },

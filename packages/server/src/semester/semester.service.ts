@@ -9,7 +9,7 @@ export class SemesterService {
     enable: boolean,
   ): Promise<void> {
     const enableList = await CourseModel.find({
-      semester: semester,
+      where: { semester: semester },
     });
 
     enableList.map((course) => {

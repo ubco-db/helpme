@@ -3,8 +3,8 @@
 exports[`OrganizationService deleteUserCourses should throw not found exception if user does not exist 1`] = `"User with id 0 not found"`;
 
 exports[`OrganizationService getCourses should return organization courses 1`] = `
-Array [
-  Object {
+[
+  {
     "courseId": 1,
     "courseName": "CS 304",
   },
@@ -12,8 +12,8 @@ Array [
 `;
 
 exports[`OrganizationService getCourses should return organization courses with search 1`] = `
-Array [
-  Object {
+[
+  {
     "courseId": 1,
     "courseName": "test",
   },
@@ -21,7 +21,7 @@ Array [
 `;
 
 exports[`OrganizationService getOrganizationAndRoleByUserId should return the organization and role of the organizationUser 1`] = `
-Object {
+{
   "id": 1,
   "orgId": 1,
   "organizationBannerUrl": null,
@@ -33,9 +33,9 @@ Object {
 `;
 
 exports[`OrganizationService getOrganizationCourse should return organization course 1`] = `
-Object {
+{
   "course": CourseModel {
-    "asyncQuestionDisplayTypes": Array [],
+    "asyncQuestionDisplayTypes": [],
     "coordinator_email": null,
     "courseInviteCode": "invite-code",
     "deletedAt": null,
@@ -58,16 +58,16 @@ Object {
   "courseId": 1,
   "id": 1,
   "organizationId": 1,
-  "profIds": Array [],
+  "profIds": [],
 }
 `;
 
 exports[`OrganizationService getOrganizationUserByUserId should return organizationUser globalRole as unknown when user global role is admin 1`] = `
-Object {
-  "courses": Array [],
+{
+  "courses": [],
   "organizationId": 1,
   "organizationRole": "member",
-  "user": Object {
+  "user": {
     "accountDeactivated": false,
     "email": "user@ubc.ca",
     "firstName": "User",
@@ -82,11 +82,11 @@ Object {
 `;
 
 exports[`OrganizationService getOrganizationUserByUserId should return the organizationUser 1`] = `
-Object {
-  "courses": Array [],
+{
+  "courses": [],
   "organizationId": 1,
   "organizationRole": "member",
-  "user": Object {
+  "user": {
     "accountDeactivated": false,
     "email": "user@ubc.ca",
     "firstName": "User",
@@ -101,8 +101,8 @@ Object {
 `;
 
 exports[`OrganizationService getUsers should return organization users 1`] = `
-Array [
-  Object {
+[
+  {
     "email": "user@ubc.ca",
     "firstName": "User",
     "lastName": "Person",
@@ -111,7 +111,7 @@ Array [
     "userId": 1,
     "userRole": "user",
   },
-  Object {
+  {
     "email": "user@ubc.ca",
     "firstName": "User",
     "lastName": "Person",
@@ -124,8 +124,8 @@ Array [
 `;
 
 exports[`OrganizationService getUsers should return organization users with search 1`] = `
-Array [
-  Object {
+[
+  {
     "email": "user@ubc.ca",
     "firstName": "test",
     "lastName": "Person",

@@ -18,7 +18,9 @@ export class AdminCommand {
     })
     username: string,
   ): Promise<void> {
-    let user = await AdminUserModel.findOne({ username });
+    let user = await AdminUserModel.findOne({
+      where: { username },
+    });
     if (user) {
       const changePassword = keyInYN(
         `User ${username} already exists. Do you want to change their password?`,

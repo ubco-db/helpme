@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons'
 import router from 'next/router'
 import { useProfile } from '../../hooks/useProfile'
-import { Feedback } from '../Chatbot/components/Feedback'
+import axios from 'axios'
 
 const ChatbotContainer = styled.div`
   width: 100%;
@@ -51,8 +51,10 @@ export const ChatbotToday: React.FC = () => {
   const { cid } = router.query
   const profile = useProfile()
   const [isLoading, setIsLoading] = useState(false)
-  const [preDeterminedQuestions, setPreDeterminedQuestions] =
-    useState<PreDeterminedQuestion[]>(null)
+  const [interactionId, setInteractionId] = useState<number | null>(null)
+  const [preDeterminedQuestions, setPreDeterminedQuestions] = useState<
+    PreDeterminedQuestion[]
+  >([])
   const [questionsLeft, setQuestionsLeft] = useState<number>(0)
 
   const [messages, setMessages] = useState<Message[]>([
@@ -64,8 +66,27 @@ export const ChatbotToday: React.FC = () => {
   ])
 
   useEffect(() => {
+    axios
+      .get(`/chat/${cid}/allSuggestedQuestions`, {
+        headers: { HMS_API_TOKEN: profile.chat_token.token },
+      })
+      .then((res) => {
+        console.log(res.data)
+        res.data.forEach((question) => {
+          setPreDeterminedQuestions((prev) => [
+            ...prev,
+            {
+              question: question.pageContent,
+              answer: question.metadata.answer,
+            },
+          ])
+        })
+      })
     if (profile && profile.chat_token) {
       setQuestionsLeft(profile.chat_token.max_uses - profile.chat_token.used)
+    }
+    return () => {
+      setInteractionId(null)
     }
   }, [profile])
 
@@ -135,19 +156,7 @@ export const ChatbotToday: React.FC = () => {
         message: answer,
       },
     ])
-  }
-
-  const handleFeedback = async (questionId: number, userScore: number) => {
-    try {
-      await API.chatbot.editQuestion({
-        data: {
-          userScore,
-        },
-        questionId,
-      })
-    } catch (e) {
-      console.log(e)
-    }
+    setPreDeterminedQuestions([])
   }
 
   if (!cid) {
@@ -203,16 +212,6 @@ export const ChatbotToday: React.FC = () => {
                               </Tooltip>
                             )}
                           </div>
-                          {item.questionId && (
-                            <div className="hidden items-center justify-end gap-2 group-hover:flex">
-                              <div className="flex w-fit gap-2 rounded-xl bg-slate-100 px-3 py-2">
-                                <Feedback
-                                  questionId={item.questionId}
-                                  handleFeedback={handleFeedback}
-                                />
-                              </div>
-                            </div>
-                          )}
                         </div>
                         <div className="flex flex-col gap-1">
                           {item.sourceDocuments &&
