@@ -155,6 +155,33 @@ export class QueueService {
       });
       newLQR.priorityQueue = [];
 
+      if (newLQR.yourQuestion) {
+        const temp = pick(newLQR.yourQuestion, [
+          'closedAt',
+          'queueId',
+          'createdAt',
+          'creatorId',
+          'firstHelpedAt',
+          'groupId',
+          'groupable',
+          'helpedAt',
+          'id',
+          'location',
+          'questionTypes',
+          'queueId',
+          'status',
+          'taHelpedId',
+          'taHelped',
+          'text',
+        ]);
+
+        newLQR.yourQuestion = Object.assign(temp, {
+          creator: {
+            name: newLQR.yourQuestion.creator.name,
+            photoURL: newLQR.yourQuestion.creator.photoURL,
+          },
+        }) as Question;
+      }
       return newLQR;
     }
     return questions;
