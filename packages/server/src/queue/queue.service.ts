@@ -12,7 +12,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { classToClass } from 'class-transformer';
 import { pick } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
-import { Connection, In } from 'typeorm';
+import { In } from 'typeorm';
 import { QueueModel } from './queue.entity';
 import { AlertsService } from '../alerts/alerts.service';
 
@@ -22,10 +22,7 @@ import { AlertsService } from '../alerts/alerts.service';
  */
 @Injectable()
 export class QueueService {
-  constructor(
-    private connection: Connection,
-    private alertsService: AlertsService,
-  ) {}
+  constructor(private alertsService: AlertsService) {}
 
   async getQueue(queueId: number): Promise<QueueModel> {
     const queue = await QueueModel.findOne(queueId, {
@@ -61,22 +58,6 @@ export class QueueService {
     const unresolvedRephraseQuestionAlerts =
       await this.alertsService.getUnresolvedRephraseQuestionAlert(queueId);
 
-    const groupMap: Record<number, QuestionGroup> = {};
-
-    questionsFromDb.forEach((question) => {
-      if (question.groupId) {
-        if (!groupMap[question.groupId]) {
-          groupMap[question.groupId] = {
-            id: question.groupId,
-            creator: question.taHelped,
-            questions: [question],
-          };
-        } else {
-          groupMap[question.groupId].questions.push(question);
-        }
-      }
-    });
-
     const questions = new ListQuestionsResponse();
 
     questions.queue = questionsFromDb.filter((question) =>
@@ -92,12 +73,40 @@ export class QueueService {
       StatusInPriorityQueue.includes(question.status as OpenQuestionStatus),
     );
 
-    questions.groups = Object.values(groupMap);
+    questions.groups = [];
 
     questions.unresolvedAlerts = unresolvedRephraseQuestionAlerts.map(
       (alert) => alert.payload,
     );
 
+    questions.queue = questions.queue.map((question) => {
+      const temp = pick(question, [
+        'id',
+        'queueId',
+        'text',
+        'creatorId',
+        'taHelpedId',
+        'createdAt',
+        'firstHelpedAt',
+        'helpedAt',
+        'closedAt',
+        'status',
+        'location',
+        'groupable',
+        'groupId',
+        'questionTypes',
+        'taHelped',
+      ]);
+
+      Object.assign(temp, {
+        creator: {
+          name: question.creator.name,
+          photoURL: question.creator.photoURL,
+        },
+      });
+
+      return temp as Question;
+    });
     return questions;
   }
 

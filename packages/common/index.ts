@@ -1473,6 +1473,9 @@ export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
   },
+  questionService: {
+    getDBClient: 'Error getting DB client',
+  },
   organizationController: {
     notEnoughDiskSpace: 'Not enough disk space to upload file',
     userAlreadyInOrganization: 'User is already in organization',
