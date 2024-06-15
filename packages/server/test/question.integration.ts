@@ -31,7 +31,7 @@ import {
 } from './util/testUtils';
 import { forEach } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
-import { StudentTaskProgressModel } from 'course/studentTaskProgress.entity';
+import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
 describe('Question Integration', () => {
   const supertest = setupIntegrationTest(QuestionModule, modifyMockNotifs);
@@ -887,8 +887,11 @@ describe('Question Integration', () => {
         course: course,
         taskProgress: {
           assignment1: {
-            task1: {
-              isDone: true,
+            lastEditedQueueId: 1,
+            assignmentProgress: {
+              task1: {
+                isDone: true,
+              },
             },
           },
         },
@@ -917,10 +920,12 @@ describe('Question Integration', () => {
       );
 
       expect(
-        updatedStudentTaskProgress.taskProgress.assignment1.task1.isDone,
+        updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress
+          .task1.isDone,
       ).toBe(true);
       expect(
-        updatedStudentTaskProgress.taskProgress.assignment1.task2.isDone,
+        updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress
+          .task2.isDone,
       ).toBe(true);
     });
   });

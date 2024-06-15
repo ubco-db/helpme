@@ -52,7 +52,7 @@ import { QuestionService } from './question.service';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { pick } from 'lodash';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
-import { StudentTaskProgressModel } from '../course/studentTaskProgress.entity';
+import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 
 // NOTE: FIXME: EVERY REQUEST INTO QUESTIONCONTROLLER REQUIRES THE BODY TO HAVE A
 // FIELD questionId OR queueId! If not, stupid weird untraceable bugs will happen

@@ -52,6 +52,7 @@ import {
   CourseSettingsResponse,
   StudentAssignmentProgress,
   QueueConfig,
+  AllStudentAssignmentProgress,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -282,14 +283,25 @@ class APIClient {
       courseId: number,
     ): Promise<CourseSettingsResponse> =>
       this.req('GET', `/api/v1/courses/${courseId}/features`),
+  }
+  studentTaskProgress = {
     getAssignmentProgress: async (
-      courseId: number,
       userId: number,
+      courseId: number,
       assignmentName: string,
     ): Promise<StudentAssignmentProgress> =>
       this.req(
         'GET',
-        `/api/v1/courses/${courseId}/studentTaskProgress/${userId}/${assignmentName}`,
+        `/api/v1/studentTaskProgress/student/${userId}/${courseId}/${assignmentName}`,
+      ),
+    getAllAssignmentProgressForQueue: async (
+      queueId: number,
+      courseId: number,
+      assignmentName: string,
+    ): Promise<AllStudentAssignmentProgress> =>
+      this.req(
+        'GET',
+        `/api/v1/studentTaskProgress/queue/${queueId}/${courseId}/${assignmentName}`,
       ),
   }
   taStatus = {

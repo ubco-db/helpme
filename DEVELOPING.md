@@ -45,7 +45,7 @@ If you have any questions, feel free to reach out to a member of the team. If yo
 
 -   [Redis](https://redis.io/) is used to enable 0 downtime deploy
 
--   [Cypress](https://www.cypress.io/) is used for frontend E2E tests
+-   [Cypress](https://www.cypress.io/) is used for frontend E2E tests. Currently not being used.
 
 ## File Structure
 
@@ -85,9 +85,15 @@ docker-compose build && docker-compose up
 
 ### Database changes
 
-table_name.entity.ts files are used to define the database schema.
+`table_name.entity.ts` files are used to define the database schema. 
+`table_name.controller.ts` files are used to define the API routes for the table.
+`table_name.service.ts` files are used to define the business logic for the table (basically like server-side-only functions).
+`table_name.module.ts` files are used to define the module for the table. What is a module? It's a way to group together related entities, controllers, and services. It's a NestJS thing.
 
-Also, you must update the seed.controller.ts file to reflect the new database changes. This seed file is used to populate the database with dummy data on http://localhost:3000/dev.
+If you're creating a new `table_name.module.ts` file, you must also add it to the `app.module.ts` file 
+If you're creating a new `table_name.controler.ts` file, you must also add it to the `ormconfig.ts` file 
+
+Also, you must update the `seed.controller.ts` file to reflect the new database changes. This seed file is used to populate the database with dummy data on http://localhost:3000/dev.
 
 #### Migrations
 
@@ -106,9 +112,9 @@ Each page should have the `Navbar` up top -- refer to other pages for each page.
 
 ### Testing
 
-Integration and unit test files should be colocated with the file they test. One exception is app page tests (page folder is public, so tests can't go in there)
+Integration and unit test files should be colocated with the file they test or in the `test` folder. 
 
-End to end (E2E) testing is in it's own folder and done with Cypress. These should be used to test core user flows.
+End to end (E2E) testing is in it's own folder and done with Cypress (note: cypress has been removed, for now). These should be used to test core user flows.
 To run them headlessly (without a graphics server), do `yarn cypress run`.
 To watch them actually run interactively, you can use `yarn cypress open`. Be aware that this is _super slow_ on local machines.
 

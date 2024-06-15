@@ -1,21 +1,27 @@
 {
     "lab1": {
-        "task1": {
-            "isDone": true
-        },
-        "task2": {
-            "isDone": false
-        },
-        "task3": {
-            "isDone": false
+        "lastEditedQueueId": 2,
+        "assignmentProgress": {
+            "task1": {
+                "isDone": true
+            },
+            "task2": {
+                "isDone": false
+            },
+            "task3": {
+                "isDone": false
+            }
         }
     },
     "lab2": {
-        "task1": {
-            "isDone": false
-        },
-        "task2": {
-            "isDone": false
+        "lastEditedQueueId": 1,
+        "assignmentProgress": {
+            "task1": {
+                "isDone": false
+            },
+            "task2": {
+                "isDone": false
+            }
         }
     }
 }

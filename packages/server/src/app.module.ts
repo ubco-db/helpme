@@ -27,6 +27,7 @@ import { MailModule } from 'mail/mail.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
 import { OrganizationModule } from 'organization/organization.module';
 import { QuestionTypeModule } from './questionType/questionType.module';
+import { StudentTaskProgressModule } from 'studentTaskProgress/studentTaskProgress.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { QuestionTypeModule } from './questionType/questionType.module';
     OrganizationModule,
     AuthModule,
     QuestionTypeModule,
+    StudentTaskProgressModule,
   ],
 })
 export class AppModule {}

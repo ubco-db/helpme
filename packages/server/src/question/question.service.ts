@@ -23,7 +23,7 @@ import { UserModel } from 'profile/user.entity';
 import { Connection } from 'typeorm';
 import { QuestionModel } from './question.entity';
 import { QueueModel } from 'queue/queue.entity';
-import { StudentTaskProgressModel } from 'course/studentTaskProgress.entity';
+import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
 @Injectable()
 export class QuestionService {
@@ -175,7 +175,12 @@ export class QuestionService {
       for (const task of tasks) {
         tempAssignmentProgress[task] = { isDone: true };
       }
-      newTaskProgress = { [assignmentName]: tempAssignmentProgress };
+      newTaskProgress = {
+        [assignmentName]: {
+          lastEditedQueueId: queueId,
+          assignmentProgress: tempAssignmentProgress,
+        },
+      };
       // if studentTaskProgress exists, but doesn't have anything for this assignment yet, create it
     } else if (currentTaskProgress[assignmentName] === undefined) {
       const tempAssignmentProgress = {};
@@ -184,7 +189,10 @@ export class QuestionService {
       }
       newTaskProgress = {
         ...currentTaskProgress,
-        [assignmentName]: tempAssignmentProgress,
+        [assignmentName]: {
+          lastEditedQueueId: queueId,
+          assignmentProgress: tempAssignmentProgress,
+        },
       };
       // if studentTaskProgress exists, check to see if each task is a new task
       // if it is a new task, append it to the studentTaskProgress
@@ -192,8 +200,11 @@ export class QuestionService {
     } else {
       newTaskProgress = currentTaskProgress;
       for (const task of tasks) {
-        newTaskProgress[assignmentName][task] = { isDone: true };
+        newTaskProgress[assignmentName].assignmentProgress[task] = {
+          isDone: true,
+        };
       }
+      newTaskProgress[assignmentName].lastEditedQueueId = queueId;
     }
 
     try {

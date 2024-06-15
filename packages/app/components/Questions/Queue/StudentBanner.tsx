@@ -5,7 +5,7 @@ import {
   UndoOutlined,
 } from '@ant-design/icons'
 import { API } from '@koh/api-client'
-import { OpenQuestionStatus, Question } from '@koh/common'
+import { ConfigTasks, OpenQuestionStatus, Question } from '@koh/common'
 import { Button, Col, Popconfirm, Row, Tooltip } from 'antd'
 import React, { ReactElement } from 'react'
 import styled from 'styled-components'
@@ -55,7 +55,7 @@ interface StudentBannerProps {
   editDemo: () => void
   leaveQueueQuestion: () => void
   leaveQueueDemo: () => void
-  configTasks?: object
+  configTasks?: ConfigTasks
   zoomLink?: string
   isQueueOnline: boolean
 }
@@ -183,7 +183,7 @@ function QuestionDetailRow({
   edit,
 }: {
   question: Question
-  configTasks?: object
+  configTasks?: ConfigTasks
   spot: number
   isQueueOnline: boolean
   zoomLink: string

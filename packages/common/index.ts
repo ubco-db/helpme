@@ -239,6 +239,7 @@ export enum OrganizationRole {
  * @param startTime - The scheduled start time of this queue based on the parsed ical.
  * @param endTime - The scheduled end time of this queue.
  */
+// note: this is apparently not used anywhere
 export interface Queue {
   id: number
   course: CoursePartial
@@ -1486,14 +1487,39 @@ export interface QueueConfig {
     }
   }
   assignment_id?: string
-  tasks?: {
-    [taskKey: string]: {
-      display_name: string
-      short_display_name: string
-      blocking?: boolean
-      color_hex: string
-      precondition: string | null
+  tasks?: ConfigTasks
+}
+
+/* Essentialy this:
+    "task1": {
+        "display_name": "Task 1",
+        "short_display_name": "1",
+        "blocking": false,
+        "color_hex": "#ffedb8",
+        "precondition": null
+    },
+    "task2": {
+        "display_name": "Task 2",
+        "short_display_name": "2",
+        "blocking": false,
+        "color_hex": "#fadf8e",
+        "precondition": "task1"
+    },
+    "task3": {
+        "display_name": "Task 3",
+        "short_display_name": "3",
+        "blocking": true,
+        "color_hex": "#f7ce52",
+        "precondition": "task2"
     }
+*/
+export interface ConfigTasks {
+  [taskKey: string]: {
+    display_name: string
+    short_display_name: string
+    blocking?: boolean
+    color_hex: string
+    precondition: string | null
   }
 }
 
@@ -1504,14 +1530,44 @@ export interface QueueConfig {
     "task3": { "isDone": false },
   }
 */
+
 export interface StudentAssignmentProgress {
   [taskKey: string]: {
     isDone: boolean
   } | null
 }
 
+/* Essentially this:
+{
+    "lab1": {
+        "lastEditedQueueId": 2,
+        "assignmentProgress": {
+            "task1": { "isDone": true },
+            "task2": { "isDone": true },
+            "task3": { "isDone": true }
+        }
+    },
+    "lab2": {
+        "lastEditedQueueId": 1,
+        "assignmentProgress": {
+            "task1": { "isDone": true },
+            "task2": { "isDone": false }
+        }
+    }
+}
+*/
 export interface StudentTaskProgress {
-  [assignmentKey: string]: StudentAssignmentProgress
+  [assignmentKey: string]: {
+    lastEditedQueueId: number
+    assignmentProgress: StudentAssignmentProgress
+  }
+}
+
+export interface AllStudentAssignmentProgress {
+  [userId: number]: {
+    userDetails: UserPartial
+    assignmentProgress: StudentAssignmentProgress
+  }
 }
 
 export const ERROR_MESSAGES = {

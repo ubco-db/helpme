@@ -1,7 +1,7 @@
 import { ReactElement, useEffect, useState } from 'react'
 import { Text } from '../Shared/SharedComponents'
 import { CheckOutlined } from '@ant-design/icons'
-import { StudentAssignmentProgress } from '@koh/common'
+import { ConfigTasks, StudentAssignmentProgress } from '@koh/common'
 // import { TaskParams } from '@koh/common'
 
 //
@@ -243,31 +243,7 @@ interface TaskSelectorProps {
   ariaLabel?: string
   ariaLabelledBy?: string
   studentAssignmentProgress: StudentAssignmentProgress
-  configTasks: object
-  /* Comes in as:
-        "task1": {
-            "display_name": "Task 1",
-            "short_display_name": "1",
-            "blocking": false,
-            "color_hex": "#ffedb8",
-            "precondition": null
-        },
-        "task2": {
-            "display_name": "Task 2",
-            "short_display_name": "2",
-            "blocking": false,
-            "color_hex": "#fadf8e",
-            "precondition": "task1"
-        },
-        "task3": {
-            "display_name": "Task 3",
-            "short_display_name": "3",
-            "blocking": true,
-            "color_hex": "#f7ce52",
-            "precondition": "task2"
-        }
-        TODO: maybe turn this into an actual type so that this doesn't need to be written everywhere
-      */
+  configTasks: ConfigTasks
 }
 
 export function TaskSelector({

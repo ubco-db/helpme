@@ -1,6 +1,6 @@
 import { ReactElement } from 'react'
 import Modal from 'antd/lib/modal/Modal'
-import { Input, Form, Button, message, Popconfirm, Switch } from 'antd'
+import { Input, Form, Button, message, Popconfirm, Switch, Tooltip } from 'antd'
 import styled from 'styled-components'
 import { API } from '@koh/api-client'
 import { useQueue } from '../../../hooks/useQueue'
@@ -17,7 +17,7 @@ import {
   confirmDisable,
 } from '../../Questions/Queue/QueueInfoColumn'
 import { SketchPicker } from 'react-color'
-import { BgColorsOutlined } from '@ant-design/icons'
+import { BgColorsOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 
 const NotesInput = styled(Input.TextArea)`
   border-radius: 6px;
@@ -173,6 +173,7 @@ export function EditQueueModal({
         await editQueue(value)
         onClose()
       }}
+      width={800}
     >
       {queue && (
         <Form form={form} initialValues={queue}>
@@ -292,15 +293,29 @@ export function EditQueueModal({
               </Popconfirm>
             </div>
           </CustomFormItem>
-          <CustomFormItem>
+          <CustomFormItem
+            label={
+              <span>
+                <span className="font-medium">Queue Config</span>&nbsp;
+                <Tooltip
+                  title={
+                    'Here you can specify a JSON config to automatically set up question tags, tasks, and other settings for the queue. For example, you can use this to set up a chemistry lab that requires certain tasks to be checked off (e.g. have the TA look at the experiment before continuing). It is recommended to create a new queue for each lab assignment. You can also easily externally save this config and copy/paste this config to other queues and courses.'
+                  }
+                >
+                  <QuestionCircleOutlined style={{ color: 'gray' }} />
+                </Tooltip>
+              </span>
+            }
+          >
             <TextArea
               defaultValue={JSON.stringify(localQueueConfig, null, 2)}
               onChange={(e) => {
                 setLocalQueueConfigString(e.target.value)
               }}
-              className="!h-64 w-full"
+              className="!h-96 w-full"
             />
             <Button
+              className="mt-2"
               onClick={async () => {
                 try {
                   setLocalQueueConfig(JSON.parse(localQueueConfigString))

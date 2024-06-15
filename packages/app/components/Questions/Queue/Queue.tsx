@@ -40,8 +40,9 @@ import { EditQueueModal } from './EditQueueModal'
 import PropTypes from 'prop-types'
 import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
 import { NextRouter } from 'next/router'
-import { ListTodoIcon } from 'lucide-react'
+import { ListChecks, ListTodoIcon } from 'lucide-react'
 import { useStudentAssignmentProgress } from '../../../hooks/useStudentAssignmentProgress'
+import { AssignmentReportModal } from './AssignmentReportModal'
 
 const Container = styled.div`
   flex: 1;
@@ -85,6 +86,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
   const { isCheckedIn, isHelping } = useTAInQueueInfo(qid)
   const [queueSettingsModal, setQueueSettingsModal] = useState(false)
   const [addStudentsModal, setAddStudentsModal] = useState(false)
+  const [assignmentReportModal, setAssignmentReportModal] = useState(false)
   const {
     studentQuestion,
     studentDemo,
@@ -632,6 +634,18 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                 <span className="hidden sm:inline">to Queue</span>
               </span>
             </EditQueueButton>
+            {isDemoQueue && (
+              <EditQueueButton
+                onClick={() => setAssignmentReportModal(true)}
+                icon={<ListChecks className="mr-1" />}
+              >
+                {/* "View Students {lab} Progress" on desktop, "{lab} Progress" on mobile */}
+                <span>
+                  <span className="hidden sm:inline">View Students </span>
+                  {queueConfig.assignment_id} Progress
+                </span>
+              </EditQueueButton>
+            )}
           </>
         }
       />
@@ -821,6 +835,16 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
               visible={addStudentsModal}
               onClose={() => setAddStudentsModal(false)}
             />
+            {isDemoQueue && (
+              <AssignmentReportModal
+                queueId={qid}
+                courseId={cid}
+                assignmentName={queueConfig.assignment_id}
+                configTasks={configTasks}
+                visible={assignmentReportModal}
+                onClose={() => setAssignmentReportModal(false)}
+              />
+            )}
           </>
         ) : (
           <>
@@ -837,7 +861,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
               cancel={closeEditQuestionModal}
               queueId={qid}
             />
-            {configTasks && (
+            {isDemoQueue && (
               <DemoForm
                 configTasks={configTasks}
                 studentAssignmentProgress={studentAssignmentProgress}

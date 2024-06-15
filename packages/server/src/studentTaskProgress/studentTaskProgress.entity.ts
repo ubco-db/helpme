@@ -7,7 +7,7 @@ import {
   PrimaryColumn,
 } from 'typeorm';
 import { UserModel } from '../profile/user.entity';
-import { CourseModel } from './course.entity';
+import { CourseModel } from '../course/course.entity';
 import { StudentTaskProgress } from '@koh/common';
 
 /*
