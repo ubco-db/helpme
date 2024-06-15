@@ -318,10 +318,14 @@ export function EditQueueModal({
               className="mt-2"
               onClick={async () => {
                 try {
-                  setLocalQueueConfig(JSON.parse(localQueueConfigString))
+                  const parsedConfig = JSON.parse(localQueueConfigString)
+                  setLocalQueueConfig(parsedConfig)
                   try {
-                    await API.queues.updateConfig(queue.id, localQueueConfig)
-                    message.success('Queue config saved')
+                    await API.queues
+                      .updateConfig(queue.id, parsedConfig)
+                      .then(() => {
+                        message.success('Queue config saved')
+                      })
                   } catch (error) {
                     message.error('Failed to save queue config')
                   }

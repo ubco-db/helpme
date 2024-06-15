@@ -63,7 +63,10 @@ const QueueListContainer = styled.div`
   }
 `
 
-const JoinButton = styled(QueueInfoColumnButton)<{ hasDemos: boolean }>`
+const JoinButton = styled(QueueInfoColumnButton)<{
+  hasDemos: boolean
+  isStudent: boolean
+}>`
   background-color: #3684c6;
   color: white;
   align-items: center;
@@ -670,6 +673,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                   id="join-queue-button"
                   type="primary"
                   hasDemos={isDemoQueue} // for styles
+                  isStudent={true} // for styles
                   disabled={
                     !queue?.allowQuestions ||
                     queue?.isDisabled ||
@@ -699,6 +703,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                     id="join-queue-button-demo"
                     type="primary"
                     hasDemos={isDemoQueue} // for styles
+                    isStudent={true} // for styles
                     disabled={
                       !queue?.allowQuestions ||
                       queue?.isDisabled ||

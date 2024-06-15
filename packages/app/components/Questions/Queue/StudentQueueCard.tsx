@@ -66,56 +66,60 @@ export default function StudentQueueCard({
           </Col>
         )}
         <Col flex="1 1">
-          {
-            // if it's a task question, parse the task items and display them instead of the question text
-            question.isTaskQuestion && tasks && configTasks ? (
-              <div>
-                {
-                  // for every task defined in the config, display it but only highlight the ones that are in the question text
-                  Object.entries(configTasks).map(
-                    ([taskKey, taskValue], index) => (
-                      <QuestionType
-                        key={index}
-                        typeName={
-                          studentAssignmentProgress &&
-                          studentAssignmentProgress[taskKey] &&
-                          studentAssignmentProgress[taskKey].isDone
-                            ? '✔️'
-                            : taskValue.short_display_name
-                        }
-                        typeColor={
-                          tasks.includes(taskKey)
-                            ? taskValue.color_hex
-                            : '#f0f0f0'
-                        }
-                      />
-                    ),
-                  )
+          {question.status === 'Drafting' ? (
+            <Text className="text-xl text-gray-400">
+              {question.isTaskQuestion
+                ? 'Unfinished Demo'
+                : 'Unfinished Question'}
+            </Text>
+          ) : // if it's a task question, parse the task items and display them instead of the question text
+          question.isTaskQuestion && tasks && configTasks ? (
+            <div>
+              {
+                // for every task defined in the config, display it but only highlight the ones that are in the question text
+                Object.entries(configTasks).map(
+                  ([taskKey, taskValue], index) => (
+                    <QuestionType
+                      key={index}
+                      typeName={
+                        studentAssignmentProgress &&
+                        studentAssignmentProgress[taskKey] &&
+                        studentAssignmentProgress[taskKey].isDone
+                          ? '✔️'
+                          : taskValue.short_display_name
+                      }
+                      typeColor={
+                        tasks.includes(taskKey)
+                          ? taskValue.color_hex
+                          : '#f0f0f0'
+                      }
+                    />
+                  ),
+                )
+              }
+            </div>
+          ) : (
+            <Tooltip // only show tooltip if text is too long TODO: replace with expand card details feature
+              title={question.text.length > 110 ? question.text : ''}
+              overlayStyle={{ maxWidth: '60em' }}
+            >
+              <Text
+                style={
+                  {
+                    // shorten question text dynamically
+                    display: '-webkit-box',
+                    WebkitLineClamp: 1,
+                    WebkitBoxOrient: 'vertical',
+                    textOverflow: 'ellipsis',
+                    overflow: 'hidden',
+                    maxWidth: '55em',
+                  } as React.CSSProperties
                 }
-              </div>
-            ) : (
-              <Tooltip // only show tooltip if text is too long TODO: replace with expand card details feature
-                title={question.text.length > 110 ? question.text : ''}
-                overlayStyle={{ maxWidth: '60em' }}
               >
-                <Text
-                  style={
-                    {
-                      // shorten question text dynamically
-                      display: '-webkit-box',
-                      WebkitLineClamp: 1,
-                      WebkitBoxOrient: 'vertical',
-                      textOverflow: 'ellipsis',
-                      overflow: 'hidden',
-                      maxWidth: '55em',
-                    } as React.CSSProperties
-                  }
-                >
-                  {question.text}
-                </Text>
-              </Tooltip>
-            )
-          }
+                {question.text}
+              </Text>
+            </Tooltip>
+          )}
           {isStaff && (
             <Text
               style={

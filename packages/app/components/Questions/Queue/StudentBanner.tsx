@@ -202,57 +202,63 @@ function QuestionDetailRow({
     <QuestionDetailCard status={question.status}>
       {/* flex = auto fills the rest of the space */}
       <Col flex="auto">
-        {
-          // if it's a task question, parse the task items and display them instead of the question text
-          question.isTaskQuestion && tasks && configTasks ? (
-            <div>
-              {tasks.map((task, index) => {
-                const taskValue = configTasks[task] // get the task's background colour and name
-                return (
-                  <QuestionType
-                    key={index}
-                    typeName={taskValue.display_name}
-                    typeColor={taskValue.color_hex}
-                  />
-                )
-              })}
-            </div>
-          ) : (
-            <div>
-              <Row>
-                <Tooltip // only show tooltip if text is too long
-                  title={question.text.length > 110 ? question.text : ''}
-                  overlayStyle={{ maxWidth: '60em' }}
+        {question.status === 'Drafting' ? (
+          <div className="my-2 flex items-center sm:ml-3">
+            <span className="text-base font-medium text-orange-100 sm:text-xl">
+              {question.isTaskQuestion
+                ? 'Your Unfinished Demo'
+                : 'Your Unfinished Question'}
+            </span>
+          </div>
+        ) : // if it's a task question, parse the task items and display them instead of the question text
+        question.isTaskQuestion && tasks && configTasks ? (
+          <div>
+            {tasks.map((task, index) => {
+              const taskValue = configTasks[task] // get the task's background colour and name
+              return (
+                <QuestionType
+                  key={index}
+                  typeName={taskValue.display_name}
+                  typeColor={taskValue.color_hex}
+                />
+              )
+            })}
+          </div>
+        ) : (
+          <div>
+            <Row>
+              <Tooltip // only show tooltip if text is too long
+                title={question.text.length > 110 ? question.text : ''}
+                overlayStyle={{ maxWidth: '60em' }}
+              >
+                <div
+                  style={
+                    {
+                      // shorten question text dynamically
+                      display: '-webkit-box',
+                      WebkitLineClamp: 1,
+                      WebkitBoxOrient: 'vertical',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
+                      maxWidth: '95em',
+                    } as React.CSSProperties
+                  }
                 >
-                  <div
-                    style={
-                      {
-                        // shorten question text dynamically
-                        display: '-webkit-box',
-                        WebkitLineClamp: 1,
-                        WebkitBoxOrient: 'vertical',
-                        textOverflow: 'ellipsis',
-                        overflow: 'hidden',
-                        maxWidth: '95em',
-                      } as React.CSSProperties
-                    }
-                  >
-                    {question.text}
-                  </div>
-                </Tooltip>
-              </Row>
-              <Row>
-                {question.questionTypes?.map((questionType, index) => (
-                  <QuestionType
-                    key={index}
-                    typeName={questionType.name}
-                    typeColor={questionType.color}
-                  />
-                ))}
-              </Row>
-            </div>
-          )
-        }
+                  {question.text}
+                </div>
+              </Tooltip>
+            </Row>
+            <Row>
+              {question.questionTypes?.map((questionType, index) => (
+                <QuestionType
+                  key={index}
+                  typeName={questionType.name}
+                  typeColor={questionType.color}
+                />
+              ))}
+            </Row>
+          </div>
+        )}
       </Col>
       <Col flex="154px">
         <Row className="flex-nowrap">
@@ -286,7 +292,15 @@ function QuestionDetailRow({
               case 'Drafting':
                 return (
                   <Tooltip title="Finish Draft">
-                    <BannerButton icon={<EditOutlined />} onClick={edit} />
+                    {/* pulse animation */}
+                    <div className="relative ml-2 inline-flex items-center justify-center">
+                      <div className="absolute inset-0 animate-ping rounded-full bg-white opacity-50 before:content-['']"></div>
+                      <BannerButton
+                        className="!ml-0"
+                        icon={<EditOutlined />}
+                        onClick={edit}
+                      />
+                    </div>
                   </Tooltip>
                 )
               case 'ReQueueing':

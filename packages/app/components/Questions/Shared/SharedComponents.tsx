@@ -43,6 +43,7 @@ export const VerticalDivider = styled.div`
 `
 export const QueueInfoColumnButtonStyle = styled(Button)<{
   hasDemos?: boolean
+  isStudent?: boolean
 }>`
   font-weight: 500;
   font-size: 14px;
@@ -57,7 +58,8 @@ export const QueueInfoColumnButtonStyle = styled(Button)<{
   // less margin and width on mobile
   @media (max-width: 650px) {
     margin-bottom: 0;
-    width: ${(props) => (props.hasDemos ? '45%' : '30%')};
+    width: ${(props) =>
+      props.isStudent ? '100%' : props.hasDemos ? '45%' : '30%'};
   }
 `
 
