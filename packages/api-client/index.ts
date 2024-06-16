@@ -202,7 +202,7 @@ class APIClient {
     getOrganizationCourses: async (organizationId: number) =>
       this.req('GET', `/api/v1/courses/${organizationId}/organization_courses`),
     getAsyncQuestions: async (cid: number): Promise<AsyncQuestion[]> =>
-      this.req('GET', `/api/v1/courses/${cid}/questions`, undefined),
+      this.req('GET', `/api/v1/courses/${cid}/asyncQuestions`, undefined),
     getAllCourses: async (): Promise<CoursePartial[]> =>
       this.req('GET', `/api/v1/courses`),
     get: async (courseId: number) =>
@@ -310,7 +310,10 @@ class APIClient {
       this.req('POST', `/api/v1/asyncQuestions/${cid}`, AsyncQuestion, body),
     update: async (qid: number, body: UpdateAsyncQuestions) =>
       this.req('PATCH', `/api/v1/asyncQuestions/${qid}`, AsyncQuestion, body),
-    vote: async (qid: number, vote: number) =>
+    vote: async (
+      qid: number,
+      vote: number,
+    ): Promise<{ questionSumVotes: number; vote: number }> =>
       this.req('POST', `/api/v1/asyncQuestions/${qid}/${vote}`, undefined, {
         vote,
       }),

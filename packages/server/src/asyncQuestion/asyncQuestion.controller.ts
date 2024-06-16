@@ -23,9 +23,7 @@ import { Roles } from '../decorators/roles.decorator';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from '../profile/user.entity';
 import { AsyncQuestionModel } from './asyncQuestion.entity';
-import { asyncQuestionService } from './asyncQuestion.service';
 import { CourseModel } from 'course/course.entity';
-import { MailService } from 'mail/mail.service';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Response } from 'express';
 import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';
@@ -34,11 +32,6 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class asyncQuestionController {
-  constructor(
-    private mailService: MailService,
-    private questionService: asyncQuestionService,
-  ) {}
-
   @Post(':qid/:vote')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async voteQuestion(
@@ -46,7 +39,7 @@ export class asyncQuestionController {
     @Param('vote') vote: number,
     @User() user: UserModel,
     @Res() res: Response,
-  ): Promise<AsyncQuestion> {
+  ): Promise<Response> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
     });
@@ -85,12 +78,10 @@ export class asyncQuestionController {
       where: { id: qid },
     });
 
-    res.status(HttpStatus.OK).send({
+    return res.status(HttpStatus.OK).send({
       questionSumVotes: updatedQuestion.votesSum,
       vote: thisUserThisQuestionVote?.vote ?? 0,
     });
-
-    return;
   }
 
   @Post(':cid')
@@ -127,6 +118,7 @@ export class asyncQuestionController {
         verified: false,
         createdAt: new Date(),
       }).save();
+
       res.status(HttpStatus.CREATED).send(question);
       return;
     } catch (err) {
@@ -182,7 +174,8 @@ export class asyncQuestionController {
         );
       }
     }
-    question.save();
+    await question.save();
+
     return question;
   }
 }

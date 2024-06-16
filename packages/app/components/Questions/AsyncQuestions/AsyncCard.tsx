@@ -1,5 +1,5 @@
-import React, { ReactElement, useEffect, useState } from 'react'
-import { Button, Card, Image, message } from 'antd'
+import React, { ReactElement, useState } from 'react'
+import { Button, message } from 'antd'
 import { Text } from '../Shared/SharedComponents'
 import { QuestionType } from '../Shared/QuestionType'
 import { KOHAvatar } from '../../common/SelfAvatar'
@@ -55,7 +55,9 @@ export default function AsyncCard({
 }: AsyncCardProps): ReactElement {
   const [isExpanded, setIsExpanded] = useState(false)
   const [voteCount, setVoteCount] = useState(question.votesSum)
-  const [thisUserThisQuestionVote, setThisUserThisQuestionVote] = useState()
+  const [thisUserThisQuestionVote, setThisUserThisQuestionVote] = useState(
+    question.votes?.find((vote) => vote.userId === userId)?.vote,
+  )
   const shouldFlash =
     question.status === asyncQuestionStatus.AIAnswered &&
     userId === question.creatorId
@@ -78,7 +80,6 @@ export default function AsyncCard({
       )
       onStatusChange()
     } catch (error) {
-      console.error('Failed to update question status', error)
       message.error('Failed to update question status. Please try again.')
     }
   }
@@ -86,24 +87,12 @@ export default function AsyncCard({
   const handleVote = async (questionId: number, vote: number) => {
     const resp = await API.asyncQuestions.vote(questionId, vote)
     setVoteCount(resp.questionSumVotes)
+    setThisUserThisQuestionVote(resp.vote)
   }
-
-  useEffect(() => {
-    async function getVoteForuser() {
-      const resp = await API.asyncQuestions.vote(question.id, 0)
-      setThisUserThisQuestionVote(resp.vote)
-    }
-    if (question) {
-      getVoteForuser()
-    }
-  }, [voteCount])
-
-  const upVoteStyle = thisUserThisQuestionVote === 1 ? { color: 'green' } : {}
-  const downVoteStyle = thisUserThisQuestionVote === -1 ? { color: 'red' } : {}
 
   return (
     <div
-      className={`mb-2 flex rounded-lg bg-white p-2 shadow-lg ${
+      className={`mb-2 mt-2 flex rounded-lg bg-white p-2 shadow-lg ${
         question.status === asyncQuestionStatus.HumanAnswered ||
         question.status === asyncQuestionStatus.AIAnsweredResolved
           ? 'bg-green-100/50'
@@ -114,7 +103,11 @@ export default function AsyncCard({
       <div className="mr-4 flex flex-col items-center justify-center">
         <Button
           type="text"
-          icon={<UpOutlined style={upVoteStyle} />}
+          icon={
+            <UpOutlined
+              style={thisUserThisQuestionVote == 1 ? { color: 'green' } : {}}
+            />
+          }
           onClick={(e) => {
             e.stopPropagation() // Prevent card expansion
             handleVote(question.id, 1)
@@ -123,7 +116,11 @@ export default function AsyncCard({
         <div className="my-2 flex items-center justify-center">{voteCount}</div>
         <Button
           type="text"
-          icon={<DownOutlined style={downVoteStyle} />}
+          icon={
+            <DownOutlined
+              style={thisUserThisQuestionVote == -1 ? { color: 'red' } : {}}
+            />
+          }
           onClick={(e) => {
             e.stopPropagation() // Prevent card expansion
             handleVote(question.id, -1)
@@ -150,7 +147,7 @@ export default function AsyncCard({
               <div className="flex-grow text-sm italic">Anonymous Student</div>
             )}
             <div
-              className={`flex flex-grow items-center justify-center rounded-full px-2 py-1 
+              className={`flex flex-grow items-center justify-center rounded-full px-2 py-1
           ${
             question.status === asyncQuestionStatus.HumanAnswered
               ? 'bg-green-200'

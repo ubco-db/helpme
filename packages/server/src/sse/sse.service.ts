@@ -176,6 +176,7 @@ export class SSEService<T> implements OnModuleDestroy {
       console.error(err);
       Sentry.captureException(err);
     });
+
     if (room && roomInfo) {
       const clients: RedisClientInfo<T>[] = roomInfo.map((s) => JSON.parse(s));
       await each(clients, async ({ clientId, metadata }) => {
