@@ -866,28 +866,40 @@ describe('Question Integration', () => {
         })
         .expect(400);
     });
-    it('TaskQuestions: Will append on a newly completed task onto existing studentTaskProgress', async () => {
+    it('TaskQuestions marking: Will append on a newly completed task onto existing studentTaskProgress', async () => {
       const course = await CourseFactory.create();
-      const queue = await QueueFactory.create({ courseId: course.id });
       const student = await UserFactory.create();
-      const professor = await UserFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ course: course, user: ta });
+      await StudentCourseFactory.create({ course: course, user: student });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: '1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+            task2: {
+              display_name: 'Task 2',
+              short_display_name: '2',
+              color_hex: '#000000',
+              precondition: 'task1',
+            },
+          },
+        },
+      });
 
-      await UserCourseFactory.create({
-        user: student,
-        role: Role.STUDENT,
-        course: course,
-      });
-      await UserCourseFactory.create({
-        user: professor,
-        role: Role.PROFESSOR,
-        course: course,
-      });
       await StudentTaskProgressFactory.create({
         user: student,
         course: course,
         taskProgress: {
           assignment1: {
-            lastEditedQueueId: 1,
+            lastEditedQueueId: queue.id,
             assignmentProgress: {
               task1: {
                 isDone: true,
@@ -898,24 +910,26 @@ describe('Question Integration', () => {
       });
 
       const q1 = await QuestionFactory.create({
-        text: 'Mark "part2"',
+        text: 'Mark "task2"',
         queue: queue,
         isTaskQuestion: true,
         status: QuestionStatusKeys.Helping,
         creator: student,
+        taHelped: ta,
       });
 
-      await supertest({ userId: professor.id })
+      const response = await supertest({ userId: ta.id })
         .patch(`/questions/${q1.id}`)
         .send({
           status: QuestionStatusKeys.Resolved,
-        })
-        .expect(200);
+        });
+
+      expect(response.status).toBe(200);
 
       // retrieve studentTaskProgress and see if it updated
       const updatedStudentTaskProgress = await StudentTaskProgressModel.findOne(
         {
-          where: { userId: student.id, courseId: course.id },
+          where: { user: student, course: course },
         },
       );
 
@@ -927,6 +941,515 @@ describe('Question Integration', () => {
         updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress
           .task2.isDone,
       ).toBe(true);
+    });
+    it('TaskQuestions marking: Will create a new studentTaskProgress entity if the student has no task progress in the course yet', async () => {
+      const course = await CourseFactory.create();
+      const course2 = await CourseFactory.create();
+      const student = await UserFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ course: course, user: ta });
+      await StudentCourseFactory.create({ course: course, user: student });
+      await StudentCourseFactory.create({ course: course2, user: student });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: '1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+            task2: {
+              display_name: 'Task 2',
+              short_display_name: '2',
+              color_hex: '#000000',
+              precondition: 'task1',
+            },
+          },
+        },
+      });
+      const queue2 = await QueueFactory.create({
+        course: course2,
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            part1: {
+              display_name: 'Part 1',
+              short_display_name: '1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+          },
+        },
+      });
+
+      // note: this is in a different course/queue
+      await StudentTaskProgressFactory.create({
+        user: student,
+        course: course2,
+        taskProgress: {
+          assignment1: {
+            lastEditedQueueId: queue2.id,
+            assignmentProgress: {
+              part1: {
+                isDone: true,
+              },
+            },
+          },
+        },
+      });
+
+      const q1 = await QuestionFactory.create({
+        text: 'Mark "task1"',
+        queue: queue,
+        isTaskQuestion: true,
+        status: QuestionStatusKeys.Helping,
+        creator: student,
+        taHelped: ta,
+      });
+
+      const response = await supertest({ userId: ta.id })
+        .patch(`/questions/${q1.id}`)
+        .send({
+          status: QuestionStatusKeys.Resolved,
+        });
+
+      expect(response.status).toBe(200);
+
+      // retrieve studentTaskProgress and see if it updated
+      const updatedStudentTaskProgress = await StudentTaskProgressModel.findOne(
+        {
+          where: { user: student, course: course },
+        },
+      );
+
+      expect(
+        updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress
+          .task1.isDone,
+      ).toBe(true);
+      expect(
+        updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress,
+      ).not.toHaveProperty('part1');
+
+      // make sure the studentTaskProgress in the other course has not been updated
+      const updatedStudentTaskProgress2 =
+        await StudentTaskProgressModel.findOne({
+          where: { user: student, course: course2 },
+        });
+
+      expect(
+        updatedStudentTaskProgress2.taskProgress.assignment1.assignmentProgress
+          .part1.isDone,
+      ).toBe(true);
+      expect(
+        updatedStudentTaskProgress2.taskProgress.assignment1.assignmentProgress,
+      ).not.toHaveProperty('task1');
+    });
+    it('TaskQuestions marking: Will append on a newly completed task and assignment onto existing studentTaskProgress', async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ course: course, user: ta });
+      await StudentCourseFactory.create({ course: course, user: student });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: '1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+            task2: {
+              display_name: 'Task 2',
+              short_display_name: '2',
+              color_hex: '#000000',
+              precondition: 'task1',
+            },
+          },
+        },
+      });
+
+      await StudentTaskProgressFactory.create({
+        user: student,
+        course: course,
+        taskProgress: {
+          assignment2: {
+            // different assignment
+            lastEditedQueueId: queue.id,
+            assignmentProgress: {
+              part1: {
+                // different task
+                isDone: true,
+              },
+            },
+          },
+        },
+      });
+
+      const q1 = await QuestionFactory.create({
+        text: 'Mark "task1"',
+        queue: queue,
+        isTaskQuestion: true,
+        status: QuestionStatusKeys.Helping,
+        creator: student,
+        taHelped: ta,
+      });
+
+      const response = await supertest({ userId: ta.id })
+        .patch(`/questions/${q1.id}`)
+        .send({
+          status: QuestionStatusKeys.Resolved,
+        });
+
+      expect(response.status).toBe(200);
+
+      // retrieve studentTaskProgress and see if it updated
+      const updatedStudentTaskProgress = await StudentTaskProgressModel.findOne(
+        {
+          where: { user: student, course: course },
+        },
+      );
+
+      expect(
+        updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress
+          .task1.isDone,
+      ).toBe(true);
+      expect(
+        updatedStudentTaskProgress.taskProgress.assignment2.assignmentProgress
+          .part1.isDone,
+      ).toBe(true);
+    });
+    it('TaskQuestions marking: Will not allow students to mark tasks that dont exist', async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ course: course, user: ta });
+      await StudentCourseFactory.create({ course: course, user: student });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: '1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+            task2: {
+              display_name: 'Task 2',
+              short_display_name: '2',
+              color_hex: '#000000',
+              precondition: 'task1',
+            },
+          },
+        },
+      });
+
+      await StudentTaskProgressFactory.create({
+        user: student,
+        course: course,
+        taskProgress: {
+          assignment1: {
+            lastEditedQueueId: queue.id,
+            assignmentProgress: {
+              task1: {
+                isDone: true,
+              },
+            },
+          },
+        },
+      });
+
+      const q1 = await QuestionFactory.create({
+        text: 'Mark "taskX"', // taskX does not exist
+        queue: queue,
+        isTaskQuestion: true,
+        status: QuestionStatusKeys.Helping,
+        creator: student,
+        taHelped: ta,
+      });
+
+      const response = await supertest({ userId: ta.id })
+        .patch(`/questions/${q1.id}`)
+        .send({
+          status: QuestionStatusKeys.Resolved,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe(
+        ERROR_MESSAGES.questionController.studentTaskProgress.taskNotInConfig,
+      );
+
+      // retrieve studentTaskProgress and see if it updated
+      const updatedStudentTaskProgress = await StudentTaskProgressModel.findOne(
+        {
+          where: { user: student, course: course },
+        },
+      );
+
+      expect(
+        updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress
+          .task1.isDone,
+      ).toBe(true);
+      expect(
+        updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress,
+      ).not.toHaveProperty('taskX');
+    });
+    it('TaskQuestions marking: Will not allow question text with invalid text', async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ course: course, user: ta });
+      await StudentCourseFactory.create({ course: course, user: student });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: '1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+            task2: {
+              display_name: 'Task 2',
+              short_display_name: '2',
+              color_hex: '#000000',
+              precondition: 'task1',
+            },
+          },
+        },
+      });
+
+      await StudentTaskProgressFactory.create({
+        user: student,
+        course: course,
+        taskProgress: {
+          assignment1: {
+            lastEditedQueueId: queue.id,
+            assignmentProgress: {
+              task1: {
+                isDone: true,
+              },
+            },
+          },
+        },
+      });
+
+      const q1 = await QuestionFactory.create({
+        text: 'Mark "SELECT * FROM users', // invalid text
+        queue: queue,
+        isTaskQuestion: true,
+        status: QuestionStatusKeys.Helping,
+        creator: student,
+        taHelped: ta,
+      });
+
+      const response = await supertest({ userId: ta.id })
+        .patch(`/questions/${q1.id}`)
+        .send({
+          status: QuestionStatusKeys.Resolved,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe(
+        ERROR_MESSAGES.questionController.studentTaskProgress.taskParseError,
+      );
+
+      // retrieve studentTaskProgress and see if it updated
+      const updatedStudentTaskProgress = await StudentTaskProgressModel.findOne(
+        {
+          where: { user: student, course: course },
+        },
+      );
+
+      expect(
+        updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress
+          .task1.isDone,
+      ).toBe(true);
+    });
+    it('TaskQuestions marking: Will not allow if the queue has no assignment_id defined in the config', async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ course: course, user: ta });
+      await StudentCourseFactory.create({ course: course, user: student });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+        config: {
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: '1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+            task2: {
+              display_name: 'Task 2',
+              short_display_name: '2',
+              color_hex: '#000000',
+              precondition: 'task1',
+            },
+          },
+        },
+      });
+
+      await StudentTaskProgressFactory.create({
+        user: student,
+        course: course,
+        taskProgress: {
+          assignment1: {
+            lastEditedQueueId: queue.id,
+            assignmentProgress: {
+              task1: {
+                isDone: true,
+              },
+            },
+          },
+        },
+      });
+
+      const q1 = await QuestionFactory.create({
+        text: 'Mark "task2"',
+        queue: queue,
+        isTaskQuestion: true,
+        status: QuestionStatusKeys.Helping,
+        creator: student,
+        taHelped: ta,
+      });
+
+      const response = await supertest({ userId: ta.id })
+        .patch(`/questions/${q1.id}`)
+        .send({
+          status: QuestionStatusKeys.Resolved,
+        });
+
+      expect(response.body.message).toBe(
+        ERROR_MESSAGES.questionController.studentTaskProgress
+          .assignmentDoesNotExist,
+      );
+      expect(response.status).toBe(400);
+
+      // retrieve studentTaskProgress and see if it updated
+      const updatedStudentTaskProgress = await StudentTaskProgressModel.findOne(
+        {
+          where: { user: student, course: course },
+        },
+      );
+
+      expect(
+        updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress
+          .task1.isDone,
+      ).toBe(true);
+      expect(
+        updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress,
+      ).not.toHaveProperty('task2');
+    });
+    it('TaskQuestions editing: Will not allow the edit if the text is invalid', async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ course: course, user: ta });
+      await StudentCourseFactory.create({ course: course, user: student });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: '1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+            task2: {
+              display_name: 'Task 2',
+              short_display_name: '2',
+              color_hex: '#000000',
+              precondition: 'task1',
+            },
+          },
+        },
+      });
+
+      const q1 = await QuestionFactory.create({
+        text: 'Mark "task1"',
+        queue: queue,
+        isTaskQuestion: true,
+        status: QuestionStatusKeys.Queued,
+        creator: student,
+      });
+
+      const response = await supertest({ userId: student.id })
+        .patch(`/questions/${q1.id}`)
+        .send({
+          text: 'PERISH WEAKLING',
+        });
+
+      expect(response.body.message).toBe(
+        ERROR_MESSAGES.questionController.studentTaskProgress.taskParseError,
+      );
+      expect(response.status).toBe(400);
+    });
+    it('TaskQuestions editing: Will not allow the edit if the task is not in the config', async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ course: course, user: ta });
+      await StudentCourseFactory.create({ course: course, user: student });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: '1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+            task2: {
+              display_name: 'Task 2',
+              short_display_name: '2',
+              color_hex: '#000000',
+              precondition: 'task1',
+            },
+          },
+        },
+      });
+
+      const q1 = await QuestionFactory.create({
+        text: 'Mark "task1"',
+        queue: queue,
+        isTaskQuestion: true,
+        status: QuestionStatusKeys.Queued,
+        creator: student,
+      });
+
+      const response = await supertest({ userId: student.id })
+        .patch(`/questions/${q1.id}`)
+        .send({
+          text: 'Mark "task1" "task3"', // task3 not in config
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe(
+        ERROR_MESSAGES.questionController.studentTaskProgress.taskNotInConfig,
+      );
     });
   });
 

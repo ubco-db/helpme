@@ -20,7 +20,6 @@ import {
   Body,
   ClassSerializerInterceptor,
   Controller,
-  Delete,
   Get,
   HttpException,
   HttpStatus,
@@ -28,7 +27,6 @@ import {
   Param,
   Patch,
   Post,
-  Res,
   UnauthorizedException,
   UseGuards,
   UseInterceptors,
@@ -39,7 +37,6 @@ import {
   NotificationService,
   NotifMsgs,
 } from '../notification/notification.service';
-import { Response } from 'express';
 import { Roles } from '../decorators/roles.decorator';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { User, UserId } from '../decorators/user.decorator';
@@ -52,7 +49,6 @@ import { QuestionService } from './question.service';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { pick } from 'lodash';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
-import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 
 // NOTE: FIXME: EVERY REQUEST INTO QUESTIONCONTROLLER REQUIRES THE BODY TO HAVE A
 // FIELD questionId OR queueId! If not, stupid weird untraceable bugs will happen
@@ -367,7 +363,7 @@ export class QuestionController {
         const tasks =
           question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) ||
           [];
-        if (!tasks) {
+        if (tasks.length === 0) {
           throw new BadRequestException(
             ERROR_MESSAGES.questionController.studentTaskProgress.taskParseError,
           );
@@ -377,7 +373,7 @@ export class QuestionController {
         try {
           queue = await QueueModel.findOneOrFail(question.queueId);
         } catch (err) {
-          throw new BadRequestException(
+          throw new NotFoundException(
             ERROR_MESSAGES.questionController.studentTaskProgress.queueDoesNotExist,
           );
         }
