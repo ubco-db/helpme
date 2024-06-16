@@ -27,6 +27,8 @@ import { MailModule } from 'mail/mail.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
 import { OrganizationModule } from 'organization/organization.module';
 import { QuestionTypeModule } from 'questionType/questionType.module';
+import { RedisQueueModule } from 'redisQueue/redis-queue.module';
+
 @Module({
   imports: [
     TypeOrmModule.forRoot(typeormConfig),
@@ -66,6 +68,7 @@ import { QuestionTypeModule } from 'questionType/questionType.module';
     OrganizationModule,
     AuthModule,
     QuestionTypeModule,
+    RedisQueueModule,
   ],
 })
 export class AppModule {}
