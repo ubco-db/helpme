@@ -208,7 +208,7 @@ const getActiveStudents = async (filters: Filter[]): Promise<any[]> => {
 };
 
 export const QuestionTypeBreakdown: InsightObject = {
-  displayName: 'Question Type Breakdown',
+  displayName: 'Question Tag Breakdown',
   description:
     'What is the distribution of student-selected question-types on the question form?',
   roles: [Role.PROFESSOR],

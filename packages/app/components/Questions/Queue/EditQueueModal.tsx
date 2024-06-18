@@ -238,7 +238,7 @@ export function EditQueueModal({
 
               <Input
                 allowClear={true}
-                placeholder="Enter New Question type name"
+                placeholder="Enter New Question Tag Name"
                 onChange={onAddChange}
                 maxLength={15}
                 className="mx-2 mb-2"

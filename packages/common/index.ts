@@ -1501,7 +1501,7 @@ function findFirstDuplicate(array: any[]): any {
   }
   return null
 }
-// this function is used both on the backend and frontend to check if there are any errors in the queue config
+// this function is used both on the backend and frontend to check if there are any errors (total is 24 different errors) in the queue config
 // returns an empty string if there's no errors
 export function validateQueueConfigInput(obj: any): string {
   const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
@@ -1627,7 +1627,7 @@ export function validateQueueConfigInput(obj: any): string {
         typeof obj.tasks[taskKey].color_hex !== 'string' ||
         !hexColorRegex.test(obj.tasks[taskKey].color_hex)
       ) {
-        return `Task ${taskKey} must have a valid color_hex of type string`
+        return `Task ${taskKey} must have a valid color_hex (e.g. "#ff0000")`
       }
       if (
         obj.tasks[taskKey].precondition === undefined ||
