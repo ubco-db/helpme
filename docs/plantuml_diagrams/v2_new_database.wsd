@@ -2,21 +2,11 @@
 
 skin rose
 
-title new database again vfinal? different
+title New Database (to showcase changes)
 
 
 class queue {
   +json config
-}
-
-class course
-
-class calendar {
-  +varchar        title
-  +timestamp   start 
-  +timestamp   end
-  +textarray      daysOfWeek
-  +bool             allDay [unused]
 }
 
 class course
@@ -28,7 +18,7 @@ class question {
 class thing as "studentTaskProgress" {
   +json taskProgress
 }
-note right : "lab1": {"lastEditedQueueId": 2,\n\t "assignmentProgress": {\n\t"task1":{"isDone":true},\n\t   "task2":{"isDone":true}\n\t}, \n"lab2": {"lastEditedQueueId": 3,\n\t   "assignmentProgress": {\n\t"task1":{"isDone":true}\n\t}\n}
+note left : "lab1": {"lastEditedQueueId": 2,\n\t "assignmentProgress": {\n\t"task1":{"isDone":true},\n\t   "task2":{"isDone":true}\n\t}, \n"lab2": {"lastEditedQueueId": 3,\n\t   "assignmentProgress": {\n\t"task1":{"isDone":true}\n\t}\n}
 
 class questionType { 
   ' questionTypes are only going to be tags, not tasks
@@ -43,7 +33,6 @@ question "0..*" -- "1" queue
 question "0..*" -- "1" user
 thing "0..*" -- "1" user
 thing "0..*" -- "1" course
-calendar "0..*" --right "1" course
 questionType "0..*" -- "0..*" question
 ' still not sure whether to remove this connection EDIT: i think removing it is a good idea since that way queues don't have access to all the previous questionTypes
 ' questionType "0..*" -- "1" queue 

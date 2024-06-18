@@ -18,9 +18,10 @@ frontend -> frontend : parse config and save in variables
 User <- frontend : queue page 
 
 User -> frontend : Edit queue details
-User -> frontend : Edits lab 1 config
+User -> frontend : Edits config
 frontend -> frontend : parse config and send potential errors
 User -> frontend : Save changes
+frontend -> frontend : parse config and send potential errors
 frontend -> server : editQueueConfig(new queue config)
 server -> server : parse new config and send potential errors
 server -> db : get old queue config

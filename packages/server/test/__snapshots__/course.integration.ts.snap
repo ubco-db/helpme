@@ -3,7 +3,7 @@
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 1`] = `
 Object {
   "allowQuestions": false,
-  "config": null,
+  "config": Object {},
   "id": 2,
   "isDisabled": false,
   "isOpen": true,
@@ -18,7 +18,7 @@ Object {
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 2`] = `
 Object {
   "allowQuestions": false,
-  "config": null,
+  "config": Object {},
   "id": 3,
   "isDisabled": false,
   "isOpen": true,
@@ -59,7 +59,7 @@ Object {
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 3`] = `
 Object {
   "allowQuestions": false,
-  "config": null,
+  "config": Object {},
   "id": 4,
   "isDisabled": false,
   "isOpen": true,
@@ -123,7 +123,7 @@ Object {
 exports[`Course Integration GET /courses/:id gets queues that are not disabled (TA) 1`] = `
 Object {
   "allowQuestions": false,
-  "config": null,
+  "config": Object {},
   "id": 2,
   "isDisabled": false,
   "isOpen": true,
@@ -138,7 +138,7 @@ Object {
 exports[`Course Integration GET /courses/:id gets queues that are not disabled (TA) 2`] = `
 Object {
   "allowQuestions": false,
-  "config": null,
+  "config": Object {},
   "id": 3,
   "isDisabled": false,
   "isOpen": true,
@@ -179,7 +179,7 @@ Object {
 exports[`Course Integration GET /courses/:id gets queues that are not disabled (TA) 3`] = `
 Object {
   "allowQuestions": false,
-  "config": null,
+  "config": Object {},
   "id": 4,
   "isDisabled": false,
   "isOpen": true,
@@ -220,7 +220,7 @@ Object {
 exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 1`] = `
 Object {
   "allowQuestions": true,
-  "config": null,
+  "config": Object {},
   "courseId": Any<Number>,
   "id": Any<Number>,
   "isDisabled": false,
@@ -233,7 +233,7 @@ Object {
 exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 2`] = `
 Object {
   "allowQuestions": true,
-  "config": null,
+  "config": Object {},
   "courseId": Any<Number>,
   "id": Any<Number>,
   "isDisabled": false,
@@ -246,7 +246,7 @@ Object {
 exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 3`] = `
 Object {
   "allowQuestions": true,
-  "config": null,
+  "config": Object {},
   "courseId": Any<Number>,
   "id": Any<Number>,
   "isDisabled": false,
@@ -259,7 +259,7 @@ Object {
 exports[`Course Integration POST /courses/:id/ta_location/:room checks a TA into an existing queue 1`] = `
 Object {
   "allowQuestions": true,
-  "config": null,
+  "config": Object {},
   "id": 1,
   "isDisabled": false,
   "isProfessorQueue": false,

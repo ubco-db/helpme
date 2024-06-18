@@ -620,6 +620,51 @@ describe('Course Integration', () => {
         })
         .expect(201);
     });
+
+    it('when creating queue, it saves the queue config correctly', async () => {
+      const ucp = await UserCourseFactory.create({
+        role: Role.PROFESSOR,
+      });
+
+      const exampleConfig = {
+        tags: {
+          tag1: {
+            display_name: 'Tag 1',
+            color_hex: '#ff0000',
+          },
+        },
+      };
+
+      await supertest({ userId: ucp.user.id })
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
+        .send({
+          notes: 'example note 1',
+          isProfessorQueue: false,
+          config: exampleConfig,
+        })
+        .expect(201);
+
+      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      expect(q1.config).toEqual(exampleConfig);
+    });
+
+    it('does not allow an invalid queue config', async () => {
+      const ucp = await UserCourseFactory.create({
+        role: Role.PROFESSOR,
+      });
+
+      await supertest({ userId: ucp.user.id })
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
+        .send({
+          notes: 'example note 1',
+          isProfessorQueue: false,
+          config: { key: 'value' },
+        })
+        .expect(400);
+
+      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      expect(q1).toEqual(undefined);
+    });
   });
 
   describe('GET /courses/:id/ta_check_in_times', () => {

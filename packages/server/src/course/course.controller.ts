@@ -8,6 +8,7 @@ import {
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
+  QueueConfig,
   QueuePartial,
   RegisterCourseParams,
   Role,
@@ -15,6 +16,7 @@ import {
   TACheckinTimesResponse,
   TACheckoutResponse,
   UBCOuserParam,
+  validateQueueConfigInput,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -475,7 +477,7 @@ export class CourseController {
   @Post(':id/create_queue/:room')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
-  async generateQueue(
+  async createQueue(
     @Param('id') courseId: number,
     @Param('room') room: string,
     @User() user: UserModel,
@@ -483,8 +485,18 @@ export class CourseController {
     body: {
       notes: string;
       isProfessorQueue: boolean;
+      config: QueueConfig;
     },
   ): Promise<QueueModel> {
+    let newConfig = {};
+    if (body.config) {
+      const configError = validateQueueConfigInput(body.config);
+      if (configError) {
+        throw new BadRequestException(configError);
+      }
+      newConfig = body.config;
+    }
+
     const userCourseModel = await UserCourseModel.findOne({
       where: {
         user,
@@ -526,6 +538,7 @@ export class CourseController {
         allowQuestions: true,
         notes: body.notes,
         isProfessorQueue: body.isProfessorQueue,
+        config: newConfig,
       }).save();
     } catch (err) {
       console.error(

@@ -399,6 +399,50 @@ describe('Queue Integration', () => {
   });
 
   describe('PATCH /queues/:id/config', () => {
+    const validConfig = {
+      fifo_queue_view_enabled: true,
+      tag_groups_queue_view_enabled: true,
+      default_view: 'fifo',
+      minimum_tags: 1,
+      tags: {
+        tag1: {
+          display_name: 'General',
+          color_hex: '#66FF66',
+        },
+        tag2: {
+          display_name: 'Bugs',
+          color_hex: '#66AA66',
+        },
+        tag3: {
+          display_name: 'Blocking',
+          color_hex: '#FF0000',
+        },
+      },
+      assignment_id: 'lab1',
+      tasks: {
+        task1: {
+          display_name: 'Task 1',
+          short_display_name: '1',
+          blocking: false,
+          color_hex: '#ffedb8',
+          precondition: null,
+        },
+        task2: {
+          display_name: 'Task 2',
+          short_display_name: '2',
+          blocking: false,
+          color_hex: '#fadf8e',
+          precondition: 'task1',
+        },
+        task3: {
+          display_name: 'Task 3',
+          short_display_name: '3',
+          blocking: true,
+          color_hex: '#f7ce52',
+          precondition: 'task2',
+        },
+      },
+    };
     it('updates queue config', async () => {
       const course = await CourseFactory.create();
       const ta = await TACourseFactory.create({
@@ -409,15 +453,15 @@ describe('Queue Integration', () => {
         course: course,
       });
 
-      expect(queue.config).toEqual(null);
+      expect(queue.config).toEqual({});
 
       await supertest({ userId: ta.userId })
         .patch(`/queues/${queue.id}/config`)
-        .send({ foo: 'bar' })
+        .send(validConfig)
         .expect(200);
 
       const postQueue = await QueueModel.findOne({ id: queue.id });
-      expect(postQueue.config).toEqual({ foo: 'bar' });
+      expect(postQueue.config).toEqual(validConfig);
     });
 
     it('returns the updated config', async () => {
@@ -430,14 +474,14 @@ describe('Queue Integration', () => {
         course: course,
       });
 
-      expect(queue.config).toEqual(null);
+      expect(queue.config).toEqual({});
 
       const res = await supertest({ userId: ta.userId })
         .patch(`/queues/${queue.id}/config`)
-        .send({ foo: 'bar' })
+        .send(validConfig)
         .expect(200);
 
-      expect(res.body).toEqual({ foo: 'bar' });
+      expect(res.body).toEqual(validConfig);
     });
 
     it('doesnt allow students to update config', async () => {
@@ -450,15 +494,15 @@ describe('Queue Integration', () => {
         course: course,
       });
 
-      expect(queue.config).toEqual(null);
+      expect(queue.config).toEqual({});
 
       await supertest({ userId: stu.userId })
         .patch(`/queues/${queue.id}/config`)
-        .send({ foo: 'bar' })
+        .send(validConfig)
         .expect(401);
 
       const postQueue = await QueueModel.findOne({ id: queue.id });
-      expect(postQueue.config).toEqual(null);
+      expect(postQueue.config).toEqual({});
     });
 
     it('returns 404 on nonexistent queues', async () => {
@@ -467,13 +511,11 @@ describe('Queue Integration', () => {
       });
       await supertest({ userId: stu.userId })
         .patch(`/queues/998/config`)
-        .send({ foo: 'bar' })
+        .send(validConfig)
         .expect(404);
     });
-  });
 
-  describe('GET /queues/:id/config', () => {
-    it('returns the queue config', async () => {
+    it('returns 400 on invalid config', async () => {
       const course = await CourseFactory.create();
       const ta = await TACourseFactory.create({
         course: course,
@@ -481,23 +523,68 @@ describe('Queue Integration', () => {
       });
       const queue = await QueueFactory.create({
         course: course,
-        config: { foo: 'bar' } as any,
       });
 
-      const res = await supertest({ userId: ta.userId })
-        .get(`/queues/${queue.id}/config`)
-        .expect(200);
+      const invalidConfig = { foo: 'bar' };
 
-      expect(res.body).toEqual({ foo: 'bar' });
+      await supertest({ userId: ta.userId })
+        .patch(`/queues/${queue.id}/config`)
+        .send(invalidConfig)
+        .expect(400);
     });
 
-    it('returns 404 on nonexistent queues', async () => {
-      const stu = await StudentCourseFactory.create({
+    it('returns 400 on config with invalid task', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
         user: await UserFactory.create(),
       });
-      await supertest({ userId: stu.userId })
-        .get(`/queues/998/config`)
-        .expect(404);
+      const queue = await QueueFactory.create({
+        course: course,
+      });
+
+      const invalidConfig = {
+        tasks: {
+          task1: {
+            display_name: 'Task 1',
+            short_display_name: 'T1',
+            blocking: 'not a boolean',
+            color_hex: '#000000',
+            precondition: null,
+          },
+        },
+        assignment_id: 'assignment1',
+      };
+
+      await supertest({ userId: ta.userId })
+        .patch(`/queues/${queue.id}/config`)
+        .send(invalidConfig)
+        .expect(400);
+    });
+
+    it('returns 400 on config with invalid tag', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+      });
+
+      const invalidConfig = {
+        tags: {
+          tag1: {
+            display_name: 'Tag 1',
+            color_hex: 'not a hex color',
+          },
+        },
+      };
+
+      await supertest({ userId: ta.userId })
+        .patch(`/queues/${queue.id}/config`)
+        .send(invalidConfig)
+        .expect(400);
     });
   });
 });

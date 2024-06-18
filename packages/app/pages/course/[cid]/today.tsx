@@ -131,6 +131,7 @@ export default function Today(): ReactElement {
         queueRequest.officeHourName,
         !queueRequest.allowTA,
         queueRequest.notes,
+        JSON.parse(queueRequest.config),
       )
       message.success(`Created a new queue ${queueRequest.officeHourName}`)
       mutateCourse()

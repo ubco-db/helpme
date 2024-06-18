@@ -49,7 +49,7 @@ The `studentAssignmentProgress`, when combined with the `queueConfig`, allows th
 }
 ```
 - `TaskQuestion`/`Demo`/`CheckableTask` - they mean the same thing. These use the same infrastructure as regular questions except they have `isTaskQuestion`. The tasks themselves are defined in each queue's `config`/`queueConfig`. The parts that the student wants marked is stored in the question text as "Mark "task1" "task2"".
-- `config`/`queueConfig` - A json that has a list of attributes that allows the professor to specify `questionTypes`/`tags`, `tasks`, and other stuff. The idea behind it is it allows professors to quickly copy-paste configs between queues or courses. Therefore, if adding a new attribute for queue customization, add it to this config instead of making it a new column. For more details about what each attribute does, look at `QueueCreateModal.tsx`. An example one looks like this:
+- `config`/`queueConfig` - A json that has a list of attributes that allows the professor to specify `questionTypes`/`tags`, `tasks`, and other stuff. The idea behind it is it allows professors to quickly copy-paste configs between queues or courses. Therefore, if adding a new attribute for queue customization, add it to this config instead of making it a new column. For more details about what each attribute does, look at `QueueConfigHelp.tsx`. An example one looks like this:
 ```json
 {
     "fifo_queue_view_enabled": true,

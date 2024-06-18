@@ -8,6 +8,7 @@ import {
   QueueConfig,
   Role,
   UpdateQueueParams,
+  validateQueueConfigInput,
 } from '@koh/common';
 import {
   Body,
@@ -199,27 +200,19 @@ export class QueueController {
     }
   }
 
-  // returns the JSON config for a queue. Can return null if no config is set
-  // TODO: remove
-  @Get(':queueId/config')
-  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
-  async getConfig(queueId: number): Promise<QueueConfig | null> {
-    const queue = await this.queueService.getQueue(queueId);
-    if (!queue) {
-      throw new NotFoundException();
-    }
-
-    return queue.config;
-  }
-
   // Sets the JSON config for a queue and then returns the updated json
-  // TODO: add checking to make sure the config is good
   @Patch(':queueId/config')
   @Roles(Role.TA, Role.PROFESSOR)
   async setConfig(
     @Param('queueId') queueId: number,
     @Body() config: QueueConfig,
   ): Promise<QueueConfig | null> {
+    // make sure queue config is valid
+    const configError = validateQueueConfigInput(config);
+    if (configError) {
+      throw new HttpException(configError, HttpStatus.BAD_REQUEST);
+    }
+
     // set config for a queue
     const queue = await this.queueService.getQueue(queueId);
     if (!queue) {

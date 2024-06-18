@@ -404,8 +404,6 @@ class APIClient {
       this.req('POST', `/api/v1/queues/${queueId}/clean`),
     disable: async (queueId: number): Promise<void> =>
       this.req('DELETE', `/api/v1/queues/${queueId}`),
-    getConfig: async (queueId: number): Promise<QueueConfig> =>
-      this.req('GET', `/api/v1/queues/${queueId}/config`),
     updateConfig: async (
       queueId: number,
       config: QueueConfig,
@@ -416,12 +414,13 @@ class APIClient {
       room: string,
       isProfessorQueue: boolean,
       notes: string,
+      config: QueueConfig,
     ): Promise<TAUpdateStatusResponse> =>
       this.req(
         'POST',
         `/api/v1/courses/${courseId}/create_queue/${room}`,
         QueuePartial,
-        { notes, isProfessorQueue },
+        { notes, isProfessorQueue, config },
       ),
   }
   notif = {

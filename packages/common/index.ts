@@ -1490,6 +1490,152 @@ export interface QueueConfig {
   tasks?: ConfigTasks
 }
 
+// this function is used both on the backend and frontend to check if there are any errors in the queue config
+// returns an empty string if there's no errors
+export function validateQueueConfigInput(obj: any): string {
+  const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
+  const validAttributes = [
+    'fifo_queue_view_enabled',
+    'tag_groups_queue_view_enabled',
+    'default_view',
+    'minimum_tags',
+    'tags',
+    'assignment_id',
+    'tasks',
+  ]
+  const validTagAttributes = ['display_name', 'color_hex']
+  const validTaskAttributes = [
+    'display_name',
+    'short_display_name',
+    'blocking',
+    'color_hex',
+    'precondition',
+  ]
+
+  if (!obj) {
+    return 'Input is null or undefined'
+  }
+  if (
+    obj.fifo_queue_view_enabled !== undefined &&
+    typeof obj.fifo_queue_view_enabled !== 'boolean'
+  ) {
+    return 'fifo_queue_view_enabled must be a boolean'
+  }
+  if (
+    obj.tag_groups_queue_view_enabled !== undefined &&
+    typeof obj.tag_groups_queue_view_enabled !== 'boolean'
+  ) {
+    return 'tag_groups_queue_view_enabled must be a boolean'
+  }
+  if (
+    obj.fifo_queue_view_enabled === false &&
+    obj.tag_groups_queue_view_enabled === false
+  ) {
+    return 'At least one of fifo_queue_view_enabled and tag_groups_queue_view_enabled must be enabled'
+  }
+  if (
+    obj.default_view !== undefined &&
+    !['fifo', 'tag_groups'].includes(obj.default_view)
+  ) {
+    return "default_view must be 'fifo' or 'tag_groups'"
+  }
+  if (obj.minimum_tags !== undefined && typeof obj.minimum_tags !== 'number') {
+    return 'minimum_tags must be a number'
+  }
+  if (obj.tags !== undefined) {
+    if (typeof obj.tags !== 'object') {
+      return 'tags must be an object'
+    }
+    for (const tagKey in obj.tags) {
+      if (
+        !obj.tags[tagKey].display_name ||
+        typeof obj.tags[tagKey].display_name !== 'string'
+      ) {
+        return `Tag ${tagKey} must have a display_name of type string`
+      }
+      if (
+        !obj.tags[tagKey].color_hex ||
+        typeof obj.tags[tagKey].color_hex !== 'string' ||
+        !hexColorRegex.test(obj.tags[tagKey].color_hex)
+      ) {
+        return `Tag ${tagKey} must have a valid color_hex of type string`
+      }
+      for (const key in obj.tags[tagKey]) {
+        if (!validTagAttributes.includes(key)) {
+          return `Unknown attribute "${key}" in tag "${tagKey}"`
+        }
+      }
+    }
+  }
+  if (obj.assignment_id !== undefined) {
+    if (typeof obj.assignment_id !== 'string') {
+      return 'assignment_id must be a string'
+    }
+    if (obj.assignment_id.includes(' ')) {
+      return 'assignment_id must not contain spaces'
+    }
+  }
+  if (obj.tasks !== undefined) {
+    if (typeof obj.tasks !== 'object') {
+      return 'tasks must be an object'
+    }
+    for (const taskKey in obj.tasks) {
+      if (taskKey.includes(' ')) {
+        return `Task key ${taskKey} must not contain spaces`
+      }
+      if (
+        !obj.tasks[taskKey].display_name ||
+        typeof obj.tasks[taskKey].display_name !== 'string'
+      ) {
+        return `Task ${taskKey} must have a display_name of type string`
+      }
+      if (
+        !obj.tasks[taskKey].short_display_name ||
+        typeof obj.tasks[taskKey].short_display_name !== 'string'
+      ) {
+        return `Task ${taskKey} must have a short_display_name of type string`
+      }
+      if (
+        obj.tasks[taskKey].blocking !== undefined &&
+        typeof obj.tasks[taskKey].blocking !== 'boolean'
+      ) {
+        return `Task ${taskKey} blocking must be a boolean`
+      }
+      if (
+        !obj.tasks[taskKey].color_hex ||
+        typeof obj.tasks[taskKey].color_hex !== 'string' ||
+        !hexColorRegex.test(obj.tasks[taskKey].color_hex)
+      ) {
+        return `Task ${taskKey} must have a valid color_hex of type string`
+      }
+      if (
+        obj.tasks[taskKey].precondition === undefined ||
+        (obj.tasks[taskKey].precondition !== null &&
+          !(obj.tasks[taskKey].precondition in obj.tasks))
+      ) {
+        return `Task ${taskKey} precondition must be null or the key of another task`
+      }
+      for (const key in obj.tasks[taskKey]) {
+        if (!validTaskAttributes.includes(key)) {
+          return `Unknown attribute "${key}" in task "${taskKey}"`
+        }
+      }
+    }
+  }
+  if (obj.tasks !== undefined && obj.assignment_id === undefined) {
+    return 'Config also needs an assignment_id field if tasks are defined'
+  }
+  if (obj.assignment_id !== undefined && obj.tasks === undefined) {
+    return 'Config also needs a tasks field if assignment_id is defined'
+  }
+  for (const key in obj) {
+    if (!validAttributes.includes(key)) {
+      return `Unknown attribute "${key}"`
+    }
+  }
+  return ''
+}
+
 /* Essentialy this:
     "task1": {
         "display_name": "Task 1",
