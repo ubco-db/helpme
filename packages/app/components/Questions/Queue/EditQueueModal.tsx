@@ -145,7 +145,7 @@ export function EditQueueModal({
 
   const addQuestionType = useCallback(async () => {
     if (isInputEmpty) {
-      message.error('Please enter a question type name')
+      message.error('Please enter a question tag name')
       return
     }
     try {
@@ -155,7 +155,7 @@ export function EditQueueModal({
         queueId: queueId,
       })
     } catch (e) {
-      message.error('Question type already exists')
+      message.error('Question tag already exists')
     }
     setQuestionsTypeState(
       await API.questionType.getQuestionTypes(courseNumber, queueId),
@@ -214,7 +214,7 @@ export function EditQueueModal({
             <Switch />
           </CustomFormItem>
           <h4 className="font-medium">
-            Current Question Types: (click to delete)
+            Current Question Tags: (click to delete)
           </h4>
           <div className="my-1">
             {questionsTypeState.length > 0 ? (
@@ -227,7 +227,7 @@ export function EditQueueModal({
                 />
               ))
             ) : (
-              <p>No Questions types</p>
+              <p>No Question Tags</p>
             )}
           </div>
           <CustomFormItem name="add">
@@ -329,12 +329,16 @@ export function EditQueueModal({
                 validator: (_, value) => {
                   setLocalQueueConfigString(value)
                   try {
+                    // parse the config (any errors will be caught by the try-catch)
                     const parsedConfig = JSON.parse(value)
+                    // TODO: figure out a way to warn the user if there are duplicate keys in the config (JSON.parse will not throw an error, it will just overwrite the first object with the second one. It'd just be for UX)
+                    // do more error checking
                     const configError = validateQueueConfigInput(parsedConfig)
                     if (configError) {
                       setIsValidConfig(false)
                       return Promise.reject(new Error(configError))
                     }
+                    // config is good
                     setConfigHasChanges(
                       JSON.stringify(lastSavedQueueConfig, null, 2) != value,
                     )

@@ -242,7 +242,7 @@ export default function QuestionForm({
             ></QuestionTypeSelector>
           </section>
         ) : (
-          <p>No Question types found</p>
+          <p>No Question tags found</p>
         )}
         <section>
           <QuestionText id="question-form-text">

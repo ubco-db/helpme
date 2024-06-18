@@ -1490,6 +1490,17 @@ export interface QueueConfig {
   tasks?: ConfigTasks
 }
 
+// Helper function to find the first duplicate in an array
+function findFirstDuplicate(array: any[]): any {
+  const seen = new Set()
+  for (const item of array) {
+    if (seen.has(item)) {
+      return item
+    }
+    seen.add(item)
+  }
+  return null
+}
 // this function is used both on the backend and frontend to check if there are any errors in the queue config
 // returns an empty string if there's no errors
 export function validateQueueConfigInput(obj: any): string {
@@ -1546,6 +1557,7 @@ export function validateQueueConfigInput(obj: any): string {
     if (typeof obj.tags !== 'object') {
       return 'tags must be an object'
     }
+    // checks for each tag
     for (const tagKey in obj.tags) {
       if (
         !obj.tags[tagKey].display_name ||
@@ -1566,6 +1578,14 @@ export function validateQueueConfigInput(obj: any): string {
         }
       }
     }
+    // no duplicate tag display names
+    const tagDisplayNames = Object.values(obj.tags).map(
+      (tag: any) => tag.display_name,
+    )
+    if (tagDisplayNames.length !== new Set(tagDisplayNames).size) {
+      const duplicateDisplayName = findFirstDuplicate(tagDisplayNames)
+      return `Tag display names must be unique. Duplicate display name found: "${duplicateDisplayName}"`
+    }
   }
   if (obj.assignment_id !== undefined) {
     if (typeof obj.assignment_id !== 'string') {
@@ -1579,6 +1599,7 @@ export function validateQueueConfigInput(obj: any): string {
     if (typeof obj.tasks !== 'object') {
       return 'tasks must be an object'
     }
+    // checks for each task
     for (const taskKey in obj.tasks) {
       if (taskKey.includes(' ')) {
         return `Task key ${taskKey} must not contain spaces`

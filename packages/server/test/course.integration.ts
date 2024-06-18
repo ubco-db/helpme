@@ -31,6 +31,7 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
+import { QuestionTypeModel } from 'questionType/question-type.entity';
 
 describe('Course Integration', () => {
   const supertest = setupIntegrationTest(CourseModule);
@@ -664,6 +665,88 @@ describe('Course Integration', () => {
 
       const q1 = await QueueModel.findOne({ room: 'abcd1' });
       expect(q1).toEqual(undefined);
+    });
+
+    it('creates question types for each tag defined in the config', async () => {
+      const ucp = await UserCourseFactory.create({
+        role: Role.PROFESSOR,
+      });
+
+      const exampleConfig = {
+        tags: {
+          tag1: {
+            display_name: 'Tag 1',
+            color_hex: '#ff0000',
+          },
+          tag2: {
+            display_name: 'Tag 2',
+            color_hex: '#00ff00',
+          },
+        },
+      };
+
+      await supertest({ userId: ucp.user.id })
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
+        .send({
+          notes: 'example note 1',
+          isProfessorQueue: false,
+          config: exampleConfig,
+        })
+        .expect(201);
+
+      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      expect(q1.config).toEqual(exampleConfig);
+
+      const questionTypes = await QuestionTypeModel.find({
+        where: {
+          cid: ucp.course.id,
+        },
+      });
+
+      expect(questionTypes.length).toBe(2);
+      expect(questionTypes[0].name).toBe('Tag 1');
+      expect(questionTypes[0].color).toBe('#ff0000');
+      expect(questionTypes[1].name).toBe('Tag 2');
+      expect(questionTypes[1].color).toBe('#00ff00');
+    });
+
+    it('does not create question types for duplicate tags (display_name)', async () => {
+      const ucp = await UserCourseFactory.create({
+        role: Role.PROFESSOR,
+      });
+
+      const exampleConfig = {
+        tags: {
+          tag1: {
+            display_name: 'Tag 1',
+            color_hex: '#ff0000',
+          },
+          tag2: {
+            display_name: 'Tag 1',
+            color_hex: '#00ff00',
+          },
+        },
+      };
+
+      await supertest({ userId: ucp.user.id })
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
+        .send({
+          notes: 'example note 1',
+          isProfessorQueue: false,
+          config: exampleConfig,
+        })
+        .expect(400);
+
+      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      expect(q1).toBeUndefined();
+
+      const questionTypes = await QuestionTypeModel.find({
+        where: {
+          cid: ucp.course.id,
+        },
+      });
+
+      expect(questionTypes.length).toBe(0);
     });
   });
 

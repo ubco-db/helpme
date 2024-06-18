@@ -21,8 +21,6 @@ import { Response } from 'express';
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionTypeController {
-  constructor(private connection: Connection) {}
-
   @Post(':c')
   @Roles(Role.TA, Role.PROFESSOR)
   async addQuestionType(
@@ -30,7 +28,6 @@ export class QuestionTypeController {
     @Param('c') courseId: number,
     @Body() newQuestionType: QuestionTypeParams,
   ): Promise<void> {
-    console.log('newQuestionType', newQuestionType);
     let queueId = newQuestionType.queueId;
     if (typeof queueId !== 'number' || isNaN(queueId)) {
       queueId = null;
@@ -52,7 +49,7 @@ export class QuestionTypeController {
       res.status(200).send('success');
       return;
     } else {
-      res.status(400).send('Question already exists');
+      res.status(400).send('Question type already exists');
       return;
     }
   }
