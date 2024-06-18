@@ -1,39 +1,12 @@
 import { ReactElement } from 'react'
 import Modal from 'antd/lib/modal/Modal'
-import {
-  Input,
-  Form,
-  Button,
-  message,
-  Popconfirm,
-  Switch,
-  Card,
-  Col,
-  Row,
-} from 'antd'
+import { Button, message, Card, Col, Row } from 'antd'
 import styled from 'styled-components'
 import { API } from '@koh/api-client'
-import { useQueue } from '../../../hooks/useQueue'
-import {
-  AllStudentAssignmentProgress,
-  ConfigTasks,
-  QuestionTypeParams,
-  QueueConfig,
-  UpdateQueueParams,
-} from '@koh/common'
-import { pick } from 'lodash'
-import { default as React, useEffect, useCallback, useState } from 'react'
-import { useRouter } from 'next/router'
-import { useCourse } from '../../../hooks/useCourse'
+import { AllStudentAssignmentProgress, ConfigTasks } from '@koh/common'
+import { default as React, useEffect, useState } from 'react'
 import { QuestionType } from '../../Questions/Shared/QuestionType'
-import {
-  DisableQueueButton,
-  ClearQueueButton,
-  clearQueue,
-  confirmDisable,
-} from '../../Questions/Queue/QueueInfoColumn'
-import { SketchPicker } from 'react-color'
-import { BgColorsOutlined, ReloadOutlined } from '@ant-design/icons'
+import { ReloadOutlined } from '@ant-design/icons'
 import { KOHAvatar } from '../../common/SelfAvatar'
 
 const StudentCard = styled(Card)`

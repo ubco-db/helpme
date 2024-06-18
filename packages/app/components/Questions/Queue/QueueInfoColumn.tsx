@@ -340,7 +340,15 @@ export const disableQueue = async (
 ) => {
   await API.queues.disable(queueId)
   message.success('Successfully disabled queue: ' + queue.room)
-  await Router.push('/')
+
+  // redirect to /today page
+  const currentPath = window.location.pathname
+  const pathParts = currentPath.split('/')
+  // Remove the last two parts ('queue' and '4') and add 'today'
+  const newPathParts = [...pathParts.slice(0, -2), 'today']
+  const newPath = newPathParts.join('/')
+
+  await Router.push(newPath)
 }
 
 interface QuestionTypeProps {
