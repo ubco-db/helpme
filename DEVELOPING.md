@@ -13,6 +13,7 @@
   - [Testing](#testing)
   - [Installing new packages](#installing-new-packages)
 - [Style](#style)
+- [Tips](#tips)
 - [Production](#production)
 
 ## Installation to run locally
@@ -133,6 +134,11 @@ package, `cd packages/app` and then `yarn add <FRONTEND PACKAGE>`
 ## Style
 
 [Prettier](https://prettier.io/), a highly opinionated code formatter, runs right before you commit to git. So don't worry about formatting your code! Prettier will clean it all up. You can also get the Prettier extension in most IDEs, or run `yarn pretty-quick` if you want to.
+
+## Tips
+
+- In VSCode, Ctrl+Clicking functions (or variables) is your best friend when navigating the code. Ctrl+Clicking a function that is being called will take you to where it is defined. Ctrl+Clicking a function definition will show you everywhere it is called (which can be helpful for figuring out if something will break).
+- In VSCode, the "Search" tab (Ctrl+Shift+F) is your best friend when you need to find something across the entire codebase (helpful for finding related files)
 
 ## Production
 
