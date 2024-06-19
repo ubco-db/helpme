@@ -53,6 +53,7 @@ import {
   StudentAssignmentProgress,
   QueueConfig,
   AllStudentAssignmentProgress,
+  setQueueConfigResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -407,7 +408,7 @@ class APIClient {
     updateConfig: async (
       queueId: number,
       config: QueueConfig,
-    ): Promise<QueueConfig> =>
+    ): Promise<setQueueConfigResponse> =>
       this.req('PATCH', `/api/v1/queues/${queueId}/config`, undefined, config),
     createQueue: async (
       courseId: number,

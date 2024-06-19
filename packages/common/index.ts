@@ -1475,6 +1475,11 @@ export class CourseSettingsRequestBody {
   }
 }
 
+// used to display what question types were created/deleted/updated from editing the queue
+export interface setQueueConfigResponse {
+  questionTypeMessages: string[]
+}
+
 export interface QueueConfig {
   fifo_queue_view_enabled?: boolean
   tag_groups_queue_view_enabled?: boolean

@@ -1,12 +1,7 @@
-import { ReactElement, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Text } from '../Shared/SharedComponents'
 import { CheckOutlined } from '@ant-design/icons'
 import { ConfigTasks, StudentAssignmentProgress } from '@koh/common'
-// import { TaskParams } from '@koh/common'
-
-//
-// CHECKABLE (like checkbox) QUESTION TASKS
-//
 
 interface CheckableTaskProps {
   task: Task
@@ -18,6 +13,7 @@ interface CheckableTaskProps {
   isHovered: boolean
 }
 
+// note: this "Task" is only for this frontend component, the Task used in the rest of the system is a part of ConfigTasks in @koh/common
 interface Task {
   taskId: string
   isDone?: boolean
@@ -74,7 +70,6 @@ export function CheckableTask({
   }
 
   // for applying hover and focus styles
-  // const [isHovered, setIsHovered] = useState(false)
   const handleMouseEnter = () => {
     if (!disabled) onMouseEnterAndFocus(taskId, checked)
   }
@@ -263,7 +258,7 @@ export function TaskSelector({
   useEffect(() => {
     // First, assemble a tree data structure that will allow us to easily find the tasks that are prerequisites for each task.
     // This turns all the preconditions into object references instead of strings
-    const configTasksCopy = { ...configTasks } // Create a copy of configTasks (since the function will mutate it)
+    const configTasksCopy: object = { ...configTasks } // Create a copy of configTasks (since the function will mutate it)
     // For each task that is marked as done, give it the isDone = true attribute
     if (studentAssignmentProgress) {
       for (const [taskKey, taskValue] of Object.entries(
@@ -299,7 +294,7 @@ export function TaskSelector({
         }
         if (task.blocking && !task.isDone) {
           // if the task is blocking and not done, don't check any dependent tasks as it bubbles up
-          console.log('blocking task not done')
+          console.log('blocking task not done') // leaving this here for now, maybe in the future we can give a message to the user
           checkStatus.wasThereIncompleteBlockingTask = true
         }
       }

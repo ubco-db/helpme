@@ -158,6 +158,7 @@ export default function QuestionForm({
     let isCancelled = false
 
     const fetchQuestions = async () => {
+      // TODO: add a useSWR for this endpoint to improve performance
       const questions = await API.questionType.getQuestionTypes(
         courseNumber,
         queueId,
@@ -167,12 +168,13 @@ export default function QuestionForm({
       }
     }
 
-    fetchQuestions()
-
+    if (visible) {
+      fetchQuestions()
+    }
     return () => {
       isCancelled = true
     }
-  }, [courseNumber])
+  }, [courseNumber, visible])
 
   useEffect(() => {
     const cleanup = getQuestions()

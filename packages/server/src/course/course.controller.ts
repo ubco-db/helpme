@@ -12,7 +12,6 @@ import {
   QueuePartial,
   RegisterCourseParams,
   Role,
-  StudentAssignmentProgress,
   TACheckinTimesResponse,
   TACheckoutResponse,
   UBCOuserParam,
@@ -58,8 +57,7 @@ import { OrganizationCourseModel } from 'organization/organization-course.entity
 import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
-import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
-import { getManager, getRepository } from 'typeorm';
+import { getManager } from 'typeorm';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 
 @Controller('courses')

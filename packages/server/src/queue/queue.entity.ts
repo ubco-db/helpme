@@ -9,17 +9,14 @@ import {
   ManyToMany,
   ManyToOne,
   OneToMany,
-  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { CourseModel } from '../course/course.entity';
 import { UserModel } from '../profile/user.entity';
 import { QuestionModel } from '../question/question.entity';
-
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ERROR_MESSAGES, QueueConfig } from '@koh/common';
-// import { QueueSessionModel } from 'queueSession/queueSession.entity';
-// import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
+import { QuestionTypeModel } from '../questionType/question-type.entity';
 
 @Entity('queue_model')
 export class QueueModel extends BaseEntity {
@@ -60,6 +57,9 @@ export class QueueModel extends BaseEntity {
 
   @Column({ default: false })
   isDisabled: boolean;
+
+  @OneToMany((type) => QuestionTypeModel, (qtm) => qtm.queue)
+  questionTypes: QuestionTypeModel[];
 
   startTime: Date;
   endTime: Date;

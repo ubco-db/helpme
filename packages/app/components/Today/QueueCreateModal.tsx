@@ -86,7 +86,7 @@ export default function QueueCreateModal({
         color_hex: '#66AA66',
       },
       tag3: {
-        display_name: 'Blocking',
+        display_name: 'Important',
         color_hex: '#FF0000',
       },
     },

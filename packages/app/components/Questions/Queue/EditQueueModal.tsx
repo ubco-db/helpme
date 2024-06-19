@@ -124,7 +124,7 @@ export function EditQueueModal({
         courseNumber,
         queueId,
       )
-      await setQuestionsTypeState(temp)
+      setQuestionsTypeState(temp)
     },
     [courseNumber],
   )
@@ -368,13 +368,25 @@ export function EditQueueModal({
                         return
                       }
                       try {
-                        await API.queues
-                          .updateConfig(queue.id, parsedConfig)
-                          .then(() => {
-                            message.success('Queue config saved')
-                            setLastSavedQueueConfig(parsedConfig)
-                            setConfigHasChanges(false)
-                          })
+                        const updatedTagsMessages =
+                          await API.queues.updateConfig(queue.id, parsedConfig)
+                        message.success('Queue config saved')
+                        setLastSavedQueueConfig(parsedConfig)
+                        setConfigHasChanges(false)
+                        // if any of the questionTypes were created/updated/deleted, update the questionTypes and message the user
+                        if (
+                          updatedTagsMessages.questionTypeMessages.length > 0
+                        ) {
+                          setQuestionsTypeState(
+                            await API.questionType.getQuestionTypes(
+                              courseNumber,
+                              queueId,
+                            ),
+                          )
+                          for (const tagMessage of updatedTagsMessages.questionTypeMessages) {
+                            message.info(tagMessage)
+                          }
+                        }
                       } catch (error) {
                         const errorMessage =
                           error?.response?.data?.message ?? error.message
@@ -397,6 +409,6 @@ export function EditQueueModal({
           </CustomFormItem>
         </Form>
       )}
-    </Modal> // TODO: disable the Parse & Save button if there's nothing new to save
+    </Modal>
   )
 }

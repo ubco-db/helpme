@@ -30,7 +30,7 @@ import CantFindModal from './StudentCantFindModal'
 import StudentRemovedFromQueueModal from './StudentRemovedFromQueueModal'
 import StudentQueueCard from './StudentQueueCard'
 import StudentBanner from './StudentBanner'
-import useSWR, { mutate } from 'swr'
+import { mutate } from 'swr'
 import QuestionForm from './QuestionForm'
 import DemoForm from './DemoForm'
 import { useDraftQuestion } from '../../../hooks/useDraftQuestion'
@@ -73,10 +73,6 @@ const JoinButton = styled(QueueInfoColumnButton)<{
   display: flex;
 `
 
-const PopConfirmTitle = styled.div`
-  max-width: 400px;
-`
-
 interface QueuePageProps {
   qid: number
   cid: number
@@ -104,9 +100,6 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
   const [popupEditQuestion, setPopupEditQuestion] = useState(false)
   const [popupEditDemo, setPopupEditDemo] = useState(false)
   const role = useRoleInCourse(cid)
-  // const [queueConfig, setQueueConfig] = useState<QueueConfig | null>(
-  //   {} as QueueConfig,
-  // )
   const queueConfig = queue?.config
   const configTasks = queueConfig?.tasks
   const isDemoQueue: boolean = !!configTasks && !!queueConfig.assignment_id
@@ -146,21 +139,6 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     true,
   )
 
-  // this is a separate useEffect because we don't want to re-fetch the queue config every time the queue changes
-  // useEffect(() => {
-  //   console.log('qid', qid)
-  //   if (qid)
-  //     API.queues
-  //       .getConfig(qid)
-  //       .then((config) => {
-  //         setQueueConfig(config)
-  //       })
-  //       .catch((error) => {
-  //         console.error(error)
-  //         message.error('Failed to fetch queue config')
-  //       })
-  // }, [qid])
-
   useEffect(() => {
     if (profile && profile.courses) {
       profile.courses.forEach((course) => {
@@ -173,28 +151,6 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
       })
     }
   }, [profile, cid])
-
-  // TODO: do useSWR for this
-  // get my completed tasks for this lab
-  // useEffect(() => {
-  //   if (
-  //     !isStaff &&
-  //     profileId &&
-  //     queueConfig &&
-  //     queueConfig.assignment_id &&
-  //     queueConfig.tasks &&
-  //     cid
-  //   ) {
-  //     (async () => {
-  //       const progress = await API.course.getAssignmentProgress(
-  //         cid,
-  //         profileId,
-  //         queueConfig.assignment_id,
-  //       )
-  //       setStudentAssignmentProgress(progress)
-  //     })()
-  //   }
-  // }, [cid, profileId, queueConfig?.assignment_id, configTasks, isStaff])
 
   const helpingQuestions = questions?.questionsGettingHelp?.filter(
     (q) => q.taHelped.id === profileId,

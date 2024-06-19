@@ -26,7 +26,6 @@ import {
   UserCourseFactory,
   UserFactory,
   CourseSettingsFactory,
-  StudentTaskProgressFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { OrganizationUserModel } from 'organization/organization-user.entity';

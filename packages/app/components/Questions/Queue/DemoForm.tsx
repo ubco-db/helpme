@@ -3,6 +3,7 @@ import {
   OpenQuestionStatus,
   Question,
   StudentAssignmentProgress,
+  ConfigTasks,
 } from '@koh/common'
 import { Alert, Button, Input, Modal, Radio, Tooltip } from 'antd'
 import { NextRouter, useRouter } from 'next/router'
@@ -49,7 +50,7 @@ const SaveChangesButton = styled(Button)`
 `
 
 interface DemoFormProps {
-  configTasks: object
+  configTasks: ConfigTasks
   studentAssignmentProgress: StudentAssignmentProgress
   visible: boolean
   question: Question
@@ -135,36 +136,34 @@ export default function DemoForm({
     )
   }
 
-  // TODO: need to make it so that when the demo is succesfully marked, to make sure to clear the storage
-
   // all possible questions, use courseId
-  const courseNumber = Number(courseId)
-  const getQuestions = useCallback(() => {
-    let isCancelled = false
+  // const courseNumber = Number(courseId)
+  // const getQuestions = useCallback(() => {
+  //   let isCancelled = false
 
-    // const fetchQuestions = async () => {
-    //   const questions = await API.questionType.getQuestionTypes(
-    //     courseNumber,
-    //     queueId,
-    //   )
-    //   if (!isCancelled) {
-    //     setQuestionsTypeState(questions)
-    //   }
-    // }
+  //   // const fetchQuestions = async () => {
+  //   //   const questions = await API.questionType.getQuestionTypes(
+  //   //     courseNumber,
+  //   //     queueId,
+  //   //   )
+  //   //   if (!isCancelled) {
+  //   //     setQuestionsTypeState(questions)
+  //   //   }
+  //   // }
 
-    // fetchQuestions()
+  //   // fetchQuestions()
 
-    return () => {
-      isCancelled = true
-    }
-  }, [courseNumber])
+  //   return () => {
+  //     isCancelled = true
+  //   }
+  // }, [courseNumber])
 
-  useEffect(() => {
-    const cleanup = getQuestions()
-    return () => {
-      cleanup()
-    }
-  }, [getQuestions])
+  // useEffect(() => {
+  //   const cleanup = getQuestions()
+  //   return () => {
+  //     cleanup()
+  //   }
+  // }, [getQuestions])
 
   return (
     <Modal

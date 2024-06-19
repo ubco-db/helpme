@@ -230,7 +230,7 @@ export default function AsyncQuestionsPage({
     return (
       <Select
         mode="multiple"
-        placeholder="Select question types"
+        placeholder="Select question tags"
         onChange={onTypeChange}
         style={{ width: '50%' }}
         value={questionTypeInput}
