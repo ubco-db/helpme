@@ -273,6 +273,7 @@ export class SeedController {
     });
 
     const questionType = await QuestionTypeFactory.create({
+      cid: course.id,
       queue: queue,
     });
 
@@ -292,6 +293,89 @@ export class SeedController {
       queue: queue,
       createdAt: new Date(Date.now() - 1500000),
       questionTypes: [questionType],
+    });
+
+    const queueLab = await QueueFactory.create({
+      room: 'Example Lab Room',
+      course: course,
+      allowQuestions: true,
+      config: {
+        fifo_queue_view_enabled: true,
+        tag_groups_queue_view_enabled: true,
+        default_view: 'fifo',
+        minimum_tags: 1,
+        tags: {
+          tag1: {
+            display_name: 'General',
+            color_hex: '#66FF66',
+          },
+          tag2: {
+            display_name: 'Bugs',
+            color_hex: '#66AA66',
+          },
+          tag3: {
+            display_name: 'Important',
+            color_hex: '#FF0000',
+          },
+        },
+        assignment_id: 'lab1',
+        tasks: {
+          task1: {
+            display_name: 'Task 1',
+            short_display_name: '1',
+            blocking: false,
+            color_hex: '#ffedb8',
+            precondition: null,
+          },
+          task2: {
+            display_name: 'Task 2',
+            short_display_name: '2',
+            blocking: false,
+            color_hex: '#fadf8e',
+            precondition: 'task1',
+          },
+          task3: {
+            display_name: 'Task 3',
+            short_display_name: '3',
+            blocking: true,
+            color_hex: '#f7ce52',
+            precondition: 'task2',
+          },
+          task4: {
+            display_name: 'Task 4',
+            short_display_name: '4',
+            blocking: false,
+            color_hex: '#deb22c',
+            precondition: 'task3',
+          },
+          task5: {
+            display_name: 'Task 5',
+            short_display_name: '5',
+            blocking: false,
+            color_hex: '#d4a42c',
+            precondition: 'task4',
+          },
+        },
+      },
+    });
+
+    await QuestionTypeFactory.create({
+      cid: course.id,
+      queue: queueLab,
+      name: 'General',
+      color: '#66FF66',
+    });
+    await QuestionTypeFactory.create({
+      cid: course.id,
+      queue: queueLab,
+      name: 'Bugs',
+      color: '#66AA66',
+    });
+    await QuestionTypeFactory.create({
+      cid: course.id,
+      queue: queueLab,
+      name: 'Important',
+      color: '#FF0000',
     });
 
     const eventTA = await UserModel.findOne({
