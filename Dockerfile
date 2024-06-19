@@ -1,4 +1,4 @@
-FROM node:14-alpine
+FROM node:20-alpine
 
 # Install necessary system dependencies for sharp and libvips
 RUN apk update && apk add --no-cache chromium build-base python3 \

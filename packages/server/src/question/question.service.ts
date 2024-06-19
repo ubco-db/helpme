@@ -20,17 +20,13 @@ import {
   NotifMsgs,
 } from 'notification/notification.service';
 import { UserModel } from 'profile/user.entity';
-import { Connection } from 'typeorm';
 import { QuestionModel } from './question.entity';
 import { QueueModel } from 'queue/queue.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
 @Injectable()
 export class QuestionService {
-  constructor(
-    private connection: Connection,
-    private notifService: NotificationService,
-  ) {}
+  constructor(private notifService: NotificationService) {}
 
   async changeStatus(
     status: QuestionStatus,
@@ -69,7 +65,7 @@ export class QuestionService {
       oldStatus !== OpenQuestionStatus.Helping &&
       newStatus === OpenQuestionStatus.Helping
     ) {
-      question.taHelped = await UserModel.findOne(userId);
+      question.taHelped = await UserModel.findOne({ where: { id: userId } });
       question.helpedAt = new Date();
 
       // Set firstHelpedAt if it hasn't already

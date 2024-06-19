@@ -10,6 +10,7 @@ import {
   message,
 } from 'antd'
 import router from 'next/router'
+import { useProfile } from '../../hooks/useProfile'
 const { Panel } = Collapse
 interface EditChatbotQuestionModalProps {
   editingRecord: any
@@ -26,13 +27,16 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
 }) => {
   const [form] = Form.useForm()
   const { cid } = router.query
+  const profile = useProfile()
   // stores all related documents in db
   const [existingDocuments, setExistingDocuments] = useState([])
   // stores selected documents for the question
   const [selectedDocuments, setSelectedDocuments] = useState([])
 
   useEffect(() => {
-    fetch(`/chat/${cid}/aggregateDocuments`)
+    fetch(`/chat/${cid}/aggregateDocuments`, {
+      headers: { HMS_API_TOKEN: profile.chat_token.token },
+    })
       .then((res) => res.json())
       .then((json) => {
         // Convert the json to the expected format
@@ -44,7 +48,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         }))
         setExistingDocuments(formattedDocuments)
       })
-  }, [cid, visible])
+  }, [cid, visible, profile?.chat_token.token])
 
   useEffect(() => {
     // Reset form with new editing record when visible or editingRecord changes
@@ -81,6 +85,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          HMS_API_TOKEN: profile.chat_token.token,
         },
         body: JSON.stringify(valuesWithId),
       })
@@ -126,6 +131,9 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         </Form.Item>
         <Form.Item name="verified" valuePropName="checked">
           <Checkbox>Mark Q&A as Verified by Human</Checkbox>
+        </Form.Item>
+        <Form.Item name="suggested" valuePropName="checked">
+          <Checkbox>Mark Q&A as Suggested </Checkbox>
         </Form.Item>
         <span className="font-bold">Source Documents</span>
         <Form.List name="sourceDocuments">

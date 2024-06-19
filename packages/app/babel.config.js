@@ -4,10 +4,10 @@ module.exports = {
       "next/babel",
       {
         "class-properties": {
-          loose: true,
+          loose: false,
         },
       },
-    ],
+    ]
   ],
   plugins: [
     [

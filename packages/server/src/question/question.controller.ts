@@ -9,7 +9,6 @@ import {
   OpenQuestionStatus,
   questions,
   QuestionStatusKeys,
-  QuestionTypeParams,
   Role,
   StudentAssignmentProgress,
   UpdateQuestionParams,
@@ -31,7 +30,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { Connection, In } from 'typeorm';
+import { In } from 'typeorm';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import {
   NotificationService,
@@ -58,7 +57,6 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionController {
   constructor(
-    private connection: Connection,
     private notifService: NotificationService,
     private questionService: QuestionService,
   ) {}
@@ -74,6 +72,7 @@ export class QuestionController {
     if (question === undefined) {
       throw new NotFoundException();
     }
+
     return question;
   }
 
@@ -110,6 +109,7 @@ export class QuestionController {
     });
     return questionRes;
   }
+
   @Post('TAcreate/:userId')
   async TAcreateQuestion(
     @Body() body: CreateQuestionParams,

@@ -16,7 +16,6 @@ import { useProfile } from '../../hooks/useProfile'
 import CourseRosterPage from './CourseRosterPage'
 import { SettingsPanelAvatar } from './SettingsSharedComponents'
 import TACheckInCheckOutTimes from './TACheckInCheckOutTimes'
-// import AddStudentsToCourse from './AddStudentsToCourse'
 import ExportQuestions from './ExportQuestions'
 import EditQuestions from './EditQuestions'
 import { useRoleInCourse } from '../../hooks/useRoleInCourse'
@@ -81,7 +80,7 @@ export default function CourseAdminPanel({
         <CenteredText>
           Welcome back
           <br />
-          {profile?.firstName} {profile?.lastName}
+          {profile?.firstName} {profile?.lastName ?? ''}
           {!profile?.photoURL && (
             <Tooltip
               title={

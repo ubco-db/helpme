@@ -48,7 +48,7 @@ import {
 import { OrganizationGuard } from 'guards/organization.guard';
 import * as checkDiskSpace from 'check-disk-space';
 import * as path from 'path';
-import * as sharp from 'sharp';
+import Jimp from 'jimp';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SemesterModel } from 'semester/semester.entity';
@@ -56,10 +56,57 @@ import { In } from 'typeorm';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { ChatTokenModel } from 'chatbot/chat-token.entity';
+import { v4 } from 'uuid';
 
 @Controller('organization')
 export class OrganizationController {
   constructor(private organizationService: OrganizationService) {}
+
+  @Post(':oid/populate_chat_token_table')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN)
+  async populateChatTokenTable(
+    @Res() res: Response,
+    @Param('oid') oid: number,
+  ): Promise<Response<void>> {
+    const organizationUsers = await OrganizationUserModel.find({
+      where: {
+        organizationId: oid,
+      },
+      relations: ['organizationUser', 'organizationUser.chat_token'],
+    });
+
+    let chatTokenCount = 0;
+    organizationUsers.forEach(async (organizationUser) => {
+      const ou = organizationUser.organizationUser;
+
+      if (!ou.chat_token) {
+        await ChatTokenModel.create({
+          user: ou,
+          token: v4(),
+        }).save();
+      } else {
+        chatTokenCount += 1;
+      }
+    });
+
+    if (chatTokenCount === organizationUsers.length) {
+      return res.status(HttpStatus.OK).send({
+        message: 'Chat token table already populated',
+      });
+    }
+
+    return res.status(HttpStatus.OK).send({
+      message: 'Chat token table populated',
+    });
+  }
+
   @Post(':oid/create_course')
   @UseGuards(
     JwtAuthGuard,
@@ -114,15 +161,27 @@ export class OrganizationController {
       });
     }
 
-    if (courseDetails.semesterId) {
-      const semesterInfo = await SemesterModel.findOne({
-        where: { id: courseDetails.semesterId },
+    if (
+      !courseDetails.semesterName &&
+      courseDetails.semesterName.trim().length < 2
+    ) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterNameTooShort,
       });
-      if (!semesterInfo) {
-        return res.status(HttpStatus.BAD_REQUEST).send({
-          message: ERROR_MESSAGES.courseController.semesterNotFound,
-        });
-      }
+    }
+
+    const semesterDetails = courseDetails.semesterName.split(',');
+
+    if (semesterDetails.length !== 2) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterNameFormat,
+      });
+    }
+
+    if (isNaN(parseInt(semesterDetails[1]))) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterYearInvalid,
+      });
     }
 
     const course = {
@@ -131,7 +190,6 @@ export class OrganizationController {
       sectionGroupName: courseDetails.sectionGroupName,
       zoomLink: courseDetails.zoomLink,
       timezone: courseDetails.timezone,
-      semesterId: courseDetails.semesterId,
       enabled: true,
     };
     try {
@@ -161,6 +219,25 @@ export class OrganizationController {
         organizationId: oid,
         course: newCourse,
       }).save();
+
+      const semester = await SemesterModel.findOne({
+        where: {
+          season: semesterDetails[0],
+          year: parseInt(semesterDetails[1]),
+        },
+        relations: ['courses'],
+      });
+
+      if (!semester) {
+        await SemesterModel.create({
+          season: semesterDetails[0],
+          year: parseInt(semesterDetails[1]),
+          courses: [newCourse],
+        }).save();
+      } else {
+        semester.courses.push(newCourse);
+        await semester.save();
+      }
 
       // create courseSettingsModel for the new course (all checks are performed by typescript)
       const newCourseSettings = new CourseSettingsModel();
@@ -218,7 +295,7 @@ export class OrganizationController {
         organizationId: oid,
         courseId: cid,
       },
-      relations: ['course'],
+      relations: ['course', 'course.semester'],
     });
 
     if (!courseInfo) {
@@ -273,20 +350,66 @@ export class OrganizationController {
       });
     }
 
-    if (courseDetails.semesterId) {
-      const semesterInfo = await SemesterModel.findOne({
+    if (
+      courseDetails.semesterName &&
+      courseDetails.semesterName.trim().length < 2
+    ) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterNameTooShort,
+      });
+    }
+
+    const semesterDetails = courseDetails.semesterName.split(',');
+    if (semesterDetails.length !== 2) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterNameFormat,
+      });
+    }
+
+    if (isNaN(parseInt(semesterDetails[1]))) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterYearInvalid,
+      });
+    }
+
+    const semester = await SemesterModel.findOne({
+      where: {
+        season: semesterDetails[0],
+        year: parseInt(semesterDetails[1]),
+      },
+      relations: ['courses'],
+    });
+
+    if (courseInfo.course.semester?.id) {
+      const prevSemester = await SemesterModel.findOne({
         where: {
-          id: courseDetails.semesterId,
+          id: courseInfo.course.semester.id,
         },
+        relations: ['courses'],
       });
 
-      if (!semesterInfo) {
-        return res.status(HttpStatus.BAD_REQUEST).send({
-          message: ERROR_MESSAGES.courseController.semesterNotFound,
-        });
+      if (prevSemester) {
+        prevSemester.courses = prevSemester.courses.filter(
+          (course) => course.id !== cid,
+        );
+        await prevSemester.save();
       }
+    }
 
-      courseInfo.course.semesterId = courseDetails.semesterId;
+    if (!semester) {
+      const newSemester = await SemesterModel.create({
+        season: semesterDetails[0],
+        year: parseInt(semesterDetails[1]),
+        courses: [courseInfo.course],
+      }).save();
+
+      courseInfo.course.semester = newSemester;
+      await courseInfo.course.save();
+    } else {
+      courseInfo.course.semester = semester;
+      await courseInfo.course.save();
+      semester.courses.push(courseInfo.course);
+      await semester.save();
     }
 
     courseInfo.course.name = courseDetails.name;
@@ -546,10 +669,11 @@ export class OrganizationController {
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
 
-    await sharp(file.buffer)
-      .resize(1920, 1080)
-      .toFile(path.join(process.env.UPLOAD_LOCATION, fileName));
-
+    const image = await Jimp.read(file.buffer);
+    image.resize(1920, 1080);
+    await image.writeAsync(
+      path.join(process.env.UPLOAD_LOCATION as string, fileName),
+    );
     organization.bannerUrl = fileName;
 
     await organization
@@ -626,9 +750,11 @@ export class OrganizationController {
       Math.random().toString(36).substring(2, 15) +
       Math.random().toString(36).substring(2, 15);
 
-    await sharp(file.buffer)
-      .resize(256)
-      .toFile(path.join(process.env.UPLOAD_LOCATION, fileName));
+    const image = await Jimp.read(file.buffer); // Load the image
+    image.resize(256, Jimp.AUTO); // Resize the image to 256 pixels (width, maintaining aspect ratio)
+    await image.writeAsync(
+      path.join(process.env.UPLOAD_LOCATION as string, fileName),
+    ); //same old
 
     organization.logoUrl = fileName;
 
@@ -787,23 +913,23 @@ export class OrganizationController {
     @Param('oid') oid: string,
     @Body() organizationUserRolePatch: UpdateOrganizationUserRole,
   ): Promise<void> {
-    OrganizationModel.findOne({
+    await OrganizationModel.findOne({
       where: { id: oid },
     })
-      .then((organization) => {
+      .then(async (organization) => {
         if (!organization) {
           return res.status(HttpStatus.NOT_FOUND).send({
             message: ERROR_MESSAGES.organizationController.organizationNotFound,
           });
         }
 
-        OrganizationUserModel.findOne({
+        await OrganizationUserModel.findOne({
           where: {
             userId: organizationUserRolePatch.userId,
             organizationId: oid,
           },
         })
-          .then((organizationUser) => {
+          .then(async (organizationUser) => {
             if (!organizationUser) {
               return res.status(HttpStatus.NOT_FOUND).send({
                 message:
@@ -825,7 +951,7 @@ export class OrganizationController {
 
             organizationUser.role = organizationUserRolePatch.organizationRole;
 
-            organizationUser
+            await organizationUser
               .save()
               .then((_) => {
                 res.status(HttpStatus.OK).send({
@@ -1220,7 +1346,7 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getProfessors(@Param('oid') oid: number): Promise<any> {
-    const orgProfs = OrganizationUserModel.find({
+    const orgProfs = await OrganizationUserModel.find({
       where: {
         organizationId: oid,
         role: In([OrganizationRole.PROFESSOR, OrganizationRole.ADMIN]),

@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from 'react'
-import { Input, Button, Card, Avatar, Spin, Tooltip } from 'antd'
+import { Input, Button, Card, Avatar, Spin, Tooltip, message } from 'antd'
 import { CheckCircleOutlined } from '@ant-design/icons'
 import styled from 'styled-components'
 import { API } from '@koh/api-client'
 import { UserOutlined, RobotOutlined } from '@ant-design/icons'
 import router from 'next/router'
 import { useProfile } from '../../hooks/useProfile'
-import { Feedback } from './components/Feedback'
+import axios from 'axios'
 import { useCourseFeatures } from '../../hooks/useCourseFeatures'
 
 const ChatbotContainer = styled.div`
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 90vw;
+  width: 100vw;
   max-width: 400px;
   zindex: 9999;
 `
@@ -42,8 +42,11 @@ export const ChatbotComponent: React.FC = () => {
   const { cid } = router.query
   const profile = useProfile()
   const [isLoading, setIsLoading] = useState(false)
-  const [interactionId, setInteractionId] = useState<number | null>(null)
-  const [preDeterminedQuestions] = useState<PreDeterminedQuestion[]>(null)
+  const [_interactionId, setInteractionId] = useState<number | null>(null)
+  const [preDeterminedQuestions, setPreDeterminedQuestions] = useState<
+    PreDeterminedQuestion[]
+  >([])
+  const [questionsLeft, setQuestionsLeft] = useState<number>(0)
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -58,10 +61,31 @@ export const ChatbotComponent: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
+    axios
+      .get(`/chat/${cid}/allSuggestedQuestions`, {
+        headers: { HMS_API_TOKEN: profile?.chat_token?.token },
+      })
+      .then((res) => {
+        res.data.forEach((question) => {
+          setPreDeterminedQuestions((prev) => [
+            ...prev,
+            {
+              question: question.pageContent,
+              answer: question.metadata.answer,
+            },
+          ])
+        })
+      })
+      .catch((err) => {
+        console.error(err)
+      })
+    if (profile && profile.chat_token) {
+      setQuestionsLeft(profile.chat_token.max_uses - profile.chat_token.used)
+    }
     return () => {
       setInteractionId(null)
     }
-  }, [])
+  }, [profile, cid])
 
   const query = async () => {
     try {
@@ -73,13 +97,19 @@ export const ChatbotComponent: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          HMS_API_TOKEN: profile.chat_token.token,
         },
         body: JSON.stringify(data),
       })
       const json = await response.json()
+      if (questionsLeft > 0) {
+        setQuestionsLeft(questionsLeft - 1)
+      }
       return json
     } catch (error) {
-      console.error('Error fetching from API:', error)
+      if (questionsLeft > 0) {
+        setQuestionsLeft(questionsLeft - 1)
+      }
       return null
     }
   }
@@ -89,8 +119,13 @@ export const ChatbotComponent: React.FC = () => {
 
     const result = await query()
 
-    const answer = result.answer || "Sorry, I couldn't find the answer"
-    const sourceDocuments = result.sourceDocuments || []
+    if (result && result.error) {
+      message.error(result.error)
+      return
+    }
+
+    const answer = result ? result.answer : "Sorry, I couldn't find the answer"
+    const sourceDocuments = result ? result.sourceDocuments : []
 
     setMessages([
       ...messages,
@@ -98,9 +133,9 @@ export const ChatbotComponent: React.FC = () => {
       {
         type: 'apiMessage',
         message: answer,
-        verified: result.verified,
+        verified: result ? result.verified : true,
         sourceDocuments: sourceDocuments,
-        questionId: result.questionId,
+        questionId: result ? result.questionId : null,
       },
     ])
 
@@ -117,24 +152,13 @@ export const ChatbotComponent: React.FC = () => {
         message: answer,
       },
     ])
-  }
-
-  const handleFeedback = async (questionId: number, userScore: number) => {
-    try {
-      await API.chatbot.editQuestion({
-        data: {
-          userScore,
-        },
-        questionId,
-      })
-    } catch (e) {
-      console.log(e)
-    }
+    setPreDeterminedQuestions([])
   }
 
   if (!cid || !courseFeatures?.chatBotEnabled) {
     return <></>
   }
+
   return (
     <ChatbotContainer className="max-h-[90vh]" style={{ zIndex: 1000 }}>
       {isOpen ? (
@@ -177,17 +201,6 @@ export const ChatbotComponent: React.FC = () => {
                               </Tooltip>
                             )}
                           </div>
-
-                          {item.questionId && (
-                            <div className="hidden items-center justify-end gap-2 group-hover:flex">
-                              <div className="flex w-fit gap-2 rounded-xl bg-slate-100 px-3 py-2">
-                                <Feedback
-                                  questionId={item.questionId}
-                                  handleFeedback={handleFeedback}
-                                />
-                              </div>
-                            </div>
-                          )}
                         </div>
                         <div className="flex flex-col gap-1">
                           {item.sourceDocuments &&
@@ -233,7 +246,6 @@ export const ChatbotComponent: React.FC = () => {
 
             {preDeterminedQuestions &&
               !isLoading &&
-              messages.length < 2 &&
               preDeterminedQuestions.map((question) => (
                 <div
                   className="align-items-start m-1 mb-1 flex justify-end"
@@ -267,17 +279,25 @@ export const ChatbotComponent: React.FC = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask something..."
-            onPressEnter={handleAsk}
+            onPressEnter={input.trim().length > 0 ? handleAsk : undefined}
             suffix={
               <Button
                 type="primary"
                 className="bg-blue-900"
                 onClick={handleAsk}
+                disabled={input.trim().length == 0 || isLoading}
               >
                 Ask
               </Button>
             }
           />
+
+          {profile && profile.chat_token && (
+            <Card.Meta
+              description={`You can ask chatbot ${questionsLeft} more question(s)`}
+              className="mt-3"
+            />
+          )}
         </Card>
       ) : (
         <Button

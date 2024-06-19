@@ -22,7 +22,6 @@ import NavBar from '../../../../components/Nav/NavBar'
 import { API } from '@koh/api-client'
 import useSWR from 'swr'
 import { useRouter } from 'next/router'
-import { useSemester } from '../../../../hooks/useSemester'
 
 export default function Edit(): ReactElement {
   const router = useRouter()
@@ -70,9 +69,8 @@ export default function Edit(): ReactElement {
 
   function RenderCourseInfo(): ReactElement {
     const [formGeneral] = Form.useForm()
-    const semesters = useSemester()
 
-    const { data: courseData, error } = useSWR(
+    const { data: courseData, _error } = useSWR(
       `api/v1/organization/[oid]/course/[cid]`,
       async () =>
         await API.organizations.getCourse(organization.id, Number(cid)),
@@ -104,7 +102,7 @@ export default function Edit(): ReactElement {
       const sectionGroupNameField = formValues.sectionGroupName
       const zoomLinkField = formValues.zoomLink
       const courseTimezoneField = formValues.courseTimezone
-      const semesterIdField = formValues.semesterId
+      const semesterNameField = formValues.semesterName
       const profIdsField = isAdmin ? formValues.professorsUserId : [profile.id]
 
       if (
@@ -113,7 +111,8 @@ export default function Edit(): ReactElement {
         sectionGroupNameField === courseData.course.sectionGroupName &&
         zoomLinkField === courseData.course.zoomLink &&
         courseTimezoneField === courseData.course.timezone &&
-        semesterIdField === courseData.course.semesterId &&
+        semesterNameField ===
+          `${courseData.course.semester?.season},${courseData.course.semester?.year}` &&
         profIdsField === courseData.profIds
       ) {
         message.info(
@@ -153,12 +152,15 @@ export default function Edit(): ReactElement {
         return
       }
 
-      // if semesterIdField is not a number or not in semesters
-      if (
-        isNaN(semesterIdField) ||
-        !semesters.find((semester) => semester.id === semesterIdField)
-      ) {
-        message.error('Semester is invalid')
+      if (semesterNameField.split(',').length !== 2) {
+        message.error(
+          'Semester must be in the format "season,year" with comma included. E.g. Fall,2021',
+        )
+        return
+      }
+
+      if (isNaN(semesterNameField.split(',')[1])) {
+        message.error('Year must be a number')
         return
       }
 
@@ -182,7 +184,7 @@ export default function Edit(): ReactElement {
           sectionGroupName: sectionGroupNameField,
           zoomLink: zoomLinkField ?? '',
           timezone: courseTimezoneField,
-          semesterId: semesterIdField,
+          semesterName: semesterNameField,
           profIds: profIdsField,
         })
         .then(() => {
@@ -195,7 +197,7 @@ export default function Edit(): ReactElement {
         })
     }
 
-    return semesters && courseData ? (
+    return courseData ? (
       <>
         <Row>
           <Col xs={{ span: 24 }} sm={{ span: 24 }}>
@@ -209,7 +211,7 @@ export default function Edit(): ReactElement {
                   sectionGroupName: courseData.course.sectionGroupName,
                   zoomLink: courseData.course.zoomLink,
                   courseTimezone: courseData.course.timezone,
-                  semesterId: courseData.course.semesterId,
+                  semesterName: `${courseData.course.semester?.season},${courseData.course.semester?.year}`,
                   professorsUserId: courseData.profIds,
                 }}
                 onFinish={updateGeneral}
@@ -273,16 +275,10 @@ export default function Edit(): ReactElement {
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                     <Form.Item
                       label="Semester"
-                      name="semesterId"
+                      name="semesterName"
                       tooltip="Semester of the course"
                     >
-                      <Select>
-                        {semesters.map((semester) => (
-                          <Select.Option value={semester.id} key={semester.id}>
-                            {semester.season + semester.year}
-                          </Select.Option>
-                        ))}
-                      </Select>
+                      <Input allowClear={true} placeholder="season,year" />
                     </Form.Item>
                   </Col>
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>

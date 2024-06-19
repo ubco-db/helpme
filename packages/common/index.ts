@@ -12,7 +12,6 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  ValidateIf,
 } from 'class-validator'
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
@@ -72,8 +71,16 @@ export class User {
   insights!: string[]
   userRole!: string
   organization?: OrganizationUserPartial
+  chat_token!: ChatTokenPartial
   accountType!: AccountType
   emailVerified!: boolean
+}
+
+export class ChatTokenPartial {
+  id!: number
+  token!: string
+  used!: number
+  max_uses!: number
 }
 
 export class OrganizationResponse {
@@ -560,7 +567,7 @@ export class Image {
 /**
  * Represents one of the seasons in which a course can take place.
  */
-export type Season = 'Fall' | 'Spring' | 'Summer_1' | 'Summer_2' | 'Summer_Full'
+export type Season = string
 
 export type DesktopNotifBody = {
   endpoint: string
@@ -842,7 +849,7 @@ export class GetCourseResponse {
 
   timezone?: string
 
-  semesterId?: number
+  semester?: SemesterPartial
 
   sectionGroupName?: string
 
@@ -930,9 +937,9 @@ export class UpdateOrganizationCourseDetailsParams {
   @IsOptional()
   timezone?: string
 
-  @IsInt()
+  @IsString()
   @IsOptional()
-  semesterId?: number
+  semesterName?: string
 
   @IsArray()
   @IsOptional()
@@ -1746,6 +1753,9 @@ export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
   },
+  questionService: {
+    getDBClient: 'Error getting DB client',
+  },
   organizationController: {
     notEnoughDiskSpace: 'Not enough disk space to upload file',
     userAlreadyInOrganization: 'User is already in organization',
@@ -1766,6 +1776,10 @@ export const ERROR_MESSAGES = {
       cannotCheckIntoMultipleQueues:
         'Cannot check into multiple queues at the same time',
     },
+    semesterYearInvalid: 'Semester year must be a valid year',
+    semesterNameFormat:
+      'Semester must be in the format "season,year". E.g. Fall,2021',
+    semesterNameTooShort: 'Semester name must be at least 2 characters',
     invalidInviteCode: 'Invalid invite code',
     semesterNotFound: 'Semester not found',
     courseNameTooShort: 'Course name must be at least 1 character',

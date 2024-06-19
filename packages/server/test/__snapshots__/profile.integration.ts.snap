@@ -1,11 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Profile Integration GET /profile returns the logged-in user profile 1`] = `
-Object {
+{
   "accountType": "legacy",
-  "courses": Array [
-    Object {
-      "course": Object {
+  "chat_token": {
+    "id": 1,
+    "max_uses": 30,
+    "token": "test",
+    "used": 0,
+  },
+  "courses": [
+    {
+      "course": {
         "id": 1,
         "name": "CS 2500",
       },
@@ -13,14 +19,14 @@ Object {
     },
   ],
   "defaultMessage": null,
-  "desktopNotifs": Array [],
+  "desktopNotifs": [],
   "desktopNotifsEnabled": false,
   "email": "user@ubc.ca",
   "emailVerified": true,
   "firstName": "User",
   "id": 1,
   "includeDefaultMessage": true,
-  "insights": Array [
+  "insights": [
     "TotalStudents",
     "TotalQuestionsAsked",
     "MedianWaitTime",
@@ -31,7 +37,7 @@ Object {
   ],
   "lastName": "Person",
   "name": "User Person",
-  "organization": Object {
+  "organization": {
     "id": 1,
     "orgId": 1,
     "organizationBannerUrl": null,

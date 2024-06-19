@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 1`] = `
-Object {
+{
   "allowQuestions": false,
   "config": Object {},
   "id": 2,
@@ -11,12 +11,12 @@ Object {
   "notes": null,
   "queueSize": 0,
   "room": "room 2",
-  "staffList": Array [],
+  "staffList": [],
 }
 `;
 
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 2`] = `
-Object {
+{
   "allowQuestions": false,
   "config": Object {},
   "id": 3,
@@ -26,8 +26,8 @@ Object {
   "notes": null,
   "queueSize": 0,
   "room": "room 3",
-  "staffList": Array [
-    Object {
+  "staffList": [
+    {
       "accountDeactivated": false,
       "accountType": "legacy",
       "defaultMessage": null,
@@ -36,7 +36,7 @@ Object {
       "firstName": "User",
       "id": 2,
       "includeDefaultMessage": true,
-      "insights": Array [
+      "insights": [
         "TotalStudents",
         "TotalQuestionsAsked",
         "MedianWaitTime",
@@ -57,7 +57,7 @@ Object {
 `;
 
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 3`] = `
-Object {
+{
   "allowQuestions": false,
   "config": Object {},
   "id": 4,
@@ -67,8 +67,8 @@ Object {
   "notes": null,
   "queueSize": 0,
   "room": "room 4",
-  "staffList": Array [
-    Object {
+  "staffList": [
+    {
       "accountDeactivated": false,
       "accountType": "legacy",
       "defaultMessage": null,
@@ -77,7 +77,7 @@ Object {
       "firstName": "User",
       "id": 2,
       "includeDefaultMessage": true,
-      "insights": Array [
+      "insights": [
         "TotalStudents",
         "TotalQuestionsAsked",
         "MedianWaitTime",
@@ -98,11 +98,11 @@ Object {
 `;
 
 exports[`Course Integration GET /courses/:id gets office hours no queues, since no queue is happening right now 1`] = `
-Object {
-  "asyncQuestionDisplayTypes": Array [],
+{
+  "asyncQuestionDisplayTypes": [],
   "coordinator_email": null,
   "courseInviteCode": "invite-code",
-  "crns": Array [],
+  "crns": [],
   "deletedAt": null,
   "enabled": true,
   "heatmap": false,
@@ -111,7 +111,7 @@ Object {
   "name": "CS 304",
   "organizationCourse": null,
   "questionTimer": null,
-  "queues": Array [],
+  "queues": [],
   "sectionGroupName": "CS 304",
   "selfEnroll": false,
   "semesterId": 1,
@@ -121,7 +121,7 @@ Object {
 `;
 
 exports[`Course Integration GET /courses/:id gets queues that are not disabled (TA) 1`] = `
-Object {
+{
   "allowQuestions": false,
   "config": Object {},
   "id": 2,
@@ -131,12 +131,12 @@ Object {
   "notes": null,
   "queueSize": 0,
   "room": "room 2",
-  "staffList": Array [],
+  "staffList": [],
 }
 `;
 
 exports[`Course Integration GET /courses/:id gets queues that are not disabled (TA) 2`] = `
-Object {
+{
   "allowQuestions": false,
   "config": Object {},
   "id": 3,
@@ -146,8 +146,8 @@ Object {
   "notes": null,
   "queueSize": 0,
   "room": "room 3",
-  "staffList": Array [
-    Object {
+  "staffList": [
+    {
       "accountDeactivated": false,
       "accountType": "legacy",
       "defaultMessage": null,
@@ -156,7 +156,7 @@ Object {
       "firstName": "User",
       "id": 2,
       "includeDefaultMessage": true,
-      "insights": Array [
+      "insights": [
         "TotalStudents",
         "TotalQuestionsAsked",
         "MedianWaitTime",
@@ -177,7 +177,7 @@ Object {
 `;
 
 exports[`Course Integration GET /courses/:id gets queues that are not disabled (TA) 3`] = `
-Object {
+{
   "allowQuestions": false,
   "config": Object {},
   "id": 4,
@@ -187,8 +187,8 @@ Object {
   "notes": null,
   "queueSize": 0,
   "room": "room 4",
-  "staffList": Array [
-    Object {
+  "staffList": [
+    {
       "accountDeactivated": false,
       "accountType": "legacy",
       "defaultMessage": null,
@@ -197,7 +197,7 @@ Object {
       "firstName": "User",
       "id": 2,
       "includeDefaultMessage": true,
-      "insights": Array [
+      "insights": [
         "TotalStudents",
         "TotalQuestionsAsked",
         "MedianWaitTime",
@@ -218,7 +218,7 @@ Object {
 `;
 
 exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 1`] = `
-Object {
+{
   "allowQuestions": true,
   "config": Object {},
   "courseId": Any<Number>,
@@ -231,7 +231,7 @@ Object {
 `;
 
 exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 2`] = `
-Object {
+{
   "allowQuestions": true,
   "config": Object {},
   "courseId": Any<Number>,
@@ -244,7 +244,7 @@ Object {
 `;
 
 exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 3`] = `
-Object {
+{
   "allowQuestions": true,
   "config": Object {},
   "courseId": Any<Number>,
@@ -257,7 +257,7 @@ Object {
 `;
 
 exports[`Course Integration POST /courses/:id/ta_location/:room checks a TA into an existing queue 1`] = `
-Object {
+{
   "allowQuestions": true,
   "config": Object {},
   "id": 1,
@@ -265,8 +265,8 @@ Object {
   "isProfessorQueue": false,
   "notes": null,
   "room": "Online",
-  "staffList": Array [
-    Object {
+  "staffList": [
+    {
       "accountDeactivated": false,
       "accountType": "legacy",
       "defaultMessage": null,
@@ -275,7 +275,7 @@ Object {
       "firstName": "User",
       "id": 1,
       "includeDefaultMessage": true,
-      "insights": Array [
+      "insights": [
         "TotalStudents",
         "TotalQuestionsAsked",
         "MedianWaitTime",

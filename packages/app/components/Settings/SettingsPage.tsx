@@ -66,7 +66,7 @@ export default function SettingsPage({
   useEffect(() => {
     const widthDivider = isMobile ? 6 : 10
     setAvatarSize(windowWidth / widthDivider)
-  })
+  }, [windowWidth, isMobile])
 
   const beforeUpload = (file) => {
     const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
@@ -136,7 +136,7 @@ export default function SettingsPage({
           <Col>
             {profile && (
               <h2>
-                {profile.firstName} {profile.lastName}
+                {profile.firstName} {profile.lastName ?? ''}
               </h2>
             )}
             <Upload

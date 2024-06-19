@@ -10,15 +10,15 @@
     "test": "yarn workspace @koh/server test",
     "test:cov": "yarn workspace @koh/server test:cov",
     "typeorm": "yarn workspace @koh/server typeorm",
-    "dev": "concurrently -n \"server,app,proxy\" \"yarn workspace @koh/server dev\" \"yarn workspace @koh/app dev\" \"yarn dev:proxy\"",
+    "dev": "NODE_OPTIONS=--openssl-legacy-provider concurrently -n \"server,app,proxy\" \"yarn workspace @koh/server dev\" \"yarn workspace @koh/app dev\" \"yarn dev:proxy\"",
     "dev:proxy": "node infrastructure/dev/devProxy.js",
     "dev:db:up": "docker-compose up -d postgresql redis",
     "dev:db:down": "docker-compose -f docker-compose.yml down",
     "dev:db:reset": "yarn workspace @koh/server run dev:db:reset",
     "migration:generate": "yarn workspace @koh/server run migration:generate",
-    "build": "yarn workspace @koh/server run build && yarn workspace @koh/app run build",
+    "build": "NODE_OPTIONS=--openssl-legacy-provider yarn workspace @koh/server run build && yarn workspace @koh/app run build",
     "ci:start": "yarn concurrently \"yarn dev:proxy\" \"yarn workspace @koh/server prod:start\" \"yarn workspace @koh/app prod:start\"",
-    "prod:start": "yarn concurrently \"yarn workspace @koh/server prod:start\" \"yarn workspace @koh/app prod:start\"",
+    "prod:start": "NODE_OPTIONS=--openssl-legacy-provider yarn concurrently \"yarn workspace @koh/server prod:start\" \"yarn workspace @koh/app prod:start\"",
     "prepare": "husky install"
   },
   "workspaces": {
@@ -80,8 +80,5 @@
       "network-idle-timeout": 250,
       "cache-responses": true
     }
-  },
-  "resolutions": {
-    "webpack": "^5.4.0"
   }
 }
