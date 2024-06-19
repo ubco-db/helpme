@@ -359,7 +359,12 @@ export class QuestionController {
         );
       }
 
-      if (question.isTaskQuestion) {
+      if (
+        question.isTaskQuestion &&
+        question.status !== ClosedQuestionStatus.ConfirmedDeleted &&
+        question.status !== ClosedQuestionStatus.DeletedDraft &&
+        question.status !== ClosedQuestionStatus.Stale
+      ) {
         const tasks =
           question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) ||
           [];

@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class studentTaskProgressAndQueueConfig1718759759591
+export class studentTaskProgressQueueConfig1718831256701
   implements MigrationInterface
 {
-  name = 'studentTaskProgressAndQueueConfig1718759759591';
+  name = 'studentTaskProgressQueueConfig1718831256701';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

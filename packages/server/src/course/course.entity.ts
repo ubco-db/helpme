@@ -20,7 +20,7 @@ import { OrganizationCourseModel } from '../organization/organization-course.ent
 import { ChatbotDocumentModel } from '../chatbot/chatbotDocument.entity';
 import { CourseSettingsModel } from './course_settings.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
-import { QuestionTypeModel } from 'questionType/question-type.entity';
+// import { QuestionTypeModel } from 'questionType/question-type.entity';
 @Entity('course_model')
 export class CourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -118,7 +118,7 @@ export class CourseModel extends BaseEntity {
   @Exclude()
   taskProgresses: StudentTaskProgressModel[];
 
-  @OneToMany(() => QuestionTypeModel, (qtm) => qtm.course)
-  @Exclude()
-  questionTypes: QuestionTypeModel[];
+  // @OneToMany(() => QuestionTypeModel, (qtm) => qtm.course)
+  // @Exclude()
+  // questionTypes: QuestionTypeModel[];
 }
