@@ -23,7 +23,7 @@ import { CourseRolesGuard } from 'guards/course-roles.guard';
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionTypeController {
   @Post(':courseId')
-  // @UseGuards(CourseRolesGuard)
+  @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async addQuestionType(
     @Res() res: Response,
@@ -88,7 +88,7 @@ export class QuestionTypeController {
 
   // TODO: make it so that this "soft" deletes a questionType so that it can still be used for statistics
   @Delete(':courseId/:questionTypeId')
-  // @UseGuards(CourseRolesGuard)
+  @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async deleteQuestionType(
     @Res() res: Response,
