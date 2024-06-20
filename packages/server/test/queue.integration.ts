@@ -268,7 +268,7 @@ describe('Queue Integration', () => {
 
       await supertest({ userId: scf.userId })
         .post(`/queues/${queue.id}/clean`)
-        .expect(401);
+        .expect(403);
 
       await delay(100);
       /// questions should still be there
