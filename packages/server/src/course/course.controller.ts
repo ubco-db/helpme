@@ -654,16 +654,6 @@ export class CourseController {
     await this.courseService.removeUserFromCourse(userCourse);
   }
 
-  @Post('/register_courses')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  @Roles(Role.PROFESSOR)
-  async registerCourses(
-    @Body() body: RegisterCourseParams[],
-    @UserId() userId: number,
-  ): Promise<void> {
-    await this.courseService.registerCourses(body, userId);
-  }
-
   @Get(':id/ta_check_in_times')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR)
