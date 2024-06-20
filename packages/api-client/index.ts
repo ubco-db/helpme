@@ -15,7 +15,6 @@ import {
   GroupQuestionsParams,
   ListInsightsResponse,
   ListQuestionsResponse,
-  RegisterCourseParams,
   EditCourseInfoParams,
   SemesterPartial,
   TACheckinTimesResponse,

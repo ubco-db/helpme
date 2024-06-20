@@ -15,9 +15,7 @@ import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { QuestionTypeModel } from './question-type.entity';
 import { Response } from 'express';
-import { QueueRolesGuard } from 'guards/queue-role.guard';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
-import { RolesGuard } from 'guards/role.guard';
 
 @Controller('questionType')
 @UseGuards(JwtAuthGuard)
@@ -62,29 +60,32 @@ export class QuestionTypeController {
     }
   }
 
+  // gets all question types for a queue. If queueId is not a number, it will return all async-question-centre question types for the course
   @Get(':courseId/:queueId')
-  @UseGuards(QueueRolesGuard)
+  @UseGuards(CourseRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getQuestionTypes(
     @Res() res: Response,
-    @Param('courseId') course: number,
-    @Param('queueId') queueId: number | null,
+    @Param('courseId') courseId: number,
+    @Param('queueId') queueIdString: string,
   ): Promise<QuestionTypeModel[]> {
-    if (typeof queueId !== 'number' || isNaN(queueId)) {
+    let queueId: null | number = null;
+    queueId = Number(queueIdString);
+    if (isNaN(queueId)) {
       queueId = null;
     }
 
-    const questions = await QuestionTypeModel.find({
+    const questionTypes = await QuestionTypeModel.find({
       where: {
-        cid: course,
-        queueId,
+        cid: courseId,
+        queueId: queueId,
       },
     });
-    if (questions.length === 0) {
+    if (questionTypes.length === 0) {
       res.status(404).send('No Question Types Found');
       return;
     }
-    res.status(200).send(questions);
+    res.status(200).send(questionTypes);
   }
 
   // TODO: make it so that this "soft" deletes a questionType so that it can still be used for statistics

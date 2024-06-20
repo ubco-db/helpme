@@ -9,7 +9,6 @@ import {
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
   QueuePartial,
-  RegisterCourseParams,
   Role,
   TACheckinTimesResponse,
   TACheckoutResponse,

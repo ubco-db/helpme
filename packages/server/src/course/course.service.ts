@@ -2,7 +2,6 @@ import {
   ERROR_MESSAGES,
   TACheckinPair,
   TACheckinTimesResponse,
-  RegisterCourseParams,
   Role,
   EditCourseInfoParams,
   GetCourseUserInfoResponse,
@@ -16,23 +15,14 @@ import {
 import { partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
-import { Between, Brackets, Connection, getRepository, In } from 'typeorm';
+import { Between, Brackets, getRepository, In } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
-import { SemesterModel } from 'semester/semester.entity';
-import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
-import { LastRegistrationModel } from 'login/last-registration-model.entity';
-import { LoginCourseService } from '../login/login-course.service';
 import { CourseModel } from './course.entity';
 import { UserModel } from 'profile/user.entity';
 
 @Injectable()
 export class CourseService {
-  constructor(
-    private connection: Connection,
-    private loginCourseService: LoginCourseService,
-  ) {}
-
   async getTACheckInCheckOutTimes(
     courseId: number,
     startDate: string,

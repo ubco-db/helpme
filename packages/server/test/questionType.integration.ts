@@ -38,7 +38,49 @@ describe('QuestionType Integration', () => {
       expect(resp.status).toBe(404);
     });
 
-    it('should return 404 if invalid queue', async () => {
+    it('should return all non-queue question types for the course if queueId is not a number', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const qt1 = await QuestionTypeFactory.create({
+        cid: course.id,
+        queueId: null,
+        queue: null,
+        name: 'Question Type 1',
+        color: '#000000',
+      });
+      const qt2 = await QuestionTypeFactory.create({
+        cid: course.id,
+        queueId: null,
+        queue: null,
+        name: 'Question Type 2',
+        color: '#ff0000',
+      });
+      const qt3 = await QuestionTypeFactory.create({
+        cid: course.id,
+        queueId: null,
+        queue: null,
+        name: 'Question Type 3',
+        color: '#FFFFFF',
+      });
+
+      const resp = await supertest({ userId: ta.id }).get(
+        `/questionType/${course.id}/nan`,
+      );
+      expect(resp.text).not.toBe('No Question Types Found');
+      expect(resp.status).toBe(200);
+      expect(resp.body.length).toBe(3);
+      expect(resp.body[0].name).toBe(qt1.name);
+      expect(resp.body[1].name).toBe(qt2.name);
+      expect(resp.body[2].name).toBe(qt3.name);
+      expect(resp.body[0].color).toBe(qt1.color);
+      expect(resp.body[1].color).toBe(qt2.color);
+      expect(resp.body[2].color).toBe(qt3.color);
+    });
+
+    it('should return 404 if no question types are found', async () => {
       const course = await CourseFactory.create();
       const ta = await TACourseFactory.create({
         course: course,
@@ -52,9 +94,8 @@ describe('QuestionType Integration', () => {
         user: await UserFactory.create(),
       });
 
-      // invalid queue
       const resp = await supertest({ userId: student.id }).get(
-        `/questionType/${course.id}/999`,
+        `/questionType/${course.id}/${queue.id}`,
       );
       expect(resp.status).toBe(404);
     });
