@@ -316,7 +316,7 @@ describe('Queue Integration', () => {
 
       await supertest({ userId: stu.userId })
         .delete(`/queues/${queue.id}`)
-        .expect(401);
+        .expect(403);
 
       const postQueue = await QueueModel.findOne({ id: queue.id });
       expect(postQueue.isDisabled).toBeFalsy();

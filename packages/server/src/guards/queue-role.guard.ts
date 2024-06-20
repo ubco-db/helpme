@@ -7,14 +7,13 @@ import { QueueModel } from '../queue/queue.entity';
 @Injectable()
 export class QueueRolesGuard extends RolesGuard {
   async setupData(
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     request: any,
   ): Promise<{ courseId: number; user: UserModel }> {
     const queue = await QueueModel.findOne(request.params.queueId);
     if (!queue) {
       throw new NotFoundException(ERROR_MESSAGES.queueRoleGuard.queueNotFound);
     }
-    const courseId = queue.courseId;
+    const courseId = queue.courseId ?? request.params.cid ?? null;
     const user = await UserModel.findOne(request.user.userId, {
       relations: ['courses'],
     });

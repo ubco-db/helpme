@@ -17,6 +17,7 @@ import { QuestionTypeModel } from './question-type.entity';
 import { Response } from 'express';
 import { QueueRolesGuard } from 'guards/queue-role.guard';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
+import { RolesGuard } from 'guards/role.guard';
 
 @Controller('questionType')
 @UseGuards(JwtAuthGuard)

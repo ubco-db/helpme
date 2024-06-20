@@ -323,7 +323,7 @@ describe('Course Integration', () => {
 
       await supertest({ userId: student.id })
         .post(`/courses/${queue.course.id}/ta_location/${queue.room}`)
-        .expect(401);
+        .expect(403);
 
       const events = await EventModel.find();
       expect(events.length).toBe(0);
@@ -462,7 +462,7 @@ describe('Course Integration', () => {
 
       await supertest({ userId: student.id })
         .delete(`/courses/${scf.courseId}/ta_location/The Alamo`)
-        .expect(401);
+        .expect(403);
     });
 
     it('tests nothing happens if ta not in queue', async () => {
@@ -977,266 +977,6 @@ describe('Course Integration', () => {
     });
   });
 
-  describe('POST /register_courses', () => {
-    it('tests prof registering an array of courses', async () => {
-      const professor = await UserFactory.create();
-      await UserCourseFactory.create({
-        course: await CourseFactory.create(),
-        user: professor,
-        role: Role.PROFESSOR,
-      });
-
-      const CRN1 = 12345;
-      const CRN2 = 56765;
-      const CRN3 = 44444;
-      const course1: KhouryProfCourse = {
-        crns: [CRN1, CRN2, CRN3],
-        semester: '202230',
-        name: 'Underwater Basket-Weaving',
-      };
-
-      const CRN4 = 11111;
-      const CRN5 = 22222;
-      const course2: KhouryProfCourse = {
-        crns: [CRN4, CRN5],
-        semester: '202230',
-        name: 'Underwater Basket-Weaving 2',
-      };
-
-      await SemesterFactory.create({
-        season: 'Spring',
-        year: 2022,
-      });
-
-      await ProfSectionGroupsFactory.create({
-        prof: professor,
-        profId: professor.id,
-        sectionGroups: [course1, course2],
-      });
-
-      const registerCourses = [
-        {
-          sectionGroupName: 'Underwater Basket-Weaving',
-          name: 'Scuba',
-          iCalURL:
-            'https://calendar.google.com/calendar/ical/yamsarecool/basic.ics',
-          coordinator_email: 'yamsarecool@gmail.com',
-          timezone: 'America/New_York',
-        },
-        {
-          sectionGroupName: 'Underwater Basket-Weaving 2',
-          name: 'Scuba 2',
-          iCalURL:
-            'https://calendar.google.com/calendar/ical/potatoesarecool2/basic.ics',
-          coordinator_email: 'potatoesarecool2@outlook.com',
-          timezone: 'America/Los_Angeles',
-        },
-      ];
-
-      // Counts total professor courses before registration
-      const totalProfCoursesBefore = await UserCourseModel.count({
-        where: { userId: professor.id },
-      });
-
-      await supertest({ userId: professor.id })
-        .post(`/courses/register_courses`)
-        .send(registerCourses)
-        .expect(201);
-
-      // total professor courses after registering 2 courses
-      const totalProfCourses = await UserCourseModel.count({
-        where: { userId: professor.id },
-      });
-      expect(totalProfCourses).toEqual(totalProfCoursesBefore + 2);
-
-      // verify courses are created as expected
-      const ubw = await CourseModel.findOne({
-        sectionGroupName: 'Underwater Basket-Weaving',
-      });
-      const ubw2 = await CourseModel.findOne({
-        sectionGroupName: 'Underwater Basket-Weaving 2',
-      });
-      expect(ubw).toBeDefined();
-      expect(ubw2).toBeDefined();
-
-      // checks if the registered courses have the professor as a userCourse
-      const ubwProfCourse = await UserCourseModel.findOne({
-        where: { userId: professor.id, courseId: ubw.id },
-      });
-      const ubw2ProfCourse = await UserCourseModel.findOne({
-        where: { userId: professor.id, courseId: ubw2.id },
-      });
-      expect(ubwProfCourse).toBeDefined();
-      expect(ubw2ProfCourse).toBeDefined();
-
-      // Check CRN mappings created for each crn
-      const crn1ToUbwMapping = await CourseSectionMappingModel.findOne({
-        where: { crn: CRN1, courseId: ubw.id },
-      });
-      const crn2ToUbwMapping = await CourseSectionMappingModel.findOne({
-        where: { crn: CRN2, courseId: ubw.id },
-      });
-      const crn3ToUbwMapping = await CourseSectionMappingModel.findOne({
-        where: { crn: CRN3, courseId: ubw.id },
-      });
-      const crn4ToUbwMapping = await CourseSectionMappingModel.findOne({
-        where: { crn: CRN4, courseId: ubw.id },
-      });
-      expect(crn1ToUbwMapping).toBeDefined();
-      expect(crn2ToUbwMapping).toBeDefined();
-      expect(crn3ToUbwMapping).toBeDefined();
-      expect(crn4ToUbwMapping).toBeUndefined();
-      const crn4ToUbw2Mapping = await CourseSectionMappingModel.findOne({
-        where: { crn: CRN4, courseId: ubw2.id },
-      });
-      const crn5ToUbw2Mapping = await CourseSectionMappingModel.findOne({
-        where: { crn: CRN5, courseId: ubw2.id },
-      });
-      expect(crn4ToUbw2Mapping).toBeDefined();
-      expect(crn5ToUbw2Mapping).toBeDefined();
-
-      // Check if prof's LastRegistrationSemester is up to date
-      const profLastRegistered = await LastRegistrationModel.findOne({
-        where: { profId: professor.id },
-      });
-      expect(profLastRegistered.lastRegisteredSemester).toEqual('202230');
-    });
-
-    it('tests prof registering no courses and last registered semester is still updated', async () => {
-      const professor = await UserFactory.create();
-      const newSem = '202230';
-      await UserCourseFactory.create({
-        course: await CourseFactory.create(),
-        user: professor,
-        role: Role.PROFESSOR,
-      });
-
-      await SemesterFactory.create({
-        season: 'Spring',
-        year: 2022,
-      });
-
-      await ProfSectionGroupsFactory.create({
-        prof: professor,
-        sectionGroups: [
-          {
-            name: 'Fundies 1',
-            crns: [123, 456],
-            semester: newSem,
-          },
-        ],
-      });
-
-      const noCourses = [];
-
-      await supertest({ userId: professor.id })
-        .post(`/courses/register_courses`)
-        .send(noCourses)
-        .expect(201);
-
-      // total professor courses after registering no courses should remain the same (one course: CS2500)
-      const totalProfCourses = await UserCourseModel.count({
-        where: { userId: professor.id },
-      });
-      expect(totalProfCourses).toEqual(1);
-
-      // Check if prof's LastRegistrationSemester is up to date
-      const profLastRegistered = await LastRegistrationModel.findOne({
-        where: { profId: professor.id },
-      });
-      expect(profLastRegistered.lastRegisteredSemester).toEqual(newSem);
-    });
-
-    it('shows error if user enters course that is already registered', async () => {
-      const professor = await UserFactory.create();
-      await UserCourseFactory.create({
-        course: await CourseFactory.create(),
-        user: professor,
-        role: Role.PROFESSOR,
-      });
-
-      const semester = await SemesterFactory.create({
-        season: 'Spring',
-        year: 2022,
-      });
-
-      const CRN1 = 12345;
-      const course1: KhouryProfCourse = {
-        crns: [CRN1],
-        semester: '202230',
-        name: 'Life is Not a Highway',
-      };
-
-      const CRN4 = 11111;
-      const CRN5 = 22222;
-      const course2: KhouryProfCourse = {
-        crns: [CRN4, CRN5],
-        semester: '202230',
-        name: 'Underwater Basket-Weaving 2',
-      };
-
-      await SemesterFactory.create({
-        season: 'Spring',
-        year: 2022,
-      });
-
-      await ProfSectionGroupsFactory.create({
-        prof: professor,
-        profId: professor.id,
-        sectionGroups: [course1, course2],
-      });
-
-      // course was already registered before
-      await CourseModel.create({
-        name: 'life',
-        sectionGroupName: 'Life is Not a Highway',
-        coordinator_email: 'squidward@bikinibottom.com',
-        icalURL: '',
-        semesterId: semester.id,
-        enabled: true,
-        timezone: 'America/Los_Angeles',
-      }).save();
-
-      const registerCourses = [
-        {
-          sectionGroupName: 'Underwater Basket-Weaving 2',
-          name: 'Scuba 2',
-          iCalURL:
-            'https://calendar.google.com/calendar/ical/potatoesarecool2/basic.ics',
-          coordinator_email: 'potatoesarecool2@outlook.com',
-          timezone: 'America/Los_Angeles',
-        },
-        {
-          sectionGroupName: 'Life is Not a Highway',
-          name: 'Life',
-          iCalURL:
-            'https://calendar.google.com/calendar/ical/yamsarecool/basic.ics',
-          coordinator_email: 'yamsarecool@gmail.com',
-          timezone: 'America/New_York',
-        },
-      ];
-
-      const response = await supertest({ userId: professor.id })
-        .post(`/courses/register_courses`)
-        .send(registerCourses)
-        .expect(400);
-      expect(response.body.message).toEqual(
-        'One or more of the courses is already registered',
-      );
-
-      // verify course is created as expected before error
-      const ubw2 = await CourseModel.findOne({
-        sectionGroupName: 'Underwater Basket-Weaving 2',
-      });
-      // verify existing course still exists
-      const life = await CourseModel.findOne({
-        sectionGroupName: 'Life is Not a Highway',
-      });
-      expect(ubw2).toBeDefined();
-      expect(life).toBeDefined();
-    });
-  });
-
   describe('POST /courses/enroll_by_invite_code/:code', () => {
     it('should return 401 if user is not authorized', async () => {
       await supertest().post(`/courses/enroll_by_invite_code/123`).expect(401);
@@ -1390,7 +1130,7 @@ describe('Course Integration', () => {
   });
 
   describe('POST /courses/:id/add_student/:sid', () => {
-    it('should return 401 if user is not a professor', async () => {
+    it('should return 403 if user is not a professor', async () => {
       const course = await CourseFactory.create();
       const student = await UserFactory.create();
 
@@ -1402,7 +1142,7 @@ describe('Course Integration', () => {
 
       await supertest({ userId: student.id })
         .post(`/courses/${course.id}/add_student/${student.id}`)
-        .expect(401);
+        .expect(403);
     });
 
     it('should return 401 if user not authorized', async () => {
@@ -1575,7 +1315,7 @@ describe('Course Integration', () => {
       expect(resp.status).toBe(400);
     });
 
-    it('should return 401 if user is not a professor', async () => {
+    it('should return 403 if user is not a professor', async () => {
       const studentUser = await UserFactory.create();
       const course = await CourseFactory.create();
 
@@ -1588,7 +1328,7 @@ describe('Course Integration', () => {
       const resp = await supertest({ userId: studentUser.id }).patch(
         `/courses/${course.id}/update_user_role/${studentUser.id}/${Role.TA}`,
       );
-      expect(resp.status).toBe(401);
+      expect(resp.status).toBe(403);
     });
 
     it('should successfully update user role', async () => {
@@ -1645,11 +1385,11 @@ describe('Course Integration', () => {
       });
     });
 
-    it('should return 401 if user is not a professor', async () => {
+    it('should return 403 if user is not a professor', async () => {
       await supertest({ userId: student.id })
         .patch(`/courses/1/features`)
         .send({ value: false, feature: 'chatBotEnabled' })
-        .expect(401);
+        .expect(403);
     });
 
     it('should return 401 if user is not authorized', async () => {

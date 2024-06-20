@@ -183,7 +183,7 @@ describe('QuestionType Integration', () => {
       expect(questionType.color).toBe(newQuestionType.color);
     });
 
-    it('should return 400 if the course does not exist', async () => {
+    it('should return 404 if the course does not exist', async () => {
       const course = await CourseFactory.create();
       const ta = await TACourseFactory.create({
         course: course,
@@ -202,7 +202,7 @@ describe('QuestionType Integration', () => {
         .post(`/questionType/999`)
         .send(newQuestionType);
 
-      expect(resp.status).toBe(400);
+      expect(resp.status).toBe(404);
     });
 
     it('should create a new question type with null queueId is NaN (or is not given)', async () => {

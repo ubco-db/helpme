@@ -168,7 +168,7 @@ describe('Question Integration', () => {
 
       await TACourseFactory.create({ user, courseId: queue.courseId });
       expect(await QuestionModel.count({ where: { queueId: 1 } })).toEqual(0);
-      await postQuestion(user, queue, questionTypes).expect(401);
+      await postQuestion(user, queue, questionTypes).expect(403);
     });
     it('post question fails with non-existent queue', async () => {
       await supertest({ userId: 99 })
@@ -828,7 +828,7 @@ describe('Question Integration', () => {
           questionIds: [q.id],
           queueId: queue.id,
         })
-        .expect(401);
+        .expect(403);
     });
     it('disallows grouping questions that have groupable as false', async () => {
       const course = await CourseFactory.create();

@@ -643,7 +643,7 @@ export class CourseController {
   }
 
   @Delete(':id/withdraw_course')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   async withdrawCourse(
     @Param('id') courseId: number,
     @UserId() userId: number,
@@ -850,7 +850,7 @@ export class CourseController {
   // UPDATE course_settings_model SET selectedFeature = false WHERE courseId = selectedCourseId;
   // will also create a new course settings record if it doesn't exist for the course
   @Patch(':id/features')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR)
   async enableDisableFeature(
     @Param('id') courseId: number,

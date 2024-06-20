@@ -225,8 +225,6 @@ class APIClient {
         `/api/v1/courses/${courseId}/withdraw_course`,
         undefined,
       ),
-    registerCourses: async (params: RegisterCourseParams[]): Promise<void> =>
-      this.req('POST', `/api/v1/courses/register_courses`, undefined, params),
     editCourseInfo: async (
       courseId: number,
       params: EditCourseInfoParams,
