@@ -16,6 +16,7 @@ import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { QuestionTypeModel } from './question-type.entity';
 import { Response } from 'express';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
+import { IsNull } from 'typeorm';
 
 @Controller('questionType')
 @UseGuards(JwtAuthGuard)
@@ -78,7 +79,7 @@ export class QuestionTypeController {
     const questionTypes = await QuestionTypeModel.find({
       where: {
         cid: courseId,
-        queueId: queueId,
+        queueId: queueId !== null ? queueId : IsNull(),
       },
     });
     if (questionTypes.length === 0) {
