@@ -7,7 +7,7 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "nest build --webpack --webpackPath webpack.config.js",
-    "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider cross-env TYPEORM_LOGGING=true nest build --webpack --webpackPath webpack-hmr.config.js",
+    "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider TYPEORM_LOGGING=true nest build --webpack --webpackPath webpack-hmr.config.js",
     "dev:debug": "nest start --debug --watch",
     "prod:start": "node --max-old-space-size=8192 dist/main",
     "tsc": "tsc",
