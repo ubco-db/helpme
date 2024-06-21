@@ -5,7 +5,6 @@ import { QuestionModel } from 'question/question.entity';
 import { Connection } from 'typeorm';
 import {
   QuestionFactory,
-  QuestionGroupFactory,
   QueueFactory,
   UserFactory,
 } from '../../test/util/factories';

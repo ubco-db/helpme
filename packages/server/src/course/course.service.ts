@@ -28,10 +28,7 @@ import { UserModel } from 'profile/user.entity';
 
 @Injectable()
 export class CourseService {
-  constructor(
-    private connection: Connection,
-    private loginCourseService: LoginCourseService,
-  ) {}
+  constructor(private loginCourseService: LoginCourseService) {}
 
   async getTACheckInCheckOutTimes(
     courseId: number,
