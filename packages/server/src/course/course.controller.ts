@@ -10,7 +10,6 @@ import {
   GetLimitedCourseResponse,
   QueueConfig,
   QueuePartial,
-  RegisterCourseParams,
   Role,
   TACheckinTimesResponse,
   TACheckoutResponse,
@@ -683,7 +682,7 @@ export class CourseController {
   }
 
   @Delete(':id/withdraw_course')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   async withdrawCourse(
     @Param('id') courseId: number,
     @UserId() userId: number,
@@ -692,16 +691,6 @@ export class CourseController {
       where: { courseId, userId },
     });
     await this.courseService.removeUserFromCourse(userCourse);
-  }
-
-  @Post('/register_courses')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  @Roles(Role.PROFESSOR)
-  async registerCourses(
-    @Body() body: RegisterCourseParams[],
-    @UserId() userId: number,
-  ): Promise<void> {
-    await this.courseService.registerCourses(body, userId);
   }
 
   @Get(':id/ta_check_in_times')
@@ -900,7 +889,7 @@ export class CourseController {
   // UPDATE course_settings_model SET selectedFeature = false WHERE courseId = selectedCourseId;
   // will also create a new course settings record if it doesn't exist for the course
   @Patch(':id/features')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR)
   async enableDisableFeature(
     @Param('id') courseId: number,

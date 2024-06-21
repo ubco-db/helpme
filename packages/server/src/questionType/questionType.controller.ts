@@ -13,19 +13,21 @@ import {
 } from '@nestjs/common';
 import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
-import { Connection } from 'typeorm';
 import { QuestionTypeModel } from './question-type.entity';
 import { Response } from 'express';
+import { CourseRolesGuard } from 'guards/course-roles.guard';
+import { IsNull } from 'typeorm';
 
 @Controller('questionType')
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionTypeController {
-  @Post(':c')
+  @Post(':courseId')
+  @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async addQuestionType(
     @Res() res: Response,
-    @Param('c') courseId: number,
+    @Param('courseId') courseId: number,
     @Body() newQuestionType: QuestionTypeParams,
   ): Promise<void> {
     let queueId = newQuestionType.queueId;
@@ -35,54 +37,66 @@ export class QuestionTypeController {
     const questionType = await QuestionTypeModel.findOne({
       where: {
         cid: courseId,
-        queueId: newQuestionType.queueId,
+        queueId: queueId,
         name: newQuestionType.name,
       },
     });
     if (!questionType) {
-      await QuestionTypeModel.create({
-        cid: courseId,
-        name: newQuestionType.name,
-        color: newQuestionType.color,
-        queueId: newQuestionType.queueId,
-      }).save();
-      res.status(200).send('success');
-      return;
+      try {
+        await QuestionTypeModel.create({
+          cid: courseId,
+          name: newQuestionType.name,
+          color: newQuestionType.color,
+          queueId: queueId,
+        }).save();
+        res.status(200).send('success');
+        return;
+      } catch (e) {
+        res.status(400).send('Error creating question type');
+        return;
+      }
     } else {
       res.status(400).send('Question type already exists');
       return;
     }
   }
 
-  @Get(':c/:queueId')
+  // gets all question types for a queue. If queueId is not a number, it will return all async-question-centre question types for the course
+  @Get(':courseId/:queueId')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getQuestionTypes(
     @Res() res: Response,
-    @Param('c') course: number,
-    @Param('queueId') queueId: number | null,
+    @Param('courseId') courseId: number,
+    @Param('queueId') queueIdString: string,
   ): Promise<QuestionTypeModel[]> {
-    if (typeof queueId !== 'number' || isNaN(queueId)) {
+    let queueId: null | number = null;
+    queueId = Number(queueIdString);
+    if (isNaN(queueId)) {
       queueId = null;
     }
 
-    const questions = await QuestionTypeModel.find({
+    const questionTypes = await QuestionTypeModel.find({
       where: {
-        cid: course,
-        queueId,
+        cid: courseId,
+        queueId: queueId !== null ? queueId : IsNull(),
       },
     });
-    if (!questions) {
-      res.status(400).send('None');
+    if (questionTypes.length === 0) {
+      res.status(404).send('No Question Types Found');
       return;
     }
-    res.status(200).send(questions);
+    res.status(200).send(questionTypes);
   }
 
-  @Delete(':c/:questionTypeId')
+  // TODO: make it so that this "soft" deletes a questionType so that it can still be used for statistics
+  @Delete(':courseId/:questionTypeId')
+  @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async deleteQuestionType(
     @Res() res: Response,
     @Param('questionTypeId') questionTypeId: number,
-    @Param('c') courseId: number,
+    @Param('courseId') courseId: number,
   ): Promise<void> {
     await QuestionTypeModel.delete({
       id: questionTypeId,

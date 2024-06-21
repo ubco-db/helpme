@@ -1265,22 +1265,6 @@ export class questionTypeResponse {
  * @param coordinator_email - The email for the course coordinator.
  * @param timezone - The timezone derived from the Campus field on the form.
  */
-export class RegisterCourseParams {
-  @IsString()
-  sectionGroupName!: string
-
-  @IsString()
-  name!: string
-
-  @IsString()
-  iCalURL?: string
-
-  @IsString()
-  coordinator_email!: string
-
-  @IsString()
-  timezone!: string
-}
 
 export class AccountRegistrationParams {
   @IsString()

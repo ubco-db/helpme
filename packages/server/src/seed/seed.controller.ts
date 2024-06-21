@@ -457,9 +457,17 @@ export class SeedController {
       isProfessorQueue: true,
     });
 
+    const questionType2 = await QuestionTypeFactory.create({
+      cid: course.id,
+      queue: professorQueue,
+      name: 'Important',
+      color: '#FF0000',
+    });
+
     await QuestionFactory.create({
       queue: professorQueue,
       createdAt: new Date(Date.now() - 1500000),
+      questionTypes: [questionType2],
     });
 
     return 'Data successfully seeded';
@@ -470,6 +478,7 @@ export class SeedController {
     const queue = await QueueModel.findOne();
 
     const questionType = await QuestionTypeFactory.create({
+      cid: queue.course.id,
       queue: queue,
     });
 
