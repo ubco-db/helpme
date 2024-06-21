@@ -184,6 +184,7 @@ export class CourseController {
         'votes',
         'questionTypes',
         'votesSum',
+        'isTaskQuestion',
       ]);
 
       Object.assign(temp, {

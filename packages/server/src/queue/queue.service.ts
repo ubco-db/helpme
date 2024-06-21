@@ -96,6 +96,7 @@ export class QueueService {
         'groupId',
         'questionTypes',
         'taHelped',
+        'isTaskQuestion',
       ]);
 
       Object.assign(temp, {
@@ -174,6 +175,7 @@ export class QueueService {
             'taHelpedId',
             'taHelped',
             'text',
+            'isTaskQuestion',
           ]);
 
           return Object.assign(temp, {

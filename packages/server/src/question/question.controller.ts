@@ -100,6 +100,7 @@ export class QuestionController {
         'closedAt',
         'status',
         'location',
+        'isTaskQuestion',
       ]);
       Object.assign(temp, {
         creatorName: q.creator?.name,

@@ -21,7 +21,7 @@ import {
 } from 'notification/notification.service';
 import { UserModel } from 'profile/user.entity';
 import { QuestionModel } from './question.entity';
-import { QueueModel } from 'queue/queue.entity';
+import { QueueModel } from '../queue/queue.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
 @Injectable()
