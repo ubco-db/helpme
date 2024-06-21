@@ -2,6 +2,7 @@ import { ERROR_MESSAGES } from '@koh/common';
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -17,6 +18,12 @@ export interface RolesGuard {
   setupData(request: any): Promise<{ courseId: number; user: UserModel }>;
 }
 
+/**
+ * This is an abstract guard that gets extended by other guards (e.g. CourseRolesGuard and QueueRolesGuard)
+ * to ensure that the user has the correct role (provided by the `@Roles` decorator) to access a certain route.
+ * Since it is abstract, it is not meant to be used as a standalone guard.
+ * This will throw errors if the user is not logged in, not in the course, or does not have the correct role.
+ */
 @Injectable()
 export abstract class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
@@ -54,8 +61,8 @@ export abstract class RolesGuard implements CanActivate {
     });
 
     if (remaining.length <= 0) {
-      throw new UnauthorizedException(
-        ERROR_MESSAGES.roleGuard.mustBeRoleToJoinCourse(roles),
+      throw new ForbiddenException(
+        ERROR_MESSAGES.roleGuard.mustBeRoleToAccess(roles),
       );
     }
 

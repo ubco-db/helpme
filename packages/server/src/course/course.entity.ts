@@ -1,7 +1,6 @@
 import { Heatmap } from '@koh/common';
 import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
 import { Exclude } from 'class-transformer';
-import { QuestionTypeModel } from 'questionType/question-type.entity';
 import {
   BaseEntity,
   Column,
@@ -21,6 +20,7 @@ import { SemesterModel } from '../semester/semester.entity';
 import { OrganizationCourseModel } from '../organization/organization-course.entity';
 import { ChatbotDocumentModel } from '../chatbot/chatbotDocument.entity';
 import { CourseSettingsModel } from './course_settings.entity';
+import { QuestionTypeModel } from '../questionType/question-type.entity';
 @Entity('course_model')
 export class CourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -112,4 +112,8 @@ export class CourseModel extends BaseEntity {
     { cascade: true },
   )
   courseSettings: CourseSettingsModel;
+
+  @OneToMany(() => QuestionTypeModel, (qtm) => qtm.course)
+  @Exclude()
+  questionTypes: QuestionTypeModel[];
 }

@@ -134,6 +134,45 @@ describe('Question Integration', () => {
       });
       expect(await QuestionModel.count({ where: { queueId: 1 } })).toEqual(1);
     });
+
+    it('should allow students to post questions with no question types', async () => {
+      const course = await CourseFactory.create();
+      const user = await UserFactory.create();
+
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+
+      const queue = await QueueFactory.create({
+        course: course,
+        allowQuestions: true,
+        staffList: [ta.user],
+      });
+
+      await StudentCourseFactory.create({ user, courseId: queue.courseId });
+      expect(await QuestionModel.count({ where: { queueId: 1 } })).toEqual(0);
+      const response = await supertest({ userId: user.id })
+        .post('/questions')
+        .send({
+          text: "Don't know recursion",
+          questionTypes: [],
+          queueId: queue.id,
+          force: false,
+          groupable: true,
+        })
+        .expect(201);
+      expect(response.body).toMatchObject({
+        text: "Don't know recursion",
+        helpedAt: null,
+        closedAt: null,
+        questionTypes: [],
+        status: 'Drafting',
+        groupable: true,
+      });
+      expect(await QuestionModel.count({ where: { queueId: 1 } })).toEqual(1);
+    });
+
     it('ta cannot post  a new question', async () => {
       const course = await CourseFactory.create();
       const user = await UserFactory.create();
@@ -168,7 +207,7 @@ describe('Question Integration', () => {
 
       await TACourseFactory.create({ user, courseId: queue.courseId });
       expect(await QuestionModel.count({ where: { queueId: 1 } })).toEqual(0);
-      await postQuestion(user, queue, questionTypes).expect(401);
+      await postQuestion(user, queue, questionTypes).expect(403);
     });
     it('post question fails with non-existent queue', async () => {
       await supertest({ userId: 99 })
@@ -828,7 +867,7 @@ describe('Question Integration', () => {
           questionIds: [q.id],
           queueId: queue.id,
         })
-        .expect(401);
+        .expect(403);
     });
     it('disallows grouping questions that have groupable as false', async () => {
       const course = await CourseFactory.create();
