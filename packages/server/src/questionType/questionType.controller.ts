@@ -13,7 +13,6 @@ import {
 } from '@nestjs/common';
 import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
-import { Connection } from 'typeorm';
 import { QuestionTypeModel } from './question-type.entity';
 import { Response } from 'express';
 
@@ -21,8 +20,6 @@ import { Response } from 'express';
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionTypeController {
-  constructor(private connection: Connection) {}
-
   @Post(':c')
   @Roles(Role.TA, Role.PROFESSOR)
   async addQuestionType(

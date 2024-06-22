@@ -7,6 +7,7 @@ import { QueueSSEService } from './queue-sse.service';
 import { QueueSubscriber } from './queue.subscriber';
 import { AlertsService } from '../alerts/alerts.service';
 import { AlertsModule } from '../alerts/alerts.module';
+import { RedisQueueService } from 'redisQueue/redis-queue.service';
 
 @Module({
   controllers: [QueueController],
@@ -16,6 +17,7 @@ import { AlertsModule } from '../alerts/alerts.module';
     QueueSSEService,
     QueueSubscriber,
     AlertsService,
+    RedisQueueService,
   ],
   exports: [QueueCleanService, QueueSSEService],
   imports: [SSEModule, AlertsModule],

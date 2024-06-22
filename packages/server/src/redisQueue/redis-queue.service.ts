@@ -42,6 +42,21 @@ export class RedisQueueService {
   }
 
   /**
+   * Set questions in the redis cache
+   * @param key {string} The key name to set the questions in cache
+   * @param questions {any} The questions to set in cache
+   */
+  async setQuestions(key: string, questions: any): Promise<void> {
+    const pipeline = this.redis.pipeline();
+
+    const jsonStr = JSON.stringify(questions);
+    const compressedData = zlib.gzipSync(jsonStr);
+    const base64Encoded = compressedData.toString('base64');
+    pipeline.hset(key, 'questions', base64Encoded);
+    await pipeline.exec();
+  }
+
+  /**
    * Update an async question in the redis cache
    * @param key {string} The key name to update the async question in cache
    * @param asyncQuestion {AsyncQuestionModel} The async question to update in cache
@@ -93,16 +108,21 @@ export class RedisQueueService {
    * @param key {string} The key name to get async questions from cache
    * @returns {Promise<Record<string, AsyncQuestionModel>>} A promise that resolves with the async questions from cache
    */
-  async getKey(key: string): Promise<Record<string, AsyncQuestionModel>> {
+  async getKey(key: string): Promise<Record<string, any>> {
     const data = await this.redis.hgetall(key);
 
-    const result: Record<string, AsyncQuestionModel> = {};
+    const result: Record<string, any> = {};
+
     Object.entries(data).forEach(([field, base64Encoded]) => {
       const compressedData = Buffer.from(base64Encoded, 'base64');
       const decompressedData = zlib.gunzipSync(compressedData).toString();
-      result[field] = JSON.parse(decompressedData) as AsyncQuestionModel;
+      result[field] = JSON.parse(decompressedData);
     });
 
     return result;
+  }
+
+  async deleteKey(key: string): Promise<void> {
+    await this.redis.del(key);
   }
 }

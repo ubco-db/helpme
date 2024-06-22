@@ -32,6 +32,12 @@ import { RedisQueueModule } from 'redisQueue/redis-queue.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot(typeormConfig),
+    // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store
+    RedisModule.register([
+      { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
+      { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
+      { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
+    ]),
     ScheduleModule.forRoot(),
     LoginModule,
     ProfileModule,
@@ -55,12 +61,6 @@ import { RedisQueueModule } from 'redisQueue/redis-queue.module';
     SSEModule,
     BackfillModule,
     InsightsModule,
-    // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store
-    RedisModule.register([
-      { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
-      { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
-      { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
-    ]),
     HealthcheckModule,
     AlertsModule,
     SemesterModule,
