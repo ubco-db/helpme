@@ -6,6 +6,7 @@ import { CourseController } from './course.controller';
 import { CourseService } from './course.service';
 import { HeatmapService } from './heatmap.service';
 import { OrganizationModule } from 'organization/organization.module';
+import { RedisQueueService } from 'redisQueue/redis-queue.service';
 
 @Module({
   controllers: [CourseController],
@@ -14,7 +15,13 @@ import { OrganizationModule } from 'organization/organization.module';
     LoginModule,
     CacheModule.register(),
     OrganizationModule,
+    RedisQueueService,
   ],
-  providers: [LoginCourseService, HeatmapService, CourseService],
+  providers: [
+    LoginCourseService,
+    HeatmapService,
+    CourseService,
+    RedisQueueService,
+  ],
 })
 export class CourseModule {}
