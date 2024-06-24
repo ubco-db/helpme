@@ -1,4 +1,4 @@
-import { ReactElement } from 'react'
+import { ReactElement, useRef } from 'react'
 import Modal from 'antd/lib/modal/Modal'
 import { Input, Form, Button, message, Popconfirm, Switch, Tooltip } from 'antd'
 import styled from 'styled-components'
@@ -10,7 +10,7 @@ import {
   UpdateQueueParams,
   validateQueueConfigInput,
 } from '@koh/common'
-import { pick } from 'lodash'
+import { pick, set } from 'lodash'
 import { default as React, useEffect, useCallback, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useCourse } from '../../../hooks/useCourse'
@@ -91,11 +91,10 @@ export function EditQueueModal({
     getQuestions()
   }, [])
 
-  const [lastSavedQueueConfig, setLastSavedQueueConfig] =
-    useState<QueueConfig | null>(queue?.config || null)
+  const lastSavedQueueConfig = useRef<QueueConfig | null>(queue?.config || null)
   // gets updated whenever the config text box changes. Just stores the string
   const [localQueueConfigString, setLocalQueueConfigString] = useState(
-    JSON.stringify(lastSavedQueueConfig, null, 2),
+    JSON.stringify(lastSavedQueueConfig.current, null, 2),
   )
   // both of these are used to determine if the "Save Queue Changes" button should be enabled
   const [isValidConfig, setIsValidConfig] = useState(true)
@@ -113,18 +112,30 @@ export function EditQueueModal({
 
   const courseNumber = Number(courseId)
   const getQuestions = async () => {
-    const temp = await API.questionType.getQuestionTypes(courseNumber, queueId)
-    setQuestionsTypeState(temp)
+    const tempQuestionTypes = await API.questionType.getQuestionTypes(
+      courseNumber,
+      queueId,
+    )
+    setQuestionsTypeState(tempQuestionTypes)
   }
 
   const onclick = useCallback(
     async (questionTypeId: number) => {
-      await API.questionType.deleteQuestionType(courseNumber, questionTypeId)
-      const temp = await API.questionType.getQuestionTypes(
-        courseNumber,
-        queueId,
-      )
-      setQuestionsTypeState(temp)
+      API.questionType
+        .deleteQuestionType(courseNumber, questionTypeId)
+        .then((responseMessage) => {
+          message.success(responseMessage)
+          mutateQueue()
+        })
+        .then(async () => {
+          setQuestionsTypeState(
+            await API.questionType.getQuestionTypes(courseNumber, queueId),
+          )
+        })
+        .catch((e) => {
+          const errorMessage = e.response?.data || 'Unknown error occurred'
+          message.error(`Error creating question tag: ${errorMessage}`)
+        })
     },
     [courseNumber],
   )
@@ -148,20 +159,44 @@ export function EditQueueModal({
       message.error('Please enter a question tag name')
       return
     }
-    try {
-      await API.questionType.addQuestionType(courseNumber, {
+    API.questionType
+      .addQuestionType(courseNumber, {
         name: questionTypeAddState,
         color: color,
         queueId: queueId,
       })
-    } catch (e) {
-      message.error('Question tag already exists')
-    }
-    setQuestionsTypeState(
-      await API.questionType.getQuestionTypes(courseNumber, queueId),
-    )
-    setQuestionTypeAddState(null)
+      .then((responseMessage) => {
+        mutateQueue()
+        message.success(responseMessage)
+        return API.questionType.getQuestionTypes(courseNumber, queueId)
+      })
+      .then(async () => {
+        setQuestionsTypeState(
+          await API.questionType.getQuestionTypes(courseNumber, queueId),
+        )
+      })
+      .catch((e) => {
+        const errorMessage = e.response?.data || 'Unknown error occurred'
+        message.error(`Error creating question tag: ${errorMessage}`)
+      })
   }, [courseNumber, questionTypeAddState, color, isInputEmpty])
+
+  // any changes to the queue config (such as adding/deleted a question type) will update the queue config  text box
+  useEffect(() => {
+    if (queue.config && visible) {
+      const newConfigString = JSON.stringify(queue.config, null, 2)
+      if (
+        newConfigString !==
+        JSON.stringify(lastSavedQueueConfig.current, null, 2)
+      ) {
+        // this check is needed otherwise *any* updates to the queue (including creating/modifying questions) will cause this to run and reset the user's changes
+        setLocalQueueConfigString(newConfigString)
+        setConfigHasChanges(false)
+        lastSavedQueueConfig.current = queue.config
+        form.setFieldsValue({ queue_config: newConfigString })
+      }
+    }
+  }, [queue.config, form, visible])
 
   const changeZoomLink = async () => {
     await API.course
@@ -340,7 +375,8 @@ export function EditQueueModal({
                     }
                     // config is good
                     setConfigHasChanges(
-                      JSON.stringify(lastSavedQueueConfig, null, 2) != value,
+                      JSON.stringify(lastSavedQueueConfig.current, null, 2) !=
+                        value,
                     )
                     setIsValidConfig(true)
                     return Promise.resolve()
@@ -371,7 +407,7 @@ export function EditQueueModal({
                         const updatedTagsMessages =
                           await API.queues.updateConfig(queue.id, parsedConfig)
                         message.success('Queue config saved')
-                        setLastSavedQueueConfig(parsedConfig)
+                        lastSavedQueueConfig.current = parsedConfig
                         setConfigHasChanges(false)
                         // if any of the questionTypes were created/updated/deleted, update the questionTypes and message the user
                         if (

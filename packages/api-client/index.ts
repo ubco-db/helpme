@@ -370,17 +370,17 @@ class APIClient {
     getQuestionTypes: async (
       courseId: number,
       queueId: number | null,
-    ): Promise<any> =>
+    ): Promise<QuestionTypeParams[]> =>
       this.req('GET', `/api/v1/questionType/${courseId}/${queueId}`, undefined),
     addQuestionType: async (
       courseId: number,
       body: QuestionTypeParams,
-    ): Promise<any> =>
+    ): Promise<string> =>
       this.req('POST', `/api/v1/questionType/${courseId}`, undefined, body),
     deleteQuestionType: async (
       courseId: number,
       questionTypeId: number,
-    ): Promise<void> =>
+    ): Promise<string> =>
       this.req('DELETE', `/api/v1/questionType/${courseId}/${questionTypeId}`),
   }
   calendar = {

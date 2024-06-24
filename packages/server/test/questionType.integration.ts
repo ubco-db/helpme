@@ -8,10 +8,55 @@ import {
   QuestionTypeFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
-import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { QuestionTypeModel } from '../src/questionType/question-type.entity';
+import { QueueModel } from '../src/queue/queue.entity';
 
 describe('QuestionType Integration', () => {
   const supertest = setupIntegrationTest(QuestionTypeModule);
+  const exampleConfig = {
+    fifo_queue_view_enabled: true,
+    tag_groups_queue_view_enabled: true,
+    default_view: 'fifo' as const,
+    minimum_tags: 1,
+    tags: {
+      tag1: {
+        display_name: 'General',
+        color_hex: '#66FF66',
+      },
+      tag2: {
+        display_name: 'Bugs',
+        color_hex: '#66AA66',
+      },
+      tag3: {
+        display_name: 'Blocking',
+        color_hex: '#FF0000',
+      },
+    },
+    assignment_id: 'lab1',
+    tasks: {
+      task1: {
+        display_name: 'Task 1',
+        short_display_name: '1',
+        blocking: false,
+        color_hex: '#ffedb8',
+        precondition: null,
+      },
+      task2: {
+        display_name: 'Task 2',
+        short_display_name: '2',
+        blocking: false,
+        color_hex: '#fadf8e',
+        precondition: 'task1',
+      },
+      task3: {
+        display_name: 'Task 3',
+        short_display_name: '3',
+        blocking: true,
+        color_hex: '#f7ce52',
+        precondition: 'task2',
+      },
+    },
+  };
   describe('GET /questionType/:courseId/:queueId', () => {
     it('should return 401 if user is not authorized', async () => {
       await supertest().get(`/questionType/1/1`).expect(401);
@@ -187,7 +232,7 @@ describe('QuestionType Integration', () => {
         .send(newQuestionType);
 
       expect(resp.status).toBe(400);
-      expect(resp.text).toBe('Question type already exists');
+      expect(resp.text).toBe(`${newQuestionType.name} already exists`);
     });
 
     it('should return 200 and create a new question type if it does not already exist', async () => {
@@ -210,7 +255,7 @@ describe('QuestionType Integration', () => {
         .send(newQuestionType);
 
       expect(resp.status).toBe(200);
-      expect(resp.text).toBe('success');
+      expect(resp.text).toBe(`Successfully created ${newQuestionType.name}`);
 
       const questionType = await QuestionTypeModel.findOne({
         where: {
@@ -262,7 +307,7 @@ describe('QuestionType Integration', () => {
         .send(newQuestionType);
 
       expect(resp.status).toBe(200);
-      expect(resp.text).toBe('success');
+      expect(resp.text).toBe(`Successfully created ${newQuestionType.name}`);
 
       const questionType = await QuestionTypeModel.findOne({
         where: {
@@ -297,6 +342,112 @@ describe('QuestionType Integration', () => {
 
       expect(resp.status).toBe(403);
     });
+
+    it('should update the queue config with the new question types (aka tags)', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+        config: exampleConfig,
+      });
+      const newQuestionType = {
+        queueId: queue.id,
+        name: 'New Question Type',
+        color: '#FFFFFF',
+      };
+
+      const resp = await supertest({ userId: ta.id })
+        .post(`/questionType/${course.id}`)
+        .send(newQuestionType);
+
+      expect(resp.status).toBe(200);
+      expect(resp.text).toBe(`Successfully created ${newQuestionType.name}`);
+
+      const updatedQueue = await QueueModel.findOne(queue.id);
+      expect(updatedQueue.config).toEqual({
+        ...exampleConfig,
+        tags: {
+          ...exampleConfig.tags,
+          NewQuestionType: {
+            display_name: newQuestionType.name,
+            color_hex: newQuestionType.color,
+          },
+        },
+      });
+    });
+
+    it('should update the queue config even if no tags are in the config yet', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+        config: null,
+      });
+      const newQuestionType = {
+        queueId: queue.id,
+        name: 'New Question Type',
+        color: '#FFFFFF',
+      };
+
+      const resp = await supertest({ userId: ta.id })
+        .post(`/questionType/${course.id}`)
+        .send(newQuestionType);
+
+      expect(resp.status).toBe(200);
+      expect(resp.text).toBe(`Successfully created ${newQuestionType.name}`);
+
+      const updatedQueue = await QueueModel.findOne(queue.id);
+      expect(updatedQueue.config).toEqual({
+        tags: {
+          NewQuestionType: {
+            display_name: newQuestionType.name,
+            color_hex: newQuestionType.color,
+          },
+        },
+      });
+    });
+
+    it('should remove special characters from the question type name when creating the tag id', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+        config: exampleConfig,
+      });
+      const newQuestionType = {
+        queueId: queue.id,
+        name: 'New    Question    Type!@#$%^&*()_+-=[]{}|;:,.<>?/\\',
+        color: '#FFFFFF',
+      };
+
+      const resp = await supertest({ userId: ta.id })
+        .post(`/questionType/${course.id}`)
+        .send(newQuestionType);
+
+      expect(resp.status).toBe(200);
+      expect(resp.text).toBe(`Successfully created ${newQuestionType.name}`);
+
+      const updatedQueue = await QueueModel.findOne(queue.id);
+      expect(updatedQueue.config).toEqual({
+        ...exampleConfig,
+        tags: {
+          ...exampleConfig.tags,
+          NewQuestionType: {
+            display_name: newQuestionType.name,
+            color_hex: newQuestionType.color,
+          },
+        },
+      });
+    });
   });
 
   describe('DELETE /questionType/:courseId/:questionTypeId', () => {
@@ -326,7 +477,7 @@ describe('QuestionType Integration', () => {
       );
 
       expect(resp.status).toBe(200);
-      expect(resp.text).toBe('success');
+      expect(resp.text).toBe(`Successfully deleted ${questionType.name}`);
 
       const deletedQuestionType = await QuestionTypeModel.findOne({
         where: {
@@ -337,7 +488,7 @@ describe('QuestionType Integration', () => {
       expect(deletedQuestionType).toBeUndefined();
     });
 
-    it('should return 200 even if the question type does not exist', async () => {
+    it('should return 404 if the question type does not exist', async () => {
       const course = await CourseFactory.create();
       const ta = await TACourseFactory.create({
         course: course,
@@ -348,8 +499,27 @@ describe('QuestionType Integration', () => {
         `/questionType/${course.id}/999`,
       );
 
-      expect(resp.status).toBe(200);
-      expect(resp.text).toBe('success');
+      expect(resp.status).toBe(404);
+      expect(resp.text).toBe('Question Type not found');
+    });
+
+    it('should return 404 if the course does not exist', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const questionType = await QuestionTypeFactory.create({
+        cid: course.id,
+        name: 'Existing Question Type',
+        color: '#FFFFFF',
+      });
+
+      const resp = await supertest({ userId: ta.id }).delete(
+        `/questionType/999/${questionType.id}`,
+      );
+
+      expect(resp.status).toBe(404);
     });
 
     it('should not allow students to delete question types', async () => {
@@ -376,6 +546,86 @@ describe('QuestionType Integration', () => {
         },
       });
       expect(notDeletedQuestionType).not.toBeUndefined();
+    });
+
+    it('should update the queue config and delete the tag', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+        config: exampleConfig,
+      });
+      const questionType = await QuestionTypeFactory.create({
+        cid: course.id,
+        queue: queue,
+        name: 'General',
+        color: '#FFFFFF',
+      });
+
+      const resp = await supertest({ userId: ta.id }).delete(
+        `/questionType/${course.id}/${questionType.id}`,
+      );
+
+      expect(resp.status).toBe(200);
+      expect(resp.text).toBe(`Successfully deleted ${questionType.name}`);
+
+      const deletedQuestionType = await QuestionTypeModel.findOne({
+        where: {
+          id: questionType.id,
+          cid: course.id,
+        },
+      });
+      expect(deletedQuestionType).toBeUndefined();
+
+      const updatedQueue = await QueueModel.findOne(queue.id);
+      expect(updatedQueue.config).toEqual({
+        ...exampleConfig,
+        tags: {
+          tag2: exampleConfig.tags.tag2,
+          tag3: exampleConfig.tags.tag3,
+        },
+      });
+    });
+
+    it('should still update the queue config even if the config does not have tags', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+        config: null,
+      });
+      const questionType = await QuestionTypeFactory.create({
+        cid: course.id,
+        queue: queue,
+        name: 'General',
+        color: '#FFFFFF',
+      });
+
+      const resp = await supertest({ userId: ta.id }).delete(
+        `/questionType/${course.id}/${questionType.id}`,
+      );
+
+      expect(resp.status).toBe(200);
+      expect(resp.text).toBe(`Successfully deleted ${questionType.name}`);
+
+      const deletedQuestionType = await QuestionTypeModel.findOne({
+        where: {
+          id: questionType.id,
+          cid: course.id,
+        },
+      });
+      expect(deletedQuestionType).toBeUndefined();
+
+      const updatedQueue = await QueueModel.findOne(queue.id);
+      expect(updatedQueue.config).toEqual({
+        tags: {},
+      });
     });
   });
 });
