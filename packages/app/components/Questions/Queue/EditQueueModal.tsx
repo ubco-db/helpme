@@ -88,8 +88,10 @@ export function EditQueueModal({
   }
   const [zoomLink, setZoomLink] = useState('')
   useEffect(() => {
-    getQuestions()
-  }, [])
+    if (visible) {
+      getQuestions()
+    }
+  }, [visible])
 
   const lastSavedQueueConfig = useRef<QueueConfig | null>(queue?.config || null)
   // gets updated whenever the config text box changes. Just stores the string

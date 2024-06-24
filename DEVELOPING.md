@@ -113,7 +113,9 @@ Each page should have the `Navbar` up top -- refer to other pages for each page.
 
 ### Testing
 
-Integration and unit test files should be colocated with the file they test or in the `test` folder. 
+Unit test files should be colocated with the file they test. 
+
+Integration tests are located in the `test` folder.
 
 End to end (E2E) testing is in it's own folder and done with Cypress (note: cypress has been removed, for now). These should be used to test core user flows.
 To run them headlessly (without a graphics server), do `yarn cypress run`.
@@ -121,7 +123,7 @@ To watch them actually run interactively, you can use `yarn cypress open`. Be aw
 
 If your tests are failing with a message about "deadlock something whatever", do `yarn test --run-in-band`. This makes the tests run sequentially.
 
-If `yarn test` is not running all of the tests, navigate to `server/test` folder and run `yarn jest --config ./test/jest-integration.json -i --run-in-band` if you would like to run all the tests. To run the tests of a specific file (e.g. course.integration.ts), you can use `yarn jest --config ./test/jest-integration.json -i --run-in-band course`
+If `yarn test` is not running all of the tests, navigate to `server/test` folder and run `yarn jest --config ./test/jest-integration.json -i --run-in-band` if you would like to run all the integration tests. To run the tests of a specific integration test file (e.g. course.integration.ts), you can use `yarn jest --config ./test/jest-integration.json -i --run-in-band course`
 
 > [!NOTE]
 > cypress is currently broken (and its code was recently removed). Only the endpoints are being tested right now
