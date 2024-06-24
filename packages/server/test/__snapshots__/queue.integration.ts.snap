@@ -38,6 +38,6 @@ exports[`Queue Integration GET /queues/:id/questions returns questions in the qu
     },
   ],
   "unresolvedAlerts": [],
-  "yourQuestions": Array [],
+  "yourQuestions": [],
 }
 `;
