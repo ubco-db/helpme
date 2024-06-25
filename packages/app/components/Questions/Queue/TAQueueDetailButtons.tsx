@@ -30,6 +30,7 @@ import {
 import { useCourse } from '../../../hooks/useCourse'
 import { Play } from 'lucide-react'
 
+// i don't think this currently places them at the top of the queue, TODO: fix this
 const PRORITY_QUEUED_MESSAGE_TEXT =
   'This student has been temporarily removed from the queue. They must select to rejoin the queue and will then be placed at the top of the queue'
 
@@ -232,6 +233,7 @@ export default function TAQueueDetailButtons({
             </Tooltip>
           </Popconfirm>
           {!question.isTaskQuestion && (
+            // TODO: add new buttons for task questions
             <Tooltip title={rephraseTooltip}>
               <span>
                 <BannerOrangeButton

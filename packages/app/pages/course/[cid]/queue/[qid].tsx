@@ -7,6 +7,7 @@ import NavBar from '../../../../components/Nav/NavBar'
 import { useQueue } from '../../../../hooks/useQueue'
 import { useChatbotContext } from '../../../../providers/chatbotProvider'
 import QueuePage from '../../../../components/Questions/Queue/Queue'
+import { useProfile } from '../../../../hooks/useProfile'
 
 const Container = styled.div`
   flex: 1;
@@ -19,20 +20,24 @@ export default function Queue(): ReactElement {
   const router = useRouter()
   const { cid, qid } = router.query
   const { queue } = useQueue(Number(qid))
+  const profile = useProfile()
   useEffect(() => {
     setOpen(true)
     return () => setOpen(false)
-  }, [])
+  }, [setOpen])
 
   useEffect(() => {
     setCid(cid)
-  }, [cid])
+  }, [cid, setCid])
 
   return (
     <StandardPageContainer>
       <Container>
         <Head>
-          <title>{queue?.room} Queue | UBC Office Hours</title>
+          <title>
+            {queue?.room} Queue | {profile?.organization?.organizationName}{' '}
+            HelpMe
+          </title>
         </Head>
         {/* accessiblity thing that lets users skip tabbing through the navbar */}
         <a href={`#join-queue-button`} className="skip-link">

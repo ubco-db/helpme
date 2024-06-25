@@ -1,16 +1,6 @@
 import { QuestionCircleOutlined } from '@ant-design/icons'
 import { Role, validateQueueConfigInput } from '@koh/common'
-import {
-  Modal,
-  Form,
-  Radio,
-  Input,
-  Switch,
-  Tooltip,
-  Collapse,
-  List,
-  Button,
-} from 'antd'
+import { Modal, Form, Radio, Input, Switch, Tooltip, Button } from 'antd'
 import { FormInstance } from 'antd/lib/form'
 import TextArea from 'antd/lib/input/TextArea'
 import { ReactElement } from 'react'
@@ -243,7 +233,7 @@ export default function QueueCreateModal({
           ]}
         >
           <TextArea
-            className="!h-96 w-full"
+            className="!h-[30rem] w-full"
             spellCheck="false"
             placeholder={JSON.stringify(exampleConfig, null, 2)}
           />

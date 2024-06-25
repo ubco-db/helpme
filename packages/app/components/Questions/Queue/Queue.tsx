@@ -239,8 +239,11 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     }
   }, [])
 
-  const createQuestionOpenModal = useCallback(
-    async (force: boolean, isTaskQuestion: boolean, errorMessage: string) => {
+  const joinQueueOpenModal = useCallback(
+    async (force: boolean, isTaskQuestion: boolean) => {
+      const errorMessage = isTaskQuestion
+        ? ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime
+        : ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime
       try {
         const createdQuestion = await API.questions.create({
           queueId: Number(qid),
@@ -271,18 +274,6 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     },
     [mutateQuestions, qid, questions],
   )
-  const joinQueueOpenModal = (force: boolean) =>
-    createQuestionOpenModal(
-      force,
-      false,
-      ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime,
-    )
-  const createDemoOpenModal = (force: boolean) =>
-    createQuestionOpenModal(
-      force,
-      true,
-      ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime,
-    )
 
   const leaveQueue = useCallback(
     (isTaskQuestion) => {
@@ -426,17 +417,11 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     const [isJoinQueueModalLoading, setIsJoinQueueModalLoading] =
       useState(false)
 
-    const joinQueue = useCallback(async () => {
+    const joinQueue = useCallback(async (isTaskQuestion: boolean) => {
       setIsJoinQueueModalLoading(true)
-      await joinQueueOpenModal(false)
+      joinQueueOpenModal(false, isTaskQuestion)
       setIsJoinQueueModalLoading(false)
-    }, [joinQueueOpenModal])
-
-    const createDemo = useCallback(async () => {
-      setIsJoinQueueModalLoading(true)
-      await createDemoOpenModal(true)
-      setIsJoinQueueModalLoading(false)
-    }, [createDemoOpenModal])
+    }, [])
 
     return isStaff ? (
       <QueueInfoColumn
@@ -524,7 +509,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                     queue.staffList.length < 1 ||
                     studentQuestion
                   }
-                  onClick={joinQueue}
+                  onClick={() => joinQueue(false)}
                   icon={<LoginOutlined aria-hidden="true" />}
                 >
                   {isDemoQueue ? 'Create Question' : 'Join Queue'}
@@ -554,7 +539,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                       queue.staffList.length < 1 ||
                       studentDemo
                     }
-                    onClick={createDemo}
+                    onClick={() => joinQueue(true)}
                     icon={<ListTodoIcon aria-hidden="true" className="mr-1" />}
                   >
                     Create Demo

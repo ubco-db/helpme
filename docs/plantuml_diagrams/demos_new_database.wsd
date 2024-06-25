@@ -17,7 +17,7 @@ class question {
 class thing as "studentTaskProgress" {
   +json taskProgress
 }
-note left : "lab1": {"lastEditedQueueId": 2,\n\t "assignmentProgress": {\n\t"task1":{"isDone":true},\n\t   "task2":{"isDone":true}\n\t}, \n"lab2": {"lastEditedQueueId": 3,\n\t   "assignmentProgress": {\n\t"task1":{"isDone":true}\n\t}\n}
+note left : {\n"lab1": {"lastEditedQueueId": 2,\n\t "assignmentProgress": {\n\t\t"task1":{"isDone":true},\n\t\t"task2":{"isDone":true}\n\t }, \n"lab2": {"lastEditedQueueId": 3,\n\t   "assignmentProgress": {\n\t\t"task1":{"isDone":true}\n\t}\n}
 
 class questionType { 
   ' questionTypes are only going to be tags, not tasks

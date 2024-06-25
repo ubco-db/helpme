@@ -2,7 +2,6 @@ import {
   ListQuestionsResponse,
   OpenQuestionStatus,
   Question,
-  QuestionGroup,
   Role,
   StatusInPriorityQueue,
   StatusInQueue,
@@ -112,6 +111,7 @@ export class QueueService {
   }
 
   /** Hide sensitive data to other students */
+  // TODO: remove this function since it gives no new information for the client (like the client already has their own name and pfp and their own questions, so why are we attaching those things together here on the server?)
   async personalizeQuestions(
     queueId: number,
     questions: ListQuestionsResponse,

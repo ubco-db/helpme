@@ -39,6 +39,13 @@
             "blocking": true,
             "color_hex": "#f7ce52",
             "precondition": "task2"
+        },
+        "task4": {
+            "display_name": "Task 4",
+            "short_display_name": "4",
+            "blocking": false,
+            "color_hex": "#ffce52",
+            "precondition": "task3"
         }
     }
 }

@@ -10,37 +10,12 @@ import { UserModel } from '../profile/user.entity';
 import { CourseModel } from '../course/course.entity';
 import { StudentTaskProgress } from '@koh/common';
 
-/*
-Basically stores this:
-    {
-        "lab1": {
-            "task1": {
-                "isDone": true
-            },
-            "task2": {
-                "isDone": false
-            },
-            "task3": {
-                "isDone": false
-            }
-        },
-        "lab2": {
-            "task1": {
-                "isDone": false
-            },
-            "task2": {
-                "isDone": false
-            }
-        }
-    }
-*/
-
 @Entity('student_task_progress_model')
 export class StudentTaskProgressModel extends BaseEntity {
   @Column({ type: 'json', nullable: true })
-  taskProgress: StudentTaskProgress;
+  taskProgress: StudentTaskProgress; // this is the main item that this entity stores
 
-  @PrimaryColumn()
+  @PrimaryColumn() // two primary columns are needed to make the composite primary key (each studentTaskProgress is uniquely defined by each [cid, uid] combo)
   uid: number;
 
   @ManyToOne(() => UserModel, (user) => user.taskProgress)

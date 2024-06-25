@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Text } from '../Shared/SharedComponents'
 import { CheckOutlined } from '@ant-design/icons'
 import { ConfigTasks, StudentAssignmentProgress } from '@koh/common'
@@ -13,7 +13,9 @@ interface CheckableTaskProps {
   isHovered: boolean
 }
 
-// note: this "Task" is only for this frontend component, the Task used in the rest of the system is a part of ConfigTasks in @koh/common
+/**
+ * note: this "Task" is only for this frontend component, the Task used in the rest of the system is a part of ConfigTasks in @koh/common
+ */
 interface Task {
   taskId: string
   isDone?: boolean
@@ -90,8 +92,8 @@ export function CheckableTask({
         backgroundColor: task.isDone
           ? '#EEEEEE'
           : checked
-          ? taskColor
-          : undefined,
+            ? taskColor
+            : undefined,
         borderRadius: '15px',
         padding: task.blocking ? '5px 15px' : '15px 15px',
         margin: '4px',
@@ -135,69 +137,67 @@ export function CheckableTask({
   )
 }
 
-/* This function takes in re-structures the configTasks object into a tree structure where each task has a reference to the task that must be completed before it.
-    This can then be used to implement proper task dependencies in the UI.
-
-    Warning, this function will mutate the remainingTasks object.
-
-configTasks comes in as:
-    "task1": {
-        "display_name": "Task 1",
-        "short_display_name": "1",
-        "blocking": false,
-        "color_hex": "#ffedb8",
-        "precondition": null
-    },
-    "task2": {
-        "display_name": "Task 2",
-        "short_display_name": "2",
-        "blocking": false,
-        "color_hex": "#fadf8e",
-        "precondition": "task1"
-    },
-    "task3": {
-        "display_name": "Task 3",
-        "short_display_name": "3",
-        "blocking": true,
-        "color_hex": "#f7ce52",
-        "precondition": "task2"
-    }
-
-Resulting tree structure (which is not considered a JSON since it contains object references. Thus, it would be impossible to simply ask the user to input it like this, which is why this function is necessary):
-    {
-        "task1": {
-            display_name: "Task 1",
-            short_display_name: "1",
-            blocking: false,
-            color_hex: "#ffedb8",
-            precondition: null
-        },
-        "task2": {
-            display_name: "Task 2",
-            short_display_name: "2",
-            blocking: false,
-            color_hex: "#fadf8e",
-            precondition: task1 <-- Object reference to task1
-        },
-        "task3": {
-            display_name: "Task 3",
-            short_display_name: "3",
-            blocking: true,
-            color_hex: "#f7ce52",
-            precondition: task2 <-- Object reference to task2
-        }
-    }
-*/
+/**
+ * Transforms a configuration object of tasks into a tree structure where each task has a reference to its prerequisite task.
+ * This enables the implementation of task dependencies in the UI. Note that this function mutates the `remainingTasks` object.
+ *
+ * @param {Object} remainingTasks - The configTasks object to be transformed
+ *
+ * Example input (`remainingTasks`):
+ * {
+ *   "task1": {
+ *     "display_name": "Task 1",
+ *     "short_display_name": "1",
+ *     "blocking": false,
+ *     "color_hex": "#ffedb8",
+ *     "precondition": null
+ *   },
+ *   "task2": {
+ *     "display_name": "Task 2",
+ *     "short_display_name": "2",
+ *     "blocking": false,
+ *     "color_hex": "#fadf8e",
+ *     "precondition": "task1"
+ *   },
+ *   "task3": {
+ *     "display_name": "Task 3",
+ *     "short_display_name": "3",
+ *     "blocking": true,
+ *     "color_hex": "#f7ce52",
+ *     "precondition": "task2"
+ *   }
+ * }
+ *
+ * Example output (transformed `remainingTasks`):
+ * {
+ *   "task1": {
+ *     display_name: "Task 1",
+ *     short_display_name: "1",
+ *     blocking: false,
+ *     color_hex: "#ffedb8",
+ *     precondition: null
+ *   },
+ *   "task2": {
+ *     display_name: "Task 2",
+ *     short_display_name: "2",
+ *     blocking: false,
+ *     color_hex: "#fadf8e",
+ *     precondition: [Object reference to task1]
+ *   },
+ *   "task3": {
+ *     display_name: "Task 3",
+ *     short_display_name: "3",
+ *     blocking: true,
+ *     color_hex: "#f7ce52",
+ *     precondition: [Object reference to task2]
+ *   }
+ * }
+ */
 function transformIntoTaskTree(
   remainingTasks: object,
   taskTree: TaskTree = {},
   precondition: string | null = null,
 ): TaskTree {
-  /*
-      In the first iteration, it adds all null tasks to the tree. 
-      Then, in the second iteration, it cycles through all remaining tasks (i.e. the ones not already added to the tree) and any that have a precondition of a task that was added in the previous iteration are added to the tree with an object reference to that task (instead of a string). This continues for all future iterations until the list of remaining tasks is empty.
-      */
-
   // Object.entries is like a fancy for loop. Filter is a function that takes in a subfunction; if the subfunction returns false, the element is removed from the array.
   const tasksToAdd = Object.entries(remainingTasks).filter(
     ([, taskValue]) => taskValue.precondition === precondition,
@@ -271,111 +271,117 @@ export function TaskSelector({
     }
     setTaskTree(transformIntoTaskTree(configTasksCopy))
     setSelectedTasks(value || [])
-  }, [configTasks, studentAssignmentProgress])
+  }, [configTasks, studentAssignmentProgress, value])
 
-  const handleTaskClick = (taskId, checked) => {
-    const newSelectedTasks = [...selectedTasks]
-    const newTaskTree = { ...taskTree } // just to set the .checked attribute to true/false (needed for hovering effects)
+  const handleTaskClick = useCallback(
+    (taskId, checked) => {
+      const newSelectedTasks = [...selectedTasks]
+      const newTaskTree = { ...taskTree } // just to set the .checked attribute to true/false (needed for hovering effects)
 
-    const checkStatus = { wasThereIncompleteBlockingTask: false } // need to make wasThereIncompleteBlockingTask an object so that it can be passed by reference up the stack
+      const checkStatus = { wasThereIncompleteBlockingTask: false } // need to make wasThereIncompleteBlockingTask an object so that it can be passed by reference up the stack
 
-    const checkPreconditions = (taskID: string, checkStatus) => {
-      const task: Task = taskTree[taskID]
+      const checkPreconditions = (taskID: string, checkStatus) => {
+        const task: Task = taskTree[taskID]
 
-      // Bubbles down until it hits a task whose precondition is null
-      if (task.precondition) {
-        checkPreconditions(task.precondition.taskId, checkStatus)
-      }
-      // Marks task as checked and bubbles back up
-      if (!checkStatus.wasThereIncompleteBlockingTask) {
-        if (!newSelectedTasks.includes(taskID)) {
-          task.checked = true
-          newSelectedTasks.push(taskID)
+        // Bubbles down until it hits a task whose precondition is null
+        if (task.precondition) {
+          checkPreconditions(task.precondition.taskId, checkStatus)
         }
-        if (task.blocking && !task.isDone) {
-          // if the task is blocking and not done, don't check any dependent tasks as it bubbles up
-          console.log('blocking task not done') // leaving this here for now, maybe in the future we can give a message to the user
-          checkStatus.wasThereIncompleteBlockingTask = true
-        }
-      }
-    }
-
-    const removeTaskAndDependents = (taskID: string) => {
-      const index = newSelectedTasks.indexOf(taskID)
-      if (index > -1) {
-        newSelectedTasks.splice(index, 1)
-        taskTree[taskID].checked = false
-      }
-      // Remove dependent tasks
-      for (const task in taskTree) {
-        if (
-          taskTree[task].precondition &&
-          taskTree[task].precondition.taskId === taskID
-        ) {
-          removeTaskAndDependents(task)
+        // Marks task as checked and bubbles back up
+        if (!checkStatus.wasThereIncompleteBlockingTask) {
+          if (!newSelectedTasks.includes(taskID)) {
+            task.checked = true
+            newSelectedTasks.push(taskID)
+          }
+          if (task.blocking && !task.isDone) {
+            // if the task is blocking and not done, don't check any dependent tasks as it bubbles up
+            console.log('blocking task not done') // leaving this here for now, maybe in the future we can give a message to the user
+            checkStatus.wasThereIncompleteBlockingTask = true
+          }
         }
       }
-    }
 
-    // if the task is being checked, check all preconditions as well
-    if (checked) {
-      checkPreconditions(taskId, checkStatus)
-    } else {
-      removeTaskAndDependents(taskId)
-    }
+      const removeTaskAndDependents = (taskID: string) => {
+        const index = newSelectedTasks.indexOf(taskID)
+        if (index > -1) {
+          newSelectedTasks.splice(index, 1)
+          taskTree[taskID].checked = false
+        }
+        // Remove dependent tasks
+        for (const task in taskTree) {
+          if (
+            taskTree[task].precondition &&
+            taskTree[task].precondition.taskId === taskID
+          ) {
+            removeTaskAndDependents(task)
+          }
+        }
+      }
 
-    setSelectedTasks(newSelectedTasks)
-    onChange(newSelectedTasks)
-    setTaskTree(newTaskTree)
-  }
+      // if the task is being checked, check all preconditions as well
+      if (checked) {
+        checkPreconditions(taskId, checkStatus)
+      } else {
+        removeTaskAndDependents(taskId)
+      }
+
+      setSelectedTasks(newSelectedTasks)
+      onChange(newSelectedTasks)
+      setTaskTree(newTaskTree)
+    },
+    [taskTree, selectedTasks, onChange],
+  )
 
   const [hoveredTasks, setHoveredTasks] = useState([])
 
   // basically the same logic as handleTaskClick, but for hovering instead.
-  const handleHover = (taskId, isChecked) => {
-    const newHoveredTasks = [...hoveredTasks]
-    const checkStatus = { wasThereIncompleteBlockingTask: false } // need to make wasThereIncompleteBlockingTask an object so that it can be passed by reference up the stack
+  const handleHover = useCallback(
+    (taskId, isChecked) => {
+      const newHoveredTasks = [...hoveredTasks]
+      const checkStatus = { wasThereIncompleteBlockingTask: false } // need to make wasThereIncompleteBlockingTask an object so that it can be passed by reference up the stack
 
-    const hoverPreconditions = (taskID: string, checkStatus) => {
-      const task: Task = taskTree[taskID]
-      // Bubbles down until it hits a task whose precondition is null
-      if (task.precondition) {
-        hoverPreconditions(task.precondition.taskId, checkStatus)
-      }
-
-      // Marks task as hovered and bubbles back up
-      if (!checkStatus.wasThereIncompleteBlockingTask) {
-        if (!newHoveredTasks.includes(taskID)) {
-          newHoveredTasks.push(taskID)
+      const hoverPreconditions = (taskID: string, checkStatus) => {
+        const task: Task = taskTree[taskID]
+        // Bubbles down until it hits a task whose precondition is null
+        if (task.precondition) {
+          hoverPreconditions(task.precondition.taskId, checkStatus)
         }
-        if (task.blocking && !task.isDone) {
-          // if the task is blocking and not done, don't hover any dependent tasks as it bubbles up
-          checkStatus.wasThereIncompleteBlockingTask = true
-        }
-      }
-    }
 
-    const hoverTaskAndDependents = (taskID: string) => {
-      newHoveredTasks.push(taskID)
-      for (const task in taskTree) {
-        if (
-          taskTree[task].precondition &&
-          taskTree[task].precondition.taskId === taskID &&
-          taskTree[task].checked
-        ) {
-          hoverTaskAndDependents(task)
+        // Marks task as hovered and bubbles back up
+        if (!checkStatus.wasThereIncompleteBlockingTask) {
+          if (!newHoveredTasks.includes(taskID)) {
+            newHoveredTasks.push(taskID)
+          }
+          if (task.blocking && !task.isDone) {
+            // if the task is blocking and not done, don't hover any dependent tasks as it bubbles up
+            checkStatus.wasThereIncompleteBlockingTask = true
+          }
         }
       }
-    }
 
-    // if the task has been checked, only hover the task and all dependents. Else hover the task and all the preconditions
-    if (isChecked) {
-      hoverTaskAndDependents(taskId)
-    } else {
-      hoverPreconditions(taskId, checkStatus)
-    }
-    setHoveredTasks(newHoveredTasks)
-  }
+      const hoverTaskAndDependents = (taskID: string) => {
+        newHoveredTasks.push(taskID)
+        for (const task in taskTree) {
+          if (
+            taskTree[task].precondition &&
+            taskTree[task].precondition.taskId === taskID &&
+            taskTree[task].checked
+          ) {
+            hoverTaskAndDependents(task)
+          }
+        }
+      }
+
+      // if the task has been checked, only hover the task and all dependents. Else hover the task and all the preconditions
+      if (isChecked) {
+        hoverTaskAndDependents(taskId)
+      } else {
+        hoverPreconditions(taskId, checkStatus)
+      }
+      setHoveredTasks(newHoveredTasks)
+    },
+    [taskTree, hoveredTasks],
+  )
 
   const handleUnHover = () => {
     setHoveredTasks([])
@@ -388,7 +394,7 @@ export function TaskSelector({
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
     >
-      {Object.entries(taskTree).map(([taskKey, taskObject], index) => (
+      {Object.entries(taskTree).map(([taskKey, taskObject]) => (
         <CheckableTask
           key={taskKey}
           taskId={taskKey}

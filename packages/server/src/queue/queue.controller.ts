@@ -202,61 +202,9 @@ export class QueueController {
     }
   }
 
-  @Patch(':queueId/configa')
-  @Roles(Role.TA, Role.PROFESSOR)
-  async setConfiga(
-    @Param('queueId') queueId: number,
-    @Body() config: QueueConfig,
-  ): Promise<setQueueConfigResponse> {
-    // make sure queue config is valid
-    const configError = validateQueueConfigInput(config);
-    if (configError) {
-      throw new HttpException(configError, HttpStatus.BAD_REQUEST);
-    }
-
-    const queue = await this.queueService.getQueue(queueId);
-    if (!queue) {
-      throw new NotFoundException();
-    }
-    const oldConfig = queue.config;
-
-    Object.entries(config.tags).forEach(async ([tagId, tag]) => {
-      if (oldConfig.tags[tagId]) {
-        //// update the question type
-        // first find the existing question type using queueid and the display_name
-        const oldQuestionType = await QuestionTypeModel.findOne({
-          where: { queueId: queueId, name: tag.display_name },
-        });
-        // set the values
-        oldQuestionType.color = tag.color_hex;
-        oldQuestionType.name = tag.display_name;
-        // save the question type
-        await oldQuestionType.save();
-      } else {
-        // create a new question type
-        const newQuestionType = new QuestionTypeModel();
-        newQuestionType.queueId = queueId;
-        newQuestionType.color = tag.color_hex;
-        newQuestionType.name = tag.display_name;
-        await newQuestionType.save();
-      }
-    });
-
-    try {
-      // set config for a queue
-      queue.config = config;
-      await queue.save();
-    } catch (err) {
-      console.error(err);
-      throw new HttpException(
-        ERROR_MESSAGES.queueController.saveQueue,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-    return { questionTypeMessages: [] };
-  }
-
-  // Sets the JSON config for a queue and then returns success + any question tags that were created/deleted/updated
+  /**
+   * Sets the JSON config for a queue and then returns success + any question tags that were created/deleted/updated
+   */
   // note: for whatever reason, anytime you `return` a res.send(), you get "cannot set headers after they are sent" even though that's what you're supposed to do
   @Patch(':queueId/config')
   @Roles(Role.TA, Role.PROFESSOR)

@@ -10,7 +10,7 @@ import {
   UpdateQueueParams,
   validateQueueConfigInput,
 } from '@koh/common'
-import { pick, set } from 'lodash'
+import { pick } from 'lodash'
 import { default as React, useEffect, useCallback, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useCourse } from '../../../hooks/useCourse'
@@ -87,11 +87,6 @@ export function EditQueueModal({
     setColor(color.hex)
   }
   const [zoomLink, setZoomLink] = useState('')
-  useEffect(() => {
-    if (visible) {
-      getQuestions()
-    }
-  }, [visible])
 
   const lastSavedQueueConfig = useRef<QueueConfig | null>(queue?.config || null)
   // gets updated whenever the config text box changes. Just stores the string
@@ -113,13 +108,19 @@ export function EditQueueModal({
   }
 
   const courseNumber = Number(courseId)
-  const getQuestions = async () => {
-    const tempQuestionTypes = await API.questionType.getQuestionTypes(
-      courseNumber,
-      queueId,
-    )
-    setQuestionsTypeState(tempQuestionTypes)
-  }
+
+  useEffect(() => {
+    async function fetchData() {
+      if (visible) {
+        const tempQuestionTypes = await API.questionType.getQuestionTypes(
+          courseNumber,
+          queueId,
+        )
+        setQuestionsTypeState(tempQuestionTypes)
+      }
+    }
+    fetchData()
+  }, [courseNumber, queueId, visible])
 
   const onclick = useCallback(
     async (questionTypeId: number) => {
@@ -139,7 +140,7 @@ export function EditQueueModal({
           message.error(`Error creating question tag: ${errorMessage}`)
         })
     },
-    [courseNumber],
+    [courseNumber, mutateQueue, queueId],
   )
 
   const onAddChange = (e) => {
@@ -181,7 +182,14 @@ export function EditQueueModal({
         const errorMessage = e.response?.data || 'Unknown error occurred'
         message.error(`Error creating question tag: ${errorMessage}`)
       })
-  }, [courseNumber, questionTypeAddState, color, isInputEmpty])
+  }, [
+    isInputEmpty,
+    courseNumber,
+    questionTypeAddState,
+    color,
+    queueId,
+    mutateQueue,
+  ])
 
   // any changes to the queue config (such as adding/deleted a question type) will update the queue config  text box
   useEffect(() => {
@@ -211,6 +219,7 @@ export function EditQueueModal({
         setCurrentZoomLink(zoomLink)
       })
   }
+
   // this form is really weird. It's a form with an OK button but most form elements have their own setter buttons.
   // TODO: maybe refactor this so that it works like a regular form (nothing is set until they hit the form's OK button)
   return (
@@ -369,7 +378,10 @@ export function EditQueueModal({
                     // parse the config (any errors will be caught by the try-catch)
                     const parsedConfig = JSON.parse(value)
                     // TODO: figure out a way to warn the user if there are duplicate keys in the config (JSON.parse will not throw an error, it will just overwrite the first object with the second one. It'd just be for UX)
-                    // do more error checking
+                    // Hours spent trying to do so without success: 3
+                    // For something so simple, I could not find a simple way to do it. At this point. it might be worth just getting a proper JSON editor component or make the UI to build the config instead of a json
+
+                    // More error checking
                     const configError = validateQueueConfigInput(parsedConfig)
                     if (configError) {
                       setIsValidConfig(false)
@@ -443,7 +455,7 @@ export function EditQueueModal({
               </>
             }
           >
-            <TextArea className="!h-96 w-full" spellCheck="false" />
+            <TextArea className="!h-[30rem] w-full" spellCheck="false" />
           </CustomFormItem>
         </Form>
       )}

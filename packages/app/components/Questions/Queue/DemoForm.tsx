@@ -166,9 +166,7 @@ export default function DemoForm({
               studentAssignmentProgress={studentAssignmentProgress}
               configTasks={configTasks}
               onChange={onTaskChange}
-              // value={questionTypeInput.map((type) => type.id)}
               value={tasksInput}
-              // questionTypes={questionsTypeState}
               className="mb-4"
               ariaLabelledBy="question-type-text"
             ></TaskSelector>

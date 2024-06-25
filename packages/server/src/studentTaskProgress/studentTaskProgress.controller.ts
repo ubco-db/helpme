@@ -11,7 +11,6 @@ import {
   ClassSerializerInterceptor,
   Get,
   Param,
-  Res,
 } from '@nestjs/common';
 import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
@@ -60,7 +59,13 @@ export class StudentTaskProgressController {
     return studentAssignmentProgress;
   }
 
-  // Getting only the studentAssignmentProgress for a specific queue is needed since some queues may have the same assignment loaded in them.
+  /**
+   * Retrieves the assignment progress for all students in a specific queue.
+   *
+   * It's probably a costly endpoint to call, thus don't call it often on the frontend.
+   *
+   * Getting only the studentAssignmentProgress for a specific queue is needed since some queues may have the same assignment loaded in them.
+   */
   @Get('queue/:queueId/:courseId/:assignmentName')
   @UseGuards(QueueRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)

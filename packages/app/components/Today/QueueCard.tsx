@@ -4,17 +4,7 @@ import {
   RightOutlined,
   StopOutlined,
 } from '@ant-design/icons'
-import {
-  Button,
-  Card,
-  Divider,
-  Input,
-  Row,
-  Skeleton,
-  Tag,
-  Tooltip,
-  Modal,
-} from 'antd'
+import { Button, Card, Divider, Input, Row, Skeleton, Tag, Tooltip } from 'antd'
 import Linkify from 'react-linkify'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -22,7 +12,6 @@ import React, { ReactElement, useState } from 'react'
 import styled from 'styled-components'
 import { QueuePartial } from '../../../common/index'
 import { KOHAvatar } from '../common/SelfAvatar'
-import { API } from '@koh/api-client'
 
 type QueueCard = {
   queue: QueuePartial

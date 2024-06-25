@@ -1,8 +1,10 @@
 import { Collapse, List } from 'antd'
 import { ReactElement } from 'react'
 
-// returns a help glossary that shows what each attribute in the json config does
-// used in both edit queue modal and create queue modal
+/**
+ * returns a help glossary that shows what each attribute in the json config does
+ * used in both edit queue modal and create queue modal
+ */
 export default function QueueConfigHelp(): ReactElement {
   return (
     <Collapse bordered={false}>
@@ -121,9 +123,10 @@ export default function QueueConfigHelp(): ReactElement {
             </List>
           </List.Item>
           <List.Item>
-            Note: for now, it is recommended to store these configs someplace
-            safe (e.g. a text document) to make it easier to copy and paste into
-            future courses/queues.
+            {`Note: for now, it is recommended to store these configs someplace safe (e.g. a text document) to make it easier to copy and paste into future courses/queues.`}
+          </List.Item>
+          <List.Item>
+            {`Note: also, for now, the editor does not warn you if you have two duplicate keys (e.g. having two "assignment_id"s or two "tag1"s). Make sure to double check your config.`}
           </List.Item>
         </List>
       </Collapse.Panel>

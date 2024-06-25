@@ -5,7 +5,7 @@ import { chunk, mean } from 'lodash'
 import moment from 'moment'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import React, { ReactElement, useState } from 'react'
+import React, { ReactElement, useCallback, useState } from 'react'
 import styled from 'styled-components'
 import { StandardPageContainer } from '../../../components/common/PageContainer'
 import NavBar from '../../../components/Nav/NavBar'
@@ -123,24 +123,27 @@ export default function Today(): ReactElement {
     mutateCourse()
   }
 
-  const submitCreateQueue = async (submittedForm) => {
-    const queueRequest = await submittedForm.validateFields()
-    try {
-      await API.queues.createQueue(
-        Number(cid),
-        queueRequest.officeHourName,
-        !queueRequest.allowTA,
-        queueRequest.notes,
-        JSON.parse(queueRequest.config),
-      )
-      message.success(`Created a new queue ${queueRequest.officeHourName}`)
-      mutateCourse()
+  const submitCreateQueue = useCallback(
+    async (submittedForm) => {
+      const queueRequest = await submittedForm.validateFields()
+      try {
+        await API.queues.createQueue(
+          Number(cid),
+          queueRequest.officeHourName,
+          !queueRequest.allowTA,
+          queueRequest.notes,
+          JSON.parse(queueRequest.config),
+        )
+        message.success(`Created a new queue ${queueRequest.officeHourName}`)
+        mutateCourse()
 
-      setCreateQueueModalVisible(false)
-    } catch (err) {
-      message.error(err.response?.data?.message)
-    }
-  }
+        setCreateQueueModalVisible(false)
+      } catch (err) {
+        message.error(err.response?.data?.message)
+      }
+    },
+    [cid, mutateCourse],
+  )
 
   const firstContentItemId = courseFeatures?.queueEnabled
     ? 'first-queue'
@@ -156,7 +159,9 @@ export default function Today(): ReactElement {
     return (
       <StandardPageContainer>
         <Head>
-          <title>{course?.name} | UBC Office Hours</title>
+          <title>
+            {course?.name} | {profile?.organization?.organizationName} HelpMe
+          </title>
         </Head>
 
         {firstContentItemId && (

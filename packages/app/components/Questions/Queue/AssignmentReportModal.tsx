@@ -23,9 +23,6 @@ const StudentCard = styled(Card)`
       padding: 10px 0px;
     }
   }
-  //   display: flex;
-  //   flex-direction: row;
-  //     align-items: center;
 `
 
 interface AssignmentReportModalProps {
@@ -58,7 +55,7 @@ export function AssignmentReportModal({
           message.success('Assignment Progress Loaded')
         })
     }
-  }, [visible, refreshKey])
+  }, [visible, refreshKey, queueId, courseId, assignmentName])
 
   const handleRefresh = () => {
     setRefreshKey((prevKey) => prevKey + 1)
@@ -85,7 +82,7 @@ export function AssignmentReportModal({
     >
       <div>
         {Object.entries(allStudentAssignmentProgress).map(
-          ([userId, studentDetailsAndProgress], index) => (
+          ([, studentDetailsAndProgress], index) => (
             <StudentCard key={index}>
               <Row className="items-center">
                 <Col flex="0 1 auto" className="mr-2">

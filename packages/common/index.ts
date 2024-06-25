@@ -1466,7 +1466,9 @@ export class CourseSettingsRequestBody {
   }
 }
 
-// used to display what question types were created/deleted/updated from editing the queue
+/**
+ * used to display what question types were created/deleted/updated from editing the queue
+ */
 export interface setQueueConfigResponse {
   questionTypeMessages: string[]
 }
@@ -1486,7 +1488,9 @@ export interface QueueConfig {
   tasks?: ConfigTasks
 }
 
-// Helper function to find the first duplicate in an array
+/**
+ * Helper function to find the first duplicate in an array
+ */
 function findFirstDuplicate(array: any[]): any {
   const seen = new Set()
   for (const item of array) {
@@ -1497,8 +1501,12 @@ function findFirstDuplicate(array: any[]): any {
   }
   return null
 }
-// this function is used both on the backend and frontend to check if there are any errors (total is 24 different errors) in the queue config
-// returns an empty string if there's no errors
+
+/**
+ * This function is used both on the backend and frontend to check if there are any errors (total is 24 different errors) in the queue config.
+ *
+ * Returns an empty string if there's no errors
+ */
 export function validateQueueConfigInput(obj: any): string {
   const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
   const validAttributes = [
@@ -1653,29 +1661,34 @@ export function validateQueueConfigInput(obj: any): string {
   return ''
 }
 
-/* Essentialy this:
-    "task1": {
-        "display_name": "Task 1",
-        "short_display_name": "1",
-        "blocking": false,
-        "color_hex": "#ffedb8",
-        "precondition": null
-    },
-    "task2": {
-        "display_name": "Task 2",
-        "short_display_name": "2",
-        "blocking": false,
-        "color_hex": "#fadf8e",
-        "precondition": "task1"
-    },
-    "task3": {
-        "display_name": "Task 3",
-        "short_display_name": "3",
-        "blocking": true,
-        "color_hex": "#f7ce52",
-        "precondition": "task2"
-    }
-*/
+/**
+ * Essentially this:
+ * ```
+ * {
+ *   "task1": {
+ *       "display_name": "Task 1",
+ *       "short_display_name": "1",
+ *       "blocking": false,
+ *       "color_hex": "#ffedb8",
+ *       "precondition": null
+ *   },
+ *   "task2": {
+ *       "display_name": "Task 2",
+ *       "short_display_name": "2",
+ *       "blocking": false,
+ *       "color_hex": "#fadf8e",
+ *       "precondition": "task1"
+ *   },
+ *   "task3": {
+ *       "display_name": "Task 3",
+ *       "short_display_name": "3",
+ *       "blocking": true,
+ *       "color_hex": "#f7ce52",
+ *       "precondition": "task2"
+ *   }
+ * }
+ * ```
+ */
 export interface ConfigTasks {
   [taskKey: string]: {
     display_name: string
@@ -1686,39 +1699,44 @@ export interface ConfigTasks {
   }
 }
 
-/* Essentially this:
-  {
-    "task1": { "isDone": true },
-    "task2": { "isDone": false }, <- not guaranteed for all tasks to be here
-    "task3": { "isDone": false },
-  }
-*/
-
+/**
+ * Essentially this:
+ * ```
+ * {
+ *   "task1": { "isDone": true },
+ *   "task2": { "isDone": false }, <- not guaranteed for all tasks to be here
+ *   "task3": { "isDone": false },
+ * }
+ * ```
+ */
 export interface StudentAssignmentProgress {
   [taskKey: string]: {
     isDone: boolean
   } | null
 }
 
-/* Essentially this:
-{
-    "lab1": {
-        "lastEditedQueueId": 2,
-        "assignmentProgress": {
-            "task1": { "isDone": true },
-            "task2": { "isDone": true },
-            "task3": { "isDone": true }
-        }
-    },
-    "lab2": {
-        "lastEditedQueueId": 1,
-        "assignmentProgress": {
-            "task1": { "isDone": true },
-            "task2": { "isDone": false }
-        }
-    }
-}
-*/
+/**
+ * Essentially this:
+ * ```
+ * {
+ *     "lab1": {
+ *         "lastEditedQueueId": 2,
+ *         "assignmentProgress": {
+ *             "task1": { "isDone": true },
+ *             "task2": { "isDone": true },
+ *             "task3": { "isDone": true }
+ *         }
+ *     },
+ *     "lab2": {
+ *         "lastEditedQueueId": 1,
+ *         "assignmentProgress": {
+ *             "task1": { "isDone": true },
+ *             "task2": { "isDone": false }
+ *         }
+ *     }
+ * }
+ * ```
+ */
 export interface StudentTaskProgress {
   [assignmentKey: string]: {
     lastEditedQueueId: number

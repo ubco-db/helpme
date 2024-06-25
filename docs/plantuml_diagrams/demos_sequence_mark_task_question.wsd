@@ -36,7 +36,7 @@ server -> db : get current studentTaskProgress for student
 server <- db : current studentTaskProgress (if any)
 alt no studentTaskProgress made for student yet
     server -> db : create new studentTaskProgress \n with new studentAssignmentProgress \n with each new task appended (isDone = true)
-    note left : For Reference:\nstudentTaskProgress = { studentAssignmentProgress[]}\nstudentAssignmentProgress = {\n   "assignment1":{\n      "lastEditedQueueId"=1,\n      "task1": {"isDone" = true},\n      "task2": {"isDone" = true}\n   }\n}
+    note left : For Reference:\nstudentTaskProgress = {\n"lab1": {"lastEditedQueueId": 2,\n\t "assignmentProgress": {\n\t\t"task1":{"isDone":true},\n\t\t"task2":{"isDone":true}\n\t }, \n"lab2": {"lastEditedQueueId": 3,\n\t   "assignmentProgress": {\n\t\t"task1":{"isDone":true}\n\t}\n}
 else studentTaskProgress already made but no assignment progress for "lab1" yet
     server -> db : update studentTaskProgress \n with new studentAssignmentProgress \n with each new task appended (isDone = true)
 else studentTaskProgress and studentAssignmentProgress found
