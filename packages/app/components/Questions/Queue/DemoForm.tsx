@@ -5,20 +5,11 @@ import {
   StudentAssignmentProgress,
   ConfigTasks,
 } from '@koh/common'
-import { Alert, Button, Input, Modal, Radio, Tooltip } from 'antd'
+import { Alert, Button, Modal, Tooltip } from 'antd'
 import { NextRouter, useRouter } from 'next/router'
-import {
-  default as React,
-  ReactElement,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react'
+import { default as React, ReactElement, useEffect, useState } from 'react'
 import styled from 'styled-components'
-import { useLocalStorage } from '../../../hooks/useLocalStorage'
 import { toOrdinal } from '../../../utils/ordinal'
-import { API } from '@koh/api-client'
-import PropTypes from 'prop-types'
 import { TaskSelector } from './TaskSelector'
 
 const Container = styled.div`
@@ -30,14 +21,6 @@ const QuestionText = styled.div`
   font-size: 14px;
   line-height: 22px;
   margin-bottom: 4px;
-`
-
-const QuestionCaption = styled.div`
-  font-weight: 300;
-  font-size: 14px;
-  line-height: 22px;
-  color: #8c8c8c;
-  margin-bottom: 32px;
 `
 
 const FormButton = styled(Button)`
@@ -54,7 +37,6 @@ interface DemoFormProps {
   studentAssignmentProgress: StudentAssignmentProgress
   visible: boolean
   question: Question
-  queueId: number
   leaveQueue: () => void
   finishDemo: (
     text: string,
@@ -78,12 +60,7 @@ export default function DemoForm({
   finishDemo,
   position,
   cancel,
-  queueId,
 }: DemoFormProps): ReactElement {
-  const [storageQuestion, setStoredQuestion] = useLocalStorage(
-    'draftDemo',
-    null,
-  )
   const router = useRouter()
   const courseId = router.query['cid']
 
@@ -92,7 +69,6 @@ export default function DemoForm({
 
   const [questionText, setQuestionText] = useState<string>(question?.text || '')
 
-  // const [tasksInput, setTasksInput] = useState<string>(question?.questionTypes || [])
   const [tasksInput, setTasksInput] = useState<string[]>(
     question?.text?.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || [],
   ) // gives an array of "part1","part2",etc.)
@@ -114,13 +90,6 @@ export default function DemoForm({
       .map((task) => `"${task}"`)
       .join(' ')}`
     setQuestionText(newQuestionText)
-
-    const questionFromStorage = storageQuestion ?? {}
-    setStoredQuestion({
-      id: question?.id,
-      ...questionFromStorage,
-      text: questionText,
-    })
   }
 
   // on button submit click, conditionally choose to go back to the queue
@@ -136,41 +105,11 @@ export default function DemoForm({
     )
   }
 
-  // all possible questions, use courseId
-  // const courseNumber = Number(courseId)
-  // const getQuestions = useCallback(() => {
-  //   let isCancelled = false
-
-  //   // const fetchQuestions = async () => {
-  //   //   const questions = await API.questionType.getQuestionTypes(
-  //   //     courseNumber,
-  //   //     queueId,
-  //   //   )
-  //   //   if (!isCancelled) {
-  //   //     setQuestionsTypeState(questions)
-  //   //   }
-  //   // }
-
-  //   // fetchQuestions()
-
-  //   return () => {
-  //     isCancelled = true
-  //   }
-  // }, [courseNumber])
-
-  // useEffect(() => {
-  //   const cleanup = getQuestions()
-  //   return () => {
-  //     cleanup()
-  //   }
-  // }, [getQuestions])
-
   return (
     <Modal
       open={visible}
       closable={true}
       onCancel={() => {
-        setStoredQuestion(question)
         cancel()
       }}
       title={drafting ? 'Create Demo' : 'Edit Your Demo'}

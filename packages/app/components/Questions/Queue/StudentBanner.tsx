@@ -260,7 +260,7 @@ function QuestionDetailRow({
           </div>
         )}
       </Col>
-      <Col flex="154px">
+      <Col flex="154px" className="flex items-center justify-center">
         <Row className="flex-nowrap">
           <div className="flex w-[50px] flex-col items-center justify-center">
             <SpotIndicator

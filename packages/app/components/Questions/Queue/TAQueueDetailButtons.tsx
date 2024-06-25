@@ -2,8 +2,6 @@ import {
   CheckOutlined,
   CloseOutlined,
   DeleteOutlined,
-  PhoneOutlined,
-  PlayCircleOutlined,
   QuestionOutlined,
   UndoOutlined,
 } from '@ant-design/icons'
@@ -19,7 +17,6 @@ import {
 } from '@koh/common'
 import { message, Popconfirm, Tooltip } from 'antd'
 import React, { ReactElement, useCallback } from 'react'
-//import { useDefaultMessage } from "../../../hooks/useDefaultMessage";
 import { useQuestions } from '../../../hooks/useQuestions'
 import { useTAInQueueInfo } from '../../../hooks/useTAInQueueInfo'
 import {
@@ -30,8 +27,6 @@ import {
   FinishHelpingButton,
   RequeueButton,
 } from './Banner'
-//import { useTeams } from "../../../hooks/useTeams";
-import { useHotkeys } from 'react-hotkeys-hook'
 import { useCourse } from '../../../hooks/useCourse'
 import { Play } from 'lucide-react'
 
@@ -59,10 +54,14 @@ export default function TAQueueDetailButtons({
   // let timerCheckout=useRef(null);
   const changeStatus = useCallback(
     async (status: QuestionStatus) => {
-      await API.questions.update(question.id, { status })
-      mutateQuestions()
-      if (status === ClosedQuestionStatus.Resolved) {
-        message.warning('Your Question is ended')
+      try {
+        await API.questions.update(question.id, { status })
+        mutateQuestions()
+        if (status === ClosedQuestionStatus.Resolved) {
+          message.success('Your Question has ended')
+        }
+      } catch (e) {
+        message.error('Failed to update question status')
       }
       // if (status===LimboQuestionStatus.CantFind||status===ClosedQuestionStatus.Resolved){
       // timerCheckout.current = setTimeout(() => {
@@ -97,7 +96,7 @@ export default function TAQueueDetailButtons({
         alertType: AlertType.REPHRASE_QUESTION,
         courseId,
         payload,
-        targetUserId: question.creator.id,
+        targetUserId: question.creatorId,
       })
       await mutateQuestions()
       message.success('Successfully asked student to rephrase their question.')
@@ -232,16 +231,18 @@ export default function TAQueueDetailButtons({
               </span>
             </Tooltip>
           </Popconfirm>
-          <Tooltip title={rephraseTooltip}>
-            <span>
-              <BannerOrangeButton
-                shape="circle"
-                icon={<QuestionOutlined />}
-                onClick={sendRephraseAlert}
-                disabled={!canRephrase}
-              />
-            </span>
-          </Tooltip>
+          {!question.isTaskQuestion && (
+            <Tooltip title={rephraseTooltip}>
+              <span>
+                <BannerOrangeButton
+                  shape="circle"
+                  icon={<QuestionOutlined />}
+                  onClick={sendRephraseAlert}
+                  disabled={!canRephrase}
+                />
+              </span>
+            </Tooltip>
+          )}
           <Tooltip title={helpTooltip}>
             <span>
               <BannerPrimaryButton

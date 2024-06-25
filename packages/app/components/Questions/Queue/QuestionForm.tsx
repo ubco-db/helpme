@@ -14,7 +14,6 @@ import { useLocalStorage } from '../../../hooks/useLocalStorage'
 import { toOrdinal } from '../../../utils/ordinal'
 import { API } from '@koh/api-client'
 import { QuestionTypeSelector } from '../Shared/QuestionType'
-import PropTypes from 'prop-types'
 
 const Container = styled.div`
   max-width: 960px;
