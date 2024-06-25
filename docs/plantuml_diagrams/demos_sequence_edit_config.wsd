@@ -13,8 +13,7 @@ User -> frontend : request queue page
 frontend -> server : request queue page
 server -> db : request queue data
 server <- db : queue data (+config)
-frontend <- server : queue page
-frontend -> frontend : parse config and save in variables
+frontend <- server : queue page + queue data
 User <- frontend : queue page 
 
 User -> frontend : Edit queue details
@@ -27,9 +26,9 @@ server -> server : parse new config and send potential errors
 server -> db : get old queue config
 server <- db : old queue config
 server -> server : inteligently compare tags of old and new config
-note left : maybe compare the tag ids. \n If there's a new tag id, make new. \n If there's a missing one, delete. \n If tag ids same but attributes different, \n find the right questionType and edit it
+note left : Compare the tag ids: \n If there's a new tag id, make new. \n If there's a missing one, delete. \n If tag ids same but attributes different, \n  find the questionType where \n  questionType.name = tag.display_name\n  and update it
 server -> db : edit/delete/add new questionTypes \n for the queue
-note left : it might be good to warn the TA/Prof to not \n change the tag ids during a session
+note left : Note: a similar situation happens when creating/deleting \n question types, where instead the queue config gets updated smartly\n (also by using questionType.name = tag.display_name)
 server -> db : new queue config
 
 == Database change to queue triggers update to all clients (push) ==

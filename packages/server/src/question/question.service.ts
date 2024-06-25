@@ -219,6 +219,41 @@ export class QuestionService {
     return;
   }
 
+  async checkIfValidTaskQuestion(
+    question: QuestionModel,
+    queue: QueueModel,
+  ): Promise<void> {
+    if (
+      question.isTaskQuestion &&
+      question.status !== ClosedQuestionStatus.ConfirmedDeleted &&
+      question.status !== ClosedQuestionStatus.DeletedDraft &&
+      question.status !== ClosedQuestionStatus.Stale &&
+      question.status !== OpenQuestionStatus.Drafting
+    ) {
+      const tasks =
+        question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || [];
+      if (tasks.length === 0) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.questionController.studentTaskProgress.taskParseError,
+        );
+      }
+      // check to make sure all tasks are in the config
+      const configTasks = queue.config?.tasks;
+      if (!configTasks) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.questionController.studentTaskProgress.configDoesNotExist,
+        );
+      }
+      for (const task of tasks) {
+        if (!configTasks.hasOwnProperty(task)) {
+          throw new BadRequestException(
+            ERROR_MESSAGES.questionController.studentTaskProgress.taskNotInConfig,
+          );
+        }
+      }
+    }
+  }
+
   async validateNotHelpingOther(
     newStatus: QuestionStatus,
     userId: number,

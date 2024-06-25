@@ -291,18 +291,22 @@ export class QuestionController {
       );
     }
 
+    const newQuestion = QuestionModel.create({
+      queueId: queueId,
+      creator: user,
+      text,
+      questionTypes: types,
+      groupable,
+      isTaskQuestion,
+      status: QuestionStatusKeys.Drafting,
+      createdAt: new Date(),
+    });
+    // check to make sure all tasks are in the config
+    await this.questionService.checkIfValidTaskQuestion(newQuestion, queue);
+
     try {
-      const question = await QuestionModel.create({
-        queueId: queueId,
-        creator: user,
-        text,
-        questionTypes: types,
-        groupable,
-        isTaskQuestion,
-        status: QuestionStatusKeys.Drafting,
-        createdAt: new Date(),
-      }).save();
-      return question;
+      await newQuestion.save();
+      return newQuestion;
     } catch (err) {
       throw new HttpException(
         ERROR_MESSAGES.questionController.saveQError,
@@ -364,17 +368,9 @@ export class QuestionController {
         question.isTaskQuestion &&
         question.status !== ClosedQuestionStatus.ConfirmedDeleted &&
         question.status !== ClosedQuestionStatus.DeletedDraft &&
-        question.status !== ClosedQuestionStatus.Stale
+        question.status !== ClosedQuestionStatus.Stale &&
+        question.status !== OpenQuestionStatus.Drafting
       ) {
-        const tasks =
-          question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) ||
-          [];
-        if (tasks.length === 0) {
-          throw new BadRequestException(
-            ERROR_MESSAGES.questionController.studentTaskProgress.taskParseError,
-          );
-        }
-        // check to make sure all tasks are in the config
         let queue: QueueModel;
         try {
           queue = await QueueModel.findOneOrFail(question.queueId);
@@ -383,14 +379,8 @@ export class QuestionController {
             ERROR_MESSAGES.questionController.studentTaskProgress.queueDoesNotExist,
           );
         }
-        const configTasks = queue.config?.tasks;
-        for (const task of tasks) {
-          if (!configTasks.hasOwnProperty(task)) {
-            throw new BadRequestException(
-              ERROR_MESSAGES.questionController.studentTaskProgress.taskNotInConfig,
-            );
-          }
-        }
+        // check to make sure all tasks are in the config
+        await this.questionService.checkIfValidTaskQuestion(question, queue);
       }
 
       try {

@@ -11,7 +11,7 @@ import { StudentTaskProgressModule } from 'studentTaskProgress/studentTaskProgre
 
 describe('StudentTaskProgress Integration', () => {
   const supertest = setupIntegrationTest(StudentTaskProgressModule);
-  describe('GET /studentTaskProgress/student/:userId/:id/:assignmentName', () => {
+  describe('GET /studentTaskProgress/student/:userId/:courseId/:assignmentName', () => {
     it('should return 401 if user is not authorized', async () => {
       await supertest()
         .get(`/studentTaskProgress/student/1/1/assignment1`)
@@ -150,7 +150,7 @@ describe('StudentTaskProgress Integration', () => {
     //it('should not allow students to retrieve other students progress but still allow TAs to do so', async () => {
   });
 
-  describe('GET /studentTaskProgress/queue/:queueId/:id/:assignmentName', () => {
+  describe('GET /studentTaskProgress/queue/:queueId/:courseId/:assignmentName', () => {
     it('should return 401 if user is not authorized', async () => {
       await supertest()
         .get(`/studentTaskProgress/queue/1/1/assignment1`)
@@ -388,7 +388,7 @@ describe('StudentTaskProgress Integration', () => {
       const resp = await supertest({ userId: student.id }).get(
         `/studentTaskProgress/queue/${queue.id}/${course.id}/assignment1`,
       );
-      expect(resp.status).toBe(401);
+      expect(resp.status).toBe(403);
     });
   });
 });

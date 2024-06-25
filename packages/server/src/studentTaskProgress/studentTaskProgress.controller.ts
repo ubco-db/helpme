@@ -28,11 +28,11 @@ export class StudentTaskProgressController {
   // TODO: make it so students can only retrieve their own taskProgress
   // maybe make 3 endpoints. getMyAssignmentProgress (using @UserId), getStudentAssignmentProgress (only usable by TAs. Though, maybe instead just ship the assignment progress with the task question itself), and getAllAssignmentProgressForQueue (also only used by TAs. This can be called initially to save a lot of the initial calls.), can also have getAllAssignmentProgressForCourse
   // will probably want to move the method to its own controller at that point (with a little note that mentions that the setting of taskProgress happens in the updateQuestion endpoint in the question controller).
-  @Get('student/:userId/:id/:assignmentName')
+  @Get('student/:userId/:courseId/:assignmentName')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getStudentAssignmentProgress(
     @Param('userId') userId: number,
-    @Param('id') courseId: number, // need to put this as "id" in the route for CourseRolesGuard to work
+    @Param('courseId') courseId: number,
     @Param('assignmentName') assignmentName: string,
   ): Promise<StudentAssignmentProgress | null> {
     const studentTaskProgress = await StudentTaskProgressModel.findOne({
@@ -61,12 +61,12 @@ export class StudentTaskProgressController {
   }
 
   // Getting only the studentAssignmentProgress for a specific queue is needed since some queues may have the same assignment loaded in them.
-  @Get('queue/:queueId/:id/:assignmentName')
+  @Get('queue/:queueId/:courseId/:assignmentName')
   @UseGuards(QueueRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async getAllAssignmentProgressForQueue(
     @Param('queueId') queueId: number,
-    @Param('id') courseId: number, // need to put this as "id" in the route for CourseRolesGuard to work
+    @Param('courseId') courseId: number,
     @Param('assignmentName') assignmentName: string,
   ): Promise<AllStudentAssignmentProgress> {
     // this returns the entire StudentTaskProgress for all students (which includes the assignment progress for stuff we don't care about)

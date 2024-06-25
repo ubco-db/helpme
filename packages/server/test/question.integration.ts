@@ -29,7 +29,7 @@ import {
   modifyMockNotifs,
   setupIntegrationTest,
 } from './util/testUtils';
-import { forEach } from 'lodash';
+import { assign, forEach } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
@@ -79,9 +79,10 @@ describe('Question Integration', () => {
       questionTypes: QuestionTypeModel[],
       force = false,
       isTaskQuestion = false,
+      questionText = "Don't know recursion",
     ): supertest.Test =>
       supertest({ userId: user.id }).post('/questions').send({
-        text: "Don't know recursion",
+        text: questionText,
         questionTypes: questionTypes,
         queueId: queue.id,
         force,
@@ -380,11 +381,33 @@ describe('Question Integration', () => {
         allowQuestions: true,
         course: course,
         staffList: [ta2.user],
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: 'T1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+          },
+        },
       });
       const queue2 = await QueueFactory.create({
         allowQuestions: true,
         course: course,
         staffList: [ta.user],
+        config: {
+          assignment_id: 'assignment2',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: 'T1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+          },
+        },
       });
 
       expect(await queue1.checkIsOpen()).toBe(true);
@@ -400,6 +423,52 @@ describe('Question Integration', () => {
         queue: queue1,
         isTaskQuestion: true,
         status: OpenQuestionStatus.Drafting,
+        text: 'Mark "task1"',
+      });
+
+      const response = await postQuestion(
+        user,
+        queue2,
+        [],
+        false,
+        true,
+        'Mark "task1"',
+      );
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe(
+        ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime,
+      );
+    });
+    it('does not allow the posting of demos with invalid tasks', async () => {
+      const course = await CourseFactory.create({});
+      const user = await UserFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        allowQuestions: true,
+        course: course,
+        staffList: [ta.user],
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: 'T1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+          },
+        },
+      });
+
+      expect(await queue.checkIsOpen()).toBe(true);
+
+      await StudentCourseFactory.create({
+        userId: user.id,
+        courseId: course.id,
       });
 
       const questionTypes = [];
@@ -414,15 +483,116 @@ describe('Question Integration', () => {
 
       const response = await postQuestion(
         user,
-        queue2,
+        queue,
         questionTypes,
         false,
         true,
+        'Mark "task2"',
       );
 
       expect(response.status).toBe(400);
       expect(response.body.message).toBe(
-        ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime,
+        ERROR_MESSAGES.questionController.studentTaskProgress.taskNotInConfig,
+      );
+    });
+    it('does not allow posting of demos if the queue has no tasks defined', async () => {
+      const course = await CourseFactory.create({});
+      const user = await UserFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        allowQuestions: true,
+        course: course,
+        staffList: [ta.user],
+      });
+
+      expect(await queue.checkIsOpen()).toBe(true);
+
+      await StudentCourseFactory.create({
+        userId: user.id,
+        courseId: course.id,
+      });
+
+      const questionTypes = [];
+      forEach(QuestionTypes, async (questionType) => {
+        const currentQuestionType = await QuestionTypeFactory.create({
+          name: questionType.name,
+          color: questionType.color,
+          cid: course.id,
+        });
+        questionTypes.push(currentQuestionType);
+      });
+
+      const response = await postQuestion(
+        user,
+        queue,
+        questionTypes,
+        false,
+        true,
+        'Mark "task1"',
+      );
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe(
+        ERROR_MESSAGES.questionController.studentTaskProgress
+          .configDoesNotExist,
+      );
+    });
+    it('does not allow posting of demos with an invalid question text', async () => {
+      const course = await CourseFactory.create({});
+      const user = await UserFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        allowQuestions: true,
+        course: course,
+        staffList: [ta.user],
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: 'T1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+          },
+        },
+      });
+
+      expect(await queue.checkIsOpen()).toBe(true);
+
+      await StudentCourseFactory.create({
+        userId: user.id,
+        courseId: course.id,
+      });
+
+      const questionTypes = [];
+      forEach(QuestionTypes, async (questionType) => {
+        const currentQuestionType = await QuestionTypeFactory.create({
+          name: questionType.name,
+          color: questionType.color,
+          cid: course.id,
+        });
+        questionTypes.push(currentQuestionType);
+      });
+
+      const response = await postQuestion(
+        user,
+        queue,
+        questionTypes,
+        false,
+        true,
+        "ain't that just a kick in the head",
+      );
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe(
+        ERROR_MESSAGES.questionController.studentTaskProgress.taskParseError,
       );
     });
     it('can allow you to create one open demo and one open question for the same course at a time, but no more than that', async () => {
@@ -445,6 +615,17 @@ describe('Question Integration', () => {
         allowQuestions: true,
         course: course,
         staffList: [ta.user],
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: 'T1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+          },
+        },
       });
 
       expect(await queue1.checkIsOpen()).toBe(true);
@@ -455,13 +636,22 @@ describe('Question Integration', () => {
         courseId: course.id,
       });
 
-      await postQuestion(user, queue2, [], false, true);
+      await postQuestion(user, queue2, [], false, true, 'Mark "task1"').expect(
+        201,
+      );
       const response = await postQuestion(user, queue2, [], false, false);
 
       expect(response.status).toBe(201);
 
       // now try to create a demo question and a regular question. It should fail
-      const response2 = await postQuestion(user, queue2, [], false, true);
+      const response2 = await postQuestion(
+        user,
+        queue2,
+        [],
+        false,
+        true,
+        'Mark "task1"',
+      );
 
       expect(response2.status).toBe(400);
       expect(response2.body.message).toBe(

@@ -19,12 +19,13 @@ frontend -> frontend : check if any tasks are defined \n (if not, no need to get
 User <- frontend : queue page
 
 
-frontend --> server : get task progress \n for the student in this course for "lab1"
+frontend --> server : get assignment progress for the student \n in this course for "lab1"
 server -> db : get task progress data for student in course
-server <- db : task progress data for student in course
+server <- db : all task progress data for student in course
+note left : note: this data is a json of student progress\n for all their assignments in this course.\n We only need the progress data for "lab1" 
 server -> server : parse for task progress data for "lab1"
-frontend <- server : task progress data for "lab1"
-frontend -> frontend : save task progress data in variables
+frontend <- server : task progress data for "lab1" \n (aka lab1 studentAssignmentProgress)
+frontend -> frontend : save assignment progress data in variables
 
 User -> frontend : create task question\n for "part2"
 frontend -> server : create question with "isTaskQuestion" flag\n enabled and text with "Mark "part2""
@@ -32,7 +33,7 @@ frontend -> server : create question with "isTaskQuestion" flag\n enabled and te
 server -> server : check to make sure "part2" is a valid task
 server -> db : create question
 
-== Database change triggers update to all clients (push) ==
+== Database change triggers update to all clients ==
 
 frontend <- server : updated queue
 frontend -> frontend : sees task question, \n parses "part 2" from question text, \n renders the task question based \n on the config 
