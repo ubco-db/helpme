@@ -227,8 +227,7 @@ export class QuestionService {
       question.isTaskQuestion &&
       question.status !== ClosedQuestionStatus.ConfirmedDeleted &&
       question.status !== ClosedQuestionStatus.DeletedDraft &&
-      question.status !== ClosedQuestionStatus.Stale &&
-      question.status !== OpenQuestionStatus.Drafting
+      question.status !== ClosedQuestionStatus.Stale
     ) {
       const tasks =
         question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || [];

@@ -10,7 +10,6 @@ import {
   questions,
   QuestionStatusKeys,
   Role,
-  StudentAssignmentProgress,
   UpdateQuestionParams,
   UpdateQuestionResponse,
 } from '@koh/common';
@@ -302,7 +301,9 @@ export class QuestionController {
       createdAt: new Date(),
     });
     // check to make sure all tasks are in the config
-    await this.questionService.checkIfValidTaskQuestion(newQuestion, queue);
+    if (text != '' && isTaskQuestion) {
+      await this.questionService.checkIfValidTaskQuestion(newQuestion, queue);
+    }
 
     try {
       await newQuestion.save();

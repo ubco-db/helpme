@@ -449,7 +449,7 @@ describe('Queue Integration', () => {
       await supertest({ userId: stu.userId })
         .patch(`/queues/${queue.id}/config`)
         .send(validConfig)
-        .expect(401);
+        .expect(403);
 
       const postQueue = await QueueModel.findOne({ id: queue.id });
       expect(postQueue.config).toEqual({});

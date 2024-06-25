@@ -3,7 +3,7 @@
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 1`] = `
 {
   "allowQuestions": false,
-  "config": Object {},
+  "config": {},
   "id": 2,
   "isDisabled": false,
   "isOpen": true,
@@ -18,7 +18,7 @@ exports[`Course Integration GET /courses/:id gets all queues that are not disabl
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 2`] = `
 {
   "allowQuestions": false,
-  "config": Object {},
+  "config": {},
   "id": 3,
   "isDisabled": false,
   "isOpen": true,
@@ -59,7 +59,7 @@ exports[`Course Integration GET /courses/:id gets all queues that are not disabl
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 3`] = `
 {
   "allowQuestions": false,
-  "config": Object {},
+  "config": {},
   "id": 4,
   "isDisabled": false,
   "isOpen": true,
@@ -123,7 +123,7 @@ exports[`Course Integration GET /courses/:id gets office hours no queues, since 
 exports[`Course Integration GET /courses/:id gets queues that are not disabled (TA) 1`] = `
 {
   "allowQuestions": false,
-  "config": Object {},
+  "config": {},
   "id": 2,
   "isDisabled": false,
   "isOpen": true,
@@ -138,7 +138,7 @@ exports[`Course Integration GET /courses/:id gets queues that are not disabled (
 exports[`Course Integration GET /courses/:id gets queues that are not disabled (TA) 2`] = `
 {
   "allowQuestions": false,
-  "config": Object {},
+  "config": {},
   "id": 3,
   "isDisabled": false,
   "isOpen": true,
@@ -179,7 +179,7 @@ exports[`Course Integration GET /courses/:id gets queues that are not disabled (
 exports[`Course Integration GET /courses/:id gets queues that are not disabled (TA) 3`] = `
 {
   "allowQuestions": false,
-  "config": Object {},
+  "config": {},
   "id": 4,
   "isDisabled": false,
   "isOpen": true,
@@ -220,7 +220,7 @@ exports[`Course Integration GET /courses/:id gets queues that are not disabled (
 exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 1`] = `
 {
   "allowQuestions": true,
-  "config": Object {},
+  "config": {},
   "courseId": Any<Number>,
   "id": Any<Number>,
   "isDisabled": false,
@@ -233,7 +233,7 @@ exports[`Course Integration POST /courses/:id/create_queue/:room correctly propa
 exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 2`] = `
 {
   "allowQuestions": true,
-  "config": Object {},
+  "config": {},
   "courseId": Any<Number>,
   "id": Any<Number>,
   "isDisabled": false,
@@ -246,7 +246,7 @@ exports[`Course Integration POST /courses/:id/create_queue/:room correctly propa
 exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 3`] = `
 {
   "allowQuestions": true,
-  "config": Object {},
+  "config": {},
   "courseId": Any<Number>,
   "id": Any<Number>,
   "isDisabled": false,
@@ -259,7 +259,7 @@ exports[`Course Integration POST /courses/:id/create_queue/:room correctly propa
 exports[`Course Integration POST /courses/:id/ta_location/:room checks a TA into an existing queue 1`] = `
 {
   "allowQuestions": true,
-  "config": Object {},
+  "config": {},
   "id": 1,
   "isDisabled": false,
   "isProfessorQueue": false,

@@ -85,7 +85,7 @@ describe('Question Integration', () => {
         text: questionText,
         questionTypes: questionTypes,
         queueId: queue.id,
-        force,
+        force: force,
         groupable: true,
         isTaskQuestion,
       });
@@ -422,7 +422,7 @@ describe('Question Integration', () => {
         creator: user,
         queue: queue1,
         isTaskQuestion: true,
-        status: OpenQuestionStatus.Drafting,
+        status: OpenQuestionStatus.Queued,
         text: 'Mark "task1"',
       });
 
@@ -471,23 +471,13 @@ describe('Question Integration', () => {
         courseId: course.id,
       });
 
-      const questionTypes = [];
-      forEach(QuestionTypes, async (questionType) => {
-        const currentQuestionType = await QuestionTypeFactory.create({
-          name: questionType.name,
-          color: questionType.color,
-          cid: course.id,
-        });
-        questionTypes.push(currentQuestionType);
-      });
-
       const response = await postQuestion(
         user,
         queue,
-        questionTypes,
+        [],
         false,
         true,
-        'Mark "task2"',
+        'Mark "part5"',
       );
 
       expect(response.status).toBe(400);
@@ -506,6 +496,7 @@ describe('Question Integration', () => {
         allowQuestions: true,
         course: course,
         staffList: [ta.user],
+        config: {},
       });
 
       expect(await queue.checkIsOpen()).toBe(true);
@@ -515,20 +506,10 @@ describe('Question Integration', () => {
         courseId: course.id,
       });
 
-      const questionTypes = [];
-      forEach(QuestionTypes, async (questionType) => {
-        const currentQuestionType = await QuestionTypeFactory.create({
-          name: questionType.name,
-          color: questionType.color,
-          cid: course.id,
-        });
-        questionTypes.push(currentQuestionType);
-      });
-
       const response = await postQuestion(
         user,
         queue,
-        questionTypes,
+        [],
         false,
         true,
         'Mark "task1"',
@@ -571,20 +552,10 @@ describe('Question Integration', () => {
         courseId: course.id,
       });
 
-      const questionTypes = [];
-      forEach(QuestionTypes, async (questionType) => {
-        const currentQuestionType = await QuestionTypeFactory.create({
-          name: questionType.name,
-          color: questionType.color,
-          cid: course.id,
-        });
-        questionTypes.push(currentQuestionType);
-      });
-
       const response = await postQuestion(
         user,
         queue,
-        questionTypes,
+        [],
         false,
         true,
         "ain't that just a kick in the head",
