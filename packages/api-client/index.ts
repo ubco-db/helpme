@@ -370,8 +370,17 @@ class APIClient {
     getQuestionTypes: async (
       courseId: number,
       queueId: number | null,
-    ): Promise<QuestionTypeParams[]> =>
-      this.req('GET', `/api/v1/questionType/${courseId}/${queueId}`, undefined),
+    ): Promise<QuestionTypeParams[]> => {
+      try {
+        return await this.req(
+          'GET',
+          `/api/v1/questionType/${courseId}/${queueId}`,
+          undefined,
+        )
+      } catch (error) {
+        return []
+      }
+    },
     addQuestionType: async (
       courseId: number,
       body: QuestionTypeParams,

@@ -4,7 +4,7 @@ import {
   Role,
   asyncQuestionStatus,
 } from '@koh/common'
-import React, { ReactElement, useEffect, useState } from 'react'
+import React, { ReactElement, useCallback, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { useRoleInCourse } from '../../../hooks/useRoleInCourse'
 import { SettingsLeftPanel } from './SettingsLeftPanel'
@@ -77,6 +77,30 @@ export default function AsyncQuestionsPage({
 
   const { questions, mutateQuestions } = useAsnycQuestions(courseId)
 
+  const applySort = useCallback(
+    (displayedQuestions: AsyncQuestion[]) => {
+      return displayedQuestions.sort((a, b) => {
+        switch (sortBy) {
+          case 'newest':
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            )
+          case 'oldest':
+            return (
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            )
+          case 'most-votes':
+            return b.votesSum - a.votesSum
+          case 'least-votes':
+            return a.votesSum - b.votesSum
+          default:
+            return 0
+        }
+      })
+    },
+    [sortBy],
+  )
+
   useEffect(() => {
     let displayedQuestions = questions || []
     // Apply status filter
@@ -134,30 +158,6 @@ export default function AsyncQuestionsPage({
     sortBy,
     applySort,
   ])
-
-  const applySort = useCallback(
-    (displayedQuestions: AsyncQuestion[]) => {
-      return displayedQuestions.sort((a, b) => {
-        switch (sortBy) {
-          case 'newest':
-            return (
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            )
-          case 'oldest':
-            return (
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            )
-          case 'most-votes':
-            return b.votesSum - a.votesSum
-          case 'least-votes':
-            return a.votesSum - b.votesSum
-          default:
-            return 0
-        }
-      })
-    },
-    [sortBy],
-  )
 
   function RenderQueueInfoCol(): ReactElement {
     return (
