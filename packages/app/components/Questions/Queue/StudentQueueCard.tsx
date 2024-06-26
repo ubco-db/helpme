@@ -32,6 +32,7 @@ interface StudentQueueCardProps {
   isStaff: boolean
   studentAssignmentProgress?: StudentAssignmentProgress
   configTasks?: ConfigTasks
+  isMyQuestion?: boolean
   className?: string // used to highlight questions or add other classes
 }
 
@@ -40,8 +41,9 @@ export default function StudentQueueCard({
   cid,
   qid,
   isStaff,
-  configTasks,
   studentAssignmentProgress,
+  configTasks,
+  isMyQuestion,
   className,
 }: StudentQueueCardProps): ReactElement {
   // task questions text comes in as "Mark "part1" "part2""
@@ -82,6 +84,7 @@ export default function StudentQueueCard({
                     <QuestionType
                       key={index}
                       typeName={
+                        isMyQuestion &&
                         studentAssignmentProgress &&
                         studentAssignmentProgress[taskKey] &&
                         studentAssignmentProgress[taskKey].isDone
