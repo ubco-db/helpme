@@ -20,7 +20,15 @@ import {
   VerticalDivider,
 } from '../Shared/SharedComponents'
 import { QueueInfoColumn } from '../Queue/QueueInfoColumn'
-import { Tooltip, message, notification, Spin, Button } from 'antd'
+import {
+  Tooltip,
+  message,
+  notification,
+  Spin,
+  Button,
+  Switch,
+  Card,
+} from 'antd'
 import TACheckinButton from '../../Today/TACheckinButton'
 import styled from 'styled-components'
 import { useStudentQuestion } from '../../../hooks/useStudentQuestion'
@@ -37,11 +45,17 @@ import { useLocalStorage } from '../../../hooks/useLocalStorage'
 import { AddStudentsModal } from './TAAddStudent'
 import { EditQueueModal } from './EditQueueModal'
 import PropTypes from 'prop-types'
-import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
+import {
+  EditOutlined,
+  LoginOutlined,
+  MenuOutlined,
+  PlusOutlined,
+} from '@ant-design/icons'
 import { NextRouter } from 'next/router'
 import { ListChecks, ListTodoIcon } from 'lucide-react'
 import { useStudentAssignmentProgress } from '../../../hooks/useStudentAssignmentProgress'
 import { AssignmentReportModal } from './AssignmentReportModal'
+import { QuestionType } from '../Shared/QuestionType'
 
 const Container = styled.div`
   flex: 1;
@@ -70,6 +84,11 @@ const JoinButton = styled(QueueInfoColumnButton)<{
   color: white;
   align-items: center;
   display: flex;
+`
+
+const JoinTagGroupButton = styled(Button)`
+  border: 1px solid #cfd6de;
+  border-radius: 6px;
 `
 
 interface QueuePageProps {
@@ -131,6 +150,9 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
   const [isFirstQuestion, setIsFirstQuestion] = useLocalStorage(
     'isFirstQuestion',
     true,
+  )
+  const [tagGroupsEnabled, setTagGroupsEnabled] = useState(
+    queue?.config?.default_view === 'tag_groups',
   )
 
   useEffect(() => {
@@ -571,43 +593,185 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
   function RenderQueueQuestions({ questions }: QueueProps) {
     return (
       <div aria-label="Queue questions">
-        {questions?.length === 0 ? (
-          <NoQuestionsText>There are no questions in the queue</NoQuestionsText>
-        ) : (
+        <div className="flex items-center justify-between">
+          {questions?.length === 0 ? (
+            <NoQuestionsText>
+              There are no questions in the queue
+            </NoQuestionsText>
+          ) : (
+            // only show this queue header on desktop
+            <QueueHeader className="hidden sm:block">
+              {tagGroupsEnabled ? 'Queue Groups By Tag' : 'Queue'}
+            </QueueHeader>
+          )}
+          <Switch
+            defaultChecked={tagGroupsEnabled}
+            onChange={() => setTagGroupsEnabled(!tagGroupsEnabled)}
+            checkedChildren={
+              <div className="flex min-h-[12px] flex-col items-center justify-center">
+                <div className="mb-[2px] min-h-[5px] w-full rounded-[1px] border border-gray-300" />
+                <div className="min-h-[5px] w-full rounded-[1px] border border-gray-300" />
+              </div>
+            }
+            unCheckedChildren={<MenuOutlined />}
+          />
+        </div>
+        {tagGroupsEnabled ? (
           <>
-            {/* only show this queue header on desktop */}
-            <QueueHeader className="hidden sm:block">Queue</QueueHeader>
-            {/* <StudentHeaderCard bordered={false}>
-              <CenterRow>
-                <Col flex="1 1">
-                  <HeaderText>question</HeaderText>
-                </Col>
-                <Col flex="0 0 80px">
-                  <HeaderText>wait</HeaderText>
-                </Col>
-              </CenterRow>
-            </StudentHeaderCard> */}
+            {configTasks &&
+              Object.entries(configTasks).map(([taskKey, task]) => {
+                const filteredQuestions = questions?.filter(
+                  (question: Question) => {
+                    const tasks = question.isTaskQuestion
+                      ? question.text
+                          .match(/"(.*?)"/g)
+                          ?.map((task) => task.slice(1, -1)) || []
+                      : []
+                    return question.isTaskQuestion && tasks.includes(taskKey)
+                  },
+                )
+                return (
+                  <Card
+                    size="small"
+                    type="inner"
+                    className="mb-3 rounded bg-[#f0f4ff] shadow-lg"
+                    key={taskKey}
+                    title={
+                      <div className="flex justify-between">
+                        <div>
+                          <QuestionType
+                            typeName={task.display_name}
+                            typeColor={task.color_hex}
+                          />
+                          <span className=" ml-2 text-gray-700">
+                            {filteredQuestions.length > 1
+                              ? `${filteredQuestions.length} Students`
+                              : filteredQuestions.length == 1
+                                ? `${filteredQuestions.length} Student`
+                                : ''}
+                          </span>
+                        </div>
+                        {!isStaff && (
+                          <JoinTagGroupButton size="small">
+                            Join
+                          </JoinTagGroupButton>
+                        )}
+                      </div>
+                    }
+                  >
+                    {filteredQuestions.map(
+                      (question: Question, index: number) => {
+                        const background_color =
+                          question.id === studentQuestionId ||
+                          question.id === studentDemoId
+                            ? 'bg-teal-200/25'
+                            : 'bg-white'
+                        return (
+                          <StudentQueueCard
+                            key={question.id}
+                            rank={index + 1}
+                            question={question}
+                            cid={cid}
+                            qid={qid}
+                            isStaff={isStaff}
+                            configTasks={configTasks}
+                            studentAssignmentProgress={
+                              studentAssignmentProgress
+                            }
+                            className={background_color}
+                          />
+                        )
+                      },
+                    )}
+                  </Card>
+                )
+              })}
+            {queue?.config?.tags &&
+              Object.entries(queue?.config?.tags).map(([tagKey, tag]) => {
+                const filteredQuestions = questions?.filter(
+                  (question: Question) =>
+                    question.questionTypes.some(
+                      (questionType) => questionType.name === tag.display_name,
+                    ),
+                )
+                return (
+                  <Card
+                    size="small"
+                    type="inner"
+                    className="mb-3 rounded bg-[#f0f4ff] shadow-lg"
+                    key={tagKey}
+                    title={
+                      <div className="flex justify-between">
+                        <div>
+                          <QuestionType
+                            typeName={tag.display_name}
+                            typeColor={tag.color_hex}
+                          />
+                          <span className=" ml-2 text-gray-700">
+                            {filteredQuestions.length > 1
+                              ? `${filteredQuestions.length} Students`
+                              : filteredQuestions.length == 1
+                                ? `${filteredQuestions.length} Student`
+                                : ''}
+                          </span>
+                        </div>
+                        {!isStaff && (
+                          <JoinTagGroupButton size="small">
+                            Join
+                          </JoinTagGroupButton>
+                        )}
+                      </div>
+                    }
+                  >
+                    {filteredQuestions.map(
+                      (question: Question, index: number) => {
+                        const background_color =
+                          question.id === studentQuestionId ||
+                          question.id === studentDemoId
+                            ? 'bg-teal-200/25'
+                            : 'bg-white'
+                        return (
+                          <StudentQueueCard
+                            key={question.id}
+                            rank={index + 1}
+                            question={question}
+                            cid={cid}
+                            qid={qid}
+                            isStaff={isStaff}
+                            configTasks={configTasks}
+                            studentAssignmentProgress={
+                              studentAssignmentProgress
+                            }
+                            className={background_color}
+                          />
+                        )
+                      },
+                    )}
+                  </Card>
+                )
+              })}
           </>
+        ) : (
+          questions?.map((question: Question, index: number) => {
+            const background_color =
+              question.id === studentQuestionId || question.id === studentDemoId
+                ? 'bg-teal-200/25'
+                : 'bg-white'
+            return (
+              <StudentQueueCard
+                key={question.id}
+                rank={index + 1}
+                question={question}
+                cid={cid}
+                qid={qid}
+                isStaff={isStaff}
+                configTasks={configTasks}
+                studentAssignmentProgress={studentAssignmentProgress}
+                className={background_color}
+              />
+            )
+          })
         )}
-        {questions?.map((question: Question, index: number) => {
-          const background_color =
-            question.id === studentQuestionId || question.id === studentDemoId
-              ? 'bg-teal-200/25'
-              : 'bg-white'
-          return (
-            <StudentQueueCard
-              key={question.id}
-              rank={index + 1}
-              question={question}
-              cid={cid}
-              qid={qid}
-              isStaff={isStaff}
-              configTasks={configTasks}
-              studentAssignmentProgress={studentAssignmentProgress}
-              className={background_color}
-            />
-          )
-        })}
       </div>
     )
   }
