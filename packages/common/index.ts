@@ -1509,6 +1509,7 @@ function findFirstDuplicate(array: any[]): any {
  * Returns an empty string if there's no errors
  */
 export function validateQueueConfigInput(obj: any): string {
+  const MAX_JSON_SIZE = 10240 // 10KB
   //
   // first validate the json with ajv
   //
@@ -1727,6 +1728,9 @@ export function validateQueueConfigInput(obj: any): string {
     if (!validAttributes.includes(key)) {
       return `Unknown attribute "${key}"`
     }
+  }
+  if (new TextEncoder().encode(JSON.stringify(obj)).length > MAX_JSON_SIZE) {
+    return 'The JSON object is too large. Maximum size is 10KB.'
   }
   return ''
 }
