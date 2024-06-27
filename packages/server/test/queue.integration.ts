@@ -1216,5 +1216,23 @@ describe('Queue Integration', () => {
         }),
       );
     });
+    it('will not allow the config to be updated with an invalid object', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+        config: validConfig,
+      });
+
+      const invalidConfig = "I'm not an object";
+
+      await supertest({ userId: ta.userId })
+        .patch(`/queues/${queue.id}/config`)
+        .send(invalidConfig)
+        .expect(400);
+    });
   });
 });
