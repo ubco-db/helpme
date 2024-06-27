@@ -99,6 +99,7 @@ export class QuestionController {
         'closedAt',
         'status',
         'location',
+        'isTaskQuestion',
       ]);
       Object.assign(temp, {
         creatorName: q.creator?.name,
@@ -114,7 +115,8 @@ export class QuestionController {
     @Body() body: CreateQuestionParams,
     @Param('userId') userId: number,
   ): Promise<any> {
-    const { text, questionTypes, groupable, queueId, force } = body;
+    const { text, questionTypes, groupable, isTaskQuestion, queueId, force } =
+      body;
 
     const queue = await QueueModel.findOne({
       where: { id: queueId },
@@ -138,6 +140,7 @@ export class QuestionController {
       );
     }
 
+    // don't allow more than 1 demo and 1 question per user per course
     const previousUserQuestions = await QuestionModel.find({
       relations: ['queue'],
       where: {
@@ -145,21 +148,35 @@ export class QuestionController {
         status: In(Object.values(OpenQuestionStatus)),
       },
     });
-
-    const previousCourseQuestion = previousUserQuestions.find(
+    const previousCourseQuestions = previousUserQuestions.filter(
       (question) => question.queue.courseId === queue.courseId,
     );
-
-    if (!!previousCourseQuestion) {
+    const studentDemo = previousCourseQuestions?.find(
+      (question) => question.isTaskQuestion,
+    );
+    const studentQuestion = previousCourseQuestions?.find(
+      (question) => !question.isTaskQuestion,
+    );
+    if (studentQuestion && !isTaskQuestion) {
       if (force) {
-        previousCourseQuestion.status = ClosedQuestionStatus.ConfirmedDeleted;
-        await previousCourseQuestion.save();
+        studentQuestion.status = ClosedQuestionStatus.ConfirmedDeleted;
+        await studentQuestion.save();
       } else {
         throw new BadRequestException(
           ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime,
         );
       }
+    } else if (studentDemo && isTaskQuestion) {
+      if (force) {
+        studentDemo.status = ClosedQuestionStatus.ConfirmedDeleted;
+        await studentDemo.save();
+      } else {
+        throw new BadRequestException(
+          ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime,
+        );
+      }
     }
+
     const user = await UserModel.findOne({
       where: {
         id: userId,
@@ -172,6 +189,7 @@ export class QuestionController {
         text,
         questionTypes,
         groupable,
+        isTaskQuestion,
         status: QuestionStatusKeys.Queued,
         createdAt: new Date(),
       }).save();
@@ -191,7 +209,8 @@ export class QuestionController {
     @Body() body: CreateQuestionParams,
     @User() user: UserModel,
   ): Promise<CreateQuestionResponse> {
-    const { text, questionTypes, groupable, queueId, force } = body;
+    const { text, questionTypes, groupable, isTaskQuestion, queueId, force } =
+      body;
 
     const queue = await QueueModel.findOne({
       where: { id: queueId },
@@ -215,6 +234,7 @@ export class QuestionController {
       );
     }
 
+    // don't allow more than 1 demo and 1 question per user per course
     const previousUserQuestions = await QuestionModel.find({
       relations: ['queue'],
       where: {
@@ -222,21 +242,35 @@ export class QuestionController {
         status: In(Object.values(OpenQuestionStatus)),
       },
     });
-
-    const previousCourseQuestion = previousUserQuestions.find(
+    const previousCourseQuestions = previousUserQuestions.filter(
       (question) => question.queue.courseId === queue.courseId,
     );
-
-    if (!!previousCourseQuestion) {
+    const studentDemo = previousCourseQuestions?.find(
+      (question) => question.isTaskQuestion,
+    );
+    const studentQuestion = previousCourseQuestions?.find(
+      (question) => !question.isTaskQuestion,
+    );
+    if (studentQuestion && !isTaskQuestion) {
       if (force) {
-        previousCourseQuestion.status = ClosedQuestionStatus.ConfirmedDeleted;
-        await previousCourseQuestion.save();
+        studentQuestion.status = ClosedQuestionStatus.ConfirmedDeleted;
+        await studentQuestion.save();
       } else {
         throw new BadRequestException(
           ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime,
         );
       }
+    } else if (studentDemo && isTaskQuestion) {
+      if (force) {
+        studentDemo.status = ClosedQuestionStatus.ConfirmedDeleted;
+        await studentDemo.save();
+      } else {
+        throw new BadRequestException(
+          ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime,
+        );
+      }
     }
+
     let types = [];
     if (questionTypes) {
       types = await Promise.all(
@@ -256,17 +290,24 @@ export class QuestionController {
       );
     }
 
+    const newQuestion = QuestionModel.create({
+      queueId: queueId,
+      creator: user,
+      text,
+      questionTypes: types,
+      groupable,
+      isTaskQuestion,
+      status: QuestionStatusKeys.Drafting,
+      createdAt: new Date(),
+    });
+    // check to make sure all tasks are in the config
+    if (text != '' && isTaskQuestion) {
+      await this.questionService.checkIfValidTaskQuestion(newQuestion, queue);
+    }
+
     try {
-      const question = await QuestionModel.create({
-        queueId: queueId,
-        creator: user,
-        text,
-        questionTypes: types,
-        groupable,
-        status: QuestionStatusKeys.Drafting,
-        createdAt: new Date(),
-      }).save();
-      return question;
+      await newQuestion.save();
+      return newQuestion;
     } catch (err) {
       throw new HttpException(
         ERROR_MESSAGES.questionController.saveQError,
@@ -293,6 +334,7 @@ export class QuestionController {
 
     const isCreator = userId === question.creatorId;
 
+    // creating/editing your own question
     if (isCreator) {
       // Fail if student tries an invalid status change
       if (body.status && !question.changeStatus(body.status, Role.STUDENT)) {
@@ -321,6 +363,25 @@ export class QuestionController {
             return questionType;
           }),
         );
+      }
+
+      if (
+        question.isTaskQuestion &&
+        question.status !== ClosedQuestionStatus.ConfirmedDeleted &&
+        question.status !== ClosedQuestionStatus.DeletedDraft &&
+        question.status !== ClosedQuestionStatus.Stale &&
+        question.status !== OpenQuestionStatus.Drafting
+      ) {
+        let queue: QueueModel;
+        try {
+          queue = await QueueModel.findOneOrFail(question.queueId);
+        } catch (err) {
+          throw new NotFoundException(
+            ERROR_MESSAGES.questionController.studentTaskProgress.queueDoesNotExist,
+          );
+        }
+        // check to make sure all tasks are in the config
+        await this.questionService.checkIfValidTaskQuestion(question, queue);
       }
 
       try {
@@ -352,11 +413,15 @@ export class QuestionController {
         );
       }
       await this.questionService.validateNotHelpingOther(body.status, userId);
-      return await this.questionService.changeStatus(
-        body.status,
-        question,
-        userId,
-      );
+      await this.questionService.changeStatus(body.status, question, userId);
+      // if it's a task question, update the studentTaskProgress for the student
+      if (
+        question.status === ClosedQuestionStatus.Resolved &&
+        question.isTaskQuestion
+      ) {
+        await this.questionService.markTasksDone(question, question.creatorId);
+      }
+      return question;
     } else {
       throw new UnauthorizedException(
         ERROR_MESSAGES.questionController.updateQuestion.loginUserCantEdit,
@@ -484,7 +549,5 @@ export class QuestionController {
         );
       }
     }
-
-    return;
   }
 }

@@ -11,9 +11,9 @@ const BannerContainer = styled.div`
 
 const TitleContainer = styled.div`
   background: ${({ color }) => color || '#8895A6'};
-  padding-left: 24px;
-  padding-right: 16px;
-  min-height: 60px;
+  padding-left: 1.5rem;
+  padding-right: 0.4rem;
+  min-height: 3.5rem;
   border-radius: 6px 6px 0 0;
   position: relative;
   box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15);
@@ -21,11 +21,20 @@ const TitleContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+
+  @media (max-width: 650px) {
+    padding-left: 1rem;
+    min-height: 3rem;
+  }
 `
 const Title = styled.div`
   font-weight: 300;
   font-size: 24px;
   color: white;
+
+  @media (max-width: 650px) {
+    font-size: 20px;
+  }
 `
 const ButtonContainer = styled.div`
   display: flex;
@@ -35,8 +44,11 @@ const ButtonContainer = styled.div`
 
 const ContentContainer = styled.div`
   background: ${({ color }) => color || '#CFD6DE'};
-  padding: 12px 24px;
+  padding: 0.5rem 1rem;
   border-radius: 0 0 6px 6px;
+  @media (max-width: 650px) {
+    padding: 0.4rem 0.4rem;
+  }
 `
 
 interface BannerProps {

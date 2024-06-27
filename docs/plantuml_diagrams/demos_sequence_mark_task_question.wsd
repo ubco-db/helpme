@@ -1,0 +1,54 @@
+@startuml
+
+skin rose
+
+title "mark question sequence diagram"
+
+actor User as "TA"
+participant frontend
+participant server
+database db
+
+User -> frontend : request queue page
+frontend -> server : request queue page
+server -> db : request queue data
+server <- db : queue data (+config)
+frontend <- server : queue page (+data)
+User <- frontend : queue page
+
+== a different client creates a new task question ==
+
+' note: this still needs to be implemented, for now, this is not shown
+'frontend <- server : new task question for "part 2" + shipped \n with the studentAssignmentProgress
+frontend <- server : new task question for "part 2" 
+frontend -> frontend : renders new task question
+User <- frontend : sees new task question
+
+
+User -> frontend : task question looks good, \n mark as done
+frontend -> server : updateQuestion to Resolved status
+server -> server : update question status to resolved + \n other old checks
+server -> server : markTasksDone()
+server -> db : get queue config
+server <- db : queue config (note: assignment_id="lab1")
+server -> server : check to make sure task being \n marked is valid
+server -> db : get current studentTaskProgress for student
+server <- db : current studentTaskProgress (if any)
+alt no studentTaskProgress made for student yet
+    server -> db : create new studentTaskProgress \n with new studentAssignmentProgress \n with each new task appended (isDone = true)
+    note left : For Reference:\nstudentTaskProgress = {\n"lab1": {"lastEditedQueueId": 2,\n\t "assignmentProgress": {\n\t\t"task1":{"isDone":true},\n\t\t"task2":{"isDone":true}\n\t }, \n"lab2": {"lastEditedQueueId": 3,\n\t   "assignmentProgress": {\n\t\t"task1":{"isDone":true}\n\t}\n}
+else studentTaskProgress already made but no assignment progress for "lab1" yet
+    server -> db : update studentTaskProgress \n with new studentAssignmentProgress \n with each new task appended (isDone = true)
+else studentTaskProgress and studentAssignmentProgress found
+    server -> server : For each task: \ncheck to see if this is a new task
+    alt new task
+        server -> db : append onto studentAssignmentProgress\n with isDone = true
+    else not new task
+        server -> db : update old task "isDone" to true
+    end
+end
+frontend <- server : success
+User <- frontend : success
+
+
+@enduml

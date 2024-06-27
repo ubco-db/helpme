@@ -35,6 +35,7 @@ const QUESTION_STATES: Record<QuestionStatus, AllowableTransitions> = {
   [LimboQuestionStatus.CantFind]: {
     student: [
       OpenQuestionStatus.PriorityQueued,
+      OpenQuestionStatus.Queued,
       ClosedQuestionStatus.ConfirmedDeleted,
     ],
   },

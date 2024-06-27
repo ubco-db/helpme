@@ -14,9 +14,8 @@ import {
 import { CourseModel } from '../course/course.entity';
 import { UserModel } from '../profile/user.entity';
 import { QuestionModel } from '../question/question.entity';
-
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { ERROR_MESSAGES } from '@koh/common';
+import { ERROR_MESSAGES, QueueConfig } from '@koh/common';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 
 @Entity('queue_model')
@@ -84,6 +83,9 @@ export class QueueModel extends BaseEntity {
   async addQueueSize(): Promise<void> {
     this.queueSize = await QuestionModel.waitingInQueue(this.id).getCount();
   }
+
+  @Column('json', { nullable: true })
+  config: QueueConfig;
 
   // TODO: eventually figure out how staff get sent to FE as well
 }

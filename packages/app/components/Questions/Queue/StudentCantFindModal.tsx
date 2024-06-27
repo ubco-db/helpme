@@ -24,7 +24,7 @@ export default function CantFindModal(props: CantFindModalProps): ReactElement {
       title="You couldn't be found!"
     >
       A TA tried to help you, but couldn&apos;t reach you. Are you still in the
-      queue? If you are, make sure you have Teams open, and rejoin the queue.
+      queue? If you are, make sure you are ready, and rejoin the queue.
     </Modal>
   )
 }

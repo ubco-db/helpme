@@ -23,7 +23,7 @@ import { Roles } from '../decorators/roles.decorator';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from '../profile/user.entity';
 import { AsyncQuestionModel } from './asyncQuestion.entity';
-import { CourseModel } from 'course/course.entity';
+import { CourseModel } from '../course/course.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Response } from 'express';
 import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';

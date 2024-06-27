@@ -66,7 +66,7 @@ export default function SettingsPage({
   useEffect(() => {
     const widthDivider = isMobile ? 6 : 10
     setAvatarSize(windowWidth / widthDivider)
-  })
+  }, [windowWidth, isMobile])
 
   const beforeUpload = (file) => {
     const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'

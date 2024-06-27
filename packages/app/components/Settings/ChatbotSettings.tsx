@@ -8,7 +8,6 @@ import {
   Tooltip,
   message,
 } from 'antd'
-import { ColumnsType } from 'antd/es/table'
 import React, { ReactElement, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import toast from 'react-hot-toast'
@@ -46,7 +45,7 @@ export default function ChatbotSettings(): ReactElement {
   const [documentType, setDocumentType] = useState('FILE')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
-  const [totalDocuments, setTotalDocuments] = useState(0)
+  const [totalDocuments] = useState(0)
   const [chatbotDocuments, setChatbotDocuments] = useState([])
 
   const [fileList, setFileList] = useState([])
@@ -94,10 +93,6 @@ export default function ChatbotSettings(): ReactElement {
     },
   ]
 
-  useEffect(() => {
-    getDocuments()
-  }, [])
-
   const getDocuments = async () => {
     setLoading(true)
     try {
@@ -120,6 +115,10 @@ export default function ChatbotSettings(): ReactElement {
     }
     setLoading(false)
   }
+
+  useEffect(() => {
+    getDocuments()
+  }, [getDocuments])
 
   const addUrl = async (url: string) => {
     setLoading(true)

@@ -32,6 +32,7 @@ exports[`Question Integration GET /questions/:id gets a question with the given 
   "groupable": true,
   "helpedAt": null,
   "id": 1,
+  "isTaskQuestion": false,
   "location": null,
   "questionTypes": [
     {

@@ -48,7 +48,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         }))
         setExistingDocuments(formattedDocuments)
       })
-  }, [cid, visible])
+  }, [cid, visible, profile?.chat_token.token])
 
   useEffect(() => {
     // Reset form with new editing record when visible or editingRecord changes

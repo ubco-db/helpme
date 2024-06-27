@@ -1,0 +1,24 @@
+@startuml
+
+skin rose
+
+title "create queue sequence diagram"
+
+actor User as "TA/Prof"
+participant frontend
+participant server
+database db
+
+User -> frontend : create queue
+User -> frontend : config for queue
+frontend -> frontend : parse config and check for errors
+User -> frontend : confirm create queue
+frontend -> server : create queue (with config)
+server -> server : parse json config \n (and send potential errors)
+server -> db : create queue
+server -> db : create new questionTypes\n for the queue for each tag
+server <- db : success
+frontend <- server : success
+User <- frontend : success
+
+@enduml

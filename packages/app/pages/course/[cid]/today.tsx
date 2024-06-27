@@ -1,11 +1,11 @@
 import { API } from '@koh/api-client'
 import { Heatmap, QueuePartial, Role } from '@koh/common'
-import { Col, Row, Spin, Button } from 'antd'
+import { Col, Row, Spin, Button, message } from 'antd'
 import { chunk, mean } from 'lodash'
 import moment from 'moment'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import React, { ReactElement, useState } from 'react'
+import React, { ReactElement, useCallback, useState } from 'react'
 import styled from 'styled-components'
 import { StandardPageContainer } from '../../../components/common/PageContainer'
 import NavBar from '../../../components/Nav/NavBar'
@@ -13,13 +13,14 @@ import QueueCard, {
   QueueCardSkeleton,
 } from '../../../components/Today/QueueCard'
 import TodayPageCheckinButton from '../../../components/Today/QueueCheckInButton'
+import QueueCreateModal from '../../../components/Today/QueueCreateModal'
 import { useCourse } from '../../../hooks/useCourse'
-import { useRoleInCourse } from '../../../hooks/useRoleInCourse'
 import PopularTimes from '../../../components/Today/PopularTimes/PopularTimes'
 import AsyncQuestionCard from '../../../components/Questions/AsyncQuestions/AsyncQuestionCard'
 import { orderBy } from 'lodash'
 import { ChatbotToday } from '../../../components/Today/ChatbotToday'
 import { useCourseFeatures } from '../../../hooks/useCourseFeatures'
+import { useProfile } from '../../../hooks/useProfile'
 
 const Container = styled.div`
   margin-top: 32px;
@@ -85,7 +86,8 @@ const collapseHeatmap = (heatmap: Heatmap): Heatmap =>
 export default function Today(): ReactElement {
   const router = useRouter()
   const { cid } = router.query
-  const role = useRoleInCourse(Number(cid))
+  const profile = useProfile()
+  const role = profile?.courses.find((e) => e.course.id === Number(cid))?.role
   const { course, mutateCourse } = useCourse(Number(cid))
   const [createQueueModalVisible, setCreateQueueModalVisible] = useState(false)
 
@@ -121,6 +123,28 @@ export default function Today(): ReactElement {
     mutateCourse()
   }
 
+  const submitCreateQueue = useCallback(
+    async (submittedForm) => {
+      const queueRequest = await submittedForm.validateFields()
+      try {
+        await API.queues.createQueue(
+          Number(cid),
+          queueRequest.officeHourName,
+          !queueRequest.allowTA,
+          queueRequest.notes,
+          JSON.parse(queueRequest.config),
+        )
+        message.success(`Created a new queue ${queueRequest.officeHourName}`)
+        mutateCourse()
+
+        setCreateQueueModalVisible(false)
+      } catch (err) {
+        message.error(err.response?.data?.message)
+      }
+    },
+    [cid, mutateCourse],
+  )
+
   const firstContentItemId = courseFeatures?.queueEnabled
     ? 'first-queue'
     : courseFeatures?.asyncQueueEnabled
@@ -135,7 +159,9 @@ export default function Today(): ReactElement {
     return (
       <StandardPageContainer>
         <Head>
-          <title>{course?.name} | UBC Office Hours</title>
+          <title>
+            {course?.name} | {profile?.organization?.organizationName} HelpMe
+          </title>
         </Head>
 
         {firstContentItemId && (
@@ -152,12 +178,7 @@ export default function Today(): ReactElement {
               <TodayCol md={12} xs={24}>
                 <Row justify="space-between">
                   <Title>{course?.name} Help Centre</Title>
-                  {courseFeatures.queueEnabled && (
-                    <TodayPageCheckinButton
-                      createQueueModalVisible={createQueueModalVisible}
-                      setCreateQueueModalVisible={setCreateQueueModalVisible}
-                    />
-                  )}
+                  {courseFeatures.queueEnabled && <TodayPageCheckinButton />}
                 </Row>
                 <Row>
                   <div>
@@ -204,6 +225,16 @@ export default function Today(): ReactElement {
                       + Create Queue
                     </CreateQueueButton>
                   </Row>
+                )}
+
+                {createQueueModalVisible && role !== Role.STUDENT && (
+                  <QueueCreateModal
+                    visible={createQueueModalVisible}
+                    onSubmit={submitCreateQueue}
+                    onCancel={() => setCreateQueueModalVisible(false)}
+                    role={role}
+                    lastName={profile?.lastName}
+                  />
                 )}
                 {
                   // This only works with UTC offsets in the form N:00, to help with other offsets, the size of the array might have to change to a size of 24*7*4 (for every 15 min interval)

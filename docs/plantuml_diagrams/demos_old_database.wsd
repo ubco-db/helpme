@@ -1,0 +1,28 @@
+@startuml
+
+skin rose
+
+title CURRENT database (before demos)
+
+
+class queue {
+}
+
+class course
+
+class questionType 
+class question 
+class user
+
+
+
+
+queue "0..*" -- "1" course
+question "0..*" -- "1" queue
+question "0..*" -- "1" user
+question "0..*" -- "0..*" questionType
+queue "0..1" -- "0..*" questionType
+course "1" -- "0..*" questionType
+
+hide empty methods
+@enduml

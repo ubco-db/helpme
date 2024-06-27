@@ -8,7 +8,7 @@ import { DesktopNotifModel } from './desktop-notif.entity';
 export const NotifMsgs = {
   queue: {
     ALERT_BUTTON:
-      "The TA could't reach you, please have Microsoft Teams open and confirm you are back!",
+      "The TA could't reach you, please be ready and confirm you are back!",
     THIRD_PLACE: `You're 3rd in the queue. Be ready for a TA to call you soon!`,
     TA_HIT_HELPED: (taName: string): string =>
       `${taName} is coming to help you!`,

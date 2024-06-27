@@ -69,7 +69,7 @@ export function EditAsyncQuestionsModal({
 
   const addQuestionType = useCallback(async () => {
     if (isInputEmpty) {
-      message.error('Please enter a question type name')
+      message.error('Please enter a question tag name')
       return
     }
     try {
@@ -79,7 +79,7 @@ export function EditAsyncQuestionsModal({
         queueId: null,
       })
     } catch (e) {
-      message.error('Question type already exists')
+      message.error('Question tag already exists')
     }
     setQuestionsTypeState(
       await API.questionType.getQuestionTypes(courseId, null),
@@ -106,7 +106,7 @@ export function EditAsyncQuestionsModal({
         <Form.Item name="courseId" hidden>
           <Input />
         </Form.Item>
-        <h4>Current Question Types: (click to delete)</h4>
+        <h4>Current Question Tags: (click to delete)</h4>
         {questionsTypeState.length > 0 ? (
           questionsTypeState.map((questionType, index) => (
             <QuestionType
@@ -122,7 +122,7 @@ export function EditAsyncQuestionsModal({
         <Form.Item name="add">
           <Input
             allowClear={true}
-            placeholder="Enter New Question type name"
+            placeholder="Enter New Question tag name"
             onChange={onAddChange}
             maxLength={15}
             style={{ marginBottom: '10px' }}

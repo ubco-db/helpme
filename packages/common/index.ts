@@ -15,6 +15,7 @@ import {
 } from 'class-validator'
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
+import ajv, { Ajv } from 'ajv'
 
 export const PROD_URL = 'https://coursehelp.ubc.ca'
 
@@ -246,6 +247,7 @@ export enum OrganizationRole {
  * @param startTime - The scheduled start time of this queue based on the parsed ical.
  * @param endTime - The scheduled end time of this queue.
  */
+// note: this is apparently not used anywhere
 export interface Queue {
   id: number
   course: CoursePartial
@@ -264,6 +266,7 @@ export interface Queue {
  * @param staffList - The list of TA user's that are currently helping at office hours.
  * @param startTime - The scheduled start time of this queue based on the parsed ical.
  * @param endTime - The scheduled end time of this queue.
+ * @param config - A JSON object that contains the configuration for the queue. Contains stuff like tags, tasks, etc.
  */
 export class QueuePartial {
   id!: number
@@ -287,6 +290,8 @@ export class QueuePartial {
   allowQuestions!: boolean
 
   isProfessorQueue!: boolean
+
+  config?: QueueConfig
 }
 
 // Represents a list of office hours wait times of each hour of the week.
@@ -341,6 +346,8 @@ export class Question {
   groupable!: boolean
 
   location?: string
+
+  isTaskQuestion?: boolean
 }
 
 export const QuestionTypes: QuestionTypeParams[] = [
@@ -988,7 +995,7 @@ export class GetCourseQueuesResponse extends Array<QueuePartial> {}
 
 export class ListQuestionsResponse {
   @Type(() => Question)
-  yourQuestion?: Question
+  yourQuestions?: Array<Question>
 
   @Type(() => Question)
   questionsGettingHelp!: Array<Question>
@@ -1024,6 +1031,9 @@ export class CreateQuestionParams {
   @IsBoolean()
   groupable!: boolean
 
+  @IsBoolean()
+  isTaskQuestion = false
+
   @IsInt()
   queueId!: number
 
@@ -1048,6 +1058,10 @@ export class UpdateQuestionParams {
   @IsBoolean()
   @IsOptional()
   groupable?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  isTaskQuestion?: boolean
 
   @IsInt()
   @IsOptional()
@@ -1252,22 +1266,6 @@ export class questionTypeResponse {
  * @param coordinator_email - The email for the course coordinator.
  * @param timezone - The timezone derived from the Campus field on the form.
  */
-export class RegisterCourseParams {
-  @IsString()
-  sectionGroupName!: string
-
-  @IsString()
-  name!: string
-
-  @IsString()
-  iCalURL?: string
-
-  @IsString()
-  coordinator_email!: string
-
-  @IsString()
-  timezone!: string
-}
 
 export class AccountRegistrationParams {
   @IsString()
@@ -1469,6 +1467,364 @@ export class CourseSettingsRequestBody {
   }
 }
 
+/**
+ * used to display what question types were created/deleted/updated from editing the queue
+ */
+export interface setQueueConfigResponse {
+  questionTypeMessages: string[]
+}
+
+export interface QueueConfig {
+  fifo_queue_view_enabled?: boolean
+  tag_groups_queue_view_enabled?: boolean
+  default_view?: 'fifo' | 'tag_groups'
+  minimum_tags?: number
+  tags?: {
+    [tagKey: string]: {
+      display_name: string
+      color_hex: string
+    }
+  }
+  assignment_id?: string
+  tasks?: ConfigTasks
+}
+
+/**
+ * Helper function to find the first duplicate in an array
+ */
+function findFirstDuplicate(array: any[]): any {
+  const seen = new Set()
+  for (const item of array) {
+    if (seen.has(item)) {
+      return item
+    }
+    seen.add(item)
+  }
+  return null
+}
+
+/**
+ * This function is used both on the backend and frontend to check if there are any errors (total is 24 different errors) in the queue config.
+ *
+ * Returns an empty string if there's no errors
+ */
+export function validateQueueConfigInput(obj: any): string {
+  const MAX_JSON_SIZE = 10240 // 10KB
+  //
+  // first validate the json with ajv
+  //
+  const ajv = new Ajv()
+  const schema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    properties: {
+      fifo_queue_view_enabled: { type: 'boolean' },
+      tag_groups_queue_view_enabled: { type: 'boolean' },
+      default_view: { enum: ['fifo', 'tag_groups'] },
+      minimum_tags: { type: 'number' },
+      tags: {
+        type: 'object',
+        patternProperties: {
+          '^[^ ]+$': {
+            type: 'object',
+            properties: {
+              display_name: { type: 'string' },
+              color_hex: {
+                type: 'string',
+                pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+              },
+            },
+            required: ['display_name', 'color_hex'],
+            additionalProperties: false,
+          },
+        },
+      },
+      assignment_id: { type: 'string', pattern: '^[^ ]*$' },
+      tasks: {
+        type: 'object',
+        patternProperties: {
+          '^[^ ]+$': {
+            type: 'object',
+            properties: {
+              display_name: { type: 'string' },
+              short_display_name: { type: 'string' },
+              blocking: { type: 'boolean' },
+              color_hex: {
+                type: 'string',
+                pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+              },
+              precondition: { type: ['string', 'null'] },
+            },
+            required: [
+              'display_name',
+              'short_display_name',
+              'color_hex',
+              'precondition',
+            ],
+            additionalProperties: false,
+          },
+        },
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  }
+  const validate = ajv.compile(schema)
+  const obj2 = obj
+  const valid = validate(obj2)
+  if (!valid) {
+    return validate.errors?.map((e) => e.message).join(', ') || 'Unknown error'
+  }
+
+  //
+  // manual checking of the JSON (in case ajv doesn't catch everything. The code below is known to work)
+  //
+  const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
+  const validAttributes = [
+    'fifo_queue_view_enabled',
+    'tag_groups_queue_view_enabled',
+    'default_view',
+    'minimum_tags',
+    'tags',
+    'assignment_id',
+    'tasks',
+  ]
+  const validTagAttributes = ['display_name', 'color_hex']
+  const validTaskAttributes = [
+    'display_name',
+    'short_display_name',
+    'blocking',
+    'color_hex',
+    'precondition',
+  ]
+
+  if (!obj) {
+    return 'Input is null or undefined'
+  }
+  if (
+    obj.fifo_queue_view_enabled !== undefined &&
+    typeof obj.fifo_queue_view_enabled !== 'boolean'
+  ) {
+    return 'fifo_queue_view_enabled must be a boolean'
+  }
+  if (
+    obj.tag_groups_queue_view_enabled !== undefined &&
+    typeof obj.tag_groups_queue_view_enabled !== 'boolean'
+  ) {
+    return 'tag_groups_queue_view_enabled must be a boolean'
+  }
+  if (
+    obj.fifo_queue_view_enabled === false &&
+    obj.tag_groups_queue_view_enabled === false
+  ) {
+    return 'At least one of fifo_queue_view_enabled and tag_groups_queue_view_enabled must be enabled'
+  }
+  if (
+    obj.default_view !== undefined &&
+    !['fifo', 'tag_groups'].includes(obj.default_view)
+  ) {
+    return "default_view must be 'fifo' or 'tag_groups'"
+  }
+  if (obj.minimum_tags !== undefined && typeof obj.minimum_tags !== 'number') {
+    return 'minimum_tags must be a number'
+  }
+  if (obj.tags !== undefined) {
+    if (typeof obj.tags !== 'object') {
+      return 'tags must be an object'
+    }
+    // checks for each tag
+    for (const tagKey in obj.tags) {
+      if (
+        !obj.tags[tagKey].display_name ||
+        typeof obj.tags[tagKey].display_name !== 'string'
+      ) {
+        return `Tag ${tagKey} must have a display_name of type string`
+      }
+      if (
+        !obj.tags[tagKey].color_hex ||
+        typeof obj.tags[tagKey].color_hex !== 'string' ||
+        !hexColorRegex.test(obj.tags[tagKey].color_hex)
+      ) {
+        return `Tag ${tagKey} must have a valid color_hex of type string`
+      }
+      for (const key in obj.tags[tagKey]) {
+        if (!validTagAttributes.includes(key)) {
+          return `Unknown attribute "${key}" in tag "${tagKey}"`
+        }
+      }
+    }
+    // no duplicate tag display names
+    const tagDisplayNames = Object.values(obj.tags).map(
+      (tag: any) => tag.display_name,
+    )
+    if (tagDisplayNames.length !== new Set(tagDisplayNames).size) {
+      const duplicateDisplayName = findFirstDuplicate(tagDisplayNames)
+      return `Tag display names must be unique. Duplicate display name found: "${duplicateDisplayName}"`
+    }
+  }
+  if (obj.assignment_id !== undefined) {
+    if (typeof obj.assignment_id !== 'string') {
+      return 'assignment_id must be a string'
+    }
+    if (obj.assignment_id.includes(' ')) {
+      return 'assignment_id must not contain spaces'
+    }
+  }
+  if (obj.tasks !== undefined) {
+    if (typeof obj.tasks !== 'object') {
+      return 'tasks must be an object'
+    }
+    // checks for each task
+    for (const taskKey in obj.tasks) {
+      if (taskKey.includes(' ')) {
+        return `Task key ${taskKey} must not contain spaces`
+      }
+      if (
+        !obj.tasks[taskKey].display_name ||
+        typeof obj.tasks[taskKey].display_name !== 'string'
+      ) {
+        return `Task ${taskKey} must have a display_name of type string`
+      }
+      if (
+        !obj.tasks[taskKey].short_display_name ||
+        typeof obj.tasks[taskKey].short_display_name !== 'string'
+      ) {
+        return `Task ${taskKey} must have a short_display_name of type string`
+      }
+      if (
+        obj.tasks[taskKey].blocking !== undefined &&
+        typeof obj.tasks[taskKey].blocking !== 'boolean'
+      ) {
+        return `Task ${taskKey} blocking must be a boolean`
+      }
+      if (
+        !obj.tasks[taskKey].color_hex ||
+        typeof obj.tasks[taskKey].color_hex !== 'string' ||
+        !hexColorRegex.test(obj.tasks[taskKey].color_hex)
+      ) {
+        return `Task ${taskKey} must have a valid color_hex (e.g. "#ff0000")`
+      }
+      if (
+        obj.tasks[taskKey].precondition === undefined ||
+        (obj.tasks[taskKey].precondition !== null &&
+          !(obj.tasks[taskKey].precondition in obj.tasks))
+      ) {
+        return `Task ${taskKey} precondition must be null or the key of another task`
+      }
+      for (const key in obj.tasks[taskKey]) {
+        if (!validTaskAttributes.includes(key)) {
+          return `Unknown attribute "${key}" in task "${taskKey}"`
+        }
+      }
+    }
+  }
+  if (obj.tasks !== undefined && obj.assignment_id === undefined) {
+    return 'Config also needs an assignment_id field if tasks are defined'
+  }
+  if (obj.assignment_id !== undefined && obj.tasks === undefined) {
+    return 'Config also needs a tasks field if assignment_id is defined'
+  }
+  for (const key in obj) {
+    if (!validAttributes.includes(key)) {
+      return `Unknown attribute "${key}"`
+    }
+  }
+  if (new TextEncoder().encode(JSON.stringify(obj)).length > MAX_JSON_SIZE) {
+    return 'The JSON object is too large. Maximum size is 10KB.'
+  }
+  return ''
+}
+
+/**
+ * Essentially this:
+ * ```
+ * {
+ *   "task1": {
+ *       "display_name": "Task 1",
+ *       "short_display_name": "1",
+ *       "blocking": false,
+ *       "color_hex": "#ffedb8",
+ *       "precondition": null
+ *   },
+ *   "task2": {
+ *       "display_name": "Task 2",
+ *       "short_display_name": "2",
+ *       "blocking": false,
+ *       "color_hex": "#fadf8e",
+ *       "precondition": "task1"
+ *   },
+ *   "task3": {
+ *       "display_name": "Task 3",
+ *       "short_display_name": "3",
+ *       "blocking": true,
+ *       "color_hex": "#f7ce52",
+ *       "precondition": "task2"
+ *   }
+ * }
+ * ```
+ */
+export interface ConfigTasks {
+  [taskKey: string]: {
+    display_name: string
+    short_display_name: string
+    blocking?: boolean
+    color_hex: string
+    precondition: string | null
+  }
+}
+
+/**
+ * Essentially this:
+ * ```
+ * {
+ *   "task1": { "isDone": true },
+ *   "task2": { "isDone": false }, <- not guaranteed for all tasks to be here
+ *   "task3": { "isDone": false },
+ * }
+ * ```
+ */
+export interface StudentAssignmentProgress {
+  [taskKey: string]: {
+    isDone: boolean
+  } | null
+}
+
+/**
+ * Essentially this:
+ * ```
+ * {
+ *     "lab1": {
+ *         "lastEditedQueueId": 2,
+ *         "assignmentProgress": {
+ *             "task1": { "isDone": true },
+ *             "task2": { "isDone": true },
+ *             "task3": { "isDone": true }
+ *         }
+ *     },
+ *     "lab2": {
+ *         "lastEditedQueueId": 1,
+ *         "assignmentProgress": {
+ *             "task1": { "isDone": true },
+ *             "task2": { "isDone": false }
+ *         }
+ *     }
+ * }
+ * ```
+ */
+export interface StudentTaskProgress {
+  [assignmentKey: string]: {
+    lastEditedQueueId: number
+    assignmentProgress: StudentAssignmentProgress
+  }
+}
+
+export interface AllStudentAssignmentProgress {
+  [userId: number]: {
+    userDetails: UserPartial
+    assignmentProgress: StudentAssignmentProgress
+  }
+}
+
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
@@ -1542,6 +1898,7 @@ export const ERROR_MESSAGES = {
       noNewQuestions: 'Queue not allowing new questions',
       closedQueue: 'Queue is closed',
       oneQuestionAtATime: "You can't create more than one question at a time.",
+      oneDemoAtATime: "You can't create more than one demo at a time.",
       invalidQuestionType: 'Invalid question type',
     },
     updateQuestion: {
@@ -1557,10 +1914,23 @@ export const ERROR_MESSAGES = {
       taHelpingOther: 'TA is already helping someone else',
       loginUserCantEdit: 'Logged-in user does not have edit access',
     },
+    studentTaskProgress: {
+      invalidAssignmentName:
+        'No assignment name set. Please set an assignment name in the queue config.',
+      invalidTaskName: (taskid: string): string =>
+        `Task ${taskid} does not exist in this queue.`,
+      queueDoesNotExist: 'Queue does not exist',
+      configDoesNotExist: 'Queue config does not exist',
+      assignmentDoesNotExist: 'Assignment does not exist',
+      notTaskQuestion: 'Question is not a task question',
+      taskParseError: 'No tasks parsed',
+      taskNotInConfig: 'Task does not exist in the config',
+    },
     groupQuestions: {
       notGroupable: 'One or more of the questions is not groupable',
     },
     saveQError: 'Unable to save a question',
+    deleteQError: 'Unable to delete a question',
     notFound: 'Question not found',
     unableToNotifyUser: 'Unable to notify user',
   },

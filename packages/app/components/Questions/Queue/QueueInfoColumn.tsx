@@ -1,9 +1,11 @@
 import {
   CloudSyncOutlined,
+  DownOutlined,
   ExclamationCircleOutlined,
   FrownOutlined,
   NotificationOutlined,
   StopOutlined,
+  UpOutlined,
 } from '@ant-design/icons'
 import { Button, message, Modal, Popconfirm, Tooltip } from 'antd'
 import Linkify from 'react-linkify'
@@ -140,14 +142,18 @@ interface QueueInfoColumnProps {
   queueId: number
   isStaff: boolean
   buttons: ReactNode
+  hasDemos?: boolean
 }
 
 export function QueueInfoColumn({
   queueId,
   isStaff,
   buttons,
+  hasDemos,
 }: QueueInfoColumnProps): ReactElement {
   const { queue } = useQueue(queueId)
+  const [staffListHidden, setStaffListHidden] = useState(false)
+
   // const [away, setAway] = useState(false);
   // const checkAway = (checked: boolean) => {
   //   if (!checked) {
@@ -203,7 +209,15 @@ export function QueueInfoColumn({
         {buttons}
       </div>
 
-      <CustomH3 className="mt-0 sm:mt-10">Staff</CustomH3>
+      <div className="flex">
+        <CustomH3 className="mt-0 sm:mt-10">Staff</CustomH3>
+        <Button
+          className="sm:hidden"
+          onClick={() => setStaffListHidden(!staffListHidden)}
+          type="text"
+          icon={staffListHidden ? <UpOutlined /> : <DownOutlined />}
+        />
+      </div>
       {queue.staffList.length < 1 ? (
         <div
           role="alert"
@@ -211,9 +225,9 @@ export function QueueInfoColumn({
         >
           <p> No staff checked in</p>
         </div>
-      ) : (
+      ) : !staffListHidden ? (
         <TAStatuses queueId={queueId} />
-      )}
+      ) : null}
 
       {/* buttons for staff on mobile */}
       {isStaff && (
@@ -258,13 +272,16 @@ export function QueueInfoColumn({
       )}
 
       {/* mobile only */}
-      <div className="mt-3 block flex items-center justify-between sm:hidden">
+      <div className="mt-3 flex items-center justify-between sm:hidden">
+        {!isStaff && hasDemos && buttons}
+      </div>
+      <div className="mt-3 flex items-center justify-between sm:hidden">
         <div className="flex flex-col">
           <CustomH3 className="mt-0">Queue</CustomH3>
           <QueueUpToDateInfo queueId={queueId} />
         </div>
         {/* for 'Join Queue' button for students */}
-        {!isStaff && buttons}
+        {!isStaff && !hasDemos && buttons}
       </div>
     </InfoColumnContainer>
   )
@@ -323,7 +340,15 @@ export const disableQueue = async (
 ) => {
   await API.queues.disable(queueId)
   message.success('Successfully disabled queue: ' + queue.room)
-  await Router.push('/')
+
+  // redirect to /today page
+  const currentPath = window.location.pathname
+  const pathParts = currentPath.split('/')
+  // Remove the last two parts ('queue' and '4') and add 'today'
+  const newPathParts = [...pathParts.slice(0, -2), 'today']
+  const newPath = newPathParts.join('/')
+
+  await Router.push(newPath)
 }
 
 interface QuestionTypeProps {

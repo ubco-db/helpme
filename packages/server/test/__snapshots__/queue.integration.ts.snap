@@ -21,6 +21,7 @@ exports[`Queue Integration GET /queues/:id/questions returns questions in the qu
       "groupable": true,
       "helpedAt": null,
       "id": 1,
+      "isTaskQuestion": false,
       "location": null,
       "questionTypes": [
         {
@@ -37,5 +38,6 @@ exports[`Queue Integration GET /queues/:id/questions returns questions in the qu
     },
   ],
   "unresolvedAlerts": [],
+  "yourQuestions": [],
 }
 `;

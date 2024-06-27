@@ -14,7 +14,6 @@ import { useLocalStorage } from '../../../hooks/useLocalStorage'
 import { toOrdinal } from '../../../utils/ordinal'
 import { API } from '@koh/api-client'
 import { QuestionTypeSelector } from '../Shared/QuestionType'
-import PropTypes from 'prop-types'
 
 const Container = styled.div`
   max-width: 960px;
@@ -55,14 +54,11 @@ interface QuestionFormProps {
     router: NextRouter,
     courseId: number,
     location: string,
+    isTaskQuestion: boolean,
+    groupable?: boolean,
   ) => void
   position: number
   cancel: () => void
-}
-
-QuestionForm.propTypes = {
-  value: PropTypes.any.isRequired,
-  onClose: PropTypes.func.isRequired,
 }
 
 export default function QuestionForm({
@@ -149,6 +145,8 @@ export default function QuestionForm({
         router,
         Number(courseId),
         inperson ? 'In Person' : 'Online',
+        false, //isTaskQuestion
+        false, //groupable
       )
     }
   }
@@ -159,6 +157,7 @@ export default function QuestionForm({
     let isCancelled = false
 
     const fetchQuestions = async () => {
+      // TODO: add a useSWR for this endpoint to improve performance
       const questions = await API.questionType.getQuestionTypes(
         courseNumber,
         queueId,
@@ -168,12 +167,13 @@ export default function QuestionForm({
       }
     }
 
-    fetchQuestions()
-
+    if (visible) {
+      fetchQuestions()
+    }
     return () => {
       isCancelled = true
     }
-  }, [courseNumber])
+  }, [courseNumber, visible])
 
   useEffect(() => {
     const cleanup = getQuestions()
@@ -243,7 +243,7 @@ export default function QuestionForm({
             ></QuestionTypeSelector>
           </section>
         ) : (
-          <p>No Question types found</p>
+          <p>No Question tags found</p>
         )}
         <section>
           <QuestionText id="question-form-text">

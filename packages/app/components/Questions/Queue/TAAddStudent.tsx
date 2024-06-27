@@ -93,7 +93,7 @@ export function AddStudentsModal({
     setQuestionsTypeState(
       await API.questionType.getQuestionTypes(courseNumber, queueId),
     )
-  }, [courseNumber])
+  }, [courseNumber, queueId])
 
   const populateStudents = useCallback(async () => {
     const tempS = []
@@ -198,7 +198,7 @@ export function AddStudentsModal({
           </QuestionText>
           <AntdSelect
             mode="multiple"
-            placeholder="Select question types"
+            placeholder="Select question tags"
             onChange={onTypeChange}
             style={{ width: '100%' }}
             value={questionTypeInput.map((type) => type.id)}
@@ -224,8 +224,7 @@ export function AddStudentsModal({
         </>
       ) : (
         <p>
-          There are no question types. Add them in &apos;Edit Queue
-          Details&apos;
+          There are no question tags. Add them in &apos;Edit Queue Details&apos;
         </p>
       )}
       <OverrideCollapse>

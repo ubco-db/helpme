@@ -27,6 +27,7 @@ import { AsyncQuestionModel } from '../../src/asyncQuestion/asyncQuestion.entity
 import { AsyncQuestionVotesModel } from '../../src/asyncQuestion/asyncQuestionVotes.entity';
 import { ChatTokenModel } from '../../src/chatbot/chat-token.entity';
 import { v4 } from 'uuid';
+import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)
@@ -83,7 +84,8 @@ export const QueueFactory = new Factory(QueueModel)
   .attr('allowQuestions', false)
   .assocMany('staffList', UserFactory, 0)
   .attr('isProfessorQueue', false)
-  .attr('isDisabled', false);
+  .attr('isDisabled', false)
+  .attr('config', {});
 
 export const QuestionTypeFactory = new Factory(QuestionTypeModel)
   .attr('cid', 1)
@@ -100,6 +102,7 @@ export const QuestionFactory = new Factory(QuestionModel)
   .attr('status', 'Queued')
   .assocMany('questionTypes', QuestionTypeFactory, 1)
   .attr('groupable', true)
+  .attr('isTaskQuestion', false)
   .assocOne('queue', QueueFactory)
   .assocOne('creator', UserFactory)
   .attr('createdAt', new Date());
@@ -170,3 +173,8 @@ export const ChatTokenFactory = new Factory(ChatTokenModel)
   .attr('used', 0)
   .attr('max_uses', 30)
   .assocOne('user', UserFactory);
+
+export const StudentTaskProgressFactory = new Factory(StudentTaskProgressModel)
+  .assocOne('course', CourseFactory)
+  .assocOne('user', UserFactory)
+  .attr('taskProgress', {});

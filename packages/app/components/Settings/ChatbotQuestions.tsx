@@ -1,18 +1,5 @@
-import {
-  Button,
-  Checkbox,
-  Form,
-  Input,
-  Modal,
-  Pagination,
-  Select,
-  Switch,
-  Table,
-  Tooltip,
-  message,
-} from 'antd'
+import { Button, Form, Input, Modal, Select, Switch, Table } from 'antd'
 import React, { ReactElement, useEffect, useState } from 'react'
-import { API } from '@koh/api-client'
 import toast from 'react-hot-toast'
 import ExpandableText from '../common/ExpandableText'
 import EditChatbotQuestionModal from './EditChatbotQuestionModal'
@@ -84,7 +71,7 @@ export default function ChatbotQuestions({
         }))
         setExistingDocuments(formattedDocuments)
       })
-  }, [addModelOpen, courseId])
+  }, [addModelOpen, courseId, profile?.chat_token.token])
 
   const columns = [
     {
@@ -213,7 +200,7 @@ export default function ChatbotQuestions({
 
   useEffect(() => {
     getQuestions()
-  }, [editingRecord])
+  }, [editingRecord, getQuestions])
 
   const showModal = (record) => {
     setEditingRecord(record)

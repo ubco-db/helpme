@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Modal,
   Form,
@@ -53,13 +53,7 @@ const ChatbotParameter: React.FC<ChatbotParameterProps> = ({
     {},
   )
 
-  useEffect(() => {
-    if (visible) {
-      fetchChatbotSettings()
-    }
-  }, [visible])
-
-  const fetchChatbotSettings = async () => {
+  const fetchChatbotSettings = useCallback(async () => {
     try {
       setLoading(true)
       const response = await axios.get<ChatbotSettings>(
@@ -77,7 +71,13 @@ const ChatbotParameter: React.FC<ChatbotParameterProps> = ({
     } finally {
       setLoading(false)
     }
-  }
+  }, [courseId, profile?.chat_token.token, form])
+
+  useEffect(() => {
+    if (visible) {
+      fetchChatbotSettings()
+    }
+  }, [visible, fetchChatbotSettings])
 
   const handleUpdate = async (values: any) => {
     const updateData = {

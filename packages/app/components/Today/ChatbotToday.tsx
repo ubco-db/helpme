@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Input, Button, Card, Avatar, Spin, Tooltip, message } from 'antd'
 import styled from 'styled-components'
-import { API } from '@koh/api-client'
 import {
   UserOutlined,
   RobotOutlined,
@@ -51,7 +50,7 @@ export const ChatbotToday: React.FC = () => {
   const { cid } = router.query
   const profile = useProfile()
   const [isLoading, setIsLoading] = useState(false)
-  const [interactionId, setInteractionId] = useState<number | null>(null)
+  const [, setInteractionId] = useState<number | null>(null)
   const [preDeterminedQuestions, setPreDeterminedQuestions] = useState<
     PreDeterminedQuestion[]
   >([])
@@ -88,7 +87,7 @@ export const ChatbotToday: React.FC = () => {
     return () => {
       setInteractionId(null)
     }
-  }, [profile])
+  }, [profile, cid])
 
   const query = async () => {
     try {

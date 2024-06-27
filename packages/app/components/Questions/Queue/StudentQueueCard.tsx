@@ -1,4 +1,4 @@
-import { Question } from '@koh/common'
+import { ConfigTasks, Question, StudentAssignmentProgress } from '@koh/common'
 import { Card, Col, Tooltip } from 'antd'
 import { ReactElement } from 'react'
 import { getWaitTime } from '../../../utils/TimeUtil'
@@ -30,6 +30,9 @@ interface StudentQueueCardProps {
   cid: number
   qid: number
   isStaff: boolean
+  studentAssignmentProgress?: StudentAssignmentProgress
+  configTasks?: ConfigTasks
+  isMyQuestion?: boolean
   className?: string // used to highlight questions or add other classes
 }
 
@@ -38,8 +41,16 @@ export default function StudentQueueCard({
   cid,
   qid,
   isStaff,
+  studentAssignmentProgress,
+  configTasks,
+  isMyQuestion,
   className,
 }: StudentQueueCardProps): ReactElement {
+  // task questions text comes in as "Mark "part1" "part2""
+  const tasks = question.isTaskQuestion
+    ? question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || []
+    : [] // gives an array of "part1","part2",etc.
+
   return (
     <HorizontalStudentCard className={className}>
       <CenterRow>
@@ -57,26 +68,61 @@ export default function StudentQueueCard({
           </Col>
         )}
         <Col flex="1 1">
-          <Tooltip // only show tooltip if text is too long TODO: replace with expand card details feature
-            title={question.text.length > 110 ? question.text : ''}
-            overlayStyle={{ maxWidth: '60em' }}
-          >
-            <Text
-              style={
-                {
-                  // shorten question text dynamically
-                  display: '-webkit-box',
-                  WebkitLineClamp: 1,
-                  WebkitBoxOrient: 'vertical',
-                  textOverflow: 'ellipsis',
-                  overflow: 'hidden',
-                  maxWidth: '55em',
-                } as React.CSSProperties
-              }
-            >
-              {question.text}
+          {question.status === 'Drafting' ? (
+            <Text className="text-xl text-gray-400">
+              {question.isTaskQuestion
+                ? 'Unfinished Demo'
+                : 'Unfinished Question'}
             </Text>
-          </Tooltip>
+          ) : // if it's a task question, parse the task items and display them instead of the question text
+          question.isTaskQuestion && tasks && configTasks ? (
+            <div>
+              {
+                // for every task defined in the config, display it but only highlight the ones that are in the question text
+                Object.entries(configTasks).map(
+                  ([taskKey, taskValue], index) => (
+                    <QuestionType
+                      key={index}
+                      typeName={
+                        isMyQuestion &&
+                        studentAssignmentProgress &&
+                        studentAssignmentProgress[taskKey] &&
+                        studentAssignmentProgress[taskKey].isDone
+                          ? '✔️'
+                          : taskValue.short_display_name
+                      }
+                      typeColor={
+                        tasks.includes(taskKey)
+                          ? taskValue.color_hex
+                          : '#f0f0f0'
+                      }
+                    />
+                  ),
+                )
+              }
+            </div>
+          ) : (
+            <Tooltip // only show tooltip if text is too long TODO: replace with expand card details feature
+              title={question.text.length > 110 ? question.text : ''}
+              overlayStyle={{ maxWidth: '60em' }}
+            >
+              <Text
+                style={
+                  {
+                    // shorten question text dynamically
+                    display: '-webkit-box',
+                    WebkitLineClamp: 1,
+                    WebkitBoxOrient: 'vertical',
+                    textOverflow: 'ellipsis',
+                    overflow: 'hidden',
+                    maxWidth: '55em',
+                  } as React.CSSProperties
+                }
+              >
+                {question.text}
+              </Text>
+            </Tooltip>
+          )}
           {isStaff && (
             <Text
               style={
@@ -114,7 +160,7 @@ export default function StudentQueueCard({
               queueId={qid}
               question={question}
               hasUnresolvedRephraseAlert={false}
-              className="flex items-center justify-around sm:block"
+              className="align-center flex items-center justify-around"
             />
           </Col>
         )}

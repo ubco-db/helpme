@@ -15,7 +15,6 @@ import {
   GroupQuestionsParams,
   ListInsightsResponse,
   ListQuestionsResponse,
-  RegisterCourseParams,
   EditCourseInfoParams,
   SemesterPartial,
   TACheckinTimesResponse,
@@ -50,6 +49,10 @@ import {
   QuestionTypeParams,
   UBCOuserParam,
   CourseSettingsResponse,
+  StudentAssignmentProgress,
+  QueueConfig,
+  AllStudentAssignmentProgress,
+  setQueueConfigResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -225,8 +228,6 @@ class APIClient {
         `/api/v1/courses/${courseId}/withdraw_course`,
         undefined,
       ),
-    registerCourses: async (params: RegisterCourseParams[]): Promise<void> =>
-      this.req('POST', `/api/v1/courses/register_courses`, undefined, params),
     editCourseInfo: async (
       courseId: number,
       params: EditCourseInfoParams,
@@ -281,6 +282,26 @@ class APIClient {
     ): Promise<CourseSettingsResponse> =>
       this.req('GET', `/api/v1/courses/${courseId}/features`),
   }
+  studentTaskProgress = {
+    getAssignmentProgress: async (
+      userId: number,
+      courseId: number,
+      assignmentName: string,
+    ): Promise<StudentAssignmentProgress> =>
+      this.req(
+        'GET',
+        `/api/v1/studentTaskProgress/student/${userId}/${courseId}/${assignmentName}`,
+      ),
+    getAllAssignmentProgressForQueue: async (
+      queueId: number,
+      courseId: number,
+      assignmentName: string,
+    ): Promise<AllStudentAssignmentProgress> =>
+      this.req(
+        'GET',
+        `/api/v1/studentTaskProgress/queue/${queueId}/${courseId}/${assignmentName}`,
+      ),
+  }
   taStatus = {
     checkIn: async (
       courseId: number,
@@ -292,18 +313,6 @@ class APIClient {
       room: string,
     ): Promise<TACheckoutResponse> =>
       this.req('DELETE', `/api/v1/courses/${courseId}/ta_location/${room}`),
-    makeQueue: async (
-      courseId: number,
-      room: string,
-      isProfessorQueue: boolean,
-      notes: string,
-    ): Promise<TAUpdateStatusResponse> =>
-      this.req(
-        'POST',
-        `/api/v1/courses/${courseId}/generate_queue/${room}`,
-        QueuePartial,
-        { notes, isProfessorQueue },
-      ),
   }
   asyncQuestions = {
     create: async (body: CreateAsyncQuestions, cid: number) =>
@@ -361,17 +370,26 @@ class APIClient {
     getQuestionTypes: async (
       courseId: number,
       queueId: number | null,
-    ): Promise<any> =>
-      this.req('GET', `/api/v1/questionType/${courseId}/${queueId}`, undefined),
+    ): Promise<QuestionTypeParams[]> => {
+      try {
+        return await this.req(
+          'GET',
+          `/api/v1/questionType/${courseId}/${queueId}`,
+          undefined,
+        )
+      } catch (error) {
+        return []
+      }
+    },
     addQuestionType: async (
       courseId: number,
       body: QuestionTypeParams,
-    ): Promise<any> =>
+    ): Promise<string> =>
       this.req('POST', `/api/v1/questionType/${courseId}`, undefined, body),
     deleteQuestionType: async (
       courseId: number,
       questionTypeId: number,
-    ): Promise<void> =>
+    ): Promise<string> =>
       this.req('DELETE', `/api/v1/questionType/${courseId}/${questionTypeId}`),
   }
   calendar = {
@@ -396,6 +414,24 @@ class APIClient {
       this.req('POST', `/api/v1/queues/${queueId}/clean`),
     disable: async (queueId: number): Promise<void> =>
       this.req('DELETE', `/api/v1/queues/${queueId}`),
+    updateConfig: async (
+      queueId: number,
+      config: QueueConfig,
+    ): Promise<setQueueConfigResponse> =>
+      this.req('PATCH', `/api/v1/queues/${queueId}/config`, undefined, config),
+    createQueue: async (
+      courseId: number,
+      room: string,
+      isProfessorQueue: boolean,
+      notes: string,
+      config: QueueConfig,
+    ): Promise<TAUpdateStatusResponse> =>
+      this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/create_queue/${room}`,
+        QueuePartial,
+        { notes, isProfessorQueue, config },
+      ),
   }
   notif = {
     desktop: {

@@ -12,13 +12,8 @@ import {
   QuestionTypeFactory,
 } from '../../test/util/factories';
 import { INSIGHTS_MAP } from './insight-objects';
-import {
-  BarChartOutputType,
-  QuestionTypes,
-  SimpleTableOutputType,
-} from '@koh/common';
+import { BarChartOutputType, SimpleTableOutputType } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
-import { QuestionTypeModel } from 'questionType/question-type.entity';
 
 describe('InsightsService', () => {
   let service: InsightsService;

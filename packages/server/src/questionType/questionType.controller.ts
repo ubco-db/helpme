@@ -13,24 +13,24 @@ import {
 } from '@nestjs/common';
 import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
-import { Connection } from 'typeorm';
 import { QuestionTypeModel } from './question-type.entity';
 import { Response } from 'express';
+import { CourseRolesGuard } from 'guards/course-roles.guard';
+import { IsNull, getManager } from 'typeorm';
+import { QueueModel } from '../queue/queue.entity';
 
 @Controller('questionType')
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionTypeController {
-  constructor(private connection: Connection) {}
-
-  @Post(':c')
+  @Post(':courseId')
+  @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async addQuestionType(
     @Res() res: Response,
-    @Param('c') courseId: number,
+    @Param('courseId') courseId: number,
     @Body() newQuestionType: QuestionTypeParams,
   ): Promise<void> {
-    console.log('newQuestionType', newQuestionType);
     let queueId = newQuestionType.queueId;
     if (typeof queueId !== 'number' || isNaN(queueId)) {
       queueId = null;
@@ -38,60 +38,132 @@ export class QuestionTypeController {
     const questionType = await QuestionTypeModel.findOne({
       where: {
         cid: courseId,
-        queueId: newQuestionType.queueId,
+        queueId: queueId,
         name: newQuestionType.name,
       },
     });
     if (!questionType) {
-      await QuestionTypeModel.create({
-        cid: courseId,
-        name: newQuestionType.name,
-        color: newQuestionType.color,
-        queueId: newQuestionType.queueId,
-      }).save();
-      res.status(200).send('success');
-      return;
+      try {
+        await getManager().transaction(async (transactionalEntityManager) => {
+          await transactionalEntityManager
+            .create(QuestionTypeModel, {
+              cid: courseId,
+              name: newQuestionType.name,
+              color: newQuestionType.color,
+              queueId: queueId,
+            })
+            .save();
+          if (queueId) {
+            // update the queue's config to include the new question type
+            const queue = await transactionalEntityManager.findOne(
+              QueueModel,
+              queueId,
+            );
+            queue.config = queue.config || {}; // just in case it's null
+            queue.config.tags = queue.config.tags || {}; // just in case it's undefined
+
+            const nameNoSpecialChars = newQuestionType.name.replace(
+              /[^a-zA-Z0-9]/g,
+              '',
+            );
+            queue.config.tags[nameNoSpecialChars] = {
+              display_name: newQuestionType.name,
+              color_hex: newQuestionType.color,
+            };
+            await transactionalEntityManager.save(queue);
+          }
+        });
+        res.status(200).send(`Successfully created ${newQuestionType.name}`);
+        return;
+      } catch (e) {
+        res.status(400).send('Error creating question type');
+        return;
+      }
     } else {
-      res.status(400).send('Question already exists');
+      res.status(400).send(`${questionType.name} already exists`);
       return;
     }
   }
 
-  @Get(':c/:queueId')
+  // gets all question types for a queue. If queueId is not a number, it will return all async-question-centre question types for the course
+  @Get(':courseId/:queueId')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getQuestionTypes(
     @Res() res: Response,
-    @Param('c') course: number,
-    @Param('queueId') queueId: number | null,
+    @Param('courseId') courseId: number,
+    @Param('queueId') queueIdString: string,
   ): Promise<QuestionTypeModel[]> {
-    if (typeof queueId !== 'number' || isNaN(queueId)) {
+    let queueId: null | number = null;
+    queueId = Number(queueIdString);
+    if (isNaN(queueId)) {
       queueId = null;
     }
 
-    const questions = await QuestionTypeModel.find({
+    const questionTypes = await QuestionTypeModel.find({
       where: {
-        cid: course,
-        queueId,
+        cid: courseId,
+        queueId: queueId !== null ? queueId : IsNull(),
       },
     });
-    if (!questions) {
-      res.status(400).send('None');
+    if (questionTypes.length === 0) {
+      res.status(404).send('No Question Types Found');
       return;
     }
-    res.status(200).send(questions);
+    res.status(200).send(questionTypes);
   }
 
-  @Delete(':c/:questionTypeId')
+  // TODO: make it so that this "soft" deletes a questionType so that it can still be used for statistics using
+  //@DeleteDateColumn in question-type.entity as well as using softDelete instead of delete. Custom queries on
+  // questionType may need to have checks for this, but just using .find will already cover it. Use .withDeleted()
+  // to also get the deleted question types for the insights page.
+  @Delete(':courseId/:questionTypeId')
+  @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async deleteQuestionType(
     @Res() res: Response,
     @Param('questionTypeId') questionTypeId: number,
-    @Param('c') courseId: number,
+    @Param('courseId') courseId: number,
   ): Promise<void> {
-    await QuestionTypeModel.delete({
-      id: questionTypeId,
-      cid: courseId,
+    const questionType = await QuestionTypeModel.findOne({
+      where: {
+        id: questionTypeId,
+        // cid: courseId,
+      },
     });
-    res.status(200).send('success');
+    if (!questionType) {
+      res.status(404).send('Question Type not found');
+      return;
+    }
+    try {
+      await getManager().transaction(async (transactionalEntityManager) => {
+        await transactionalEntityManager.delete(QuestionTypeModel, {
+          id: questionTypeId,
+          cid: courseId,
+        });
+        if (questionType.queueId) {
+          // update the queue's config to remove the question type
+          const queue = await transactionalEntityManager.findOne(
+            QueueModel,
+            questionType.queueId,
+          );
+          queue.config = queue.config || {}; // just in case it's null (It shouldn't be, but it might for old queues)
+          queue.config.tags = queue.config.tags || {}; // just in case it's undefined
+          // delete the tag that has the matching display_name as the deleted question type
+          const idOfTagToBeDeleted = Object.keys(queue.config.tags).find(
+            (key) => queue.config.tags[key].display_name === questionType.name,
+          );
+          if (idOfTagToBeDeleted) {
+            delete queue.config.tags[idOfTagToBeDeleted];
+          }
+          await transactionalEntityManager.save(queue);
+        }
+      });
+    } catch (e) {
+      res.status(400).send(`Error deleting ${questionType.name}`);
+      return;
+    }
+    res.status(200).send(`Successfully deleted ${questionType.name}`);
     return;
   }
 }

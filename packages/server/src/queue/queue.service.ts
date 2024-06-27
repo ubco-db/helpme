@@ -2,7 +2,6 @@ import {
   ListQuestionsResponse,
   OpenQuestionStatus,
   Question,
-  QuestionGroup,
   Role,
   StatusInPriorityQueue,
   StatusInQueue,
@@ -96,6 +95,7 @@ export class QueueService {
         'groupId',
         'questionTypes',
         'taHelped',
+        'isTaskQuestion',
       ]);
 
       Object.assign(temp, {
@@ -111,6 +111,7 @@ export class QueueService {
   }
 
   /** Hide sensitive data to other students */
+  // TODO: remove this function since it gives no new information for the client (like the client already has their own name and pfp and their own questions, so why are we attaching those things together here on the server?)
   async personalizeQuestions(
     queueId: number,
     questions: ListQuestionsResponse,
@@ -145,7 +146,7 @@ export class QueueService {
         },
       );
 
-      newLQR.yourQuestion = await QuestionModel.findOne({
+      newLQR.yourQuestions = await QuestionModel.find({
         relations: ['creator', 'taHelped'],
         where: {
           creatorId: userId,
@@ -155,32 +156,35 @@ export class QueueService {
       });
       newLQR.priorityQueue = [];
 
-      if (newLQR.yourQuestion) {
-        const temp = pick(newLQR.yourQuestion, [
-          'closedAt',
-          'queueId',
-          'createdAt',
-          'creatorId',
-          'firstHelpedAt',
-          'groupId',
-          'groupable',
-          'helpedAt',
-          'id',
-          'location',
-          'questionTypes',
-          'queueId',
-          'status',
-          'taHelpedId',
-          'taHelped',
-          'text',
-        ]);
+      if (newLQR.yourQuestions) {
+        newLQR.yourQuestions = newLQR.yourQuestions.map((question) => {
+          const temp = pick(question, [
+            'closedAt',
+            'queueId',
+            'createdAt',
+            'creatorId',
+            'firstHelpedAt',
+            'groupId',
+            'groupable',
+            'helpedAt',
+            'id',
+            'location',
+            'questionTypes',
+            'queueId',
+            'status',
+            'taHelpedId',
+            'taHelped',
+            'text',
+            'isTaskQuestion',
+          ]);
 
-        newLQR.yourQuestion = Object.assign(temp, {
-          creator: {
-            name: newLQR.yourQuestion.creator.name,
-            photoURL: newLQR.yourQuestion.creator.photoURL,
-          },
-        }) as Question;
+          return Object.assign(temp, {
+            creator: {
+              name: question.creator.name,
+              photoURL: question.creator.photoURL,
+            },
+          }) as Question;
+        });
       }
       return newLQR;
     }
