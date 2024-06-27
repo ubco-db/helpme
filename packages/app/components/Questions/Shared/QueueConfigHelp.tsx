@@ -7,7 +7,7 @@ import { ReactElement } from 'react'
  */
 export default function QueueConfigHelp(): ReactElement {
   return (
-    <Collapse bordered={false}>
+    <Collapse className="bg-gray-100" bordered={false}>
       <Collapse.Panel header="What does each key mean?" key="1">
         <List size="small" bordered>
           {/* <List.Item> Not doing this for now, it's more effort than it's worth to synchronize this json with the queue name

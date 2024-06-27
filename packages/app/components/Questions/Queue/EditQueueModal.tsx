@@ -1,6 +1,15 @@
 import { ReactElement, useRef } from 'react'
 import Modal from 'antd/lib/modal/Modal'
-import { Input, Form, Button, message, Popconfirm, Switch, Tooltip } from 'antd'
+import {
+  Input,
+  Form,
+  Button,
+  message,
+  Popconfirm,
+  Switch,
+  Tooltip,
+  Collapse,
+} from 'antd'
 import styled from 'styled-components'
 import { API } from '@koh/api-client'
 import { useQueue } from '../../../hooks/useQueue'
@@ -356,107 +365,126 @@ export function EditQueueModal({
               </Popconfirm>
             </div>
           </CustomFormItem>
-          {/* While yes, you are not supposed to put the form labels on top of form items like this (should use the Form.Item's label attribute), it's the only way to get the form label to show on top of the input field until we update our antd version to at least 5.18.0 (allowing us to use the Form.Item layout property) */}
-          <h4 className="mt-2 font-medium">
-            <span className="font-medium">Queue Config</span>&nbsp;
-            <Tooltip
-              title={
-                'Here you can specify a JSON config to automatically set up question tags, tasks, and other settings for the queue. For example, you can use this to set up a chemistry lab that requires certain tasks to be checked off (e.g. have the TA look at the experiment before continuing). It is recommended to create a new queue for each lab assignment. You can also easily externally save this config and copy/paste this config to other queues and courses.'
+          <Collapse bordered={false}>
+            <Collapse.Panel
+              key="1"
+              header={
+                <label className="mt-2 font-medium" htmlFor="queue_config">
+                  <span className="mr-1">Queue Config</span>
+                  <Tooltip
+                    title={
+                      'Here you can specify a JSON config to automatically set up question tags, tasks, and other settings for the queue. For example, you can use this to set up a chemistry lab that requires certain tasks to be checked off (e.g. have the TA look at the experiment before continuing). It is recommended to create a new queue for each lab assignment. You can also easily externally save this config and copy/paste this config to other queues and courses.'
+                    }
+                  >
+                    <QuestionCircleOutlined style={{ color: 'gray' }} />
+                  </Tooltip>
+                </label>
               }
             >
-              <QuestionCircleOutlined style={{ color: 'gray' }} />
-            </Tooltip>
-          </h4>
-          <CustomFormItem
-            name="queue_config"
-            rules={[
-              {
-                // using this as an onChange for the textArea. The validator promises will show nice error messages
-                validator: (_, value) => {
-                  setLocalQueueConfigString(value)
-                  try {
-                    // parse the config (any errors will be caught by the try-catch)
-                    const parsedConfig = JSON.parse(value)
-                    // TODO: figure out a way to warn the user if there are duplicate keys in the config (JSON.parse will not throw an error, it will just overwrite the first object with the second one. It'd just be for UX)
-                    // Hours spent trying to do so without success: 3
-                    // For something so simple, I could not find a simple way to do it. At this point. it might be worth just getting a proper JSON editor component or make the UI to build the config instead of a json
-
-                    // More error checking
-                    const configError = validateQueueConfigInput(parsedConfig)
-                    if (configError) {
-                      setIsValidConfig(false)
-                      return Promise.reject(new Error(configError))
-                    }
-                    // config is good
-                    setConfigHasChanges(
-                      JSON.stringify(lastSavedQueueConfig.current, null, 2) !=
-                        value,
-                    )
-                    setIsValidConfig(true)
-                    return Promise.resolve()
-                  } catch (error) {
-                    setIsValidConfig(false)
-                    return Promise.reject(
-                      new Error('Invalid JSON: ' + error.message),
-                    )
-                  }
-                },
-              },
-            ]}
-            extra={
-              <>
-                <Button
-                  className="mt-2"
-                  disabled={!isValidConfig || !configHasChanges}
-                  onClick={async () => {
-                    // technically, i don't need to parse the JSON again since it's already parsed in the validator, but in case that fails this also checks for errors.
-                    try {
-                      const parsedConfig = JSON.parse(localQueueConfigString)
-                      const configError = validateQueueConfigInput(parsedConfig)
-                      if (configError) {
-                        message.error(configError)
-                        return
-                      }
+              <CustomFormItem
+                className="!mb-0 !pb-0"
+                name="queue_config"
+                rules={[
+                  {
+                    // using this as an onChange for the textArea. The validator promises will show nice error messages
+                    validator: (_, value) => {
+                      setLocalQueueConfigString(value)
                       try {
-                        const updatedTagsMessages =
-                          await API.queues.updateConfig(queue.id, parsedConfig)
-                        message.success('Queue config saved')
-                        lastSavedQueueConfig.current = parsedConfig
-                        setConfigHasChanges(false)
-                        // if any of the questionTypes were created/updated/deleted, update the questionTypes and message the user
-                        if (
-                          updatedTagsMessages.questionTypeMessages.length > 0
-                        ) {
-                          setQuestionsTypeState(
-                            await API.questionType.getQuestionTypes(
-                              courseNumber,
-                              queueId,
-                            ),
-                          )
-                          for (const tagMessage of updatedTagsMessages.questionTypeMessages) {
-                            message.info(tagMessage)
-                          }
+                        // parse the config (any errors will be caught by the try-catch)
+                        const parsedConfig = JSON.parse(value)
+                        // TODO: figure out a way to warn the user if there are duplicate keys in the config (JSON.parse will not throw an error, it will just overwrite the first object with the second one. It'd just be for UX)
+                        // Hours spent trying to do so without success: 3.5
+                        // For something so simple, I could not find a simple way to do it. At this point. it might be worth just getting a proper JSON editor component or make the UI to build the config instead of a json
+
+                        // More error checking
+                        const configError =
+                          validateQueueConfigInput(parsedConfig)
+                        if (configError) {
+                          setIsValidConfig(false)
+                          return Promise.reject(new Error(configError))
                         }
+                        // config is good
+                        setConfigHasChanges(
+                          JSON.stringify(
+                            lastSavedQueueConfig.current,
+                            null,
+                            2,
+                          ) != value,
+                        )
+                        setIsValidConfig(true)
+                        return Promise.resolve()
                       } catch (error) {
-                        const errorMessage =
-                          error?.response?.data?.message ?? error.message
-                        message.error(
-                          `Failed to save queue config: ${errorMessage}`,
+                        setIsValidConfig(false)
+                        return Promise.reject(
+                          new Error('Invalid JSON: ' + error.message),
                         )
                       }
-                    } catch (error) {
-                      message.error('Invalid JSON: ' + error.message)
-                    }
-                  }}
-                >
-                  Save Config Changes
-                </Button>
-                <QueueConfigHelp />
-              </>
-            }
-          >
-            <TextArea className="!h-[30rem] w-full" spellCheck="false" />
-          </CustomFormItem>
+                    },
+                  },
+                ]}
+                extra={
+                  <>
+                    <Button
+                      className="my-2"
+                      disabled={!isValidConfig || !configHasChanges}
+                      onClick={async () => {
+                        // technically, i don't need to parse the JSON again since it's already parsed in the validator, but in case that fails this also checks for errors.
+                        try {
+                          const parsedConfig = JSON.parse(
+                            localQueueConfigString,
+                          )
+                          const configError =
+                            validateQueueConfigInput(parsedConfig)
+                          if (configError) {
+                            message.error(configError)
+                            return
+                          }
+                          try {
+                            const updatedTagsMessages =
+                              await API.queues.updateConfig(
+                                queue.id,
+                                parsedConfig,
+                              )
+                            message.success('Queue config saved')
+                            lastSavedQueueConfig.current = parsedConfig
+                            setConfigHasChanges(false)
+                            // if any of the questionTypes were created/updated/deleted, update the questionTypes and message the user
+                            if (
+                              updatedTagsMessages.questionTypeMessages.length >
+                              0
+                            ) {
+                              setQuestionsTypeState(
+                                await API.questionType.getQuestionTypes(
+                                  courseNumber,
+                                  queueId,
+                                ),
+                              )
+                              for (const tagMessage of updatedTagsMessages.questionTypeMessages) {
+                                message.info(tagMessage)
+                              }
+                            }
+                          } catch (error) {
+                            const errorMessage =
+                              error?.response?.data?.message ?? error.message
+                            message.error(
+                              `Failed to save queue config: ${errorMessage}`,
+                            )
+                          }
+                        } catch (error) {
+                          message.error('Invalid JSON: ' + error.message)
+                        }
+                      }}
+                    >
+                      Save Config Changes
+                    </Button>
+                    <QueueConfigHelp />
+                  </>
+                }
+              >
+                <TextArea className="!h-[30rem] w-full" spellCheck="false" />
+              </CustomFormItem>
+            </Collapse.Panel>
+          </Collapse>
         </Form>
       )}
     </Modal>

@@ -264,7 +264,7 @@ export function TaskSelector({
       for (const [taskKey, taskValue] of Object.entries(
         studentAssignmentProgress,
       )) {
-        if (taskValue.isDone) {
+        if (taskValue.isDone && configTasksCopy[taskKey]) {
           configTasksCopy[taskKey].isDone = true
         }
       }

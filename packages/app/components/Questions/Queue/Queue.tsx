@@ -522,8 +522,8 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                 <JoinButton
                   id="join-queue-button"
                   type="primary"
-                  hasDemos={isDemoQueue} // for styles
-                  isStudent={true} // for styles
+                  hasdemos={`${isDemoQueue}`} // for styles
+                  isstudent="true" // for styles
                   disabled={
                     !queue?.allowQuestions ||
                     queue?.isDisabled ||
@@ -552,8 +552,8 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                   <JoinButton
                     id="join-queue-button-demo"
                     type="primary"
-                    hasDemos={isDemoQueue} // for styles
-                    isStudent={true} // for styles
+                    hasdemos={`${isDemoQueue}`} // for styles
+                    isstudent="true" // for styles
                     disabled={
                       !queue?.allowQuestions ||
                       queue?.isDisabled ||
@@ -618,6 +618,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
         </div>
         {tagGroupsEnabled ? (
           <>
+            {/* tasks (for demos/TaskQuestions) */}
             {configTasks &&
               Object.entries(configTasks).map(([taskKey, task]) => {
                 const filteredQuestions = questions?.filter(
@@ -661,11 +662,11 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                   >
                     {filteredQuestions.map(
                       (question: Question, index: number) => {
-                        const background_color =
-                          question.id === studentQuestionId ||
-                          question.id === studentDemoId
-                            ? 'bg-teal-200/25'
-                            : 'bg-white'
+                        const isMyQuestion =
+                          (question.id === question.id) === studentDemoId
+                        const background_color = isMyQuestion
+                          ? 'bg-teal-200/25'
+                          : 'bg-white'
                         return (
                           <StudentQueueCard
                             key={question.id}
@@ -686,6 +687,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                   </Card>
                 )
               })}
+            {/* questionTypes/tags (for regular questions) */}
             {queue?.config?.tags &&
               Object.entries(queue?.config?.tags).map(([tagKey, tag]) => {
                 const filteredQuestions = questions?.filter(
@@ -725,11 +727,10 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                   >
                     {filteredQuestions.map(
                       (question: Question, index: number) => {
-                        const background_color =
-                          question.id === studentQuestionId ||
-                          question.id === studentDemoId
-                            ? 'bg-teal-200/25'
-                            : 'bg-white'
+                        const isMyQuestion = question.id === studentQuestionId
+                        const background_color = isMyQuestion
+                          ? 'bg-teal-200/25'
+                          : 'bg-white'
                         return (
                           <StudentQueueCard
                             key={question.id}
@@ -753,10 +754,11 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
           </>
         ) : (
           questions?.map((question: Question, index: number) => {
-            const background_color =
+            const isMyQuestion =
               question.id === studentQuestionId || question.id === studentDemoId
-                ? 'bg-teal-200/25'
-                : 'bg-white'
+            const background_color = isMyQuestion
+              ? 'bg-teal-200/25'
+              : 'bg-white'
             return (
               <StudentQueueCard
                 key={question.id}
@@ -767,6 +769,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                 isStaff={isStaff}
                 configTasks={configTasks}
                 studentAssignmentProgress={studentAssignmentProgress}
+                isMyQuestion={isMyQuestion}
                 className={background_color}
               />
             )
