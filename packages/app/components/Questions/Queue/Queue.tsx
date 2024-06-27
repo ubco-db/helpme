@@ -28,6 +28,7 @@ import {
   Button,
   Switch,
   Card,
+  Divider,
 } from 'antd'
 import TACheckinButton from '../../Today/TACheckinButton'
 import styled from 'styled-components'
@@ -632,61 +633,64 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                   },
                 )
                 return (
-                  <Card
-                    size="small"
-                    type="inner"
-                    className="mb-3 rounded bg-[#f0f4ff] shadow-lg"
-                    key={taskKey}
-                    title={
-                      <div className="flex justify-between">
-                        <div>
-                          <QuestionType
-                            typeName={task.display_name}
-                            typeColor={task.color_hex}
-                          />
-                          <span className=" ml-2 text-gray-700">
-                            {filteredQuestions.length > 1
-                              ? `${filteredQuestions.length} Students`
-                              : filteredQuestions.length == 1
-                                ? `${filteredQuestions.length} Student`
-                                : ''}
-                          </span>
+                  ((isStaff && filteredQuestions.length > 0) || !isStaff) && (
+                    <Card
+                      size="small"
+                      type="inner"
+                      className="mb-3 rounded bg-[#f0f4ff] shadow-lg"
+                      key={taskKey}
+                      title={
+                        <div className="flex justify-between">
+                          <div>
+                            <QuestionType
+                              typeName={task.display_name}
+                              typeColor={task.color_hex}
+                            />
+                            <span className=" ml-2 text-gray-700">
+                              {filteredQuestions.length > 1
+                                ? `${filteredQuestions.length} Students`
+                                : filteredQuestions.length == 1
+                                  ? `${filteredQuestions.length} Student`
+                                  : ''}
+                            </span>
+                          </div>
+                          {!isStaff && (
+                            <JoinTagGroupButton size="small">
+                              Join
+                            </JoinTagGroupButton>
+                          )}
                         </div>
-                        {!isStaff && (
-                          <JoinTagGroupButton size="small">
-                            Join
-                          </JoinTagGroupButton>
-                        )}
-                      </div>
-                    }
-                  >
-                    {filteredQuestions.map(
-                      (question: Question, index: number) => {
-                        const isMyQuestion =
-                          (question.id === question.id) === studentDemoId
-                        const background_color = isMyQuestion
-                          ? 'bg-teal-200/25'
-                          : 'bg-white'
-                        return (
-                          <StudentQueueCard
-                            key={question.id}
-                            rank={index + 1}
-                            question={question}
-                            cid={cid}
-                            qid={qid}
-                            isStaff={isStaff}
-                            configTasks={configTasks}
-                            studentAssignmentProgress={
-                              studentAssignmentProgress
-                            }
-                            className={background_color}
-                          />
-                        )
-                      },
-                    )}
-                  </Card>
+                      }
+                    >
+                      {filteredQuestions.map(
+                        (question: Question, index: number) => {
+                          const isMyQuestion =
+                            (question.id === question.id) === studentDemoId
+                          const background_color = isMyQuestion
+                            ? 'bg-teal-200/25'
+                            : 'bg-white'
+                          return (
+                            <StudentQueueCard
+                              key={question.id}
+                              rank={index + 1}
+                              question={question}
+                              cid={cid}
+                              qid={qid}
+                              isStaff={isStaff}
+                              configTasks={configTasks}
+                              studentAssignmentProgress={
+                                studentAssignmentProgress
+                              }
+                              className={background_color}
+                            />
+                          )
+                        },
+                      )}
+                    </Card>
+                  )
                 )
               })}
+            <Divider className="-mx-4 my-2 w-[calc(100%+2rem)] border-[#cfd6de]" />
             {/* questionTypes/tags (for regular questions) */}
             {queue?.config?.tags &&
               Object.entries(queue?.config?.tags).map(([tagKey, tag]) => {
@@ -697,58 +701,60 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                     ),
                 )
                 return (
-                  <Card
-                    size="small"
-                    type="inner"
-                    className="mb-3 rounded bg-[#f0f4ff] shadow-lg"
-                    key={tagKey}
-                    title={
-                      <div className="flex justify-between">
-                        <div>
-                          <QuestionType
-                            typeName={tag.display_name}
-                            typeColor={tag.color_hex}
-                          />
-                          <span className=" ml-2 text-gray-700">
-                            {filteredQuestions.length > 1
-                              ? `${filteredQuestions.length} Students`
-                              : filteredQuestions.length == 1
-                                ? `${filteredQuestions.length} Student`
-                                : ''}
-                          </span>
+                  ((isStaff && filteredQuestions.length > 0) || !isStaff) && (
+                    <Card
+                      size="small"
+                      type="inner"
+                      className="mb-3 rounded bg-[#f0f4ff] shadow-lg"
+                      key={tagKey}
+                      title={
+                        <div className="flex justify-between">
+                          <div>
+                            <QuestionType
+                              typeName={tag.display_name}
+                              typeColor={tag.color_hex}
+                            />
+                            <span className=" ml-2 text-gray-700">
+                              {filteredQuestions.length > 1
+                                ? `${filteredQuestions.length} Students`
+                                : filteredQuestions.length == 1
+                                  ? `${filteredQuestions.length} Student`
+                                  : ''}
+                            </span>
+                          </div>
+                          {!isStaff && (
+                            <JoinTagGroupButton size="small">
+                              Join
+                            </JoinTagGroupButton>
+                          )}
                         </div>
-                        {!isStaff && (
-                          <JoinTagGroupButton size="small">
-                            Join
-                          </JoinTagGroupButton>
-                        )}
-                      </div>
-                    }
-                  >
-                    {filteredQuestions.map(
-                      (question: Question, index: number) => {
-                        const isMyQuestion = question.id === studentQuestionId
-                        const background_color = isMyQuestion
-                          ? 'bg-teal-200/25'
-                          : 'bg-white'
-                        return (
-                          <StudentQueueCard
-                            key={question.id}
-                            rank={index + 1}
-                            question={question}
-                            cid={cid}
-                            qid={qid}
-                            isStaff={isStaff}
-                            configTasks={configTasks}
-                            studentAssignmentProgress={
-                              studentAssignmentProgress
-                            }
-                            className={background_color}
-                          />
-                        )
-                      },
-                    )}
-                  </Card>
+                      }
+                    >
+                      {filteredQuestions.map(
+                        (question: Question, index: number) => {
+                          const isMyQuestion = question.id === studentQuestionId
+                          const background_color = isMyQuestion
+                            ? 'bg-teal-200/25'
+                            : 'bg-white'
+                          return (
+                            <StudentQueueCard
+                              key={question.id}
+                              rank={index + 1}
+                              question={question}
+                              cid={cid}
+                              qid={qid}
+                              isStaff={isStaff}
+                              configTasks={configTasks}
+                              studentAssignmentProgress={
+                                studentAssignmentProgress
+                              }
+                              className={background_color}
+                            />
+                          )
+                        },
+                      )}
+                    </Card>
+                  )
                 )
               })}
           </>
@@ -778,6 +784,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
       </div>
     )
   }
+
   if (!role || !queue || !profile) {
     return <Spin />
   } else {

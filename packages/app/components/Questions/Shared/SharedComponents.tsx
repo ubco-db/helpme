@@ -35,10 +35,10 @@ export const Photo = styled(Avatar)`
 export const VerticalDivider = styled.div`
   @media (min-width: 650px) {
     border-right: 1px solid #cfd6de;
-    margin: 0 16px;
+    margin: 0 1rem;
   }
   @media (min-width: 1000px) {
-    margin: 0 32px;
+    margin: 0 2rem;
   }
 `
 export const QueueInfoColumnButtonStyle = styled(Button)<{
