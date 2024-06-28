@@ -14,6 +14,7 @@ import { useLocalStorage } from '../../../hooks/useLocalStorage'
 import { toOrdinal } from '../../../utils/ordinal'
 import { API } from '@koh/api-client'
 import { QuestionTypeSelector } from '../Shared/QuestionType'
+import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 
 const Container = styled.div`
   max-width: 960px;
@@ -75,13 +76,11 @@ export default function QuestionForm({
     null,
   )
   const router = useRouter()
-  const courseId = router.query['cid']
+  const courseId = Number(router.query['cid'])
 
   const drafting = question?.status === OpenQuestionStatus.Drafting
   const helping = question?.status === OpenQuestionStatus.Helping
-  const [questionsTypeState, setQuestionsTypeState] = useState<
-    QuestionTypeParams[]
-  >([])
+  const [questionTypes] = useQuestionTypes(courseId, queueId)
   const [questionTypeInput, setQuestionTypeInput] = useState<
     QuestionTypeParams[]
   >(question?.questionTypes || [])
@@ -97,10 +96,9 @@ export default function QuestionForm({
   }, [question, visible])
 
   const onTypeChange = (selectedIds: number[]) => {
-    const newQuestionTypeInput: QuestionTypeParams[] =
-      questionsTypeState.filter((questionType) =>
-        selectedIds.includes(questionType.id),
-      )
+    const newQuestionTypeInput: QuestionTypeParams[] = questionTypes.filter(
+      (questionType) => selectedIds.includes(questionType.id),
+    )
 
     setQuestionTypeInput(newQuestionTypeInput)
 
@@ -143,7 +141,7 @@ export default function QuestionForm({
         questionText,
         questionTypeInput,
         router,
-        Number(courseId),
+        courseId,
         inperson ? 'In Person' : 'Online',
         false, //isTaskQuestion
         false, //groupable
@@ -151,37 +149,6 @@ export default function QuestionForm({
     }
   }
 
-  // all possible questions, use courseId
-  const courseNumber = Number(courseId)
-  const getQuestions = useCallback(() => {
-    let isCancelled = false
-
-    const fetchQuestions = async () => {
-      // TODO: add a useSWR for this endpoint to improve performance
-      const questions = await API.questionType.getQuestionTypes(
-        courseNumber,
-        queueId,
-      )
-      if (!isCancelled) {
-        setQuestionsTypeState(questions)
-      }
-    }
-
-    if (visible) {
-      fetchQuestions()
-    }
-    return () => {
-      isCancelled = true
-    }
-  }, [courseNumber, visible])
-
-  useEffect(() => {
-    const cleanup = getQuestions()
-
-    return () => {
-      cleanup()
-    }
-  }, [getQuestions])
   return (
     <Modal
       open={visible}
@@ -229,7 +196,7 @@ export default function QuestionForm({
             showIcon
           />
         )}
-        {questionsTypeState.length > 0 ? (
+        {questionTypes.length > 0 ? (
           <section>
             <QuestionText id="question-type-text">
               What categories does your question fall under?
@@ -237,7 +204,7 @@ export default function QuestionForm({
             <QuestionTypeSelector
               onChange={onTypeChange}
               value={questionTypeInput.map((type) => type.id)}
-              questionTypes={questionsTypeState}
+              questionTypes={questionTypes}
               className="mb-4"
               ariaLabelledBy="question-type-text"
             ></QuestionTypeSelector>

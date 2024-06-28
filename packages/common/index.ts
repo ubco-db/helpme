@@ -1115,7 +1115,7 @@ export class UpdateQueueParams {
 }
 
 export class QuestionTypeParams {
-  @IsInt()
+  @IsInt() // when updating a question with new questionTypes, the question type's id is required
   @IsOptional()
   id?: number
 
@@ -1134,6 +1134,15 @@ export class QuestionTypeParams {
   @IsInt()
   @IsOptional()
   queueId?: number
+}
+
+// named QuestionTypeType to not conflict with the UI component QuestionType
+export type QuestionTypeType = {
+  id: number
+  cid: number
+  name: string
+  color: string
+  queueId: number | null
 }
 
 export class TACheckinTimesResponse {
@@ -1241,6 +1250,7 @@ export class GetAlertsResponse {
   alerts!: Alert[]
 }
 
+// not used anywhere
 export class questionTypeParam {
   @IsInt()
   cid!: number
@@ -1253,6 +1263,8 @@ export class questionTypeParam {
   @IsOptional()
   queueId?: number
 }
+
+// not used anywhere
 export class questionTypeResponse {
   @Type(() => questionTypeParam)
   questions!: questionTypeParam[]

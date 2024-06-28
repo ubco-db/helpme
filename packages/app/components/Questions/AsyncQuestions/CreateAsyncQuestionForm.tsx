@@ -5,6 +5,7 @@ import { API } from '@koh/api-client'
 import { useRouter } from 'next/router'
 import { QuestionTypeParams } from '@koh/common'
 import { useProfile } from '../../../hooks/useProfile'
+import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 
 const Container = styled.div`
   max-width: 960px;
@@ -31,19 +32,9 @@ const CreateAsyncQuestionForm = ({
   const router = useRouter()
   const profile = useProfile()
   const courseId = Number(router.query['cid'])
+  const questionTypes = useQuestionTypes(courseId, null)
   const [form] = Form.useForm()
-  const [questionsTypeState, setQuestionsTypeState] = useState<
-    QuestionTypeParams[]
-  >([])
   const [questionTypeInput, setQuestionTypeInput] = useState([])
-
-  useEffect(() => {
-    const populateQuestionTypes = async () => {
-      const questions = await API.questionType.getQuestionTypes(courseId, null)
-      setQuestionsTypeState(questions)
-    }
-    populateQuestionTypes()
-  }, [courseId])
 
   const getAiAnswer = async (questionText: string) => {
     try {
@@ -89,7 +80,7 @@ const CreateAsyncQuestionForm = ({
   }
 
   const onTypeChange = (selectedIds: number[]) => {
-    const newQuestionTypeInput = questionsTypeState.filter((questionType) =>
+    const newQuestionTypeInput = questionTypes?.filter((questionType) =>
       selectedIds.includes(questionType.id),
     )
     setQuestionTypeInput(newQuestionTypeInput)
@@ -119,7 +110,7 @@ const CreateAsyncQuestionForm = ({
               autoSize={{ minRows: 3, maxRows: 6 }}
             />
           </Form.Item>
-          {questionsTypeState.length > 0 && (
+          {questionTypes?.length > 0 && (
             <>
               <QuestionText>
                 What category(s) does your question fall under?
@@ -131,7 +122,7 @@ const CreateAsyncQuestionForm = ({
                 style={{ width: '100%' }}
                 value={questionTypeInput.map((type) => type.id)}
               >
-                {questionsTypeState.map((type) => (
+                {questionTypes?.map((type) => (
                   <Select.Option value={type.id} key={type.id}>
                     {type.name}
                   </Select.Option>

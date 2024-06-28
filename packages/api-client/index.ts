@@ -53,6 +53,7 @@ import {
   QueueConfig,
   AllStudentAssignmentProgress,
   setQueueConfigResponse,
+  QuestionTypeType,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -370,7 +371,7 @@ class APIClient {
     getQuestionTypes: async (
       courseId: number,
       queueId: number | null,
-    ): Promise<QuestionTypeParams[]> => {
+    ): Promise<QuestionTypeType[]> => {
       try {
         return await this.req(
           'GET',

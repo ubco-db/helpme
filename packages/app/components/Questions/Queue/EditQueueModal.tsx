@@ -33,6 +33,7 @@ import {
 import { SketchPicker } from 'react-color'
 import { BgColorsOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import QueueConfigHelp from '../Shared/QueueConfigHelp'
+import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 
 const NotesInput = styled(Input.TextArea)`
   border-radius: 6px;
@@ -76,13 +77,14 @@ export function EditQueueModal({
 }: EditQueueModalProps): ReactElement {
   const { queue, mutateQueue } = useQueue(queueId)
   const [form] = Form.useForm()
-  const [questionsTypeState, setQuestionsTypeState] = useState<
-    QuestionTypeParams[]
-  >([])
   const [questionTypeAddState, setQuestionTypeAddState] = useState()
   const router = useRouter()
-  const courseId = router.query['cid']
-  const course = useCourse(Number(courseId))
+  const courseId = Number(router.query['cid'])
+  const course = useCourse(courseId)
+  const [questionTypes, mutateQuestionTypes] = useQuestionTypes(
+    courseId,
+    queueId,
+  )
   const [currentZoomLink, setCurrentZoomLink] = useState(
     course.course?.zoomLink,
   )
@@ -116,40 +118,21 @@ export function EditQueueModal({
     mutateQueue()
   }
 
-  const courseNumber = Number(courseId)
-
-  useEffect(() => {
-    async function fetchData() {
-      if (visible) {
-        const tempQuestionTypes = await API.questionType.getQuestionTypes(
-          courseNumber,
-          queueId,
-        )
-        setQuestionsTypeState(tempQuestionTypes)
-      }
-    }
-    fetchData()
-  }, [courseNumber, queueId, visible])
-
   const onclick = useCallback(
     async (questionTypeId: number) => {
       API.questionType
-        .deleteQuestionType(courseNumber, questionTypeId)
+        .deleteQuestionType(courseId, questionTypeId)
         .then((responseMessage) => {
           message.success(responseMessage)
           mutateQueue()
-        })
-        .then(async () => {
-          setQuestionsTypeState(
-            await API.questionType.getQuestionTypes(courseNumber, queueId),
-          )
+          mutateQuestionTypes()
         })
         .catch((e) => {
           const errorMessage = e.response?.data || 'Unknown error occurred'
           message.error(`Error creating question tag: ${errorMessage}`)
         })
     },
-    [courseNumber, mutateQueue, queueId],
+    [courseId, mutateQuestionTypes, mutateQueue],
   )
 
   const onAddChange = (e) => {
@@ -172,20 +155,16 @@ export function EditQueueModal({
       return
     }
     API.questionType
-      .addQuestionType(courseNumber, {
+      .addQuestionType(courseId, {
         name: questionTypeAddState,
         color: color,
         queueId: queueId,
       })
       .then((responseMessage) => {
         mutateQueue()
+        mutateQuestionTypes()
         message.success(responseMessage)
-        return API.questionType.getQuestionTypes(courseNumber, queueId)
-      })
-      .then(async () => {
-        setQuestionsTypeState(
-          await API.questionType.getQuestionTypes(courseNumber, queueId),
-        )
+        return
       })
       .catch((e) => {
         const errorMessage = e.response?.data || 'Unknown error occurred'
@@ -193,11 +172,12 @@ export function EditQueueModal({
       })
   }, [
     isInputEmpty,
-    courseNumber,
+    courseId,
     questionTypeAddState,
     color,
     queueId,
     mutateQueue,
+    mutateQuestionTypes,
   ])
 
   // any changes to the queue config (such as adding/deleted a question type) will update the queue config  text box
@@ -219,8 +199,8 @@ export function EditQueueModal({
 
   const changeZoomLink = async () => {
     await API.course
-      .editCourseInfo(Number(courseId), {
-        courseId: Number(courseId),
+      .editCourseInfo(courseId, {
+        courseId: courseId,
         zoomLink: zoomLink,
       })
       .then(() => {
@@ -272,8 +252,8 @@ export function EditQueueModal({
             Current Question Tags: (click to delete)
           </h4>
           <div className="my-1">
-            {questionsTypeState.length > 0 ? (
-              questionsTypeState.map((questionType, index) => (
+            {questionTypes.length > 0 ? (
+              questionTypes.map((questionType, index) => (
                 <QuestionType
                   key={index}
                   typeName={questionType.name}
@@ -453,12 +433,7 @@ export function EditQueueModal({
                               updatedTagsMessages.questionTypeMessages.length >
                               0
                             ) {
-                              setQuestionsTypeState(
-                                await API.questionType.getQuestionTypes(
-                                  courseNumber,
-                                  queueId,
-                                ),
-                              )
+                              mutateQuestionTypes()
                               for (const tagMessage of updatedTagsMessages.questionTypeMessages) {
                                 message.info(tagMessage)
                               }
