@@ -14,7 +14,6 @@ import styled from 'styled-components'
 import { API } from '@koh/api-client'
 import { useQueue } from '../../../hooks/useQueue'
 import {
-  QuestionTypeParams,
   QueueConfig,
   UpdateQueueParams,
   validateQueueConfigInput,
@@ -252,8 +251,8 @@ export function EditQueueModal({
             Current Question Tags: (click to delete)
           </h4>
           <div className="my-1">
-            {questionTypes.length > 0 ? (
-              questionTypes.map((questionType, index) => (
+            {questionTypes?.length > 0 ? (
+              questionTypes?.map((questionType, index) => (
                 <QuestionType
                   key={index}
                   typeName={questionType.name}

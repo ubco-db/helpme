@@ -1,11 +1,9 @@
 import Modal from 'antd/lib/modal/Modal'
-import { ReactElement, useCallback, useEffect, useState } from 'react'
-import { Input, Form, Button, message, Checkbox } from 'antd'
+import { ReactElement, useCallback, useState } from 'react'
+import { Input, Form, Button, message } from 'antd'
 import { BgColorsOutlined } from '@ant-design/icons'
-import { QuestionTypeParams } from '@koh/common'
 import { QuestionType } from '../Shared/QuestionType'
 import { SketchPicker } from 'react-color'
-import { useCourse } from '../../../hooks/useCourse'
 import { API } from '@koh/api-client'
 import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 
@@ -86,8 +84,8 @@ export function EditAsyncQuestionsModal({
           <Input />
         </Form.Item>
         <h4>Current Question Tags: (click to delete)</h4>
-        {questionTypes.length > 0 ? (
-          questionTypes.map((questionType, index) => (
+        {questionTypes?.length > 0 ? (
+          questionTypes?.map((questionType, index) => (
             <QuestionType
               key={index}
               typeName={questionType.name}

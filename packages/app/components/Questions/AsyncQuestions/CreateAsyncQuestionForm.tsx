@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Modal, Input, Form, message, Select } from 'antd'
 import styled from 'styled-components'
 import { API } from '@koh/api-client'
 import { useRouter } from 'next/router'
-import { QuestionTypeParams } from '@koh/common'
 import { useProfile } from '../../../hooks/useProfile'
 import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 
@@ -32,7 +31,7 @@ const CreateAsyncQuestionForm = ({
   const router = useRouter()
   const profile = useProfile()
   const courseId = Number(router.query['cid'])
-  const questionTypes = useQuestionTypes(courseId, null)
+  const [questionTypes] = useQuestionTypes(courseId, null)
   const [form] = Form.useForm()
   const [questionTypeInput, setQuestionTypeInput] = useState([])
 

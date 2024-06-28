@@ -78,7 +78,7 @@ export function AddStudentsModal({
   }
 
   const onTypeChange = (selectedIds: number[]) => {
-    const newQuestionTypeInput: QuestionTypeParams[] = questionTypes.filter(
+    const newQuestionTypeInput: QuestionTypeParams[] = questionTypes?.filter(
       (questionType) => selectedIds.includes(questionType.id),
     )
 
@@ -181,7 +181,7 @@ export function AddStudentsModal({
         onClose()
       }}
     >
-      {questionTypes.length > 0 ? (
+      {questionTypes?.length > 0 ? (
         <>
           <QuestionText>
             What category(s) does your question fall under?
@@ -193,7 +193,9 @@ export function AddStudentsModal({
             style={{ width: '100%' }}
             value={questionTypeInput.map((type) => type.id)}
             tagRender={(props) => {
-              const type = questionTypes.find((type) => type.id === props.value)
+              const type = questionTypes?.find(
+                (type) => type.id === props.value,
+              )
               return (
                 <QuestionType
                   typeName={type.name}
@@ -203,7 +205,7 @@ export function AddStudentsModal({
               )
             }}
           >
-            {questionTypes.map((type) => (
+            {questionTypes?.map((type) => (
               <AntdSelect.Option value={type.id} key={type.id}>
                 {type.name}
               </AntdSelect.Option>

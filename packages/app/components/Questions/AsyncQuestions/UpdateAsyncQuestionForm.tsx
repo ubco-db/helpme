@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useEffect, useState } from 'react'
+import { ReactElement, useState } from 'react'
 import Modal from 'antd/lib/modal/Modal'
 import { Input, Form, message, Select } from 'antd'
 import styled from 'styled-components'
@@ -64,7 +64,7 @@ export function UpdateQuestionForm({
   }
 
   const onTypeChange = (selectedIds: number[]) => {
-    const newQuestionTypeInput: QuestionTypeParams[] = questionTypes.filter(
+    const newQuestionTypeInput: QuestionTypeParams[] = questionTypes?.filter(
       (questionType) => selectedIds.includes(questionType.id),
     )
     setQuestionTypeInput(newQuestionTypeInput)
@@ -100,7 +100,7 @@ export function UpdateQuestionForm({
               autoSize={{ minRows: 3, maxRows: 6 }}
             />
           </Form.Item>
-          {questionTypes.length > 0 ? (
+          {questionTypes?.length > 0 ? (
             <>
               <QuestionText>
                 What category(s) does your question fall under?
@@ -112,7 +112,7 @@ export function UpdateQuestionForm({
                 style={{ width: '100%' }}
                 value={questionTypeInput.map((type) => type.id)}
                 tagRender={(props) => {
-                  const type = questionTypes.find(
+                  const type = questionTypes?.find(
                     (type) => type.id === props.value,
                   )
                   return (
@@ -124,7 +124,7 @@ export function UpdateQuestionForm({
                   )
                 }}
               >
-                {questionTypes.map((type) => (
+                {questionTypes?.map((type) => (
                   <Select.Option value={type.id} key={type.id}>
                     {type.name}
                   </Select.Option>

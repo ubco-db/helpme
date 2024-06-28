@@ -2,17 +2,10 @@ import { QuestionTypeParams, OpenQuestionStatus, Question } from '@koh/common'
 import { Alert, Button, Input, Modal, Radio } from 'antd'
 import { RadioChangeEvent } from 'antd/lib/radio'
 import { NextRouter, useRouter } from 'next/router'
-import {
-  default as React,
-  ReactElement,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react'
+import { default as React, ReactElement, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { useLocalStorage } from '../../../hooks/useLocalStorage'
 import { toOrdinal } from '../../../utils/ordinal'
-import { API } from '@koh/api-client'
 import { QuestionTypeSelector } from '../Shared/QuestionType'
 import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 
@@ -96,7 +89,7 @@ export default function QuestionForm({
   }, [question, visible])
 
   const onTypeChange = (selectedIds: number[]) => {
-    const newQuestionTypeInput: QuestionTypeParams[] = questionTypes.filter(
+    const newQuestionTypeInput: QuestionTypeParams[] = questionTypes?.filter(
       (questionType) => selectedIds.includes(questionType.id),
     )
 
@@ -196,7 +189,7 @@ export default function QuestionForm({
             showIcon
           />
         )}
-        {questionTypes.length > 0 ? (
+        {questionTypes?.length > 0 ? (
           <section>
             <QuestionText id="question-type-text">
               What categories does your question fall under?
