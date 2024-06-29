@@ -57,6 +57,8 @@ import { ListChecks, ListTodoIcon } from 'lucide-react'
 import { useStudentAssignmentProgress } from '../../../hooks/useStudentAssignmentProgress'
 import { AssignmentReportModal } from './AssignmentReportModal'
 import { QuestionType } from '../Shared/QuestionType'
+import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
+import JoinTagGroupButton from './JoinTagGroupButton'
 
 const Container = styled.div`
   flex: 1;
@@ -87,11 +89,6 @@ const JoinButton = styled(QueueInfoColumnButton)<{
   display: flex;
 `
 
-const JoinTagGroupButton = styled(Button)`
-  border: 1px solid #cfd6de;
-  border-radius: 6px;
-`
-
 interface QueuePageProps {
   qid: number
   cid: number
@@ -119,6 +116,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
   const [popupEditQuestion, setPopupEditQuestion] = useState(false)
   const [popupEditDemo, setPopupEditDemo] = useState(false)
   const role = useRoleInCourse(cid)
+  const [questionTypes] = useQuestionTypes(cid, qid)
   const queueConfig = queue?.config
   const configTasks = queueConfig?.tasks
   const isDemoQueue: boolean = !!configTasks && !!queueConfig.assignment_id
@@ -200,19 +198,25 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
   )
 
   const createQuestion = useCallback(
-    async (question: Question, force: boolean, isTaskQuestion: boolean) => {
+    async (
+      text: string,
+      questionTypes: QuestionTypeParams[],
+      force: boolean,
+      isTaskQuestion: boolean,
+      location?: string,
+    ) => {
       const newQuestion = await API.questions.create({
-        text: question.text,
-        questionTypes: question?.questionTypes ?? [],
+        text: text,
+        questionTypes: questionTypes,
         queueId: qid,
-        location: question?.location,
+        location: location ?? isQueueOnline ? 'Online' : 'In Person',
         force: force,
         groupable: false,
         isTaskQuestion,
       })
       await updateQuestionStatus(newQuestion.id, OpenQuestionStatus.Queued)
     },
-    [qid, updateQuestionStatus],
+    [isQueueOnline, qid, updateQuestionStatus],
   )
 
   const rejoinQueue = useCallback(
@@ -227,8 +231,15 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     (isTaskQuestion: boolean) => {
       const question = isTaskQuestion ? studentDemo : studentQuestion
       const id = isTaskQuestion ? studentDemoId : studentQuestionId
+      // delete the old question and create a new one
       updateQuestionStatus(id, ClosedQuestionStatus.ConfirmedDeleted)
-      createQuestion(question, true, isTaskQuestion)
+      createQuestion(
+        question.text,
+        question.questionTypes ?? [],
+        true,
+        isTaskQuestion,
+        question.location,
+      )
     },
     [
       studentDemo,
@@ -324,6 +335,9 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     ],
   )
 
+  /**
+   *  basically an "update question" function. Used for both when students "finish" creating a question and when they edit it
+   * */
   const finishQuestionOrDemo = useCallback(
     async (
       text: string,
@@ -655,9 +669,14 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                             </span>
                           </div>
                           {!isStaff && (
-                            <JoinTagGroupButton size="small">
-                              Join
-                            </JoinTagGroupButton>
+                            <JoinTagGroupButton
+                              studentQuestion={studentQuestion}
+                              studentDemo={studentDemo}
+                              createQuestion={createQuestion}
+                              updateQuestion={finishQuestionOrDemo}
+                              leaveQueue={leaveQueue}
+                              taskId={taskKey}
+                            />
                           )}
                         </div>
                       }
@@ -692,71 +711,76 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
               })}
             <Divider className="-mx-4 my-2 w-[calc(100%+2rem)] border-[#cfd6de]" />
             {/* questionTypes/tags (for regular questions) */}
-            {queue?.config?.tags &&
-              Object.entries(queue?.config?.tags).map(([tagKey, tag]) => {
-                const filteredQuestions = questions?.filter(
-                  (question: Question) =>
-                    question.questionTypes.some(
-                      (questionType) => questionType.name === tag.display_name,
-                    ),
-                )
-                return (
-                  ((isStaff && filteredQuestions.length > 0) || !isStaff) && (
-                    <Card
-                      size="small"
-                      type="inner"
-                      className="mb-3 rounded bg-[#f0f4ff] shadow-lg"
-                      key={tagKey}
-                      title={
-                        <div className="flex justify-between">
-                          <div>
-                            <QuestionType
-                              typeName={tag.display_name}
-                              typeColor={tag.color_hex}
-                            />
-                            <span className=" ml-2 text-gray-700">
-                              {filteredQuestions.length > 1
-                                ? `${filteredQuestions.length} Students`
-                                : filteredQuestions.length == 1
-                                  ? `${filteredQuestions.length} Student`
-                                  : ''}
-                            </span>
-                          </div>
-                          {!isStaff && (
-                            <JoinTagGroupButton size="small">
-                              Join
-                            </JoinTagGroupButton>
-                          )}
+            {questionTypes?.map((tag, tagIndex) => {
+              // naming this "tags" to make some code slightly easier to follow
+              const filteredQuestions = questions?.filter(
+                (question: Question) =>
+                  question.questionTypes.some(
+                    (questionType) => questionType.name === tag.name,
+                  ),
+              )
+              return (
+                ((isStaff && filteredQuestions.length > 0) || !isStaff) && (
+                  <Card
+                    size="small"
+                    type="inner"
+                    className="mb-3 rounded bg-[#f0f4ff] shadow-lg"
+                    key={tagIndex}
+                    title={
+                      <div className="flex justify-between">
+                        <div>
+                          <QuestionType
+                            typeName={tag.name}
+                            typeColor={tag.color}
+                          />
+                          <span className=" ml-2 text-gray-700">
+                            {filteredQuestions.length > 1
+                              ? `${filteredQuestions.length} Students`
+                              : filteredQuestions.length == 1
+                                ? `${filteredQuestions.length} Student`
+                                : ''}
+                          </span>
                         </div>
-                      }
-                    >
-                      {filteredQuestions.map(
-                        (question: Question, index: number) => {
-                          const isMyQuestion = question.id === studentQuestionId
-                          const background_color = isMyQuestion
-                            ? 'bg-teal-200/25'
-                            : 'bg-white'
-                          return (
-                            <StudentQueueCard
-                              key={question.id}
-                              rank={index + 1}
-                              question={question}
-                              cid={cid}
-                              qid={qid}
-                              isStaff={isStaff}
-                              configTasks={configTasks}
-                              studentAssignmentProgress={
-                                studentAssignmentProgress
-                              }
-                              className={background_color}
-                            />
-                          )
-                        },
-                      )}
-                    </Card>
-                  )
+                        {!isStaff && (
+                          <JoinTagGroupButton
+                            studentQuestion={studentQuestion}
+                            studentDemo={studentDemo}
+                            createQuestion={createQuestion}
+                            updateQuestion={finishQuestionOrDemo}
+                            leaveQueue={leaveQueue}
+                            questionType={tag}
+                          />
+                        )}
+                      </div>
+                    }
+                  >
+                    {filteredQuestions.map(
+                      (question: Question, index: number) => {
+                        const isMyQuestion = question.id === studentQuestionId
+                        const background_color = isMyQuestion
+                          ? 'bg-teal-200/25'
+                          : 'bg-white'
+                        return (
+                          <StudentQueueCard
+                            key={question.id}
+                            rank={index + 1}
+                            question={question}
+                            cid={cid}
+                            qid={qid}
+                            isStaff={isStaff}
+                            configTasks={configTasks}
+                            studentAssignmentProgress={
+                              studentAssignmentProgress
+                            }
+                            className={background_color}
+                          />
+                        )
+                      },
+                    )}
+                  </Card>
                 )
-              })}
+              )
+            })}
           </>
         ) : (
           questions?.map((question: Question, index: number) => {

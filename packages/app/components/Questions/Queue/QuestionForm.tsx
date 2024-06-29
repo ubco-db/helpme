@@ -118,6 +118,7 @@ export default function QuestionForm({
     })
   }
 
+  // TODO: change this to only be an option if the queue is hybrid. Strictly in-person or online queues should not have this option
   const onLocationChange = (e: RadioChangeEvent) => {
     setInperson(e.target.value)
     const questionFromStorage = storageQuestion ?? {}
