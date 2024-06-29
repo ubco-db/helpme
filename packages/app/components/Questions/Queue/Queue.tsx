@@ -310,16 +310,16 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
   )
 
   const leaveQueue = useCallback(
-    (isTaskQuestion) => {
+    async (isTaskQuestion) => {
       if (isTaskQuestion) {
-        updateQuestionStatus(
+        await updateQuestionStatus(
           studentDemoId,
           ClosedQuestionStatus.ConfirmedDeleted,
         )
       } else {
         //delete draft when they leave the queue
         deleteDraftQuestion()
-        updateQuestionStatus(
+        await updateQuestionStatus(
           studentQuestionId,
           ClosedQuestionStatus.ConfirmedDeleted,
         )
