@@ -1,12 +1,18 @@
-import { ConfigTasks, Question, StudentAssignmentProgress } from '@koh/common'
+import {
+  ConfigTasks,
+  OpenQuestionStatus,
+  Question,
+  StudentAssignmentProgress,
+} from '@koh/common'
 import { Card, Col, Tooltip } from 'antd'
-import { ReactElement } from 'react'
+import { ReactElement, useState } from 'react'
 import { getWaitTime } from '../../../utils/TimeUtil'
 import { CenterRow, Text } from '../../Questions/Shared/SharedComponents'
 import TAQueueDetailButtons from '../../Questions/Queue/TAQueueDetailButtons'
 import { QuestionType } from '../../Questions/Shared/QuestionType'
 import { KOHAvatar } from '../../common/SelfAvatar'
 import styled from 'styled-components'
+import TaskMarkingSelector from './TaskMarkingSelector'
 //import HotnessBar from '../../Shared/HotnessBar/HotnessBar'
 
 const HorizontalStudentCard = styled(Card)`
@@ -50,6 +56,13 @@ export default function StudentQueueCard({
   const tasks = question.isTaskQuestion
     ? question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || []
     : [] // gives an array of "part1","part2",etc.
+  const [tasksSelectedForMarking, setTasksSelectedForMarking] = useState<
+    string[]
+  >([])
+
+  const onMarkingTaskChange = (selectedTaskIds: string[]) => {
+    setTasksSelectedForMarking(selectedTaskIds)
+  }
 
   return (
     <HorizontalStudentCard className={className}>
@@ -78,26 +91,35 @@ export default function StudentQueueCard({
           question.isTaskQuestion && tasks && configTasks ? (
             <div>
               {
-                // for every task defined in the config, display it but only highlight the ones that are in the question text
-                Object.entries(configTasks).map(
-                  ([taskKey, taskValue], index) => (
-                    <QuestionType
-                      key={index}
-                      typeName={
-                        isMyQuestion &&
-                        studentAssignmentProgress &&
-                        studentAssignmentProgress[taskKey] &&
-                        studentAssignmentProgress[taskKey].isDone
-                          ? '✔️'
-                          : taskValue.short_display_name
-                      }
-                      typeColor={
-                        tasks.includes(taskKey)
-                          ? taskValue.color_hex
-                          : '#f0f0f0'
-                      }
-                    />
-                  ),
+                // if the task is being helped, display it as a TaskMarkingSelector (to allow professors to choose which parts are good)
+                question.status === OpenQuestionStatus.Helping ? (
+                  <TaskMarkingSelector
+                    onChange={onMarkingTaskChange}
+                    tasksStudentWouldLikeMarked={tasks}
+                    configTasks={configTasks}
+                  />
+                ) : (
+                  // for every task defined in the config, display it but only highlight the ones that are in the question text
+                  Object.entries(configTasks).map(
+                    ([taskKey, taskValue], index) => (
+                      <QuestionType
+                        key={index}
+                        typeName={
+                          isMyQuestion &&
+                          studentAssignmentProgress &&
+                          studentAssignmentProgress[taskKey] &&
+                          studentAssignmentProgress[taskKey].isDone
+                            ? '✔️'
+                            : taskValue.short_display_name
+                        }
+                        typeColor={
+                          tasks.includes(taskKey)
+                            ? taskValue.color_hex
+                            : '#f0f0f0'
+                        }
+                      />
+                    ),
+                  )
                 )
               }
             </div>
@@ -160,6 +182,7 @@ export default function StudentQueueCard({
               queueId={qid}
               question={question}
               hasUnresolvedRephraseAlert={false}
+              tasksSelectedForMarking={tasksSelectedForMarking}
               className="align-center flex items-center justify-around"
             />
           </Col>

@@ -39,12 +39,14 @@ export default function TAQueueDetailButtons({
   queueId,
   question,
   hasUnresolvedRephraseAlert,
+  tasksSelectedForMarking,
   className,
 }: {
   courseId: number
   queueId: number
   question: Question
   hasUnresolvedRephraseAlert: boolean
+  tasksSelectedForMarking: string[]
   className?: string
 }): ReactElement {
   //const defaultMessage = useDefaultMessage();
@@ -161,7 +163,15 @@ export default function TAQueueDetailButtons({
             <CantFindButton shape="circle" icon={<CloseOutlined />} />
           </Tooltip>
         </Popconfirm>
-        <Tooltip title="Finish Helping">
+        <Tooltip
+          title={
+            question.isTaskQuestion
+              ? tasksSelectedForMarking.length > 0
+                ? 'Mark ' + tasksSelectedForMarking.join(', ') + ' as Done'
+                : 'Mark All as Done'
+              : 'Finish Helping'
+          }
+        >
           <FinishHelpingButton
             icon={<CheckOutlined />}
             onClick={() => {
