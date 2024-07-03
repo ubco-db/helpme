@@ -16,7 +16,6 @@ import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { QuestionTypeModel } from './question-type.entity';
 import { Response } from 'express';
-import { CourseModel } from 'course/course.entity';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { IsNull } from 'typeorm';
@@ -42,7 +41,7 @@ export class QuestionTypeController {
     const questionTypeCount = await QuestionTypeModel.count({
       where: {
         cid: courseId,
-        queueId: queueId ? queueId : IsNull(),
+        queueId: queueId !== null ? queueId : IsNull(),
       },
     });
 
@@ -58,7 +57,7 @@ export class QuestionTypeController {
     const questionType = await QuestionTypeModel.findOne({
       where: {
         cid: courseId,
-        queueId: queueId,
+        queueId: queueId !== null ? queueId : IsNull(),
         name: newQuestionType.name,
       },
     });
