@@ -14,7 +14,6 @@ import {
   GroupQuestionsParams,
   ListInsightsResponse,
   ListQuestionsResponse,
-  RegisterCourseParams,
   EditCourseInfoParams,
   SemesterPartial,
   TACheckinTimesResponse,
@@ -201,9 +200,7 @@ class APIClient {
     getOrganizationCourses: async (organizationId: number) =>
       this.req('GET', `/api/v1/courses/${organizationId}/organization_courses`),
     getAsyncQuestions: async (cid: number): Promise<AsyncQuestion[]> =>
-      this.req('GET', `/api/v1/courses/${cid}/asyncQuestions`, undefined),
-    getAllCourses: async (): Promise<CoursePartial[]> =>
-      this.req('GET', `/api/v1/courses`),
+      this.req('GET', `/api/v1/courses/${cid}/questions`, undefined),
     get: async (courseId: number) =>
       this.req('GET', `/api/v1/courses/${courseId}`, GetCourseResponse),
     getUserInfo: async (
@@ -224,8 +221,6 @@ class APIClient {
         `/api/v1/courses/${courseId}/withdraw_course`,
         undefined,
       ),
-    registerCourses: async (params: RegisterCourseParams[]): Promise<void> =>
-      this.req('POST', `/api/v1/courses/register_courses`, undefined, params),
     editCourseInfo: async (
       courseId: number,
       params: EditCourseInfoParams,
@@ -583,14 +578,6 @@ class APIClient {
         `/api/v1/organization/${organizationId}/get_courses/${page}${
           search ? `?search=${search}` : ''
         }`,
-      ),
-    addCourse: async (
-      courseId: number,
-      organizationId: number,
-    ): Promise<void> =>
-      this.req(
-        'POST',
-        `/api/v1/organization/${organizationId}/add_course/${courseId}`,
       ),
     getProfessors: async (organizationId: number): Promise<any> =>
       this.req('GET', `/api/v1/organization/${organizationId}/get_professors`),

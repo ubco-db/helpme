@@ -8,7 +8,7 @@ import {
   OrganizationFactory,
   UserFactory,
 } from '../../test/util/factories';
-import { OrganizationRole, UserRole } from '@koh/common';
+import { UserRole } from '@koh/common';
 import { OrganizationCourseModel } from './organization-course.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 

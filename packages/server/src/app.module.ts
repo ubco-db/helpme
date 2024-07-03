@@ -28,6 +28,7 @@ import { ChatbotModule } from './chatbot/chatbot.module';
 import { OrganizationModule } from 'organization/organization.module';
 import { QuestionTypeModule } from 'questionType/questionType.module';
 import { RedisQueueModule } from 'redisQueue/redis-queue.module';
+import { ApplicationConfigModule } from 'config/application_config.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { RedisQueueModule } from 'redisQueue/redis-queue.module';
       { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
     ]),
     ScheduleModule.forRoot(),
+    ApplicationConfigModule,
     LoginModule,
     ProfileModule,
     CourseModule,

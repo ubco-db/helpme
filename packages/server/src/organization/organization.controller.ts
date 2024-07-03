@@ -818,64 +818,13 @@ export class OrganizationController {
       });
   }
 
-  @Post(':oid/add_course/:cid')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  async addCourseToOrganization(
-    @Res() res: Response,
-    @Param('oid') oid: string,
-    @Param('cid') cid: string,
-  ): Promise<void> {
-    CourseModel.findOne({
-      where: { id: cid },
-    })
-      .then((course) => {
-        if (!course) {
-          throw new HttpException(
-            ERROR_MESSAGES.courseController.courseNotFound,
-            HttpStatus.NOT_FOUND,
-          );
-        }
-
-        OrganizationCourseModel.findOne({
-          where: { courseId: cid, organizationId: oid },
-        })
-          .then((organizationCourse) => {
-            if (organizationCourse) {
-              throw new HttpException(
-                ERROR_MESSAGES.organizationController.courseAlreadyInOrganization,
-                HttpStatus.BAD_REQUEST,
-              );
-            }
-
-            const organizationCourseModel = new OrganizationCourseModel();
-            organizationCourseModel.courseId = parseInt(cid);
-            organizationCourseModel.organizationId = parseInt(oid);
-
-            organizationCourseModel
-              .save()
-              .then((_) => {
-                res
-                  .status(200)
-                  .send({ message: 'Course added to organization' });
-              })
-              .catch((err) => {
-                res.status(500).send({ message: err });
-              });
-          })
-          .catch((err) => {
-            res.status(500).send({ message: err });
-          });
-      })
-      .catch((err) => {
-        res.status(500).send({ message: err });
-      });
-  }
-
   @Get()
   async getAllOrganizations(
     @Res() res: Response,
   ): Promise<Response<OrganizationResponse[]>> {
-    const organizations = await OrganizationModel.find();
+    const organizations = await OrganizationModel.find({
+      take: 100,
+    });
 
     return res.status(200).send(organizations);
   }

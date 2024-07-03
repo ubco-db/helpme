@@ -10,16 +10,21 @@ import {
   Param,
   Post,
   Res,
+  HttpStatus,
 } from '@nestjs/common';
 import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { QuestionTypeModel } from './question-type.entity';
 import { Response } from 'express';
+import { CourseModel } from 'course/course.entity';
+import { ApplicationConfigService } from 'config/application_config.service';
 
 @Controller('questionType')
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionTypeController {
+  constructor(private readonly appConfig: ApplicationConfigService) {}
+
   @Post(':c')
   @Roles(Role.TA, Role.PROFESSOR)
   async addQuestionType(
@@ -27,11 +32,54 @@ export class QuestionTypeController {
     @Param('c') courseId: number,
     @Body() newQuestionType: QuestionTypeParams,
   ): Promise<void> {
-    console.log('newQuestionType', newQuestionType);
-    let queueId = newQuestionType.queueId;
-    if (typeof queueId !== 'number' || isNaN(queueId)) {
-      queueId = null;
+    const course = await CourseModel.findOne({
+      where: {
+        id: courseId,
+      },
+      relations: ['queues'],
+    });
+
+    if (!course) {
+      res
+        .status(HttpStatus.BAD_REQUEST)
+        .send({ message: 'Course does not exist' });
+      return;
     }
+
+    if (course?.queues.length === 0) {
+      res
+        .status(HttpStatus.BAD_REQUEST)
+        .send({ message: 'Course does not have any queues' });
+      return;
+    }
+
+    const queue = course.queues.find(
+      (queue) => queue.id === newQuestionType.queueId,
+    );
+
+    if (!queue) {
+      res
+        .status(HttpStatus.BAD_REQUEST)
+        .send({ message: 'Queue does not exist' });
+      return;
+    }
+
+    const questionTypeCount = await QuestionTypeModel.count({
+      where: {
+        cid: courseId,
+        queueId: newQuestionType.queueId,
+      },
+    });
+
+    if (
+      questionTypeCount >= this.appConfig.get('max_question_types_per_queue')
+    ) {
+      res.status(HttpStatus.BAD_REQUEST).send({
+        message: 'Queue has reached maximum number of question types',
+      });
+      return;
+    }
+
     const questionType = await QuestionTypeModel.findOne({
       where: {
         cid: courseId,
@@ -46,10 +94,10 @@ export class QuestionTypeController {
         color: newQuestionType.color,
         queueId: newQuestionType.queueId,
       }).save();
-      res.status(200).send('success');
+      res.status(HttpStatus.OK).send('success');
       return;
     } else {
-      res.status(400).send('Question already exists');
+      res.status(HttpStatus.BAD_REQUEST).send('Question already exists');
       return;
     }
   }
@@ -69,7 +117,9 @@ export class QuestionTypeController {
         cid: course,
         queueId,
       },
+      take: this.appConfig.get('max_question_types_per_queue'),
     });
+
     if (!questions) {
       res.status(400).send('None');
       return;

@@ -108,52 +108,6 @@ describe('Organization Integration', () => {
     });
   });
 
-  describe('POST /organization/:oid/add_course/:cid', () => {
-    it('should return 403 when user is not logged in', async () => {
-      const response = await supertest().post('/organization/1/add_course/1');
-
-      expect(response.status).toBe(401);
-    });
-
-    it('should return 500 when course does not exist', async () => {
-      const user = await UserFactory.create();
-      const res = await supertest({ userId: user.id }).post(
-        '/organization/1/add_course/0',
-      );
-
-      expect(res.status).toBe(500);
-    });
-
-    it("should return 200 when course doesn't exist in organization", async () => {
-      const user = await UserFactory.create();
-      const course = await CourseFactory.create();
-      const organization = await OrganizationFactory.create();
-
-      const res = await supertest({ userId: user.id }).post(
-        `/organization/${organization.id}/add_course/${course.id}`,
-      );
-
-      expect(res.status).toBe(200);
-    });
-
-    it('should return 500 when course already exists in organization', async () => {
-      const user = await UserFactory.create();
-      const course = await CourseFactory.create();
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationCourseModel.create({
-        courseId: course.id,
-        organizationId: organization.id,
-      }).save();
-
-      const res = await supertest({ userId: user.id }).post(
-        `/organization/${organization.id}/add_course/${course.id}`,
-      );
-
-      expect(res.status).toBe(500);
-    });
-  });
-
   describe('GET /organization/:oid/get_users/:page?', () => {
     it('should return 403 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();
