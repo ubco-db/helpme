@@ -343,7 +343,7 @@ export class Question {
   location?: string
 }
 
-export const QuestionTypes: QuestionTypeParams[] = [
+export const QuestionTypes: QuestionTypeParamsWithOptionalQueueId[] = [
   {
     id: 1,
     cid: 1,
@@ -1110,8 +1110,27 @@ export class QuestionTypeParams {
   cid?: number
 
   @IsString()
+  name!: string
+
+  @IsString()
   @IsOptional()
-  name?: string
+  color?: string
+
+  @IsInt()
+  queueId!: number
+}
+
+export class QuestionTypeParamsWithOptionalQueueId {
+  @IsInt()
+  @IsOptional()
+  id?: number
+
+  @IsInt()
+  @IsOptional()
+  cid?: number
+
+  @IsString()
+  name!: string
 
   @IsString()
   @IsOptional()
@@ -1121,7 +1140,6 @@ export class QuestionTypeParams {
   @IsOptional()
   queueId?: number
 }
-
 export class TACheckinTimesResponse {
   @Type(() => TACheckinPair)
   taCheckinTimes!: TACheckinPair[]
@@ -1243,15 +1261,6 @@ export class questionTypeResponse {
   @Type(() => questionTypeParam)
   questions!: questionTypeParam[]
 }
-/**
- * Represents the parameters for a course being registered for register_courses endpoint.
- * @param sectionGroupName - The name of the section group.
- * @param name - user friendly display name entered by Prof
- * @param semester - The name of the semester.
- * @param iCalURL - The URL for the iCal calendar.
- * @param coordinator_email - The email for the course coordinator.
- * @param timezone - The timezone derived from the Campus field on the form.
- */
 
 export class AccountRegistrationParams {
   @IsString()
@@ -1480,6 +1489,7 @@ export const ERROR_MESSAGES = {
       cannotCheckIntoMultipleQueues:
         'Cannot check into multiple queues at the same time',
     },
+    queueLimitReached: 'Queue limit per course reached',
     semesterYearInvalid: 'Semester year must be a valid year',
     semesterNameFormat:
       'Semester must be in the format "season,year". E.g. Fall,2021',

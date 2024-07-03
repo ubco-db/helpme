@@ -309,17 +309,13 @@ export class ProfileController {
     fs.stat(
       path.join(process.env.UPLOAD_LOCATION, photoURL),
       async (err, stats) => {
+        if (err) {
+          return res
+            .status(HttpStatus.NOT_FOUND)
+            .send({ message: 'File not found' });
+        }
         if (stats) {
           res.sendFile(photoURL, { root: process.env.UPLOAD_LOCATION });
-        } else {
-          const user = await UserModel.findOne({
-            where: {
-              photoURL,
-            },
-          });
-          user.photoURL = null;
-          await user.save();
-          throw new NotFoundException();
         }
       },
     );
@@ -327,31 +323,42 @@ export class ProfileController {
 
   @Delete('/delete_profile_picture')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  async deleteProfilePicture(@User() user: UserModel): Promise<void> {
-    if (user.photoURL) {
-      if (user.photoURL.startsWith('http')) {
-        user.photoURL = null;
-        await user.save();
-        return;
-      } else {
-        fs.unlink(
-          process.env.UPLOAD_LOCATION + '/' + user.photoURL,
-          async (err) => {
-            if (err) {
-              const errMessage =
-                'Error deleting previous picture at : ' +
-                user.photoURL +
-                'the previous image was at an invalid location?';
-              console.error(errMessage, err);
-              throw new BadRequestException(errMessage);
-            } else {
-              user.photoURL = null;
-              await user.save();
-              return;
-            }
-          },
-        );
-      }
+  async deleteProfilePicture(
+    @User() user: UserModel,
+    @Res() res: Response,
+  ): Promise<Response> {
+    if (!user?.photoURL) {
+      return res
+        .status(HttpStatus.NOT_FOUND)
+        .send({ message: 'No profile picture to delete' });
+    }
+
+    if (user.photoURL.startsWith('http')) {
+      user.photoURL = null;
+      await user.save();
+      return res
+        .status(HttpStatus.OK)
+        .send({ message: 'Profile picture deleted successfully' });
+    } else {
+      fs.unlink(
+        process.env.UPLOAD_LOCATION + '/' + user.photoURL,
+        async (err) => {
+          if (err) {
+            const errMessage =
+              'Error deleting previous picture at : ' +
+              user.photoURL +
+              'the previous image was at an invalid location?';
+            console.error(errMessage, err);
+            throw new BadRequestException(errMessage);
+          } else {
+            user.photoURL = null;
+            await user.save();
+            return res
+              .status(HttpStatus.OK)
+              .send({ message: 'Profile picture deleted successfully' });
+          }
+        },
+      );
     }
   }
 }
