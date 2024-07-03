@@ -10,6 +10,7 @@ import * as bodyParser from 'body-parser';
 import { AppModule } from './app.module';
 import { StripUndefinedPipe } from './stripUndefined.pipe';
 import * as expressSession from 'express-session';
+import { ApplicationConfigService } from './config/application_config.service';
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function bootstrap(hot: any): Promise<void> {
