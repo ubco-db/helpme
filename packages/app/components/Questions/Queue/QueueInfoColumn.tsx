@@ -1,5 +1,7 @@
 import {
+  ClearOutlined,
   CloudSyncOutlined,
+  DeleteOutlined,
   DownOutlined,
   ExclamationCircleOutlined,
   FrownOutlined,
@@ -257,7 +259,10 @@ export function QueueInfoColumn({
             onConfirm={() => clearQueue(queueId, queue)}
           >
             {/* Hide button on mobile (it gets moved to edit queue modal) */}
-            <ClearQueueButton className="hidden sm:flex">
+            <ClearQueueButton
+              icon={<ClearOutlined />}
+              className="hidden sm:flex"
+            >
               Clear Queue
             </ClearQueueButton>
           </Popconfirm>
@@ -265,6 +270,7 @@ export function QueueInfoColumn({
           <DisableQueueButton
             onClick={() => confirmDisable(queueId, queue)}
             disabled={queue?.isDisabled}
+            icon={<DeleteOutlined />}
           >
             {queue?.isDisabled ? `Queue deleted` : `Delete Queue`}
           </DisableQueueButton>

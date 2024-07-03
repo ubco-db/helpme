@@ -1,21 +1,45 @@
-import { Question, QuestionTypeParams, QuestionTypeType } from '@koh/common'
+import { CheckOutlined } from '@ant-design/icons'
+import {
+  OpenQuestionStatus,
+  Question,
+  QuestionTypeParams,
+  QuestionTypeType,
+} from '@koh/common'
 import { Button, message } from 'antd'
+import { Check, LogIn, LogOut } from 'lucide-react'
 import { ReactElement, useState } from 'react'
 import styled from 'styled-components'
 
-const CustomButton = styled(Button)<{ isjoined: string }>`
+const CustomButton = styled(Button)<{ colorstyle: string }>`
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  width: 4rem;
   border: 1px solid #cfd6de;
   border-radius: 6px;
-  border-color: ${(props) => (props.isjoined === 'true' ? 'red' : 'green')};
-  color: ${(props) => (props.isjoined === 'true' ? 'red' : 'green')};
+  border-color: ${(props) =>
+    props.colorstyle === 'Done'
+      ? '#3D9B3B !important'
+      : props.colorstyle === 'Leave'
+        ? 'red'
+        : '#1480e4'};
+  color: ${(props) =>
+    props.colorstyle === 'Done'
+      ? '#3D9B3B !important'
+      : props.colorstyle === 'Leave'
+        ? 'red'
+        : '#1480e4'};
   // box shadow makes button seem "pressed" when joined, and "unpressed" when not joined
-  box-shadow: ${(props) => (props.isjoined === 'true' ? 'inset' : '')} 0 4px 4px rgba(0, 0, 0, 0.25);
+  box-shadow: ${(props) => (props.colorstyle === 'Leave' ? 'inset' : '')} 0 4px
+    4px rgba(0, 0, 0, 0.25);
   // change hover colors to be light green/red as opposed to blue
   &:hover,
   &:focus {
-    border-color: ${(props) => (props.isjoined === 'true' ? 'lightcoral' : 'limegreen')};
-    color: ${(props) => (props.isjoined === 'true' ? 'lightcoral' : 'limegreen')};
-  }
+    border-color: ${(props) =>
+      props.colorstyle === 'Leave' ? 'lightcoral' : 'deepskyblue'};
+    color: ${(props) =>
+      props.colorstyle === 'Leave' ? 'lightcoral' : 'deepskyblue'};
   }
 `
 /**
@@ -30,6 +54,7 @@ export default function JoinTagGroupButton({
   updateQuestion,
   leaveQueue,
   disabled = false,
+  isDone = false,
   questionType,
   taskId,
 }: {
@@ -50,6 +75,7 @@ export default function JoinTagGroupButton({
   ) => Promise<void>
   leaveQueue: (isTaskQuestion: boolean) => Promise<void>
   disabled?: boolean
+  isDone?: boolean
   questionType?: QuestionTypeType
   taskId?: string
 }): ReactElement {
@@ -61,6 +87,13 @@ export default function JoinTagGroupButton({
         : false,
   )
   const [isLoading, setIsLoading] = useState(false)
+
+  // just used to disable the button so students can't modify their question while being helped
+  const beingHelped =
+    (questionType &&
+      studentQuestion &&
+      studentQuestion.status === OpenQuestionStatus.Helping) ||
+    (taskId && studentDemo && studentDemo.status === OpenQuestionStatus.Helping)
 
   const onClick = async () => {
     setIsLoading(true)
@@ -162,12 +195,27 @@ export default function JoinTagGroupButton({
   return (
     <CustomButton
       size="small"
-      isjoined={isJoined.toString()}
+      className={isDone ? '' : 'join-or-leave-tag-group-button'}
+      colorstyle={isDone ? 'Done' : isJoined ? 'Leave' : 'Join'}
       onClick={onClick}
-      disabled={disabled}
+      disabled={beingHelped || isDone || disabled}
       loading={isLoading}
+      icon={
+        isDone ? (
+          <Check size={15} aria-hidden="true" className="mr-1 shrink-0" />
+        ) : isJoined ? (
+          <LogOut
+            size={13}
+            aria-hidden="true"
+            style={{ transform: 'rotate(180deg)' }}
+            className="mr-1 shrink-0"
+          />
+        ) : (
+          <LogIn size={15} aria-hidden="true" className="mr-1 shrink-0" />
+        )
+      }
     >
-      {isJoined ? 'Leave' : 'Join'}
+      {isDone ? 'Done' : isJoined ? 'Leave' : 'Join'}
     </CustomButton>
   )
 }

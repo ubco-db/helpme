@@ -30,7 +30,12 @@ import {
   confirmDisable,
 } from '../../Questions/Queue/QueueInfoColumn'
 import { SketchPicker } from 'react-color'
-import { BgColorsOutlined, QuestionCircleOutlined } from '@ant-design/icons'
+import {
+  BgColorsOutlined,
+  ClearOutlined,
+  DeleteOutlined,
+  QuestionCircleOutlined,
+} from '@ant-design/icons'
 import QueueConfigHelp from '../Shared/QueueConfigHelp'
 import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 
@@ -325,6 +330,7 @@ export function EditQueueModal({
                 onClick={() => confirmDisable(queueId, queue)}
                 disabled={queue?.isDisabled}
                 className="!w-fit"
+                icon={<DeleteOutlined />}
               >
                 {queue?.isDisabled ? `Queue deleted` : `Delete Queue`}
               </DisableQueueButton>
@@ -338,7 +344,7 @@ export function EditQueueModal({
                 arrowPointAtCenter={true}
                 onConfirm={() => clearQueue(queueId, queue)}
               >
-                <ClearQueueButton className="!w-fit">
+                <ClearQueueButton icon={<ClearOutlined />} className="!w-fit">
                   Clear Queue
                 </ClearQueueButton>
               </Popconfirm>

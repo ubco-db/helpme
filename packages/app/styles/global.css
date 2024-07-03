@@ -246,3 +246,11 @@ body {
   .skip-link:focus {
     top: 0;
   }
+
+  .taggroup .ant-card-body {
+    padding: 0.9rem;
+  }
+
+  .tag-group:has(.join-or-leave-tag-group-button:hover) {
+    border-color:lightskyblue;
+  }

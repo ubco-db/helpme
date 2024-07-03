@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useState, useEffect } from 'react'
+import { ReactElement, useCallback, useState, useEffect, useMemo } from 'react'
 import { useQueue } from '../../../hooks/useQueue'
 import { useQuestions } from '../../../hooks/useQuestions'
 import { useProfile } from '../../../hooks/useProfile'
@@ -11,6 +11,10 @@ import {
   Question,
   Role,
   QuestionStatus,
+  ConfigTasksWithAssignmentProgress,
+  transformIntoTaskTree,
+  TaskTree,
+  Task,
 } from '@koh/common'
 import { useTAInQueueInfo } from '../../../hooks/useTAInQueueInfo'
 import { useCourse } from '../../../hooks/useCourse'
@@ -127,6 +131,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     isDemoQueue,
     isStaff,
   )
+  const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree)
   const [, , deleteDraftQuestion] = useLocalStorage('draftQuestion', null)
   const [isJoiningQuestion, setIsJoiningQuestion] = useState(
     questions &&
@@ -154,18 +159,23 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     queue?.config?.default_view === 'tag_groups',
   )
 
-  useEffect(() => {
-    if (profile && profile.courses) {
-      profile.courses.forEach((course) => {
-        if (
+  // Memoize the calculation of isStaff based on relevant profile changes
+  const isUserStaff = useMemo(() => {
+    return (
+      profile?.courses?.some(
+        (course) =>
           course.course.id === cid &&
-          (course.role === Role.PROFESSOR || course.role === Role.TA)
-        ) {
-          setIsStaff(true)
-        }
-      })
-    }
-  }, [profile, cid])
+          (course.role === Role.PROFESSOR || course.role === Role.TA),
+      ) || false
+    )
+  }, [profile?.courses, cid])
+
+  // Update isStaff state only when isUserStaff changes
+  // Previously, this was done in the useEffect hook with profile as a dependency, but this caused unnecessary re-renders on anything that's dependent on isStaff
+  // This is because profile is a complex object and changes frequently, so it's better to compare the derived value (isUserStaff) instead
+  useEffect(() => {
+    setIsStaff(isUserStaff)
+  }, [isUserStaff])
 
   const helpingQuestions = questions?.questionsGettingHelp?.filter(
     (q) => q.taHelped.id === profileId,
@@ -425,6 +435,98 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     [isFirstQuestion, setIsFirstQuestion],
   )
 
+  // used for the "Join" button on the tag groups feature (specifically, for the tasks)
+  useEffect(() => {
+    // only re-calculate the taskTree and everything if tagGroups is enabled and the user is a student
+    if (tagGroupsEnabled) {
+      const configTasksCopy: ConfigTasksWithAssignmentProgress = {
+        ...configTasks,
+      } // Create a copy of configTasks (since the function will mutate it)
+      // For each task that is marked as done, give it the isDone = true attribute
+      if (studentAssignmentProgress) {
+        for (const [taskKey, taskValue] of Object.entries(
+          studentAssignmentProgress,
+        )) {
+          if (taskValue.isDone && configTasksCopy[taskKey]) {
+            configTasksCopy[taskKey].isDone = true
+          }
+        }
+      }
+      setTaskTree(transformIntoTaskTree(configTasksCopy)) // transformIntoTaskTree changes each precondition to carry a reference to the actual task object instead of just a string
+    }
+  }, [tagGroupsEnabled, configTasks, studentAssignmentProgress])
+
+  // go through each precondition task, if any of them are blocking and not done, return true
+  const isAnyBlockingTaskNotDone = (task: Task, isFirst = true): boolean => {
+    if (task.blocking && !task.isDone && !isFirst) {
+      // isFirst is used to ignore the first task in order to allow the user to join unfinished blocking tasks
+      return true
+    } else if (task.precondition) {
+      return isAnyBlockingTaskNotDone(task.precondition, false)
+    } else {
+      return false
+    }
+  }
+
+  // goal: prevent students from joining a tag group if they don't have all that tasks' preconditions already in their queue demo
+  const isPreconditionsInStudentDemo = useCallback(
+    (task: Task): boolean => {
+      if (task.precondition) {
+        if (studentDemo?.text.includes(` "${task.precondition.taskId}"`)) {
+          return isPreconditionsInStudentDemo(task.precondition)
+        } else {
+          return false
+        }
+      } else {
+        return true
+      }
+    },
+    [studentDemo?.text],
+  )
+
+  const isTaskJoinable = (
+    task: Task,
+    isFirst = true,
+    studentDemoText: string | undefined,
+  ): boolean => {
+    // Goal: Before joining, for the task's preconditions, make sure there are no blocking tasks that are not done (this is done recursively)
+    if (task.blocking && !task.isDone && !isFirst) {
+      return false
+    }
+
+    // Goal: Before joining, all the task's preconditions must be in the student's demo (this is also done recursively)
+    if (
+      !(
+        !task.precondition ||
+        studentDemoText?.includes(` "${task.precondition.taskId}"`)
+      )
+    ) {
+      return false
+    }
+
+    // Goal: Before leaving, the student's demo must not have any tasks that depend on this task
+    if (isFirst) {
+      if (
+        Object.entries(taskTree).some(([taskId, tempTask]) => {
+          return (
+            tempTask.precondition?.taskId === task.taskId &&
+            studentDemoText?.includes(` "${tempTask.taskId}"`)
+          )
+        })
+      ) {
+        return false
+      }
+    }
+
+    // If there's a precondition, recursively check it, marking it as not the first task
+    if (task.precondition) {
+      return isTaskJoinable(task.precondition, false, studentDemoText)
+    }
+
+    // If none of the above conditions are met, the task is valid
+    return true
+  }
+
   const finishQuestionOrDemoAndClose = useCallback(
     (
       text: string,
@@ -634,8 +736,8 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
         {tagGroupsEnabled ? (
           <>
             {/* tasks (for demos/TaskQuestions) */}
-            {configTasks &&
-              Object.entries(configTasks).map(([taskKey, task]) => {
+            {taskTree &&
+              Object.entries(taskTree).map(([taskKey, task]) => {
                 const filteredQuestions = questions?.filter(
                   (question: Question) => {
                     const tasks = question.isTaskQuestion
@@ -651,7 +753,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                     <Card
                       size="small"
                       type="inner"
-                      className="mb-3 rounded bg-[#f0f4ff] shadow-lg"
+                      className="tag-group mb-3 rounded bg-[#f0f4ff] shadow-lg"
                       key={taskKey}
                       title={
                         <div className="flex justify-between">
@@ -668,16 +770,27 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                                   : ''}
                             </span>
                           </div>
-                          {!isStaff && (
-                            <JoinTagGroupButton
-                              studentQuestion={studentQuestion}
-                              studentDemo={studentDemo}
-                              createQuestion={createQuestion}
-                              updateQuestion={finishQuestionOrDemo}
-                              leaveQueue={leaveQueue}
-                              taskId={taskKey}
-                            />
-                          )}
+                          <div className="row flex">
+                            {task.blocking && (
+                              <span className="mr-2 text-gray-400">
+                                blocking
+                              </span>
+                            )}
+                            {!isStaff && (
+                              <JoinTagGroupButton
+                                studentQuestion={studentQuestion}
+                                studentDemo={studentDemo}
+                                createQuestion={createQuestion}
+                                updateQuestion={finishQuestionOrDemo}
+                                leaveQueue={leaveQueue}
+                                isDone={task.isDone}
+                                taskId={taskKey}
+                                disabled={
+                                  !isTaskJoinable(task, true, studentDemo?.text)
+                                }
+                              />
+                            )}
+                          </div>
                         </div>
                       }
                     >
@@ -724,7 +837,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                   <Card
                     size="small"
                     type="inner"
-                    className="mb-3 rounded bg-[#f0f4ff] shadow-lg"
+                    className="tag-group mb-3 rounded bg-[#f0f4ff] shadow-lg"
                     key={tagIndex}
                     title={
                       <div className="flex justify-between">

@@ -1837,6 +1837,108 @@ export interface AllStudentAssignmentProgress {
   }
 }
 
+/**
+ * note: this "Task" is only for frontend components (TaskSelector and in Queue)
+ */
+export interface Task {
+  taskId: string
+  isDone?: boolean
+  checked?: boolean
+  display_name?: string
+  short_display_name?: string
+  color_hex?: string
+  blocking?: boolean
+  precondition?: Task | null
+  [key: string]: any // Tasks can have any number of additional properties (for expandability, might remove later)
+}
+
+/**
+ * Also only used in frontend components
+ */
+export interface TaskTree {
+  [taskId: string]: Task
+}
+
+export type ConfigTasksWithAssignmentProgress = {
+  [K in keyof ConfigTasks]: ConfigTasks[K] & { isDone?: boolean }
+}
+
+/**
+ * Transforms a configuration object of tasks into a tree structure where each task has a reference to its prerequisite task.
+ * This enables the implementation of task dependencies in the UI. Note that this function mutates the `remainingTasks` object.
+ *
+ * @param {Object} remainingTasks - The configTasks object to be transformed
+ *
+ * Example input (`remainingTasks`):
+ * ```
+ * {
+ *   "task1": {
+ *     ...
+ *     "precondition": null
+ *   },
+ *   "task2": {
+ *     ...
+ *     "precondition": "task1"
+ *   },
+ *   "task3": {
+ *     ...
+ *     "precondition": "task2"
+ *   }
+ * }
+ * ```
+ *
+ * Example output (transformed `remainingTasks`):
+ * ```
+ * {
+ *   "task1": {
+ *     ...
+ *     precondition: null
+ *   },
+ *   "task2": {
+ *     ...
+ *     precondition: [Object reference to task1]
+ *   },
+ *   "task3": {
+ *     ...
+ *     precondition: [Object reference to task2]
+ *   }
+ * }
+ * ```
+ */
+export function transformIntoTaskTree(
+  remainingTasks: ConfigTasksWithAssignmentProgress,
+  taskTree: TaskTree = {},
+  precondition: string | null = null,
+): TaskTree {
+  // Object.entries is like a fancy for loop. Filter is a function that takes in a subfunction; if the subfunction returns false, the element is removed from the array.
+  const tasksToAdd = Object.entries(remainingTasks).filter(
+    ([, taskValue]) => taskValue.precondition === precondition,
+  )
+
+  tasksToAdd.forEach(([taskKey, taskValue]) => {
+    taskTree[taskKey] = {
+      ...taskValue,
+      taskId: taskKey,
+      checked: false,
+      precondition:
+        precondition && !taskValue.isDone && !taskTree[precondition].isDone
+          ? taskTree[precondition]
+          : null,
+    }
+
+    // Now that the task has been added to the tree, we can remove the task from the remainingTasks so that it doesn't keep getting cycled through (optimization)
+    delete remainingTasks[taskKey]
+
+    // Merge the current taskTree with the taskTree created from the recursive call
+    Object.assign(
+      taskTree,
+      transformIntoTaskTree(remainingTasks, taskTree, taskKey),
+    )
+  })
+
+  return taskTree
+}
+
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
