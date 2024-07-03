@@ -26,7 +26,6 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { UserId } from 'decorators/user.decorator';
-import { Connection } from 'typeorm';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { QueueCleanService } from './queue-clean/queue-clean.service';
@@ -43,7 +42,6 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 @UseInterceptors(ClassSerializerInterceptor)
 export class QueueController {
   constructor(
-    private connection: Connection,
     private queueSSEService: QueueSSEService,
     private queueCleanService: QueueCleanService,
     private queueService: QueueService,
@@ -79,7 +77,6 @@ export class QueueController {
         role,
       );
     } catch (err) {
-      console.error(err);
       throw new HttpException(
         ERROR_MESSAGES.queueController.getQuestions,
         HttpStatus.NOT_FOUND,

@@ -287,6 +287,7 @@ export class QuestionController {
       where: { id: questionId },
       relations: ['creator', 'queue', 'taHelped'],
     });
+
     if (question === undefined) {
       throw new NotFoundException();
     }

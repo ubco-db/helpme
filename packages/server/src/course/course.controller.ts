@@ -1,6 +1,5 @@
 import {
   asyncQuestionStatus,
-  CoursePartial,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
   EditCourseInfoParams,
@@ -9,7 +8,6 @@ import {
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
   QueuePartial,
-  RegisterCourseParams,
   Role,
   TACheckinTimesResponse,
   TACheckoutResponse,
@@ -55,6 +53,7 @@ import { OrganizationCourseModel } from 'organization/organization-course.entity
 import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
+import { ApplicationConfigService } from '../config/application_config.service';
 import { Not } from 'typeorm';
 import { pick } from 'lodash';
 
@@ -66,17 +65,8 @@ export class CourseController {
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
     private courseService: CourseService,
+    private readonly appConfig: ApplicationConfigService,
   ) {}
-
-  // get all courses
-  @Get()
-  async getAllCourses(): Promise<CoursePartial[]> {
-    const courses = await CourseModel.find();
-    if (!courses) {
-      throw new NotFoundException();
-    }
-    return courses.map((course) => ({ id: course.id, name: course.name }));
-  }
 
   @Get(':oid/organization_courses')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -88,6 +78,7 @@ export class CourseController {
       where: {
         organizationId: oid,
       },
+      take: 200,
       relations: ['course'],
     });
 
@@ -137,6 +128,7 @@ export class CourseController {
       order: {
         createdAt: 'DESC',
       },
+      take: this.appConfig.get('max_async_questions_per_course'),
     });
 
     if (!all) {
@@ -538,6 +530,18 @@ export class CourseController {
         ERROR_MESSAGES.courseController.queueNotAuthorized,
       );
     }
+
+    const queuesCount = await QueueModel.count({
+      courseId,
+    });
+
+    if (queuesCount >= this.appConfig.get('max_queues_per_course')) {
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.queueLimitReached,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     try {
       return await QueueModel.create({
         room,
@@ -652,16 +656,6 @@ export class CourseController {
       where: { courseId, userId },
     });
     await this.courseService.removeUserFromCourse(userCourse);
-  }
-
-  @Post('/register_courses')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  @Roles(Role.PROFESSOR)
-  async registerCourses(
-    @Body() body: RegisterCourseParams[],
-    @UserId() userId: number,
-  ): Promise<void> {
-    await this.courseService.registerCourses(body, userId);
   }
 
   @Get(':id/ta_check_in_times')
