@@ -54,6 +54,8 @@ import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
 import { ApplicationConfigService } from '../config/application_config.service';
+import { Not } from 'typeorm';
+import { pick } from 'lodash';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -96,7 +98,7 @@ export class CourseController {
     });
   }
 
-  @Get(':cid/questions')
+  @Get(':cid/asyncQuestions')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async getAsyncQuestions(
     @Param('cid') cid: number,
@@ -117,14 +119,12 @@ export class CourseController {
       return;
     }
 
-    const isStaff =
-      userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
-
     const all = await AsyncQuestionModel.find({
       where: {
         courseId: cid,
+        status: Not(asyncQuestionStatus.StudentDeleted),
       },
-      relations: ['creator', 'taHelped'],
+      relations: ['creator', 'taHelped', 'votes'],
       order: {
         createdAt: 'DESC',
       },
@@ -140,12 +140,13 @@ export class CourseController {
 
     let questions;
 
+    const isStaff: boolean =
+      userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
+
     if (isStaff) {
       // Staff sees all questions except the ones deleted
       questions = all.filter(
-        (question) =>
-          question.status !== asyncQuestionStatus.TADeleted &&
-          question.status !== asyncQuestionStatus.StudentDeleted,
+        (question) => question.status !== asyncQuestionStatus.TADeleted,
       );
     } else {
       // Students see their own questions and questions that are visible
@@ -153,6 +154,41 @@ export class CourseController {
         (question) => question.creatorId === user.id || question.visible,
       );
     }
+
+    questions = questions.map((question) => {
+      const temp = pick(question, [
+        'id',
+        'courseId',
+        'questionAbstract',
+        'questionText',
+        'aiAnswerText',
+        'answerText',
+        'creatorId',
+        'taHelpedId',
+        'createdAt',
+        'closedAt',
+        'status',
+        'visible',
+        'verified',
+        'votes',
+        'questionTypes',
+        'votesSum',
+      ]);
+
+      Object.assign(temp, {
+        creator:
+          isStaff || question.creator.id == user.id
+            ? {
+                id: question.creator.id,
+                name: question.creator.name,
+                photoURL: question.creator.photoURL,
+              }
+            : null,
+      });
+
+      return temp;
+    });
+
     res.status(HttpStatus.OK).send(questions);
     return;
   }

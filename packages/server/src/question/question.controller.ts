@@ -9,7 +9,6 @@ import {
   OpenQuestionStatus,
   questions,
   QuestionStatusKeys,
-  QuestionTypeParams,
   Role,
   UpdateQuestionParams,
   UpdateQuestionResponse,
@@ -19,7 +18,6 @@ import {
   Body,
   ClassSerializerInterceptor,
   Controller,
-  Delete,
   Get,
   HttpException,
   HttpStatus,
@@ -27,18 +25,16 @@ import {
   Param,
   Patch,
   Post,
-  Res,
   UnauthorizedException,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { Connection, In } from 'typeorm';
+import { In } from 'typeorm';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import {
   NotificationService,
   NotifMsgs,
 } from '../notification/notification.service';
-import { Response } from 'express';
 import { Roles } from '../decorators/roles.decorator';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { User, UserId } from '../decorators/user.decorator';
@@ -60,7 +56,6 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionController {
   constructor(
-    private connection: Connection,
     private notifService: NotificationService,
     private questionService: QuestionService,
   ) {}
@@ -76,6 +71,7 @@ export class QuestionController {
     if (question === undefined) {
       throw new NotFoundException();
     }
+
     return question;
   }
 

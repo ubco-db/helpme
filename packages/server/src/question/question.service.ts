@@ -18,15 +18,11 @@ import {
   NotifMsgs,
 } from 'notification/notification.service';
 import { UserModel } from 'profile/user.entity';
-import { Connection } from 'typeorm';
 import { QuestionModel } from './question.entity';
 
 @Injectable()
 export class QuestionService {
-  constructor(
-    private connection: Connection,
-    private notifService: NotificationService,
-  ) {}
+  constructor(private notifService: NotificationService) {}
 
   async changeStatus(
     status: QuestionStatus,

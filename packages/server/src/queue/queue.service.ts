@@ -2,7 +2,6 @@ import {
   ListQuestionsResponse,
   OpenQuestionStatus,
   Question,
-  QuestionGroup,
   Role,
   StatusInPriorityQueue,
   StatusInQueue,
@@ -62,22 +61,6 @@ export class QueueService {
     const unresolvedRephraseQuestionAlerts =
       await this.alertsService.getUnresolvedRephraseQuestionAlert(queueId);
 
-    const groupMap: Record<number, QuestionGroup> = {};
-
-    questionsFromDb.forEach((question) => {
-      if (question.groupId) {
-        if (!groupMap[question.groupId]) {
-          groupMap[question.groupId] = {
-            id: question.groupId,
-            creator: question.taHelped,
-            questions: [question],
-          };
-        } else {
-          groupMap[question.groupId].questions.push(question);
-        }
-      }
-    });
-
     const questions = new ListQuestionsResponse();
 
     questions.queue = questionsFromDb.filter((question) =>
@@ -93,12 +76,40 @@ export class QueueService {
       StatusInPriorityQueue.includes(question.status as OpenQuestionStatus),
     );
 
-    questions.groups = Object.values(groupMap);
+    questions.groups = [];
 
     questions.unresolvedAlerts = unresolvedRephraseQuestionAlerts.map(
       (alert) => alert.payload,
     );
 
+    questions.queue = questions.queue.map((question) => {
+      const temp = pick(question, [
+        'id',
+        'queueId',
+        'text',
+        'creatorId',
+        'taHelpedId',
+        'createdAt',
+        'firstHelpedAt',
+        'helpedAt',
+        'closedAt',
+        'status',
+        'location',
+        'groupable',
+        'groupId',
+        'questionTypes',
+        'taHelped',
+      ]);
+
+      Object.assign(temp, {
+        creator: {
+          name: question.creator.name,
+          photoURL: question.creator.photoURL,
+        },
+      });
+
+      return temp as Question;
+    });
     return questions;
   }
 
@@ -147,6 +158,33 @@ export class QueueService {
       });
       newLQR.priorityQueue = [];
 
+      if (newLQR.yourQuestion) {
+        const temp = pick(newLQR.yourQuestion, [
+          'closedAt',
+          'queueId',
+          'createdAt',
+          'creatorId',
+          'firstHelpedAt',
+          'groupId',
+          'groupable',
+          'helpedAt',
+          'id',
+          'location',
+          'questionTypes',
+          'queueId',
+          'status',
+          'taHelpedId',
+          'taHelped',
+          'text',
+        ]);
+
+        newLQR.yourQuestion = Object.assign(temp, {
+          creator: {
+            name: newLQR.yourQuestion.creator.name,
+            photoURL: newLQR.yourQuestion.creator.photoURL,
+          },
+        }) as Question;
+      }
       return newLQR;
     }
     return questions;

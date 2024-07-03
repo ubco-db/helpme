@@ -39,7 +39,7 @@ export class asyncQuestionController {
     @Param('vote') vote: number,
     @User() user: UserModel,
     @Res() res: Response,
-  ): Promise<AsyncQuestion> {
+  ): Promise<Response> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
     });
@@ -78,12 +78,10 @@ export class asyncQuestionController {
       where: { id: qid },
     });
 
-    res.status(HttpStatus.OK).send({
+    return res.status(HttpStatus.OK).send({
       questionSumVotes: updatedQuestion.votesSum,
       vote: thisUserThisQuestionVote?.vote ?? 0,
     });
-
-    return;
   }
 
   @Post(':cid')
@@ -120,6 +118,7 @@ export class asyncQuestionController {
         verified: false,
         createdAt: new Date(),
       }).save();
+
       res.status(HttpStatus.CREATED).send(question);
       return;
     } catch (err) {
@@ -175,7 +174,8 @@ export class asyncQuestionController {
         );
       }
     }
-    question.save();
+    await question.save();
+
     return question;
   }
 }

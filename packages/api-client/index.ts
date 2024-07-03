@@ -305,7 +305,10 @@ class APIClient {
       this.req('POST', `/api/v1/asyncQuestions/${cid}`, AsyncQuestion, body),
     update: async (qid: number, body: UpdateAsyncQuestions) =>
       this.req('PATCH', `/api/v1/asyncQuestions/${qid}`, AsyncQuestion, body),
-    vote: async (qid: number, vote: number) =>
+    vote: async (
+      qid: number,
+      vote: number,
+    ): Promise<{ questionSumVotes: number; vote: number }> =>
       this.req('POST', `/api/v1/asyncQuestions/${qid}/${vote}`, undefined, {
         vote,
       }),

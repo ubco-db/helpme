@@ -10,7 +10,7 @@ import {
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
-import { Role, asyncQuestionStatus } from '@koh/common';
+import { Role } from '@koh/common';
 
 describe('AsyncQuestion Integration', () => {
   const supertest = setupIntegrationTest(asyncQuestionModule);

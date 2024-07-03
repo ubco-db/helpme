@@ -11,24 +11,7 @@ interface UseQuestionReturn {
 }
 
 export function useAsnycQuestions(cid: number): UseQuestionReturn {
-  const key = cid && `/api/v1/courses/${cid}/questions`
-  //Subscribe to sse
-  // const isLive = useEventSource(
-  //   cid && `/api/v1/queues/${qid}/sse`,
-  //   "question",
-  //   useCallback(
-  //     (data: SSEQueueResponse) => {
-  //       if (data.questions) {
-  //         mutate(
-  //           key,
-  //           plainToClass(ListQuestionsResponse, data.questions),
-  //           false
-  //         );
-  //       }
-  //     },
-  //     [key]
-  //   )
-  // );
+  const key = cid && `/api/v1/courses/${cid}/asyncQuestions`
 
   const {
     data: questions,
