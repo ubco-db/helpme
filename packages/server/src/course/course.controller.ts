@@ -643,6 +643,7 @@ export class CourseController {
 
   @Delete(':id/withdraw_course')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
+  @Roles(Role.STUDENT, Role.PROFESSOR, Role.TA)
   async withdrawCourse(
     @Param('id') courseId: number,
     @UserId() userId: number,
