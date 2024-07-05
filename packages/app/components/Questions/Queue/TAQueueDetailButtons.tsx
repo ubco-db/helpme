@@ -16,7 +16,7 @@ import {
   RephraseQuestionPayload,
 } from '@koh/common'
 import { message, Popconfirm, Tooltip } from 'antd'
-import React, { ReactElement, useCallback } from 'react'
+import React, { ReactElement, useCallback, useEffect, useState } from 'react'
 import { useQuestions } from '../../../hooks/useQuestions'
 import { useTAInQueueInfo } from '../../../hooks/useTAInQueueInfo'
 import {
@@ -179,6 +179,25 @@ export default function TAQueueDetailButtons({
     await API.questions.notify(question.id)
   }
 
+  const [isFinishHelpingTooltipVisible, setIsFinishHelpingTooltipVisible] =
+    useState(false)
+  const [previousTasksSelectedForMarking, setPreviousTasksSelectedForMarking] =
+    useState<number>(0)
+  // show the isFinishHelpingToolTip for 2 seconds when tasksSelectedForMarking changes
+  useEffect(() => {
+    if (
+      previousTasksSelectedForMarking - tasksSelectedForMarking.length !==
+      0
+    ) {
+      setIsFinishHelpingTooltipVisible(true)
+      setPreviousTasksSelectedForMarking(tasksSelectedForMarking.length)
+    }
+    const timer = setTimeout(() => {
+      setIsFinishHelpingTooltipVisible(false)
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [tasksSelectedForMarking, previousTasksSelectedForMarking])
+
   if (question.status === OpenQuestionStatus.Helping) {
     return (
       <div className={className}>
@@ -217,6 +236,9 @@ export default function TAQueueDetailButtons({
                 : 'Mark All as Done'
               : 'Finish Helping'
           }
+          open={isFinishHelpingTooltipVisible}
+          onMouseEnter={() => setIsFinishHelpingTooltipVisible(true)}
+          onMouseLeave={() => setIsFinishHelpingTooltipVisible(false)}
         >
           <FinishHelpingButton
             icon={<CheckOutlined />}
