@@ -1509,76 +1509,10 @@ function findFirstDuplicate(array: any[]): any {
  * Returns an empty string if there's no errors
  */
 export function validateQueueConfigInput(obj: any): string {
+  //
+  // first manual check the JSON
+  //
   const MAX_JSON_SIZE = 10240 // 10KB
-  //
-  // first validate the json with ajv
-  //
-  const ajv = new Ajv()
-  const schema = {
-    $schema: 'http://json-schema.org/draft-07/schema#',
-    type: 'object',
-    properties: {
-      fifo_queue_view_enabled: { type: 'boolean' },
-      tag_groups_queue_view_enabled: { type: 'boolean' },
-      default_view: { enum: ['fifo', 'tag_groups'] },
-      minimum_tags: { type: 'number' },
-      tags: {
-        type: 'object',
-        patternProperties: {
-          '^[^ ]+$': {
-            type: 'object',
-            properties: {
-              display_name: { type: 'string' },
-              color_hex: {
-                type: 'string',
-                pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
-              },
-            },
-            required: ['display_name', 'color_hex'],
-            additionalProperties: false,
-          },
-        },
-      },
-      assignment_id: { type: 'string', pattern: '^[^ ]*$' },
-      tasks: {
-        type: 'object',
-        patternProperties: {
-          '^[^ ]+$': {
-            type: 'object',
-            properties: {
-              display_name: { type: 'string' },
-              short_display_name: { type: 'string' },
-              blocking: { type: 'boolean' },
-              color_hex: {
-                type: 'string',
-                pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
-              },
-              precondition: { type: ['string', 'null'] },
-            },
-            required: [
-              'display_name',
-              'short_display_name',
-              'color_hex',
-              'precondition',
-            ],
-            additionalProperties: false,
-          },
-        },
-      },
-    },
-    required: [],
-    additionalProperties: false,
-  }
-  const validate = ajv.compile(schema)
-  const obj2 = obj
-  const valid = validate(obj2)
-  if (!valid) {
-    return validate.errors?.map((e) => e.message).join(', ') || 'Unknown error'
-  }
-
-  //
-  // manual checking of the JSON (in case ajv doesn't catch everything. The code below is known to work)
-  //
   const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
   const validAttributes = [
     'fifo_queue_view_enabled',
@@ -1645,7 +1579,7 @@ export function validateQueueConfigInput(obj: any): string {
         typeof obj.tags[tagKey].color_hex !== 'string' ||
         !hexColorRegex.test(obj.tags[tagKey].color_hex)
       ) {
-        return `Tag ${tagKey} must have a valid color_hex of type string`
+        return `Tag ${tagKey} must have a valid color_hex (e.g. #A23F31) of type string`
       }
       for (const key in obj.tags[tagKey]) {
         if (!validTagAttributes.includes(key)) {
@@ -1731,6 +1665,75 @@ export function validateQueueConfigInput(obj: any): string {
   }
   if (new TextEncoder().encode(JSON.stringify(obj)).length > MAX_JSON_SIZE) {
     return 'The JSON object is too large. Maximum size is 10KB.'
+  }
+  //
+  // then validate the json with ajv (in case the above checks don't catch everything)
+  //
+  const ajv = new Ajv()
+  const schema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    properties: {
+      fifo_queue_view_enabled: { type: 'boolean' },
+      tag_groups_queue_view_enabled: { type: 'boolean' },
+      default_view: { enum: ['fifo', 'tag_groups'] },
+      minimum_tags: { type: 'number' },
+      tags: {
+        type: 'object',
+        patternProperties: {
+          '^[^ ]+$': {
+            type: 'object',
+            properties: {
+              display_name: { type: 'string' },
+              color_hex: {
+                type: 'string',
+                pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+              },
+            },
+            required: ['display_name', 'color_hex'],
+            additionalProperties: false,
+          },
+        },
+      },
+      assignment_id: { type: 'string', pattern: '^[^ ]*$' },
+      tasks: {
+        type: 'object',
+        patternProperties: {
+          '^[^ ]+$': {
+            type: 'object',
+            properties: {
+              display_name: { type: 'string' },
+              short_display_name: { type: 'string' },
+              blocking: { type: 'boolean' },
+              color_hex: {
+                type: 'string',
+                pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+              },
+              precondition: { type: ['string', 'null'] },
+            },
+            required: [
+              'display_name',
+              'short_display_name',
+              'color_hex',
+              'precondition',
+            ],
+            additionalProperties: false,
+          },
+        },
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  }
+  const validate = ajv.compile(schema)
+  const obj2 = obj
+  const valid = validate(obj2)
+  if (!valid) {
+    const errorMessages =
+      validate.errors
+        ?.map((e) => `${e.instancePath} ${e.message}`)
+        .join(', ') || 'Unknown error'
+    return errorMessages
   }
   return ''
 }
