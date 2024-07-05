@@ -2,6 +2,11 @@ import { ReactElement, useState } from 'react'
 import { Text } from '../Shared/SharedComponents'
 import { ConfigTasks } from '@koh/common'
 
+/*
+  This component is used when the TA is helping a student (used on the student queue card). 
+  Allows the TA to choose what tasks (of the one's the student is asking to be marked) are good and should be marked 
+*/
+
 interface CheckableMarkingTaskProps {
   taskId: string
   taskName: string
@@ -70,7 +75,10 @@ function CheckableMarkingTask({
         cursor: !decorative ? 'pointer' : undefined,
         border: `1px solid ${!decorative ? taskColor : 'dimgray'}`,
         boxShadow:
-          isHovered && !decorative ? `0 0 0 2px ${taskColor}` : undefined,
+          isHovered && !checked && !decorative
+            ? `0 0 0 2px ${taskColor}`
+            : undefined,
+        position: 'relative',
       }}
       onClick={!decorative ? handleClick : undefined}
       onKeyDown={!decorative ? handleKeyDown : undefined}
@@ -81,7 +89,7 @@ function CheckableMarkingTask({
       tabIndex={!decorative ? 0 : -1}
       role={!decorative ? 'checkbox' : undefined}
       aria-checked={checked}
-      className={checked ? 'glowy' : ''}
+      className={checked ? 'highlight-spin' : ''}
     >
       <Text
         style={{
@@ -129,12 +137,16 @@ export default function TaskMarkingSelector({
       role="group"
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
+      style={{
+        zIndex: 1,
+        position: 'relative',
+      }}
     >
       {Object.entries(configTasks).map(([taskKey, taskValue]) => (
         <CheckableMarkingTask
           key={taskKey}
           taskId={taskKey}
-          taskName={taskValue.display_name}
+          taskName={taskValue.short_display_name}
           taskColor={taskValue.color_hex}
           checked={selectedTasks.includes(taskKey)}
           onChange={handleTaskClick}

@@ -58,13 +58,33 @@ export default function TAQueueDetailButtons({
   const changeStatus = useCallback(
     async (status: QuestionStatus) => {
       try {
-        await API.questions.update(question.id, { status })
+        const responseQuestion = await API.questions.update(question.id, {
+          status,
+        })
         mutateQuestions()
         if (status === ClosedQuestionStatus.Resolved) {
-          message.success('Your Question has ended')
+          if (responseQuestion.isTaskQuestion) {
+            const tasksMarkedDone =
+              responseQuestion.text
+                ?.match(/"(.*?)"/g)
+                ?.map((task) => task.slice(1, -1)) || []
+            if (tasksMarkedDone.length == 0) {
+              message.error('No tasks marked done')
+            } else {
+              message.success(
+                'Marked ' + tasksMarkedDone.join(', ') + ' as done',
+              )
+            }
+          } else {
+            message.success('Your Question has ended')
+          }
         }
       } catch (e) {
-        message.error('Failed to update question status')
+        if (e.body?.message) {
+          message.error('Failed to update question status: ' + e.body.message)
+        } else {
+          message.error('Failed to update question status')
+        }
       }
       // if (status===LimboQuestionStatus.CantFind||status===ClosedQuestionStatus.Resolved){
       // timerCheckout.current = setTimeout(() => {
@@ -76,6 +96,32 @@ export default function TAQueueDetailButtons({
     [question.id, mutateQuestions],
   )
   const { isCheckedIn, isHelping } = useTAInQueueInfo(queueId)
+
+  const markSelected = useCallback(async () => {
+    const newQuestionText = `Mark ${tasksSelectedForMarking
+      .map((task) => `"${task}"`)
+      .join(' ')}`
+    try {
+      const responseQuestion = await API.questions.update(question.id, {
+        status: ClosedQuestionStatus.Resolved,
+        text: newQuestionText,
+      })
+      await mutateQuestions()
+      const tasksMarkedDone =
+        responseQuestion.text
+          ?.match(/"(.*?)"/g)
+          ?.map((task) => task.slice(1, -1)) || []
+      if (tasksMarkedDone.length == 0) {
+        message.error('No tasks marked done')
+      } else {
+        message.success(
+          'Marked ' + tasksSelectedForMarking.join(', ') + ' as done',
+        )
+      }
+    } catch (e) {
+      message.error('Failed to mark tasks as done')
+    }
+  }, [question.id, mutateQuestions, tasksSelectedForMarking])
 
   // const checkOutTA = async ()=>{
   //     // await API.taStatus.checkOut(courseId, queue?.room);
@@ -135,7 +181,7 @@ export default function TAQueueDetailButtons({
 
   if (question.status === OpenQuestionStatus.Helping) {
     return (
-      <>
+      <div className={className}>
         <Popconfirm
           title="Are you sure you want to send this student back to the queue?"
           okText="Yes"
@@ -176,11 +222,18 @@ export default function TAQueueDetailButtons({
             icon={<CheckOutlined />}
             onClick={() => {
               // setCheckOutTimer()
-              changeStatus(ClosedQuestionStatus.Resolved)
+              if (
+                question.isTaskQuestion &&
+                tasksSelectedForMarking.length > 0
+              ) {
+                markSelected()
+              } else {
+                changeStatus(ClosedQuestionStatus.Resolved)
+              }
             }}
           />
         </Tooltip>
-      </>
+      </div>
     )
   } else {
     const [canHelp, helpTooltip] = ((): [boolean, string] => {
