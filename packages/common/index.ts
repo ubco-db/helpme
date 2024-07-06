@@ -1553,6 +1553,15 @@ export function validateQueueConfigInput(obj: any): string {
   ) {
     return 'At least one of fifo_queue_view_enabled and tag_groups_queue_view_enabled must be enabled'
   }
+  if (obj.fifo_queue_view_enabled === false && obj.default_view === 'fifo') {
+    return 'default_view cannot be fifo if the fifo view is disabled'
+  }
+  if (
+    obj.tag_groups_queue_view_enabled === false &&
+    obj.default_view === 'tag_groups'
+  ) {
+    return 'default_view cannot be tag_groups if tag groups view is disabled'
+  }
   if (
     obj.default_view !== undefined &&
     !['fifo', 'tag_groups'].includes(obj.default_view)
