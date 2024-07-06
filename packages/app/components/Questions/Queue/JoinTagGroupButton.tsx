@@ -1,4 +1,3 @@
-import { CheckOutlined } from '@ant-design/icons'
 import {
   OpenQuestionStatus,
   Question,
@@ -33,7 +32,6 @@ const CustomButton = styled(Button)<{ colorstyle: string }>`
   // box shadow makes button seem "pressed" when joined, and "unpressed" when not joined
   box-shadow: ${(props) => (props.colorstyle === 'Leave' ? 'inset' : '')} 0 4px
     4px rgba(0, 0, 0, 0.25);
-  // change hover colors to be light green/red as opposed to blue
   &:hover,
   &:focus {
     border-color: ${(props) =>
@@ -95,7 +93,8 @@ export default function JoinTagGroupButton({
       studentQuestion.status === OpenQuestionStatus.Helping) ||
     (taskId && studentDemo && studentDemo.status === OpenQuestionStatus.Helping)
 
-  const onClick = async () => {
+  const onClick = async (event) => {
+    event.stopPropagation()
     setIsLoading(true)
     const isJoining = !isJoined
     try {

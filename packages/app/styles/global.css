@@ -247,10 +247,12 @@ body {
     top: 0;
   }
 
-  .taggroup .ant-card-body {
+  .tag-group .ant-collapse-content-box {
     padding: 0.9rem;
+    background-color: #f0f4ff;
   }
 
   .tag-group:has(.join-or-leave-tag-group-button:hover) {
-    border-color:lightskyblue;
+    outline: 1px solid lightskyblue;
+    outline-offset: -1px; /* Adjusts the outline to sit just outside the element */
   }

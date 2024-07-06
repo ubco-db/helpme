@@ -1,4 +1,11 @@
-import { ReactElement, useCallback, useState, useEffect, useMemo } from 'react'
+import {
+  ReactElement,
+  useCallback,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react'
 import { useQueue } from '../../../hooks/useQueue'
 import { useQuestions } from '../../../hooks/useQuestions'
 import { useProfile } from '../../../hooks/useProfile'
@@ -33,6 +40,7 @@ import {
   Switch,
   Card,
   Divider,
+  Collapse,
 } from 'antd'
 import TACheckinButton from '../../Today/TACheckinButton'
 import styled from 'styled-components'
@@ -63,6 +71,8 @@ import { AssignmentReportModal } from './AssignmentReportModal'
 import { QuestionType } from '../Shared/QuestionType'
 import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 import JoinTagGroupButton from './JoinTagGroupButton'
+
+const Panel = Collapse.Panel
 
 const Container = styled.div`
   flex: 1;
@@ -156,9 +166,8 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     true,
   )
   const [tagGroupsEnabled, setTagGroupsEnabled] = useState(
-    queue?.config?.default_view === 'tag_groups',
+    queueConfig?.default_view === 'tag_groups',
   )
-
   // Memoize the calculation of isStaff based on relevant profile changes
   const isUserStaff = useMemo(() => {
     return (
@@ -176,6 +185,54 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
   useEffect(() => {
     setIsStaff(isUserStaff)
   }, [isUserStaff])
+
+  // const [openTagGroups, setOpenTagGroups] = useState((questions?.queue?.length > 0 && isStaff) ? Object.keys(configTasks) : []);
+  const [openTagGroups, setOpenTagGroups] = useState<string[]>([])
+  const tagGroupsTimeoutRef = useRef(null) // need to keep track of timeouts so that old timeouts won't keep running when the user starts a new timeout (to prevent flickering when a tag group is spammed open/closed, UX thing)
+  const onOpenTagGroupsChange = (key) => {
+    // Delay before setting the openTagGroups state to allow the css transition to finish
+    // If the old state is the same as the new state, don't set the state again (to prevent unnecessary timeouts) - Needs to be deep equality
+    if (openTagGroups.toString() === key.toString()) {
+      return
+    }
+    // Clear the previous timeout
+    if (tagGroupsTimeoutRef.current) {
+      clearTimeout(tagGroupsTimeoutRef.current)
+    }
+    tagGroupsTimeoutRef.current = setTimeout(() => {
+      setOpenTagGroups(key)
+      tagGroupsTimeoutRef.current = null // Clear the ref once the timeout completes
+    }, 300)
+  }
+
+  const hasDefaultsBeenInitializedRef = useRef(false) // used to track if the defaults have been initialized. Can use when the default value for useState doesn't work due to delayed data
+  useEffect(() => {
+    // Only initialize once when queueConfig becomes defined and hasn't been initialized before
+    if (
+      !hasDefaultsBeenInitializedRef.current &&
+      queueConfig &&
+      configTasks &&
+      questions &&
+      questionTypes
+    ) {
+      // Set default values based on queueConfig
+      const newTagGroupsEnabled = queueConfig.default_view === 'tag_groups'
+      setTagGroupsEnabled(newTagGroupsEnabled)
+
+      // if you're staff and there's less than 10 questions in the queue, open all tag groups by default
+      if (isStaff && questions.queue?.length < 10) {
+        setOpenTagGroups([
+          ...Object.keys(configTasks),
+          ...questionTypes.map((qt) => qt.id.toString()),
+        ])
+      } else {
+        setOpenTagGroups([])
+      }
+
+      // Mark as initialized to prevent future updates
+      hasDefaultsBeenInitializedRef.current = true
+    }
+  }, [queueConfig, configTasks, isStaff, questions, questionTypes])
 
   const helpingQuestions = questions?.questionsGettingHelp?.filter(
     (q) => q.taHelped.id === profileId,
@@ -456,34 +513,6 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     }
   }, [tagGroupsEnabled, configTasks, studentAssignmentProgress])
 
-  // go through each precondition task, if any of them are blocking and not done, return true
-  const isAnyBlockingTaskNotDone = (task: Task, isFirst = true): boolean => {
-    if (task.blocking && !task.isDone && !isFirst) {
-      // isFirst is used to ignore the first task in order to allow the user to join unfinished blocking tasks
-      return true
-    } else if (task.precondition) {
-      return isAnyBlockingTaskNotDone(task.precondition, false)
-    } else {
-      return false
-    }
-  }
-
-  // goal: prevent students from joining a tag group if they don't have all that tasks' preconditions already in their queue demo
-  const isPreconditionsInStudentDemo = useCallback(
-    (task: Task): boolean => {
-      if (task.precondition) {
-        if (studentDemo?.text.includes(` "${task.precondition.taskId}"`)) {
-          return isPreconditionsInStudentDemo(task.precondition)
-        } else {
-          return false
-        }
-      } else {
-        return true
-      }
-    },
-    [studentDemo?.text],
-  )
-
   const isTaskJoinable = (
     task: Task,
     isFirst = true,
@@ -507,7 +536,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
     // Goal: Before leaving, the student's demo must not have any tasks that depend on this task
     if (isFirst) {
       if (
-        Object.entries(taskTree).some(([taskId, tempTask]) => {
+        Object.entries(taskTree).some(([, tempTask]) => {
           return (
             tempTask.precondition?.taskId === task.taskId &&
             studentDemoText?.includes(` "${tempTask.taskId}"`)
@@ -566,6 +595,8 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
       <QueueInfoColumn
         queueId={qid}
         isStaff={true}
+        tagGroupsEnabled={tagGroupsEnabled}
+        setTagGroupsEnabled={setTagGroupsEnabled}
         buttons={
           <>
             <Tooltip
@@ -623,6 +654,8 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
       <QueueInfoColumn
         queueId={qid}
         isStaff={false}
+        tagGroupsEnabled={tagGroupsEnabled}
+        setTagGroupsEnabled={setTagGroupsEnabled}
         hasDemos={isDemoQueue}
         buttons={
           <>
@@ -721,20 +754,35 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
               {tagGroupsEnabled ? 'Queue Groups By Tag' : 'Queue'}
             </QueueHeader>
           )}
-          <Switch
-            defaultChecked={tagGroupsEnabled}
-            onChange={() => setTagGroupsEnabled(!tagGroupsEnabled)}
-            checkedChildren={
-              <div className="flex min-h-[12px] flex-col items-center justify-center">
-                <div className="mb-[2px] min-h-[5px] w-full rounded-[1px] border border-gray-300" />
-                <div className="min-h-[5px] w-full rounded-[1px] border border-gray-300" />
-              </div>
-            }
-            unCheckedChildren={<MenuOutlined />}
-          />
+          {!(
+            queueConfig.fifo_queue_view_enabled === false ||
+            queueConfig.tag_groups_queue_view_enabled === false
+          ) ? (
+            <Switch
+              className="hidden sm:block" // only show on desktop
+              defaultChecked={tagGroupsEnabled}
+              onChange={() => {
+                setTimeout(() => {
+                  // do a timeout to allow the animation to play
+                  setTagGroupsEnabled(!tagGroupsEnabled)
+                }, 200)
+              }}
+              checkedChildren={
+                <div className="flex min-h-[12px] flex-col items-center justify-center">
+                  <div className="mb-[2px] min-h-[5px] w-full rounded-[1px] border border-gray-300" />
+                  <div className="min-h-[5px] w-full rounded-[1px] border border-gray-300" />
+                </div>
+              }
+              unCheckedChildren={<MenuOutlined />}
+            />
+          ) : null}
         </div>
         {tagGroupsEnabled ? (
-          <>
+          <Collapse
+            onChange={onOpenTagGroupsChange}
+            className="border-none"
+            defaultActiveKey={openTagGroups}
+          >
             {/* tasks (for demos/TaskQuestions) */}
             {taskTree &&
               Object.entries(taskTree).map(([taskKey, task]) => {
@@ -749,13 +797,12 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                   },
                 )
                 return (
+                  filteredQuestions &&
                   ((isStaff && filteredQuestions.length > 0) || !isStaff) && (
-                    <Card
-                      size="small"
-                      type="inner"
-                      className="tag-group mb-3 rounded bg-[#f0f4ff] shadow-lg"
+                    <Panel
+                      className="tag-group mb-3 rounded bg-white shadow-lg"
                       key={taskKey}
-                      title={
+                      header={
                         <div className="flex justify-between">
                           <div>
                             <QuestionType
@@ -786,7 +833,11 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                                 isDone={task.isDone}
                                 taskId={taskKey}
                                 disabled={
-                                  !isTaskJoinable(task, true, studentDemo?.text)
+                                  !isTaskJoinable(
+                                    task,
+                                    true,
+                                    studentDemo?.text,
+                                  ) || queue.staffList?.length < 1
                                 }
                               />
                             )}
@@ -796,8 +847,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                     >
                       {filteredQuestions.map(
                         (question: Question, index: number) => {
-                          const isMyQuestion =
-                            (question.id === question.id) === studentDemoId
+                          const isMyQuestion = question.id === studentDemoId
                           const background_color = isMyQuestion
                             ? 'bg-teal-200/25'
                             : 'bg-white'
@@ -813,18 +863,22 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                               studentAssignmentProgress={
                                 studentAssignmentProgress
                               }
+                              isMyQuestion={isMyQuestion}
                               className={background_color}
                             />
                           )
                         },
                       )}
-                    </Card>
+                    </Panel>
                   )
                 )
               })}
-            <Divider className="-mx-4 my-2 w-[calc(100%+2rem)] border-[#cfd6de]" />
+            <Divider
+              className="-mx-4 my-2 w-[calc(100%+2rem)] border-[#cfd6de]"
+              key="DIVIDER"
+            />
             {/* questionTypes/tags (for regular questions) */}
-            {questionTypes?.map((tag, tagIndex) => {
+            {questionTypes?.map((tag) => {
               // naming this "tags" to make some code slightly easier to follow
               const filteredQuestions = questions?.filter(
                 (question: Question) =>
@@ -833,13 +887,12 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                   ),
               )
               return (
+                filteredQuestions &&
                 ((isStaff && filteredQuestions.length > 0) || !isStaff) && (
-                  <Card
-                    size="small"
-                    type="inner"
-                    className="tag-group mb-3 rounded bg-[#f0f4ff] shadow-lg"
-                    key={tagIndex}
-                    title={
+                  <Panel
+                    className="tag-group mb-3 rounded bg-white shadow-lg"
+                    key={tag.id.toString()}
+                    header={
                       <div className="flex justify-between">
                         <div>
                           <QuestionType
@@ -862,6 +915,7 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                             updateQuestion={finishQuestionOrDemo}
                             leaveQueue={leaveQueue}
                             questionType={tag}
+                            disabled={queue.staffList?.length < 1}
                           />
                         )}
                       </div>
@@ -885,16 +939,17 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                             studentAssignmentProgress={
                               studentAssignmentProgress
                             }
+                            isMyQuestion={isMyQuestion}
                             className={background_color}
                           />
                         )
                       },
                     )}
-                  </Card>
+                  </Panel>
                 )
               )
             })}
-          </>
+          </Collapse>
         ) : (
           questions?.map((question: Question, index: number) => {
             const isMyQuestion =
