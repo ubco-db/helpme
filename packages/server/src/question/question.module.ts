@@ -7,10 +7,12 @@ import { QuestionSubscriber } from './question.subscriber';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueService } from '../queue/queue.service';
 import { AlertsService } from '../alerts/alerts.service';
+import { ApplicationConfigService } from '../config/application_config.service';
 
 @Module({
   controllers: [QuestionController],
   providers: [
+    ApplicationConfigService,
     QuestionSubscriber,
     QueueService,
     AlertsService,

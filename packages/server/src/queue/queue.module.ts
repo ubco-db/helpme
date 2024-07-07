@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { QueueController } from './queue.controller';
 import { QueueCleanService } from './queue-clean/queue-clean.service';
 import { SSEModule } from 'sse/sse.module';
@@ -8,19 +8,20 @@ import { QueueSubscriber } from './queue.subscriber';
 import { AlertsService } from '../alerts/alerts.service';
 import { AlertsModule } from '../alerts/alerts.module';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
-import { ApplicationConfigModule } from '../config/application_config.module';
+import { ApplicationConfigService } from '../config/application_config.service';
 
 @Module({
   controllers: [QueueController],
   providers: [
     QueueCleanService,
     QueueService,
+    ApplicationConfigService,
     QueueSSEService,
     QueueSubscriber,
     AlertsService,
     RedisQueueService,
   ],
   exports: [QueueCleanService, QueueSSEService],
-  imports: [SSEModule, AlertsModule, ApplicationConfigModule],
+  imports: [ApplicationConfigService, SSEModule, AlertsModule],
 })
 export class QueueModule {}

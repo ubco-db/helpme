@@ -7,7 +7,7 @@ import { CourseService } from './course.service';
 import { HeatmapService } from './heatmap.service';
 import { OrganizationModule } from 'organization/organization.module';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
-import { ApplicationConfigModule } from '../config/application_config.module';
+import { ApplicationConfigService } from '../config/application_config.service';
 
 @Module({
   controllers: [CourseController],
@@ -23,7 +23,7 @@ import { ApplicationConfigModule } from '../config/application_config.module';
     HeatmapService,
     CourseService,
     RedisQueueService,
-    ApplicationConfigModule,
+    ApplicationConfigService,
   ],
 })
 export class CourseModule {}
