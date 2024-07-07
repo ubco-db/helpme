@@ -316,7 +316,7 @@ describe('Course Integration', () => {
 
       await supertest({ userId: student.id })
         .post(`/courses/${queue.course.id}/ta_location/${queue.room}`)
-        .expect(401);
+        .expect(403);
 
       const events = await EventModel.find();
       expect(events.length).toBe(0);
@@ -455,7 +455,7 @@ describe('Course Integration', () => {
 
       await supertest({ userId: student.id })
         .delete(`/courses/${scf.courseId}/ta_location/The Alamo`)
-        .expect(401);
+        .expect(403);
     });
 
     it('tests nothing happens if ta not in queue', async () => {
@@ -1123,7 +1123,7 @@ describe('Course Integration', () => {
   });
 
   describe('POST /courses/:id/add_student/:sid', () => {
-    it('should return 401 if user is not a professor', async () => {
+    it('should return 403 if user is not a professor', async () => {
       const course = await CourseFactory.create();
       const student = await UserFactory.create();
 
@@ -1135,7 +1135,7 @@ describe('Course Integration', () => {
 
       await supertest({ userId: student.id })
         .post(`/courses/${course.id}/add_student/${student.id}`)
-        .expect(401);
+        .expect(403);
     });
 
     it('should return 401 if user not authorized', async () => {
@@ -1308,7 +1308,7 @@ describe('Course Integration', () => {
       expect(resp.status).toBe(400);
     });
 
-    it('should return 401 if user is not a professor', async () => {
+    it('should return 403 if user is not a professor', async () => {
       const studentUser = await UserFactory.create();
       const course = await CourseFactory.create();
 
@@ -1321,7 +1321,7 @@ describe('Course Integration', () => {
       const resp = await supertest({ userId: studentUser.id }).patch(
         `/courses/${course.id}/update_user_role/${studentUser.id}/${Role.TA}`,
       );
-      expect(resp.status).toBe(401);
+      expect(resp.status).toBe(403);
     });
 
     it('should successfully update user role', async () => {
@@ -1378,11 +1378,11 @@ describe('Course Integration', () => {
       });
     });
 
-    it('should return 401 if user is not a professor', async () => {
+    it('should return 403 if user is not a professor', async () => {
       await supertest({ userId: student.id })
         .patch(`/courses/1/features`)
         .send({ value: false, feature: 'chatBotEnabled' })
-        .expect(401);
+        .expect(403);
     });
 
     it('should return 401 if user is not authorized', async () => {

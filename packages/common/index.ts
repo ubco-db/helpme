@@ -1117,7 +1117,8 @@ export class QuestionTypeParams {
   color?: string
 
   @IsInt()
-  queueId!: number
+  @IsOptional()
+  queueId?: number
 }
 
 export class QuestionTypeParamsWithOptionalQueueId {
