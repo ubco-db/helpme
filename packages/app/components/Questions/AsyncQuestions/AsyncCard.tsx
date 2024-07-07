@@ -1,5 +1,5 @@
 import React, { ReactElement, useState } from 'react'
-import { Button, message } from 'antd'
+import { Button, Col, message, Row } from 'antd'
 import { Text } from '../Shared/SharedComponents'
 import { QuestionType } from '../Shared/QuestionType'
 import { KOHAvatar } from '../../common/SelfAvatar'
@@ -92,7 +92,7 @@ export default function AsyncCard({
 
   return (
     <div
-      className={`mb-2 mt-2 flex rounded-lg bg-white p-2 shadow-lg ${
+      className={`mb-2 mt-2 flex flex-col rounded-lg bg-white p-2 shadow-lg ${
         question.status === asyncQuestionStatus.HumanAnswered ||
         question.status === asyncQuestionStatus.AIAnsweredResolved
           ? 'bg-green-100/50'
@@ -100,130 +100,141 @@ export default function AsyncCard({
       }`}
       onClick={() => setIsExpanded(!isExpanded)}
     >
-      <div className="mr-4 flex flex-col items-center justify-center">
-        <Button
-          type="text"
-          icon={
-            <UpOutlined
-              style={thisUserThisQuestionVote == 1 ? { color: 'green' } : {}}
-            />
-          }
-          onClick={(e) => {
-            e.stopPropagation() // Prevent card expansion
-            handleVote(question.id, 1)
-          }}
-        />
-        <div className="my-2 flex items-center justify-center">{voteCount}</div>
-        <Button
-          type="text"
-          icon={
-            <DownOutlined
-              style={thisUserThisQuestionVote == -1 ? { color: 'red' } : {}}
-            />
-          }
-          onClick={(e) => {
-            e.stopPropagation() // Prevent card expansion
-            handleVote(question.id, -1)
-          }}
-        />
-      </div>
+      <Row wrap={false} className="">
+        <Col flex="none" className="mr-4 items-center justify-center">
+          <Button
+            type="text"
+            icon={
+              <UpOutlined
+                style={thisUserThisQuestionVote == 1 ? { color: 'green' } : {}}
+              />
+            }
+            onClick={(e) => {
+              e.stopPropagation() // Prevent card expansion
+              handleVote(question.id, 1)
+            }}
+          />
+          <div className="my-2 flex items-center justify-center">
+            {voteCount}
+          </div>
+          <Button
+            type="text"
+            icon={
+              <DownOutlined
+                style={thisUserThisQuestionVote == -1 ? { color: 'red' } : {}}
+              />
+            }
+            onClick={(e) => {
+              e.stopPropagation() // Prevent card expansion
+              handleVote(question.id, -1)
+            }}
+          />
+        </Col>
 
-      <div className="flex w-full flex-grow flex-col">
-        <div className="mb-4">
-          <div className="justify between flex items-start">
-            {isStaff || userId == question.creatorId ? (
-              <>
-                <KOHAvatar
-                  size={46}
-                  name={question.creator.name}
-                  photoURL={question.creator.photoURL}
-                  className="mr-3" // Tailwind margin right
-                />
+        <Col flex="auto" className="w-full">
+          <div className="mb-4">
+            <div className="justify between flex items-start">
+              {isStaff || userId == question.creatorId ? (
+                <>
+                  <KOHAvatar
+                    size={46}
+                    name={question.creator.name}
+                    photoURL={question.creator.photoURL}
+                    className="mr-3" // Tailwind margin right
+                  />
+                  <div className="flex-grow text-sm italic">
+                    {question.creator.name}
+                  </div>
+                </>
+              ) : (
                 <div className="flex-grow text-sm italic">
-                  {question.creator.name}
+                  Anonymous Student
                 </div>
-              </>
-            ) : (
-              <div className="flex-grow text-sm italic">Anonymous Student</div>
-            )}
-            <div
-              className={`flex flex-grow items-center justify-center rounded-full px-2 py-1
+              )}
+              <div
+                className={`flex flex-grow items-center justify-center rounded-full px-2 py-1
           ${
             question.status === asyncQuestionStatus.HumanAnswered
               ? 'bg-green-200'
               : 'bg-yellow-200'
           }`}
-            >
-              {statusDisplayMap[question.status]}
-            </div>
-            <div className="flex items-center">
-              <Text className="text-sm">{getAsyncWaitTime(question)}</Text>
-              {isStaff && (
-                <>
-                  <TAquestionDetailButtons
-                    question={question}
-                    hasUnresolvedRephraseAlert={false}
-                    setIsExpandedTrue={setIsExpandedTrue}
-                  />
-                </>
-              )}
-              {userId === question.creatorId &&
-              question.status === asyncQuestionStatus.AIAnswered ? (
-                <>
-                  {/* Students can edit their own questions, but only if question is not resolved, note that AIAnswer is default */}
-                  <StudentQuestionDetailButtons
-                    question={question}
-                    setIsExpandedTrue={setIsExpandedTrue}
-                    onStatusChange={onStatusChange}
-                  />
-                </>
-              ) : (
-                <></>
-              )}
-            </div>
-          </div>
-          <div>
-            <h4 className="font-bold">{question.questionAbstract}</h4>
-            {isExpanded && (
-              <div>
-                {question.questionText && <Text>{question.questionText}</Text>}
-
-                {question.answerText ? (
+              >
+                {statusDisplayMap[question.status]}
+              </div>
+              <div className="flex items-center">
+                <Text className="text-sm">{getAsyncWaitTime(question)}</Text>
+                {isStaff && (
                   <>
-                    <br />
-                    <div>
-                      <strong>Answer:</strong>
-                      <Text>{question.answerText}</Text>
-                    </div>
+                    <TAquestionDetailButtons
+                      question={question}
+                      hasUnresolvedRephraseAlert={false}
+                      setIsExpandedTrue={setIsExpandedTrue}
+                    />
+                  </>
+                )}
+                {userId === question.creatorId &&
+                question.status === asyncQuestionStatus.AIAnswered ? (
+                  <>
+                    {/* Students can edit their own questions, but only if question is not resolved, note that AIAnswer is default */}
+                    <StudentQuestionDetailButtons
+                      question={question}
+                      setIsExpandedTrue={setIsExpandedTrue}
+                      onStatusChange={onStatusChange}
+                    />
                   </>
                 ) : (
                   <></>
                 )}
               </div>
+            </div>
+            <div>
+              <h4 className="font-bold">{question.questionAbstract}</h4>
+              {isExpanded && (
+                <div>
+                  {question.questionText && (
+                    <Text>{question.questionText}</Text>
+                  )}
+
+                  {question.answerText ? (
+                    <>
+                      <br />
+                      <div>
+                        <strong>Answer:</strong>
+                        <Text>{question.answerText}</Text>
+                      </div>
+                    </>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex flex-wrap">
+              {question.questionTypes?.map((questionType, index) => (
+                <QuestionType
+                  key={index}
+                  typeName={questionType.name}
+                  typeColor={questionType.color}
+                  onClick={() => onQuestionTypeClick(questionType.id)}
+                />
+              ))}
+            </div>
+          </div>
+          {question.status === asyncQuestionStatus.AIAnswered &&
+            userId === question.creatorId && (
+              <FlashingSection shouldFlash={shouldFlash}>
+                {/* Students vote on whether they still need faculty help */}
+                <Button onClick={() => handleFeedback(true)}>Satisfied</Button>
+                <Button type="primary" onClick={() => handleFeedback(false)}>
+                  Still need faculty Help
+                </Button>
+              </FlashingSection>
             )}
-          </div>
-          <div className="flex flex-wrap">
-            {question.questionTypes?.map((questionType, index) => (
-              <QuestionType
-                key={index}
-                typeName={questionType.name}
-                typeColor={questionType.color}
-                onClick={() => onQuestionTypeClick(questionType.id)}
-              />
-            ))}
-          </div>
-        </div>
-        {question.status === asyncQuestionStatus.AIAnswered &&
-          userId === question.creatorId && (
-            <FlashingSection shouldFlash={shouldFlash}>
-              {/* Students vote on whether they still need faculty help */}
-              <Button onClick={() => handleFeedback(true)}>Satisfied</Button>
-              <Button type="primary" onClick={() => handleFeedback(false)}>
-                Still need faculty Help
-              </Button>
-            </FlashingSection>
-          )}
-      </div>
+        </Col>
+      </Row>
+      <Row className="justify-center">
+        {isExpanded ? <UpOutlined /> : <DownOutlined />}
+      </Row>
     </div>
   )
 }
