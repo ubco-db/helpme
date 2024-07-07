@@ -1,6 +1,5 @@
 import {
   asyncQuestionStatus,
-  CoursePartial,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
   EditCourseInfoParams,
@@ -56,6 +55,7 @@ import { OrganizationCourseModel } from 'organization/organization-course.entity
 import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
+import { ApplicationConfigService } from '../config/application_config.service';
 import { Not, getManager } from 'typeorm';
 import { pick } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
@@ -68,17 +68,8 @@ export class CourseController {
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
     private courseService: CourseService,
+    private readonly appConfig: ApplicationConfigService,
   ) {}
-
-  // get all courses
-  @Get()
-  async getAllCourses(): Promise<CoursePartial[]> {
-    const courses = await CourseModel.find();
-    if (!courses) {
-      throw new NotFoundException();
-    }
-    return courses.map((course) => ({ id: course.id, name: course.name }));
-  }
 
   @Get(':oid/organization_courses')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -90,6 +81,7 @@ export class CourseController {
       where: {
         organizationId: oid,
       },
+      take: 200,
       relations: ['course'],
     });
 
@@ -139,6 +131,7 @@ export class CourseController {
       order: {
         createdAt: 'DESC',
       },
+      take: this.appConfig.get('max_async_questions_per_course'),
     });
 
     if (!all) {
@@ -551,6 +544,17 @@ export class CourseController {
         ERROR_MESSAGES.courseController.queueNotAuthorized,
       );
     }
+    const queuesCount = await QueueModel.count({
+      courseId,
+    });
+
+    if (queuesCount >= this.appConfig.get('max_queues_per_course')) {
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.queueLimitReached,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     try {
       let createdQueue = null;
       const entityManager = getManager();
@@ -683,6 +687,7 @@ export class CourseController {
 
   @Delete(':id/withdraw_course')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
+  @Roles(Role.STUDENT, Role.PROFESSOR, Role.TA)
   async withdrawCourse(
     @Param('id') courseId: number,
     @UserId() userId: number,

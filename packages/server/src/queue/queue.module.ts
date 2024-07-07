@@ -7,6 +7,7 @@ import { QueueSSEService } from './queue-sse.service';
 import { QueueSubscriber } from './queue.subscriber';
 import { AlertsService } from '../alerts/alerts.service';
 import { AlertsModule } from '../alerts/alerts.module';
+import { ApplicationConfigModule } from '../config/application_config.module';
 
 @Module({
   controllers: [QueueController],
@@ -18,6 +19,6 @@ import { AlertsModule } from '../alerts/alerts.module';
     AlertsService,
   ],
   exports: [QueueCleanService, QueueSSEService],
-  imports: [SSEModule, AlertsModule],
+  imports: [SSEModule, AlertsModule, ApplicationConfigModule],
 })
 export class QueueModule {}

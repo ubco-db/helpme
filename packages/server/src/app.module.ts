@@ -28,11 +28,13 @@ import { ChatbotModule } from './chatbot/chatbot.module';
 import { OrganizationModule } from './organization/organization.module';
 import { QuestionTypeModule } from './questionType/questionType.module';
 import { StudentTaskProgressModule } from './studentTaskProgress/studentTaskProgress.module';
+import { ApplicationConfigModule } from 'config/application_config.module';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot(typeormConfig),
     ScheduleModule.forRoot(),
+    ApplicationConfigModule,
     LoginModule,
     ProfileModule,
     CourseModule,

@@ -5,7 +5,8 @@ import { LoginCourseService } from '../login/login-course.service';
 import { CourseController } from './course.controller';
 import { CourseService } from './course.service';
 import { HeatmapService } from './heatmap.service';
-import { OrganizationModule } from 'organization/organization.module';
+import { OrganizationModule } from '../organization/organization.module';
+import { ApplicationConfigModule } from '../config/application_config.module';
 
 @Module({
   controllers: [CourseController],
@@ -14,6 +15,7 @@ import { OrganizationModule } from 'organization/organization.module';
     LoginModule,
     CacheModule.register(),
     OrganizationModule,
+    ApplicationConfigModule,
   ],
   providers: [LoginCourseService, HeatmapService, CourseService],
 })

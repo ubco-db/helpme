@@ -10,19 +10,22 @@ import {
   Param,
   Post,
   Res,
+  HttpStatus,
 } from '@nestjs/common';
 import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { QuestionTypeModel } from './question-type.entity';
 import { Response } from 'express';
-import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { IsNull, getManager } from 'typeorm';
 import { QueueModel } from '../queue/queue.entity';
+import { ApplicationConfigService } from 'config/application_config.service';
+import { CourseRolesGuard } from 'guards/course-roles.guard';
 
 @Controller('questionType')
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionTypeController {
+  constructor(private readonly appConfig: ApplicationConfigService) {}
   @Post(':courseId')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
@@ -35,10 +38,27 @@ export class QuestionTypeController {
     if (typeof queueId !== 'number' || isNaN(queueId)) {
       queueId = null;
     }
+
+    const questionTypeCount = await QuestionTypeModel.count({
+      where: {
+        cid: courseId,
+        queueId: queueId !== null ? queueId : IsNull(),
+      },
+    });
+
+    if (
+      questionTypeCount >= this.appConfig.get('max_question_types_per_queue')
+    ) {
+      res.status(HttpStatus.BAD_REQUEST).send({
+        message: 'Queue has reached maximum number of question types',
+      });
+      return;
+    }
+
     const questionType = await QuestionTypeModel.findOne({
       where: {
         cid: courseId,
-        queueId: queueId,
+        queueId: queueId !== null ? queueId : IsNull(),
         name: newQuestionType.name,
       },
     });
@@ -105,6 +125,7 @@ export class QuestionTypeController {
         cid: courseId,
         queueId: queueId !== null ? queueId : IsNull(),
       },
+      take: this.appConfig.get('max_question_types_per_queue'),
     });
     if (questionTypes.length === 0) {
       res.status(404).send('No Question Types Found');
