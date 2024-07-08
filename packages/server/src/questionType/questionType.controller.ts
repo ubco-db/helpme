@@ -20,12 +20,16 @@ import { IsNull, getManager } from 'typeorm';
 import { QueueModel } from '../queue/queue.entity';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
+import { QuestionTypeService } from './questionType.service';
 
 @Controller('questionType')
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionTypeController {
-  constructor(private readonly appConfig: ApplicationConfigService) {}
+  constructor(
+    private readonly appConfig: ApplicationConfigService,
+    private questionTypeService: QuestionTypeService,
+  ) {}
   @Post(':courseId')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
@@ -45,7 +49,6 @@ export class QuestionTypeController {
         queueId: queueId !== null ? queueId : IsNull(),
       },
     });
-
     if (
       questionTypeCount >= this.appConfig.get('max_question_types_per_queue')
     ) {
@@ -55,57 +58,20 @@ export class QuestionTypeController {
       return;
     }
 
-    const questionType = await QuestionTypeModel.findOne({
-      where: {
-        cid: courseId,
-        queueId: queueId !== null ? queueId : IsNull(),
-        name: newQuestionType.name,
-      },
-    });
-    if (!questionType) {
-      try {
-        await getManager().transaction(async (transactionalEntityManager) => {
-          if (queueId) {
-            // update the queue's config to include the new question type
-            const queue = await transactionalEntityManager.findOne(
-              QueueModel,
-              queueId,
-            );
-            queue.config = queue.config || {}; // just in case it's null
-            queue.config.tags = queue.config.tags || {}; // just in case it's undefined
-
-            // generate a new tag id based on the question type name
-            const newTagId = newQuestionType.name.replace(/[\{\}"\:\,]/g, '');
-            if (newTagId.length === 0) {
-              throw new Error('Name cannot only be made of illegal characters');
-            }
-            // make sure there's no duplicate tag id
-            if (queue.config.tags[newTagId]) {
-              throw new Error(`tagId ${newTagId} already exists`);
-            }
-            queue.config.tags[newTagId] = {
-              display_name: newQuestionType.name,
-              color_hex: newQuestionType.color,
-            };
-            await transactionalEntityManager.save(queue);
-          }
-          await transactionalEntityManager
-            .create(QuestionTypeModel, {
-              cid: courseId,
-              name: newQuestionType.name,
-              color: newQuestionType.color,
-              queueId: queueId,
-            })
-            .save();
-        });
-        res.status(200).send(`Successfully created ${newQuestionType.name}`);
-        return;
-      } catch (e) {
-        res.status(400).send(e.message);
-        return;
+    try {
+      const successMessage = await this.questionTypeService.addQuestionType(
+        courseId,
+        queueId,
+        newQuestionType,
+      );
+      res.status(HttpStatus.OK).send(successMessage);
+      return;
+    } catch (e) {
+      if (e.response && e.status) {
+        res.status(e.status).send(e.response.message);
+      } else {
+        res.status(HttpStatus.INTERNAL_SERVER_ERROR).send(e.message);
       }
-    } else {
-      res.status(400).send(`${questionType.name} already exists`);
       return;
     }
   }
@@ -133,10 +99,10 @@ export class QuestionTypeController {
       take: this.appConfig.get('max_question_types_per_queue'),
     });
     if (questionTypes.length === 0) {
-      res.status(404).send('No Question Types Found');
+      res.status(HttpStatus.NOT_FOUND).send('No Question Types Found');
       return;
     }
-    res.status(200).send(questionTypes);
+    res.status(HttpStatus.OK).send(questionTypes);
   }
 
   // TODO: make it so that this "soft" deletes a questionType so that it can still be used for statistics using
@@ -154,11 +120,10 @@ export class QuestionTypeController {
     const questionType = await QuestionTypeModel.findOne({
       where: {
         id: questionTypeId,
-        // cid: courseId,
       },
     });
     if (!questionType) {
-      res.status(404).send('Question Type not found');
+      res.status(HttpStatus.NOT_FOUND).send('Question Type not found');
       return;
     }
     try {
@@ -186,10 +151,12 @@ export class QuestionTypeController {
         }
       });
     } catch (e) {
-      res.status(400).send(`Error deleting ${questionType.name}`);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .send(`Error deleting ${questionType.name}`);
       return;
     }
-    res.status(200).send(`Successfully deleted ${questionType.name}`);
+    res.status(HttpStatus.OK).send(`Successfully deleted ${questionType.name}`);
     return;
   }
 }

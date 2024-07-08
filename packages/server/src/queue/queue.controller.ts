@@ -29,7 +29,6 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { UserId } from 'decorators/user.decorator';
-import { getManager } from 'typeorm';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { QueueCleanService } from './queue-clean/queue-clean.service';
@@ -40,7 +39,6 @@ import { QueueModel } from './queue.entity';
 import { QueueService } from './queue.service';
 import { QuestionModel } from '../question/question.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
-import { QuestionTypeModel } from 'questionType/question-type.entity';
 
 @Controller('queues')
 @UseGuards(JwtAuthGuard, QueueRolesGuard, EmailVerifiedGuard)
@@ -218,82 +216,11 @@ export class QueueController {
       return;
     }
 
-    let queue: QueueModel;
     try {
-      queue = await this.queueService.getQueue(queueId);
-    } catch {
-      res
-        .status(HttpStatus.NOT_FOUND)
-        .send({ message: ERROR_MESSAGES.queueRoleGuard.queueNotFound });
+      const questionTypeMessages =
+        await this.queueService.updateQueueConfigAndTags(queueId, newConfig);
+      res.status(HttpStatus.OK).send({ questionTypeMessages });
       return;
-    }
-
-    const oldConfig: QueueConfig = queue.config ?? { tags: {} };
-    const questionTypeMessages: string[] = []; // this will contain messages about what question types were created, updated, or deleted
-
-    try {
-      await getManager().transaction(async (transactionalEntityManager) => {
-        // update the question types
-        // to do so, compare the tag ids of the old config vs the new config:
-        // - if there's a new tag id, make a new question type
-        // - if there's a missing tag id, delete the question type
-        // - if there's a tag id that's in both, update the question type
-
-        // tags to delete
-        const oldTagKeys =
-          oldConfig && oldConfig.tags ? Object.keys(oldConfig.tags) : [];
-        const newTagKeys = Object.keys(newConfig.tags);
-        const tagsToDelete = oldTagKeys.filter(
-          (tag) => !newTagKeys.includes(tag),
-        );
-        for (const tagId of tagsToDelete) {
-          const deleted = await transactionalEntityManager.delete(
-            QuestionTypeModel,
-            { queueId, name: oldConfig.tags[tagId].display_name },
-          );
-          if (deleted.affected > 0) {
-            questionTypeMessages.push(
-              `Deleted tag: ${oldConfig.tags[tagId].display_name}`,
-            );
-          }
-        }
-
-        // tags to update or create
-        for (const [newTagId, newTag] of Object.entries(newConfig.tags)) {
-          if (oldConfig && oldConfig.tags && oldConfig.tags[newTagId]) {
-            // update the question type if the color_hex or display_name has changed
-            const oldTag = oldConfig.tags[newTagId];
-            if (
-              oldTag.color_hex !== newTag.color_hex ||
-              oldTag.display_name !== newTag.display_name
-            ) {
-              const updated = await transactionalEntityManager.update(
-                QuestionTypeModel,
-                { queueId, name: oldTag.display_name },
-                { color: newTag.color_hex, name: newTag.display_name },
-              );
-              if (updated.affected > 0) {
-                questionTypeMessages.push(
-                  `Updated tag: ${newTag.display_name}`,
-                );
-              }
-            }
-          } else {
-            // create a new question type
-            await transactionalEntityManager.insert(QuestionTypeModel, {
-              queueId,
-              cid: queue.courseId,
-              color: newTag.color_hex,
-              name: newTag.display_name,
-            });
-            questionTypeMessages.push(`Created tag: ${newTag.display_name}`);
-          }
-        }
-
-        // set config for a queue
-        queue.config = newConfig;
-        await transactionalEntityManager.save(queue);
-      });
     } catch (err) {
       console.error(err); // internal server error: figure out what went wrong
       res
@@ -301,7 +228,5 @@ export class QueueController {
         .send({ message: ERROR_MESSAGES.queueController.saveQueue });
       return;
     }
-    res.send({ questionTypeMessages });
-    return;
   }
 }
