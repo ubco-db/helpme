@@ -27,11 +27,18 @@ import { MailModule } from 'mail/mail.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
 import { OrganizationModule } from 'organization/organization.module';
 import { QuestionTypeModule } from 'questionType/questionType.module';
+import { RedisQueueModule } from 'redisQueue/redis-queue.module';
 import { ApplicationConfigModule } from 'config/application_config.module';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot(typeormConfig),
+    // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store
+    RedisModule.register([
+      { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
+      { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
+      { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
+    ]),
     ScheduleModule.forRoot(),
     ApplicationConfigModule,
     LoginModule,
@@ -56,12 +63,6 @@ import { ApplicationConfigModule } from 'config/application_config.module';
     SSEModule,
     BackfillModule,
     InsightsModule,
-    // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store
-    RedisModule.register([
-      { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
-      { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
-      { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
-    ]),
     HealthcheckModule,
     AlertsModule,
     SemesterModule,
@@ -69,6 +70,7 @@ import { ApplicationConfigModule } from 'config/application_config.module';
     OrganizationModule,
     AuthModule,
     QuestionTypeModule,
+    RedisQueueModule,
   ],
 })
 export class AppModule {}

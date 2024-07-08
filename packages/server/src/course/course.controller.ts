@@ -56,6 +56,7 @@ import { ConfigService } from '@nestjs/config';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { Not } from 'typeorm';
 import { pick } from 'lodash';
+import { RedisQueueService } from '../redisQueue/redis-queue.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -65,6 +66,7 @@ export class CourseController {
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
     private courseService: CourseService,
+    private redisQueueService: RedisQueueService,
     private readonly appConfig: ApplicationConfigService,
   ) {}
 
@@ -119,17 +121,33 @@ export class CourseController {
       return;
     }
 
-    const all = await AsyncQuestionModel.find({
-      where: {
-        courseId: cid,
-        status: Not(asyncQuestionStatus.StudentDeleted),
-      },
-      relations: ['creator', 'taHelped', 'votes'],
-      order: {
-        createdAt: 'DESC',
-      },
-      take: this.appConfig.get('max_async_questions_per_course'),
-    });
+    const asyncQuestionKeys = await this.redisQueueService.getKey(
+      `c:${cid}:aq`,
+    );
+    let all: AsyncQuestionModel[] = [];
+
+    if (Object.keys(asyncQuestionKeys).length === 0) {
+      console.log('Fetching from Database');
+      all = await AsyncQuestionModel.find({
+        where: {
+          courseId: cid,
+          status: Not(asyncQuestionStatus.StudentDeleted),
+        },
+        relations: ['creator', 'taHelped', 'votes'],
+        order: {
+          createdAt: 'DESC',
+        },
+        take: this.appConfig.get('max_async_questions_per_course'),
+      });
+
+      if (all)
+        await this.redisQueueService.setAsyncQuestions(`c:${cid}:aq`, all);
+    } else {
+      console.log('Fetching from Redis');
+      all = Object.values(asyncQuestionKeys).map(
+        (question) => question as AsyncQuestionModel,
+      );
+    }
 
     if (!all) {
       res.status(HttpStatus.NOT_FOUND).send({

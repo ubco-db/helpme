@@ -10,7 +10,6 @@ import {
   GetCourseResponse,
   GetInsightOutputResponse,
   GetProfileResponse,
-  GetQuestionResponse,
   GetQueueResponse,
   GroupQuestionsParams,
   ListInsightsResponse,
@@ -331,8 +330,6 @@ class APIClient {
       ),
     getAllQuestions: async (cid: number): Promise<questions[]> =>
       this.req('GET', `/api/v1/questions/allQuestions/${cid}`, undefined),
-    get: async (questionId: number): Promise<GetQuestionResponse> =>
-      this.req('GET', `/api/v1/questions/${questionId}`, GetQuestionResponse),
     update: async (questionId: number, params: UpdateQuestionParams) =>
       this.req(
         'PATCH',
@@ -342,15 +339,6 @@ class APIClient {
       ),
     notify: async (questionId: number): Promise<void> =>
       this.req('POST', `/api/v1/questions/${questionId}/notify`),
-    group: async (params: GroupQuestionsParams): Promise<void> =>
-      this.req('POST', '/api/v1/questions/group', undefined, params),
-    resolveGroup: async (groupId: number, queueId: number): Promise<void> =>
-      this.req(
-        'PATCH',
-        `/api/v1/questions/resolveGroup/${groupId}`,
-        undefined,
-        { queueId },
-      ),
   }
   questionType = {
     getQuestionTypes: async (

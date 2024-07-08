@@ -3,8 +3,6 @@ import {
   CreateQuestionParams,
   CreateQuestionResponse,
   ERROR_MESSAGES,
-  GetQuestionResponse,
-  GroupQuestionsParams,
   LimboQuestionStatus,
   OpenQuestionStatus,
   questions,
@@ -40,13 +38,14 @@ import { UserCourseModel } from '../profile/user-course.entity';
 import { User, UserId } from '../decorators/user.decorator';
 import { UserModel } from '../profile/user.entity';
 import { QueueModel } from '../queue/queue.entity';
-import { QuestionGroupModel } from './question-group.entity';
 import { QuestionRolesGuard } from '../guards/question-role.guard';
 import { QuestionModel } from './question.entity';
-import { QuestionService } from './question.service';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { pick } from 'lodash';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { QueueService } from '../queue/queue.service';
+import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { QuestionService } from './question.service';
 
 // NOTE: FIXME: EVERY REQUEST INTO QUESTIONCONTROLLER REQUIRES THE BODY TO HAVE A
 // FIELD questionId OR queueId! If not, stupid weird untraceable bugs will happen
@@ -58,22 +57,9 @@ export class QuestionController {
   constructor(
     private notifService: NotificationService,
     private questionService: QuestionService,
+    private queueService: QueueService,
+    private redisQueueService: RedisQueueService,
   ) {}
-
-  @Get(':questionId')
-  async getQuestion(
-    @Param('questionId') questionId: number,
-  ): Promise<GetQuestionResponse> {
-    const question = await QuestionModel.findOne(questionId, {
-      relations: ['creator', 'taHelped'],
-    });
-
-    if (question === undefined) {
-      throw new NotFoundException();
-    }
-
-    return question;
-  }
 
   @Get('allQuestions/:cid')
   async getAllQuestions(@Param('cid') cid: number): Promise<questions[]> {
@@ -85,6 +71,7 @@ export class QuestionController {
         },
       },
     });
+
     if (questions === undefined) {
       throw new NotFoundException();
     }
@@ -175,6 +162,11 @@ export class QuestionController {
         status: QuestionStatusKeys.Queued,
         createdAt: new Date(),
       }).save();
+
+      const questions = await this.queueService.getQuestions(queueId);
+
+      await this.redisQueueService.setQuestions(`q:${queueId}`, questions);
+
       return question;
     } catch (err) {
       console.error(err);
@@ -266,8 +258,14 @@ export class QuestionController {
         status: QuestionStatusKeys.Drafting,
         createdAt: new Date(),
       }).save();
+
+      const questions = await this.queueService.getQuestions(queueId);
+
+      await this.redisQueueService.setQuestions(`q:${queueId}`, questions);
+
       return question;
     } catch (err) {
+      console.log(err);
       throw new HttpException(
         ERROR_MESSAGES.questionController.saveQError,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -326,6 +324,13 @@ export class QuestionController {
 
       try {
         await question.save();
+        const questions = await this.queueService.getQuestions(
+          question.queue.id,
+        );
+        await this.redisQueueService.setQuestions(
+          `q:${question.queue.id}`,
+          questions,
+        );
       } catch (err) {
         console.error(err);
         throw new HttpException(
@@ -353,11 +358,19 @@ export class QuestionController {
         );
       }
       await this.questionService.validateNotHelpingOther(body.status, userId);
-      return await this.questionService.changeStatus(
+      const changeStatus = await this.questionService.changeStatus(
         body.status,
         question,
         userId,
       );
+
+      const questions = await this.queueService.getQuestions(question.queue.id);
+      await this.redisQueueService.setQuestions(
+        `q:${question.queue.id}`,
+        questions,
+      );
+
+      return changeStatus;
     } else {
       throw new UnauthorizedException(
         ERROR_MESSAGES.questionController.updateQuestion.loginUserCantEdit,
@@ -406,86 +419,5 @@ export class QuestionController {
         );
       }
     }
-  }
-
-  @Post('group')
-  @Roles(Role.TA, Role.PROFESSOR)
-  async groupQuestions(
-    @Body() body: GroupQuestionsParams,
-    @UserId() instructorId: number,
-  ): Promise<void> {
-    const questions = await QuestionModel.find({
-      where: {
-        id: In(body.questionIds),
-      },
-      relations: ['taHelped', 'creator'],
-    });
-
-    if (!questions.every((q) => q.groupable)) {
-      throw new BadRequestException(
-        ERROR_MESSAGES.questionController.groupQuestions.notGroupable,
-      );
-    }
-
-    await this.questionService.validateNotHelpingOther(
-      QuestionStatusKeys.Helping,
-      instructorId,
-    );
-
-    for (const question of questions) {
-      await this.questionService.changeStatus(
-        QuestionStatusKeys.Helping,
-        question,
-        instructorId,
-      );
-    }
-
-    const queue = await QueueModel.findOne({
-      where: {
-        id: body.queueId,
-      },
-    });
-
-    const creatorUserCourse = await UserCourseModel.findOne({
-      where: {
-        courseId: queue.courseId,
-        userId: instructorId,
-      },
-    });
-
-    await QuestionGroupModel.create({
-      creatorId: creatorUserCourse.id, // this should be usercourse id
-      queueId: body.queueId,
-      questions: questions,
-    }).save();
-
-    return;
-  }
-
-  @Patch('resolveGroup/:group_id')
-  @Roles(Role.TA, Role.PROFESSOR)
-  async resolveGroup(
-    @Param('group_id') groupId: number,
-    @UserId() instructorId: number,
-  ): Promise<void> {
-    const group = await QuestionGroupModel.findOne({
-      where: {
-        id: groupId,
-      },
-      relations: ['questions', 'questions.taHelped', 'questions.creator'],
-    });
-
-    for (const question of group.questions) {
-      // only resolve q's that weren't requeued/can't find
-      if (question.status === OpenQuestionStatus.Helping) {
-        await this.questionService.changeStatus(
-          QuestionStatusKeys.Resolved,
-          question,
-          instructorId,
-        );
-      }
-    }
-
-    return;
   }
 }
