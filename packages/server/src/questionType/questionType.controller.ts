@@ -65,14 +65,6 @@ export class QuestionTypeController {
     if (!questionType) {
       try {
         await getManager().transaction(async (transactionalEntityManager) => {
-          await transactionalEntityManager
-            .create(QuestionTypeModel, {
-              cid: courseId,
-              name: newQuestionType.name,
-              color: newQuestionType.color,
-              queueId: queueId,
-            })
-            .save();
           if (queueId) {
             // update the queue's config to include the new question type
             const queue = await transactionalEntityManager.findOne(
@@ -82,21 +74,34 @@ export class QuestionTypeController {
             queue.config = queue.config || {}; // just in case it's null
             queue.config.tags = queue.config.tags || {}; // just in case it's undefined
 
-            const nameNoSpecialChars = newQuestionType.name.replace(
-              /[^a-zA-Z0-9]/g,
-              '',
-            );
-            queue.config.tags[nameNoSpecialChars] = {
+            // generate a new tag id based on the question type name
+            const newTagId = newQuestionType.name.replace(/[\{\}"\:\,]/g, '');
+            if (newTagId.length === 0) {
+              throw new Error('Name cannot only be made of illegal characters');
+            }
+            // make sure there's no duplicate tag id
+            if (queue.config.tags[newTagId]) {
+              throw new Error(`tagId ${newTagId} already exists`);
+            }
+            queue.config.tags[newTagId] = {
               display_name: newQuestionType.name,
               color_hex: newQuestionType.color,
             };
             await transactionalEntityManager.save(queue);
           }
+          await transactionalEntityManager
+            .create(QuestionTypeModel, {
+              cid: courseId,
+              name: newQuestionType.name,
+              color: newQuestionType.color,
+              queueId: queueId,
+            })
+            .save();
         });
         res.status(200).send(`Successfully created ${newQuestionType.name}`);
         return;
       } catch (e) {
-        res.status(400).send('Error creating question type');
+        res.status(400).send(e.message);
         return;
       }
     } else {
