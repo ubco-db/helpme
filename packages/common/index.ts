@@ -15,7 +15,7 @@ import {
 } from 'class-validator'
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
-import ajv, { Ajv } from 'ajv'
+import { Ajv } from 'ajv'
 
 export const PROD_URL = 'https://coursehelp.ubc.ca'
 
@@ -1124,6 +1124,7 @@ export class QuestionTypeParams {
   cid?: number
 
   @IsString()
+  @IsNotEmpty()
   name!: string
 
   @IsString()
@@ -1484,6 +1485,11 @@ export interface setQueueConfigResponse {
   questionTypeMessages: string[]
 }
 
+/**
+ * This is the queue config that stores settings that the TA can set/edit for the queue.
+ * NOTE: tags (aka questionTypes) in this are NOT necessarily going to be the same as the questionType entities for the queue (or at least for now).
+ * Therefore, when building front-end components, map over all the questionType entities and NOT all the tags in the queue config
+ */
 export interface QueueConfig {
   fifo_queue_view_enabled?: boolean
   tag_groups_queue_view_enabled?: boolean
@@ -1500,17 +1506,94 @@ export interface QueueConfig {
 }
 
 /**
- * Helper function to find the first duplicate in an array
+ *
+ * Essentially this:
+ * ```
+ * {
+ *   "task1": {
+ *       "display_name": "Task 1",
+ *       "short_display_name": "1",
+ *       "blocking": false,
+ *       "color_hex": "#ffedb8",
+ *       "precondition": null
+ *   },
+ *   "task2": {
+ *       "display_name": "Task 2",
+ *       "short_display_name": "2",
+ *       "blocking": false,
+ *       "color_hex": "#fadf8e",
+ *       "precondition": "task1"
+ *   },
+ *   "task3": {
+ *       "display_name": "Task 3",
+ *       "short_display_name": "3",
+ *       "blocking": true,
+ *       "color_hex": "#f7ce52",
+ *       "precondition": "task2"
+ *   }
+ * }
+ * ```
  */
-function findFirstDuplicate(array: any[]): any {
-  const seen = new Set()
-  for (const item of array) {
-    if (seen.has(item)) {
-      return item
-    }
-    seen.add(item)
+export interface ConfigTasks {
+  [taskKey: string]: {
+    display_name: string
+    short_display_name: string
+    blocking?: boolean
+    color_hex: string
+    precondition: string | null
   }
-  return null
+}
+
+/**
+ * Essentially this:
+ * ```
+ * {
+ *   "task1": { "isDone": true },
+ *   "task2": { "isDone": false }, <- not guaranteed for all tasks to be here
+ *   "task3": { "isDone": false },
+ * }
+ * ```
+ */
+export interface StudentAssignmentProgress {
+  [taskKey: string]: {
+    isDone: boolean
+  } | null
+}
+
+/**
+ * Essentially this:
+ * ```
+ * {
+ *     "lab1": {
+ *         "lastEditedQueueId": 2,
+ *         "assignmentProgress": {
+ *             "task1": { "isDone": true },
+ *             "task2": { "isDone": true },
+ *             "task3": { "isDone": true }
+ *         }
+ *     },
+ *     "lab2": {
+ *         "lastEditedQueueId": 1,
+ *         "assignmentProgress": {
+ *             "task1": { "isDone": true },
+ *             "task2": { "isDone": false }
+ *         }
+ *     }
+ * }
+ * ```
+ */
+export interface StudentTaskProgress {
+  [assignmentKey: string]: {
+    lastEditedQueueId: number
+    assignmentProgress: StudentAssignmentProgress
+  }
+}
+
+export interface AllStudentAssignmentProgress {
+  [userId: number]: {
+    userDetails: UserPartial
+    assignmentProgress: StudentAssignmentProgress
+  }
 }
 
 /**
@@ -1543,7 +1626,10 @@ export function validateQueueConfigInput(obj: any): string {
   ]
 
   if (!obj) {
-    return 'Input is null or undefined'
+    return 'Queue config is null or undefined'
+  }
+  if (typeof obj !== 'object') {
+    return 'Queue config must be an object'
   }
   if (
     obj.fifo_queue_view_enabled !== undefined &&
@@ -1611,7 +1697,9 @@ export function validateQueueConfigInput(obj: any): string {
       (tag: any) => tag.display_name,
     )
     if (tagDisplayNames.length !== new Set(tagDisplayNames).size) {
-      const duplicateDisplayName = findFirstDuplicate(tagDisplayNames)
+      const duplicateDisplayName = tagDisplayNames.find(
+        (item, index, arr) => arr.indexOf(item) !== index,
+      )
       return `Tag display names must be unique. Duplicate display name found: "${duplicateDisplayName}"`
     }
   }
@@ -1755,96 +1843,6 @@ export function validateQueueConfigInput(obj: any): string {
     return errorMessages
   }
   return ''
-}
-
-/**
- * Essentially this:
- * ```
- * {
- *   "task1": {
- *       "display_name": "Task 1",
- *       "short_display_name": "1",
- *       "blocking": false,
- *       "color_hex": "#ffedb8",
- *       "precondition": null
- *   },
- *   "task2": {
- *       "display_name": "Task 2",
- *       "short_display_name": "2",
- *       "blocking": false,
- *       "color_hex": "#fadf8e",
- *       "precondition": "task1"
- *   },
- *   "task3": {
- *       "display_name": "Task 3",
- *       "short_display_name": "3",
- *       "blocking": true,
- *       "color_hex": "#f7ce52",
- *       "precondition": "task2"
- *   }
- * }
- * ```
- */
-export interface ConfigTasks {
-  [taskKey: string]: {
-    display_name: string
-    short_display_name: string
-    blocking?: boolean
-    color_hex: string
-    precondition: string | null
-  }
-}
-
-/**
- * Essentially this:
- * ```
- * {
- *   "task1": { "isDone": true },
- *   "task2": { "isDone": false }, <- not guaranteed for all tasks to be here
- *   "task3": { "isDone": false },
- * }
- * ```
- */
-export interface StudentAssignmentProgress {
-  [taskKey: string]: {
-    isDone: boolean
-  } | null
-}
-
-/**
- * Essentially this:
- * ```
- * {
- *     "lab1": {
- *         "lastEditedQueueId": 2,
- *         "assignmentProgress": {
- *             "task1": { "isDone": true },
- *             "task2": { "isDone": true },
- *             "task3": { "isDone": true }
- *         }
- *     },
- *     "lab2": {
- *         "lastEditedQueueId": 1,
- *         "assignmentProgress": {
- *             "task1": { "isDone": true },
- *             "task2": { "isDone": false }
- *         }
- *     }
- * }
- * ```
- */
-export interface StudentTaskProgress {
-  [assignmentKey: string]: {
-    lastEditedQueueId: number
-    assignmentProgress: StudentAssignmentProgress
-  }
-}
-
-export interface AllStudentAssignmentProgress {
-  [userId: number]: {
-    userDetails: UserPartial
-    assignmentProgress: StudentAssignmentProgress
-  }
 }
 
 export const ERROR_MESSAGES = {

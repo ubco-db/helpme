@@ -39,7 +39,6 @@
     "@visx/scale": "^1.1.0",
     "@visx/shape": "^1.1.0",
     "@visx/tooltip": "^1.1.0",
-    "ajv": "^8.16.0",
     "antd": "^4.8.0",
     "axios": "^0.21.1",
     "class-transformer": "0.3.1",
