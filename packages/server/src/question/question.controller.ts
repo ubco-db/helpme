@@ -3,8 +3,6 @@ import {
   CreateQuestionParams,
   CreateQuestionResponse,
   ERROR_MESSAGES,
-  GetQuestionResponse,
-  GroupQuestionsParams,
   LimboQuestionStatus,
   OpenQuestionStatus,
   questions,
@@ -40,13 +38,14 @@ import { UserCourseModel } from '../profile/user-course.entity';
 import { User, UserId } from '../decorators/user.decorator';
 import { UserModel } from '../profile/user.entity';
 import { QueueModel } from '../queue/queue.entity';
-import { QuestionGroupModel } from './question-group.entity';
 import { QuestionRolesGuard } from '../guards/question-role.guard';
 import { QuestionModel } from './question.entity';
-import { QuestionService } from './question.service';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { pick } from 'lodash';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { QueueService } from '../queue/queue.service';
+import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { QuestionService } from './question.service';
 
 // NOTE: FIXME: EVERY REQUEST INTO QUESTIONCONTROLLER REQUIRES THE BODY TO HAVE A
 // FIELD questionId OR queueId! If not, stupid weird untraceable bugs will happen
@@ -58,22 +57,9 @@ export class QuestionController {
   constructor(
     private notifService: NotificationService,
     private questionService: QuestionService,
+    private queueService: QueueService,
+    private redisQueueService: RedisQueueService,
   ) {}
-
-  @Get(':questionId')
-  async getQuestion(
-    @Param('questionId') questionId: number,
-  ): Promise<GetQuestionResponse> {
-    const question = await QuestionModel.findOne(questionId, {
-      relations: ['creator', 'taHelped'],
-    });
-
-    if (question === undefined) {
-      throw new NotFoundException();
-    }
-
-    return question;
-  }
 
   @Get('allQuestions/:cid')
   async getAllQuestions(@Param('cid') cid: number): Promise<questions[]> {
@@ -85,6 +71,7 @@ export class QuestionController {
         },
       },
     });
+
     if (questions === undefined) {
       throw new NotFoundException();
     }
@@ -193,6 +180,11 @@ export class QuestionController {
         status: QuestionStatusKeys.Queued,
         createdAt: new Date(),
       }).save();
+
+      const questions = await this.queueService.getQuestions(queueId);
+
+      await this.redisQueueService.setQuestions(`q:${queueId}`, questions);
+
       return question;
     } catch (err) {
       console.error(err);
@@ -307,8 +299,14 @@ export class QuestionController {
 
     try {
       await newQuestion.save();
+
+      const questions = await this.queueService.getQuestions(queueId);
+
+      await this.redisQueueService.setQuestions(`q:${queueId}`, questions);
+
       return newQuestion;
     } catch (err) {
+      console.log(err);
       throw new HttpException(
         ERROR_MESSAGES.questionController.saveQError,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -387,6 +385,13 @@ export class QuestionController {
 
       try {
         await question.save();
+        const questions = await this.queueService.getQuestions(
+          question.queue.id,
+        );
+        await this.redisQueueService.setQuestions(
+          `q:${question.queue.id}`,
+          questions,
+        );
       } catch (err) {
         console.error(err);
         throw new HttpException(
@@ -422,6 +427,13 @@ export class QuestionController {
       ) {
         await this.questionService.markTasksDone(question, question.creatorId);
       }
+
+      const questions = await this.queueService.getQuestions(question.queue.id);
+      await this.redisQueueService.setQuestions(
+        `q:${question.queue.id}`,
+        questions,
+      );
+
       return question;
     } else {
       throw new UnauthorizedException(

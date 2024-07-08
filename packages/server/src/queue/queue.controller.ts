@@ -39,6 +39,7 @@ import { QueueModel } from './queue.entity';
 import { QueueService } from './queue.service';
 import { QuestionModel } from '../question/question.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { RedisQueueService } from '../redisQueue/redis-queue.service';
 
 @Controller('queues')
 @UseGuards(JwtAuthGuard, QueueRolesGuard, EmailVerifiedGuard)
@@ -48,6 +49,7 @@ export class QueueController {
     private queueSSEService: QueueSSEService,
     private queueCleanService: QueueCleanService,
     private queueService: QueueService, //note: this throws errors, be sure to catch them
+    private redisQueueService: RedisQueueService,
   ) {}
 
   @Get(':queueId')
@@ -72,7 +74,20 @@ export class QueueController {
     @UserId() userId: number,
   ): Promise<ListQuestionsResponse> {
     try {
-      const questions = await this.queueService.getQuestions(queueId);
+      const queueKeys = await this.redisQueueService.getKey(`q:${queueId}`);
+      let questions: any;
+
+      if (Object.keys(queueKeys).length === 0) {
+        console.log('Fetching from database');
+
+        questions = await this.queueService.getQuestions(queueId);
+        if (questions)
+          await this.redisQueueService.setQuestions(`q:${queueId}`, questions);
+      } else {
+        console.log('Fetching from Redis');
+        questions = queueKeys.questions;
+      }
+
       return await this.queueService.personalizeQuestions(
         queueId,
         questions,
@@ -80,6 +95,7 @@ export class QueueController {
         role,
       );
     } catch (err) {
+      console.log(err);
       throw new HttpException(
         ERROR_MESSAGES.queueController.getQuestions,
         HttpStatus.NOT_FOUND,
@@ -118,6 +134,7 @@ export class QueueController {
     try {
       setTimeout(async () => {
         await this.queueCleanService.cleanQueue(queueId, true);
+        await this.redisQueueService.deleteKey(`q:${queueId}`);
         await this.queueSSEService.updateQueue(queueId);
       });
     } catch (err) {
@@ -189,6 +206,7 @@ export class QueueController {
       // try to save queue (and stale questions!)
       await QuestionModel.save(questions);
       await queue.save();
+      await this.redisQueueService.deleteKey(`q:${queueId}`);
     } catch (err) {
       console.error(err);
       throw new HttpException(
