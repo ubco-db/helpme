@@ -16,7 +16,7 @@ import { useProfile } from '../../hooks/useProfile'
 import CourseRosterPage from './CourseRosterPage'
 import { SettingsPanelAvatar } from './SettingsSharedComponents'
 import TACheckInCheckOutTimes from './TACheckInCheckOutTimes'
-import ExportQuestions from './ExportQuestions'
+import ExportData from './ExportData'
 import EditQuestions from './EditQuestions'
 import { useRoleInCourse } from '../../hooks/useRoleInCourse'
 import { Role } from '@koh/common'
@@ -140,10 +140,10 @@ export default function CourseAdminPanel({
             key={CourseAdminOptions.EXPORT}
             icon={<DownloadOutlined />}
           >
-            Export questions
+            Export Data
           </Menu.Item>
           <Menu.Item key={CourseAdminOptions.EDIT} icon={<TableOutlined />}>
-            Edit questions
+            Edit Questions
           </Menu.Item>
           <Menu.Item
             key={CourseAdminOptions.CHATBOT_SETTINGS}
@@ -178,7 +178,7 @@ export default function CourseAdminPanel({
             <ToggleFeaturesPage courseId={courseId} />
           )}
           {currentSettings === CourseAdminOptions.EXPORT && (
-            <ExportQuestions courseId={courseId} />
+            <ExportData courseId={courseId} />
           )}
           {currentSettings === CourseAdminOptions.EDIT && (
             <EditQuestions courseId={courseId} />
