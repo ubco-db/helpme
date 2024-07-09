@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class studentTaskProgressQueueConfig1718837372590
+export class studentTaskProgressQueueConfig1720395135091
   implements MigrationInterface
 {
-  name = 'studentTaskProgressQueueConfig1718837372590';
+  name = 'studentTaskProgressQueueConfig1720395135091';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -11,7 +11,7 @@ export class studentTaskProgressQueueConfig1718837372590
     );
     await queryRunner.query(`ALTER TABLE "queue_model" ADD "config" json`);
     await queryRunner.query(
-      `ALTER TABLE "question_model" ADD "isTaskQuestion" boolean NOT NULL`,
+      `ALTER TABLE "question_model" ADD "isTaskQuestion" boolean NOT NULL DEFAULT false`,
     );
     await queryRunner.query(
       `ALTER TABLE "student_task_progress_model" ADD CONSTRAINT "FK_e855cab9855b51519940f751262" FOREIGN KEY ("uid") REFERENCES "user_model"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,

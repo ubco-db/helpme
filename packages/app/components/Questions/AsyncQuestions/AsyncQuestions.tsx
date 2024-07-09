@@ -154,7 +154,7 @@ export default function AsyncQuestionsPage({
     questionTypeInput,
     isStaff,
     creatorFilter,
-    profile.id,
+    profile?.id,
     sortBy,
     applySort,
   ])

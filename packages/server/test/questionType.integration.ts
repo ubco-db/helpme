@@ -206,7 +206,7 @@ describe('QuestionType Integration', () => {
         .expect(401);
     });
 
-    it('should return 400 if question type already exists', async () => {
+    it('should return 409 if question type already exists', async () => {
       const course = await CourseFactory.create();
       const ta = await TACourseFactory.create({
         course: course,
@@ -231,7 +231,7 @@ describe('QuestionType Integration', () => {
         .post(`/questionType/${course.id}`)
         .send(newQuestionType);
 
-      expect(resp.status).toBe(400);
+      expect(resp.status).toBe(409);
       expect(resp.text).toBe(`${newQuestionType.name} already exists`);
     });
 
@@ -371,7 +371,7 @@ describe('QuestionType Integration', () => {
         ...exampleConfig,
         tags: {
           ...exampleConfig.tags,
-          NewQuestionType: {
+          'New Question Type': {
             display_name: newQuestionType.name,
             color_hex: newQuestionType.color,
           },
@@ -405,7 +405,7 @@ describe('QuestionType Integration', () => {
       const updatedQueue = await QueueModel.findOne(queue.id);
       expect(updatedQueue.config).toEqual({
         tags: {
-          NewQuestionType: {
+          'New Question Type': {
             display_name: newQuestionType.name,
             color_hex: newQuestionType.color,
           },
@@ -425,7 +425,7 @@ describe('QuestionType Integration', () => {
       });
       const newQuestionType = {
         queueId: queue.id,
-        name: 'New    Question    Type!@#$%^&*()_+-=[]{}|;:,.<>?/\\',
+        name: 'New{:},Question Type',
         color: '#FFFFFF',
       };
 
@@ -441,12 +441,45 @@ describe('QuestionType Integration', () => {
         ...exampleConfig,
         tags: {
           ...exampleConfig.tags,
-          NewQuestionType: {
+          'NewQuestion Type': {
             display_name: newQuestionType.name,
             color_hex: newQuestionType.color,
           },
         },
       });
+    });
+    it('should return 400 if the name is only made of illegal characters', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+
+      const queue = await QueueFactory.create({
+        course: course,
+      });
+      const newQuestionType = {
+        queueId: queue.id,
+        name: '{}:"',
+        color: '#FFFFFF',
+      };
+
+      const resp = await supertest({ userId: ta.id })
+        .post(`/questionType/${course.id}`)
+        .send(newQuestionType);
+
+      expect(resp.status).toBe(400);
+      expect(resp.text).toBe('Name cannot only be made of illegal characters');
+
+      // make sure no question type was created
+      const questionType = await QuestionTypeModel.findOne({
+        where: {
+          cid: course.id,
+          queueId: newQuestionType.queueId,
+          name: newQuestionType.name,
+        },
+      });
+      expect(questionType).toBeUndefined();
     });
   });
 
