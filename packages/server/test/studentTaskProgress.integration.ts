@@ -548,14 +548,14 @@ describe('StudentTaskProgress Integration', () => {
 
       expect(resp.body).toEqual([
         {
-          user: {
+          userDetails: {
             email: student1.email,
             id: student1.id,
             name: student1.firstName + ' ' + student1.lastName,
             photoURL: student1.photoURL,
             sid: student1.sid,
           },
-          taskprogress: {
+          taskProgress: {
             assignment1: {
               lastEditedQueueId: queue.id,
               assignmentProgress: {
@@ -567,14 +567,14 @@ describe('StudentTaskProgress Integration', () => {
           },
         },
         {
-          user: {
+          userDetails: {
             email: student2.email,
             id: student2.id,
             name: student2.firstName + ' ' + student2.lastName,
             photoURL: student2.photoURL,
             sid: student2.sid,
           },
-          taskprogress: {
+          taskProgress: {
             assignment1: {
               lastEditedQueueId: queue.id,
               assignmentProgress: {
@@ -586,14 +586,14 @@ describe('StudentTaskProgress Integration', () => {
           },
         },
         {
-          user: {
+          userDetails: {
             email: student3.email,
             id: student3.id,
             name: student3.firstName + ' ' + student3.lastName,
             photoURL: student3.photoURL,
             sid: student3.sid,
           },
-          taskprogress: {
+          taskProgress: {
             assignment1: {
               lastEditedQueueId: queue.id,
               assignmentProgress: {
@@ -668,14 +668,14 @@ describe('StudentTaskProgress Integration', () => {
 
       expect(resp.body).toEqual([
         {
-          user: {
+          userDetails: {
             email: student1.email,
             id: student1.id,
             name: student1.firstName + ' ' + student1.lastName,
             photoURL: student1.photoURL,
             sid: student1.sid,
           },
-          taskprogress: {
+          taskProgress: {
             assignment1: {
               lastEditedQueueId: queue.id,
               assignmentProgress: {
@@ -685,6 +685,189 @@ describe('StudentTaskProgress Integration', () => {
               },
             },
           },
+        },
+      ]);
+      expect(resp.status).toBe(200);
+    });
+
+    it('should return the correct studentTaskProgress if the student has assignment progress in multiple other courses', async () => {
+      const course1 = await CourseFactory.create();
+      const course2 = await CourseFactory.create();
+      const student1 = await UserFactory.create();
+      const professor = await UserFactory.create();
+      const queue1 = await QueueFactory.create({
+        course: course1,
+      });
+      const queue2 = await QueueFactory.create({
+        course: course2,
+      });
+
+      await UserCourseFactory.create({
+        user: student1,
+        role: Role.STUDENT,
+        course: course1,
+      });
+      await UserCourseFactory.create({
+        user: student1,
+        role: Role.STUDENT,
+        course: course2,
+      });
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course1,
+      });
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course2,
+      });
+      await StudentTaskProgressFactory.create({
+        user: student1,
+        course: course1,
+        taskProgress: {
+          assignment1: {
+            lastEditedQueueId: queue1.id,
+            assignmentProgress: {
+              question1: {
+                isDone: true,
+              },
+            },
+          },
+        },
+      });
+      await StudentTaskProgressFactory.create({
+        user: student1,
+        course: course2,
+        taskProgress: {
+          assignment1: {
+            lastEditedQueueId: queue2.id,
+            assignmentProgress: {
+              task1: {
+                isDone: true,
+              },
+            },
+          },
+        },
+      });
+
+      const resp = await supertest({ userId: professor.id }).get(
+        `/studentTaskProgress/course/${course2.id}`,
+      );
+
+      expect(resp.body).toEqual([
+        {
+          userDetails: {
+            email: student1.email,
+            id: student1.id,
+            name: student1.firstName + ' ' + student1.lastName,
+            photoURL: student1.photoURL,
+            sid: student1.sid,
+          },
+          taskProgress: {
+            assignment1: {
+              lastEditedQueueId: queue2.id,
+              assignmentProgress: {
+                task1: {
+                  isDone: true,
+                },
+              },
+            },
+          },
+        },
+      ]);
+      expect(resp.status).toBe(200);
+
+      const resp2 = await supertest({ userId: professor.id }).get(
+        `/studentTaskProgress/course/${course1.id}`,
+      );
+
+      expect(resp2.body).toEqual([
+        {
+          userDetails: {
+            email: student1.email,
+            id: student1.id,
+            name: student1.firstName + ' ' + student1.lastName,
+            photoURL: student1.photoURL,
+            sid: student1.sid,
+          },
+          taskProgress: {
+            assignment1: {
+              lastEditedQueueId: queue1.id,
+              assignmentProgress: {
+                question1: {
+                  isDone: true,
+                },
+              },
+            },
+          },
+        },
+      ]);
+      expect(resp2.status).toBe(200);
+    });
+
+    it('should return all students for the course even if they have not made any task progress yet', async () => {
+      const course = await CourseFactory.create();
+      const student1 = await UserFactory.create();
+      const student2 = await UserFactory.create();
+      const student3 = await UserFactory.create();
+      const professor = await UserFactory.create();
+
+      await UserCourseFactory.create({
+        user: student1,
+        role: Role.STUDENT,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: student2,
+        role: Role.STUDENT,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: student3,
+        role: Role.STUDENT,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course,
+      });
+
+      const resp = await supertest({ userId: professor.id }).get(
+        `/studentTaskProgress/course/${course.id}`,
+      );
+
+      expect(resp.body).toEqual([
+        {
+          userDetails: {
+            email: student1.email,
+            id: student1.id,
+            name: student1.firstName + ' ' + student1.lastName,
+            photoURL: student1.photoURL,
+            sid: student1.sid,
+          },
+          taskProgress: {},
+        },
+        {
+          userDetails: {
+            email: student2.email,
+            id: student2.id,
+            name: student2.firstName + ' ' + student2.lastName,
+            photoURL: student2.photoURL,
+            sid: student2.sid,
+          },
+          taskProgress: {},
+        },
+        {
+          userDetails: {
+            email: student3.email,
+            id: student3.id,
+            name: student3.firstName + ' ' + student3.lastName,
+            photoURL: student3.photoURL,
+            sid: student3.sid,
+          },
+          taskProgress: {},
         },
       ]);
       expect(resp.status).toBe(200);

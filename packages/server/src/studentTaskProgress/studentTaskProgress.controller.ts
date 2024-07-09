@@ -20,6 +20,7 @@ import { getRepository } from 'typeorm';
 import { StudentTaskProgressModel } from './studentTaskProgress.entity';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { QueueRolesGuard } from 'guards/queue-role.guard';
+import { UserCourseModel } from 'profile/user-course.entity';
 
 @Controller('studentTaskProgress')
 @UseGuards(JwtAuthGuard, CourseRolesGuard)
@@ -120,28 +121,42 @@ export class StudentTaskProgressController {
 
   /**
    * Used for exporting it to csv. Most of that processing is done on frontend to keep this lightweight.
+   * NOTE: it seems to be impossible to use any form of SELECT to filter out results of a JOIN with our current version of TypeORM. Thus, we have to manually filter them out (as much as it will be slower).
    */
   @Get('course/:courseId')
   @Roles(Role.TA, Role.PROFESSOR)
   async getAllStudentTaskProgressForCourse(
     @Param('courseId') courseId: number,
   ): Promise<StudentTaskProgressWithUser[]> {
-    return StudentTaskProgressModel.createQueryBuilder('studentTaskProgress')
-      .select([
-        'studentTaskProgress.taskProgress',
-        'user.id',
-        'user.email',
-        'user.photoURL',
-        'user.firstName',
-        'user.lastName',
-      ])
-      .leftJoinAndSelect(
-        'studentTaskProgress.user',
-        'user',
-        'studentTaskProgress.uid = user.id',
-      )
-      .where('studentTaskProgress.cid = :cid', { cid: courseId })
-      .printSql()
-      .getMany();
+    // doing a left join with userCourse first so that it only gets the students in the course
+    // we want to get all students since some may have never made any progress (e.g. if they never attended a lab, they would have no task progress)
+    const allStudentsWithTaskProgress =
+      await UserCourseModel.createQueryBuilder('userCourse')
+        .leftJoinAndSelect('userCourse.user', 'user')
+        .leftJoinAndSelect(
+          'user.taskProgress',
+          'studentTaskProgress',
+          'studentTaskProgress.cid = :cid',
+          { cid: courseId },
+        )
+        .where('userCourse.courseId = :courseId', { courseId })
+        .andWhere('userCourse.role = :role', { role: Role.STUDENT })
+        .getMany();
+
+    // must manually filter out all unnecessary user details since it's impossible to do it with typeORM
+    const response = allStudentsWithTaskProgress.map((myUserCourse) => {
+      return {
+        taskProgress: myUserCourse.user.taskProgress[0]?.taskProgress ?? {}, // due to there being only one taskProgress per student per course, taskProgress[0] should work
+        userDetails: {
+          id: myUserCourse.user.id,
+          email: myUserCourse.user.email,
+          photoURL: myUserCourse.user.photoURL,
+          name: myUserCourse.user.name,
+          sid: myUserCourse.user.sid,
+        },
+      };
+    });
+
+    return response;
   }
 }

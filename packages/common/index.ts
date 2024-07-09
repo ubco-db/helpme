@@ -1603,7 +1603,7 @@ export interface StudentTaskProgress {
 }
 
 export interface StudentTaskProgressWithUser {
-  user: UserPartial
+  userDetails: UserPartial
   taskProgress: StudentTaskProgress
 }
 
