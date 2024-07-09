@@ -2,6 +2,8 @@ import {
   AllStudentAssignmentProgress,
   Role,
   StudentAssignmentProgress,
+  StudentTaskProgress,
+  StudentTaskProgressWithUser,
   UserPartial,
 } from '@koh/common';
 import {
@@ -61,7 +63,7 @@ export class StudentTaskProgressController {
   /**
    * Retrieves the assignment progress for all students in a specific queue.
    *
-   * It's probably a costly endpoint to call, thus don't call it often on the frontend.
+   * It's probably a costly endpoint to call (unless the SELECT can be integrated into the query), thus don't call it often on the frontend.
    *
    * Getting only the studentAssignmentProgress for a specific queue is needed since some queues may have the same assignment loaded in them.
    */
@@ -114,5 +116,32 @@ export class StudentTaskProgressController {
     });
 
     return allStudentAssignmentProgressForQueue;
+  }
+
+  /**
+   * Used for exporting it to csv. Most of that processing is done on frontend to keep this lightweight.
+   */
+  @Get('course/:courseId')
+  @Roles(Role.TA, Role.PROFESSOR)
+  async getAllStudentTaskProgressForCourse(
+    @Param('courseId') courseId: number,
+  ): Promise<StudentTaskProgressWithUser[]> {
+    return StudentTaskProgressModel.createQueryBuilder('studentTaskProgress')
+      .select([
+        'studentTaskProgress.taskProgress',
+        'user.id',
+        'user.email',
+        'user.photoURL',
+        'user.firstName',
+        'user.lastName',
+      ])
+      .leftJoinAndSelect(
+        'studentTaskProgress.user',
+        'user',
+        'studentTaskProgress.uid = user.id',
+      )
+      .where('studentTaskProgress.cid = :cid', { cid: courseId })
+      .printSql()
+      .getMany();
   }
 }

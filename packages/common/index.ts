@@ -111,10 +111,23 @@ export class DesktopNotifPartial {
  * @param photoURL - The URL string of this user photo. This is pulled from the admin site.
  */
 export class UserPartial {
+  @IsInt()
   id!: number
+
+  @IsOptional()
+  @IsString()
   email?: string
+
+  @IsOptional()
+  @IsString()
   name?: string
+
+  @IsString()
+  @IsOptional()
   photoURL?: string
+
+  @IsInt()
+  @IsOptional()
   sid?: number
 }
 
@@ -1587,6 +1600,11 @@ export interface StudentTaskProgress {
     lastEditedQueueId: number
     assignmentProgress: StudentAssignmentProgress
   }
+}
+
+export interface StudentTaskProgressWithUser {
+  user: UserPartial
+  taskProgress: StudentTaskProgress
 }
 
 export interface AllStudentAssignmentProgress {
