@@ -244,7 +244,7 @@ export class CourseController {
 
     res.cookie(
       '__SECURE_REDIRECT',
-      Buffer.from(`/course/${id}/invite?code=${code}`).toString('base64'),
+      Buffer.from(`${id},${code}`).toString('base64'),
       {
         httpOnly: true,
         secure: this.isSecure(),
