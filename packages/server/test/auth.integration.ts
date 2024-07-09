@@ -212,9 +212,7 @@ describe('Auth Integration', () => {
         .get(`/auth/shibboleth/${organization.id}`)
         .set(
           'Cookie',
-          `__SECURE_REDIRECT=${Buffer.from(`/course/1/invite`).toString(
-            'base64',
-          )}`,
+          `__SECURE_REDIRECT=${Buffer.from(`1,inviteCode`).toString('base64')}`,
         )
         .set('x-trust-auth-uid', '1')
         .set('x-trust-auth-mail', 'mocked_email@ubc.ca')
@@ -233,7 +231,7 @@ describe('Auth Integration', () => {
       await mockJWT.signAsync({ userId: 1 });
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/course/1/invite');
+      expect(res.header['location']).toBe('/course/1/invite?code=inviteCode');
     });
   });
 

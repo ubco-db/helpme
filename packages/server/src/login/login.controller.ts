@@ -142,11 +142,14 @@ export class LoginController {
     }
 
     const cookie = getCookie(req, '__SECURE_REDIRECT');
-    const decodedUrl = Buffer.from(cookie, 'base64').toString('utf-8');
+    let redirectUrl: string;
 
-    const redirectUrl = cookie
-      ? `/course/${decodedUrl.split(',')[0]}/invite?code=${decodedUrl.split(',')[1]}`
-      : '/courses';
+    if (cookie) {
+      const decodedUrl = Buffer.from(cookie, 'base64').toString('utf-8');
+      redirectUrl = `/course/${decodedUrl.split(',')[0]}/invite?code=${decodedUrl.split(',')[1]}`;
+    } else {
+      redirectUrl = '/courses';
+    }
 
     const isSecure = this.configService
       .get<string>('DOMAIN')
