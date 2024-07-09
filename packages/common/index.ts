@@ -248,7 +248,6 @@ export enum OrganizationRole {
  * @param endTime - The scheduled end time of this queue.
  */
 // note: this is apparently not used anywhere
-// note: this is apparently not used anywhere
 export interface Queue {
   id: number
   course: CoursePartial
@@ -267,7 +266,6 @@ export interface Queue {
  * @param staffList - The list of TA user's that are currently helping at office hours.
  * @param startTime - The scheduled start time of this queue based on the parsed ical.
  * @param endTime - The scheduled end time of this queue.
- * @param config - A JSON object that contains the configuration for the queue. Contains stuff like tags, tasks, etc.
  * @param config - A JSON object that contains the configuration for the queue. Contains stuff like tags, tasks, etc.
  */
 export class QueuePartial {
@@ -959,7 +957,6 @@ export class GetCourseQueuesResponse extends Array<QueuePartial> {}
 export class ListQuestionsResponse {
   @Type(() => Question)
   yourQuestions?: Array<Question>
-  yourQuestions?: Array<Question>
 
   @Type(() => Question)
   questionsGettingHelp!: Array<Question>
@@ -998,9 +995,6 @@ export class CreateQuestionParams {
   @IsBoolean()
   isTaskQuestion = false
 
-  @IsBoolean()
-  isTaskQuestion = false
-
   @IsInt()
   queueId!: number
 
@@ -1025,10 +1019,6 @@ export class UpdateQuestionParams {
   @IsBoolean()
   @IsOptional()
   groupable?: boolean
-
-  @IsBoolean()
-  @IsOptional()
-  isTaskQuestion?: boolean
 
   @IsBoolean()
   @IsOptional()
@@ -1095,7 +1085,6 @@ export class QuestionTypeParams {
   cid?: number
 
   @IsString()
-  @IsNotEmpty()
   @IsNotEmpty()
   name!: string
 
@@ -1986,7 +1975,6 @@ export const ERROR_MESSAGES = {
       closedQueue: 'Queue is closed',
       oneQuestionAtATime: "You can't create more than one question at a time.",
       oneDemoAtATime: "You can't create more than one demo at a time.",
-      oneDemoAtATime: "You can't create more than one demo at a time.",
       invalidQuestionType: 'Invalid question type',
     },
     updateQuestion: {
@@ -2014,23 +2002,10 @@ export const ERROR_MESSAGES = {
       taskParseError: 'No tasks parsed',
       taskNotInConfig: 'Task does not exist in the config',
     },
-    studentTaskProgress: {
-      invalidAssignmentName:
-        'No assignment name set. Please set an assignment name in the queue config.',
-      invalidTaskName: (taskid: string): string =>
-        `Task ${taskid} does not exist in this queue.`,
-      queueDoesNotExist: 'Queue does not exist',
-      configDoesNotExist: 'Queue config does not exist',
-      assignmentDoesNotExist: 'Assignment does not exist',
-      notTaskQuestion: 'Question is not a task question',
-      taskParseError: 'No tasks parsed',
-      taskNotInConfig: 'Task does not exist in the config',
-    },
     groupQuestions: {
       notGroupable: 'One or more of the questions is not groupable',
     },
     saveQError: 'Unable to save a question',
-    deleteQError: 'Unable to delete a question',
     deleteQError: 'Unable to delete a question',
     notFound: 'Question not found',
     unableToNotifyUser: 'Unable to notify user',

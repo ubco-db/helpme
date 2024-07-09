@@ -419,24 +419,6 @@ class APIClient {
         QueuePartial,
         { notes, isProfessorQueue, config },
       ),
-    updateConfig: async (
-      queueId: number,
-      config: QueueConfig,
-    ): Promise<setQueueConfigResponse> =>
-      this.req('PATCH', `/api/v1/queues/${queueId}/config`, undefined, config),
-    createQueue: async (
-      courseId: number,
-      room: string,
-      isProfessorQueue: boolean,
-      notes: string,
-      config: QueueConfig,
-    ): Promise<TAUpdateStatusResponse> =>
-      this.req(
-        'POST',
-        `/api/v1/courses/${courseId}/create_queue/${room}`,
-        QueuePartial,
-        { notes, isProfessorQueue, config },
-      ),
   }
   notif = {
     desktop: {
