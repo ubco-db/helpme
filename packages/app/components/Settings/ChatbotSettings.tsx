@@ -9,7 +9,6 @@ import {
   Tooltip,
   message,
 } from 'antd'
-import { ColumnsType } from 'antd/es/table'
 import React, { ReactElement, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import toast from 'react-hot-toast'
@@ -159,10 +158,6 @@ export default function ChatbotSettings(): ReactElement {
     },
   ]
 
-  useEffect(() => {
-    getDocuments()
-  }, [])
-
   const getDocuments = async () => {
     setLoading(true)
     try {
@@ -186,6 +181,10 @@ export default function ChatbotSettings(): ReactElement {
     }
     setLoading(false)
   }
+
+  useEffect(() => {
+    getDocuments()
+  }, [getDocuments])
 
   const addUrl = async (url: string) => {
     setLoading(true)

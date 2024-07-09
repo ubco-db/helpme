@@ -16,9 +16,9 @@ export class QuestionRolesGuard extends RolesGuard {
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     request: any,
   ): Promise<{ courseId: number; user: UserModel }> {
-    let queueId;
+    let queueId: number;
 
-    if (request.params.questionId) {
+    if (request.params.questionId && !isNaN(request.params.questionId)) {
       const question = await QuestionModel.findOne(request.params.questionId);
       if (!question) {
         throw new NotFoundException(
@@ -26,7 +26,7 @@ export class QuestionRolesGuard extends RolesGuard {
         );
       }
       queueId = question.queueId;
-    } else if (request.body.queueId) {
+    } else if (request.body.queueId && !isNaN(request.body.queueId)) {
       // If you are creating a new question
       queueId = request.body.queueId;
     } else {

@@ -13,6 +13,7 @@
   - [Testing](#testing)
   - [Installing new packages](#installing-new-packages)
 - [Style](#style)
+- [Tips](#tips)
 - [Production](#production)
 
 ## Installation to run locally
@@ -45,7 +46,7 @@ If you have any questions, feel free to reach out to a member of the team. If yo
 
 -   [Redis](https://redis.io/) is used to enable 0 downtime deploy
 
--   [Cypress](https://www.cypress.io/) is used for frontend E2E tests
+-   [Cypress](https://www.cypress.io/) is used for frontend E2E tests. Currently not being used.
 
 ## File Structure
 
@@ -85,9 +86,15 @@ docker-compose build && docker-compose up
 
 ### Database changes
 
-table_name.entity.ts files are used to define the database schema.
+`table_name.entity.ts` files are used to define the database schema. 
+`table_name.controller.ts` files are used to define the API routes for the table.
+`table_name.service.ts` files are used to define the business logic for the table (basically like server-side-only functions).
+`table_name.module.ts` files are used to define the module for the table. What is a module? It's a way to group together related entities, controllers, and services. It's a NestJS thing.
 
-Also, you must update the seed.controller.ts file to reflect the new database changes. This seed file is used to populate the database with dummy data on http://localhost:3000/dev.
+If you're creating a new `table_name.module.ts` file, you must also add it to the `app.module.ts` file 
+If you're creating a new `table_name.controler.ts` file, you must also add it to the `ormconfig.ts` file 
+
+Also, you must update the `seed.controller.ts` file to reflect the new database changes. This seed file is used to populate the database with dummy data on http://localhost:3000/dev.
 
 #### Migrations
 
@@ -106,15 +113,17 @@ Each page should have the `Navbar` up top -- refer to other pages for each page.
 
 ### Testing
 
-Integration and unit test files should be colocated with the file they test. One exception is app page tests (page folder is public, so tests can't go in there)
+Unit test files should be colocated with the file they test. 
 
-End to end (E2E) testing is in it's own folder and done with Cypress. These should be used to test core user flows.
+Integration tests are located in the `test` folder.
+
+End to end (E2E) testing is in it's own folder and done with Cypress (note: cypress has been removed, for now). These should be used to test core user flows.
 To run them headlessly (without a graphics server), do `yarn cypress run`.
 To watch them actually run interactively, you can use `yarn cypress open`. Be aware that this is _super slow_ on local machines.
 
 If your tests are failing with a message about "deadlock something whatever", do `yarn test --run-in-band`. This makes the tests run sequentially.
 
-If `yarn test` is not running all of the tests, navigate to `server/test` folder and run `yarn jest --config ./test/jest-integration.json -i --run-in-band` if you would like to run all the tests. To run the tests of a specific file (e.g. course.integration.ts), you can use `yarn jest --config ./test/jest-integration.json -i --run-in-band course`
+If `yarn test` is not running all of the tests, navigate to `server/test` folder and run `yarn jest --config ./test/jest-integration.json -i --run-in-band` if you would like to run all the integration tests. To run the tests of a specific integration test file (e.g. course.integration.ts), you can use `yarn jest --config ./test/jest-integration.json -i --run-in-band course`
 
 > [!NOTE]
 > cypress is currently broken (and its code was recently removed). Only the endpoints are being tested right now
@@ -127,6 +136,11 @@ package, `cd packages/app` and then `yarn add <FRONTEND PACKAGE>`
 ## Style
 
 [Prettier](https://prettier.io/), a highly opinionated code formatter, runs right before you commit to git. So don't worry about formatting your code! Prettier will clean it all up. You can also get the Prettier extension in most IDEs, or run `yarn pretty-quick` if you want to.
+
+## Tips
+
+- In VSCode, Ctrl+Clicking functions (or variables) is your best friend when navigating the code. Ctrl+Clicking a function that is being called will take you to where it is defined. Ctrl+Clicking a function definition will show you everywhere it is called (which can be helpful for figuring out if something will break).
+- In VSCode, the "Search" tab (Ctrl+Shift+F) is your best friend when you need to find something across the entire codebase (helpful for finding related files)
 
 ## Production
 

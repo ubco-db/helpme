@@ -7,11 +7,13 @@ import {
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
+  QueueConfig,
   QueuePartial,
   Role,
   TACheckinTimesResponse,
   TACheckoutResponse,
   UBCOuserParam,
+  validateQueueConfigInput,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -54,8 +56,9 @@ import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
 import { ApplicationConfigService } from '../config/application_config.service';
-import { Not } from 'typeorm';
+import { Not, getManager } from 'typeorm';
 import { pick } from 'lodash';
+import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 
 @Controller('courses')
@@ -191,6 +194,7 @@ export class CourseController {
         'votes',
         'questionTypes',
         'votesSum',
+        'isTaskQuestion',
       ]);
 
       Object.assign(temp, {
@@ -503,10 +507,10 @@ export class CourseController {
     return queue;
   }
 
-  @Post(':id/generate_queue/:room')
+  @Post(':id/create_queue/:room')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
-  async generateQueue(
+  async createQueue(
     @Param('id') courseId: number,
     @Param('room') room: string,
     @User() user: UserModel,
@@ -514,8 +518,18 @@ export class CourseController {
     body: {
       notes: string;
       isProfessorQueue: boolean;
+      config: QueueConfig;
     },
   ): Promise<QueueModel> {
+    let newConfig: QueueConfig = {};
+    if (body.config) {
+      const configError = validateQueueConfigInput(body.config);
+      if (configError) {
+        throw new BadRequestException(configError);
+      }
+      newConfig = body.config;
+    }
+
     const userCourseModel = await UserCourseModel.findOne({
       where: {
         user,
@@ -548,7 +562,6 @@ export class CourseController {
         ERROR_MESSAGES.courseController.queueNotAuthorized,
       );
     }
-
     const queuesCount = await QueueModel.count({
       courseId,
     });
@@ -561,15 +574,41 @@ export class CourseController {
     }
 
     try {
-      return await QueueModel.create({
-        room,
-        courseId,
-        staffList: [],
-        questions: [],
-        allowQuestions: true,
-        notes: body.notes,
-        isProfessorQueue: body.isProfessorQueue,
-      }).save();
+      let createdQueue = null;
+      const entityManager = getManager();
+      await entityManager.transaction(async (transactionalEntityManager) => {
+        try {
+          createdQueue = await transactionalEntityManager
+            .create(QueueModel, {
+              room,
+              courseId,
+              staffList: [],
+              questions: [],
+              allowQuestions: true,
+              notes: body.notes,
+              isProfessorQueue: body.isProfessorQueue,
+              config: newConfig,
+            })
+            .save();
+
+          // now for each tag defined in the config, create a QuestionType
+          const questionTypes = newConfig.tags ?? {};
+          for (const [tagKey, tagValue] of Object.entries(questionTypes)) {
+            await transactionalEntityManager
+              .getRepository(QuestionTypeModel)
+              .insert({
+                cid: courseId,
+                name: tagValue.display_name,
+                color: tagValue.color_hex,
+                queueId: createdQueue.id,
+              });
+          }
+        } catch (err) {
+          throw err;
+        }
+      });
+
+      return createdQueue;
     } catch (err) {
       console.error(
         ERROR_MESSAGES.courseController.saveQueueError +

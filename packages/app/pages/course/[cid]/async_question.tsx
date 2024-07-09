@@ -6,6 +6,8 @@ import { StandardPageContainer } from '../../../components/common/PageContainer'
 import NavBar from '../../../components/Nav/NavBar'
 import AsyncQuestionsPage from '../../../components/Questions/AsyncQuestions/AsyncQuestions'
 import { Spin } from 'antd'
+import { useProfile } from '../../../hooks/useProfile'
+import { useCourse } from '../../../hooks/useCourse'
 
 const Container = styled.div`
   flex: 1;
@@ -15,6 +17,8 @@ const Container = styled.div`
 export default function Queue(): ReactElement {
   const router = useRouter()
   const { cid } = router.query
+  const profile = useProfile()
+  const { course } = useCourse(Number(cid))
 
   if (!cid) {
     return <Spin tip="Loading..." size="large" />
@@ -23,7 +27,10 @@ export default function Queue(): ReactElement {
       <StandardPageContainer>
         <Container>
           <Head>
-            <title> UBC Office Hours</title>
+            <title>
+              {course?.name} Async Question Centre |{' '}
+              {profile?.organization?.organizationName} HelpMe
+            </title>
           </Head>
           {/* accessiblity thing that lets users skip tabbing through the navbar */}
           <a href={`#post-question-button`} className="skip-link">

@@ -8,12 +8,14 @@ import { QuestionTypeParams } from '@koh/common'
 interface QuestionTypeProps {
   typeName: string
   typeColor: string
-  onClick: () => void
+  onClick?: () => void
+  className?: string
 }
 export function QuestionType({
   typeName,
   typeColor,
   onClick,
+  className,
 }: QuestionTypeProps): ReactElement {
   function getBrightness(color: string): number {
     const rgb = parseInt(color.slice(1), 16)
@@ -33,9 +35,10 @@ export function QuestionType({
         //marginTop: '2px',
         margin: '2px',
         display: 'inline-block',
-        cursor: 'pointer',
+        cursor: onClick ? 'pointer' : 'default',
       }}
       onClick={onClick}
+      className={className}
     >
       <Text style={{ fontSize: 'smaller', color: textColor }}>{typeName}</Text>{' '}
     </div>

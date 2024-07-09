@@ -5,7 +5,6 @@ import { useOrganization } from '../../../../hooks/useOrganization'
 import { COURSE_TIMEZONES, OrganizationRole, Role } from '@koh/common'
 import DefaultErrorPage from 'next/error'
 import {
-  Alert,
   Breadcrumb,
   Button,
   Card,

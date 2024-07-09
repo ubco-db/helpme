@@ -1,4 +1,3 @@
-//got rid of questiontype
 import { QuestionStatus, Role, StatusInQueue } from '@koh/common';
 import { Exclude } from 'class-transformer';
 import {
@@ -75,6 +74,9 @@ export class QuestionModel extends BaseEntity {
 
   @Column()
   groupable: boolean;
+
+  @Column({ default: false })
+  isTaskQuestion: boolean;
 
   @ManyToOne((type) => QuestionGroupModel, { nullable: true })
   @JoinColumn({ name: 'groupId' })

@@ -1,4 +1,10 @@
-import { ERROR_MESSAGES, Role, TACheckinTimesResponse } from '@koh/common';
+import {
+  ERROR_MESSAGES,
+  KhouryProfCourse,
+  Role,
+  TACheckinTimesResponse,
+} from '@koh/common';
+import { CourseModel } from '../src/course/course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -22,6 +28,7 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
+import { QuestionTypeModel } from 'questionType/question-type.entity';
 
 describe('Course Integration', () => {
   const supertest = setupIntegrationTest(CourseModule);
@@ -516,7 +523,7 @@ describe('Course Integration', () => {
     });
   });
 
-  describe('POST /courses/:id/generate_queue/:room', () => {
+  describe('POST /courses/:id/create_queue/:room', () => {
     it('correctly propagates notes,profq,and name', async () => {
       const ucp = await UserCourseFactory.create({
         role: Role.PROFESSOR,
@@ -528,17 +535,17 @@ describe('Course Integration', () => {
       });
 
       await supertest({ userId: ucp.user.id })
-        .post(`/courses/${ucp.course.id}/generate_queue/abcd1`)
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
         .send({ notes: 'example note 1', isProfessorQueue: false })
         .expect(201);
 
       await supertest({ userId: ucp.user.id })
-        .post(`/courses/${ucp.course.id}/generate_queue/abcd2`)
+        .post(`/courses/${ucp.course.id}/create_queue/abcd2`)
         .send({ notes: 'example note 7', isProfessorQueue: true })
         .expect(201);
 
       await supertest({ userId: uct.user.id })
-        .post(`/courses/${uct.course.id}/generate_queue/abcd3`)
+        .post(`/courses/${uct.course.id}/create_queue/abcd3`)
         .send({ notes: 'ta queue', isProfessorQueue: false })
         .expect(201);
 
@@ -571,7 +578,7 @@ describe('Course Integration', () => {
         role: Role.TA,
       });
       await supertest({ userId: uct.user.id })
-        .post(`/courses/${uct.course.id}/generate_queue/abcd3`)
+        .post(`/courses/${uct.course.id}/create_queue/abcd3`)
         .send({ notes: 'ta queue', isProfessorQueue: true })
         .expect(401); // unauthorized
     });
@@ -582,11 +589,11 @@ describe('Course Integration', () => {
       });
 
       await supertest({ userId: ucp.user.id })
-        .post(`/courses/${ucp.course.id}/generate_queue/abcd1`)
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
         .send({ notes: 'example note 1', isProfessorQueue: false })
         .expect(201);
       await supertest({ userId: ucp.user.id })
-        .post(`/courses/${ucp.course.id}/generate_queue/abcd1`)
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
         .send({ notes: 'example note 2', isProfessorQueue: false })
         .expect(400);
     });
@@ -605,12 +612,139 @@ describe('Course Integration', () => {
 
       // recreate a disabled queue.
       await supertest({ userId: ucp.user.id })
-        .post(`/courses/${ucp.course.id}/generate_queue/${queue1.room}`)
+        .post(`/courses/${ucp.course.id}/create_queue/${queue1.room}`)
         .send({
           notes: queue1.notes,
           isProfessorQueue: queue1.isProfessorQueue,
         })
         .expect(201);
+    });
+
+    it('when creating queue, it saves the queue config correctly', async () => {
+      const ucp = await UserCourseFactory.create({
+        role: Role.PROFESSOR,
+      });
+
+      const exampleConfig = {
+        tags: {
+          tag1: {
+            display_name: 'Tag 1',
+            color_hex: '#ff0000',
+          },
+        },
+      };
+
+      await supertest({ userId: ucp.user.id })
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
+        .send({
+          notes: 'example note 1',
+          isProfessorQueue: false,
+          config: exampleConfig,
+        })
+        .expect(201);
+
+      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      expect(q1.config).toEqual(exampleConfig);
+    });
+
+    it('does not allow an invalid queue config', async () => {
+      const ucp = await UserCourseFactory.create({
+        role: Role.PROFESSOR,
+      });
+
+      await supertest({ userId: ucp.user.id })
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
+        .send({
+          notes: 'example note 1',
+          isProfessorQueue: false,
+          config: { key: 'value' },
+        })
+        .expect(400);
+
+      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      expect(q1).toEqual(undefined);
+    });
+
+    it('creates question types for each tag defined in the config', async () => {
+      const ucp = await UserCourseFactory.create({
+        role: Role.PROFESSOR,
+      });
+
+      const exampleConfig = {
+        tags: {
+          tag1: {
+            display_name: 'Tag 1',
+            color_hex: '#ff0000',
+          },
+          tag2: {
+            display_name: 'Tag 2',
+            color_hex: '#00ff00',
+          },
+        },
+      };
+
+      await supertest({ userId: ucp.user.id })
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
+        .send({
+          notes: 'example note 1',
+          isProfessorQueue: false,
+          config: exampleConfig,
+        })
+        .expect(201);
+
+      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      expect(q1.config).toEqual(exampleConfig);
+
+      const questionTypes = await QuestionTypeModel.find({
+        where: {
+          cid: ucp.course.id,
+        },
+      });
+
+      expect(questionTypes.length).toBe(2);
+      expect(questionTypes[0].name).toBe('Tag 1');
+      expect(questionTypes[0].color).toBe('#ff0000');
+      expect(questionTypes[1].name).toBe('Tag 2');
+      expect(questionTypes[1].color).toBe('#00ff00');
+    });
+
+    it('does not create question types for duplicate tags (display_name)', async () => {
+      const ucp = await UserCourseFactory.create({
+        role: Role.PROFESSOR,
+      });
+
+      const exampleConfig = {
+        tags: {
+          tag1: {
+            display_name: 'Tag 1',
+            color_hex: '#ff0000',
+          },
+          tag2: {
+            display_name: 'Tag 1',
+            color_hex: '#00ff00',
+          },
+        },
+      };
+
+      await supertest({ userId: ucp.user.id })
+        .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
+        .send({
+          notes: 'example note 1',
+          isProfessorQueue: false,
+          config: exampleConfig,
+        })
+        .expect(400);
+
+      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      expect(q1).toBeUndefined();
+
+      const questionTypes = await QuestionTypeModel.find({
+        where: {
+          cid: ucp.course.id,
+        },
+      });
+
+      expect(questionTypes.length).toBe(0);
     });
   });
 

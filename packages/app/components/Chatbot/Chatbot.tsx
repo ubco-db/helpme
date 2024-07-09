@@ -85,7 +85,7 @@ export const ChatbotComponent: React.FC = () => {
     return () => {
       setInteractionId(null)
     }
-  }, [profile])
+  }, [profile, cid])
 
   const query = async () => {
     try {

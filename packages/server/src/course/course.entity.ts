@@ -1,5 +1,4 @@
 import { Heatmap } from '@koh/common';
-import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
 import { Exclude } from 'class-transformer';
 import {
   BaseEntity,
@@ -21,6 +20,7 @@ import { OrganizationCourseModel } from '../organization/organization-course.ent
 import { ChatbotDocumentModel } from '../chatbot/chatbotDocument.entity';
 import { CourseSettingsModel } from './course_settings.entity';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
+import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 @Entity('course_model')
 export class CourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -111,9 +111,14 @@ export class CourseModel extends BaseEntity {
     (courseSettings) => courseSettings.course,
     { cascade: true },
   )
+  @Exclude()
   courseSettings: CourseSettingsModel;
 
   @OneToMany(() => QuestionTypeModel, (qtm) => qtm.course)
   @Exclude()
   questionTypes: QuestionTypeModel[];
+
+  @OneToMany(() => StudentTaskProgressModel, (stpm) => stpm.course)
+  @Exclude()
+  taskProgresses: StudentTaskProgressModel[];
 }

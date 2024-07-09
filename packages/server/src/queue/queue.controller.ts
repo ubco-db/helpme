@@ -5,8 +5,11 @@ import {
   LimboQuestionStatus,
   ListQuestionsResponse,
   OpenQuestionStatus,
+  QueueConfig,
   Role,
   UpdateQueueParams,
+  setQueueConfigResponse,
+  validateQueueConfigInput,
 } from '@koh/common';
 import {
   Body,
@@ -45,7 +48,7 @@ export class QueueController {
   constructor(
     private queueSSEService: QueueSSEService,
     private queueCleanService: QueueCleanService,
-    private queueService: QueueService,
+    private queueService: QueueService, //note: this throws errors, be sure to catch them
     private redisQueueService: RedisQueueService,
   ) {}
 
@@ -210,6 +213,38 @@ export class QueueController {
         ERROR_MESSAGES.queueController.saveQueue,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  /**
+   * Sets the JSON config for a queue and then returns success + any question tags that were created/deleted/updated
+   */
+  // note: for whatever reason, anytime you `return` a res.send(), you get "cannot set headers after they are sent" even though that's what you're supposed to do
+  @Patch(':queueId/config')
+  @Roles(Role.TA, Role.PROFESSOR)
+  async setConfig(
+    @Param('queueId') queueId: number,
+    @Body() newConfig: QueueConfig,
+    @Res() res: Response,
+  ): Promise<Response<setQueueConfigResponse>> {
+    // make sure queue config is valid
+    const configError = validateQueueConfigInput(newConfig);
+    if (configError) {
+      res.status(HttpStatus.BAD_REQUEST).send({ message: configError });
+      return;
+    }
+
+    try {
+      const questionTypeMessages =
+        await this.queueService.updateQueueConfigAndTags(queueId, newConfig);
+      res.status(HttpStatus.OK).send({ questionTypeMessages });
+      return;
+    } catch (err) {
+      console.error(err); // internal server error: figure out what went wrong
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .send({ message: ERROR_MESSAGES.queueController.saveQueue });
+      return;
     }
   }
 }

@@ -64,11 +64,7 @@ describe('QuestionService', () => {
         status: QuestionStatusKeys.Helping,
       });
 
-      const resp = await service.changeStatus(
-        QuestionStatusKeys.CantFind,
-        g1q2,
-        ta.id,
-      );
+      await service.changeStatus(QuestionStatusKeys.CantFind, g1q2, ta.id);
 
       const updatedGroup = await QuestionGroupModel.findOne({
         where: { id: group.id },
@@ -78,13 +74,11 @@ describe('QuestionService', () => {
         where: { id: g1q2.id },
         relations: ['group'],
       });
-      expect(resp).toMatchObject({
-        status: QuestionStatusKeys.CantFind,
-        groupId: null,
-      });
       expect(updatedGroup.questions.length).toEqual(1);
       expect(updatedGroup.questions[0].id).toEqual(g1q1.id);
       expect(updatedQ2.group).toBeNull();
+      expect(updatedQ2.groupId).toBeNull();
+      expect(updatedQ2.status).toEqual(QuestionStatusKeys.CantFind);
     });
   });
 });
