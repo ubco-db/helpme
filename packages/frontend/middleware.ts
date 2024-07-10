@@ -6,20 +6,15 @@ const isAuthPages = (url: string) =>
   authPages.some((page) => page.startsWith(url))
 
 export async function middleware(request: NextRequest) {
-  const { _url, nextUrl, cookies } = request
+  const { url, nextUrl, cookies } = request
 
   const isAuthPageRequested = isAuthPages(nextUrl.pathname)
 
   if (!cookies.has('auth_token') && !isAuthPageRequested) {
-    return {
-      status: 302,
-      headers: {
-        location: '/login',
-      },
-    }
+    return NextResponse.redirect(new URL('/login', url))
   }
 
-  return NextResponse.next()
+  NextResponse.next()
 }
 
 export const config = {
