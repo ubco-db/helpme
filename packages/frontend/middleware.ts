@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const authPages = ['/login']
+const authPages = ['/login', '/register', '/auth/failed/40001']
 
 const isAuthPages = (url: string) =>
   authPages.some((page) => page.startsWith(url))

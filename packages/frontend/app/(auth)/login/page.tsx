@@ -2,12 +2,14 @@
 
 import { organizationApi } from '@/app/api/organizationApi'
 import { message, Alert, Button, Card, Form, Input, Select } from 'antd'
-import Head from 'next/head'
 import React, { SetStateAction, useEffect, useState } from 'react'
 import { Organization } from '@/app/typings/organization'
 import { LeftOutlined, UserOutlined, LockOutlined } from '@ant-design/icons'
 import Image from 'next/image'
 import ReCAPTCHA from 'react-google-recaptcha'
+import Link from 'next/link'
+import { userApi } from '@/app/api/userApi'
+import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -17,6 +19,7 @@ export default function LoginPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [organization, setOrganization] = useState<Organization | null>(null)
   const recaptchaRef = React.createRef<ReCAPTCHA>()
+  const router = useRouter()
 
   useEffect(() => {
     async function getOrganizations() {
@@ -51,12 +54,30 @@ export default function LoginPage() {
     setLoginMenu(true)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  async function login() {}
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  async function loginWithGoogle() {}
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  async function loginWithInstitution() {}
+  async function login() {
+    const token = await recaptchaRef?.current?.executeAsync()
+
+    if (organization && !organization.legacyAuthEnabled) {
+      message.error('Organization does not support legacy authentication')
+      return
+    }
+  }
+
+  async function loginWithGoogle() {
+    const response = await userApi.loginWithGoogle(organization?.id ?? -1)
+    const data = await response.json()
+
+    if (response.status !== 200) {
+      message.error(data.message)
+      return
+    }
+
+    router.push(data.redirectUri)
+  }
+
+  async function loginWithInstitution() {
+    router.push(`/api/v1/auth/link/sso/${organization?.id}`)
+  }
 
   async function onReCAPTCHAChange(captchaCode: string | null) {
     if (!captchaCode) return
@@ -66,9 +87,6 @@ export default function LoginPage() {
 
   return (
     <>
-      <Head>
-        <title>Login | HelpMe</title>
-      </Head>
       <div className="container mx-auto h-auto w-1/2 pt-20 text-center">
         <Card className="mx-auto max-w-md sm:px-2 md:px-6">
           <h2 className="my-4 text-left">Login</h2>
@@ -206,8 +224,8 @@ export default function LoginPage() {
                   </Form.Item>
 
                   <div className="d-flex flex-row space-x-8 text-center">
-                    <a href="/account/password">Forgot password</a>
-                    <a href="/register">Create account</a>
+                    <Link href="/account/password">Forgot password</Link>
+                    <Link href="/register">Create account</Link>
                   </div>
                 </Form>
               )}

@@ -1,10 +1,44 @@
+@import 'antd/dist/reset.css';
+
+::before,
+::after {
+  box-sizing: border-box; /* 1 */
+  border-width: 0; /* 2 */
+  border-style: solid; /* 2 */
+  border-color: theme('borderColor.DEFAULT', currentColor); /* 2 */
+}
+
+::before,
+::after {
+  --tw-content: '';
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+body {
+  background: #f8f9fb;
+}
+
+a {
+  text-decoration: none;
+}
+
 .ant-btn-primary {
   border-color: #3684c6;
   background-color: #3684c6;
+  background: #3684c6 !important;
+}
+
+h1 {
+  display: block;
+  font-size: 2em;
+  font-weight: bold;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: inherit;
+  margin-bottom: inherit;
 }
 
 h2 {
@@ -21,6 +55,17 @@ h1, h2, h3, h4, h5, h6 {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 }
 
-a {
-  color: rgb(37 99 235);
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #000;
+  color: #fff;
+  padding: 8px;
+  z-index: 100;
+  transition: top 0.3s ease;
+}
+
+.skip-link:focus {
+  top: 0;
 }
