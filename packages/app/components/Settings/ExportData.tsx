@@ -110,35 +110,7 @@ export default function ExportData({
         (studentTaskProgressWithUser) =>
           studentTaskProgressWithUser.userDetails,
       )
-      console.log(assignments)
-      console.log(tasks)
-      console.log(students)
-      // const formattedAssignmentData = assignments.map((assignment) => {
-      //   const rowsForAssignment = students.map((student) => {
-      //     const taskProgressRow = tasks.map((taskId) => {
-      //       // for each global task, see if the assignment has it
-      //       // if it does, return the student's progress on it (true/false).
-      //       // If the assignment does not contain the task, just put an empty string.
-      //       if (!assignment.taskIds.includes(taskId)) {
-      //         return ''
-      //       }
-      //       const myStudentTaskProgress = assignmentData.find((studentTaskProgressWithUser) => studentTaskProgressWithUser.userDetails.id === student.id)?.taskProgress
-      //       if (!myStudentTaskProgress || !myStudentTaskProgress[assignment.assignmentId] || !myStudentTaskProgress[assignment.assignmentId].assignmentProgress ) {
-      //         return ''
-      //       }
-      //       const myAssignmentProgress = myStudentTaskProgress[assignment.assignmentId].assignmentProgress
-      //       return !!myAssignmentProgress[taskId]
-      //     })
-      //     return [
-      //       assignment.assignmentId,
-      //       student.name,
-      //       student.sid,
-      //       student.email,
-      //       ...taskProgressRow,
-      //     ]
-      //   })
-      //   return rowsForAssignment
-      // }).flat(2)
+
       const formattedAssignmentData = assignments.flatMap((assignment) => {
         return students.map((student) => {
           // Initialize the object with assignment ID and student details
@@ -150,35 +122,45 @@ export default function ExportData({
           }
 
           // Add task progress to the object
+          // for each global task
           tasks.forEach((taskId) => {
+            // If the assignment does not contain the task, just put an empty string.
+            if (!assignment.taskIds.includes(taskId)) {
+              rowObject[taskId] = ''
+              return
+            }
             const myStudentTaskProgress = assignmentData.find(
               (studentTaskProgressWithUser) =>
                 studentTaskProgressWithUser.userDetails.id === student.id,
             )?.taskProgress
+            // if the student has never made progress on this assignment, put false
+            // THIS ASSUMES THAT EVERY STUDENT WAS SUPPOSED TO DO THE ASSIGNMENT. Alternatively, we could put an empty string here to show that the student never started the assignment.
             if (
               !myStudentTaskProgress ||
               !myStudentTaskProgress[assignment.assignmentId] ||
               !myStudentTaskProgress[assignment.assignmentId].assignmentProgress
             ) {
-              rowObject[taskId] = ''
+              rowObject[taskId] = false
+              return
+            }
+            const myAssignmentProgress =
+              myStudentTaskProgress[assignment.assignmentId].assignmentProgress
+            // if the student has made progress on the assignment, put false if they haven't done the task. Put the task's isDone value (which is always true as of now) if they have.
+            if (!myAssignmentProgress[taskId]) {
+              rowObject[taskId] = false
             } else {
-              const myAssignmentProgress =
-                myStudentTaskProgress[assignment.assignmentId]
-                  .assignmentProgress
-              rowObject[taskId] = !!myAssignmentProgress[taskId]
+              rowObject[taskId] = myAssignmentProgress[taskId].isDone
             }
           })
-
           return rowObject
         })
       })
-      console.log(formattedAssignmentData)
 
       const today = new Date()
       const dateString = today.toISOString().split('T')[0] // Format: YYYY-MM-DD
       const assignmentDataWithCSVSettings = {
         data: formattedAssignmentData,
-        filename: `student-assignment-progress-${dateString}`,
+        filename: `all-assignment-progress-${dateString}`,
         delimiter: ',',
         headers: [
           'assignmentId',
