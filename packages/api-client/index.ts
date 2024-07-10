@@ -30,7 +30,6 @@ import {
   CreateAsyncQuestions,
   UpdateAsyncQuestions,
   AsyncQuestion,
-  CoursePartial,
   Calendar,
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
