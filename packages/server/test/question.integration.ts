@@ -3,11 +3,8 @@ import {
   ERROR_MESSAGES,
   OpenQuestionStatus,
   QuestionStatusKeys,
-  QuestionTypes,
-  Role,
 } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
-import { QuestionGroupModel } from 'question/question-group.entity';
 import { QueueModel } from 'queue/queue.entity';
 import supertest from 'supertest';
 import { QuestionModel } from '../src/question/question.entity';
@@ -15,13 +12,11 @@ import { QuestionModule } from '../src/question/question.module';
 import {
   CourseFactory,
   QuestionFactory,
-  QuestionGroupFactory,
   QuestionTypeFactory,
   QueueFactory,
   StudentCourseFactory,
   StudentTaskProgressFactory,
   TACourseFactory,
-  UserCourseFactory,
   UserFactory,
 } from './util/factories';
 import {
@@ -29,7 +24,7 @@ import {
   modifyMockNotifs,
   setupIntegrationTest,
 } from './util/testUtils';
-import { assign, forEach } from 'lodash';
+import { forEach } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 

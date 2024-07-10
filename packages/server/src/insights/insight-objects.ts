@@ -2,7 +2,6 @@ import {
   BarChartOutputType,
   InsightComponent,
   InsightObject,
-  QuestionTypes,
   Role,
   SimpleDisplayOutputType,
   SimpleTableOutputType,
@@ -262,8 +261,8 @@ export const QuestionTypeBreakdown: InsightObject = {
         a.questionTypeName === b.questionTypeName
           ? 0
           : a.questionTypeName > b.questionTypeName
-          ? 1
-          : -1,
+            ? 1
+            : -1,
       ),
       xField: 'totalQuestions',
       yField: 'questionTypeName',
