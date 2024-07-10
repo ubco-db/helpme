@@ -124,6 +124,8 @@ export default function ExportData({
             studentName: student.name,
             studentSid: student.sid,
             studentEmail: student.email,
+            totalAssignmentTasks: assignment.taskIds.length,
+            tasksCompleted: 0,
           }
 
           // Add task progress to the object
@@ -155,6 +157,9 @@ export default function ExportData({
               rowObject[taskId] = false
             } else {
               rowObject[taskId] = myAssignmentProgress[taskId].isDone
+              if (myAssignmentProgress[taskId].isDone) {
+                rowObject.tasksCompleted++
+              }
             }
           })
           return rowObject
@@ -173,6 +178,8 @@ export default function ExportData({
           'studentName',
           'studentSid',
           'studentEmail',
+          'totalAssignmentTasks',
+          'tasksCompleted',
           ...tasks,
         ],
       }
@@ -189,7 +196,7 @@ export default function ExportData({
   }
 
   return (
-    <div className="flex flex-col items-center justify-start">
+    <div className="flex basis-auto flex-col items-center justify-start">
       <Button
         className="mb-8 mt-24"
         loading={loadingQuestions}
@@ -212,7 +219,7 @@ export default function ExportData({
         Download csv of all questions
       </Button>
       <Button
-        className="mb-4 mt-8"
+        className="mb-2 mt-8"
         loading={loadingAssignments}
         onClick={async () => {
           const assignmentDataWithCSVSettings = await fetchStudentTaskProgress()
@@ -232,12 +239,9 @@ export default function ExportData({
       >
         Download csv of all students&apos; assignment progress
       </Button>
-      <div className="max-w-1/2 my-4 text-sm text-gray-500">
-        Note: Since the tasks can be different in a queue but have the same
-        assignment ID, the tasks defined in the CSV will be based on the tasks
-        students have completed. This means that a task that was never once
-        completed by any student will not show up for that assignment in the
-        CSV.
+      <div className="my-2 w-1/2 text-sm text-gray-500">
+        Note: Assignment tasks that no student ever completed are not considered
+        part of that assignment
       </div>
     </div>
   )

@@ -159,38 +159,38 @@ export default function CourseAdminPanel({
           </Menu.Item>
         </Menu>
       </Col>
-      <VerticalDivider />
-      <Space direction="vertical" size={40} style={{ flexGrow: 1 }}>
-        <Col span={20}>
-          {currentSettings === CourseAdminOptions.EDIT_COURSE && (
-            <EditCourse courseId={courseId} />
-          )}
-          {currentSettings === CourseAdminOptions.CHECK_IN && (
-            <TACheckInCheckOutTimes courseId={courseId} />
-          )}
-          {currentSettings === CourseAdminOptions.ROSTER && (
-            <CourseRosterPage courseId={courseId} />
-          )}
-          {/* {currentSettings === CourseAdminOptions.ADD && (
+      <Col span={1}>
+        <VerticalDivider />
+      </Col>
+      <Col span={19}>
+        {currentSettings === CourseAdminOptions.EDIT_COURSE && (
+          <EditCourse courseId={courseId} />
+        )}
+        {currentSettings === CourseAdminOptions.CHECK_IN && (
+          <TACheckInCheckOutTimes courseId={courseId} />
+        )}
+        {currentSettings === CourseAdminOptions.ROSTER && (
+          <CourseRosterPage courseId={courseId} />
+        )}
+        {/* {currentSettings === CourseAdminOptions.ADD && (
             <AddStudentsToCourse courseId={courseId} />
           )} */}
-          {currentSettings === CourseAdminOptions.FEATURES && (
-            <ToggleFeaturesPage courseId={courseId} />
-          )}
-          {currentSettings === CourseAdminOptions.EXPORT && (
-            <ExportData courseId={courseId} />
-          )}
-          {currentSettings === CourseAdminOptions.EDIT && (
-            <EditQuestions courseId={courseId} />
-          )}
-          {currentSettings === CourseAdminOptions.CHATBOT_SETTINGS && (
-            <ChatbotSettings courseId={courseId} />
-          )}
-          {currentSettings === CourseAdminOptions.CHATBOT_QUESTIONS && (
-            <ChatbotQuestions courseId={courseId} />
-          )}
-        </Col>
-      </Space>
+        {currentSettings === CourseAdminOptions.FEATURES && (
+          <ToggleFeaturesPage courseId={courseId} />
+        )}
+        {currentSettings === CourseAdminOptions.EXPORT && (
+          <ExportData courseId={courseId} />
+        )}
+        {currentSettings === CourseAdminOptions.EDIT && (
+          <EditQuestions courseId={courseId} />
+        )}
+        {currentSettings === CourseAdminOptions.CHATBOT_SETTINGS && (
+          <ChatbotSettings courseId={courseId} />
+        )}
+        {currentSettings === CourseAdminOptions.CHATBOT_QUESTIONS && (
+          <ChatbotQuestions courseId={courseId} />
+        )}
+      </Col>
     </Row>
   )
 }
