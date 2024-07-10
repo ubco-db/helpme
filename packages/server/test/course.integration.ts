@@ -6,7 +6,6 @@ import {
 } from '@koh/common';
 import { CourseModel } from '../src/course/course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
-import { LastRegistrationModel } from 'login/last-registration-model.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { CourseModule } from '../src/course/course.module';
@@ -18,7 +17,6 @@ import {
   OrganizationCourseFactory,
   OrganizationFactory,
   OrganizationUserFactory,
-  ProfSectionGroupsFactory,
   QueueFactory,
   SemesterFactory,
   StudentCourseFactory,
@@ -34,6 +32,7 @@ import { QuestionTypeModel } from 'questionType/question-type.entity';
 
 describe('Course Integration', () => {
   const supertest = setupIntegrationTest(CourseModule);
+
   describe('GET /courses/:id', () => {
     it('gets office hours no queues, since no queue is happening right now', async () => {
       const course = await CourseFactory.create({

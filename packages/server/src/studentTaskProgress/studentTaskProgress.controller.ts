@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
-import { Connection, getRepository } from 'typeorm';
+import { getRepository } from 'typeorm';
 import { StudentTaskProgressModel } from './studentTaskProgress.entity';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { QueueRolesGuard } from 'guards/queue-role.guard';
@@ -23,7 +23,6 @@ import { QueueRolesGuard } from 'guards/queue-role.guard';
 @UseGuards(JwtAuthGuard, CourseRolesGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class StudentTaskProgressController {
-  constructor(private connection: Connection) {}
   // TODO: make it so students can only retrieve their own taskProgress
   // maybe make 3 endpoints. getMyAssignmentProgress (using @UserId), getStudentAssignmentProgress (only usable by TAs. Though, maybe instead just ship the assignment progress with the task question itself), and getAllAssignmentProgressForQueue (also only used by TAs. This can be called initially to save a lot of the initial calls.), can also have getAllAssignmentProgressForCourse
   // will probably want to move the method to its own controller at that point (with a little note that mentions that the setting of taskProgress happens in the updateQuestion endpoint in the question controller).

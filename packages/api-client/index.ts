@@ -10,7 +10,6 @@ import {
   GetCourseResponse,
   GetInsightOutputResponse,
   GetProfileResponse,
-  GetQuestionResponse,
   GetQueueResponse,
   GroupQuestionsParams,
   ListInsightsResponse,
@@ -205,9 +204,7 @@ class APIClient {
     getOrganizationCourses: async (organizationId: number) =>
       this.req('GET', `/api/v1/courses/${organizationId}/organization_courses`),
     getAsyncQuestions: async (cid: number): Promise<AsyncQuestion[]> =>
-      this.req('GET', `/api/v1/courses/${cid}/asyncQuestions`, undefined),
-    getAllCourses: async (): Promise<CoursePartial[]> =>
-      this.req('GET', `/api/v1/courses`),
+      this.req('GET', `/api/v1/courses/${cid}/questions`, undefined),
     get: async (courseId: number) =>
       this.req('GET', `/api/v1/courses/${courseId}`, GetCourseResponse),
     getUserInfo: async (
@@ -345,8 +342,6 @@ class APIClient {
       ),
     getAllQuestions: async (cid: number): Promise<questions[]> =>
       this.req('GET', `/api/v1/questions/allQuestions/${cid}`, undefined),
-    get: async (questionId: number): Promise<GetQuestionResponse> =>
-      this.req('GET', `/api/v1/questions/${questionId}`, GetQuestionResponse),
     update: async (questionId: number, params: UpdateQuestionParams) =>
       this.req(
         'PATCH',
@@ -356,15 +351,6 @@ class APIClient {
       ),
     notify: async (questionId: number): Promise<void> =>
       this.req('POST', `/api/v1/questions/${questionId}/notify`),
-    group: async (params: GroupQuestionsParams): Promise<void> =>
-      this.req('POST', '/api/v1/questions/group', undefined, params),
-    resolveGroup: async (groupId: number, queueId: number): Promise<void> =>
-      this.req(
-        'PATCH',
-        `/api/v1/questions/resolveGroup/${groupId}`,
-        undefined,
-        { queueId },
-      ),
   }
   questionType = {
     getQuestionTypes: async (
@@ -631,14 +617,6 @@ class APIClient {
         `/api/v1/organization/${organizationId}/get_courses/${page}${
           search ? `?search=${search}` : ''
         }`,
-      ),
-    addCourse: async (
-      courseId: number,
-      organizationId: number,
-    ): Promise<void> =>
-      this.req(
-        'POST',
-        `/api/v1/organization/${organizationId}/add_course/${courseId}`,
       ),
     getProfessors: async (organizationId: number): Promise<any> =>
       this.req('GET', `/api/v1/organization/${organizationId}/get_professors`),

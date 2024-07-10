@@ -10,6 +10,7 @@ import * as bodyParser from 'body-parser';
 import { AppModule } from './app.module';
 import { StripUndefinedPipe } from './stripUndefined.pipe';
 import * as expressSession from 'express-session';
+import { ApplicationConfigService } from './config/application_config.service';
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function bootstrap(hot: any): Promise<void> {
@@ -23,6 +24,9 @@ export async function bootstrap(hot: any): Promise<void> {
   app.enableShutdownHooks(); // So we can clean up SSE.
   addGlobalsToApp(app);
   app.setGlobalPrefix('api/v1');
+
+  const configService = app.get(ApplicationConfigService);
+  await configService.loadConfig();
 
   if (isProd()) {
     console.log(`Running production at ${process.env.DOMAIN}.`);

@@ -15,7 +15,7 @@ import {
 } from 'class-validator'
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
-import ajv, { Ajv } from 'ajv'
+import { Ajv } from 'ajv'
 
 export const PROD_URL = 'https://coursehelp.ubc.ca'
 
@@ -350,7 +350,7 @@ export class Question {
   isTaskQuestion?: boolean
 }
 
-export const QuestionTypes: QuestionTypeParams[] = [
+export const QuestionTypes: QuestionTypeParamsWithOptionalQueueId[] = [
   {
     id: 1,
     cid: 1,
@@ -1124,8 +1124,8 @@ export class QuestionTypeParams {
   cid?: number
 
   @IsString()
-  @IsOptional()
-  name?: string
+  @IsNotEmpty()
+  name!: string
 
   @IsString()
   @IsOptional()
@@ -1136,6 +1136,26 @@ export class QuestionTypeParams {
   queueId?: number
 }
 
+export class QuestionTypeParamsWithOptionalQueueId {
+  @IsInt()
+  @IsOptional()
+  id?: number
+
+  @IsInt()
+  @IsOptional()
+  cid?: number
+
+  @IsString()
+  name!: string
+
+  @IsString()
+  @IsOptional()
+  color?: string
+
+  @IsInt()
+  @IsOptional()
+  queueId?: number
+}
 export class TACheckinTimesResponse {
   @Type(() => TACheckinPair)
   taCheckinTimes!: TACheckinPair[]
@@ -1257,15 +1277,6 @@ export class questionTypeResponse {
   @Type(() => questionTypeParam)
   questions!: questionTypeParam[]
 }
-/**
- * Represents the parameters for a course being registered for register_courses endpoint.
- * @param sectionGroupName - The name of the section group.
- * @param name - user friendly display name entered by Prof
- * @param semester - The name of the semester.
- * @param iCalURL - The URL for the iCal calendar.
- * @param coordinator_email - The email for the course coordinator.
- * @param timezone - The timezone derived from the Campus field on the form.
- */
 
 export class AccountRegistrationParams {
   @IsString()
@@ -1474,6 +1485,11 @@ export interface setQueueConfigResponse {
   questionTypeMessages: string[]
 }
 
+/**
+ * This is the queue config that stores settings that the TA can set/edit for the queue.
+ * NOTE: tags (aka questionTypes) in this are NOT necessarily going to be the same as the questionType entities for the queue (or at least for now).
+ * Therefore, when building front-end components, map over all the questionType entities and NOT all the tags in the queue config
+ */
 export interface QueueConfig {
   fifo_queue_view_enabled?: boolean
   tag_groups_queue_view_enabled?: boolean
@@ -1490,252 +1506,7 @@ export interface QueueConfig {
 }
 
 /**
- * Helper function to find the first duplicate in an array
- */
-function findFirstDuplicate(array: any[]): any {
-  const seen = new Set()
-  for (const item of array) {
-    if (seen.has(item)) {
-      return item
-    }
-    seen.add(item)
-  }
-  return null
-}
-
-/**
- * This function is used both on the backend and frontend to check if there are any errors (total is 24 different errors) in the queue config.
  *
- * Returns an empty string if there's no errors
- */
-export function validateQueueConfigInput(obj: any): string {
-  const MAX_JSON_SIZE = 10240 // 10KB
-  //
-  // first validate the json with ajv
-  //
-  const ajv = new Ajv()
-  const schema = {
-    $schema: 'http://json-schema.org/draft-07/schema#',
-    type: 'object',
-    properties: {
-      fifo_queue_view_enabled: { type: 'boolean' },
-      tag_groups_queue_view_enabled: { type: 'boolean' },
-      default_view: { enum: ['fifo', 'tag_groups'] },
-      minimum_tags: { type: 'number' },
-      tags: {
-        type: 'object',
-        patternProperties: {
-          '^[^ ]+$': {
-            type: 'object',
-            properties: {
-              display_name: { type: 'string' },
-              color_hex: {
-                type: 'string',
-                pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
-              },
-            },
-            required: ['display_name', 'color_hex'],
-            additionalProperties: false,
-          },
-        },
-      },
-      assignment_id: { type: 'string', pattern: '^[^ ]*$' },
-      tasks: {
-        type: 'object',
-        patternProperties: {
-          '^[^ ]+$': {
-            type: 'object',
-            properties: {
-              display_name: { type: 'string' },
-              short_display_name: { type: 'string' },
-              blocking: { type: 'boolean' },
-              color_hex: {
-                type: 'string',
-                pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
-              },
-              precondition: { type: ['string', 'null'] },
-            },
-            required: [
-              'display_name',
-              'short_display_name',
-              'color_hex',
-              'precondition',
-            ],
-            additionalProperties: false,
-          },
-        },
-      },
-    },
-    required: [],
-    additionalProperties: false,
-  }
-  const validate = ajv.compile(schema)
-  const obj2 = obj
-  const valid = validate(obj2)
-  if (!valid) {
-    return validate.errors?.map((e) => e.message).join(', ') || 'Unknown error'
-  }
-
-  //
-  // manual checking of the JSON (in case ajv doesn't catch everything. The code below is known to work)
-  //
-  const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
-  const validAttributes = [
-    'fifo_queue_view_enabled',
-    'tag_groups_queue_view_enabled',
-    'default_view',
-    'minimum_tags',
-    'tags',
-    'assignment_id',
-    'tasks',
-  ]
-  const validTagAttributes = ['display_name', 'color_hex']
-  const validTaskAttributes = [
-    'display_name',
-    'short_display_name',
-    'blocking',
-    'color_hex',
-    'precondition',
-  ]
-
-  if (!obj) {
-    return 'Input is null or undefined'
-  }
-  if (
-    obj.fifo_queue_view_enabled !== undefined &&
-    typeof obj.fifo_queue_view_enabled !== 'boolean'
-  ) {
-    return 'fifo_queue_view_enabled must be a boolean'
-  }
-  if (
-    obj.tag_groups_queue_view_enabled !== undefined &&
-    typeof obj.tag_groups_queue_view_enabled !== 'boolean'
-  ) {
-    return 'tag_groups_queue_view_enabled must be a boolean'
-  }
-  if (
-    obj.fifo_queue_view_enabled === false &&
-    obj.tag_groups_queue_view_enabled === false
-  ) {
-    return 'At least one of fifo_queue_view_enabled and tag_groups_queue_view_enabled must be enabled'
-  }
-  if (
-    obj.default_view !== undefined &&
-    !['fifo', 'tag_groups'].includes(obj.default_view)
-  ) {
-    return "default_view must be 'fifo' or 'tag_groups'"
-  }
-  if (obj.minimum_tags !== undefined && typeof obj.minimum_tags !== 'number') {
-    return 'minimum_tags must be a number'
-  }
-  if (obj.tags !== undefined) {
-    if (typeof obj.tags !== 'object') {
-      return 'tags must be an object'
-    }
-    // checks for each tag
-    for (const tagKey in obj.tags) {
-      if (
-        !obj.tags[tagKey].display_name ||
-        typeof obj.tags[tagKey].display_name !== 'string'
-      ) {
-        return `Tag ${tagKey} must have a display_name of type string`
-      }
-      if (
-        !obj.tags[tagKey].color_hex ||
-        typeof obj.tags[tagKey].color_hex !== 'string' ||
-        !hexColorRegex.test(obj.tags[tagKey].color_hex)
-      ) {
-        return `Tag ${tagKey} must have a valid color_hex of type string`
-      }
-      for (const key in obj.tags[tagKey]) {
-        if (!validTagAttributes.includes(key)) {
-          return `Unknown attribute "${key}" in tag "${tagKey}"`
-        }
-      }
-    }
-    // no duplicate tag display names
-    const tagDisplayNames = Object.values(obj.tags).map(
-      (tag: any) => tag.display_name,
-    )
-    if (tagDisplayNames.length !== new Set(tagDisplayNames).size) {
-      const duplicateDisplayName = findFirstDuplicate(tagDisplayNames)
-      return `Tag display names must be unique. Duplicate display name found: "${duplicateDisplayName}"`
-    }
-  }
-  if (obj.assignment_id !== undefined) {
-    if (typeof obj.assignment_id !== 'string') {
-      return 'assignment_id must be a string'
-    }
-    if (obj.assignment_id.includes(' ')) {
-      return 'assignment_id must not contain spaces'
-    }
-  }
-  if (obj.tasks !== undefined) {
-    if (typeof obj.tasks !== 'object') {
-      return 'tasks must be an object'
-    }
-    // checks for each task
-    for (const taskKey in obj.tasks) {
-      if (taskKey.includes(' ')) {
-        return `Task key ${taskKey} must not contain spaces`
-      }
-      if (
-        !obj.tasks[taskKey].display_name ||
-        typeof obj.tasks[taskKey].display_name !== 'string'
-      ) {
-        return `Task ${taskKey} must have a display_name of type string`
-      }
-      if (
-        !obj.tasks[taskKey].short_display_name ||
-        typeof obj.tasks[taskKey].short_display_name !== 'string'
-      ) {
-        return `Task ${taskKey} must have a short_display_name of type string`
-      }
-      if (
-        obj.tasks[taskKey].blocking !== undefined &&
-        typeof obj.tasks[taskKey].blocking !== 'boolean'
-      ) {
-        return `Task ${taskKey} blocking must be a boolean`
-      }
-      if (
-        !obj.tasks[taskKey].color_hex ||
-        typeof obj.tasks[taskKey].color_hex !== 'string' ||
-        !hexColorRegex.test(obj.tasks[taskKey].color_hex)
-      ) {
-        return `Task ${taskKey} must have a valid color_hex (e.g. "#ff0000")`
-      }
-      if (
-        obj.tasks[taskKey].precondition === undefined ||
-        (obj.tasks[taskKey].precondition !== null &&
-          !(obj.tasks[taskKey].precondition in obj.tasks))
-      ) {
-        return `Task ${taskKey} precondition must be null or the key of another task`
-      }
-      for (const key in obj.tasks[taskKey]) {
-        if (!validTaskAttributes.includes(key)) {
-          return `Unknown attribute "${key}" in task "${taskKey}"`
-        }
-      }
-    }
-  }
-  if (obj.tasks !== undefined && obj.assignment_id === undefined) {
-    return 'Config also needs an assignment_id field if tasks are defined'
-  }
-  if (obj.assignment_id !== undefined && obj.tasks === undefined) {
-    return 'Config also needs a tasks field if assignment_id is defined'
-  }
-  for (const key in obj) {
-    if (!validAttributes.includes(key)) {
-      return `Unknown attribute "${key}"`
-    }
-  }
-  if (new TextEncoder().encode(JSON.stringify(obj)).length > MAX_JSON_SIZE) {
-    return 'The JSON object is too large. Maximum size is 10KB.'
-  }
-  return ''
-}
-
-/**
  * Essentially this:
  * ```
  * {
@@ -1825,6 +1596,255 @@ export interface AllStudentAssignmentProgress {
   }
 }
 
+/**
+ * This function is used both on the backend and frontend to check if there are any errors (total is 24 different errors) in the queue config.
+ *
+ * Returns an empty string if there's no errors
+ */
+export function validateQueueConfigInput(obj: any): string {
+  //
+  // first manual check the JSON
+  //
+  const MAX_JSON_SIZE = 10240 // 10KB
+  const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
+  const validAttributes = [
+    'fifo_queue_view_enabled',
+    'tag_groups_queue_view_enabled',
+    'default_view',
+    'minimum_tags',
+    'tags',
+    'assignment_id',
+    'tasks',
+  ]
+  const validTagAttributes = ['display_name', 'color_hex']
+  const validTaskAttributes = [
+    'display_name',
+    'short_display_name',
+    'blocking',
+    'color_hex',
+    'precondition',
+  ]
+
+  if (!obj) {
+    return 'Queue config is null or undefined'
+  }
+  if (typeof obj !== 'object') {
+    return 'Queue config must be an object'
+  }
+  if (
+    obj.fifo_queue_view_enabled !== undefined &&
+    typeof obj.fifo_queue_view_enabled !== 'boolean'
+  ) {
+    return 'fifo_queue_view_enabled must be a boolean'
+  }
+  if (
+    obj.tag_groups_queue_view_enabled !== undefined &&
+    typeof obj.tag_groups_queue_view_enabled !== 'boolean'
+  ) {
+    return 'tag_groups_queue_view_enabled must be a boolean'
+  }
+  if (
+    obj.fifo_queue_view_enabled === false &&
+    obj.tag_groups_queue_view_enabled === false
+  ) {
+    return 'At least one of fifo_queue_view_enabled and tag_groups_queue_view_enabled must be enabled'
+  }
+  if (obj.fifo_queue_view_enabled === false && obj.default_view === 'fifo') {
+    return 'default_view cannot be fifo if the fifo view is disabled'
+  }
+  if (
+    obj.tag_groups_queue_view_enabled === false &&
+    obj.default_view === 'tag_groups'
+  ) {
+    return 'default_view cannot be tag_groups if tag groups view is disabled'
+  }
+  if (
+    obj.default_view !== undefined &&
+    !['fifo', 'tag_groups'].includes(obj.default_view)
+  ) {
+    return "default_view must be 'fifo' or 'tag_groups'"
+  }
+  if (obj.minimum_tags !== undefined && typeof obj.minimum_tags !== 'number') {
+    return 'minimum_tags must be a number'
+  }
+  if (obj.tags !== undefined) {
+    if (typeof obj.tags !== 'object') {
+      return 'tags must be an object'
+    }
+    // checks for each tag
+    for (const tagKey in obj.tags) {
+      if (
+        !obj.tags[tagKey].display_name ||
+        typeof obj.tags[tagKey].display_name !== 'string'
+      ) {
+        return `Tag ${tagKey} must have a display_name of type string`
+      }
+      if (
+        !obj.tags[tagKey].color_hex ||
+        typeof obj.tags[tagKey].color_hex !== 'string' ||
+        !hexColorRegex.test(obj.tags[tagKey].color_hex)
+      ) {
+        return `Tag ${tagKey} must have a valid color_hex (e.g. #A23F31) of type string`
+      }
+      for (const key in obj.tags[tagKey]) {
+        if (!validTagAttributes.includes(key)) {
+          return `Unknown attribute "${key}" in tag "${tagKey}"`
+        }
+      }
+    }
+    // no duplicate tag display names
+    const tagDisplayNames = Object.values(obj.tags).map(
+      (tag: any) => tag.display_name,
+    )
+    if (tagDisplayNames.length !== new Set(tagDisplayNames).size) {
+      const duplicateDisplayName = tagDisplayNames.find(
+        (item, index, arr) => arr.indexOf(item) !== index,
+      )
+      return `Tag display names must be unique. Duplicate display name found: "${duplicateDisplayName}"`
+    }
+  }
+  if (obj.assignment_id !== undefined) {
+    if (typeof obj.assignment_id !== 'string') {
+      return 'assignment_id must be a string'
+    }
+    if (obj.assignment_id.includes(' ')) {
+      return 'assignment_id must not contain spaces'
+    }
+  }
+  if (obj.tasks !== undefined) {
+    if (typeof obj.tasks !== 'object') {
+      return 'tasks must be an object'
+    }
+    // checks for each task
+    for (const taskKey in obj.tasks) {
+      if (taskKey.includes(' ')) {
+        return `Task key ${taskKey} must not contain spaces`
+      }
+      if (
+        !obj.tasks[taskKey].display_name ||
+        typeof obj.tasks[taskKey].display_name !== 'string'
+      ) {
+        return `Task ${taskKey} must have a display_name of type string`
+      }
+      if (
+        !obj.tasks[taskKey].short_display_name ||
+        typeof obj.tasks[taskKey].short_display_name !== 'string'
+      ) {
+        return `Task ${taskKey} must have a short_display_name of type string`
+      }
+      if (
+        obj.tasks[taskKey].blocking !== undefined &&
+        typeof obj.tasks[taskKey].blocking !== 'boolean'
+      ) {
+        return `Task ${taskKey} blocking must be a boolean`
+      }
+      if (
+        !obj.tasks[taskKey].color_hex ||
+        typeof obj.tasks[taskKey].color_hex !== 'string' ||
+        !hexColorRegex.test(obj.tasks[taskKey].color_hex)
+      ) {
+        return `Task ${taskKey} must have a valid color_hex (e.g. "#ff0000")`
+      }
+      if (
+        obj.tasks[taskKey].precondition === undefined ||
+        (obj.tasks[taskKey].precondition !== null &&
+          !(obj.tasks[taskKey].precondition in obj.tasks))
+      ) {
+        return `Task ${taskKey} precondition must be null or the key of another task`
+      }
+      for (const key in obj.tasks[taskKey]) {
+        if (!validTaskAttributes.includes(key)) {
+          return `Unknown attribute "${key}" in task "${taskKey}"`
+        }
+      }
+    }
+  }
+  if (obj.tasks !== undefined && obj.assignment_id === undefined) {
+    return 'Config also needs an assignment_id field if tasks are defined'
+  }
+  if (obj.assignment_id !== undefined && obj.tasks === undefined) {
+    return 'Config also needs a tasks field if assignment_id is defined'
+  }
+  for (const key in obj) {
+    if (!validAttributes.includes(key)) {
+      return `Unknown attribute "${key}"`
+    }
+  }
+  if (new TextEncoder().encode(JSON.stringify(obj)).length > MAX_JSON_SIZE) {
+    return 'The JSON object is too large. Maximum size is 10KB.'
+  }
+  //
+  // then validate the json with ajv (in case the above checks don't catch everything)
+  //
+  const ajv = new Ajv()
+  const schema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    properties: {
+      fifo_queue_view_enabled: { type: 'boolean' },
+      tag_groups_queue_view_enabled: { type: 'boolean' },
+      default_view: { enum: ['fifo', 'tag_groups'] },
+      minimum_tags: { type: 'number' },
+      tags: {
+        type: 'object',
+        patternProperties: {
+          '^[^ ]+$': {
+            type: 'object',
+            properties: {
+              display_name: { type: 'string' },
+              color_hex: {
+                type: 'string',
+                pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+              },
+            },
+            required: ['display_name', 'color_hex'],
+            additionalProperties: false,
+          },
+        },
+      },
+      assignment_id: { type: 'string', pattern: '^[^ ]*$' },
+      tasks: {
+        type: 'object',
+        patternProperties: {
+          '^[^ ]+$': {
+            type: 'object',
+            properties: {
+              display_name: { type: 'string' },
+              short_display_name: { type: 'string' },
+              blocking: { type: 'boolean' },
+              color_hex: {
+                type: 'string',
+                pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+              },
+              precondition: { type: ['string', 'null'] },
+            },
+            required: [
+              'display_name',
+              'short_display_name',
+              'color_hex',
+              'precondition',
+            ],
+            additionalProperties: false,
+          },
+        },
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  }
+  const validate = ajv.compile(schema)
+  const obj2 = obj
+  const valid = validate(obj2)
+  if (!valid) {
+    const errorMessages =
+      validate.errors
+        ?.map((e) => `${e.instancePath} ${e.message}`)
+        .join(', ') || 'Unknown error'
+    return errorMessages
+  }
+  return ''
+}
+
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
@@ -1852,6 +1872,7 @@ export const ERROR_MESSAGES = {
       cannotCheckIntoMultipleQueues:
         'Cannot check into multiple queues at the same time',
     },
+    queueLimitReached: 'Queue limit per course reached',
     semesterYearInvalid: 'Semester year must be a valid year',
     semesterNameFormat:
       'Semester must be in the format "season,year". E.g. Fall,2021',
