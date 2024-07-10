@@ -31,6 +31,45 @@ import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgres
 describe('Question Integration', () => {
   const supertest = setupIntegrationTest(QuestionModule, modifyMockNotifs);
 
+  const QuestionTypes = [
+    {
+      id: 1,
+      cid: 1,
+      name: 'Concept',
+      color: '#000000',
+    },
+    {
+      id: 2,
+      cid: 2,
+      name: 'Clarification',
+      color: '#000000',
+    },
+    {
+      id: 3,
+      cid: 3,
+      name: 'Testing',
+      color: '#000000',
+    },
+    {
+      id: 4,
+      cid: 4,
+      name: 'Bug',
+      color: '#000000',
+    },
+    {
+      id: 5,
+      cid: 5,
+      name: 'Setup',
+      color: '#000000',
+    },
+    {
+      id: 6,
+      cid: 6,
+      name: 'Other',
+      color: '#000000',
+    },
+  ];
+
   describe('POST /questions', () => {
     const postQuestion = (
       user: UserModel,
@@ -164,7 +203,7 @@ describe('Question Integration', () => {
           cid: questionType.cid,
           name: questionType.name,
           color: questionType.color,
-          queueId: questionType.queueId,
+          queueId: queue.id,
         };
         questionTypes.push(sendQuestionTypes);
       });
