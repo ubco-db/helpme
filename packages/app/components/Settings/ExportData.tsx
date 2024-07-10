@@ -232,10 +232,12 @@ export default function ExportData({
       >
         Download csv of all students&apos; assignment progress
       </Button>
-      <div className="my-4 text-sm text-gray-500">
+      <div className="max-w-1/2 my-4 text-sm text-gray-500">
         Note: Since the tasks can be different in a queue but have the same
         assignment ID, the tasks defined in the CSV will be based on the tasks
-        students have completed
+        students have completed. This means that a task that was never once
+        completed by any student will not show up for that assignment in the
+        CSV.
       </div>
     </div>
   )
