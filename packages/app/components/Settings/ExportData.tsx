@@ -1,16 +1,18 @@
 import { ReactElement, useState } from 'react'
-import styled from 'styled-components'
-type CourseRosterPageProps = { courseId: number }
 import { API } from '@koh/api-client'
 import { Button, message } from 'antd'
 import csvDownload from 'json-to-csv-export'
 import { StudentTaskProgressWithUser } from '@koh/common'
+import { useCourse } from '../../hooks/useCourse'
+
+type CourseRosterPageProps = { courseId: number }
 
 export default function ExportData({
   courseId,
 }: CourseRosterPageProps): ReactElement {
   const [loadingQuestions, setLoadingQuestions] = useState(false)
   const [loadingAssignments, setLoadingAssignments] = useState(false)
+  const { course } = useCourse(courseId)
 
   const fetchQuestions = async () => {
     setLoadingQuestions(true)
@@ -23,15 +25,18 @@ export default function ExportData({
           .map((type) => type.name)
           .join(', '),
       }))
+      console.log(questionData)
       const today = new Date()
       const dateString = today.toISOString().split('T')[0] // Format: YYYY-MM-DD
+      const courseNameNoSpecialChars = course.name.replace(/[^a-zA-Z0-9]/g, '')
       const questionDataWithCSVSettings = {
         data: questionData,
-        filename: `all-questions-${dateString}`,
+        filename: `all-questions-${courseNameNoSpecialChars}-${dateString}`,
         delimiter: ',',
         headers: [
           'id',
-          'AskerId',
+          'queueId',
+          'creatorName',
           'text',
           'questionTypes',
           'createdAt',
@@ -39,8 +44,8 @@ export default function ExportData({
           'closedAt',
           'status',
           'location',
-          'askerName',
-          'helperName',
+          'helpName',
+          'isTaskQuestion',
         ],
       }
       setLoadingQuestions(false)
@@ -158,9 +163,10 @@ export default function ExportData({
 
       const today = new Date()
       const dateString = today.toISOString().split('T')[0] // Format: YYYY-MM-DD
+      const courseNameNoSpecialChars = course.name.replace(/[^a-zA-Z0-9]/g, '')
       const assignmentDataWithCSVSettings = {
         data: formattedAssignmentData,
-        filename: `all-assignment-progress-${dateString}`,
+        filename: `all-assignment-progress-${courseNameNoSpecialChars}-${dateString}`,
         delimiter: ',',
         headers: [
           'assignmentId',
