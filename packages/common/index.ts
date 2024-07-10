@@ -737,6 +737,16 @@ export class questions {
   @Type(() => Date)
   createdAt!: Date
 
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  helpedAt?: Date
+
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  closedAt?: Date
+
   @IsString()
   status?: string
 
@@ -748,6 +758,10 @@ export class questions {
 
   @IsString()
   helpName?: string
+
+  @IsBoolean()
+  @IsOptional()
+  isTaskQuestion?: boolean
 }
 export interface KhouryRedirectResponse {
   redirect: string

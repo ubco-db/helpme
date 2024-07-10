@@ -14,38 +14,62 @@ export default function ExportData({
   const [loadingAssignments, setLoadingAssignments] = useState(false)
   const { course } = useCourse(courseId)
 
+  const formatDateAndTimeForExcel = (date: Date): string => {
+    // Ensure date is a Date object
+    const validDate = typeof date === 'string' ? new Date(date) : date
+    if (!validDate || isNaN(validDate.getTime())) return ''
+    // Convert to local time and extract parts
+    const localDate = new Date(
+      validDate.getTime() - validDate.getTimezoneOffset() * 60000,
+    )
+    const [datePart, timePart] = localDate.toISOString().split('T')
+    const timeString = timePart.split('.')[0] // Remove milliseconds
+    return `${datePart} ${timeString}` // Format: YYYY-MM-DD HH:MM:SS
+  }
+
   const fetchQuestions = async () => {
     setLoadingQuestions(true)
     try {
-      let questionData: any = await API.questions.getAllQuestions(courseId)
-      // transform questionTypes to be a string csv
-      questionData = questionData.map((question) => ({
-        ...question,
+      const questionData = await API.questions.getAllQuestions(courseId)
+      // need to format data since not all questions have helpName, location, helpedAt, closedAt, or questionTypes, which would cause the objects to be misaligned. The library we use expects all attributes to be defined and in the same order
+      const formattedQuestionData = questionData.map((question) => ({
+        question_id: question.id,
+        queueId: question.queueId ?? '',
+        creatorName: question.creatorName ?? '',
+        text: question.text ?? '',
+        // transform questionTypes to be a string csv
         questionTypes: question.questionTypes
           .map((type) => type.name)
           .join(', '),
+        isTaskQuestion: question.isTaskQuestion ?? false,
+        createdAt: formatDateAndTimeForExcel(question.createdAt),
+        helpedAt: formatDateAndTimeForExcel(question.helpedAt),
+        closedAt: formatDateAndTimeForExcel(question.closedAt),
+        status: question.status ?? '',
+        helperName: question.helpName ?? '',
+        location: question.location ?? '',
       }))
-      console.log(questionData)
       const today = new Date()
       const dateString = today.toISOString().split('T')[0] // Format: YYYY-MM-DD
       const courseNameNoSpecialChars = course.name.replace(/[^a-zA-Z0-9]/g, '')
       const questionDataWithCSVSettings = {
-        data: questionData,
+        data: formattedQuestionData,
         filename: `all-questions-${courseNameNoSpecialChars}-${dateString}`,
         delimiter: ',',
+        // NOTE: when using csvDownload, the headers do NOT need to be the same as the keys in the data objects. The order the attributes come in the objects is what matters.
         headers: [
-          'id',
+          'question_id',
           'queueId',
           'creatorName',
           'text',
           'questionTypes',
+          'isTaskQuestion',
           'createdAt',
           'helpedAt',
           'closedAt',
           'status',
+          'helperName',
           'location',
-          'helpName',
-          'isTaskQuestion',
         ],
       }
       setLoadingQuestions(false)
