@@ -131,7 +131,7 @@ const CreateAsyncQuestionForm = ({
                 questionTypes={questionsTypeState}
                 className="mb-4"
                 ariaLabelledBy="question-type-text"
-              ></QuestionTypeSelector>
+              />
             </>
           )}
         </Form>
