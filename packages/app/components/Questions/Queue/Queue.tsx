@@ -873,10 +873,12 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
                   )
                 )
               })}
-            <Divider
-              className="-mx-4 my-2 w-[calc(100%+2rem)] border-[#cfd6de]"
-              key="DIVIDER"
-            />
+            {isDemoQueue && (
+              <Divider
+                className="-mx-4 my-2 w-[calc(100%+2rem)] border-[#cfd6de]"
+                key="DIVIDER"
+              />
+            )}
             {/* questionTypes/tags (for regular questions) */}
             {questionTypes?.map((tag) => {
               // naming this "tags" to make some code slightly easier to follow
