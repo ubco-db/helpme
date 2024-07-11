@@ -133,7 +133,7 @@ export default function JoinTagGroupButton({
             )
           }
         } else {
-          console.log(
+          console.error(
             'Error: This component was used incorrectly. No questionType or taskId provided',
           )
         }
@@ -141,7 +141,7 @@ export default function JoinTagGroupButton({
         // If leaving the tag group, remove the questionType (for tag) or remove off the task from the question text
         if (questionType) {
           if (!studentQuestion) {
-            console.log('Error: Student does not have a question to leave')
+            console.error('Error: Student does not have a question to leave')
             return
           }
           if (
@@ -163,7 +163,7 @@ export default function JoinTagGroupButton({
           }
         } else if (taskId) {
           if (!studentDemo) {
-            console.log('Error: Student does not have a task to leave')
+            console.error('Error: Student does not have a task to leave')
             return
           }
           if (studentDemo.text === `Mark "${taskId}"`) {
@@ -179,7 +179,7 @@ export default function JoinTagGroupButton({
             )
           }
         } else {
-          console.log(
+          console.error(
             'Error: This component was used incorrectly. No questionType or taskId provided',
           )
         }
