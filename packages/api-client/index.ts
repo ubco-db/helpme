@@ -30,7 +30,6 @@ import {
   CreateAsyncQuestions,
   UpdateAsyncQuestions,
   AsyncQuestion,
-  CoursePartial,
   Calendar,
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
@@ -53,6 +52,7 @@ import {
   AllStudentAssignmentProgress,
   setQueueConfigResponse,
   QuestionTypeType,
+  StudentTaskProgressWithUser,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -299,6 +299,10 @@ class APIClient {
         'GET',
         `/api/v1/studentTaskProgress/queue/${queueId}/${courseId}/${assignmentName}`,
       ),
+    getAllTaskProgressForCourse: async (
+      courseId: number,
+    ): Promise<StudentTaskProgressWithUser[]> =>
+      this.req('GET', `/api/v1/studentTaskProgress/course/${courseId}`),
   }
   taStatus = {
     checkIn: async (
