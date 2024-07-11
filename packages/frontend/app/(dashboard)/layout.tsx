@@ -6,7 +6,10 @@ import { User } from '@koh/common'
 import { userApi } from '../api/userApi'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Col, Row, Spin } from 'antd'
+import { Spin } from 'antd'
+import OrganizationCard from './components/organizationCard'
+import StandardPageContainer from '../components/standardPageContainer'
+import Navbar from '../components/navbar'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -27,53 +30,45 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [])
 
   return profile ? (
-    <UserInfoProvider>
-      {/* Stand Page Container Component */}
-      <div>
+    <UserInfoProvider profile={profile}>
+      <StandardPageContainer>
         <Link href={'#first-course-button'} className="skip-link">
           Skip to main content
         </Link>
-      </div>
+        <Navbar />
+      </StandardPageContainer>
       <Image
-        src={`/api/v1/organization/${profile?.organization?.orgId}/get_banner/${profile?.organization?.organizationBannerUrl}`}
+        // TODO pull image from backend
+        src={
+          'https://www.ubc.ca/_assets/img/our-campuses/ubco-aerials-our-campus_1920x700.jpg'
+        }
+        alt="Organization Banner"
+        className="h-60 w-full object-cover object-center"
         width={100}
         height={100}
-        alt="Organization Banner"
-        style={{
-          width: '100%',
-          height: '20vh',
-          objectFit: 'cover',
-          objectPosition: 'center',
-        }}
+        priority
+        unoptimized={true}
       />
-
-      {/* <OrganizationCard> */}
-      <Row
-        gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}
-        style={{ alignItems: 'center' }}
-      >
-        <Col xs={{ span: 24 }} sm={{ span: 3 }}>
+      <StandardPageContainer>
+        <OrganizationCard>
           <Image
-            src={`/api/v1/organization/${profile?.organization?.orgId}/get_logo/${profile?.organization?.organizationLogoUrl}`}
-            style={{
-              width: '100%',
-              height: '10vh',
-              objectFit: 'contain',
-              objectPosition: 'center',
-            }}
+            // TODO pull image from backend
+            src={`https://ires.ubc.ca/files/2020/02/ubc-logo.png`}
+            className="h-15 object-contain object-center"
             alt="Organization Logo"
+            unoptimized={true}
             width={100}
             height={100}
           />
-        </Col>
-        <Col xs={{ span: 24 }} sm={{ span: 21 }}>
-          <h1>{profile?.organization?.organizationName}</h1>
-          <p>{profile?.organization?.organizationDescription}</p>
-        </Col>
-      </Row>
-      {/* </OrganizationCard> */}
-      <div style={{ marginTop: 20 }}>{children}</div>
-      {/* Stand Page Container Component */}
+          <div>
+            <h1>{profile?.organization?.organizationName}</h1>
+            <p className="my-0">
+              {profile?.organization?.organizationDescription}
+            </p>
+          </div>
+        </OrganizationCard>
+        <div className="mt-10">{children}</div>
+      </StandardPageContainer>
     </UserInfoProvider>
   ) : (
     <Spin />

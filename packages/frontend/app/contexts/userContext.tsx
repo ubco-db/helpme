@@ -1,26 +1,12 @@
 'use client'
 
+import { User } from '@koh/common'
 import React, { createContext, useState, useContext, ReactNode } from 'react'
-
-export enum Role {
-  STUDENT = 'student',
-  INSTRUCTOR = 'instructor',
-  ADMIN = 'admin',
-}
-
-// Define type for user information
-interface UserInfo {
-  firstName: string
-  lastName: string | null
-  email: string | null
-  role: Role
-  avatarUrl: string | null
-}
 
 // Define context type
 interface UserInfoContextType {
-  userInfo: UserInfo
-  setUserInfo: React.Dispatch<React.SetStateAction<UserInfo>>
+  userInfo: User
+  setUserInfo: React.Dispatch<React.SetStateAction<User>>
 }
 
 // Create context
@@ -31,19 +17,15 @@ const userInfoContext = createContext<UserInfoContextType | undefined>(
 // Define props type for UserInfoProvider
 interface UserInfoProviderProps {
   children: ReactNode
+  profile: User
 }
 
 export const UserInfoProvider: React.FC<UserInfoProviderProps> = ({
   children,
+  profile,
 }: UserInfoProviderProps) => {
   // Define the user state
-  const [userInfo, setUserInfo] = useState<UserInfo>({
-    firstName: '',
-    lastName: '',
-    email: null,
-    role: Role.INSTRUCTOR,
-    avatarUrl: null,
-  })
+  const [userInfo, setUserInfo] = useState<User>(profile)
 
   // Return the user state and setUser function
   return (

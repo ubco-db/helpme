@@ -69,3 +69,10 @@ h1, h2, h3, h4, h5, h6 {
 .skip-link:focus {
   top: 0;
 }
+
+.organization-card {
+  margin-top: -100px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(26, 26, 26, 0.1);
+}
