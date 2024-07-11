@@ -4,11 +4,11 @@ import {
   Role,
   asyncQuestionStatus,
 } from '@koh/common'
-import React, { ReactElement, useEffect, useState } from 'react'
+import React, { ReactElement, useCallback, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { useRoleInCourse } from '../../../hooks/useRoleInCourse'
 import { SettingsLeftPanel } from './SettingsLeftPanel'
-import { Select, Switch } from 'antd'
+import { Select } from 'antd'
 import { useAsnycQuestions } from '../../../hooks/useAsyncQuestions'
 import AsyncCard from './AsyncCard'
 import { VerticalDivider, EditQueueButton } from '../Shared/SharedComponents'
@@ -17,7 +17,6 @@ import { EditAsyncQuestionsModal } from './EditAsyncQuestions'
 import { QuestionType } from '../Shared/QuestionType'
 import { useProfile } from '../../../hooks/useProfile'
 import CreateAsyncQuestionForm from './CreateAsyncQuestionForm'
-import { create } from 'lodash'
 
 const Container = styled.div`
   flex: 1;
@@ -78,6 +77,30 @@ export default function AsyncQuestionsPage({
 
   const { questions, mutateQuestions } = useAsnycQuestions(courseId)
 
+  const applySort = useCallback(
+    (displayedQuestions: AsyncQuestion[]) => {
+      return displayedQuestions.sort((a, b) => {
+        switch (sortBy) {
+          case 'newest':
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            )
+          case 'oldest':
+            return (
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            )
+          case 'most-votes':
+            return b.votesSum - a.votesSum
+          case 'least-votes':
+            return a.votesSum - b.votesSum
+          default:
+            return 0
+        }
+      })
+    },
+    [sortBy],
+  )
+
   useEffect(() => {
     let displayedQuestions = questions || []
     // Apply status filter
@@ -133,28 +156,8 @@ export default function AsyncQuestionsPage({
     creatorFilter,
     profile?.id,
     sortBy,
+    applySort,
   ])
-
-  function applySort(displayedQuestions: AsyncQuestion[]) {
-    return displayedQuestions.sort((a, b) => {
-      switch (sortBy) {
-        case 'newest':
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          )
-        case 'oldest':
-          return (
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          )
-        case 'most-votes':
-          return b.votesSum - a.votesSum
-        case 'least-votes':
-          return a.votesSum - b.votesSum
-        default:
-          return 0
-      }
-    })
-  }
 
   function RenderQueueInfoCol(): ReactElement {
     return (
@@ -167,6 +170,7 @@ export default function AsyncQuestionsPage({
                 <EditQueueButton
                   onClick={() => setStudentQuestionModal(true)}
                   id="post-question-button"
+                  className="!w-full"
                 >
                   Post your Question
                 </EditQueueButton>
@@ -230,7 +234,7 @@ export default function AsyncQuestionsPage({
     return (
       <Select
         mode="multiple"
-        placeholder="Select question types"
+        placeholder="Select question tags"
         onChange={onTypeChange}
         style={{ width: '50%' }}
         value={questionTypeInput}

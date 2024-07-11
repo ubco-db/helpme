@@ -39,13 +39,13 @@ const CreateAsyncQuestionForm = ({
   const [questionTypeInput, setQuestionTypeInput] = useState([])
 
   useEffect(() => {
+    const populateQuestionTypes = async () => {
+      const questions = await API.questionType.getQuestionTypes(courseId, null)
+      setQuestionsTypeState(questions)
+    }
     populateQuestionTypes()
-  }, [])
+  }, [courseId])
 
-  const populateQuestionTypes = async () => {
-    const questions = await API.questionType.getQuestionTypes(courseId, null)
-    setQuestionsTypeState(questions)
-  }
   const getAiAnswer = async (questionText: string) => {
     try {
       const data = {

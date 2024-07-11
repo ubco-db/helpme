@@ -5,7 +5,6 @@ import { QuestionModel } from 'question/question.entity';
 import { Connection } from 'typeorm';
 import {
   QuestionFactory,
-  QuestionGroupFactory,
   QueueFactory,
   UserFactory,
 } from '../../test/util/factories';
@@ -141,7 +140,7 @@ describe('QueueService', () => {
       ).toEqual(lqr);
     });
 
-    it('adds yourQuestion for students with question in the queue', async () => {
+    it('adds yourQuestions for students with a question in the queue', async () => {
       const user = await UserFactory.create();
       // Create a question but not in this queue
       await QuestionFactory.create({ creator: user });
@@ -153,7 +152,7 @@ describe('QueueService', () => {
         groups: [],
       };
       let lqr = await personalize(blank, user.id, Role.STUDENT);
-      expect(lqr.yourQuestion).toEqual(undefined);
+      expect(lqr.yourQuestions).toEqual([]);
 
       // Create a question in this queue
       const question = await QuestionFactory.create({
@@ -161,7 +160,7 @@ describe('QueueService', () => {
         queue,
       });
       lqr = await personalize(blank, user.id, Role.STUDENT);
-      expect(lqr.yourQuestion.id).toEqual(question.id);
+      expect(lqr.yourQuestions[0].id).toEqual(question.id);
     });
 
     it('hides details of other students', async () => {

@@ -28,6 +28,10 @@ export class ApplicationConfigService {
   }
 
   get(key: string): number {
-    return this.config[key];
+    try {
+      return this.config[key];
+    } catch (e) {
+      return 30;
+    }
   }
 }

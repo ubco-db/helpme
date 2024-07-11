@@ -23,15 +23,18 @@ import { Roles } from '../decorators/roles.decorator';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from '../profile/user.entity';
 import { AsyncQuestionModel } from './asyncQuestion.entity';
-import { CourseModel } from 'course/course.entity';
+import { CourseModel } from '../course/course.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Response } from 'express';
 import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { RedisQueueService } from '../redisQueue/redis-queue.service';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class asyncQuestionController {
+  constructor(private readonly redisQueueService: RedisQueueService) {}
+
   @Post(':qid/:vote')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async voteQuestion(
@@ -42,6 +45,7 @@ export class asyncQuestionController {
   ): Promise<Response> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
+      relations: ['course'],
     });
 
     if (!question) {
@@ -76,7 +80,13 @@ export class asyncQuestionController {
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
       where: { id: qid },
+      relations: ['creator', 'taHelped', 'votes'],
     });
+
+    await this.redisQueueService.updateAsyncQuestion(
+      `c:${question.course.id}:aq`,
+      updatedQuestion,
+    );
 
     return res.status(HttpStatus.OK).send({
       questionSumVotes: updatedQuestion.votesSum,
@@ -119,6 +129,16 @@ export class asyncQuestionController {
         createdAt: new Date(),
       }).save();
 
+      const newQuestion = await AsyncQuestionModel.findOne({
+        where: {
+          courseId: cid,
+          id: question.id,
+        },
+        relations: ['creator', 'taHelped', 'votes'],
+      });
+
+      await this.redisQueueService.addAsyncQuestion(`c:${cid}:aq`, newQuestion);
+
       res.status(HttpStatus.CREATED).send(question);
       return;
     } catch (err) {
@@ -138,16 +158,21 @@ export class asyncQuestionController {
   ): Promise<AsyncQuestion> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
-      relations: ['creator'],
+      relations: ['course', 'creator', 'taHelped', 'votes'],
     });
+
     if (question === undefined) {
       throw new NotFoundException();
     }
 
+    const courseId = question.course.id;
+
+    delete question.course;
+
     question.aiAnswerText = body.aiAnswerText;
     question.answerText = body.answerText;
 
-    //If not creator, check if user is TA/PROF of course of question
+    // If not creator, check if user is TA/PROF of course of question
 
     Object.assign(question, body);
     if (
@@ -174,7 +199,22 @@ export class asyncQuestionController {
         );
       }
     }
-    await question.save();
+    const updatedQuestion = await question.save();
+
+    if (!body?.visible) {
+      await this.redisQueueService.deleteAsyncQuestion(
+        `c:${courseId}:aq`,
+        updatedQuestion,
+      );
+    } else {
+      await this.redisQueueService.updateAsyncQuestion(
+        `c:${courseId}:aq`,
+        updatedQuestion,
+      );
+    }
+
+    delete question.taHelped;
+    delete question.votes;
 
     return question;
   }

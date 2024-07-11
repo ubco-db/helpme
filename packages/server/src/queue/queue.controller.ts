@@ -5,8 +5,11 @@ import {
   LimboQuestionStatus,
   ListQuestionsResponse,
   OpenQuestionStatus,
+  QueueConfig,
   Role,
   UpdateQueueParams,
+  setQueueConfigResponse,
+  validateQueueConfigInput,
 } from '@koh/common';
 import {
   Body,
@@ -36,6 +39,7 @@ import { QueueModel } from './queue.entity';
 import { QueueService } from './queue.service';
 import { QuestionModel } from '../question/question.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { RedisQueueService } from '../redisQueue/redis-queue.service';
 
 @Controller('queues')
 @UseGuards(JwtAuthGuard, QueueRolesGuard, EmailVerifiedGuard)
@@ -44,7 +48,8 @@ export class QueueController {
   constructor(
     private queueSSEService: QueueSSEService,
     private queueCleanService: QueueCleanService,
-    private queueService: QueueService,
+    private queueService: QueueService, //note: this throws errors, be sure to catch them
+    private redisQueueService: RedisQueueService,
   ) {}
 
   @Get(':queueId')
@@ -69,7 +74,20 @@ export class QueueController {
     @UserId() userId: number,
   ): Promise<ListQuestionsResponse> {
     try {
-      const questions = await this.queueService.getQuestions(queueId);
+      const queueKeys = await this.redisQueueService.getKey(`q:${queueId}`);
+      let questions: any;
+
+      if (Object.keys(queueKeys).length === 0) {
+        console.log('Fetching from database');
+
+        questions = await this.queueService.getQuestions(queueId);
+        if (questions)
+          await this.redisQueueService.setQuestions(`q:${queueId}`, questions);
+      } else {
+        console.log('Fetching from Redis');
+        questions = queueKeys.questions;
+      }
+
       return await this.queueService.personalizeQuestions(
         queueId,
         questions,
@@ -77,6 +95,7 @@ export class QueueController {
         role,
       );
     } catch (err) {
+      console.log(err);
       throw new HttpException(
         ERROR_MESSAGES.queueController.getQuestions,
         HttpStatus.NOT_FOUND,
@@ -115,6 +134,7 @@ export class QueueController {
     try {
       setTimeout(async () => {
         await this.queueCleanService.cleanQueue(queueId, true);
+        await this.redisQueueService.deleteKey(`q:${queueId}`);
         await this.queueSSEService.updateQueue(queueId);
       });
     } catch (err) {
@@ -186,12 +206,45 @@ export class QueueController {
       // try to save queue (and stale questions!)
       await QuestionModel.save(questions);
       await queue.save();
+      await this.redisQueueService.deleteKey(`q:${queueId}`);
     } catch (err) {
       console.error(err);
       throw new HttpException(
         ERROR_MESSAGES.queueController.saveQueue,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  /**
+   * Sets the JSON config for a queue and then returns success + any question tags that were created/deleted/updated
+   */
+  // note: for whatever reason, anytime you `return` a res.send(), you get "cannot set headers after they are sent" even though that's what you're supposed to do
+  @Patch(':queueId/config')
+  @Roles(Role.TA, Role.PROFESSOR)
+  async setConfig(
+    @Param('queueId') queueId: number,
+    @Body() newConfig: QueueConfig,
+    @Res() res: Response,
+  ): Promise<Response<setQueueConfigResponse>> {
+    // make sure queue config is valid
+    const configError = validateQueueConfigInput(newConfig);
+    if (configError) {
+      res.status(HttpStatus.BAD_REQUEST).send({ message: configError });
+      return;
+    }
+
+    try {
+      const questionTypeMessages =
+        await this.queueService.updateQueueConfigAndTags(queueId, newConfig);
+      res.status(HttpStatus.OK).send({ questionTypeMessages });
+      return;
+    } catch (err) {
+      console.error(err); // internal server error: figure out what went wrong
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .send({ message: ERROR_MESSAGES.queueController.saveQueue });
+      return;
     }
   }
 }
