@@ -111,10 +111,23 @@ export class DesktopNotifPartial {
  * @param photoURL - The URL string of this user photo. This is pulled from the admin site.
  */
 export class UserPartial {
+  @IsInt()
   id!: number
+
+  @IsOptional()
+  @IsString()
   email?: string
+
+  @IsOptional()
+  @IsString()
   name?: string
+
+  @IsString()
+  @IsOptional()
   photoURL?: string
+
+  @IsInt()
+  @IsOptional()
   sid?: number
 }
 
@@ -724,6 +737,16 @@ export class questions {
   @Type(() => Date)
   createdAt!: Date
 
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  helpedAt?: Date
+
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  closedAt?: Date
+
   @IsString()
   status?: string
 
@@ -735,6 +758,10 @@ export class questions {
 
   @IsString()
   helpName?: string
+
+  @IsBoolean()
+  @IsOptional()
+  isTaskQuestion?: boolean
 }
 export interface KhouryRedirectResponse {
   redirect: string
@@ -1587,6 +1614,11 @@ export interface StudentTaskProgress {
     lastEditedQueueId: number
     assignmentProgress: StudentAssignmentProgress
   }
+}
+
+export interface StudentTaskProgressWithUser {
+  userDetails: UserPartial
+  taskProgress: StudentTaskProgress
 }
 
 export interface AllStudentAssignmentProgress {
