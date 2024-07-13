@@ -85,6 +85,9 @@ export const ChatbotToday: React.FC = () => {
           ])
         })
       })
+      .catch((err) => {
+        console.error(err)
+      })
     if (profile && profile.chat_token) {
       setQuestionsLeft(profile.chat_token.max_uses - profile.chat_token.used)
     }

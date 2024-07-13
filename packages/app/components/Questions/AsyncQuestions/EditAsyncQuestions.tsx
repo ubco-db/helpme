@@ -1,12 +1,11 @@
 import Modal from 'antd/lib/modal/Modal'
-import { ReactElement, useCallback, useEffect, useState } from 'react'
-import { Input, Form, Button, message, Checkbox } from 'antd'
+import { ReactElement, useCallback, useState } from 'react'
+import { Input, Form, Button, message } from 'antd'
 import { BgColorsOutlined } from '@ant-design/icons'
-import { QuestionTypeParams } from '@koh/common'
 import { QuestionType } from '../Shared/QuestionType'
 import { SketchPicker } from 'react-color'
-import { useCourse } from '../../../hooks/useCourse'
 import { API } from '@koh/api-client'
+import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 
 interface EditAsyncQuestionsModalProps {
   courseId: number
@@ -20,26 +19,13 @@ export function EditAsyncQuestionsModal({
   onClose,
 }: EditAsyncQuestionsModalProps): ReactElement {
   const [form] = Form.useForm()
-  const course = useCourse(Number(courseId))
-
-  const [questionsTypeState, setQuestionsTypeState] = useState<
-    QuestionTypeParams[]
-  >([])
+  const [questionTypes, mutateQuestionTypes] = useQuestionTypes(courseId, null)
   const [questionTypeAddState, setQuestionTypeAddState] = useState()
   const [color, setColor] = useState(
     '#' + Math.floor(Math.random() * 16777215).toString(16),
   )
   const [pickerVisible, setPickerVisible] = useState(false)
   const [isInputEmpty, setIsInputEmpty] = useState(true)
-
-  const getQuestions = async () => {
-    const temp = await API.questionType.getQuestionTypes(courseId, null)
-    setQuestionsTypeState(temp)
-  }
-
-  useEffect(() => {
-    getQuestions()
-  }, [])
 
   const onAddChange = (e) => {
     const inputValue = e.target.value.trim()
@@ -57,14 +43,10 @@ export function EditAsyncQuestionsModal({
 
   const onclick = useCallback(
     async (questionTypeId: number) => {
-      await API.questionType.deleteQuestionType(
-        Number(courseId),
-        questionTypeId,
-      )
-      const temp = await API.questionType.getQuestionTypes(courseId, null)
-      await setQuestionsTypeState(temp)
+      await API.questionType.deleteQuestionType(courseId, questionTypeId)
+      mutateQuestionTypes()
     },
-    [courseId],
+    [courseId, mutateQuestionTypes],
   )
 
   const addQuestionType = useCallback(async () => {
@@ -81,15 +63,8 @@ export function EditAsyncQuestionsModal({
     } catch (e) {
       message.error('Question tag already exists')
     }
-    setQuestionsTypeState(
-      await API.questionType.getQuestionTypes(courseId, null),
-    )
-    setQuestionTypeAddState(null)
-  }, [course, questionTypeAddState, color])
-
-  const editAsyncQueue = async (updateQueue: any) => {
-    message.success('Queue updated successfully')
-  }
+    mutateQuestionTypes()
+  }, [isInputEmpty, mutateQuestionTypes, courseId, questionTypeAddState, color])
 
   return (
     <Modal
@@ -97,8 +72,10 @@ export function EditAsyncQuestionsModal({
       open={visible}
       onCancel={onClose}
       onOk={async () => {
-        const value = await form.validateFields()
-        await editAsyncQueue(value)
+        // if we had any other fields that we wanted to validate, we would do it here
+        // for now, it's just questionTypes, which get updated as soon as they are changed and not through the OK button
+        // const value = await form.validateFields()
+        // message.success('Queue updated successfully')
         onClose()
       }}
     >
@@ -107,8 +84,8 @@ export function EditAsyncQuestionsModal({
           <Input />
         </Form.Item>
         <h4>Current Question Tags: (click to delete)</h4>
-        {questionsTypeState.length > 0 ? (
-          questionsTypeState.map((questionType, index) => (
+        {questionTypes?.length > 0 ? (
+          questionTypes?.map((questionType, index) => (
             <QuestionType
               key={index}
               typeName={questionType.name}

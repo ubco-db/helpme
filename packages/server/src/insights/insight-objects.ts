@@ -2,7 +2,6 @@ import {
   BarChartOutputType,
   InsightComponent,
   InsightObject,
-  QuestionTypes,
   Role,
   SimpleDisplayOutputType,
   SimpleTableOutputType,

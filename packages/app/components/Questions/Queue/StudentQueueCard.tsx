@@ -150,7 +150,7 @@ export default function StudentQueueCard({
             />
           ))}
         </Col>
-        <Col flex="0 0 80px">
+        <Col flex="0 0 3rem">
           <Text>{getWaitTime(question)}</Text>
         </Col>
         {isStaff && (

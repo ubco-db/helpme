@@ -9,7 +9,7 @@ import {
   Tooltip,
   message,
 } from 'antd'
-import React, { ReactElement, useEffect, useState } from 'react'
+import React, { ReactElement, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import toast from 'react-hot-toast'
 import {
@@ -49,7 +49,7 @@ export default function ChatbotSettings(): ReactElement {
   const [countProcessed, setCountProcessed] = useState(0)
   const [selectViewEnabled, setSelectViewEnabled] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
-  const [totalDocuments, setTotalDocuments] = useState(0)
+  const [totalDocuments] = useState(0)
   const [chatbotDocuments, setChatbotDocuments] = useState([])
 
   const [fileList, setFileList] = useState([])
@@ -158,11 +158,11 @@ export default function ChatbotSettings(): ReactElement {
     },
   ]
 
-  const getDocuments = async () => {
+  const getDocuments = useCallback(async () => {
     setLoading(true)
     try {
       fetch(`/chat/${cid}/aggregateDocuments`, {
-        headers: { HMS_API_TOKEN: profile.chat_token.token },
+        headers: { HMS_API_TOKEN: profile?.chat_token.token },
       })
         .then((res) => res.json())
         .then((json) => {
@@ -180,7 +180,7 @@ export default function ChatbotSettings(): ReactElement {
       setChatbotDocuments([])
     }
     setLoading(false)
-  }
+  }, [cid, profile?.chat_token.token])
 
   useEffect(() => {
     getDocuments()

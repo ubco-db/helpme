@@ -16,16 +16,15 @@ export default function QueueConfigHelp(): ReactElement {
               </List.Item> */}
           <List.Item>
             {/* Note: All the quotes (") need to be escaped in JSX, I opted for template literals since they look the cleanest out of the options*/}
-            <strong>fifo_queue_view_enabled (not implemented yet)</strong>:{' '}
+            <strong>fifo_queue_view_enabled</strong>:{' '}
             {`Whether the First In First Out queue view is enabled (standard queue view. Default = true)`}
           </List.Item>
           <List.Item>
-            <strong>tag_groups_queue_view_enabled (not implemented yet)</strong>
-            :{' '}
+            <strong>tag_groups_queue_view_enabled</strong>:{' '}
             {`Whether the tag groups queue view is enabled (a view that groups questions by their tag or task. Works more like a priority queue that allows TAs to easily prioritize certain tags or tasks, also allowing them to stay in the same headspace and mark all of the same task in a row. Default = true)`}
           </List.Item>
           <List.Item>
-            <strong>default_view (not implemented yet)</strong>:{' '}
+            <strong>default_view</strong>:{' '}
             {`The default view for the queue. Values are "fifo" or "tag_groups" (default = "fifo")`}
           </List.Item>
           <List.Item>

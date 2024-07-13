@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useEffect, useState } from 'react'
+import { ReactElement, useState } from 'react'
 import Modal from 'antd/lib/modal/Modal'
 import { Input, Form, message, Select } from 'antd'
 import styled from 'styled-components'
@@ -8,6 +8,7 @@ import { default as React } from 'react'
 import { useRouter } from 'next/router'
 import { QuestionTypeParams, AsyncQuestion } from '@koh/common'
 import { QuestionType } from '../Shared/QuestionType'
+import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 
 const Container = styled.div`
   max-width: 960px;
@@ -41,9 +42,7 @@ export function UpdateQuestionForm({
   const router = useRouter()
   const courseId = Number(router.query['cid'])
   const [form] = Form.useForm()
-  const [questionsTypeState, setQuestionsTypeState] = useState<
-    QuestionTypeParams[]
-  >([])
+  const [questionTypes] = useQuestionTypes(courseId, null)
   const [questionTypeInput, setQuestionTypeInput] = useState<
     QuestionTypeParams[]
   >(question?.questionTypes || [])
@@ -65,37 +64,11 @@ export function UpdateQuestionForm({
   }
 
   const onTypeChange = (selectedIds: number[]) => {
-    const newQuestionTypeInput: QuestionTypeParams[] =
-      questionsTypeState.filter((questionType) =>
-        selectedIds.includes(questionType.id),
-      )
+    const newQuestionTypeInput: QuestionTypeParams[] = questionTypes?.filter(
+      (questionType) => selectedIds.includes(questionType.id),
+    )
     setQuestionTypeInput(newQuestionTypeInput)
   }
-
-  const getQuestions = useCallback(() => {
-    let isCancelled = false
-
-    const fetchQuestions = async () => {
-      const questions = await API.questionType.getQuestionTypes(courseId, null)
-      if (!isCancelled) {
-        setQuestionsTypeState(questions)
-      }
-    }
-
-    fetchQuestions()
-
-    return () => {
-      isCancelled = true
-    }
-  }, [courseId])
-
-  useEffect(() => {
-    const cleanup = getQuestions()
-
-    return () => {
-      cleanup()
-    }
-  }, [getQuestions])
 
   return (
     <Modal
@@ -127,7 +100,7 @@ export function UpdateQuestionForm({
               autoSize={{ minRows: 3, maxRows: 6 }}
             />
           </Form.Item>
-          {questionsTypeState.length > 0 ? (
+          {questionTypes?.length > 0 ? (
             <>
               <QuestionText>
                 What category(s) does your question fall under?
@@ -139,7 +112,7 @@ export function UpdateQuestionForm({
                 style={{ width: '100%' }}
                 value={questionTypeInput.map((type) => type.id)}
                 tagRender={(props) => {
-                  const type = questionsTypeState.find(
+                  const type = questionTypes?.find(
                     (type) => type.id === props.value,
                   )
                   return (
@@ -151,7 +124,7 @@ export function UpdateQuestionForm({
                   )
                 }}
               >
-                {questionsTypeState.map((type) => (
+                {questionTypes?.map((type) => (
                   <Select.Option value={type.id} key={type.id}>
                     {type.name}
                   </Select.Option>

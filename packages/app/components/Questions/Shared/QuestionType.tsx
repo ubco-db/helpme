@@ -24,7 +24,11 @@ export function QuestionType({
     const b = (rgb >> 0) & 0xff
     return (r * 299 + g * 587 + b * 114) / 1000
   }
-  const textColor = getBrightness(typeColor) < 128 ? 'white' : 'black'
+  const textColor = !typeName
+    ? 'red'
+    : getBrightness(typeColor) < 128
+      ? 'white'
+      : 'black'
 
   return (
     <div
@@ -40,7 +44,9 @@ export function QuestionType({
       onClick={onClick}
       className={className}
     >
-      <Text style={{ fontSize: 'smaller', color: textColor }}>{typeName}</Text>{' '}
+      <Text style={{ fontSize: 'smaller', color: textColor }}>
+        {typeName ?? 'error: missing tag text'}
+      </Text>{' '}
     </div>
   )
 }

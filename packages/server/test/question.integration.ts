@@ -3,11 +3,8 @@ import {
   ERROR_MESSAGES,
   OpenQuestionStatus,
   QuestionStatusKeys,
-  QuestionTypes,
-  Role,
 } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
-import { QuestionGroupModel } from 'question/question-group.entity';
 import { QueueModel } from 'queue/queue.entity';
 import supertest from 'supertest';
 import { QuestionModel } from '../src/question/question.entity';
@@ -15,13 +12,11 @@ import { QuestionModule } from '../src/question/question.module';
 import {
   CourseFactory,
   QuestionFactory,
-  QuestionGroupFactory,
   QuestionTypeFactory,
   QueueFactory,
   StudentCourseFactory,
   StudentTaskProgressFactory,
   TACourseFactory,
-  UserCourseFactory,
   UserFactory,
 } from './util/factories';
 import {
@@ -29,12 +24,51 @@ import {
   modifyMockNotifs,
   setupIntegrationTest,
 } from './util/testUtils';
-import { assign, forEach } from 'lodash';
+import { forEach } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
 describe('Question Integration', () => {
   const supertest = setupIntegrationTest(QuestionModule, modifyMockNotifs);
+
+  const QuestionTypes = [
+    {
+      id: 1,
+      cid: 1,
+      name: 'Concept',
+      color: '#000000',
+    },
+    {
+      id: 2,
+      cid: 2,
+      name: 'Clarification',
+      color: '#000000',
+    },
+    {
+      id: 3,
+      cid: 3,
+      name: 'Testing',
+      color: '#000000',
+    },
+    {
+      id: 4,
+      cid: 4,
+      name: 'Bug',
+      color: '#000000',
+    },
+    {
+      id: 5,
+      cid: 5,
+      name: 'Setup',
+      color: '#000000',
+    },
+    {
+      id: 6,
+      cid: 6,
+      name: 'Other',
+      color: '#000000',
+    },
+  ];
 
   describe('POST /questions', () => {
     const postQuestion = (
@@ -169,7 +203,7 @@ describe('Question Integration', () => {
           cid: questionType.cid,
           name: questionType.name,
           color: questionType.color,
-          queueId: questionType.queueId,
+          queueId: queue.id,
         };
         questionTypes.push(sendQuestionTypes);
       });

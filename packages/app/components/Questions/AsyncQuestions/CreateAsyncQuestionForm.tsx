@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Modal, Input, Form, message, Select } from 'antd'
 import styled from 'styled-components'
 import { API } from '@koh/api-client'
 import { useRouter } from 'next/router'
-import { QuestionTypeParams } from '@koh/common'
 import { useProfile } from '../../../hooks/useProfile'
+import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 import { QuestionTypeSelector } from '../Shared/QuestionType'
 
 const Container = styled.div`
@@ -32,19 +32,9 @@ const CreateAsyncQuestionForm = ({
   const router = useRouter()
   const profile = useProfile()
   const courseId = Number(router.query['cid'])
+  const [questionTypes] = useQuestionTypes(courseId, null)
   const [form] = Form.useForm()
-  const [questionsTypeState, setQuestionsTypeState] = useState<
-    QuestionTypeParams[]
-  >([])
   const [questionTypeInput, setQuestionTypeInput] = useState([])
-
-  useEffect(() => {
-    const populateQuestionTypes = async () => {
-      const questions = await API.questionType.getQuestionTypes(courseId, null)
-      setQuestionsTypeState(questions)
-    }
-    populateQuestionTypes()
-  }, [courseId])
 
   const getAiAnswer = async (questionText: string) => {
     try {
@@ -90,7 +80,7 @@ const CreateAsyncQuestionForm = ({
   }
 
   const onTypeChange = (selectedIds: number[]) => {
-    const newQuestionTypeInput = questionsTypeState.filter((questionType) =>
+    const newQuestionTypeInput = questionTypes?.filter((questionType) =>
       selectedIds.includes(questionType.id),
     )
     setQuestionTypeInput(newQuestionTypeInput)
@@ -120,7 +110,7 @@ const CreateAsyncQuestionForm = ({
               autoSize={{ minRows: 3, maxRows: 6 }}
             />
           </Form.Item>
-          {questionsTypeState.length > 0 && (
+          {questionTypes?.length > 0 && (
             <>
               <QuestionText id="question-type-text">
                 What category(s) does your question fall under?
@@ -128,7 +118,7 @@ const CreateAsyncQuestionForm = ({
               <QuestionTypeSelector
                 onChange={onTypeChange}
                 value={questionTypeInput.map((type) => type.id)}
-                questionTypes={questionsTypeState}
+                questionTypes={questionTypes}
                 className="mb-4"
                 ariaLabelledBy="question-type-text"
               />

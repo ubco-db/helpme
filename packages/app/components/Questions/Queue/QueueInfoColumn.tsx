@@ -1,13 +1,16 @@
 import {
+  ClearOutlined,
   CloudSyncOutlined,
+  DeleteOutlined,
   DownOutlined,
   ExclamationCircleOutlined,
   FrownOutlined,
+  MenuOutlined,
   NotificationOutlined,
   StopOutlined,
   UpOutlined,
 } from '@ant-design/icons'
-import { Button, message, Modal, Popconfirm, Tooltip } from 'antd'
+import { Button, message, Modal, Popconfirm, Row, Switch, Tooltip } from 'antd'
 import Linkify from 'react-linkify'
 import moment from 'moment'
 import React, { ReactElement, ReactNode, useState } from 'react'
@@ -143,6 +146,8 @@ interface QueueInfoColumnProps {
   isStaff: boolean
   buttons: ReactNode
   hasDemos?: boolean
+  tagGroupsEnabled?: boolean
+  setTagGroupsEnabled?: (tagGroupsEnabled: boolean) => void
 }
 
 export function QueueInfoColumn({
@@ -150,6 +155,8 @@ export function QueueInfoColumn({
   isStaff,
   buttons,
   hasDemos,
+  tagGroupsEnabled,
+  setTagGroupsEnabled,
 }: QueueInfoColumnProps): ReactElement {
   const { queue } = useQueue(queueId)
   const [staffListHidden, setStaffListHidden] = useState(false)
@@ -257,7 +264,10 @@ export function QueueInfoColumn({
             onConfirm={() => clearQueue(queueId, queue)}
           >
             {/* Hide button on mobile (it gets moved to edit queue modal) */}
-            <ClearQueueButton className="hidden sm:flex">
+            <ClearQueueButton
+              icon={<ClearOutlined />}
+              className="hidden sm:flex"
+            >
               Clear Queue
             </ClearQueueButton>
           </Popconfirm>
@@ -265,6 +275,7 @@ export function QueueInfoColumn({
           <DisableQueueButton
             onClick={() => confirmDisable(queueId, queue)}
             disabled={queue?.isDisabled}
+            icon={<DeleteOutlined />}
           >
             {queue?.isDisabled ? `Queue deleted` : `Delete Queue`}
           </DisableQueueButton>
@@ -277,13 +288,67 @@ export function QueueInfoColumn({
       </div>
       <div className="mt-3 flex items-center justify-between sm:hidden">
         <div className="flex flex-col">
-          <CustomH3 className="mt-0">Queue</CustomH3>
-          <QueueUpToDateInfo queueId={queueId} />
+          <CustomH3 className="mt-0">
+            {tagGroupsEnabled ? 'Queue Groups By Tag' : 'Queue'}
+          </CustomH3>
+          <Row>
+            <QueueUpToDateInfo queueId={queueId} />
+            {!hasDemos &&
+            !(
+              queue?.config?.fifo_queue_view_enabled === false ||
+              queue?.config?.tag_groups_queue_view_enabled === false
+            ) ? (
+              <TagGroupSwitchMobile
+                tagGroupsEnabled={tagGroupsEnabled}
+                setTagGroupsEnabled={setTagGroupsEnabled}
+                className="ml-1"
+              />
+            ) : null}
+          </Row>
+        </div>
+        <div>
+          {hasDemos &&
+          !(
+            queue?.config?.fifo_queue_view_enabled === false ||
+            queue?.config?.tag_groups_queue_view_enabled === false
+          ) ? (
+            <TagGroupSwitchMobile
+              tagGroupsEnabled={tagGroupsEnabled}
+              setTagGroupsEnabled={setTagGroupsEnabled}
+            />
+          ) : null}
         </div>
         {/* for 'Join Queue' button for students */}
         {!isStaff && !hasDemos && buttons}
       </div>
     </InfoColumnContainer>
+  )
+}
+
+// Note: if you're looking to modify this, there is also a switch in Queue.tsx that will need changing
+const TagGroupSwitchMobile: React.FC<{
+  tagGroupsEnabled: boolean
+  setTagGroupsEnabled: (tagGroupsEnabled: boolean) => void
+  className?: string
+}> = ({ tagGroupsEnabled, setTagGroupsEnabled, className }) => {
+  return (
+    <Switch
+      className={'sm:hidden ' + className} // only show on mobile (sizes greater than sm)
+      defaultChecked={tagGroupsEnabled}
+      onChange={() => {
+        setTimeout(() => {
+          // do a timeout to allow the animation to play
+          setTagGroupsEnabled(!tagGroupsEnabled)
+        }, 200)
+      }}
+      checkedChildren={
+        <div className="flex min-h-[12px] flex-col items-center justify-center">
+          <div className="mb-[2px] min-h-[5px] w-full rounded-[1px] border border-gray-300" />
+          <div className="min-h-[5px] w-full rounded-[1px] border border-gray-300" />
+        </div>
+      }
+      unCheckedChildren={<MenuOutlined />}
+    />
   )
 }
 

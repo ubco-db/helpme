@@ -1,15 +1,7 @@
-import { QuestionTypes, Role } from '@koh/common';
 import { QuestionModel } from '../../server/src/question/question.entity';
 import { SeedModule } from '../../server/src/seed/seed.module';
-import {
-  CourseFactory,
-  QuestionFactory,
-  QuestionTypeFactory,
-  QueueFactory,
-  UserFactory,
-} from './util/factories';
+import { CourseFactory, QuestionFactory, QueueFactory } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
-import { forEach } from 'async';
 
 describe('Seed Integration', () => {
   const supertest = setupIntegrationTest(SeedModule);

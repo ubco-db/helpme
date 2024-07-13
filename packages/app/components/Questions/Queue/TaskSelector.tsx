@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Text } from '../Shared/SharedComponents'
 import { CheckOutlined } from '@ant-design/icons'
-import { ConfigTasks, StudentAssignmentProgress } from '@koh/common'
+import {
+  ConfigTasks,
+  ConfigTasksWithAssignmentProgress,
+  StudentAssignmentProgress,
+  Task,
+  TaskTree,
+  transformIntoTaskTree,
+} from '@koh/common'
 
 interface CheckableTaskProps {
   task: Task
@@ -11,25 +18,6 @@ interface CheckableTaskProps {
   onMouseEnterAndFocus: (task: string, isHovered: boolean) => void
   onMouseLeaveAndBlur: () => void
   isHovered: boolean
-}
-
-/**
- * note: this "Task" is only for this frontend component, the Task used in the rest of the system is a part of ConfigTasks in @koh/common
- */
-interface Task {
-  taskId: string
-  isDone?: boolean
-  checked?: boolean
-  display_name?: string
-  short_display_name?: string
-  color_hex?: string
-  blocking?: boolean
-  precondition?: Task | null
-  [key: string]: any // Tasks can have any number of additional properties (for expandability, might remove later)
-}
-
-interface TaskTree {
-  [taskId: string]: Task
 }
 
 export function CheckableTask({
@@ -137,96 +125,6 @@ export function CheckableTask({
   )
 }
 
-/**
- * Transforms a configuration object of tasks into a tree structure where each task has a reference to its prerequisite task.
- * This enables the implementation of task dependencies in the UI. Note that this function mutates the `remainingTasks` object.
- *
- * @param {Object} remainingTasks - The configTasks object to be transformed
- *
- * Example input (`remainingTasks`):
- * {
- *   "task1": {
- *     "display_name": "Task 1",
- *     "short_display_name": "1",
- *     "blocking": false,
- *     "color_hex": "#ffedb8",
- *     "precondition": null
- *   },
- *   "task2": {
- *     "display_name": "Task 2",
- *     "short_display_name": "2",
- *     "blocking": false,
- *     "color_hex": "#fadf8e",
- *     "precondition": "task1"
- *   },
- *   "task3": {
- *     "display_name": "Task 3",
- *     "short_display_name": "3",
- *     "blocking": true,
- *     "color_hex": "#f7ce52",
- *     "precondition": "task2"
- *   }
- * }
- *
- * Example output (transformed `remainingTasks`):
- * {
- *   "task1": {
- *     display_name: "Task 1",
- *     short_display_name: "1",
- *     blocking: false,
- *     color_hex: "#ffedb8",
- *     precondition: null
- *   },
- *   "task2": {
- *     display_name: "Task 2",
- *     short_display_name: "2",
- *     blocking: false,
- *     color_hex: "#fadf8e",
- *     precondition: [Object reference to task1]
- *   },
- *   "task3": {
- *     display_name: "Task 3",
- *     short_display_name: "3",
- *     blocking: true,
- *     color_hex: "#f7ce52",
- *     precondition: [Object reference to task2]
- *   }
- * }
- */
-function transformIntoTaskTree(
-  remainingTasks: object,
-  taskTree: TaskTree = {},
-  precondition: string | null = null,
-): TaskTree {
-  // Object.entries is like a fancy for loop. Filter is a function that takes in a subfunction; if the subfunction returns false, the element is removed from the array.
-  const tasksToAdd = Object.entries(remainingTasks).filter(
-    ([, taskValue]) => taskValue.precondition === precondition,
-  )
-
-  tasksToAdd.forEach(([taskKey, taskValue]) => {
-    taskTree[taskKey] = {
-      ...taskValue,
-      taskId: taskKey,
-      checked: false,
-      precondition:
-        precondition && !taskValue.isDone && !taskTree[precondition].isDone
-          ? taskTree[precondition]
-          : null,
-    }
-
-    // Now that the task has been added to the tree, we can remove the task from the remainingTasks so that it doesn't keep getting cycled through (optimization)
-    delete remainingTasks[taskKey]
-
-    // Merge the current taskTree with the taskTree created from the recursive call
-    Object.assign(
-      taskTree,
-      transformIntoTaskTree(remainingTasks, taskTree, taskKey),
-    )
-  })
-
-  return taskTree
-}
-
 //
 // CREATE DEMO TASK SELECTOR
 //
@@ -258,7 +156,9 @@ export function TaskSelector({
   useEffect(() => {
     // First, assemble a tree data structure that will allow us to easily find the tasks that are prerequisites for each task.
     // This turns all the preconditions into object references instead of strings
-    const configTasksCopy: object = { ...configTasks } // Create a copy of configTasks (since the function will mutate it)
+    const configTasksCopy: ConfigTasksWithAssignmentProgress = {
+      ...configTasks,
+    } // Create a copy of configTasks (since the function will mutate it)
     // For each task that is marked as done, give it the isDone = true attribute
     if (studentAssignmentProgress) {
       for (const [taskKey, taskValue] of Object.entries(
