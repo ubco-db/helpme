@@ -52,4 +52,28 @@ export const userApi = {
 
     return response
   },
+
+  /**
+   * Login with email and password
+   * @param username {string} - The email to login with
+   * @param password {string} - The password to login with
+   * @param token {string} - The reCAPTCHA token
+   * @returns {Promise<Response>} - The response from the server
+   */
+  login: async (
+    username: string,
+    password: string,
+    token: string,
+  ): Promise<Response> => {
+    const loginRequest = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: username,
+        password: password,
+        recaptchaToken: token,
+      }),
+    }
+    return fetch(`/api/v1/ubc_login`, loginRequest)
+  },
 }

@@ -55,12 +55,42 @@ export default function LoginPage() {
   }
 
   async function login() {
-    const token = await recaptchaRef?.current?.executeAsync()
+    const token = (await recaptchaRef?.current?.executeAsync()) ?? ''
 
     if (organization && !organization.legacyAuthEnabled) {
       message.error('Organization does not support legacy authentication')
       return
     }
+
+    await userApi
+      .login(username, password, token)
+      .then(async (response) => {
+        const data = await response.json()
+        if (!response.ok) {
+          // get error message from body or default to response statusText
+          const error = (data && data.message) || response.statusText
+          switch (response.status) {
+            case 401:
+              message.error(data.message)
+              break
+            case 403:
+              setAccountActiveResponse(false)
+              break
+            case 404:
+              message.error('User Not Found')
+              break
+            default:
+              message.error(error)
+              break
+          }
+          return Promise.reject(error)
+        } else {
+          router.push(`/api/v1/login/entry?token=${data.token}`)
+        }
+      })
+      .catch((error) => {
+        console.error('There was an error!', error)
+      })
   }
 
   async function loginWithGoogle() {
@@ -175,7 +205,10 @@ export default function LoginPage() {
                   <ReCAPTCHA
                     ref={recaptchaRef}
                     size="invisible"
-                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''}
+                    sitekey={
+                      process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ??
+                      'nokeyprovided'
+                    }
                     onChange={onReCAPTCHAChange}
                   />
                   <Form.Item
