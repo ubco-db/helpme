@@ -755,8 +755,8 @@ export default function QueuePage({ qid, cid }: QueuePageProps): ReactElement {
             </QueueHeader>
           )}
           {!(
-            queueConfig.fifo_queue_view_enabled === false ||
-            queueConfig.tag_groups_queue_view_enabled === false
+            queueConfig?.fifo_queue_view_enabled === false ||
+            queueConfig?.tag_groups_queue_view_enabled === false
           ) ? (
             <Switch
               className="hidden sm:block" // only show on desktop

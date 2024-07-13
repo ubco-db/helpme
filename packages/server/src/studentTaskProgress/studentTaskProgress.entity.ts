@@ -18,14 +18,18 @@ export class StudentTaskProgressModel extends BaseEntity {
   @PrimaryColumn() // two primary columns are needed to make the composite primary key (each studentTaskProgress is uniquely defined by each [cid, uid] combo)
   uid: number;
 
-  @ManyToOne(() => UserModel, (user) => user.taskProgress)
+  @ManyToOne(() => UserModel, (user) => user.taskProgress, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'uid' })
   user: UserModel;
 
   @PrimaryColumn()
   cid: number;
 
-  @ManyToOne(() => CourseModel, (course) => course.taskProgresses)
+  @ManyToOne(() => CourseModel, (course) => course.taskProgresses, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'cid' })
   course: CourseModel;
 }

@@ -228,7 +228,7 @@ export default function QuestionForm({
 
         <section>
           <QuestionText id="question-form-office-hours-text">
-            Are you joining in-person office hours?
+            Are you joining the queue in-person?
           </QuestionText>
           <Radio.Group
             value={inperson}

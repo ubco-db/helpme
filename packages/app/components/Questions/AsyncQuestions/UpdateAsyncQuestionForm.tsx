@@ -1,13 +1,13 @@
 import { ReactElement, useState } from 'react'
 import Modal from 'antd/lib/modal/Modal'
-import { Input, Form, message, Select } from 'antd'
+import { Input, Form, message } from 'antd'
 import styled from 'styled-components'
 import { API } from '@koh/api-client'
 import PropTypes from 'prop-types'
 import { default as React } from 'react'
 import { useRouter } from 'next/router'
 import { QuestionTypeParams, AsyncQuestion } from '@koh/common'
-import { QuestionType } from '../Shared/QuestionType'
+import { QuestionTypeSelector } from '../Shared/QuestionType'
 import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 
 const Container = styled.div`
@@ -105,31 +105,13 @@ export function UpdateQuestionForm({
               <QuestionText>
                 What category(s) does your question fall under?
               </QuestionText>
-              <Select
-                mode="multiple"
-                placeholder="Select question tags"
+              <QuestionTypeSelector
                 onChange={onTypeChange}
-                style={{ width: '100%' }}
                 value={questionTypeInput.map((type) => type.id)}
-                tagRender={(props) => {
-                  const type = questionTypes?.find(
-                    (type) => type.id === props.value,
-                  )
-                  return (
-                    <QuestionType
-                      typeName={type.name}
-                      typeColor={type.color}
-                      onClick={props.onClose}
-                    />
-                  )
-                }}
-              >
-                {questionTypes?.map((type) => (
-                  <Select.Option value={type.id} key={type.id}>
-                    {type.name}
-                  </Select.Option>
-                ))}
-              </Select>
+                questionTypes={questionTypes}
+                className="mb-4"
+                ariaLabelledBy="question-type-text"
+              />
             </>
           ) : (
             <p>No Question tags found</p>
