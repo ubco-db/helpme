@@ -5,6 +5,7 @@ import { API } from '@koh/api-client'
 import { useRouter } from 'next/router'
 import { useProfile } from '../../../hooks/useProfile'
 import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
+import { QuestionTypeSelector } from '../Shared/QuestionType'
 
 const Container = styled.div`
   max-width: 960px;
@@ -111,22 +112,16 @@ const CreateAsyncQuestionForm = ({
           </Form.Item>
           {questionTypes?.length > 0 && (
             <>
-              <QuestionText>
+              <QuestionText id="question-type-text">
                 What category(s) does your question fall under?
               </QuestionText>
-              <Select
-                mode="multiple"
-                placeholder="Select question tags"
+              <QuestionTypeSelector
                 onChange={onTypeChange}
-                style={{ width: '100%' }}
                 value={questionTypeInput.map((type) => type.id)}
-              >
-                {questionTypes?.map((type) => (
-                  <Select.Option value={type.id} key={type.id}>
-                    {type.name}
-                  </Select.Option>
-                ))}
-              </Select>
+                questionTypes={questionTypes}
+                className="mb-4"
+                ariaLabelledBy="question-type-text"
+              />
             </>
           )}
         </Form>

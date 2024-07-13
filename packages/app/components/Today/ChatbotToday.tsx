@@ -11,12 +11,16 @@ import { useProfile } from '../../hooks/useProfile'
 import axios from 'axios'
 
 const ChatbotContainer = styled.div`
-  width: 100%;
-  @media (min-width: 650px) {
-    width: 90%;
-    height: 100%;
+  display: flex;
+  flex-direction: column;
+  width: 90%;
+  height: 80vh;
+  overflow: auto;
+
+  // mobile-only styles
+  @media (max-width: 650px) {
+    width: 100%;
   }
-  overflow: hidden;
 `
 const StyledInput = styled(Input)`
   width: 100%;
@@ -169,7 +173,7 @@ export const ChatbotToday: React.FC = () => {
       <ChatbotContainer>
         <Card
           title="Course chatbot"
-          className="flex h-full max-h-[750px] w-full flex-col overflow-y-auto"
+          className="flex w-full flex-auto flex-col overflow-y-auto"
         >
           <div className="grow-1 overflow-y-auto">
             {messages &&
