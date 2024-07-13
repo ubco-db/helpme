@@ -413,10 +413,40 @@ export class QuestionController {
       })) > 0;
 
     if (isTaOrProf) {
-      if (Object.keys(body).length !== 1 || Object.keys(body)[0] !== 'status') {
+      if (
+        !question.isTaskQuestion &&
+        (Object.keys(body).length !== 1 || Object.keys(body)[0] !== 'status')
+      ) {
         throw new UnauthorizedException(
           ERROR_MESSAGES.questionController.updateQuestion.taOnlyEditQuestionStatus,
         );
+        // When the TA is marking a task question, they can choose to mark only some of the tasks as done, which requires the TA to be able to modify the task question's text
+      } else if (
+        question.isTaskQuestion &&
+        body.text &&
+        body.status === ClosedQuestionStatus.Resolved
+      ) {
+        let queue: QueueModel;
+        try {
+          queue = await QueueModel.findOneOrFail(question.queueId);
+        } catch (err) {
+          throw new NotFoundException(
+            ERROR_MESSAGES.questionController.studentTaskProgress.queueDoesNotExist,
+          );
+        }
+        // check to make sure all tasks are in the config
+        await this.questionService.checkIfValidTaskQuestion(question, queue);
+        question.text = body.text;
+        // save the new question to the database
+        try {
+          await question.save();
+        } catch (err) {
+          console.error(err);
+          throw new HttpException(
+            ERROR_MESSAGES.questionController.saveQError,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
       }
       await this.questionService.validateNotHelpingOther(body.status, userId);
       await this.questionService.changeStatus(body.status, question, userId);

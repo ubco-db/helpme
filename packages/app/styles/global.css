@@ -198,6 +198,35 @@ body {
     }
 }
 
+/* used to add a fancy highlight animation in TaskMarkingSelector */
+.highlight-spin:before {
+    content: '';
+    position: absolute;
+    left: -2.5px;
+    top: -3px;
+    background: conic-gradient(transparent, green 50%, transparent 50%),
+        conic-gradient(from 180deg, transparent, green 50%, transparent 50%);
+    width: calc(100% + 5px);
+    height: calc(100% + 6px);
+    z-index: -1;
+    animation: circle-spin 5s linear infinite;
+    transform-origin: center;
+    border-radius: 15px;
+}
+
+@keyframes circle-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.highlight-spin:after {
+    filter: blur(1.5px);
+}
+
 /* make selected links (i.e. the page you are currently on) hover a different colour (hovering on a selected link would appear the same)
 .ant-menu-horizontal > .ant-menu-item-selected.ant-menu-item a {
     transition: text-shadow 0.3s ease;
