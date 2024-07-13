@@ -1,0 +1,42 @@
+@startuml
+
+skin rose
+
+title New Database (to showcase changes for adding demos)
+
+class queue {
+  +json config
+}
+
+class course
+
+class question {
+  +bool isTaskQuestion
+}
+
+class thing as "studentTaskProgress" {
+  +json taskProgress
+}
+note left : {\n"lab1": {"lastEditedQueueId": 2,\n\t "assignmentProgress": {\n\t\t"task1":{"isDone":true},\n\t\t"task2":{"isDone":true}\n\t }, \n"lab2": {"lastEditedQueueId": 3,\n\t   "assignmentProgress": {\n\t\t"task1":{"isDone":true}\n\t}\n}
+
+class questionType { 
+  ' questionTypes are only going to be tags, not tasks
+  '+bool isTask
+  '+varchar shortName
+  '+bool blocking
+}
+
+
+queue "0..*" -- "1" course
+question "0..*" -- "1" queue
+question "0..*" -- "1" user
+thing "0..*" -- "1" user
+thing "0..*" -- "1" course
+questionType "0..*" -- "0..*" question
+queue "0..1" -- "0..*" questionType
+course "1" -- "0..*" questionType
+
+
+hide empty methods
+' hide circle
+@enduml

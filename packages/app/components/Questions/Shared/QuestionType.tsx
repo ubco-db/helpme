@@ -8,12 +8,14 @@ import { QuestionTypeParams } from '@koh/common'
 interface QuestionTypeProps {
   typeName: string
   typeColor: string
-  onClick: () => void
+  onClick?: () => void
+  className?: string
 }
 export function QuestionType({
   typeName,
   typeColor,
   onClick,
+  className,
 }: QuestionTypeProps): ReactElement {
   function getBrightness(color: string): number {
     const rgb = parseInt(color.slice(1), 16)
@@ -22,7 +24,11 @@ export function QuestionType({
     const b = (rgb >> 0) & 0xff
     return (r * 299 + g * 587 + b * 114) / 1000
   }
-  const textColor = getBrightness(typeColor) < 128 ? 'white' : 'black'
+  const textColor = !typeName
+    ? 'red'
+    : getBrightness(typeColor) < 128
+      ? 'white'
+      : 'black'
 
   return (
     <div
@@ -33,11 +39,14 @@ export function QuestionType({
         //marginTop: '2px',
         margin: '2px',
         display: 'inline-block',
-        cursor: 'pointer',
+        cursor: onClick ? 'pointer' : 'default',
       }}
       onClick={onClick}
+      className={className}
     >
-      <Text style={{ fontSize: 'smaller', color: textColor }}>{typeName}</Text>{' '}
+      <Text style={{ fontSize: 'smaller', color: textColor }}>
+        {typeName ?? 'error: missing tag text'}
+      </Text>{' '}
     </div>
   )
 }

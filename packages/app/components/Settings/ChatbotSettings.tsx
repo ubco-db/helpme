@@ -4,12 +4,12 @@ import {
   Input,
   Modal,
   Pagination,
+  Progress,
   Table,
   Tooltip,
   message,
 } from 'antd'
-import { ColumnsType } from 'antd/es/table'
-import React, { ReactElement, useEffect, useState } from 'react'
+import React, { ReactElement, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import toast from 'react-hot-toast'
 import {
@@ -46,7 +46,10 @@ export default function ChatbotSettings(): ReactElement {
   const [documentType, setDocumentType] = useState('FILE')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
-  const [totalDocuments, setTotalDocuments] = useState(0)
+  const [countProcessed, setCountProcessed] = useState(0)
+  const [selectViewEnabled, setSelectViewEnabled] = useState(false)
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
+  const [totalDocuments] = useState(0)
   const [chatbotDocuments, setChatbotDocuments] = useState([])
 
   const [fileList, setFileList] = useState([])
@@ -60,6 +63,39 @@ export default function ChatbotSettings(): ReactElement {
       setFileList(info.fileList)
     },
     beforeUpload: () => false, // Prevent automatic upload
+  }
+
+  const rowSelection = {
+    type: 'checkbox',
+    onChange: (newSelectedRowKeys: React.Key[]) => {
+      setSelectedRowKeys(newSelectedRowKeys)
+    },
+  }
+  const hasSelected = selectedRowKeys.length > 0
+
+  const handleDeleteSelectedDocuments = async () => {
+    setLoading(true)
+    setCountProcessed(0)
+    try {
+      for (const docId of selectedRowKeys) {
+        await fetch(`/chat/${cid}/${docId}/document`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            HMS_API_TOKEN: profile.chat_token.token,
+          },
+        })
+        setCountProcessed((prev) => prev + 1)
+      }
+      toast.success('Documents deleted.')
+      getDocuments()
+    } catch (e) {
+      toast.error('Failed to delete documents.')
+    } finally {
+      setSelectViewEnabled(false)
+      setSelectedRowKeys([])
+      setLoading(false)
+    }
   }
 
   const columns = [
@@ -80,34 +116,59 @@ export default function ChatbotSettings(): ReactElement {
       ),
     },
     {
-      title: '',
-      key: 'action',
-      render: (text, record) => (
-        <Button
-          disabled={loading}
-          onClick={() => handleDeleteDocument(record)}
-          danger
-        >
-          Delete
-        </Button>
+      title: (
+        <>
+          <Button
+            disabled={loading}
+            onClick={() => setSelectViewEnabled(!selectViewEnabled)}
+          >
+            {!selectViewEnabled ? 'Select' : 'Cancel'}
+          </Button>
+
+          {hasSelected && (
+            <Button
+              disabled={loading}
+              onClick={() => handleDeleteSelectedDocuments()}
+              danger
+            >
+              Delete Selected
+            </Button>
+          )}
+
+          {loading && (
+            <Progress
+              percent={Math.round(
+                (countProcessed / selectedRowKeys.length) * 100,
+              )}
+            />
+          )}
+        </>
       ),
+      key: 'action',
+      render: (text, record) =>
+        !selectViewEnabled && (
+          <Button
+            disabled={loading}
+            onClick={() => handleDeleteDocument(record)}
+            danger
+          >
+            Delete
+          </Button>
+        ),
     },
   ]
 
-  useEffect(() => {
-    getDocuments()
-  }, [])
-
-  const getDocuments = async () => {
+  const getDocuments = useCallback(async () => {
     setLoading(true)
     try {
       fetch(`/chat/${cid}/aggregateDocuments`, {
-        headers: { HMS_API_TOKEN: profile.chat_token.token },
+        headers: { HMS_API_TOKEN: profile?.chat_token.token },
       })
         .then((res) => res.json())
         .then((json) => {
           // Convert the json to the expected format
           const formattedDocuments = json.map((doc) => ({
+            key: doc.id,
             docId: doc.id,
             docName: doc.pageContent,
             sourceLink: doc.metadata.source,
@@ -119,7 +180,11 @@ export default function ChatbotSettings(): ReactElement {
       setChatbotDocuments([])
     }
     setLoading(false)
-  }
+  }, [cid, profile?.chat_token.token])
+
+  useEffect(() => {
+    getDocuments()
+  }, [getDocuments])
 
   const addUrl = async (url: string) => {
     setLoading(true)
@@ -153,6 +218,7 @@ export default function ChatbotSettings(): ReactElement {
   }
 
   const uploadFiles = async (files: RcFile[], source: string) => {
+    setCountProcessed(0)
     for (const file of files) {
       try {
         const formData = new FormData()
@@ -166,15 +232,20 @@ export default function ChatbotSettings(): ReactElement {
           new Blob([JSON.stringify(jsonData)], { type: 'application/json' }),
         )
 
-        await fetch(`/chat/${cid}/document`, {
+        const response = await fetch(`/chat/${cid}/document`, {
           method: 'POST',
           body: formData,
           headers: { HMS_API_TOKEN: profile.chat_token.token },
         })
 
-        toast.success('File uploaded.')
+        if (!response.ok) {
+          throw new Error(`Failed to upload ${file.name}`)
+        }
+
+        toast.success(`${file.name} uploaded.`)
+        setCountProcessed((prev) => prev + 1)
       } catch (e) {
-        toast.error('Failed to upload file.')
+        toast.error(`Failed to upload ${file.name}`)
       }
     }
   }
@@ -182,13 +253,18 @@ export default function ChatbotSettings(): ReactElement {
   const handleDeleteDocument = async (record: any) => {
     setLoading(true)
     try {
-      await fetch(`/chat/${cid}/${record.docId}/document`, {
+      const response = await fetch(`/chat/${cid}/${record.docId}/document`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           HMS_API_TOKEN: profile.chat_token.token,
         },
       })
+
+      if (!response.ok) {
+        throw new Error(`Failed to upload ${file.name}`)
+      }
+
       toast.success('Document deleted.')
       getDocuments()
     } catch (e) {
@@ -227,7 +303,7 @@ export default function ChatbotSettings(): ReactElement {
       <Modal
         title="Add a new document for your chatbot to use."
         open={addDocumentModalOpen}
-        onCancel={() => setAddDocumentModalOpen(false)}
+        onCancel={() => !loading && setAddDocumentModalOpen(false)}
         footer={[
           <Button
             key="ok"
@@ -315,6 +391,13 @@ export default function ChatbotSettings(): ReactElement {
                     </p>
                   </Dragger>
                 </Form.Item>
+                {loading && (
+                  <Progress
+                    percent={Math.round(
+                      (countProcessed / fileList.length) * 100,
+                    )}
+                  />
+                )}
                 <Tooltip
                   title={
                     'This preview URL will be used to redirect your students to view this file. Make sure to include http header unless you want to redirect route on this site.'
@@ -373,6 +456,7 @@ export default function ChatbotSettings(): ReactElement {
       />
       <Table
         columns={columns}
+        rowSelection={selectViewEnabled && rowSelection}
         dataSource={chatbotDocuments}
         style={{ maxWidth: '800px' }}
         pagination={false}

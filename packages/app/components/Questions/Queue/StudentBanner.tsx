@@ -5,225 +5,157 @@ import {
   UndoOutlined,
 } from '@ant-design/icons'
 import { API } from '@koh/api-client'
-import { OpenQuestionStatus, Question } from '@koh/common'
-import { Button, Col, Popconfirm, Tooltip } from 'antd'
-import router from 'next/router'
-import React, { ReactElement, useEffect } from 'react'
+import { ConfigTasks, OpenQuestionStatus, Question } from '@koh/common'
+import { Button, Col, Popconfirm, Row, Tooltip } from 'antd'
+import React, { ReactElement } from 'react'
 import styled from 'styled-components'
-import { useCourse } from '../../../hooks/useCourse'
-import { useQueue } from '../../../hooks/useQueue'
 import { useStudentQuestion } from '../../../hooks/useStudentQuestion'
 import { toOrdinal } from '../../../utils/ordinal'
 import Banner, { BannerButton, BannerDangerButton } from './Banner'
 import { QuestionType } from '../Shared/QuestionType'
 
-const BoldNumber = styled.span`
-  font-weight: bold;
-`
-
-const QuestionDetails = styled.div`
+const QuestionDetailCard = styled.div<{ status: string }>`
   display: flex;
+  background-color: #599cd6;
+  border: 4px dashed;
+  border-color: ${({ status }) => {
+    switch (status) {
+      case 'Drafting':
+        return '#faad14'
+      case 'Helping':
+        return '#4dc186'
+      case 'ReQueueing':
+        return '#66BB6A'
+      case 'PriorityQueued':
+        return '#3684C6'
+      default:
+        return '#599cd6'
+    }
+  }};
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border-radius: 5px;
+  color: white;
+  min-height: 63px;
+
+  @media (max-width: 650px) {
+    padding: 0.4rem;
+    margin: 0.4rem 0;
+  }
 `
-const InfoHeader = styled.div`
+const SpotIndicator = styled.div`
+  font-size: 26px;
   font-weight: bold;
-  font-size: 14px;
-  font-variant: small-caps;
-`
-
-const Bullets = styled.ul`
-  color: #000;
-`
-
-const ColWithRightMargin = styled(Col)`
-  margin-right: 32px;
-`
-
-const PriorityQueuedBanner = styled.span`
-  display: flex;
-  flex-direction: column;
-  margin: 12px 0;
+  line-height: 1;
 `
 
 interface StudentBannerProps {
   queueId: number
   editQuestion: () => void
-  leaveQueue: () => void
+  editDemo: () => void
+  leaveQueueQuestion: () => void
+  leaveQueueDemo: () => void
+  configTasks?: ConfigTasks
+  zoomLink?: string
+  isQueueOnline: boolean
 }
 export default function StudentBanner({
   queueId,
   editQuestion,
-  leaveQueue,
+  editDemo,
+  leaveQueueQuestion,
+  leaveQueueDemo,
+  configTasks,
+  zoomLink,
+  isQueueOnline,
 }: StudentBannerProps): ReactElement {
-  const { studentQuestion, studentQuestionIndex } = useStudentQuestion(queueId)
-  const isQueueOnline = useQueue(queueId).queue?.room.startsWith('Online')
-  const { cid } = router.query
-  const { course } = useCourse(Number(cid))
+  const {
+    studentQuestion,
+    studentDemo,
+    studentQuestionIndex,
+    studentDemoIndex,
+  } = useStudentQuestion(queueId)
 
-  // for accessibility: focus the user on their current queue position when it changes
-  // no idea if it actually works, since it's kinda hard to test that locally
-  useEffect(() => {
-    const currentQueuePosition = document.getElementById(
-      'current-queue-position',
-    )
-    if (currentQueuePosition) {
-      currentQueuePosition.focus()
+  const getTitle = (
+    questionStatus: string | undefined,
+    demoStatus: string | undefined,
+  ): string => {
+    switch (questionStatus) {
+      case 'Drafting':
+        return 'Your Questions - Please finish writing your question'
+      case 'Helping':
+        return `Your Questions - ${
+          studentQuestion.taHelped?.name ?? 'A TA'
+        } is coming to help you`
+      case 'ReQueueing':
+        return 'Your Questions - Are you ready to re-join the queue?'
+      case 'PriorityQueued':
+        return (
+          'Your Questions - You are now in a priority queue, you will be helped soon. Last helped by: ' +
+          studentQuestion.taHelped.name
+        )
+      default:
+        switch (demoStatus) {
+          case 'Drafting':
+            return 'Your Questions - Please finish creating your demo'
+          case 'Helping':
+            return `Your Questions - ${
+              studentDemo.taHelped?.name ?? 'A TA'
+            } is coming to check your demo`
+          case 'ReQueueing':
+            return 'Your Questions - Are you ready to re-join the queue?'
+          case 'PriorityQueued':
+            return (
+              'Your Questions - You are now in a priority queue, you will be helped soon.  Last helped by: ' +
+              studentQuestion.taHelped.name
+            )
+          default:
+            return 'Your Questions'
+        }
     }
-  }, [studentQuestionIndex])
-
-  switch (studentQuestion?.status) {
-    case 'Drafting':
-      return (
-        <Banner
-          titleColor="#faad14"
-          contentColor="#ffd666"
-          title="Please finish writing your question"
-          content="Your spot in queue has been temporarily reserved. Please finish describing your question to receive help and finish joining the queue."
-          buttons={
-            <>
-              <Tooltip title="Delete Draft">
-                <BannerButton
-                  icon={<DeleteRowOutlined />}
-                  onClick={leaveQueue}
-                />
-              </Tooltip>
-              <Tooltip title="Finish Draft">
-                <BannerButton
-                  icon={<EditOutlined />}
-                  onClick={async () => {
-                    editQuestion()
-                  }}
-                />
-              </Tooltip>
-            </>
-          }
-        />
-      )
-    case 'Queued':
-      return (
-        <Banner
-          titleColor="#3684C6"
-          contentColor="#ABD4F3"
-          title={
-            <span id="current-queue-position">
-              You are{' '}
-              <BoldNumber>{toOrdinal(studentQuestionIndex + 1)}</BoldNumber> in
-              queue
-            </span>
-          }
-          buttons={
-            <>
-              <LeaveQueueButton leaveQueue={leaveQueue} />
-              <Tooltip title="Edit Question">
-                <BannerButton icon={<EditOutlined />} onClick={editQuestion} />
-              </Tooltip>
-            </>
-          }
-          content={<QuestionDetailRow studentQuestion={studentQuestion} />}
-        />
-      )
-    case 'Helping':
-      return (
-        <Banner
-          titleColor="#66BB6A"
-          contentColor="#82C985"
-          title={
-            <span id="current-queue-position">
-              <BoldNumber>{studentQuestion.taHelped.name}</BoldNumber> is coming
-              to help you
-            </span>
-          }
-          buttons={
-            <>
-              <LeaveQueueButton leaveQueue={leaveQueue} />
-              {isQueueOnline && (
-                <Tooltip title="Open Zoom link">
-                  <BannerButton
-                    icon={<TeamOutlined />}
-                    onClick={() => {
-                      window.open(course.zoomLink)
-                    }}
-                  />
-                </Tooltip>
-              )}
-            </>
-          }
-          content={
-            <Bullets>
-              <li>Be respectful of the TA’s time</li>
-              <li>Come prepared with your question!</li>
-            </Bullets>
-          }
-        />
-      )
-    case 'ReQueueing':
-      return (
-        <Banner
-          titleColor="#66BB6A"
-          contentColor="#82C985"
-          title={<span>Are you ready to re-join the queue?</span>}
-          buttons={
-            <>
-              <LeaveQueueButton leaveQueue={leaveQueue} />
-              <Tooltip title="Rejoin Queue">
-                <Button
-                  shape="circle"
-                  style={{
-                    marginLeft: '16px',
-                    border: 0,
-                  }}
-                  icon={<UndoOutlined />}
-                  onClick={async () => {
-                    await API.questions.update(studentQuestion.id, {
-                      status: OpenQuestionStatus.Queued,
-                    })
-                  }}
-                  type="primary"
-                  size="large"
-                />
-              </Tooltip>
-            </>
-          }
-          content={
-            <Bullets>
-              <li>Have you finished doing what the TA has told you?</li>
-              <li>
-                Once you hit requeue, you will be placed at the top of the queue
-              </li>
-            </Bullets>
-          }
-        />
-      )
-    case 'PriorityQueued':
-      return (
-        <Banner
-          titleColor="#3684C6"
-          contentColor="#ABD4F3"
-          title={
-            <PriorityQueuedBanner>
-              You are now in a priority queue, you will be helped soon. <br />
-              <span style={{ fontSize: 16 }}>
-                You were last helped by{' '}
-                <span style={{ fontWeight: 'bold' }}>
-                  {studentQuestion.taHelped.name}
-                </span>
-                .
-              </span>
-            </PriorityQueuedBanner>
-          }
-          buttons={
-            <>
-              <LeaveQueueButton leaveQueue={leaveQueue} />
-              <Tooltip title="Edit Question">
-                <BannerButton icon={<EditOutlined />} onClick={editQuestion} />
-              </Tooltip>
-            </>
-          }
-          content={<QuestionDetailRow studentQuestion={studentQuestion} />}
-        />
-      )
-    default:
-      return <div />
   }
+
+  if (!studentQuestion && !studentDemo) {
+    return <></>
+  }
+  return (
+    <Banner
+      titleColor="#3684C6"
+      contentColor="#ABD4F3"
+      title={getTitle(studentQuestion?.status, studentDemo?.status)}
+      content={
+        <>
+          <QuestionDetailRow
+            question={studentQuestion}
+            spot={studentQuestionIndex + 1}
+            isQueueOnline={isQueueOnline}
+            zoomLink={zoomLink}
+            leaveQueue={leaveQueueQuestion}
+            edit={editQuestion}
+          />
+          {studentQuestion?.status === 'Helping' && (
+            <div>
+              Be respectful of the TA’s time. Be prepared with your question!
+            </div>
+          )}
+          <QuestionDetailRow
+            question={studentDemo}
+            configTasks={configTasks}
+            spot={studentDemoIndex + 1}
+            isQueueOnline={isQueueOnline}
+            zoomLink={zoomLink}
+            leaveQueue={leaveQueueDemo}
+            edit={editDemo}
+          />
+          {studentDemo?.status === 'Helping' && (
+            <div>
+              Be respectful of the TA’s time. Be prepared with your demo!
+            </div>
+          )}
+        </>
+      }
+    />
+  )
 }
 
 function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => void }) {
@@ -241,29 +173,170 @@ function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => void }) {
   )
 }
 
-function QuestionDetailRow({ studentQuestion }: { studentQuestion: Question }) {
+function QuestionDetailRow({
+  question,
+  configTasks,
+  spot,
+  isQueueOnline,
+  zoomLink,
+  leaveQueue,
+  edit,
+}: {
+  question: Question
+  configTasks?: ConfigTasks
+  spot: number
+  isQueueOnline: boolean
+  zoomLink: string
+  leaveQueue: () => void
+  edit: () => void
+}) {
+  if (!question) {
+    return <></>
+  }
+  // task questions text comes in as "Mark "part1" "part2""
+  const tasks = question.isTaskQuestion
+    ? question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || []
+    : [] // gives an array of "part1","part2",etc.
+
   return (
-    <QuestionDetails>
-      <ColWithRightMargin flex="4 4">
-        <InfoHeader>question</InfoHeader>
-        <div>{studentQuestion.text}</div>
-      </ColWithRightMargin>
-      <Col flex="0.5 0.5 95px">
-        <InfoHeader>type</InfoHeader>
-        {studentQuestion.questionTypes?.map((questionType, index) => (
-          <QuestionType
-            key={index}
-            typeName={questionType.name}
-            typeColor={questionType.color}
-          />
-        ))}
+    <QuestionDetailCard status={question.status}>
+      {/* flex = auto fills the rest of the space */}
+      <Col flex="auto">
+        {question.status === 'Drafting' ? (
+          <div className="my-2 flex items-center sm:ml-3">
+            <span className="text-base font-medium text-orange-100 sm:text-xl">
+              {question.isTaskQuestion
+                ? 'Your Unfinished Demo'
+                : 'Your Unfinished Question'}
+            </span>
+          </div>
+        ) : // if it's a task question, parse the task items and display them instead of the question text
+        question.isTaskQuestion && tasks && configTasks ? (
+          <div>
+            {tasks.map((task, index) => {
+              const taskValue = configTasks[task] // get the task's background colour and name
+              return (
+                <QuestionType
+                  key={index}
+                  typeName={taskValue.display_name}
+                  typeColor={taskValue.color_hex}
+                />
+              )
+            })}
+          </div>
+        ) : (
+          <div>
+            <Row>
+              <Tooltip // only show tooltip if text is too long
+                title={question.text.length > 110 ? question.text : ''}
+                overlayStyle={{ maxWidth: '60em' }}
+              >
+                <div
+                  style={
+                    {
+                      // shorten question text dynamically
+                      display: '-webkit-box',
+                      WebkitLineClamp: 1,
+                      WebkitBoxOrient: 'vertical',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
+                      maxWidth: '95em',
+                    } as React.CSSProperties
+                  }
+                >
+                  {question.text}
+                </div>
+              </Tooltip>
+            </Row>
+            <Row>
+              {question.questionTypes?.map((questionType, index) => (
+                <QuestionType
+                  key={index}
+                  typeName={questionType.name}
+                  typeColor={questionType.color}
+                />
+              ))}
+            </Row>
+          </div>
+        )}
       </Col>
-      {/* <Col flex="0 0 89px">
-        <InfoHeader>groupable</InfoHeader>
-        <div>
-          {studentQuestion.groupable ? <CheckOutlined /> : <CloseOutlined />}
-        </div>
-      </Col> */}
-    </QuestionDetails>
+      <Col flex="154px" className="flex items-center justify-center">
+        <Row className="flex-nowrap">
+          <div className="flex w-[50px] flex-col items-center justify-center">
+            <SpotIndicator
+              aria-live="polite"
+              aria-label={`Your ${
+                question.isTaskQuestion ? 'demo' : 'question'
+              } is ${toOrdinal(spot)}`}
+            >
+              {spot === 0 ? 'Now' : toOrdinal(spot)}
+            </SpotIndicator>
+            {spot > 0 ? <div className="leading-none">overall</div> : null}
+          </div>
+          {(() => {
+            switch (question.status) {
+              case 'Helping':
+                return (
+                  isQueueOnline &&
+                  zoomLink && (
+                    <Tooltip title="Open Zoom link">
+                      <BannerButton
+                        icon={<TeamOutlined />}
+                        onClick={() => {
+                          window.open(zoomLink)
+                        }}
+                      />
+                    </Tooltip>
+                  )
+                )
+              case 'Drafting':
+                return (
+                  <Tooltip title="Finish Draft">
+                    {/* pulse animation */}
+                    <div className="relative ml-2 inline-flex items-center justify-center">
+                      <div className="absolute inset-0 animate-ping rounded-full bg-white opacity-50 before:content-['']"></div>
+                      <BannerButton
+                        className="!ml-0"
+                        icon={<EditOutlined />}
+                        onClick={edit}
+                      />
+                    </div>
+                  </Tooltip>
+                )
+              case 'ReQueueing':
+                return (
+                  <Tooltip title="Rejoin Queue">
+                    <Button
+                      shape="circle"
+                      style={{
+                        marginLeft: '16px',
+                        border: 0,
+                      }}
+                      icon={<UndoOutlined />}
+                      onClick={async () => {
+                        await API.questions.update(question.id, {
+                          status: OpenQuestionStatus.Queued,
+                        })
+                      }}
+                      type="primary"
+                      size="large"
+                    />
+                  </Tooltip>
+                )
+              default:
+                return <BannerButton icon={<EditOutlined />} onClick={edit} />
+            }
+          })()}
+
+          {question.status === 'Drafting' ? (
+            <Tooltip title="Delete Draft">
+              <BannerButton icon={<DeleteRowOutlined />} onClick={leaveQueue} />
+            </Tooltip>
+          ) : (
+            <LeaveQueueButton leaveQueue={leaveQueue} />
+          )}
+        </Row>
+      </Col>
+    </QuestionDetailCard>
   )
 }

@@ -9,9 +9,9 @@ import {
 } from 'typeorm';
 import { QuestionModel } from '../question/question.entity';
 import { Exclude } from 'class-transformer';
-import { QueueModel } from '../queue/queue.entity';
 import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
 import { CourseModel } from '../course/course.entity';
+import { QueueModel } from '../queue/queue.entity';
 
 @Entity('question_type_model')
 export class QuestionTypeModel extends BaseEntity {

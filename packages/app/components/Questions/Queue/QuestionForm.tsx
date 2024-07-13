@@ -2,19 +2,12 @@ import { QuestionTypeParams, OpenQuestionStatus, Question } from '@koh/common'
 import { Alert, Button, Input, Modal, Radio } from 'antd'
 import { RadioChangeEvent } from 'antd/lib/radio'
 import { NextRouter, useRouter } from 'next/router'
-import {
-  default as React,
-  ReactElement,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react'
+import { default as React, ReactElement, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { useLocalStorage } from '../../../hooks/useLocalStorage'
 import { toOrdinal } from '../../../utils/ordinal'
-import { API } from '@koh/api-client'
 import { QuestionTypeSelector } from '../Shared/QuestionType'
-import PropTypes from 'prop-types'
+import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 
 const Container = styled.div`
   max-width: 960px;
@@ -55,14 +48,11 @@ interface QuestionFormProps {
     router: NextRouter,
     courseId: number,
     location: string,
+    isTaskQuestion: boolean,
+    groupable?: boolean,
   ) => void
   position: number
   cancel: () => void
-}
-
-QuestionForm.propTypes = {
-  value: PropTypes.any.isRequired,
-  onClose: PropTypes.func.isRequired,
 }
 
 export default function QuestionForm({
@@ -79,13 +69,11 @@ export default function QuestionForm({
     null,
   )
   const router = useRouter()
-  const courseId = router.query['cid']
+  const courseId = Number(router.query['cid'])
 
   const drafting = question?.status === OpenQuestionStatus.Drafting
   const helping = question?.status === OpenQuestionStatus.Helping
-  const [questionsTypeState, setQuestionsTypeState] = useState<
-    QuestionTypeParams[]
-  >([])
+  const [questionTypes] = useQuestionTypes(courseId, queueId)
   const [questionTypeInput, setQuestionTypeInput] = useState<
     QuestionTypeParams[]
   >(question?.questionTypes || [])
@@ -101,10 +89,9 @@ export default function QuestionForm({
   }, [question, visible])
 
   const onTypeChange = (selectedIds: number[]) => {
-    const newQuestionTypeInput: QuestionTypeParams[] =
-      questionsTypeState.filter((questionType) =>
-        selectedIds.includes(questionType.id),
-      )
+    const newQuestionTypeInput: QuestionTypeParams[] = questionTypes?.filter(
+      (questionType) => selectedIds.includes(questionType.id),
+    )
 
     setQuestionTypeInput(newQuestionTypeInput)
 
@@ -131,6 +118,7 @@ export default function QuestionForm({
     })
   }
 
+  // TODO: change this to only be an option if the queue is hybrid. Strictly in-person or online queues should not have this option
   const onLocationChange = (e: RadioChangeEvent) => {
     setInperson(e.target.value)
     const questionFromStorage = storageQuestion ?? {}
@@ -147,41 +135,14 @@ export default function QuestionForm({
         questionText,
         questionTypeInput,
         router,
-        Number(courseId),
+        courseId,
         inperson ? 'In Person' : 'Online',
+        false, //isTaskQuestion
+        false, //groupable
       )
     }
   }
 
-  // all possible questions, use courseId
-  const courseNumber = Number(courseId)
-  const getQuestions = useCallback(() => {
-    let isCancelled = false
-
-    const fetchQuestions = async () => {
-      const questions = await API.questionType.getQuestionTypes(
-        courseNumber,
-        queueId,
-      )
-      if (!isCancelled) {
-        setQuestionsTypeState(questions)
-      }
-    }
-
-    fetchQuestions()
-
-    return () => {
-      isCancelled = true
-    }
-  }, [courseNumber])
-
-  useEffect(() => {
-    const cleanup = getQuestions()
-
-    return () => {
-      cleanup()
-    }
-  }, [getQuestions])
   return (
     <Modal
       open={visible}
@@ -229,7 +190,7 @@ export default function QuestionForm({
             showIcon
           />
         )}
-        {questionsTypeState.length > 0 ? (
+        {questionTypes?.length > 0 ? (
           <section>
             <QuestionText id="question-type-text">
               What categories does your question fall under?
@@ -237,13 +198,13 @@ export default function QuestionForm({
             <QuestionTypeSelector
               onChange={onTypeChange}
               value={questionTypeInput.map((type) => type.id)}
-              questionTypes={questionsTypeState}
+              questionTypes={questionTypes}
               className="mb-4"
               ariaLabelledBy="question-type-text"
             ></QuestionTypeSelector>
           </section>
         ) : (
-          <p>No Question types found</p>
+          <p>No Question tags found</p>
         )}
         <section>
           <QuestionText id="question-form-text">
@@ -267,7 +228,7 @@ export default function QuestionForm({
 
         <section>
           <QuestionText id="question-form-office-hours-text">
-            Are you joining in-person office hours?
+            Are you joining the queue in-person?
           </QuestionText>
           <Radio.Group
             value={inperson}
