@@ -1,17 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { userApi } from './app/api/userApi'
 
-const authPages = ['/login', '/register', '/auth/failed/40001']
+const publicPages = ['/login', '/register', '/auth/failed/40001']
 
-const isAuthPages = (url: string) =>
-  authPages.some((page) => page.startsWith(url))
+const isPublicPages = (url: string) =>
+  publicPages.some((page) => page.startsWith(url))
+
+const isValidAuthToken = async () => {
+  const userDetails = await userApi.getUser()
+
+  return userDetails
+}
 
 export async function middleware(request: NextRequest) {
   const { url, nextUrl, cookies } = request
 
-  const isAuthPageRequested = isAuthPages(nextUrl.pathname)
+  const isAuthPageRequested = isPublicPages(nextUrl.pathname)
 
   if (!cookies.has('auth_token') && !isAuthPageRequested) {
     return NextResponse.redirect(new URL('/login', url))
+  }
+
+  if (cookies.has('auth_token') && !isAuthPageRequested) {
+    const data = await isValidAuthToken()
+    if (data.status == 401) {
+      const response = NextResponse.redirect(new URL('/login', url))
+      response.cookies.delete('auth_token')
+      return response
+    }
   }
 
   NextResponse.next()

@@ -10,6 +10,7 @@ import { Spin } from 'antd'
 import OrganizationCard from './components/organizationCard'
 import StandardPageContainer from '../components/standardPageContainer'
 import Navbar from '../components/navbar'
+import { usePathname } from 'next/navigation'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -17,6 +18,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [profile, setProfile] = useState<User>()
+  const pathname = usePathname()
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -37,37 +39,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </Link>
         <Navbar />
       </StandardPageContainer>
-      <Image
-        // TODO pull image from backend
-        src={
-          'https://www.ubc.ca/_assets/img/our-campuses/ubco-aerials-our-campus_1920x700.jpg'
-        }
-        alt="Organization Banner"
-        className="h-60 w-full object-cover object-center"
-        width={100}
-        height={100}
-        priority
-        unoptimized={true}
-      />
+      {pathname === '/courses' && (
+        <Image
+          // TODO pull image from backend
+          src={
+            'https://www.ubc.ca/_assets/img/our-campuses/ubco-aerials-our-campus_1920x700.jpg'
+          }
+          alt="Organization Banner"
+          className="h-60 w-full object-cover object-center"
+          width={100}
+          height={100}
+          priority
+          unoptimized={true}
+        />
+      )}
       <StandardPageContainer>
-        <OrganizationCard>
-          <Image
-            // TODO pull image from backend
-            src={`https://ires.ubc.ca/files/2020/02/ubc-logo.png`}
-            className="h-15 object-contain object-center"
-            alt="Organization Logo"
-            unoptimized={true}
-            width={100}
-            height={100}
-          />
-          <div>
-            <h1>{profile?.organization?.organizationName}</h1>
-            <p className="my-0">
-              {profile?.organization?.organizationDescription}
-            </p>
-          </div>
-        </OrganizationCard>
-        <div className="mt-10">{children}</div>
+        <div>{children}</div>
       </StandardPageContainer>
     </UserInfoProvider>
   ) : (

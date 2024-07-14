@@ -10,9 +10,10 @@ import ReCAPTCHA from 'react-google-recaptcha'
 import Link from 'next/link'
 import { userApi } from '@/app/api/userApi'
 import { useRouter } from 'next/navigation'
+import { LoginData } from '@/app/typings/user'
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [accountActiveResponse, setAccountActiveResponse] = useState(true)
   const [loginMenu, setLoginMenu] = useState(false)
@@ -34,10 +35,8 @@ export default function LoginPage() {
     setPassword(e.target.value)
   }
 
-  const onUserNameChange = (e: {
-    target: { value: SetStateAction<string> }
-  }) => {
-    setUsername(e.target.value)
+  const onEmailChange = (e: { target: { value: SetStateAction<string> } }) => {
+    setEmail(e.target.value)
   }
 
   const showLoginMenu = (value: number) => {
@@ -62,35 +61,35 @@ export default function LoginPage() {
       return
     }
 
-    await userApi
-      .login(username, password, token)
-      .then(async (response) => {
-        const data = await response.json()
-        if (!response.ok) {
-          // get error message from body or default to response statusText
-          const error = (data && data.message) || response.statusText
-          switch (response.status) {
-            case 401:
-              message.error(data.message)
-              break
-            case 403:
-              setAccountActiveResponse(false)
-              break
-            case 404:
-              message.error('User Not Found')
-              break
-            default:
-              message.error(error)
-              break
-          }
-          return Promise.reject(error)
-        } else {
-          router.push(`/api/v1/login/entry?token=${data.token}`)
+    const loginData: LoginData = {
+      email,
+      password,
+      recaptchaToken: token,
+    }
+
+    await userApi.login(loginData).then(async (response) => {
+      const data = await response.json()
+      if (!response.ok) {
+        const error = (data && data.message) || response.statusText
+        switch (response.status) {
+          case 401:
+            message.error(data.message)
+            break
+          case 403:
+            setAccountActiveResponse(false)
+            break
+          case 404:
+            message.error('User Not Found')
+            break
+          default:
+            message.error(error)
+            break
         }
-      })
-      .catch((error) => {
-        console.error('There was an error!', error)
-      })
+        return Promise.reject(error)
+      } else {
+        router.push(`/api/v1/login/entry?token=${data.token}`)
+      }
+    })
   }
 
   async function loginWithGoogle() {
@@ -212,19 +211,20 @@ export default function LoginPage() {
                     onChange={onReCAPTCHAChange}
                   />
                   <Form.Item
-                    name="username"
+                    name="email"
                     rules={[
                       {
                         required: true,
-                        message: 'Please enter a valid username.',
+                        message: 'Please enter a valid email.',
                       },
                     ]}
                   >
                     <Input
                       prefix={<UserOutlined className="site-form-item-icon" />}
-                      onChange={onUserNameChange}
+                      onChange={onEmailChange}
                       className="rounded-lg border px-2 py-2"
-                      placeholder="Username"
+                      placeholder="Email"
+                      type="email"
                     />
                   </Form.Item>
 

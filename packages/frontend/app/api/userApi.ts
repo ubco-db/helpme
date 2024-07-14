@@ -1,4 +1,4 @@
-import { RegisterData } from '../typings/user'
+import { LoginData, RegisterData } from '../typings/user'
 import { fetchAuthToken } from './cookieApi'
 
 export const userApi = {
@@ -41,13 +41,16 @@ export const userApi = {
    */
   getUser: async (): Promise<Response> => {
     const authToken = await fetchAuthToken()
-
-    const response = await fetch('/api/v1/profile', {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
+    console.log(authToken)
+    const response = await fetch(`${baseUrl}/api/v1/profile`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         Authorization: authToken,
+        Cookie: authToken,
       },
+      credentials: 'include',
     })
 
     return response
@@ -60,19 +63,11 @@ export const userApi = {
    * @param token {string} - The reCAPTCHA token
    * @returns {Promise<Response>} - The response from the server
    */
-  login: async (
-    username: string,
-    password: string,
-    token: string,
-  ): Promise<Response> => {
+  login: async (loginData: LoginData): Promise<Response> => {
     const loginRequest = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: username,
-        password: password,
-        recaptchaToken: token,
-      }),
+      body: JSON.stringify(loginData),
     }
     return fetch(`/api/v1/ubc_login`, loginRequest)
   },
