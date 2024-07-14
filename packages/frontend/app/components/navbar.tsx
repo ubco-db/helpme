@@ -47,7 +47,7 @@ const Navbar: React.FC = () => {
       <NavigationMenuList>
         <NavigationMenuItem>
           {userInfo?.organization && (
-            <a href="/courses" aria-hidden="true" tabIndex={-1}>
+            <NextLink href="/courses" aria-hidden="true" tabIndex={-1}>
               <Image
                 width={48}
                 height={48}
@@ -55,7 +55,7 @@ const Navbar: React.FC = () => {
                 alt="Organization Logo"
                 src={`https://ires.ubc.ca/files/2020/02/ubc-logo.png`}
               />
-            </a>
+            </NextLink>
           )}
         </NavigationMenuItem>
         <NavigationMenuItem>
