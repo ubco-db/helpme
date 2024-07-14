@@ -13,10 +13,11 @@
   --tw-content: '';
 }
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
+@tailwind base;
+  @tailwind components;
+  @tailwind utilities;
+  
 body {
   background: #f8f9fb;
 }
