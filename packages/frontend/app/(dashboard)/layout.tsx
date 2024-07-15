@@ -7,14 +7,10 @@ import { userApi } from '../api/userApi'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Spin } from 'antd'
-import OrganizationCard from './components/organizationCard'
 import StandardPageContainer from '../components/standardPageContainer'
 import Navbar from '../components/navbar'
 import { usePathname } from 'next/navigation'
-
-interface LayoutProps {
-  children: React.ReactNode
-}
+import { LayoutProps } from '@/app/typings/types'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [profile, setProfile] = useState<User>()

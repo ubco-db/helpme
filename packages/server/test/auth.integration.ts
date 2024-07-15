@@ -126,33 +126,33 @@ describe('Auth Integration', () => {
   });
 
   describe('GET shibboleth/:oid', () => {
-    it("should redirect to auth/failed/40000 when organization doesn't exist", async () => {
+    it("should redirect to failed/40000 when organization doesn't exist", async () => {
       const res = await supertest().get('/auth/shibboleth/0');
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/auth/failed/40000');
+      expect(res.header['location']).toBe('/failed/40000');
     });
 
-    it('should redirect to auth/failed/40002 when SSO is disabled', async () => {
+    it('should redirect to /failed/40002 when SSO is disabled', async () => {
       const organization = await OrganizationFactory.create({
         ssoEnabled: false,
       });
       const res = await supertest().get(`/auth/shibboleth/${organization.id}`);
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/auth/failed/40002');
+      expect(res.header['location']).toBe('/failed/40002');
     });
 
-    it('should redirect to auth/failed/40001 when headers are missing', async () => {
+    it('should redirect to failed/40001 when headers are missing', async () => {
       const organization = await OrganizationFactory.create({
         ssoEnabled: true,
       });
       const res = await supertest().get(`/auth/shibboleth/${organization.id}`);
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/auth/failed/40001');
+      expect(res.header['location']).toBe('/failed/40001');
     });
 
-    it('should redirect to auth/failed/40001 when authService failed', async () => {
+    it('should redirect to failed/40001 when authService failed', async () => {
       const organization = await OrganizationFactory.create({
         ssoEnabled: true,
       });
@@ -166,7 +166,7 @@ describe('Auth Integration', () => {
         .set('x-trust-auth-lastname', 'Doe');
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/auth/failed/40001');
+      expect(res.header['location']).toBe('/failed/40001');
     });
 
     it('should sign in user when authService succeeded', async () => {
@@ -238,20 +238,20 @@ describe('Auth Integration', () => {
   });
 
   describe('GET callback/:method', () => {
-    it('should redirect to /auth/failed/40000 when cookie is missing', async () => {
+    it('should redirect to /failed/40000 when cookie is missing', async () => {
       const res = await supertest().get('/auth/callback/google');
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/auth/failed/40000');
+      expect(res.header['location']).toBe('/failed/40000');
     });
 
-    it('should redirect to /auth/failed/40001 when authService failed', async () => {
+    it('should redirect to /failed/40001 when authService failed', async () => {
       const res = await supertest()
         .get('/auth/callback/google')
         .set('Cookie', 'organization.id=1');
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/auth/failed/40001');
+      expect(res.header['location']).toBe('/failed/40001');
     });
 
     it('should sign in user when authService succeeded', async () => {

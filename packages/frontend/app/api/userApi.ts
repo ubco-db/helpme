@@ -42,7 +42,7 @@ export const userApi = {
   getUser: async (): Promise<Response> => {
     const authToken = await fetchAuthToken()
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
-    console.log(authToken)
+
     const response = await fetch(`${baseUrl}/api/v1/profile`, {
       method: 'GET',
       headers: {
