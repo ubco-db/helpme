@@ -257,7 +257,7 @@ export default function LoginPage() {
                   </Form.Item>
 
                   <div className="d-flex flex-row space-x-8 text-center">
-                    <Link href="/account/password">Forgot password</Link>
+                    <Link href="/password">Forgot password</Link>
                     <Link href="/register">Create account</Link>
                   </div>
                 </Form>

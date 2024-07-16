@@ -26,3 +26,14 @@ export enum CourseRole {
   PROFESSOR = 'professor',
   TA = 'ta',
 }
+
+export interface PasswordResetData {
+  email: string
+  recaptchaToken: string
+  organizationId: number
+}
+
+export interface PasswordConfirmationData {
+  password: string
+  confirmPassword: string
+}
