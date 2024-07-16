@@ -63,7 +63,7 @@ export async function middleware(request: NextRequest) {
     // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by organization admin
     if (
       nextUrl.pathname.startsWith('/organization') &&
-      userData?.organizationRole !== OrganizationRole.ADMIN
+      userData.organization.organizationRole !== OrganizationRole.ADMIN
     ) {
       return NextResponse.redirect(new URL('/courses', url))
     }
