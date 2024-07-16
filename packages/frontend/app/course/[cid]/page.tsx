@@ -1,3 +1,5 @@
+'use client'
+
 import { API } from '@koh/api-client'
 import { Heatmap, QueuePartial, Role } from '@koh/common'
 import { Col, Row, Spin, Button, message } from 'antd'
@@ -9,9 +11,6 @@ import React, { ReactElement, useCallback, useState } from 'react'
 import styled from 'styled-components'
 import { StandardPageContainer } from '../../../components/common/PageContainer'
 import NavBar from '../../../components/Nav/NavBar'
-import QueueCard, {
-  QueueCardSkeleton,
-} from '../../../components/Today/QueueCard'
 import TodayPageCheckinButton from '../../../components/Today/QueueCheckInButton'
 import QueueCreateModal from '../../../components/Today/QueueCreateModal'
 import { useCourse } from '../../../hooks/useCourse'
@@ -21,6 +20,7 @@ import { orderBy } from 'lodash'
 import { ChatbotToday } from '../../../components/Today/ChatbotToday'
 import { useCourseFeatures } from '../../../hooks/useCourseFeatures'
 import { useProfile } from '../../../hooks/useProfile'
+import QueueCard from '../components/QueueCard'
 
 const Container = styled.div`
   margin-top: 32px;
@@ -210,8 +210,6 @@ export default function CoursePage(): ReactElement {
                       />
                     ))
                   ))}
-
-                {!course && <QueueCardSkeleton />}
 
                 {courseFeatures.asyncQueueEnabled && (
                   <AsyncQuestionCard></AsyncQuestionCard>
