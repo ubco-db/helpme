@@ -2,7 +2,7 @@ import { UserOutlined } from '@ant-design/icons'
 import { Avatar, AvatarProps } from 'antd'
 import React, { ReactElement } from 'react'
 import { useUserInfo } from '../contexts/userContext'
-import { getInitialsFromName, nameToRGB } from '../lib/generalUtils'
+import { getInitialsFromName, nameToRGB } from '../utils/generalUtils'
 
 type SelfAvatarProps = Omit<AvatarProps, 'icon' | 'src'>
 type UserAvatarProps = Omit<AvatarProps, 'icon' | 'src'> & {

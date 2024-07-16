@@ -3,7 +3,7 @@ import * as NavigationMenuPrimitive from '@radix-ui/react-navigation-menu'
 import { cva } from 'class-variance-authority'
 import { ChevronDown } from 'lucide-react'
 
-import { cn } from '@/app/lib/generalUtils'
+import { cn } from '@/app/utils/generalUtils'
 
 /**
  * This is a shadcn navigation menu component. It is mostly the same as the default except with darker hover styles as well as more padding on its elements
