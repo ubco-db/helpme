@@ -13,7 +13,7 @@ import {
 
 import { usePathname } from 'next/navigation'
 import NextLink from 'next/link'
-import { OrganizationRole } from '@koh/common'
+import { OrganizationRole } from '../typings/user'
 import { SelfAvatar } from './UserAvatar'
 
 /**

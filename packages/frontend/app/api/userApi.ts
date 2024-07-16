@@ -1,4 +1,4 @@
-import { LoginData, RegisterData } from '../typings/user'
+import { LoginData, PasswordResetData, RegisterData } from '../typings/user'
 import { fetchAuthToken } from './cookieApi'
 
 export const userApi = {
@@ -70,5 +70,17 @@ export const userApi = {
       body: JSON.stringify(loginData),
     }
     return fetch(`/api/v1/ubc_login`, loginRequest)
+  },
+
+  resetPassword: async (
+    passwordResetData: PasswordResetData,
+  ): Promise<Response> => {
+    const request = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(passwordResetData),
+    }
+
+    return fetch('/api/v1/auth/password/reset', request)
   },
 }

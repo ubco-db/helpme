@@ -36,20 +36,18 @@ const AuthFailed = ({ params }: { params: { code: string } }) => {
             >
               Go to Login Page
             </Button>,
+            <div className="mt-12 text-center" key="error">
+              <Paragraph>
+                <Text strong className="text-lg">
+                  The content you submitted has the following error:
+                </Text>
+              </Paragraph>
+              <Paragraph>
+                <CloseCircleOutlined /> {FAILED_CODES[Number(code)]}
+              </Paragraph>
+            </div>,
           ]}
-          className="bg-transparent"
-        >
-          <div className="text-center">
-            <Paragraph>
-              <Text strong className="text-lg">
-                The content you submitted has the following error:
-              </Text>
-            </Paragraph>
-            <Paragraph>
-              <CloseCircleOutlined /> {FAILED_CODES[Number(code)]}
-            </Paragraph>
-          </div>
-        </Result>
+        />
       </StandardPageContainer>
     </>
   ) : (
