@@ -8,7 +8,6 @@ import moment from 'moment'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import React, { ReactElement, useCallback, useState } from 'react'
-import styled from 'styled-components'
 import { StandardPageContainer } from '../../../components/common/PageContainer'
 import NavBar from '../../../components/Nav/NavBar'
 import TodayPageCheckinButton from '../../../components/Today/QueueCheckInButton'
@@ -21,54 +20,6 @@ import { ChatbotToday } from '../../../components/Today/ChatbotToday'
 import { useCourseFeatures } from '../../../hooks/useCourseFeatures'
 import { useProfile } from '../../../hooks/useProfile'
 import QueueCard from '../components/QueueCard'
-
-const Container = styled.div`
-  margin-top: 32px;
-`
-
-const Title = styled.div`
-  font-weight: 500;
-  font-size: 1.5em; /* Mobile devices */
-  color: #212934;
-  white-space: nowrap;
-  overflow: hidden;
-
-  @media (min-width: 768px) {
-    font-size: 2em; /* Desktop devices */
-  }
-`
-
-const TodayCol = styled(Col)`
-  margin-bottom: 15px;
-`
-
-const RoleColorSpan = styled.span`
-  color: #3684c6;
-  font-weight: bold;
-`
-
-export const CreateQueueButton = styled(Button)`
-  background: #1890ff;
-  border-radius: 6px;
-  color: white;
-  font-weight: 500;
-  font-size: 14px;
-  margin: auto;
-  padding: 0.25em 1em;
-`
-
-function roleToString(role: Role) {
-  switch (role) {
-    case Role.TA:
-      return 'TA'
-    case Role.STUDENT:
-      return 'Student'
-    case Role.PROFESSOR:
-      return 'Professor'
-    default:
-      return ''
-  }
-}
 
 function arrayRotate(arr, count) {
   const adjustedCount = (arr.length + count) % arr.length
@@ -158,12 +109,6 @@ export default function CoursePage(): ReactElement {
   } else {
     return (
       <StandardPageContainer>
-        <Head>
-          <title>
-            {course?.name} | {profile?.organization?.organizationName} HelpMe
-          </title>
-        </Head>
-
         {firstContentItemId && (
           //accessiblity thing that lets users skip tabbing through the navbar
           <a href={`#${firstContentItemId}`} className="skip-link">
@@ -173,19 +118,23 @@ export default function CoursePage(): ReactElement {
 
         <NavBar courseId={Number(cid)} />
         {(!onlyChatBotEnabled && (
-          <Container>
+          <div className="mt-8">
             <Row gutter={64}>
-              <TodayCol md={12} xs={24}>
+              <Col className="mb-4" md={12} xs={24}>
                 <Row justify="space-between">
-                  <Title>{course?.name} Help Centre</Title>
+                  <div className="overflow-hidden whitespace-nowrap text-2xl font-semibold text-[#212934] md:text-3xl">
+                    {course?.name} Help Centre
+                  </div>
                   {courseFeatures.queueEnabled && <TodayPageCheckinButton />}
                 </Row>
                 <Row>
                   <div>
                     <i>
                       You are a{' '}
-                      <RoleColorSpan>{roleToString(role)}</RoleColorSpan> for
-                      this course
+                      <span className="font-bold text-[#3684c6]">
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                      </span>{' '}
+                      for this course
                     </i>
                   </div>
                 </Row>
@@ -217,11 +166,12 @@ export default function CoursePage(): ReactElement {
 
                 {role !== Role.STUDENT && courseFeatures.queueEnabled && (
                   <Row>
-                    <CreateQueueButton
+                    <Button
+                      className="mx-auto rounded-md bg-[#1890ff] px-4 py-1 text-sm font-semibold text-white"
                       onClick={() => setCreateQueueModalVisible(true)}
                     >
                       + Create Queue
-                    </CreateQueueButton>
+                    </Button>
                   </Row>
                 )}
 
@@ -247,12 +197,12 @@ export default function CoursePage(): ReactElement {
                     />
                   )
                 }
-              </TodayCol>
-              <TodayCol md={12} sm={24} className="h-[100vh]">
+              </Col>
+              <Col className="mb-4 h-[100vh]" md={12} sm={24}>
                 {courseFeatures.chatBotEnabled && <ChatbotToday />}
-              </TodayCol>
+              </Col>
             </Row>
-          </Container>
+          </div>
         )) || (
           // only show if only the chatbot is enabled
           <div className="mt-3 flex h-[100vh] flex-col items-center justify-items-end">
