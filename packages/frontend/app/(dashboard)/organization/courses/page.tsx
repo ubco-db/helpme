@@ -1,5 +1,5 @@
 import { ReactElement } from 'react'
 
-export default function SettingsPage(): ReactElement {
+export default function CoursesPage(): ReactElement {
   return <div></div>
 }
