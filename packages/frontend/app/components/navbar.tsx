@@ -13,6 +13,8 @@ import {
 
 import { usePathname } from 'next/navigation'
 import NextLink from 'next/link'
+import { OrganizationRole } from '@koh/common'
+import { SelfAvatar } from './UserAvatar'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -61,8 +63,16 @@ const Navbar: React.FC = () => {
         <NavigationMenuItem>
           <Link href="/courses">Courses</Link>
         </NavigationMenuItem>
+        {userInfo?.organization?.organizationRole ===
+          OrganizationRole.ADMIN && (
+          <NavigationMenuItem>
+            <Link href="/organization/settings">Organization Settings</Link>
+          </NavigationMenuItem>
+        )}
         <NavigationMenuItem>
-          <Link href="/organization/settings">Organization Settings</Link>
+          <Link href="/profile">
+            <SelfAvatar size={50} />
+          </Link>
         </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { AntdRegistry } from '@ant-design/nextjs-registry'
-import { cn } from '@/app/lib/utils'
+import { cn } from '@/app/lib/generalUtils'
 
 const interFontSans = Inter({
   subsets: ['latin'],
