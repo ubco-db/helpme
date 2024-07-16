@@ -9,10 +9,6 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 
 const items = [
-  // 'Users', 'users', <TeamOutlined />
-  // getItem('Courses', 'courses', <ExperimentOutlined />),
-  // getItem('Settings', 'settings', <SettingOutlined />),
-  // getItem('Devevelopment Tools', 'dev', <CodeOutlined />),
   {
     key: 'users',
     label: 'Users',
@@ -39,13 +35,8 @@ const items = [
   },
 ]
 
-const Navigation: React.FC = () => {
+const SidebarNavigation: React.FC = () => {
   const pathname = usePathname()
-
-  // const handleMenuItemSelect = (info: { key: string }) => {
-  //   setSelectedMenuItem(info.key)
-  //   router.push(`/organization/${info.key}`)
-  // }
 
   return (
     <>
@@ -66,4 +57,4 @@ const Navigation: React.FC = () => {
   )
 }
 
-export default Navigation
+export default SidebarNavigation

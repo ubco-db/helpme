@@ -1,4 +1,4 @@
-import StandardPageContainer from '@/app/components/standardPageContainer'
+import StandardPageContainer from '@/app/components/StandardPageContainer'
 import { LayoutProps } from 'antd'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {

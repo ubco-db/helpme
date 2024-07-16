@@ -6,7 +6,7 @@ import { Organization } from '@/app/typings/organization'
 import { LayoutProps } from '@/app/typings/types'
 import { Spin } from 'antd'
 import { useEffect, useState } from 'react'
-import Navigation from './components/navigation'
+import SidebarNavigation from './components/SidebarNavigation'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { userInfo } = useUserInfo()
@@ -35,7 +35,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <h2>My Organization</h2>
       <div className="mt-5 gap-8 sm:flex lg:grid lg:grid-cols-10">
         <div className="lg:col-span-2">
-          <Navigation />
+          <SidebarNavigation />
         </div>
         <div className="lg:col-span-8">{children}</div>
       </div>
