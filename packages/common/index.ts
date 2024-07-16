@@ -273,7 +273,7 @@ export interface Queue {
 }
 
 /**
- * A Queue partial to be shown on the today page.
+ * A Queue partial to be shown on the course page. It's like the fulle Queue object but without the questions.
  * @param id - The unique id number for a Queue.
  * @param room - The full name of the building + room # that the current office hours queue is in.
  * @param staffList - The list of TA user's that are currently helping at office hours.

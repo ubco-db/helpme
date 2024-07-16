@@ -1,25 +1,25 @@
 'use client'
 
 import { API } from '@koh/api-client'
-import { Heatmap, QueuePartial, Role } from '@koh/common'
+import { Heatmap, Role } from '@koh/common'
 import { Col, Row, Spin, Button, message } from 'antd'
 import { chunk, mean } from 'lodash'
 import moment from 'moment'
-import Head from 'next/head'
 import { useRouter } from 'next/router'
-import React, { ReactElement, useCallback, useState } from 'react'
-import { StandardPageContainer } from '../../../components/common/PageContainer'
-import NavBar from '../../../components/Nav/NavBar'
+import React, { ReactElement, useCallback, useMemo, useState } from 'react'
 import TodayPageCheckinButton from '../../../components/Today/QueueCheckInButton'
 import QueueCreateModal from '../../../components/Today/QueueCreateModal'
-import { useCourse } from '../../../hooks/useCourse'
 import PopularTimes from '../../../components/Today/PopularTimes/PopularTimes'
 import AsyncQuestionCard from '../../../components/Questions/AsyncQuestions/AsyncQuestionCard'
 import { orderBy } from 'lodash'
 import { ChatbotToday } from '../../../components/Today/ChatbotToday'
-import { useCourseFeatures } from '../../../hooks/useCourseFeatures'
-import { useProfile } from '../../../hooks/useProfile'
 import QueueCard from '../components/QueueCard'
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
+import { useUserInfo } from '@/app/contexts/userContext'
+import { getRoleInCourse } from '@/app/utils/generalUtils'
+import { useCourse } from '@/app/hooks/useCourse'
+import Navbar from '@/app/components/navbar'
+import StandardPageContainer from '@/app/components/StandardPageContainer'
 
 function arrayRotate(arr, count) {
   const adjustedCount = (arr.length + count) % arr.length
@@ -36,13 +36,15 @@ const collapseHeatmap = (heatmap: Heatmap): Heatmap =>
 
 export default function CoursePage(): ReactElement {
   const router = useRouter()
-  const { cid } = router.query
-  const profile = useProfile()
-  const role = profile?.courses.find((e) => e.course.id === Number(cid))?.role
-  const { course, mutateCourse } = useCourse(Number(cid))
+  const { cid: cidString } = router.query
+  const cid = useMemo(() => Number(cidString), [cidString])
+
+  const { userInfo } = useUserInfo()
+  const role = getRoleInCourse(userInfo, cid)
+  const { course, mutateCourse } = useCourse(cid)
   const [createQueueModalVisible, setCreateQueueModalVisible] = useState(false)
 
-  const courseFeatures = useCourseFeatures(Number(cid))
+  const courseFeatures = useCourseFeatures(cid)
 
   const onlyChatBotEnabled =
     courseFeatures?.chatBotEnabled &&
@@ -58,28 +60,12 @@ export default function CoursePage(): ReactElement {
       ['desc', sortByProfOrder],
     )
 
-  const updateQueueNotes = async (
-    queue: QueuePartial,
-    notes: string,
-  ): Promise<void> => {
-    const newQueues =
-      course &&
-      course.queues.map((q) => (q.id === queue.id ? { ...q, notes } : q))
-
-    mutateCourse({ ...course, queues: newQueues }, false)
-    await API.queues.update(queue.id, {
-      notes,
-      allowQuestions: queue.allowQuestions,
-    })
-    mutateCourse()
-  }
-
   const submitCreateQueue = useCallback(
     async (submittedForm) => {
       const queueRequest = await submittedForm.validateFields()
       try {
         await API.queues.createQueue(
-          Number(cid),
+          cid,
           queueRequest.officeHourName,
           !queueRequest.allowTA,
           queueRequest.notes,
@@ -116,7 +102,7 @@ export default function CoursePage(): ReactElement {
           </a>
         )}
 
-        <NavBar courseId={Number(cid)} />
+        <Navbar />
         {(!onlyChatBotEnabled && (
           <div className="mt-8">
             <Row gutter={64}>

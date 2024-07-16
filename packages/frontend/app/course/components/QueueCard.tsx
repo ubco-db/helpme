@@ -6,41 +6,52 @@ import {
   RightOutlined,
   StopOutlined,
 } from '@ant-design/icons'
-import { Button, Card, Divider, Input, Row, Tag, Tooltip } from 'antd'
-import Linkify from 'react-linkify'
+import { Button, Card, Divider, Input, message, Row, Tag, Tooltip } from 'antd'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import React, { ReactElement, useState } from 'react'
 import styles from './QueueCard.module.css'
 import UserAvatar from '@/app/components/UserAvatar'
 import { QueuePartial } from '@koh/common'
+import { LinkIt } from 'react-linkify-it'
+import { useCourse } from '@/app/hooks/useCourse'
+import { API } from '@/app/api'
 
 type QueueCardProps = {
   queue: QueuePartial
   isTA: boolean
-  updateQueueNotes: (queue: QueuePartial, queueNotes: string) => Promise<void>
   linkId?: string
 }
 
-const QueueCard = ({
-  queue,
-  isTA,
-  updateQueueNotes,
-  linkId,
-}: QueueCardProps): ReactElement => {
+const QueueCard = ({ queue, isTA, linkId }: QueueCardProps): ReactElement => {
+  const router = useRouter()
+  const { cid } = router.query
+  const { mutateCourse } = useCourse(Number(cid))
   const [editingNotes, setEditingNotes] = useState(false)
   const [updatedNotes, setUpdatedNotes] = useState(queue.notes)
   const [isLinkEnabled, setIsLinkEnabled] = useState(true) // for enabling/disabling the link to the queue when editing notes
-  const router = useRouter()
-  const { cid } = router.query
 
   const staffList = queue.staffList
 
-  const handleUpdate = (e) => {
+  const handleSaveQueueNotes = async (e: { preventDefault: () => void }) => {
     e.preventDefault()
     setIsLinkEnabled(true)
     setEditingNotes(false)
-    updateQueueNotes(queue, updatedNotes)
+    // update the queue notes
+    await API.queues
+      .update(queue.id, {
+        notes: updatedNotes,
+        allowQuestions: queue.allowQuestions,
+      })
+      .then(() => {
+        mutateCourse()
+        message.success('Queue notes updated successfully')
+        return
+      })
+      .catch((e) => {
+        const errorMessage = e?.response?.data?.message ?? e.message
+        message.error(`Error updating queue notes: ${errorMessage}`)
+      })
   }
   return (
     <Link
@@ -132,22 +143,29 @@ const QueueCard = ({
             </div>
           ) : queue.notes ? (
             <div>
-              <Linkify
-                componentDecorator={(decoratedHref, decoratedText, key) => (
-                  <a
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    href={decoratedHref}
-                    key={key}
+              <div className="whitespace-pre-wrap break-words text-[rgb(125,125,125)]">
+                {/* This LinkIt will automatically replace any links in the queue notes with actual links that users can click */}
+                <NotificationOutlined />{' '}
+                <i>
+                  <LinkIt
+                    component={(url, key) => (
+                      <a
+                        href={/^www\./.exec(url) ? `http://${url}` : url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        key={key}
+                      >
+                        {url}
+                      </a>
+                    )}
+                    regex={
+                      /(https?:\/\/|www\.)([-\w.]+\/[\p{L}\p{Emoji}\p{Emoji_Component}!#$%&'"()*+,./\\:;=_?@[\]~-]*[^\s'",.;:\b)\]}?]|(([\w-]+\.)+[\w-]+[\w/-]))/u
+                    }
                   >
-                    {decoratedText}
-                  </a>
-                )}
-              >
-                <div className="whitespace-pre-wrap break-words text-[rgb(125,125,125)]">
-                  <NotificationOutlined /> <i>{queue.notes}</i>
-                </div>
-              </Linkify>
+                    {queue.notes}
+                  </LinkIt>
+                </i>
+              </div>
             </div>
           ) : isTA ? (
             <i className="font-light text-gray-400"> no notes provided </i>
@@ -155,7 +173,7 @@ const QueueCard = ({
           <div className="flex">
             {editingNotes && (
               <Button
-                onClick={handleUpdate}
+                onClick={handleSaveQueueNotes}
                 size="large"
                 className="rounded-md bg-[#2a9187] px-4 py-2 text-base font-medium text-white"
               >
