@@ -1,3 +1,5 @@
+'use client'
+
 import {
   EditOutlined,
   NotificationOutlined,
@@ -9,29 +11,23 @@ import Linkify from 'react-linkify'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import React, { ReactElement, useState } from 'react'
-import styled from 'styled-components'
-import { QueuePartial } from '../../../common/index'
-import { KOHAvatar } from '../common/SelfAvatar'
-
 import styles from './QueueCard.module.css'
+import UserAvatar from '@/app/components/UserAvatar'
+import { QueuePartial } from '@koh/common'
 
-type QueueCard = {
+type QueueCardProps = {
   queue: QueuePartial
   isTA: boolean
   updateQueueNotes: (queue: QueuePartial, queueNotes: string) => Promise<void>
   linkId?: string
 }
 
-const StyledKOHAvatar = styled(KOHAvatar)`
-  margin-right: 1rem;
-`
-
 const QueueCard = ({
   queue,
   isTA,
   updateQueueNotes,
   linkId,
-}: QueueCard): ReactElement => {
+}: QueueCardProps): ReactElement => {
   const [editingNotes, setEditingNotes] = useState(false)
   const [updatedNotes, setUpdatedNotes] = useState(queue.notes)
   const [isLinkEnabled, setIsLinkEnabled] = useState(true) // for enabling/disabling the link to the queue when editing notes
@@ -108,10 +104,11 @@ const QueueCard = ({
           <div>
             {staffList.map((staffMember) => (
               <Tooltip key={staffMember.id} title={staffMember.name}>
-                <StyledKOHAvatar
+                <UserAvatar
+                  className="mr-4"
                   size={48}
                   photoURL={staffMember.photoURL}
-                  name={staffMember.name}
+                  username={staffMember.name}
                 />
               </Tooltip>
             ))}
