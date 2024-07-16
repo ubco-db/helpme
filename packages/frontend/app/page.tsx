@@ -1,3 +1,5 @@
+'use server'
+
 import { Button } from 'antd'
 import Head from 'next/head'
 import Image from 'next/image'
