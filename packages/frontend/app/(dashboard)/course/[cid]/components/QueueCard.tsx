@@ -8,7 +8,6 @@ import {
 } from '@ant-design/icons'
 import { Button, Card, Divider, Input, message, Row, Tag, Tooltip } from 'antd'
 import Link from 'next/link'
-import { useRouter } from 'next/router'
 import React, { ReactElement, useState } from 'react'
 import styles from './QueueCard.module.css'
 import UserAvatar from '@/app/components/UserAvatar'
@@ -17,21 +16,23 @@ import { LinkIt } from 'react-linkify-it'
 import { useCourse } from '@/app/hooks/useCourse'
 import { API } from '@/app/api'
 
-type QueueCardProps = {
+interface QueueCardProps {
+  cid: number
   queue: QueuePartial
   isTA: boolean
-  linkId?: string
+  linkId: string
 }
 
-const QueueCard = ({ queue, isTA, linkId }: QueueCardProps): ReactElement => {
-  const router = useRouter()
-  const { cid } = router.query
-  const { mutateCourse } = useCourse(Number(cid))
+const QueueCard: React.FC<QueueCardProps> = ({
+  cid,
+  queue,
+  isTA,
+  linkId,
+}): ReactElement => {
+  const { mutateCourse } = useCourse(cid)
   const [editingNotes, setEditingNotes] = useState(false)
   const [updatedNotes, setUpdatedNotes] = useState(queue.notes)
   const [isLinkEnabled, setIsLinkEnabled] = useState(true) // for enabling/disabling the link to the queue when editing notes
-
-  const staffList = queue.staffList
 
   const handleSaveQueueNotes = async (e: { preventDefault: () => void }) => {
     e.preventDefault()
@@ -71,8 +72,8 @@ const QueueCard = ({ queue, isTA, linkId }: QueueCardProps): ReactElement => {
         }}
         // make the card glow if there are staff members in the queue
         className={
-          styles.queuecard +
-          ' open-queue-card ' +
+          styles.queueCard +
+          ' open-queue-card my-4 ' +
           (queue.staffList.length >= 1 ? ' glowy ' : '') +
           (isLinkEnabled ? ' cursor-pointer ' : '')
         }
@@ -82,7 +83,10 @@ const QueueCard = ({ queue, isTA, linkId }: QueueCardProps): ReactElement => {
               {queue.room}
               <div className="flex">
                 {queue?.isProfessorQueue && (
-                  <Tag color="#337589" className="m-0 mr-1 text-gray-200">
+                  <Tag
+                    color="#337589"
+                    className="m-0 mr-1 leading-4 text-gray-200"
+                  >
                     Professor Queue
                   </Tag>
                 )}
@@ -91,7 +95,7 @@ const QueueCard = ({ queue, isTA, linkId }: QueueCardProps): ReactElement => {
                     <Tag
                       icon={<StopOutlined />}
                       color="#591e40"
-                      className="m-0 text-gray-300"
+                      className="m-0 leading-4 text-gray-300"
                     >
                       Not Accepting Questions
                     </Tag>
@@ -113,7 +117,7 @@ const QueueCard = ({ queue, isTA, linkId }: QueueCardProps): ReactElement => {
             staff checked in{queue.staffList.length > 0 ? ':' : ''}
           </div>
           <div>
-            {staffList.map((staffMember) => (
+            {queue.staffList.map((staffMember) => (
               <Tooltip key={staffMember.id} title={staffMember.name}>
                 <UserAvatar
                   className="mr-4"
@@ -127,45 +131,43 @@ const QueueCard = ({ queue, isTA, linkId }: QueueCardProps): ReactElement => {
         </div>
 
         <Row justify="space-between" align="middle">
-          <Divider className="my-12 mb-0 mt-12" />
+          <Divider className="mb-0 mt-3" />
           {/* If notes being edited, show input box.
             Else if there are notes, show the notes.
             Else if you're a TA, show placeholder.
             Else show nothing */}
           {editingNotes ? (
-            <div className="m-10 mr-0 mt-10 flex flex-grow flex-row">
+            <div className="mr-2.5 mt-2.5 flex flex-grow flex-row">
               <Input.TextArea
-                className="m-auto ml-10 rounded-md border border-[#b8c4ce]"
+                className="my-auto ml-2.5 rounded-md border border-[#b8c4ce]"
                 defaultValue={queue.notes}
                 value={updatedNotes}
                 onChange={(e) => setUpdatedNotes(e.target.value as any)}
               />
             </div>
           ) : queue.notes ? (
-            <div>
-              <div className="whitespace-pre-wrap break-words text-[rgb(125,125,125)]">
-                {/* This LinkIt will automatically replace any links in the queue notes with actual links that users can click */}
-                <NotificationOutlined />{' '}
-                <i>
-                  <LinkIt
-                    component={(url, key) => (
-                      <a
-                        href={/^www\./.exec(url) ? `http://${url}` : url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        key={key}
-                      >
-                        {url}
-                      </a>
-                    )}
-                    regex={
-                      /(https?:\/\/|www\.)([-\w.]+\/[\p{L}\p{Emoji}\p{Emoji_Component}!#$%&'"()*+,./\\:;=_?@[\]~-]*[^\s'",.;:\b)\]}?]|(([\w-]+\.)+[\w-]+[\w/-]))/u
-                    }
-                  >
-                    {queue.notes}
-                  </LinkIt>
-                </i>
-              </div>
+            <div className="whitespace-pre-wrap break-words text-[rgb(125,125,125)]">
+              {/* This LinkIt will automatically replace any links in the queue notes with actual links that users can click */}
+              <NotificationOutlined />{' '}
+              <i>
+                <LinkIt
+                  component={(url, key) => (
+                    <a
+                      href={/^www\./.exec(url) ? `http://${url}` : url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      key={key}
+                    >
+                      {url}
+                    </a>
+                  )}
+                  regex={
+                    /(https?:\/\/|www\.)([-\w.]+\/[\p{L}\p{Emoji}\p{Emoji_Component}!#$%&'"()*+,./\\:;=_?@[\]~-]*[^\s'",.;:\b)\]}?]|(([\w-]+\.)+[\w-]+[\w/-]))/u
+                  }
+                >
+                  {queue.notes}
+                </LinkIt>
+              </i>
             </div>
           ) : isTA ? (
             <i className="font-light text-gray-400"> no notes provided </i>
@@ -181,10 +183,10 @@ const QueueCard = ({ queue, isTA, linkId }: QueueCardProps): ReactElement => {
               </Button>
             )}
             {!editingNotes && (
-              <Row className="pt-10">
+              <Row className="pt-2.5">
                 {isTA && (
                   <Button
-                    className="rounded-md border border-transparent px-4 py-2 text-base font-medium"
+                    className="rounded-md border px-4 py-2 text-base font-medium"
                     onClick={(e) => {
                       e.preventDefault()
                       setIsLinkEnabled(false)
