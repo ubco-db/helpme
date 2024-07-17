@@ -27,7 +27,7 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
           color: '#FFFFFF',
           borderRadius: '6px 6px 0 0',
         }}
-        className={`${styles.asyncCentreCard} open-queue-card`}
+        className={`${styles.asyncCentreCard} open-queue-card my-4`}
         title="Async Question Centre"
         extra={<RightOutlined className=" text-3xl text-gray-100" />}
       >

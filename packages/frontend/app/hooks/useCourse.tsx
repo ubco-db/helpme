@@ -2,7 +2,7 @@ import { API } from '@koh/api-client'
 import { GetCourseResponse } from '@koh/common'
 import useSWR from 'swr'
 
-export function useCourse(cid: number): {
+export function useCourse(cid: number | null): {
   course: GetCourseResponse | undefined
   mutateCourse: () => void
 } {

@@ -42,7 +42,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             'https://www.ubc.ca/_assets/img/our-campuses/ubco-aerials-our-campus_1920x700.jpg'
           }
           alt="Organization Banner"
-          className="h-60 w-full object-cover object-center"
+          className="h-[20vh] w-full object-cover object-center"
           width={100}
           height={100}
           priority
