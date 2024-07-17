@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Table, Button, Modal, Input, Form, message } from 'antd'
+import { Table, Radio, Button, Modal, Input, Form, message } from 'antd'
 import { useProfile } from '../../hooks/useProfile'
+import { CloseOutlined } from '@ant-design/icons'
 import axios from 'axios'
 
 interface ChatbotDocumentsProps {
@@ -9,6 +10,7 @@ interface ChatbotDocumentsProps {
 
 export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
   const [documents, setDocuments] = useState([])
+  const [filteredDocuments, setFilteredDocuments] = useState([])
   const profile = useProfile()
   const [search, setSearch] = useState('')
   const [addModelOpen, setAddModelOpen] = useState(false)
@@ -17,24 +19,29 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
   const [form] = Form.useForm()
 
   useEffect(() => {
-    axios
-      .get(`/chat/${courseId}/allDocumentChunks`, {
+    fetchDocuments()
+  }, [addModelOpen, courseId])
+
+  const fetchDocuments = async () => {
+    try {
+      const response = await axios.get(`/chat/${courseId}/allDocumentChunks`, {
         headers: {
           HMS_API_TOKEN: profile.chat_token.token,
         },
       })
-      .then((response) => {
-        console.log(response.data)
-        setDocuments(response.data)
-      })
-  }, [addModelOpen, courseId])
+      setDocuments(response.data)
+      setFilteredDocuments(response.data)
+    } catch (e) {
+      message.error('Failed to load documents.')
+    }
+  }
 
   const columns = [
     {
       title: 'Name',
       dataIndex: ['metadata', 'name'],
       key: 'name',
-      width: 150,
+      width: 80,
       sorter: (a, b) => a.metadata.name.localeCompare(b.metadata.name),
       render: (text, record) => (
         <a
@@ -48,7 +55,7 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
     },
     {
       title: 'Document Content',
-      dataIndex: 'pageContent',
+      dataIndex: ['metadata', 'original'],
       key: 'pageContent',
       width: 300,
       render: (text) => (
@@ -64,9 +71,9 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
       ),
     },
     {
-      title: 'Summary',
-      dataIndex: ['metadata', 'summary'],
-      key: 'summary',
+      title: 'Edited Chunk',
+      dataIndex: ['pageContent'],
+      key: 'editedChunk',
       width: 300,
       render: (text) => (
         <div
@@ -84,7 +91,7 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
       title: 'Page Number',
       dataIndex: ['metadata', 'loc', 'pageNumber'],
       key: 'pageNumber',
-      width: 100,
+      width: 80,
     },
     {
       title: 'Actions',
@@ -127,13 +134,13 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
 
   const deleteDocument = async (documentId) => {
     try {
-      await fetch(`/chat/${courseId}/document/${documentId}`, {
+      await fetch(`/chat/${courseId}/documentChunk/${documentId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          HMS_API_TOKEN: profile.chat_token.token,
         },
       })
-
       fetchDocuments()
       message.success('Document deleted successfully.')
     } catch (e) {
@@ -141,78 +148,43 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
     }
   }
 
-  const fetchDocuments = async () => {
-    try {
-      const response = await fetch(`/chat/${courseId}/allDocumentChunks`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          HMS_API_TOKEN: profile.chat_token.token,
-        },
-      })
+  const handleSearch = (e) => {
+    setSearch(e.target.value)
+    const searchTerm = e.target.value.toLowerCase()
 
-      if (!response.ok) {
-        throw new Error('Network response was not ok')
-      }
-      const data = await response.json()
-      setDocuments(data.documents)
-    } catch (e) {
-      console.error('Failed to fetch documents:', e)
-      message.error('Failed to load documents.')
-    }
+    const filtered = documents.filter((doc) => {
+      const isNameMatch = doc.metadata.name.toLowerCase().includes(searchTerm)
+      const isUnsuccessful = doc.metadata.editedChunkText
+        .toLowerCase()
+        .includes('unsuccessful')
+      return isNameMatch || isUnsuccessful
+    })
+
+    setFilteredDocuments(filtered)
+  }
+
+  const updateDocumentInState = (updatedDoc) => {
+    const updatedDocuments = documents.map((doc) =>
+      doc.id === updatedDoc.id ? updatedDoc : doc,
+    )
+    setDocuments(updatedDocuments)
+
+    const searchTerm = search.toLowerCase()
+    const filtered = updatedDocuments.filter((doc) => {
+      const isNameMatch = doc.metadata.name.toLowerCase().includes(searchTerm)
+      const isUnsuccessful = doc.metadata.editedChunkText
+        .toLowerCase()
+        .includes('unsuccessful')
+      return isNameMatch || isUnsuccessful
+    })
+
+    setFilteredDocuments(filtered)
   }
 
   return (
-    <div className="m-auto my-5 max-w-[1000px]">
-      <Modal
-        title="Create a new document entry!"
-        open={addModelOpen}
-        onCancel={() => setAddModelOpen(false)}
-        footer={[
-          <Button
-            key="cancel"
-            type="ghost"
-            onClick={() => setAddModelOpen(false)}
-          >
-            Cancel
-          </Button>,
-          <Button key="submit" type="primary" onClick={() => form.submit()}>
-            Submit
-          </Button>,
-        ]}
-      >
-        <Form form={form} onFinish={addDocument}>
-          <Form.Item
-            label="Document Name"
-            name="documentName"
-            rules={[
-              { required: true, message: 'Please input a document name!' },
-            ]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            label="Content"
-            name="content"
-            rules={[
-              { required: true, message: 'Please input the document content!' },
-            ]}
-          >
-            <Input.TextArea />
-          </Form.Item>
-          <Form.Item label="Summary" name="summary">
-            <Input.TextArea />
-          </Form.Item>
-          <Form.Item label="Source" name="source">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Page Number" name="pageNumber">
-            <Input />
-          </Form.Item>
-        </Form>
-      </Modal>
-      <div className="flex w-full items-center justify-between">
-        <div className="">
+    <div className="max-w-[1000px]">
+      <div className="justify-left flex w-full items-center">
+        <div>
           <h3 className="m-0 p-0 text-4xl font-bold text-gray-900">
             View Chatbot Documents
           </h3>
@@ -220,35 +192,90 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
             View and manage the documents available to your chatbot
           </p>
         </div>
-        <Button onClick={() => setAddModelOpen(true)}>Add Document</Button>
+      </div>
+      <div className="h-70 top-50 fixed right-0 z-50 w-[360px] bg-white p-4 shadow-lg">
+        <Form form={form} onFinish={addDocument}>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">New Document Chunk</h2>
+            <Button
+              type="text"
+              icon={<CloseOutlined />}
+              onClick={() => setAddModelOpen(false)}
+            />
+          </div>
+          <div className="mt-4">
+            <Form.Item
+              label="Document Name"
+              name="documentName"
+              rules={[
+                { required: true, message: 'Please input a document name!' },
+              ]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              label="Content"
+              name="content"
+              rules={[
+                {
+                  required: true,
+                  message: 'Please input the document content!',
+                },
+              ]}
+            >
+              <Input.TextArea />
+            </Form.Item>
+            <Form.Item label="Edited Chunk" name="editedChunk">
+              <Input.TextArea />
+            </Form.Item>
+            <Form.Item label="Source" name="source">
+              <Input />
+            </Form.Item>
+            <Form.Item label="Page Number" name="pageNumber">
+              <Input />
+            </Form.Item>
+            <div className="mt-4 flex justify-end">
+              <Button
+                key="cancel"
+                type="ghost"
+                onClick={() => setAddModelOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button key="submit" type="primary" htmlType="submit">
+                Submit
+              </Button>
+            </div>
+          </div>
+        </Form>
       </div>
       <hr className="my-5 w-full"></hr>
       <Input
         placeholder={'Search document...'}
         value={search}
-        onChange={(e) => {
-          e.preventDefault()
-          setSearch(e.target.value)
-        }}
+        onChange={handleSearch}
         onPressEnter={fetchDocuments}
       />
-      <Table
-        columns={columns}
-        dataSource={documents}
-        pagination={{ pageSize: 7 }}
-        scroll={{ x: '100%' }}
-      />
+      <div className="flex justify-start">
+        <Table
+          columns={columns}
+          dataSource={filteredDocuments}
+          pagination={{ pageSize: 7 }}
+          scroll={{ x: '100%' }}
+        />
+      </div>
       {editingRecord && (
         <EditDocumentModal
           editingRecord={editingRecord}
           visible={editRecordModalVisible}
           setEditingRecord={setEditRecordModalVisible}
-          onSuccessfulUpdate={fetchDocuments}
+          onSuccessfulUpdate={updateDocumentInState}
         />
       )}
     </div>
   )
 }
+
 /* eslint-disable react/prop-types */
 const EditDocumentModal = ({
   editingRecord,
@@ -257,13 +284,14 @@ const EditDocumentModal = ({
   onSuccessfulUpdate,
 }) => {
   const [form] = Form.useForm()
+  const [selectedText, setSelectedText] = useState('content')
 
   useEffect(() => {
     if (editingRecord) {
       form.setFieldsValue({
         documentName: editingRecord.metadata.name,
-        content: editingRecord.pageContent,
-        summary: editingRecord.metadata.summary,
+        content: editingRecord.metadata.original,
+        editedChunk: editingRecord.pageContent,
         source: editingRecord.metadata.source,
         pageNumber: editingRecord.metadata.loc.pageNumber,
       })
@@ -273,21 +301,44 @@ const EditDocumentModal = ({
   const handleOk = async () => {
     try {
       const values = await form.validateFields()
-      await fetch(`/chat/document/${editingRecord.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `/chat/${courseId}/${editingRecord.id}/documentChunk`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            HMS_API_TOKEN: 'test_token',
+          },
+          body: JSON.stringify({
+            documentText:
+              selectedText === 'content' ? values.content : values.editedChunk,
+            metadata: {
+              name: values.documentName,
+              editedChunkText: values.editedChunk,
+              source: values.source,
+              loc: {
+                pageNumber: values.pageNumber,
+              },
+            },
+          }),
         },
-        body: JSON.stringify({
-          ...values,
-        }),
-      })
-      onSuccessfulUpdate()
+      )
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok')
+      }
+
+      const updatedDoc = await response.json()
+      onSuccessfulUpdate(updatedDoc)
       setEditingRecord(false)
       message.success('Document updated successfully.')
     } catch (e) {
       message.error('Failed to update document.')
     }
+  }
+
+  const handleTextChange = (e) => {
+    setSelectedText(e.target.value)
   }
 
   return (
@@ -296,6 +347,7 @@ const EditDocumentModal = ({
       visible={visible}
       onCancel={() => setEditingRecord(false)}
       onOk={handleOk}
+      width={800}
     >
       <Form form={form} layout="vertical">
         <Form.Item
@@ -307,22 +359,19 @@ const EditDocumentModal = ({
         >
           <Input />
         </Form.Item>
-        <Form.Item
-          label="Content"
-          name="content"
-          rules={[
-            { required: true, message: 'Please input the document content!' },
-          ]}
-        >
-          <Input.TextArea />
+        <Form.Item label="Original Content" name="content">
+          <Input.TextArea style={{ height: 120 }} />
         </Form.Item>
-        <Form.Item label="Summary" name="summary">
-          <Input.TextArea />
+        <Form.Item label="Edited chunk" name="editedChunk">
+          <Input.TextArea style={{ height: 120 }} />
+        </Form.Item>
+        <Form.Item label="Select Text to Embed">
+          <Radio.Group onChange={handleTextChange} value={selectedText}>
+            <Radio value="content">Original Content</Radio>
+            <Radio value="editedChunk">Edited Chunk</Radio>
+          </Radio.Group>
         </Form.Item>
         <Form.Item label="Source" name="source">
-          <Input />
-        </Form.Item>
-        <Form.Item label="Page Number" name="pageNumber">
           <Input />
         </Form.Item>
       </Form>
