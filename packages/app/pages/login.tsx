@@ -44,7 +44,7 @@ export default function Login(): ReactElement {
     await API.auth
       .loginWithGoogle(Number(organization.id))
       .then((res) => {
-        window.location.href = res.redirectUri
+        Router.push(res.redirectUri)
       })
       .catch((err) => {
         console.log(err)
