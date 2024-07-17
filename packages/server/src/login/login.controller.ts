@@ -145,8 +145,7 @@ export class LoginController {
     let redirectUrl: string;
 
     if (cookie) {
-      const decodedUrl = Buffer.from(cookie, 'base64').toString('utf-8');
-      redirectUrl = `/course/${decodedUrl.split(',')[0]}/invite?code=${decodedUrl.split(',')[1]}`;
+      redirectUrl = `/course/${cookie.split(',')[0]}/invite?code=${cookie.split(',')[1]}`;
     } else {
       redirectUrl = '/courses';
     }

@@ -155,9 +155,8 @@ export class AuthController {
     const cookie = getCookie(req, '__SECURE_REDIRECT');
 
     if (cookie) {
-      const decodedUrl = Buffer.from(cookie, 'base64').toString('utf-8');
       return res.status(HttpStatus.TEMPORARY_REDIRECT).send({
-        redirectUri: `/course/${decodedUrl.split(',')[0]}/invite?code=${decodedUrl.split(',')[1]}`,
+        redirectUri: `/course/${cookie.split(',')[0]}/invite?code=${cookie.split(',')[1]}`,
       });
     } else {
       return res.status(HttpStatus.ACCEPTED).send({
@@ -476,8 +475,7 @@ export class AuthController {
     let redirectUrl: string;
 
     if (cookie) {
-      const decodedUrl = Buffer.from(cookie, 'base64').toString('utf-8');
-      redirectUrl = `/course/${decodedUrl.split(',')[0]}/invite?code=${decodedUrl.split(',')[1]}`;
+      redirectUrl = `/course/${cookie.split(',')[0]}/invite?code=${cookie.split(',')[1]}`;
     } else {
       redirectUrl = '/courses';
     }

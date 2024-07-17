@@ -210,10 +210,7 @@ describe('Auth Integration', () => {
 
       const res = await supertest()
         .get(`/auth/shibboleth/${organization.id}`)
-        .set(
-          'Cookie',
-          `__SECURE_REDIRECT=${Buffer.from(`1,inviteCode`).toString('base64')}`,
-        )
+        .set('Cookie', `__SECURE_REDIRECT=1,inviteCode`)
         .set('x-trust-auth-uid', '1')
         .set('x-trust-auth-mail', 'mocked_email@ubc.ca')
         .set('x-trust-auth-role', 'student@ubc.ca')

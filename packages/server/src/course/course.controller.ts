@@ -242,14 +242,10 @@ export class CourseController {
       courseInviteCode: courseWithOrganization.courseInviteCode,
     };
 
-    res.cookie(
-      '__SECURE_REDIRECT',
-      Buffer.from(`${id},${code}`).toString('base64'),
-      {
-        httpOnly: true,
-        secure: this.isSecure(),
-      },
-    );
+    res.cookie('__SECURE_REDIRECT', `${id},${code}`, {
+      httpOnly: true,
+      secure: this.isSecure(),
+    });
 
     res.status(HttpStatus.OK).send(course_response);
     return;
