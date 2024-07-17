@@ -36,7 +36,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({ courses }) => {
           </div>
 
           <Link
-            id={index == 0 ? 'first-course-button' : ''}
+            id={index == 0 ? 'skip-link-target' : ''}
             className="ant-btn ant-btn-primary ant-btn-block mt-5 block rounded p-2 text-center font-bold text-white"
             href={`course/${course.course.id}`}
             aria-label={`${course.course.name} Course Page`}

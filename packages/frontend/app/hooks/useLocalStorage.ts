@@ -6,7 +6,7 @@ export function useLocalStorage<T>(
   key: string,
   initialValue: T,
 ): [T, Dispatch<SetStateAction<T>>, Dispatch<SetStateAction<void>>] {
-  const [storedValue, setStoredValue] = useState<T>(() => {
+  const [storedValue, setStoredValue] = useState<T | null>(() => {
     try {
       const item = isWindow && window.localStorage.getItem(key)
       return item ? JSON.parse(item) : initialValue

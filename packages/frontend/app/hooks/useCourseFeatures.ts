@@ -1,9 +1,11 @@
 import useSWR from 'swr'
 import { API } from '@koh/api-client'
 
-export function useCourseFeatures(courseId) {
+export function useCourseFeatures(courseId: number) {
+  const key = courseId && !isNaN(courseId) ? `${courseId}/features` : null
+
   const { data: courseFeatures } = useSWR(
-    courseId && !isNaN(courseId) ? `${courseId}/features` : null,
+    key,
     async () => await API.course.getCourseFeatures(courseId),
     {
       onErrorRetry: (error, key, config, revalidate, { retryCount }) => {

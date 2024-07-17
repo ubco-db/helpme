@@ -30,7 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return profile ? (
     <UserInfoProvider profile={profile}>
       <StandardPageContainer>
-        <Link href={'#first-course-button'} className="skip-link">
+        <Link href={'#skip-link-target'} className="skip-link">
           Skip to main content
         </Link>
         <Navbar />

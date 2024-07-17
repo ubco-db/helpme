@@ -1,3 +1,4 @@
+import { Role, User } from '@koh/common'
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
@@ -70,4 +71,14 @@ export function nameToRGB(
   }
 
   return colors[Math.abs(hash) % colors.length]
+}
+
+/**
+ * Returns the role of the user in the course.
+ */
+export function getRoleInCourse(userInfo: User, courseId: number): Role {
+  const role =
+    userInfo?.courses.find((e) => e.course.id === courseId)?.role ??
+    Role.STUDENT
+  return role
 }
