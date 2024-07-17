@@ -190,9 +190,10 @@ export class asyncQuestionController {
       const requester = await UserCourseModel.findOne({
         where: {
           userId: user.id,
+          courseId: courseId,
         },
       });
-      if (requester.role === Role.STUDENT) {
+      if (!requester || requester.role === Role.STUDENT) {
         throw new HttpException(
           'No permission to update question.',
           HttpStatus.UNAUTHORIZED,
