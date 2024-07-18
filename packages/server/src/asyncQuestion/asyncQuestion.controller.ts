@@ -202,7 +202,10 @@ export class asyncQuestionController {
     }
     const updatedQuestion = await question.save();
 
-    if (!body?.visible) {
+    if (
+      body.status === asyncQuestionStatus.TADeleted ||
+      body.status === asyncQuestionStatus.StudentDeleted
+    ) {
       await this.redisQueueService.deleteAsyncQuestion(
         `c:${courseId}:aq`,
         updatedQuestion,
