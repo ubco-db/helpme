@@ -77,7 +77,13 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
     }, [courseFeatures])
 
   if (!course || !courseFeatures) {
-    return <Spin tip="Loading..." size="large" />
+    return (
+      <div className="mt-20 flex content-center justify-center">
+        <Spin size="large" className="text-nowrap" tip="Loading Course Data...">
+          <div className="p-20" />
+        </Spin>
+      </div>
+    )
   } else {
     return (
       <>

@@ -29,7 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return profile ? (
     <UserInfoProvider profile={profile}>
-      <header className={`bg-white`}>
+      <header className={`border-b border-b-zinc-200 bg-white`}>
         <StandardPageContainer>
           <Link href={'#skip-link-target'} className="skip-link">
             Skip to main content
@@ -58,7 +58,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </main>
     </UserInfoProvider>
   ) : (
-    <Spin />
+    <main className="mt-20 flex content-center justify-center">
+      <Spin size="large" className="text-nowrap" tip="Loading User...">
+        <div className="p-10" />
+      </Spin>
+    </main>
   )
 }
 

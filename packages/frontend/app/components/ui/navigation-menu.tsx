@@ -2,51 +2,100 @@ import * as React from 'react'
 import * as NavigationMenuPrimitive from '@radix-ui/react-navigation-menu'
 import { cva } from 'class-variance-authority'
 import { ChevronDown } from 'lucide-react'
-
 import { cn } from '@/app/utils/generalUtils'
 
-/**
- * This is a shadcn navigation menu component. It is mostly the same as the default except with darker hover styles as well as more padding on its elements
- */
+const NavigationContext = React.createContext<{
+  orientation?: 'vertical' | 'horizontal'
+}>({})
 
+/**
+ * This is a shadcn navigation menu component. It is mostly the same as the default except with darker hover styles as well as more padding on its elements.
+ * It also has custom styles for the submenu (i.e. the "Queues" tab) and support for vertical orientation
+ */
 const NavigationMenu = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Root>
 >(({ className, children, ...props }, ref) => (
-  <NavigationMenuPrimitive.Root
-    ref={ref}
-    className={cn(
-      'relative z-10 flex max-w-max flex-1 items-center justify-center',
-      className,
-    )}
-    {...props}
-  >
-    {children}
-    <NavigationMenuViewport />
-  </NavigationMenuPrimitive.Root>
+  <NavigationContext.Provider value={{ orientation: props.orientation }}>
+    <NavigationMenuPrimitive.Root
+      ref={ref}
+      className={cn(
+        'relative z-10 flex flex-1',
+        (!props.orientation || props.orientation === 'horizontal') &&
+          'max-w-max items-center justify-center',
+        props.orientation === 'vertical' &&
+          'w-full flex-col items-end justify-start pr-5',
+        className,
+      )}
+      orientation={props.orientation}
+      {...props}
+    >
+      {children}
+      <NavigationMenuViewport />
+    </NavigationMenuPrimitive.Root>
+  </NavigationContext.Provider>
 ))
 NavigationMenu.displayName = NavigationMenuPrimitive.Root.displayName
 
 const NavigationMenuList = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.List>
->(({ className, ...props }, ref) => (
-  <NavigationMenuPrimitive.List
-    ref={ref}
-    className={cn(
-      'group flex flex-1 list-none items-center justify-center space-x-1',
-      className,
-    )}
-    {...props}
-  />
-))
+>(({ className, ...props }, ref) => {
+  const { orientation } = React.useContext(NavigationContext)
+  return (
+    <NavigationMenuPrimitive.List
+      ref={ref}
+      className={cn(
+        'group flex flex-1 list-none',
+        (!orientation || orientation === 'horizontal') &&
+          'items-center justify-center space-x-1',
+        orientation === 'vertical' &&
+          'flex-col items-end justify-start space-y-1',
+        className,
+      )}
+      {...props}
+    />
+  )
+})
 NavigationMenuList.displayName = NavigationMenuPrimitive.List.displayName
 
 const NavigationMenuItem = NavigationMenuPrimitive.Item
 
-const navigationMenuTriggerStyle = cva(
-  'group inline-flex h-10 w-max items-center justify-center rounded-md bg-white px-8 py-6 text-sm font-medium transition-colors hover:bg-zinc-200/70 hover:text-zinc-900 focus:bg-zinc-200 focus:text-zinc-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-zinc-300/80 data-[state=open]:bg-zinc-300/50 dark:bg-zinc-950 dark:hover:bg-zinc-800 dark:hover:text-zinc-50 dark:focus:bg-zinc-800 dark:focus:text-zinc-50 dark:data-[active]:bg-zinc-800/50 dark:data-[state=open]:bg-zinc-800/50',
-)
+/**
+ * These are the styles that get applied to the links
+ */
+const navigationMenuTriggerStyle = cva([
+  'group', // Grouping for hover and focus states
+  'inline-flex', // Display type
+  'h-10', // Height
+  'w-[50vw]', // on mobile devices, each link is 40% of the viewport width
+  'sm:w-max', // On desktop devices use max width
+  'items-center', // Vertical alignment
+  'justify-center', // Horizontal alignment
+  'rounded-md', // Border radius
+  'bg-white', // Background color
+  'px-8', // Horizontal padding
+  'py-6', // Vertical padding
+  'text-sm', // Text size
+  'font-medium', // Font weight
+  'transition-colors', // Transition for color changes
+  'hover:bg-zinc-200/70', // Hover background color
+  'hover:text-zinc-900', // Hover text color
+  'focus:bg-zinc-200', // Focus background color
+  'focus:text-zinc-900', // Focus text color
+  'focus:outline-none', // Focus outline removal
+  'disabled:pointer-events-none', // Disabled state pointer events
+  'disabled:opacity-50', // Disabled state opacity
+  'data-[active]:bg-zinc-300/80', // Active state background color
+  'data-[state=open]:bg-zinc-300/50', // Open state background color
+  'dark:bg-zinc-950', // Dark mode background color
+  'dark:hover:bg-zinc-800', // Dark mode hover background color
+  'dark:hover:text-zinc-50', // Dark mode hover text color
+  'dark:focus:bg-zinc-800', // Dark mode focus background color
+  'dark:focus:text-zinc-50', // Dark mode focus text color
+  'dark:data-[active]:bg-zinc-800/50', // Dark mode active state background color
+  'dark:data-[state=open]:bg-zinc-800/50', // Dark mode open state background color
+])
 
 /**
  * This is the same as above except without the text and formatting changes.
@@ -75,7 +124,6 @@ const NavigationMenuTrigger = React.forwardRef<
     {...props}
   >
     {children}
-    {''}
     <ChevronDown
       className="relative top-[1px] ml-1 h-3 w-3 transition duration-200 group-data-[state=open]:rotate-180"
       aria-hidden="true"
@@ -100,35 +148,31 @@ const NavigationMenuContent = React.forwardRef<
 NavigationMenuContent.displayName = NavigationMenuPrimitive.Content.displayName
 
 const NavigationMenuLink = NavigationMenuPrimitive.Link
-// const NavigationMenuItem = React.forwardRef<
-//   React.ElementRef<typeof NavigationMenuPrimitive.Item>,
-//   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Item>
-// >(({ className, children, ...props }, ref) => (
-//   <NavigationMenuPrimitive.Item
-//     ref={ref}
-//     className={`px-6 py-3 ${className}`}
-//     {...props}
-//   >
-//     {children}{""}
-//   </NavigationMenuPrimitive.Item>
-// ))
-// NavigationMenuItem.displayName = NavigationMenuPrimitive.Item.displayName
 
 const NavigationMenuViewport = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Viewport>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Viewport>
->(({ className, ...props }, ref) => (
-  <div className={cn('absolute left-0 top-full flex justify-center')}>
-    <NavigationMenuPrimitive.Viewport
+>(({ className, ...props }, ref) => {
+  const { orientation } = React.useContext(NavigationContext)
+  return (
+    <div
       className={cn(
-        'origin-top-center data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 relative mt-1.5 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-md border border-zinc-200 bg-white text-zinc-950 shadow-lg md:w-[var(--radix-navigation-menu-viewport-width)] dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50',
-        className,
+        'absolute flex justify-center',
+        (!orientation || orientation === 'horizontal') && 'left-0 top-full',
+        orientation === 'vertical' && 'left-2 top-[31%]',
       )}
-      ref={ref}
-      {...props}
-    />
-  </div>
-))
+    >
+      <NavigationMenuPrimitive.Viewport
+        className={cn(
+          'origin-top-center data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 relative mt-1.5 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-md border border-zinc-200 bg-white text-zinc-950 shadow-lg md:w-[var(--radix-navigation-menu-viewport-width)] dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50',
+          className,
+        )}
+        ref={ref}
+        {...props}
+      />
+    </div>
+  )
+})
 NavigationMenuViewport.displayName =
   NavigationMenuPrimitive.Viewport.displayName
 
