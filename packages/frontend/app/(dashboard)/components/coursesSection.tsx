@@ -37,7 +37,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({ courses }) => {
 
           <Link
             id={index == 0 ? 'skip-link-target' : ''}
-            className="ant-btn ant-btn-primary ant-btn-block mt-5 block rounded p-2 text-center font-bold text-white"
+            className="ant-btn ant-btn-primary ant-btn-block mt-5 block rounded p-2 text-center font-medium text-white"
             href={`course/${course.course.id}`}
             aria-label={`${course.course.name} Course Page`}
           >
@@ -46,7 +46,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({ courses }) => {
 
           {(course.role as unknown as CourseRole) === CourseRole.PROFESSOR && (
             <Link
-              className="ant-btn ant-btn-primary ant-btn-block mt-4 block rounded p-2 text-center font-bold text-white"
+              className="ant-btn ant-btn-primary ant-btn-block mt-4 block rounded p-2 text-center font-medium text-white"
               href={`organization/course/${course.course.id}/edit`}
             >
               Edit Course

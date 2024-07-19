@@ -7,7 +7,7 @@ import { userApi } from '../api/userApi'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Spin } from 'antd'
-import Navbar from '../components/navbar'
+import HeaderBar from '../components/HeaderBar'
 import { usePathname } from 'next/navigation'
 import { LayoutProps } from '@/app/typings/types'
 import StandardPageContainer from '../components/StandardPageContainer'
@@ -34,7 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Link href={'#skip-link-target'} className="skip-link">
             Skip to main content
           </Link>
-          <Navbar />
+          <HeaderBar />
         </StandardPageContainer>
       </header>
       <main>
