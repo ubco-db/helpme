@@ -45,8 +45,25 @@ NavigationMenuList.displayName = NavigationMenuPrimitive.List.displayName
 const NavigationMenuItem = NavigationMenuPrimitive.Item
 
 const navigationMenuTriggerStyle = cva(
-  'group inline-flex h-10 w-max items-center justify-center rounded-md bg-white px-8 py-6 text-sm font-medium transition-colors hover:bg-zinc-200 hover:text-zinc-900 focus:bg-zinc-200 focus:text-zinc-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-zinc-300/50 data-[state=open]:bg-zinc-300/50 dark:bg-zinc-950 dark:hover:bg-zinc-800 dark:hover:text-zinc-50 dark:focus:bg-zinc-800 dark:focus:text-zinc-50 dark:data-[active]:bg-zinc-800/50 dark:data-[state=open]:bg-zinc-800/50',
+  'group inline-flex h-10 w-max items-center justify-center rounded-md bg-white px-8 py-6 text-sm font-medium transition-colors hover:bg-zinc-200/70 hover:text-zinc-900 focus:bg-zinc-200 focus:text-zinc-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-zinc-300/80 data-[state=open]:bg-zinc-300/50 dark:bg-zinc-950 dark:hover:bg-zinc-800 dark:hover:text-zinc-50 dark:focus:bg-zinc-800 dark:focus:text-zinc-50 dark:data-[active]:bg-zinc-800/50 dark:data-[state=open]:bg-zinc-800/50',
 )
+
+/**
+ * This is the same as above except without the text and formatting changes.
+ * It's only used for the submenu in the navigation bar (i.e. the "Queues" tab)
+ */
+const navigationMenuTriggerStyleForSubMenu = cva([
+  'hover:bg-zinc-200/70',
+  'hover:text-zinc-900', // Hover state
+  'transition-colors', // Transition for color changes
+  'disabled:pointer-events-none',
+  'disabled:opacity-50', // Disabled state
+  'data-[active]:bg-zinc-300/90',
+  'data-[state=open]:bg-zinc-300/50', // Active and open state backgrounds
+  'dark:bg-zinc-950', // Dark mode background
+  'dark:data-[active]:bg-zinc-800/50',
+  'dark:data-[state=open]:bg-zinc-800/50', // Dark mode active and open state backgrounds
+])
 
 const NavigationMenuTrigger = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Trigger>,
@@ -135,6 +152,7 @@ NavigationMenuIndicator.displayName =
 
 export {
   navigationMenuTriggerStyle,
+  navigationMenuTriggerStyleForSubMenu,
   NavigationMenu,
   NavigationMenuList,
   NavigationMenuItem,

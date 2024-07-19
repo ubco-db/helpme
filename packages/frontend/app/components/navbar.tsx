@@ -5,46 +5,85 @@ import Image from 'next/image'
 import { useUserInfo } from '@/app/contexts/userContext'
 import {
   NavigationMenu,
+  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
+  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
+  navigationMenuTriggerStyleForSubMenu,
 } from '@/app/components/ui/navigation-menu'
-
+import { orderBy } from 'lodash'
 import { usePathname } from 'next/navigation'
 import NextLink from 'next/link'
 import { OrganizationRole } from '../typings/user'
 import { SelfAvatar } from './UserAvatar'
 import { useCourse } from '../hooks/useCourse'
-import { getRoleInCourse } from '../utils/generalUtils'
+import { cn, getRoleInCourse } from '../utils/generalUtils'
 import { Role } from '@koh/common'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
  */
 const Link = ({
+  ref,
   href,
   className,
   children,
+  isSubMenuLink,
 }: {
+  ref?: React.Ref<HTMLAnchorElement>
   href: string
   className?: string
   children: React.ReactNode
+  isSubMenuLink?: boolean
 }) => {
   const pathname = usePathname()
   const isActive = href === pathname
 
   return (
-    <NavigationMenuLink asChild active={isActive}>
+    <NavigationMenuLink ref={ref} asChild active={isActive}>
       <NextLink
         href={href}
-        className={className + ' ' + navigationMenuTriggerStyle()}
+        className={
+          (isSubMenuLink
+            ? navigationMenuTriggerStyleForSubMenu()
+            : navigationMenuTriggerStyle()) +
+          ' ' +
+          className
+        }
       >
         {children}
       </NextLink>
     </NavigationMenuLink>
   )
 }
+
+const ListItem = React.forwardRef<
+  React.ElementRef<'a'>,
+  React.ComponentPropsWithoutRef<'a'> & { title: string; href: string }
+>(({ className, title, children, href, ...props }, ref) => {
+  return (
+    <li>
+      <Link
+        ref={ref}
+        href={href}
+        className={cn(
+          'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors',
+          className,
+        )}
+        isSubMenuLink={true}
+        {...props}
+      >
+        <div className="text-sm font-medium leading-none">{title}</div>
+        <p className="text-muted-foreground line-clamp-2 text-sm leading-snug">
+          {children}
+        </p>
+      </Link>
+    </li>
+  )
+})
+ListItem.displayName = 'ListItem'
 
 /**
  * Navbar component that is rendered on each page.
@@ -59,9 +98,16 @@ const Navbar: React.FC = () => {
       : null
   const { course } = useCourse(courseId)
   const role = courseId ? getRoleInCourse(userInfo, courseId) : null
+  // only show open queues, sorted by name
+  const openQueues =
+    orderBy(
+      course?.queues?.filter((queue) => queue.isOpen),
+      ['room'],
+      ['asc'],
+    ) ?? []
 
   return (
-    <NavigationMenu>
+    <NavigationMenu className="bg-white">
       <NavigationMenuList>
         {course ? (
           <>
@@ -84,7 +130,24 @@ const Navbar: React.FC = () => {
               </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <Link href={`/course/${courseId}/queue`}>Queues</Link>
+              <NavigationMenuTrigger>Queues</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                  {openQueues.map((queue) => (
+                    <ListItem
+                      key={queue.id}
+                      title={queue.room}
+                      href={`/course/${courseId}/queue/${queue.id}`}
+                    >
+                      <>
+                        {`${queue.staffList.length > 0 ? `${queue.staffList.length} staff checked in` : '1 staff checked in'}`}
+                        <br />
+                        {`${queue.queueSize > 0 ? `${queue.queueSize} students in queue` : ''}`}
+                      </>
+                    </ListItem>
+                  ))}
+                </ul>
+              </NavigationMenuContent>
             </NavigationMenuItem>
             {(role === Role.TA || role === Role.PROFESSOR) && (
               <NavigationMenuItem>
@@ -139,29 +202,6 @@ const Navbar: React.FC = () => {
       </NavigationMenuList>
     </NavigationMenu>
   )
-
-  // return (
-  //   <div className="my-1 flex h-16 items-center p-0">
-  //     <div className="mr-5 flex items-center">
-  //       <div className="color-[#262626] flex items-center align-middle text-xl font-medium capitalize">
-  //         {userInfo?.organization && (
-  //           <a href="/courses" aria-hidden="true" tabIndex={-1}>
-  //             <Image
-  //               width={100}
-  //               height={100}
-  //               className="h-16 w-full object-contain"
-  //               alt="Organization Logo"
-  //               src={`https://ires.ubc.ca/files/2020/02/ubc-logo.png`}
-  //             />
-  //           </a>
-  //         )}
-  //         <span className="ml-x">
-  //           {userInfo?.organization?.organizationName}
-  //         </span>
-  //       </div>
-  //     </div>
-  //   </div>
-  // )
 }
 
 export default Navbar

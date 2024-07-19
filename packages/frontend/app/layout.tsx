@@ -21,18 +21,17 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-      </head>
-      <body
-        className={cn(
-          'bg-background min-h-screen font-sans antialiased',
-          interFontSans.variable,
-        )}
-      >
-        <AntdRegistry>{children}</AntdRegistry>
-      </body>
-    </html>
+    <>
+      <html lang="en" id="html">
+        <body
+          className={cn(
+            'bg-background min-h-screen font-sans antialiased',
+            interFontSans.variable,
+          )}
+        >
+          <AntdRegistry>{children}</AntdRegistry>
+        </body>
+      </html>
+    </>
   )
 }

@@ -36,9 +36,16 @@ const config = {
       fontFamily: {
         sans: ['var(--font-sans)', ...fontFamily.sans],
       },
+      colors: {
+        muted: 'hsl(var(--muted))',
+        'muted-foreground': 'hsl(var(--muted-foreground))',
+        accent: 'hsl(var(--accent))',
+        'accent-foreground': 'hsl(var(--accent-foreground))',
+        border: 'hsl(var(--border))',
+      },
     },
   },
-  important: true,
+  important: '#html',
   plugins: [require('tailwindcss-animate')],
 } satisfies Config
 
