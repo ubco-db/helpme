@@ -24,6 +24,7 @@ import { Role, User } from '@koh/common'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { Drawer, DrawerContent, DrawerTrigger } from './ui/drawer'
 import {
+  CalendarDays,
   House,
   LineChart,
   MenuIcon,
@@ -176,6 +177,12 @@ const NavBar = ({
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem>
+            <NavigationMenuItem>
+              <Link href={`/course/${courseId}/schedule`}>
+                <CalendarDays strokeWidth={1.5} className="mr-3" />
+                Schedule
+              </Link>
+            </NavigationMenuItem>
             {(role === Role.TA || role === Role.PROFESSOR) && (
               <NavigationMenuItem>
                 <Link href={`/course/${courseId}/admin`}>
@@ -229,14 +236,14 @@ const NavBar = ({
             )}
           </>
         ) : null}
-        <div className="!my-2 -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
-        <NavigationMenuItem className="!mt-auto md:!ml-auto">
+        <div className="!mb-2 !mt-auto -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
+        <NavigationMenuItem className="md:!ml-auto">
           <Link href="/profile" className="!pl-0 md:!pl-4">
             <SelfAvatar size={40} className="mr-2" />
             {userInfo?.firstName}
           </Link>
         </NavigationMenuItem>
-        <NavigationMenuItem className="!mt-auto md:!ml-auto">
+        <NavigationMenuItem className="mb-2 md:hidden">
           <Popconfirm
             title="Are you sure you want to log out?"
             onConfirm={() => {
@@ -245,7 +252,7 @@ const NavBar = ({
             okText="Yes"
             cancelText="No"
           >
-            <Link href="/api/logout" className="text-red-700 md:hidden">
+            <Link href="/api/logout" className="text-red-700">
               <LogoutOutlined size={40} className="mr-2 rotate-180 text-2xl" />
               Log Out
             </Link>
