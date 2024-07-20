@@ -90,3 +90,7 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 1px 3px rgba(26, 26, 26, 0.1);
 }
 
+.child-divs-w-full div {
+  width: 100%;
+  height: 100%;
+}

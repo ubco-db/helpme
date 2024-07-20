@@ -23,7 +23,16 @@ import { cn, getRoleInCourse } from '../utils/generalUtils'
 import { Role, User } from '@koh/common'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { Drawer, DrawerContent, DrawerTrigger } from './ui/drawer'
-import { MenuIcon } from 'lucide-react'
+import {
+  House,
+  LineChart,
+  MenuIcon,
+  Settings,
+  Undo2,
+  UsersRound,
+} from 'lucide-react'
+import { HomeOutlined, LogoutOutlined } from '@ant-design/icons'
+import { Divider, Popconfirm } from 'antd'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -114,8 +123,9 @@ const NavBar = ({
       ['room'],
       ['asc'],
     ) ?? []
+
   return (
-    <NavigationMenu className="bg-white" orientation={orientation}>
+    <NavigationMenu orientation={orientation}>
       <NavigationMenuList>
         {course ? (
           <>
@@ -134,7 +144,9 @@ const NavBar = ({
               />
             </NextLink>
             <NavigationMenuItem>
-              <Link className="!font-bold" href={`/course/${courseId}`}>
+              <Link className="!font-bold " href={`/course/${courseId}`}>
+                {/* <House strokeWidth={1.5} className='mr-3' /> */}
+                <HomeOutlined className="mr-3 text-2xl" />
                 {course.name}
               </Link>
             </NavigationMenuItem>
@@ -143,6 +155,7 @@ const NavBar = ({
               <NavigationMenuTrigger
                 className={isAQueuePage ? 'bg-zinc-300/80' : ''}
               >
+                <UsersRound strokeWidth={1.5} className="mr-3" />
                 Queues
               </NavigationMenuTrigger>
               <NavigationMenuContent>
@@ -165,33 +178,28 @@ const NavBar = ({
             </NavigationMenuItem>
             {(role === Role.TA || role === Role.PROFESSOR) && (
               <NavigationMenuItem>
-                <Link href={`/course/${courseId}/admin`}>Admin Panel</Link>
+                <Link href={`/course/${courseId}/admin`}>
+                  <Settings strokeWidth={1.5} className="mr-3" />
+                  Admin Panel
+                </Link>
               </NavigationMenuItem>
             )}
             {role === Role.PROFESSOR && (
               <NavigationMenuItem>
-                <Link href={`/course/${courseId}/insights`}>Insights</Link>
+                <Link href={`/course/${courseId}/insights`}>
+                  <LineChart strokeWidth={1.5} className="mr-3" />
+                  Insights
+                </Link>
               </NavigationMenuItem>
             )}
             <NavigationMenuItem>
-              <Link href={`/courses`} className="pl-3 md:pl-8">
-                <span
-                  aria-hidden="true"
-                  className="inline pb-0.5 text-lg md:hidden"
-                >
-                  &lt;&nbsp;&nbsp;
-                </span>
+              <Link href={`/courses`}>
+                <Undo2 strokeWidth={1.5} className="mr-3" />
                 My Courses
-                <span
-                  aria-hidden="true"
-                  className="hidden pb-0.5 text-lg md:inline"
-                >
-                  &nbsp;&nbsp;&gt;
-                </span>
               </Link>
             </NavigationMenuItem>
           </>
-        ) : (
+        ) : !courseId ? (
           <>
             <NavigationMenuItem>
               {userInfo?.organization && (
@@ -199,7 +207,7 @@ const NavBar = ({
                   <Image
                     width={48}
                     height={48}
-                    className="h-12 w-full object-contain"
+                    className="hidden h-12 w-full object-contain md:block"
                     alt="Organization Logo"
                     src={`https://ires.ubc.ca/files/2020/02/ubc-logo.png`}
                   />
@@ -207,20 +215,41 @@ const NavBar = ({
               )}
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <Link href="/courses">Courses</Link>
+              <Link href="/courses" className="md:pl-8">
+                My Courses
+              </Link>
             </NavigationMenuItem>
             {userInfo?.organization?.organizationRole ===
               OrganizationRole.ADMIN && (
               <NavigationMenuItem>
-                <Link href="/organization/settings">Organization Settings</Link>
+                <Link className="md:pl-8" href="/organization/settings">
+                  Organization Settings
+                </Link>
               </NavigationMenuItem>
             )}
           </>
-        )}
-        <NavigationMenuItem>
-          <Link href="/profile">
-            <SelfAvatar size={50} />
+        ) : null}
+        <div className="!my-2 -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
+        <NavigationMenuItem className="!mt-auto md:!ml-auto">
+          <Link href="/profile" className="!pl-0 md:!pl-4">
+            <SelfAvatar size={40} className="mr-2" />
+            {userInfo?.firstName}
           </Link>
+        </NavigationMenuItem>
+        <NavigationMenuItem className="!mt-auto md:!ml-auto">
+          <Popconfirm
+            title="Are you sure you want to log out?"
+            onConfirm={() => {
+              window.location.href = '/api/logout'
+            }}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Link href="/api/logout" className="text-red-700 md:hidden">
+              <LogoutOutlined size={40} className="mr-2 rotate-180 text-2xl" />
+              Log Out
+            </Link>
+          </Popconfirm>
         </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
@@ -279,7 +308,8 @@ const HeaderBar: React.FC = () => {
           <MenuIcon size={40} className="ml-2" />
         </DrawerTrigger>
         <DrawerContent>
-          <div className="flex flex-col items-start justify-start">
+          {/* INSIDE DRAWER */}
+          <div className="flex h-full flex-col items-start justify-start">
             <div className="my-1 flex w-full items-center justify-center border-b border-b-zinc-200 bg-white py-1 pr-5">
               <Image
                 width={48}

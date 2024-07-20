@@ -60,7 +60,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   ) : (
     <main className="mt-20 flex content-center justify-center">
       <Spin size="large" className="text-nowrap" tip="Loading User...">
-        <div className="p-10" />
+        <div className="p-16" />
       </Spin>
     </main>
   )

@@ -20,11 +20,10 @@ const NavigationMenu = React.forwardRef<
     <NavigationMenuPrimitive.Root
       ref={ref}
       className={cn(
-        'relative z-10 flex flex-1',
+        'child-divs-w-full relative z-10 flex w-full flex-1 justify-start bg-white',
         (!props.orientation || props.orientation === 'horizontal') &&
-          'max-w-max items-center justify-center',
-        props.orientation === 'vertical' &&
-          'w-full flex-col items-end justify-start pr-5',
+          'items-center',
+        props.orientation === 'vertical' && 'flex-col items-end pr-5',
         className,
       )}
       orientation={props.orientation}
@@ -46,11 +45,10 @@ const NavigationMenuList = React.forwardRef<
     <NavigationMenuPrimitive.List
       ref={ref}
       className={cn(
-        'group flex flex-1 list-none',
+        'group flex w-full flex-1 list-none justify-start',
         (!orientation || orientation === 'horizontal') &&
-          'items-center justify-center space-x-1',
-        orientation === 'vertical' &&
-          'flex-col items-end justify-start space-y-1',
+          'items-center space-x-1',
+        orientation === 'vertical' && 'h-full flex-col items-end space-y-1',
         className,
       )}
       {...props}
@@ -69,12 +67,12 @@ const navigationMenuTriggerStyle = cva([
   'inline-flex', // Display type
   'h-10', // Height
   'w-[50vw]', // on mobile devices, each link is 40% of the viewport width
-  'sm:w-max', // On desktop devices use max width
+  'md:w-max', // On desktop devices use max width
   'items-center', // Vertical alignment
-  'justify-center', // Horizontal alignment
+  'justify-start md:justify-center', // Horizontal alignment
   'rounded-md', // Border radius
   'bg-white', // Background color
-  'px-8', // Horizontal padding
+  'pl-4 pr-8', // Horizontal padding
   'py-6', // Vertical padding
   'text-sm', // Text size
   'font-medium', // Font weight
