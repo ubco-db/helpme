@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Meta from 'antd/es/card/Meta'
 import Link from 'next/link'
 import { CourseRole } from '@/app/typings/user'
+import stringToHexColor from '@/app/utils/colorUtils'
 
 interface CoursesSectionProps {
   courses: UserCourse[]
@@ -16,16 +17,12 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({ courses }) => {
       {courses?.map((course, index) => (
         <Card
           key={course.course.id}
-          className="m-2 w-full md:w-auto"
+          className="m-2 w-full md:w-1/2 lg:w-1/3 xl:w-1/4"
           cover={
-            <Image
-              alt="Course Image Banner"
-              width={100}
-              height={100}
-              unoptimized={true}
-              className="h-40 w-full rounded object-cover object-center"
-              src="https://open-2021.sites.olt.ubc.ca/files/2020/10/OSIP-2020-Slider.jpg"
-            />
+            <div
+              className={`block h-40 w-full rounded`}
+              style={{ background: `${stringToHexColor(course.course.name)}` }}
+            ></div>
           }
         >
           <div className="flex items-center justify-between align-middle">
