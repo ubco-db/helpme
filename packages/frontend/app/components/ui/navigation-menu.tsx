@@ -154,6 +154,7 @@ const NavigationMenuViewport = React.forwardRef<
   const { orientation } = React.useContext(NavigationContext)
   return (
     <div
+      id="navigation-menu-viewport"
       className={cn(
         'absolute flex justify-center',
         (!orientation || orientation === 'horizontal') && 'left-0 top-full',

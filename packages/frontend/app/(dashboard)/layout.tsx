@@ -26,6 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       setProfile(response)
       setIsLoading(false)
+      console.log('done loading!')
     }
 
     fetchUserDetails()

@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
 
-import React from 'react'
+import React, { useCallback } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
 import {
   NavigationMenu,
@@ -76,8 +76,12 @@ const Link = ({
 
 const ListItem = React.forwardRef<
   React.ElementRef<'a'>,
-  React.ComponentPropsWithoutRef<'a'> & { title: string; href: string }
->(({ className, title, children, href, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<'a'> & {
+    title: string
+    href: string
+    titleElement?: React.ReactNode
+  }
+>(({ className, title, children, href, titleElement, ...props }, ref) => {
   return (
     <li>
       <Link
@@ -90,7 +94,9 @@ const ListItem = React.forwardRef<
         isSubMenuLink={true}
         {...props}
       >
-        <div className="text-sm font-medium leading-none">{title}</div>
+        <div className="text-sm font-medium leading-none">
+          {titleElement ?? title}
+        </div>
         <p className="text-muted-foreground line-clamp-2 text-sm leading-snug">
           {children}
         </p>
@@ -103,7 +109,7 @@ ListItem.displayName = 'ListItem'
 // add a isDesktop to this
 // maybe consider renaming navbar to Header and calling this navbar
 /**
- * This is the Navbar (i.e. all the nav bar tabs). It is seperate from the other components in the header.
+ * This is the Navbar (i.e. all the nav bar tabs). It is separate from the other components in the header.
  * This gets rendered in two areas: in the mobile drawer and in the desktop (both located in the HeaderBar component)
  */
 const NavBar = ({
@@ -127,6 +133,22 @@ const NavBar = ({
       ['room'],
       ['asc'],
     ) ?? []
+
+  // This is to move the "Queues" and "Profile" submenu to show on the left or right side (there is only one component, so it needs to be moved around like this)
+  const setNavigationSubMenuRightSide = useCallback(() => {
+    const viewportElement = document.getElementById('navigation-menu-viewport')
+    if (viewportElement) {
+      viewportElement.classList.remove('left-0')
+      viewportElement.classList.add('right-0')
+    }
+  }, [])
+  const setNavigationSubMenuLeftSide = useCallback(() => {
+    const viewportElement = document.getElementById('navigation-menu-viewport')
+    if (viewportElement) {
+      viewportElement.classList.remove('right-0')
+      viewportElement.classList.add('left-0')
+    }
+  }, [])
 
   return (
     <NavigationMenu orientation={orientation}>
@@ -158,6 +180,9 @@ const NavBar = ({
               {/* This "NavigationMenuTrigger" is just the "Queues" button */}
               <NavigationMenuTrigger
                 className={isAQueuePage ? 'bg-zinc-300/80' : ''}
+                onFocus={setNavigationSubMenuLeftSide}
+                onClick={setNavigationSubMenuLeftSide}
+                onMouseEnter={setNavigationSubMenuLeftSide}
               >
                 <UsersRound strokeWidth={1.5} className="mr-3" />
                 Queues
@@ -239,9 +264,35 @@ const NavBar = ({
             )}
           </>
         ) : null}
+        {/* DESKTOP ONLY PART OF NAVBAR */}
+        <NavigationMenuItem className="!ml-auto hidden md:block">
+          <NavigationMenuTrigger
+            className="!pl-4"
+            onFocus={setNavigationSubMenuRightSide}
+            onClick={setNavigationSubMenuRightSide}
+            onMouseEnter={setNavigationSubMenuRightSide}
+          >
+            <SelfAvatar size={40} className="mr-2" />
+            {userInfo?.firstName}
+          </NavigationMenuTrigger>
+          <NavigationMenuContent className="hidden md:flex">
+            <ul className="grid w-[200px] grid-cols-1 gap-1 p-2">
+              <ListItem key="profile" title="Profile" href="/profile">
+                {userInfo?.email}
+              </ListItem>
+              <ListItem
+                key="logout"
+                title="Logout"
+                titleElement={<span className="text-red-700">Log Out</span>}
+                href="/api/v1/logout"
+              ></ListItem>
+            </ul>
+          </NavigationMenuContent>
+        </NavigationMenuItem>
+        {/* MOBILE ONLY PART OF NAVBAR */}
         <div className="!mb-2 !mt-auto -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
-        <NavigationMenuItem className="md:!ml-auto">
-          <Link href="/profile" className="!pl-0 md:!pl-4">
+        <NavigationMenuItem className="md:hidden">
+          <Link href="/profile" className="!pl-0">
             <SelfAvatar size={40} className="mr-2" />
             {userInfo?.firstName}
           </Link>
