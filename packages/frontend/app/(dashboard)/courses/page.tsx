@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import { ReactElement, useEffect } from 'react'
@@ -6,7 +7,6 @@ import { OrganizationRole } from '@/app/typings/user'
 import { useUserInfo } from '@/app/contexts/userContext'
 import CoursesSection from '../components/CoursesSection'
 import OrganizationCard from '../components/OrganizationCard'
-import Image from 'next/image'
 
 export default function CoursesPage(): ReactElement {
   const { userInfo } = useUserInfo()
@@ -18,12 +18,10 @@ export default function CoursesPage(): ReactElement {
   return (
     <>
       <OrganizationCard>
-        <Image
-          // TODO pull image from backend
-          src={`https://ires.ubc.ca/files/2020/02/ubc-logo.png`}
+        <img
+          src={`/api/v1/organization/${userInfo?.organization?.orgId}/get_logo/${userInfo?.organization?.organizationLogoUrl}`}
           className="h-15 object-contain object-center"
           alt="Organization Logo"
-          unoptimized={true}
           width={100}
           height={100}
         />

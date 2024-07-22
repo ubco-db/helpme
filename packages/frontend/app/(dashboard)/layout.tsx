@@ -1,10 +1,10 @@
+/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import React, { useEffect, useState } from 'react'
 import { UserInfoProvider } from '../contexts/userContext'
 import { User } from '@koh/common'
 import { userApi } from '../api/userApi'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Spin } from 'antd'
 import HeaderBar from '../components/HeaderBar'
@@ -39,17 +39,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
       <main>
         {pathname === '/courses' && (
-          <Image
-            // TODO pull image from backend
-            src={
-              'https://www.ubc.ca/_assets/img/our-campuses/ubco-aerials-our-campus_1920x700.jpg'
-            }
+          <img
+            src={`/api/v1/organization/${profile.organization?.orgId}/get_banner/${profile.organization?.organizationBannerUrl}`}
             alt="Organization Banner"
             className="h-[20vh] w-full object-cover object-center"
             width={100}
             height={100}
-            priority
-            unoptimized={true}
           />
         )}
         <StandardPageContainer>

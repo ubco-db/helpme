@@ -1,7 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import React from 'react'
-import Image from 'next/image'
 import { useUserInfo } from '@/app/contexts/userContext'
 import {
   NavigationMenu,
@@ -136,12 +136,12 @@ const NavBar = ({
               className="hidden md:block"
               tabIndex={-1}
             >
-              <Image
+              <img
                 width={48}
                 height={48}
                 className="h-12 w-full object-contain"
                 alt="Organization Logo"
-                src={`https://ires.ubc.ca/files/2020/02/ubc-logo.png`}
+                src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
               />
             </NextLink>
             <NavigationMenuItem>
@@ -211,12 +211,12 @@ const NavBar = ({
             <NavigationMenuItem>
               {userInfo?.organization && (
                 <NextLink href="/courses" aria-hidden="true" tabIndex={-1}>
-                  <Image
+                  <img
                     width={48}
                     height={48}
                     className="hidden h-12 w-full object-contain md:block"
                     alt="Organization Logo"
-                    src={`https://ires.ubc.ca/files/2020/02/ubc-logo.png`}
+                    src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
                   />
                 </NextLink>
               )}
@@ -295,12 +295,12 @@ const HeaderBar: React.FC = () => {
   ) : (
     // MOBILE HEADER AND NAV DRAWER
     <div className="flex items-center justify-between">
-      <Image
+      <img
         width={48}
         height={48}
         className="h-12 object-contain"
         alt="Organization Logo"
-        src={`https://ires.ubc.ca/files/2020/02/ubc-logo.png`}
+        src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
       />
       <div className="flex h-14 grow flex-col items-center justify-center">
         <h1 className="leading-none">{course?.name}</h1>
@@ -318,12 +318,12 @@ const HeaderBar: React.FC = () => {
           {/* INSIDE DRAWER */}
           <div className="flex h-full flex-col items-start justify-start">
             <div className="my-1 flex w-full items-center justify-center border-b border-b-zinc-200 bg-white py-1 pr-5">
-              <Image
+              <img
                 width={48}
                 height={48}
                 className="h-12 object-contain"
                 alt="Organization Logo"
-                src={`https://ires.ubc.ca/files/2020/02/ubc-logo.png`}
+                src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
               />
               <span className="text-2xl font-semibold leading-none">
                 {userInfo?.organization?.organizationName}

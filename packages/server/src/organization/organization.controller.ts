@@ -559,6 +559,7 @@ export class OrganizationController {
       path.join(process.env.UPLOAD_LOCATION, photoUrl),
       async (err, stats) => {
         if (stats) {
+          res.set('Content-Type', 'image/jpeg');
           res.sendFile(photoUrl, {
             root: process.env.UPLOAD_LOCATION,
           });

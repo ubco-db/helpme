@@ -6,14 +6,12 @@ import { Col, message, Row, Skeleton, Upload } from 'antd'
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import SettingsPanelAvatar from './SettingsPanelAvatar'
-import { useRouter } from 'next/navigation'
 
 const AvatarSettings: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false)
   const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 0
   const [avatarSize, setAvatarSize] = useState(windowWidth / 2)
   const [uploading, setUploading] = useState(false)
-  const router = useRouter()
 
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
     API.profile.index(),

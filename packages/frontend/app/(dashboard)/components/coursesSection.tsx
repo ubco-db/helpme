@@ -1,7 +1,6 @@
 import { UserCourse } from '@koh/common'
 import { Card, Tag } from 'antd'
 import React from 'react'
-import Image from 'next/image'
 import Meta from 'antd/es/card/Meta'
 import Link from 'next/link'
 import { CourseRole } from '@/app/typings/user'
