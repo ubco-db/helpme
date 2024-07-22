@@ -1,11 +1,11 @@
 import { API } from '@koh/api-client'
 import { GetQueueResponse, QueuePartial, SSEQueueResponse } from '@koh/common'
-import useSWR, { mutate, responseInterface } from 'swr'
+import useSWR, { mutate, SWRResponse } from 'swr'
 import { useCallback, useEffect } from 'react'
 import { useEventSource } from './useEventSource'
 import { plainToClass } from 'class-transformer'
 
-type queueResponse = responseInterface<QueuePartial, any>
+type queueResponse = SWRResponse<QueuePartial, any>
 
 interface UseQueueReturn {
   queue?: queueResponse['data']
@@ -39,10 +39,10 @@ function callOnUpdates(key: string) {
  * @param onUpdate Optional callback to listen for when data is refetched, whether via HTTP or SSE
  */
 export function useQueue(qid: number, onUpdate?: OnUpdate): UseQueueReturn {
-  const key = qid && `/api/v1/queues/${qid}`
+  const key = `/api/v1/queues/${qid}`
   if (!(key in REFRESH_INFO)) {
     REFRESH_INFO[key] = {
-      lastUpdated: null,
+      lastUpdated: new Date(),
       onUpdates: new Set(),
     }
   }
@@ -60,7 +60,7 @@ export function useQueue(qid: number, onUpdate?: OnUpdate): UseQueueReturn {
   }, [onUpdate, key])
 
   const isLive = useEventSource(
-    qid && `/api/v1/queues/${qid}/sse`,
+    `/api/v1/queues/${qid}/sse`,
     'queue',
     useCallback(
       (data: SSEQueueResponse) => {
