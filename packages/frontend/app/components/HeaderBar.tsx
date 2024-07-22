@@ -14,7 +14,7 @@ import {
   navigationMenuTriggerStyleForSubMenu,
 } from '@/app/components/ui/navigation-menu'
 import { orderBy } from 'lodash'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import NextLink from 'next/link'
 import { OrganizationRole } from '../typings/user'
 import { SelfAvatar } from './UserAvatar'
@@ -25,7 +25,6 @@ import { useMediaQuery } from '../hooks/useMediaQuery'
 import { Drawer, DrawerContent, DrawerTrigger } from './ui/drawer'
 import {
   CalendarDays,
-  House,
   LineChart,
   MenuIcon,
   Settings,
@@ -33,7 +32,7 @@ import {
   UsersRound,
 } from 'lucide-react'
 import { HomeOutlined, LogoutOutlined } from '@ant-design/icons'
-import { Divider, Popconfirm } from 'antd'
+import { Popconfirm } from 'antd'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -44,12 +43,14 @@ const Link = ({
   className,
   children,
   isSubMenuLink,
+  onClick,
 }: {
   ref?: React.Ref<HTMLAnchorElement>
   href: string
   className?: string
   children: React.ReactNode
   isSubMenuLink?: boolean
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void
 }) => {
   const pathname = usePathname()
   const isActive = href === pathname
@@ -65,6 +66,7 @@ const Link = ({
           ' ' +
           className
         }
+        onClick={onClick}
       >
         {children}
       </NextLink>
@@ -116,6 +118,7 @@ const NavBar = ({
   orientation?: 'horizontal' | 'vertical'
 }) => {
   const { course } = useCourse(courseId)
+  const router = useRouter()
   const role = courseId ? getRoleInCourse(userInfo, courseId) : null
   // only show open queues, sorted by name
   const openQueues =
@@ -247,12 +250,20 @@ const NavBar = ({
           <Popconfirm
             title="Are you sure you want to log out?"
             onConfirm={() => {
-              window.location.href = '/api/logout'
+              router.push('/api/v1/logout')
             }}
             okText="Yes"
             cancelText="No"
+            // this places the Popconfirm just below the Link in the DOM rather than at the very bottom of the DOM (important for accessibility and prevent buttons being clicked underneath the Popconfirm)
+            getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
           >
-            <Link href="/api/logout" className="text-red-700">
+            <Link
+              href="/api/v1/logout"
+              className="text-red-700"
+              onClick={(e) => {
+                e.preventDefault()
+              }}
+            >
               <LogoutOutlined size={40} className="mr-2 rotate-180 text-2xl" />
               Log Out
             </Link>
