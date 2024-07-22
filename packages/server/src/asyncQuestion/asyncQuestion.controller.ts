@@ -185,11 +185,12 @@ export class asyncQuestionController {
       question.taHelpedId = user.id;
     }
     // if creator, can update question anytime
-    // otherwise has to be TA/PROF of course
+    // otherwise has to be TA/PROF of the course
     if (question.creatorId !== user.id) {
       const requester = await UserCourseModel.findOne({
         where: {
           userId: user.id,
+          courseId: courseId,
         },
       });
       if (requester.role === Role.STUDENT) {
