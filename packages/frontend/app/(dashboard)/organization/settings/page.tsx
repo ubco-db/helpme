@@ -26,6 +26,13 @@ export default function SettingsPage(): ReactElement {
 
   const { userInfo } = useUserInfo()
   const [organization, setOrganization] = useState<Organization>()
+  const [organizationName, setOrganizationName] = useState(organization?.name)
+  const [organizationDescription, setOrganizationDescription] = useState(
+    organization?.description,
+  )
+  const [organizationWebsiteUrl, setOrganizationWebsiteUrl] = useState(
+    organization?.websiteUrl,
+  )
 
   useEffect(() => {
     const fetchDataAsync = async () => {
@@ -34,18 +41,13 @@ export default function SettingsPage(): ReactElement {
       )
 
       setOrganization(response)
+      setOrganizationName(response.name)
+      setOrganizationDescription(response.description)
+      setOrganizationWebsiteUrl(response.websiteUrl)
     }
 
     fetchDataAsync()
   }, [organization?.name, userInfo?.organization?.orgId])
-
-  const [organizationName, setOrganizationName] = useState(organization?.name)
-  const [organizationDescription, setOrganizationDescription] = useState(
-    organization?.description,
-  )
-  const [organizationWebsiteUrl, setOrganizationWebsiteUrl] = useState(
-    organization?.websiteUrl,
-  )
 
   const isValidUrl = (url: string): boolean => {
     try {
@@ -247,13 +249,13 @@ export default function SettingsPage(): ReactElement {
         </Form>
       </Card>
 
-      <Card title="Logo & Banner" bordered={true} style={{ marginTop: 10 }}>
+      <Card title="Logo & Banner" bordered={true} className="mt-3">
         <Form layout="vertical">
           <Form.Item label="Logo">
             <Form.Item name="organizationLogo" noStyle>
               <Row
                 gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}
-                style={{ alignItems: 'center' }}
+                className="items-center"
               >
                 <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                   <Upload.Dragger

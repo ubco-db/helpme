@@ -41,17 +41,16 @@ const SidebarNavigation: React.FC = () => {
   return (
     <>
       {items.map((item) => (
-        <div
-          key={item.key}
-          className={`flex cursor-pointer items-center justify-between rounded bg-white p-4 shadow-md ${pathname === item.url ? 'bg-[#e6f7ff] text-[#1890ff]' : ''}`}
-        >
-          <Link href={item.url}>
+        <Link href={item.url} key={item.key}>
+          <div
+            className={`flex cursor-pointer items-center justify-between rounded bg-white p-4 shadow-md ${pathname === item.url ? 'bg-[#e6f7ff] text-[#1890ff]' : ''}`}
+          >
             <div className="flex items-center">
               {item.icon}
               <span className="ml-4">{item.label}</span>
             </div>
-          </Link>
-        </div>
+          </div>
+        </Link>
       ))}
     </>
   )
