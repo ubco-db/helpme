@@ -1,25 +1,21 @@
 'use client'
 
 import { Collapse, Menu } from 'antd'
-import { useEffect, useState } from 'react'
 import EditProfile from './EditProfile'
 import { BellOutlined, BookOutlined, UserOutlined } from '@ant-design/icons'
 import { SettingsOptions } from '@/app/typings/enum'
 import NotificationsSettings from './NotificationsSettings'
 import CoursePreference from './CoursePreference'
+import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 
 interface SettingsMenuProps {
   setCurrentSettings: (settings: SettingsOptions) => void
 }
 
 const SettingsMenu: React.FC<SettingsMenuProps> = ({ setCurrentSettings }) => {
-  const [isMobile, setIsMobile] = useState(false)
-  const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 0
   const { Panel } = Collapse
 
-  useEffect(() => {
-    setIsMobile(windowWidth < 768)
-  }, [windowWidth, isMobile])
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
   return isMobile ? (
     <Collapse accordion className="xlg:hidden mt-10 md:hidden lg:hidden">

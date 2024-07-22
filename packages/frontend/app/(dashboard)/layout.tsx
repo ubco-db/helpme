@@ -35,8 +35,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // after 5 seconds of loading, redirect to login page (this way, the user is not stuck on loading screen forever)
   useEffect(() => {
     let timer: string | number | NodeJS.Timeout | undefined
+    console.log('isLoading:', isLoading)
     if (isLoading) {
       timer = setTimeout(() => {
+        console.log('redirecting to login page...')
         router.push('/login')
       }, 5000) // 5 seconds
     }
