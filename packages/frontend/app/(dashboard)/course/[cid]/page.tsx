@@ -3,7 +3,7 @@
 // import { API } from '@koh/api-client'
 // import { Heatmap, Role } from '@koh/common'
 import { Role } from '@koh/common'
-import { Col, Row, Spin, Button } from 'antd'
+import { Col, Row, Button } from 'antd'
 // import { chunk, mean } from 'lodash'
 // import moment from 'moment'
 import React, { ReactElement, useMemo, useState } from 'react'
@@ -20,6 +20,8 @@ import { getRoleInCourse } from '@/app/utils/generalUtils'
 import { useCourse } from '@/app/hooks/useCourse'
 import CreateQueueModal from './components/CreateQueueModal'
 import AsyncCentreCard from './components/AsyncCentreCard'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
+import CoursePageCheckInButton from './components/CoursePageCheckInButton'
 
 // function arrayRotate<T>(arr: T[], count: number): T[] {
 //   const adjustedCount = (arr.length + count) % arr.length;
@@ -77,13 +79,7 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
     }, [courseFeatures])
 
   if (!course || !courseFeatures) {
-    return (
-      <div className="mt-20 flex content-center justify-center">
-        <Spin size="large" className="text-nowrap" tip="Loading Course Data...">
-          <div className="p-20" />
-        </Spin>
-      </div>
-    )
+    return <CenteredSpinner tip="Loading Course Data..." />
   } else {
     return (
       <>
@@ -92,10 +88,12 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
             <Row gutter={64}>
               <Col className="mb-4" md={12} xs={24}>
                 <Row justify="space-between">
-                  <div className="overflow-hidden whitespace-nowrap text-2xl font-semibold text-[#212934] md:text-3xl">
+                  <h1 className="overflow-hidden whitespace-nowrap text-2xl font-semibold text-[#212934] md:text-3xl">
                     {course?.name} Help Centre
-                  </div>
-                  {/* {courseFeatures.queueEnabled && <TodayPageCheckinButton />} */}
+                  </h1>
+                  {courseFeatures.queueEnabled && (
+                    <CoursePageCheckInButton courseId={cid} />
+                  )}
                 </Row>
                 <Row>
                   <div>

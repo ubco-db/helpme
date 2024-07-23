@@ -338,7 +338,7 @@ export class Question {
 
   text?: string
 
-  creatorId?: number
+  creatorId!: number
 
   @Type(() => UserPartial)
   taHelped?: UserPartial
@@ -353,7 +353,7 @@ export class Question {
   closedAt?: Date
 
   @Type(() => QuestionTypeParams)
-  questionTypes?: QuestionTypeParams[]
+  questionTypes?: QuestionType[]
 
   status!: QuestionStatus
 
@@ -1122,16 +1122,15 @@ export class QuestionTypeParams {
 
   @IsInt()
   @IsOptional()
-  queueId?: number
+  queueId?: number | null
 }
 
-// named QuestionTypeType to not conflict with the UI component QuestionType
-export type QuestionTypeType = {
+export type QuestionType = {
   id: number
   cid: number
   name: string
   color: string
-  queueId: number | null
+  queueId: number | null | undefined
 }
 
 export class TACheckinTimesResponse {
@@ -1583,6 +1582,17 @@ export interface AllStudentAssignmentProgress {
 }
 
 /**
+ * Parses the task ids from the question text.
+ * @param questionText question text (comes in as `Mark "part1" "part2"`)
+ * @returns an array of task ids (e.g. ["part1", "part2"])
+ */
+export function parseTaskIdsFromQuestionText(
+  questionText: string | undefined,
+): string[] {
+  return questionText?.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || []
+}
+
+/**
  * This function is used both on the backend and frontend to check if there are any errors (total is 24 different errors) in the queue config.
  *
  * Returns an empty string if there's no errors
@@ -1838,9 +1848,9 @@ export interface Task {
   taskId: string
   isDone?: boolean
   checked?: boolean
-  display_name?: string
-  short_display_name?: string
-  color_hex?: string
+  display_name: string
+  short_display_name: string
+  color_hex: string
   blocking?: boolean
   precondition?: Task | null
   [key: string]: any // Tasks can have any number of additional properties (for expandability, might remove later)

@@ -7,17 +7,16 @@ import { StudentAssignmentProgress } from '@koh/common'
 export function useStudentAssignmentProgress(
   cid: number,
   userId: number,
-  assignmentId: string,
+  assignmentId: string | undefined,
   isDemoQueue: boolean,
   isStaff: boolean,
-): StudentAssignmentProgress {
+): StudentAssignmentProgress | undefined {
   const key =
-    cid &&
-    userId &&
-    assignmentId &&
-    `/api/studentTaskProgress/student/${userId}/${cid}/${assignmentId}`
+    cid && userId && assignmentId
+      ? `/api/studentTaskProgress/student/${userId}/${cid}/${assignmentId}`
+      : null
   const { data: studentAssignmentProgress } = useSWR(key, async () => {
-    if (isDemoQueue && !isStaff) {
+    if (isDemoQueue && !isStaff && assignmentId) {
       return await API.studentTaskProgress.getAssignmentProgress(
         userId,
         cid,
@@ -27,5 +26,8 @@ export function useStudentAssignmentProgress(
       return null
     }
   })
+  if (studentAssignmentProgress === null) {
+    return {}
+  }
   return studentAssignmentProgress
 }

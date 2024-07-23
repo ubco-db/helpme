@@ -82,3 +82,12 @@ export function getRoleInCourse(userInfo: User, courseId: number): Role {
     Role.STUDENT
   return role
 }
+
+/**
+ * Use this to get the error message when catching an error and you have no idea what the error object looks like.
+ * @param e error object
+ * @returns an error message (or object)
+ */
+export function getErrorMessage(e: any): any {
+  return e.response?.data?.message ?? e.body?.message ?? e.message
+}

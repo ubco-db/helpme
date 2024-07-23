@@ -6,13 +6,13 @@ export function useQuestionTypes(
   cid: number,
   qid: number | null,
 ): [
-  QuestionTypeType[],
+  QuestionTypeType[] | undefined,
   (
     data?: QuestionTypeType[] | Promise<QuestionTypeType[]>,
     shouldRevalidate?: boolean,
-  ) => Promise<QuestionTypeType[]>,
+  ) => Promise<QuestionTypeType[] | undefined>,
 ] {
-  const key = cid && `/api/v1/questionType/${cid}/${qid}`
+  const key = `/api/v1/questionType/${cid}/${qid}`
 
   const { data: questionTypes, mutate } = useSWR(key, async () => {
     return await API.questionType.getQuestionTypes(cid, qid)

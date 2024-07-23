@@ -1,9 +1,9 @@
 import { Question } from '@koh/common'
-import { responseInterface } from 'swr'
-import { useProfile } from './useProfile'
+import { SWRResponse } from 'swr'
 import { useQuestions } from './useQuestions'
+import { useUserInfo } from '../contexts/userContext'
 
-type queueResponse = responseInterface<Question[], any>
+type queueResponse = SWRResponse<Question[], any>
 
 interface UseStudentQuestionReturn {
   studentQuestion?: Question
@@ -19,10 +19,10 @@ interface UseStudentQuestionReturn {
  * SWR wrapper for the questions of the currently logged-in student
  */
 export function useStudentQuestion(qid: number): UseStudentQuestionReturn {
-  const profile = useProfile()
+  const { userInfo } = useUserInfo()
   const { questions, questionsError } = useQuestions(qid)
 
-  const studentQuestions = profile && questions && questions?.yourQuestions
+  const studentQuestions = userInfo && questions && questions?.yourQuestions
 
   const studentQuestionIndex =
     studentQuestions &&
