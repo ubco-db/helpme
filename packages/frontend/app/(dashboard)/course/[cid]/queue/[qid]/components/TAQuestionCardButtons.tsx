@@ -5,7 +5,6 @@ import {
   QuestionOutlined,
   UndoOutlined,
 } from '@ant-design/icons'
-import { API } from '@koh/api-client'
 import {
   AlertType,
   ClosedQuestionStatus,
@@ -26,6 +25,7 @@ import { isCheckedIn } from '../../../utils/commonCourseFunctions'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getHelpingQuestions } from '../utils/commonQueueFunctions'
 import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
+import { API } from '@/app/api'
 
 // i don't think this currently places them at the top of the queue, TODO: fix this
 const PRORITY_QUEUED_MESSAGE_TEXT =
@@ -54,8 +54,8 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
   const role = getRoleInCourse(userInfo, courseId)
   const staffList = course?.queues?.find((q) => q.id === queueId)?.staffList
   const isUserCheckedIn = isCheckedIn(staffList, userInfo.id)
-  const { questions } = useQuestions(queueId)
-  const { isHelping } = getHelpingQuestions(questions, userInfo.id, role)
+  const { queueQuestions } = useQuestions(queueId)
+  const { isHelping } = getHelpingQuestions(queueQuestions, userInfo.id, role)
   // let timerCheckout=useRef(null);
   const changeStatus = useCallback(
     async (status: QuestionStatus) => {

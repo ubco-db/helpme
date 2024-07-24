@@ -61,7 +61,9 @@ describe('QueueService', () => {
       const queue = await QueueFactory.create();
       await QuestionFactory.create();
       await QuestionFactory.create({ queue });
-      expect((await service.getQuestions(queue.id)).queue.length).toEqual(1);
+      expect((await service.getQuestions(queue.id)).questions.length).toEqual(
+        1,
+      );
     });
 
     it('filters questions by status appropriately', async () => {
@@ -94,7 +96,7 @@ describe('QueueService', () => {
       }
 
       expect(
-        (await service.getQuestions(queue.id)).queue.map((q) => q.id),
+        (await service.getQuestions(queue.id)).questions.map((q) => q.id),
       ).toEqual(questionIds);
     });
 
@@ -146,7 +148,7 @@ describe('QueueService', () => {
       await QuestionFactory.create({ creator: user });
 
       const blank: ListQuestionsResponse = {
-        queue: [],
+        questions: [],
         priorityQueue: [],
         questionsGettingHelp: [],
         groups: [],

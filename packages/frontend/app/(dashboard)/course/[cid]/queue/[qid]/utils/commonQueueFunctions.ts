@@ -1,7 +1,7 @@
 import { ListQuestionsResponse, Role } from '@koh/common'
 
 export function getHelpingQuestions(
-  questions: ListQuestionsResponse | undefined,
+  queueQuestions: ListQuestionsResponse | undefined,
   userId: number,
   role: Role,
 ) {
@@ -9,7 +9,7 @@ export function getHelpingQuestions(
     return { helpingQuestions: [], isHelping: false }
   }
   const helpingQuestions =
-    questions?.questionsGettingHelp.filter(
+    queueQuestions?.questionsGettingHelp.filter(
       (question) => question.taHelped?.id === userId,
     ) ?? []
   const isHelping = helpingQuestions.length > 0

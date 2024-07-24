@@ -1,9 +1,9 @@
-import { API } from '@koh/api-client'
 import { Button } from 'antd'
 import { useRouter } from 'next/navigation'
 import { LoginOutlined, LogoutOutlined } from '@ant-design/icons'
 import { useCourse } from '@/app/hooks/useCourse'
 import { checkInTA } from '../utils/commonCourseFunctions'
+import { API } from '@/app/api'
 
 type CheckInButtonState =
   | 'CheckedIn'

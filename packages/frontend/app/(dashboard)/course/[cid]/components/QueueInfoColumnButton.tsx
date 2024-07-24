@@ -19,8 +19,26 @@ const EditQueueButton: React.FC<
   />
 )
 
+const DisableQueueButton: React.FC<
+  PropsWithChildren<QueueInfoColumnButtonProps>
+> = (props) => (
+  <QueueInfoColumnButton
+    {...props}
+    className={`bg-red-600 text-white hover:focus:bg-red-500 ${props.className}`}
+  />
+)
+
+const ClearQueueButton: React.FC<
+  PropsWithChildren<QueueInfoColumnButtonProps>
+> = (props) => (
+  <QueueInfoColumnButton
+    {...props}
+    className={`border border-red-600 bg-white text-red-600 hover:focus:bg-gray-300 ${props.className}`}
+  />
+)
+
 interface QueueInfoColumnButtonProps extends ButtonProps {
-  mobileWidth: string
+  mobileWidth?: string
 }
 /**
  * These buttons are used in the QueueInfoColumn component (i.e. the column on the left side of the Queue Page).
@@ -45,4 +63,10 @@ const QueueInfoColumnButton: React.FC<
   )
 }
 
-export { QueueInfoColumnButton, EditQueueButton, JoinQueueButton }
+export {
+  QueueInfoColumnButton,
+  EditQueueButton,
+  JoinQueueButton,
+  DisableQueueButton,
+  ClearQueueButton,
+}

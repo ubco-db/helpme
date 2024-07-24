@@ -344,7 +344,7 @@ export class Question {
   taHelped?: UserPartial
 
   @Type(() => Date)
-  createdAt!: Date
+  createdAt?: Date
 
   @Type(() => Date)
   helpedAt?: Date
@@ -990,7 +990,7 @@ export class ListQuestionsResponse {
   questionsGettingHelp!: Array<Question>
 
   @Type(() => Question)
-  queue!: Array<Question>
+  questions!: Array<Question>
 
   @Type(() => Question)
   priorityQueue!: Array<Question>
@@ -1338,7 +1338,7 @@ export class SemesterPartial {
 
 export class SSEQueueResponse {
   queue?: GetQueueResponse
-  questions?: ListQuestionsResponse
+  queueQuestions?: ListQuestionsResponse
 }
 
 export type GetInsightOutputResponse = PossibleOutputTypes

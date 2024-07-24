@@ -1,9 +1,9 @@
-import { API } from '@koh/api-client'
 import { GetQueueResponse, QueuePartial, SSEQueueResponse } from '@koh/common'
 import useSWR, { mutate, SWRResponse } from 'swr'
 import { useCallback, useEffect } from 'react'
 import { useEventSource } from './useEventSource'
 import { plainToClass } from 'class-transformer'
+import { API } from '../api'
 
 type queueResponse = SWRResponse<QueuePartial, any>
 

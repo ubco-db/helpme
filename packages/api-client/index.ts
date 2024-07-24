@@ -632,4 +632,4 @@ class APIClient {
   }
 }
 
-export const API = new APIClient(process.env.NEXT_PUBLIC_API_URL)
+export const depricatedAPI = new APIClient(process.env.NEXT_PUBLIC_API_URL)

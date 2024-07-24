@@ -153,22 +153,23 @@ const NavBar = ({
   return (
     <NavigationMenu orientation={orientation}>
       <NavigationMenuList>
+        <NextLink
+          href={course ? `/course/${courseId}` : '/courses'}
+          aria-hidden="true"
+          className="hidden md:block"
+          tabIndex={-1}
+        >
+          {/* This organization logo is only visible on desktop */}
+          <img
+            width={48}
+            height={48}
+            className="h-12 w-full object-contain p-1"
+            alt="Organization Logo"
+            src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
+          />
+        </NextLink>
         {course ? (
           <>
-            <NextLink
-              href={`/course/${courseId}`}
-              aria-hidden="true"
-              className="hidden md:block"
-              tabIndex={-1}
-            >
-              <img
-                width={48}
-                height={48}
-                className="h-12 w-full object-contain"
-                alt="Organization Logo"
-                src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
-              />
-            </NextLink>
             <NavigationMenuItem>
               <Link className="!font-bold " href={`/course/${courseId}`}>
                 {/* <House strokeWidth={1.5} className='mr-3' /> */}
@@ -196,7 +197,7 @@ const NavBar = ({
                       href={`/course/${courseId}/queue/${queue.id}`}
                     >
                       <>
-                        {`${queue.staffList.length > 0 ? `${queue.staffList.length} staff checked in` : '1 staff checked in'}`}
+                        {`${queue.staffList.length > 0 ? `${queue.staffList.length} staff checked in` : ''}`}
                         <br />
                         {`${queue.queueSize > 0 ? `${queue.queueSize} students in queue` : ''}`}
                       </>
@@ -236,19 +237,6 @@ const NavBar = ({
           </>
         ) : !courseId ? (
           <>
-            <NavigationMenuItem>
-              {userInfo?.organization && (
-                <NextLink href="/courses" aria-hidden="true" tabIndex={-1}>
-                  <img
-                    width={48}
-                    height={48}
-                    className="hidden h-12 w-full object-contain md:block"
-                    alt="Organization Logo"
-                    src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
-                  />
-                </NextLink>
-              )}
-            </NavigationMenuItem>
             <NavigationMenuItem>
               <Link href="/courses" className="md:pl-8">
                 My Courses

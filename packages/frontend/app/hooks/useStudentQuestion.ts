@@ -20,13 +20,14 @@ interface UseStudentQuestionReturn {
  */
 export function useStudentQuestion(qid: number): UseStudentQuestionReturn {
   const { userInfo } = useUserInfo()
-  const { questions, questionsError } = useQuestions(qid)
+  const { queueQuestions, questionsError } = useQuestions(qid)
 
-  const studentQuestions = userInfo && questions && questions?.yourQuestions
+  const studentQuestions =
+    userInfo && queueQuestions && queueQuestions?.yourQuestions
 
   const studentQuestionIndex =
     studentQuestions &&
-    questions.queue.findIndex((question) =>
+    queueQuestions.questions.findIndex((question) =>
       studentQuestions.some(
         (studentQuestion) =>
           studentQuestion.id === question.id && !studentQuestion.isTaskQuestion,
@@ -34,7 +35,7 @@ export function useStudentQuestion(qid: number): UseStudentQuestionReturn {
     )
   const studentDemoIndex =
     studentQuestions &&
-    questions.queue.findIndex((question) =>
+    queueQuestions.questions.findIndex((question) =>
       studentQuestions.some(
         (studentQuestion) =>
           studentQuestion.id === question.id && studentQuestion.isTaskQuestion,

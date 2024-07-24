@@ -1,16 +1,16 @@
 import useSWR from 'swr'
-import { API } from '@koh/api-client'
-import { QuestionTypeType } from '@koh/common'
+import { API } from '../api'
+import { QuestionType } from '@koh/common'
 
 export function useQuestionTypes(
   cid: number,
   qid: number | null,
 ): [
-  QuestionTypeType[] | undefined,
+  QuestionType[] | undefined,
   (
-    data?: QuestionTypeType[] | Promise<QuestionTypeType[]>,
+    data?: QuestionType[] | Promise<QuestionType[]>,
     shouldRevalidate?: boolean,
-  ) => Promise<QuestionTypeType[] | undefined>,
+  ) => Promise<QuestionType[] | undefined>,
 ] {
   const key = `/api/v1/questionType/${cid}/${qid}`
 

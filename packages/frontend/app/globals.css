@@ -94,3 +94,88 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
   height: 100%;
 }
+
+
+.glowy:before, .glowy:after {
+	content: '';
+	position: absolute;
+	left: -1.5px;
+	top: -1.5px;
+	background: linear-gradient(45deg, #fb0094, #0000ff, #00ff00,#ffff00, #ff0000, #fb0094, 
+		#0000ff, #00ff00,#ffff00, #ff0000);
+	background-size: 400%;
+	width: calc(100% + 3px);
+	height: calc(100% + 3px);
+	z-index: -1;
+	animation: steam 20s linear infinite;
+    border-radius: 6px;
+}
+
+@keyframes steam {
+	0% {
+		background-position: 0 0;
+	}
+	50% {
+		background-position: 400% 0;
+	}
+	100% {
+		background-position: 0 0;
+	}
+}
+
+.glowy:after {
+	filter: blur(1.5px);
+}
+
+/* make the border a static blue if the person has prefers-reduce-motion on their system */
+@media (prefers-reduced-motion: reduce) {
+    .glowy:before, .glowy:after {
+        background: #0000ff;
+        animation: none;
+    }
+}
+
+/* used to add a fancy highlight animation in TaskMarkingSelector */
+.highlight-spin:before {
+    content: '';
+    position: absolute;
+    left: -2.5px;
+    top: -3px;
+    background: conic-gradient(transparent, green 50%, transparent 50%),
+        conic-gradient(from 180deg, transparent, green 50%, transparent 50%);
+    width: calc(100% + 5px);
+    height: calc(100% + 6px);
+    z-index: -1;
+    animation: circle-spin 5s linear infinite;
+    transform-origin: center;
+    border-radius: 15px;
+}
+
+@keyframes circle-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.highlight-spin:after {
+    filter: blur(1.5px);
+}
+
+.tag-group .ant-collapse-content-box {
+  padding: 0.9rem;
+  background-color: #f0f4ff;
+}
+
+.tag-group:has(.join-or-leave-tag-group-button:hover) {
+  outline: 1px solid lightskyblue;
+  outline-offset: -1px; /* Adjusts the outline to sit just outside the element */
+}
+
+ /* // make the green arrow right on hover (still uncertain on whether to keep this) */
+ a:focus-within .ant-card.open-queue-card .anticon.anticon-right {
+  color: lightgreen;
+  transition: color 0.3s ease-in-out;
+}

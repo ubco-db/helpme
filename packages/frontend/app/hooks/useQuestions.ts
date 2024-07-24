@@ -1,14 +1,14 @@
-import { API } from '@koh/api-client'
 import { ListQuestionsResponse, SSEQueueResponse } from '@koh/common'
 import { plainToClass } from 'class-transformer'
 import { useCallback } from 'react'
 import useSWR, { mutate, SWRResponse } from 'swr'
 import { useEventSource } from './useEventSource'
+import { API } from '../api'
 
 type questionsResponse = SWRResponse<ListQuestionsResponse, any>
 
 interface UseQuestionReturn {
-  questions?: questionsResponse['data']
+  queueQuestions?: questionsResponse['data']
   questionsError: questionsResponse['error']
   mutateQuestions: questionsResponse['mutate']
 }
@@ -21,10 +21,10 @@ export function useQuestions(qid: number): UseQuestionReturn {
     'question',
     useCallback(
       (data: SSEQueueResponse) => {
-        if (data.questions) {
+        if (data.queueQuestions) {
           mutate(
             key,
-            plainToClass(ListQuestionsResponse, data.questions),
+            plainToClass(ListQuestionsResponse, data.queueQuestions),
             false,
           )
         }
@@ -34,12 +34,11 @@ export function useQuestions(qid: number): UseQuestionReturn {
   )
 
   const {
-    data: questions,
+    data: queueQuestions,
     error: questionsError,
     mutate: mutateQuestions,
   } = useSWR(key, async () => API.questions.index(Number(qid)), {
     refreshInterval: isLive ? 0 : 10 * 1000,
   })
-
-  return { questions, questionsError, mutateQuestions }
+  return { queueQuestions, questionsError, mutateQuestions }
 }

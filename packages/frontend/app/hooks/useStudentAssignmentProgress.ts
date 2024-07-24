@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import { API } from '@koh/api-client'
+import { API } from '../api'
 import { StudentAssignmentProgress } from '@koh/common'
 
 // needed to make this use useSWR so that the student's client gets updated with the new tasks they finished

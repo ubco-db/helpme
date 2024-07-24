@@ -1,6 +1,10 @@
 import { AsyncQuestion, Question, QueuePartial } from '@koh/common'
 
 export function getWaitTime(question: Question): string {
+  if (!question.createdAt) {
+    return ''
+  }
+  return ''
   const now = new Date()
   const difference = now.getTime() - question.createdAt.getTime()
   return formatWaitTime(difference / 60000)

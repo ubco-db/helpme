@@ -65,7 +65,7 @@ export class QueueService {
 
     const questions = new ListQuestionsResponse();
 
-    questions.queue = questionsFromDb.filter((question) =>
+    questions.questions = questionsFromDb.filter((question) =>
       StatusInQueue.includes(question.status as OpenQuestionStatus),
     );
 
@@ -84,7 +84,7 @@ export class QueueService {
       (alert) => alert.payload,
     );
 
-    questions.queue = questions.queue.map((question) => {
+    questions.questions = questions.questions.map((question) => {
       const temp = pick(question, [
         'id',
         'queueId',
@@ -128,7 +128,7 @@ export class QueueService {
       const newLQR = new ListQuestionsResponse();
       Object.assign(newLQR, questions);
 
-      newLQR.queue = questions.queue.map((question) => {
+      newLQR.questions = questions.questions.map((question) => {
         const creator =
           question.creator.id === userId
             ? question.creator

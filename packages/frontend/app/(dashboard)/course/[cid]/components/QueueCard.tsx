@@ -12,9 +12,9 @@ import React, { ReactElement, useState } from 'react'
 import styles from './QueueCard.module.css'
 import UserAvatar from '@/app/components/UserAvatar'
 import { QueuePartial } from '@koh/common'
-import { LinkIt } from 'react-linkify-it'
 import { useCourse } from '@/app/hooks/useCourse'
 import { API } from '@/app/api'
+import Linkify from '@/app/components/Linkify'
 
 interface QueueCardProps {
   cid: number
@@ -147,26 +147,9 @@ const QueueCard: React.FC<QueueCardProps> = ({
             </div>
           ) : queue.notes ? (
             <div className="whitespace-pre-wrap break-words text-[rgb(125,125,125)]">
-              {/* This LinkIt will automatically replace any links in the queue notes with actual links that users can click */}
               <NotificationOutlined />{' '}
               <i>
-                <LinkIt
-                  component={(url, key) => (
-                    <a
-                      href={/^www\./.exec(url) ? `http://${url}` : url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      key={key}
-                    >
-                      {url}
-                    </a>
-                  )}
-                  regex={
-                    /(https?:\/\/|www\.)([-\w.]+\/[\p{L}\p{Emoji}\p{Emoji_Component}!#$%&'"()*+,./\\:;=_?@[\]~-]*[^\s'",.;:\b)\]}?]|(([\w-]+\.)+[\w-]+[\w/-]))/u
-                  }
-                >
-                  {queue.notes}
-                </LinkIt>
+                <Linkify>{queue.notes}</Linkify>
               </i>
             </div>
           ) : isTA ? (

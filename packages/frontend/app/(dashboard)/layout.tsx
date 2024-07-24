@@ -46,7 +46,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return () => clearTimeout(timer) // Cleanup on unmount or if loading ends
   }, [isLoading, router])
 
-  return profile ? (
+  return !profile ? (
+    <main className="mt-20 flex content-center justify-center">
+      <Spin size="large" className="text-nowrap" tip="Loading User...">
+        <div className="p-16" />
+      </Spin>
+    </main>
+  ) : !profile.organization ? (
+    <main className="mt-20 flex content-center justify-center">
+      <p>
+        It seems you do not have an organization! Please use a different account
+        or contact an administrator.
+      </p>
+      <Link href="api/v1/logout">Log Out</Link>
+    </main>
+  ) : (
     <UserInfoProvider profile={profile}>
       <header className={`border-b border-b-zinc-200 bg-white`}>
         <StandardPageContainer>
@@ -56,27 +70,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <HeaderBar />
         </StandardPageContainer>
       </header>
-      <main>
+      {/* the main content of the page takes up 100% - the height of the header bar */}
+      <main className="flex h-[calc(100%-3rem)] flex-1">
         {pathname === '/courses' && (
           <img
-            src={`/api/v1/organization/${profile.organization?.orgId}/get_banner/${profile.organization?.organizationBannerUrl}`}
+            src={`/api/v1/organization/${profile.organization.orgId}/get_banner/${profile.organization.organizationBannerUrl}`}
             alt="Organization Banner"
             className="h-[20vh] w-full object-cover object-center"
             width={100}
             height={100}
           />
         )}
-        <StandardPageContainer>
-          <div>{children}</div>
-        </StandardPageContainer>
+        <StandardPageContainer>{children}</StandardPageContainer>
       </main>
     </UserInfoProvider>
-  ) : (
-    <main className="mt-20 flex content-center justify-center">
-      <Spin size="large" className="text-nowrap" tip="Loading User...">
-        <div className="p-16" />
-      </Spin>
-    </main>
   )
 }
 

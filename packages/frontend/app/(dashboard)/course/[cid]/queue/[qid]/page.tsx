@@ -35,7 +35,6 @@ import {
   Divider,
   Collapse,
 } from 'antd'
-import { API } from '@koh/api-client'
 // import CantFindModal from './StudentCantFindModal'
 // import StudentBanner from './StudentBanner'
 import { mutate } from 'swr'
@@ -61,7 +60,7 @@ import { useQuestions } from '@/app/hooks/useQuestions'
 import {
   EditQueueButton,
   JoinQueueButton,
-} from '@/app/components/QueueInfoColumnButton'
+} from '@/app/(dashboard)/course/[cid]/components/QueueInfoColumnButton'
 import VerticalDivider from '@/app/components/VerticalDivider'
 import QueueHeader from './components/QueueHeader'
 import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
@@ -74,6 +73,9 @@ import { getHelpingQuestions } from './utils/commonQueueFunctions'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagElement } from '../../components/QuestionTagElement'
 import { useLocalStorage } from '@/app/hooks/useLocalStorage'
+import QueueInfoColumn from './components/QueueInfoColumn'
+import TACheckinButton from '../../components/TACheckinButton'
+import { API } from '@/app/api'
 
 const Panel = Collapse.Panel
 
@@ -86,7 +88,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const qid = Number(params.qid)
   const { queue } = useQueue(qid)
   const isQueueOnline = queue?.room.startsWith('Online')
-  const { questions, mutateQuestions } = useQuestions(qid)
+  const { queueQuestions, mutateQuestions } = useQuestions(qid)
   const [queueSettingsModal, setQueueSettingsModal] = useState(false)
   const [addStudentsModal, setAddStudentsModal] = useState(false)
   const [assignmentReportModal, setAssignmentReportModal] = useState(false)
@@ -117,7 +119,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   )
   const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree)
   const [isJoiningQuestion, setIsJoiningQuestion] = useState(
-    questions &&
+    queueQuestions &&
       studentQuestions &&
       studentQuestions.some(
         (question: Question) =>
@@ -126,7 +128,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       ),
   )
   const [isJoiningDemo, setIsJoiningDemo] = useState(
-    questions &&
+    queueQuestions &&
       studentQuestions &&
       studentQuestions.some(
         (question: Question) =>
@@ -142,7 +144,11 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     'isFirstQuestion',
     true,
   )
-  const { helpingQuestions } = getHelpingQuestions(questions, userInfo.id, role)
+  const { helpingQuestions } = getHelpingQuestions(
+    queueQuestions,
+    userInfo.id,
+    role,
+  )
   // Memoize the calculation of isStaff based on relevant profile changes
   const isUserStaff = useMemo(() => {
     return (
@@ -153,7 +159,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       ) || false
     )
   }, [userInfo.courses, cid])
-
   // Update isStaff state only when isUserStaff changes
   // Previously, this was done in the useEffect hook with profile as a dependency, but this caused unnecessary re-renders on anything that's dependent on isStaff
   // This is because profile is a complex object and changes frequently, so it's better to compare the derived value (isUserStaff) instead
@@ -161,10 +166,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     setIsStaff(isUserStaff)
   }, [isUserStaff])
 
-  // const [openTagGroups, setOpenTagGroups] = useState((questions?.queue?.length > 0 && isStaff) ? Object.keys(configTasks) : []);
   const [openTagGroups, setOpenTagGroups] = useState<string[]>([])
-  const tagGroupsTimeoutRef = useRef(null) // need to keep track of timeouts so that old timeouts won't keep running when the user starts a new timeout (to prevent flickering when a tag group is spammed open/closed, UX thing)
-  const onOpenTagGroupsChange = (key) => {
+  const tagGroupsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null) // need to keep track of timeouts so that old timeouts won't keep running when the user starts a new timeout (to prevent flickering when a tag group is spammed open/closed, UX thing)
+  const onOpenTagGroupsChange = (key: string | string[]) => {
     // Delay before setting the openTagGroups state to allow the css transition to finish
     // If the old state is the same as the new state, don't set the state again (to prevent unnecessary timeouts) - Needs to be deep equality
     if (openTagGroups.toString() === key.toString()) {
@@ -175,7 +179,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       clearTimeout(tagGroupsTimeoutRef.current)
     }
     tagGroupsTimeoutRef.current = setTimeout(() => {
-      setOpenTagGroups(key)
+      setOpenTagGroups(Array.isArray(key) ? key : [key])
       tagGroupsTimeoutRef.current = null // Clear the ref once the timeout completes
     }, 300)
   }
@@ -187,7 +191,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       !hasDefaultsBeenInitializedRef.current &&
       queueConfig &&
       configTasks &&
-      questions &&
+      queueQuestions &&
       questionTypes
     ) {
       // Set default values based on queueConfig
@@ -195,7 +199,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       setTagGroupsEnabled(newTagGroupsEnabled)
 
       // if you're staff and there's less than 10 questions in the queue, open all tag groups by default
-      if (isStaff && questions.queue?.length < 10) {
+      if (isStaff && queueQuestions.questions?.length < 10) {
         setOpenTagGroups([
           ...Object.keys(configTasks),
           ...questionTypes.map((qt) => qt.id.toString()),
@@ -207,7 +211,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       // Mark as initialized to prevent future updates
       hasDefaultsBeenInitializedRef.current = true
     }
-  }, [queueConfig, configTasks, isStaff, questions, questionTypes])
+  }, [queueConfig, configTasks, isStaff, queueQuestions, questionTypes])
 
   const staffCheckedIntoAnotherQueue = course?.queues?.some(
     (q) =>
@@ -335,8 +339,17 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           isTaskQuestion,
         })
         .then(async (createdQuestion) => {
-          const newQuestionsInQueue = [...questions?.queue, createdQuestion]
-          await mutateQuestions({ ...questions, queue: newQuestionsInQueue })
+          // preemptively update the local question data by adding the new question to the queue
+          if (queueQuestions) {
+            const questionsWithNewQuestionAppended = [
+              ...queueQuestions.questions,
+              createdQuestion,
+            ]
+            await mutateQuestions({
+              ...queueQuestions,
+              questions: questionsWithNewQuestionAppended,
+            })
+          }
           isTaskQuestion ? setPopupEditDemo(true) : setPopupEditQuestion(true)
         })
         .catch((e) => {
@@ -354,7 +367,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           }
         })
     },
-    [mutateQuestions, qid, questions],
+    [mutateQuestions, qid, queueQuestions],
   )
 
   const leaveQueue = useCallback(
@@ -416,20 +429,22 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
         updateStudent,
       )
 
-      const yourUpdatedQuestions = studentQuestions?.map(
-        (question: Question) =>
-          question.id === id ? updatedQuestionFromStudent : question,
-      )
-
-      const newQuestionsInQueue = questions?.queue?.map((question: Question) =>
-        question.id === id ? updatedQuestionFromStudent : question,
-      )
-
-      mutateQuestions({
-        ...questions,
-        yourQuestions: yourUpdatedQuestions,
-        queue: newQuestionsInQueue,
-      })
+      // preemptively update the local question data by finding the student's new question and updating it
+      if (queueQuestions) {
+        const yourUpdatedQuestions = studentQuestions?.map(
+          (question: Question) =>
+            question.id === id ? updatedQuestionFromStudent : question,
+        )
+        const questionsWithUpdatedInfo = queueQuestions.questions?.map(
+          (question: Question) =>
+            question.id === id ? updatedQuestionFromStudent : question,
+        )
+        mutateQuestions({
+          ...queueQuestions,
+          yourQuestions: yourUpdatedQuestions,
+          questions: questionsWithUpdatedInfo,
+        })
+      }
     },
     [
       studentDemoStatus,
@@ -437,7 +452,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       studentDemoId,
       studentQuestionId,
       studentQuestions,
-      questions,
+      queueQuestions,
       mutateQuestions,
     ],
   )
@@ -447,7 +462,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       if (isFirstQuestion) {
         notification.warn({
           message: 'Enable Notifications',
-          className: 'hide-in-percy',
           description: (
             <div>
               <span id="enable-notifications-text">
@@ -488,7 +502,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
         for (const [taskKey, taskValue] of Object.entries(
           studentAssignmentProgress,
         )) {
-          if (taskValue.isDone && configTasksCopy[taskKey]) {
+          if (taskValue?.isDone && configTasksCopy[taskKey]) {
             configTasksCopy[taskKey].isDone = true
           }
         }
@@ -548,7 +562,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       cid: number,
       location: string,
       isTaskQuestion: boolean,
-      groupable?: boolean,
+      groupable: boolean,
     ) => {
       if (!isTaskQuestion) {
         deleteDraftQuestion()
@@ -575,143 +589,140 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       setIsJoinQueueModalLoading(false)
     }, [])
 
-    // return isStaff ? (
-    //   <QueueInfoColumn
-    //     queueId={qid}
-    //     isStaff={true}
-    //     tagGroupsEnabled={tagGroupsEnabled}
-    //     setTagGroupsEnabled={setTagGroupsEnabled}
-    //     buttons={
-    //       <>
-    //         <Tooltip
-    //           title={queue.isDisabled && 'Cannot check into a disabled queue!'}
-    //         >
-    //           <TACheckinButton
-    //             courseId={cid}
-    //             room={queue?.room}
-    //             disabled={
-    //               staffCheckedIntoAnotherQueue ||
-    //               (helpingQuestions && helpingQuestions.length > 0) ||
-    //               (queue.isProfessorQueue && role !== Role.PROFESSOR) ||
-    //               queue.isDisabled
-    //             }
-    //             state={isUserCheckedIn ? 'CheckedIn' : 'CheckedOut'}
-    //             className="w-1/3 sm:w-full"
-    //           />
-    //         </Tooltip>
-    //         <EditQueueButton
-    //           onClick={() => setQueueSettingsModal(true)}
-    //           icon={<EditOutlined />}
-    //         >
-    //           {/* only show the "Details" part on desktop to keep button small on mobile */}
-    //           <span>
-    //             Edit Queue <span className="hidden sm:inline">Details</span>
-    //           </span>
-    //         </EditQueueButton>
-    //         <EditQueueButton
-    //           disabled={!isUserCheckedIn}
-    //           onClick={() => setAddStudentsModal(true)}
-    //           icon={<PlusOutlined />}
-    //         >
-    //           {/* "+ Add Students to Queue" on desktop, "+ Students" on mobile */}
-    //           <span>
-    //             <span className="hidden sm:inline">Add</span> Students{' '}
-    //             <span className="hidden sm:inline">to Queue</span>
-    //           </span>
-    //         </EditQueueButton>
-    //         {isDemoQueue && (
-    //           <EditQueueButton
-    //             onClick={() => setAssignmentReportModal(true)}
-    //             icon={<ListChecks className="mr-1" />}
-    //           >
-    //             {/* "View Students {lab} Progress" on desktop, "{lab} Progress" on mobile */}
-    //             <span>
-    //               <span className="hidden sm:inline">View Students </span>
-    //               {queueConfig.assignment_id} Progress
-    //             </span>
-    //           </EditQueueButton>
-    //         )}
-    //       </>
-    //     }
-    //   />
-    // ) : (
-    //   <QueueInfoColumn
-    //     queueId={qid}
-    //     isStaff={false}
-    //     tagGroupsEnabled={tagGroupsEnabled}
-    //     setTagGroupsEnabled={setTagGroupsEnabled}
-    //     hasDemos={isDemoQueue}
-    //     buttons={
-    //       <>
-    //         <Tooltip
-    //           title={
-    //             studentQuestion
-    //               ? 'You can have only one question in the queue at a time'
-    //               : queue.staffList.length < 1
-    //                 ? 'No staff are checked into this queue'
-    //                 : ''
-    //           }
-    //         >
-    //           <div>
-    //             <JoinQueueButton
-    //               id="join-queue-button"
-    //               type="primary"
-    //               disabled={
-    //                 !queue?.allowQuestions ||
-    //                 queue?.isDisabled ||
-    //                 isJoinQueueModalLoading ||
-    //                 queue.staffList.length < 1 ||
-    //                 studentQuestion
-    //               }
-    //               onClick={() => joinQueue(false)}
-    //               icon={<LoginOutlined aria-hidden="true" />}
-    //             >
-    //               {isDemoQueue ? 'Create Question' : 'Join Queue'}
-    //             </JoinQueueButton>
-    //           </div>
-    //         </Tooltip>
-    //         {isDemoQueue && (
-    //           <Tooltip
-    //             title={
-    //               studentDemo
-    //                 ? 'You can have only one demo in the queue at a time'
-    //                 : queue?.staffList?.length < 1
-    //                   ? 'No staff are checked into this queue'
-    //                   : ''
-    //             }
-    //           >
-    //             <div>
-    //               <JoinQueueButton
-    //                 id="join-queue-button-demo"
-    //                 type="primary"
-    //                 disabled={
-    //                   !queue?.allowQuestions ||
-    //                   queue?.isDisabled ||
-    //                   isJoinQueueModalLoading ||
-    //                   queue.staffList.length < 1 ||
-    //                   studentDemo
-    //                 }
-    //                 onClick={() => joinQueue(true)}
-    //                 icon={<ListTodoIcon aria-hidden="true" className="mr-1" />}
-    //               >
-    //                 Create Demo
-    //               </JoinQueueButton>
-    //             </div>
-    //           </Tooltip>
-    //         )}
-    //       </>
-    //     }
-    //   />
-    // )
-  }
-
-  interface QueueProps {
-    questions: Question[]
-  }
-
-  function RenderQueueQuestions({ questions }: QueueProps) {
+    if (!queue) {
+      return <></>
+    }
     return (
-      <div aria-label="Queue questions">
+      <QueueInfoColumn
+        queueId={qid}
+        isStaff={isStaff}
+        tagGroupsEnabled={tagGroupsEnabled}
+        setTagGroupsEnabled={setTagGroupsEnabled}
+        hasDemos={isDemoQueue}
+        buttons={
+          isStaff ? (
+            <>
+              <Tooltip
+                title={
+                  queue.isDisabled && 'Cannot check into a disabled queue!'
+                }
+              >
+                <TACheckinButton
+                  courseId={cid}
+                  room={queue.room}
+                  disabled={
+                    staffCheckedIntoAnotherQueue ||
+                    (helpingQuestions && helpingQuestions.length > 0) ||
+                    (queue.isProfessorQueue && role !== Role.PROFESSOR) ||
+                    queue.isDisabled
+                  }
+                  state={isUserCheckedIn ? 'CheckedIn' : 'CheckedOut'}
+                  className="w-1/3 md:mb-3 md:w-full"
+                />
+              </Tooltip>
+              <EditQueueButton
+                onClick={() => setQueueSettingsModal(true)}
+                icon={<EditOutlined />}
+              >
+                {/* only show the "Details" part on desktop to keep button small on mobile */}
+                <span>
+                  Edit Queue <span className="hidden sm:inline">Details</span>
+                </span>
+              </EditQueueButton>
+              <EditQueueButton
+                disabled={!isUserCheckedIn}
+                onClick={() => setAddStudentsModal(true)}
+                icon={<PlusOutlined />}
+              >
+                {/* "+ Add Students to Queue" on desktop, "+ Students" on mobile */}
+                <span>
+                  <span className="hidden sm:inline">Add</span> Students{' '}
+                  <span className="hidden sm:inline">to Queue</span>
+                </span>
+              </EditQueueButton>
+              {isDemoQueue && (
+                <EditQueueButton
+                  onClick={() => setAssignmentReportModal(true)}
+                  icon={<ListChecks className="mr-1" />}
+                >
+                  {/* "View Students {lab} Progress" on desktop, "{lab} Progress" on mobile */}
+                  <span>
+                    <span className="hidden sm:inline">View Students </span>
+                    {queueConfig?.assignment_id} Progress
+                  </span>
+                </EditQueueButton>
+              )}
+            </>
+          ) : (
+            <>
+              <Tooltip
+                title={
+                  studentQuestion
+                    ? 'You can have only one question in the queue at a time'
+                    : queue.staffList.length < 1
+                      ? 'No staff are checked into this queue'
+                      : ''
+                }
+              >
+                <div>
+                  <JoinQueueButton
+                    id="join-queue-button"
+                    type="primary"
+                    disabled={
+                      !queue?.allowQuestions ||
+                      queue?.isDisabled ||
+                      isJoinQueueModalLoading ||
+                      queue.staffList.length < 1 ||
+                      studentQuestion
+                    }
+                    onClick={() => joinQueue(false)}
+                    icon={<LoginOutlined aria-hidden="true" />}
+                  >
+                    {isDemoQueue ? 'Create Question' : 'Join Queue'}
+                  </JoinQueueButton>
+                </div>
+              </Tooltip>
+              {isDemoQueue && (
+                <Tooltip
+                  title={
+                    studentDemo
+                      ? 'You can have only one demo in the queue at a time'
+                      : queue?.staffList?.length < 1
+                        ? 'No staff are checked into this queue'
+                        : ''
+                  }
+                >
+                  <div>
+                    <JoinQueueButton
+                      id="join-queue-button-demo"
+                      type="primary"
+                      disabled={
+                        !queue?.allowQuestions ||
+                        queue?.isDisabled ||
+                        isJoinQueueModalLoading ||
+                        queue.staffList.length < 1 ||
+                        studentDemo
+                      }
+                      onClick={() => joinQueue(true)}
+                      icon={
+                        <ListTodoIcon aria-hidden="true" className="mr-1" />
+                      }
+                    >
+                      Create Demo
+                    </JoinQueueButton>
+                  </div>
+                </Tooltip>
+              )}
+            </>
+          )
+        }
+      />
+    )
+  }
+
+  function RenderQueueQuestions({ questions }: { questions: Question[] }) {
+    return (
+      <div>
         <div className="flex items-center justify-between">
           {questions?.length === 0 ? (
             <div className="text-xl font-medium text-gray-900">
@@ -812,30 +823,27 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                         </div>
                       }
                     >
-                      {filteredQuestions.map(
-                        (question: Question, index: number) => {
-                          const isMyQuestion = question.id === studentDemoId
-                          const background_color = isMyQuestion
-                            ? 'bg-teal-200/25'
-                            : 'bg-white'
-                          return (
-                            <QuestionCard
-                              key={question.id}
-                              rank={index + 1}
-                              question={question}
-                              cid={cid}
-                              qid={qid}
-                              isStaff={isStaff}
-                              configTasks={configTasks}
-                              studentAssignmentProgress={
-                                studentAssignmentProgress
-                              }
-                              isMyQuestion={isMyQuestion}
-                              className={background_color}
-                            />
-                          )
-                        },
-                      )}
+                      {filteredQuestions.map((question: Question) => {
+                        const isMyQuestion = question.id === studentDemoId
+                        const background_color = isMyQuestion
+                          ? 'bg-teal-200/25'
+                          : 'bg-white'
+                        return (
+                          <QuestionCard
+                            key={question.id}
+                            question={question}
+                            cid={cid}
+                            qid={qid}
+                            isStaff={isStaff}
+                            configTasks={configTasks}
+                            studentAssignmentProgress={
+                              studentAssignmentProgress
+                            }
+                            isMyQuestion={isMyQuestion}
+                            className={background_color}
+                          />
+                        )
+                      })}
                     </Panel>
                   )
                 )
@@ -851,7 +859,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               // naming this "tags" to make some code slightly easier to follow
               const filteredQuestions = questions?.filter(
                 (question: Question) =>
-                  question.questionTypes.some(
+                  question.questionTypes?.some(
                     (questionType) => questionType.name === tag.name,
                   ),
               )
@@ -890,37 +898,32 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       </div>
                     }
                   >
-                    {filteredQuestions.map(
-                      (question: Question, index: number) => {
-                        const isMyQuestion = question.id === studentQuestionId
-                        const background_color = isMyQuestion
-                          ? 'bg-teal-200/25'
-                          : 'bg-white'
-                        return (
-                          <QuestionCard
-                            key={question.id}
-                            rank={index + 1}
-                            question={question}
-                            cid={cid}
-                            qid={qid}
-                            isStaff={isStaff}
-                            configTasks={configTasks}
-                            studentAssignmentProgress={
-                              studentAssignmentProgress
-                            }
-                            isMyQuestion={isMyQuestion}
-                            className={background_color}
-                          />
-                        )
-                      },
-                    )}
+                    {filteredQuestions.map((question: Question) => {
+                      const isMyQuestion = question.id === studentQuestionId
+                      const background_color = isMyQuestion
+                        ? 'bg-teal-200/25'
+                        : 'bg-white'
+                      return (
+                        <QuestionCard
+                          key={question.id}
+                          question={question}
+                          cid={cid}
+                          qid={qid}
+                          isStaff={isStaff}
+                          configTasks={configTasks}
+                          studentAssignmentProgress={studentAssignmentProgress}
+                          isMyQuestion={isMyQuestion}
+                          className={background_color}
+                        />
+                      )
+                    })}
                   </Panel>
                 )
               )
             })}
           </Collapse>
         ) : (
-          questions?.map((question: Question, index: number) => {
+          questions?.map((question: Question) => {
             const isMyQuestion =
               question.id === studentQuestionId || question.id === studentDemoId
             const background_color = isMyQuestion
@@ -929,7 +932,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             return (
               <QuestionCard
                 key={question.id}
-                rank={index + 1}
                 question={question}
                 cid={cid}
                 qid={qid}
@@ -950,11 +952,11 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     return <CenteredSpinner tip="Loading Course Data..." />
   } else if (!queue) {
     return <CenteredSpinner tip="Loading Queue Data..." />
-  } else if (questions === undefined || questions === null) {
+  } else if (queueQuestions === undefined || queueQuestions === null) {
     return <CenteredSpinner tip="Loading Questions..." />
   } else {
     return (
-      <>
+      <div className="flex h-full flex-1 flex-col md:flex-row">
         <RenderQueueInfoCol />
         <VerticalDivider />
         <div className="flex-grow md:mt-8">
@@ -964,11 +966,10 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 text="You are Currently Helping"
                 visibleOnDesktopOrMobile="both"
               />
-              {helpingQuestions?.map((question: Question, index: number) => {
+              {helpingQuestions.map((question: Question) => {
                 return (
                   <QuestionCard
                     key={question.id}
-                    rank={index + 1}
                     question={question}
                     cid={cid}
                     qid={qid}
@@ -993,7 +994,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           //     />
           //   </>
           null}
-          <RenderQueueQuestions questions={questions?.queue} />
+          <RenderQueueQuestions questions={queueQuestions.questions} />
         </div>
         {/* {isStaff ? (
           <>
@@ -1071,7 +1072,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             />
           </>
         )} */}
-      </>
+      </div>
     )
   }
 }

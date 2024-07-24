@@ -1,4 +1,4 @@
-import { API } from '@koh/api-client'
+import { API } from '../api'
 import { GetCourseResponse } from '@koh/common'
 import useSWR from 'swr'
 

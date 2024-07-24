@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import { API } from '@koh/api-client'
+import { API } from '../api'
 
 export function useCourseFeatures(courseId: number) {
   const key = courseId && !isNaN(courseId) ? `${courseId}/features` : null
