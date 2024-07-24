@@ -1,3 +1,4 @@
+import { cn } from '@/app/utils/generalUtils'
 import { Button, ButtonProps } from 'antd'
 import { PropsWithChildren } from 'react'
 
@@ -6,7 +7,7 @@ const JoinQueueButton: React.FC<
 > = (props) => (
   <QueueInfoColumnButton
     {...props}
-    className={`bg-[#3684c6] text-white ${props.className}`}
+    className={`bg-[#3684c6] text-white enabled:hover:bg-blue-400 enabled:focus:bg-blue-400 ${props.className}`}
   />
 )
 
@@ -15,7 +16,7 @@ const EditQueueButton: React.FC<
 > = (props) => (
   <QueueInfoColumnButton
     {...props}
-    className={`text-gray-900 ${props.className}`}
+    className={`text-gray-900 enabled:hover:bg-gray-100 enabled:focus:bg-gray-100 ${props.className}`}
   />
 )
 
@@ -24,7 +25,7 @@ const DisableQueueButton: React.FC<
 > = (props) => (
   <QueueInfoColumnButton
     {...props}
-    className={`bg-red-600 text-white hover:focus:bg-red-500 ${props.className}`}
+    className={`bg-red-600 text-white hover:bg-red-500 focus:bg-red-500 ${props.className}`}
   />
 )
 
@@ -33,7 +34,7 @@ const ClearQueueButton: React.FC<
 > = (props) => (
   <QueueInfoColumnButton
     {...props}
-    className={`border border-red-600 bg-white text-red-600 hover:focus:bg-gray-300 ${props.className}`}
+    className={`border border-red-600 bg-white text-red-600 hover:bg-gray-100 focus:bg-gray-100 ${props.className}`}
   />
 )
 
@@ -55,7 +56,10 @@ const QueueInfoColumnButton: React.FC<
   return (
     <Button
       size="large"
-      className={`mb-0 flex items-center justify-center rounded-md border border-gray-300 text-sm font-semibold md:mb-3 md:w-full w-[${mobileWidth}] ${className}`}
+      className={cn(
+        `mb-0 flex items-center justify-center rounded-md border border-gray-300 text-sm font-semibold md:mb-3 md:w-full w-[${mobileWidth}] disabled:opacity-50`,
+        className,
+      )}
       {...props}
     >
       {children}

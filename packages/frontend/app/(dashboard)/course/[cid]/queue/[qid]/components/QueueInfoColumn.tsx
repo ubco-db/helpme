@@ -24,6 +24,7 @@ import {
   DisableQueueButton,
 } from '../../../components/QueueInfoColumnButton'
 import RenderEvery from '@/app/components/RenderEvery'
+import TAStatusList from './TAStatusList'
 
 interface QueueInfoColumnProps {
   queueId: number
@@ -111,9 +112,9 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
         >
           <p> No staff checked in</p>
         </div>
-      ) : // ) : !staffListHidden ? (
-      //     <TAStatuses queueId={queueId} />
-      null}
+      ) : !staffListHidden ? (
+        <TAStatusList queueId={queueId} />
+      ) : null}
 
       {/* buttons for staff on mobile */}
       {isStaff && (
