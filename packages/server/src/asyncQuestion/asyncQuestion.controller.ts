@@ -169,12 +169,12 @@ export class asyncQuestionController {
 
     delete question.course;
 
-    question.aiAnswerText = body.aiAnswerText;
-    question.answerText = body.answerText;
-
     // If not creator, check if user is TA/PROF of course of question
-
-    Object.assign(question, body);
+    Object.keys(body).forEach((key) => {
+      if (body[key] !== undefined && body[key] !== null) {
+        question[key] = body[key];
+      }
+    });
     if (
       body.status === asyncQuestionStatus.HumanAnswered ||
       body.status === asyncQuestionStatus.AIAnsweredResolved
