@@ -202,14 +202,6 @@ export default function NavBar({ courseId }: NavBarProps): ReactElement {
     })
   }
 
-  if (role === Role.PROFESSOR) {
-    tabs.push({
-      href: '/course/[cid]/insights',
-      as: `/course/${courseId}/insights`,
-      text: 'Insights',
-    })
-  }
-
   tabs.push({
     href: '/courses',
     as: `/courses`,
