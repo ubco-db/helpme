@@ -18,9 +18,9 @@ export function formatWaitTime(minutes: number): string {
   if (m <= 0) {
     return '0 min'
   } else if (m % 60 == 0) {
-    return `${Math.floor(m / 60)}hr`
+    return `${Math.floor(m / 60)}h`
   } else if (m >= 60) {
-    return `${Math.floor(m / 60)}hr ${Math.floor(m) % 60}min`
+    return `${Math.floor(m / 60)}h ${Math.floor(m) % 60}m`
   } else {
     return `${Math.floor(m)} min`
   }

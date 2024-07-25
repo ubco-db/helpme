@@ -1,6 +1,5 @@
 import {
   asyncQuestionStatus,
-  CoursePartial,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
   EditCourseInfoParams,
@@ -8,12 +7,13 @@ import {
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
+  QueueConfig,
   QueuePartial,
-  RegisterCourseParams,
   Role,
   TACheckinTimesResponse,
   TACheckoutResponse,
   UBCOuserParam,
+  validateQueueConfigInput,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -55,6 +55,11 @@ import { OrganizationCourseModel } from 'organization/organization-course.entity
 import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
+import { ApplicationConfigService } from '../config/application_config.service';
+import { Not, getManager } from 'typeorm';
+import { pick } from 'lodash';
+import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { RedisQueueService } from '../redisQueue/redis-queue.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -64,17 +69,9 @@ export class CourseController {
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
     private courseService: CourseService,
+    private redisQueueService: RedisQueueService,
+    private readonly appConfig: ApplicationConfigService,
   ) {}
-
-  // get all courses
-  @Get()
-  async getAllCourses(): Promise<CoursePartial[]> {
-    const courses = await CourseModel.find();
-    if (!courses) {
-      throw new NotFoundException();
-    }
-    return courses.map((course) => ({ id: course.id, name: course.name }));
-  }
 
   @Get(':oid/organization_courses')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -86,6 +83,7 @@ export class CourseController {
       where: {
         organizationId: oid,
       },
+      take: 200,
       relations: ['course'],
     });
 
@@ -105,7 +103,7 @@ export class CourseController {
     });
   }
 
-  @Get(':cid/questions')
+  @Get(':cid/asyncQuestions')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async getAsyncQuestions(
     @Param('cid') cid: number,
@@ -126,46 +124,50 @@ export class CourseController {
       return;
     }
 
-    const isStaff =
-      userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
+    const asyncQuestionKeys = await this.redisQueueService.getKey(
+      `c:${cid}:aq`,
+    );
+    let all: AsyncQuestionModel[] = [];
 
-    const all = await AsyncQuestionModel.find({
-      where: {
-        courseId: cid,
-      },
-      relations: ['creator', 'taHelped'],
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+    if (Object.keys(asyncQuestionKeys).length === 0) {
+      console.log('Fetching from Database');
+      all = await AsyncQuestionModel.find({
+        where: {
+          courseId: cid,
+          status: Not(asyncQuestionStatus.StudentDeleted),
+        },
+        relations: ['creator', 'taHelped', 'votes'],
+        order: {
+          createdAt: 'DESC',
+        },
+        take: this.appConfig.get('max_async_questions_per_course'),
+      });
+
+      if (all)
+        await this.redisQueueService.setAsyncQuestions(`c:${cid}:aq`, all);
+    } else {
+      console.log('Fetching from Redis');
+      all = Object.values(asyncQuestionKeys).map(
+        (question) => question as AsyncQuestionModel,
+      );
+    }
+
     if (!all) {
       res.status(HttpStatus.NOT_FOUND).send({
         message: ERROR_MESSAGES.questionController.notFound,
       });
       return;
     }
-    // const course = await CourseModel.findOne({
-    //   where: {
-    //     id: cid,
-    //   },
-    // });
-    // This will enable viewing with displaytypes function
-    // let questionsDB = all;
-    // if (course.asyncQuestionDisplayTypes[0] !== 'all') {
-    //   questionsDB = all.filter((question) =>
-    //     question.course.asyncQuestionDisplayTypes.includes(
-    //       question.questionType,
-    //     ),
-    //   );
-    // }
+
     let questions;
+
+    const isStaff: boolean =
+      userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
 
     if (isStaff) {
       // Staff sees all questions except the ones deleted
       questions = all.filter(
-        (question) =>
-          question.status !== asyncQuestionStatus.TADeleted &&
-          question.status !== asyncQuestionStatus.StudentDeleted,
+        (question) => question.status !== asyncQuestionStatus.TADeleted,
       );
     } else {
       // Students see their own questions and questions that are visible
@@ -173,6 +175,42 @@ export class CourseController {
         (question) => question.creatorId === user.id || question.visible,
       );
     }
+
+    questions = questions.map((question) => {
+      const temp = pick(question, [
+        'id',
+        'courseId',
+        'questionAbstract',
+        'questionText',
+        'aiAnswerText',
+        'answerText',
+        'creatorId',
+        'taHelpedId',
+        'createdAt',
+        'closedAt',
+        'status',
+        'visible',
+        'verified',
+        'votes',
+        'questionTypes',
+        'votesSum',
+        'isTaskQuestion',
+      ]);
+
+      Object.assign(temp, {
+        creator:
+          isStaff || question.creator.id == user.id
+            ? {
+                id: question.creator.id,
+                name: question.creator.name,
+                photoURL: question.creator.photoURL,
+              }
+            : null,
+      });
+
+      return temp;
+    });
+
     res.status(HttpStatus.OK).send(questions);
     return;
   }
@@ -208,14 +246,10 @@ export class CourseController {
       courseInviteCode: courseWithOrganization.courseInviteCode,
     };
 
-    res.cookie(
-      '__SECURE_REDIRECT',
-      Buffer.from(`/course/${id}/invite?code=${code}`).toString('base64'),
-      {
-        httpOnly: true,
-        secure: this.isSecure(),
-      },
-    );
+    res.cookie('__SECURE_REDIRECT', `${id},${code}`, {
+      httpOnly: true,
+      secure: this.isSecure(),
+    });
 
     res.status(HttpStatus.OK).send(course_response);
     return;
@@ -469,10 +503,10 @@ export class CourseController {
     return queue;
   }
 
-  @Post(':id/generate_queue/:room')
+  @Post(':id/create_queue/:room')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
-  async generateQueue(
+  async createQueue(
     @Param('id') courseId: number,
     @Param('room') room: string,
     @User() user: UserModel,
@@ -480,8 +514,18 @@ export class CourseController {
     body: {
       notes: string;
       isProfessorQueue: boolean;
+      config: QueueConfig;
     },
   ): Promise<QueueModel> {
+    let newConfig: QueueConfig = {};
+    if (body.config) {
+      const configError = validateQueueConfigInput(body.config);
+      if (configError) {
+        throw new BadRequestException(configError);
+      }
+      newConfig = body.config;
+    }
+
     const userCourseModel = await UserCourseModel.findOne({
       where: {
         user,
@@ -514,16 +558,53 @@ export class CourseController {
         ERROR_MESSAGES.courseController.queueNotAuthorized,
       );
     }
+    const queuesCount = await QueueModel.count({
+      courseId,
+    });
+
+    if (queuesCount >= this.appConfig.get('max_queues_per_course')) {
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.queueLimitReached,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     try {
-      return await QueueModel.create({
-        room,
-        courseId,
-        staffList: [],
-        questions: [],
-        allowQuestions: true,
-        notes: body.notes,
-        isProfessorQueue: body.isProfessorQueue,
-      }).save();
+      let createdQueue = null;
+      const entityManager = getManager();
+      await entityManager.transaction(async (transactionalEntityManager) => {
+        try {
+          createdQueue = await transactionalEntityManager
+            .create(QueueModel, {
+              room,
+              courseId,
+              staffList: [],
+              questions: [],
+              allowQuestions: true,
+              notes: body.notes,
+              isProfessorQueue: body.isProfessorQueue,
+              config: newConfig,
+            })
+            .save();
+
+          // now for each tag defined in the config, create a QuestionType
+          const questionTypes = newConfig.tags ?? {};
+          for (const [tagKey, tagValue] of Object.entries(questionTypes)) {
+            await transactionalEntityManager
+              .getRepository(QuestionTypeModel)
+              .insert({
+                cid: courseId,
+                name: tagValue.display_name,
+                color: tagValue.color_hex,
+                queueId: createdQueue.id,
+              });
+          }
+        } catch (err) {
+          throw err;
+        }
+      });
+
+      return createdQueue;
     } catch (err) {
       console.error(
         ERROR_MESSAGES.courseController.saveQueueError +
@@ -619,7 +700,8 @@ export class CourseController {
   }
 
   @Delete(':id/withdraw_course')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
+  @Roles(Role.STUDENT, Role.PROFESSOR, Role.TA)
   async withdrawCourse(
     @Param('id') courseId: number,
     @UserId() userId: number,
@@ -628,16 +710,6 @@ export class CourseController {
       where: { courseId, userId },
     });
     await this.courseService.removeUserFromCourse(userCourse);
-  }
-
-  @Post('/register_courses')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  @Roles(Role.PROFESSOR)
-  async registerCourses(
-    @Body() body: RegisterCourseParams[],
-    @UserId() userId: number,
-  ): Promise<void> {
-    await this.courseService.registerCourses(body, userId);
   }
 
   @Get(':id/ta_check_in_times')
@@ -836,7 +908,7 @@ export class CourseController {
   // UPDATE course_settings_model SET selectedFeature = false WHERE courseId = selectedCourseId;
   // will also create a new course settings record if it doesn't exist for the course
   @Patch(':id/features')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR)
   async enableDisableFeature(
     @Param('id') courseId: number,

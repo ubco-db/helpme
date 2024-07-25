@@ -5,6 +5,8 @@ import {
   OpenQuestionStatus,
   QuestionStatus,
   Role,
+  StudentAssignmentProgress,
+  StudentTaskProgress,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -18,21 +20,19 @@ import {
   NotifMsgs,
 } from 'notification/notification.service';
 import { UserModel } from 'profile/user.entity';
-import { Connection } from 'typeorm';
 import { QuestionModel } from './question.entity';
+import { QueueModel } from '../queue/queue.entity';
+import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
 @Injectable()
 export class QuestionService {
-  constructor(
-    private connection: Connection,
-    private notifService: NotificationService,
-  ) {}
+  constructor(private notifService: NotificationService) {}
 
   async changeStatus(
     status: QuestionStatus,
     question: QuestionModel,
     userId: number,
-  ): Promise<QuestionModel> {
+  ): Promise<void> {
     const oldStatus = question.status;
     const newStatus = status;
     // If the taHelped is already set, make sure the same ta updates the status
@@ -94,7 +94,163 @@ export class QuestionService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-    return question;
+    return;
+  }
+
+  async markTasksDone(question: QuestionModel, userId: number): Promise<void> {
+    //
+    // checks
+    //
+    if (!question.isTaskQuestion) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.questionController.studentTaskProgress.notTaskQuestion,
+      );
+    }
+    const tasks =
+      question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || [];
+    if (tasks.length === 0) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.questionController.studentTaskProgress.taskParseError,
+      );
+    }
+    const queueId = question.queueId;
+
+    let queue: QueueModel;
+    try {
+      queue = await QueueModel.findOneOrFail(queueId);
+    } catch (err) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.questionController.studentTaskProgress.queueDoesNotExist,
+      );
+    }
+
+    const jsonConfig = queue.config;
+    if (!jsonConfig) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.questionController.studentTaskProgress.configDoesNotExist,
+      );
+    }
+    const assignmentName = jsonConfig.assignment_id;
+    if (!assignmentName) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.questionController.studentTaskProgress.assignmentDoesNotExist,
+      );
+    }
+
+    const configTasks = jsonConfig.tasks;
+    // check to make sure all tasks are in the config
+    for (const task of tasks) {
+      if (!configTasks.hasOwnProperty(task)) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.questionController.studentTaskProgress.taskNotInConfig,
+        );
+      }
+    }
+
+    //
+    // now, create the studentTaskProgress
+    //
+
+    // get the studentTaskProgress for the student (if it exists already)
+    const currentStudentTaskProgress: StudentTaskProgressModel =
+      await StudentTaskProgressModel.findOne({
+        where: {
+          uid: userId,
+          cid: queue.courseId,
+        },
+      });
+    const currentTaskProgress = currentStudentTaskProgress?.taskProgress;
+
+    let newTaskProgress: StudentTaskProgress;
+    // if studentTaskProgress doesn't exist yet for the student, create it and append the new task
+    if (
+      currentStudentTaskProgress === undefined ||
+      currentTaskProgress === undefined
+    ) {
+      const tempAssignmentProgress: StudentAssignmentProgress = {};
+      for (const task of tasks) {
+        tempAssignmentProgress[task] = { isDone: true };
+      }
+      newTaskProgress = {
+        [assignmentName]: {
+          lastEditedQueueId: queueId,
+          assignmentProgress: tempAssignmentProgress,
+        },
+      };
+      // if studentTaskProgress exists, but doesn't have anything for this assignment yet, create it
+    } else if (currentTaskProgress[assignmentName] === undefined) {
+      const tempAssignmentProgress = {};
+      for (const task of tasks) {
+        tempAssignmentProgress[task] = { isDone: true };
+      }
+      newTaskProgress = {
+        ...currentTaskProgress,
+        [assignmentName]: {
+          lastEditedQueueId: queueId,
+          assignmentProgress: tempAssignmentProgress,
+        },
+      };
+      // if studentTaskProgress exists, check to see if each task is a new task
+      // if it is a new task, append it to the studentTaskProgress
+      // if it is an existing task, update the studentTaskProgress
+    } else {
+      newTaskProgress = currentTaskProgress;
+      for (const task of tasks) {
+        newTaskProgress[assignmentName].assignmentProgress[task] = {
+          isDone: true,
+        };
+      }
+      newTaskProgress[assignmentName].lastEditedQueueId = queueId;
+    }
+
+    try {
+      await StudentTaskProgressModel.create({
+        uid: userId,
+        cid: queue.courseId,
+        taskProgress: newTaskProgress,
+      }).save();
+    } catch (err) {
+      console.error(err);
+      throw new HttpException(
+        ERROR_MESSAGES.questionController.saveQError,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+    return;
+  }
+
+  async checkIfValidTaskQuestion(
+    question: QuestionModel,
+    queue: QueueModel,
+  ): Promise<void> {
+    if (
+      question.isTaskQuestion &&
+      question.status !== ClosedQuestionStatus.ConfirmedDeleted &&
+      question.status !== ClosedQuestionStatus.DeletedDraft &&
+      question.status !== ClosedQuestionStatus.Stale
+    ) {
+      const tasks =
+        question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || [];
+      if (tasks.length === 0) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.questionController.studentTaskProgress.taskParseError,
+        );
+      }
+      // check to make sure all tasks are in the config
+      const configTasks = queue.config?.tasks;
+      if (!configTasks) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.questionController.studentTaskProgress.configDoesNotExist,
+        );
+      }
+      for (const task of tasks) {
+        if (!configTasks.hasOwnProperty(task)) {
+          throw new BadRequestException(
+            ERROR_MESSAGES.questionController.studentTaskProgress.taskNotInConfig,
+          );
+        }
+      }
+    }
   }
 
   async validateNotHelpingOther(

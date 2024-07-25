@@ -10,6 +10,7 @@ import { QuestionType } from '../Shared/QuestionType'
 import Select from 'react-select'
 import { Select as AntdSelect } from 'antd'
 import PropTypes from 'prop-types'
+import { useQuestionTypes } from '../../../hooks/useQuestionTypes'
 
 const OverrideCollapse = styled.div`
   & .ant-collapse-header {
@@ -53,14 +54,12 @@ export function AddStudentsModal({
 }: EditQueueModalProps): ReactElement {
   //studentState stores all students
   const router = useRouter()
-  const courseId = router.query['cid']
+  const courseId = Number(router.query['cid'])
   const [studentsState, setStudentsState] = useState<
     { value: string; id: number }[]
   >([])
 
-  const [questionsTypeState, setQuestionsTypeState] = useState<
-    QuestionTypeParams[]
-  >([])
+  const [questionTypes] = useQuestionTypes(courseId, queueId)
   const [questionTypeInput, setQuestionTypeInput] = useState<
     QuestionTypeParams[]
   >([])
@@ -79,25 +78,17 @@ export function AddStudentsModal({
   }
 
   const onTypeChange = (selectedIds: number[]) => {
-    const newQuestionTypeInput: QuestionTypeParams[] =
-      questionsTypeState.filter((questionType) =>
-        selectedIds.includes(questionType.id),
-      )
+    const newQuestionTypeInput: QuestionTypeParams[] = questionTypes?.filter(
+      (questionType) => selectedIds.includes(questionType.id),
+    )
 
     setQuestionTypeInput(newQuestionTypeInput)
   }
 
-  const courseNumber = Number(courseId)
-
-  const getQuestions = useCallback(async () => {
-    setQuestionsTypeState(
-      await API.questionType.getQuestionTypes(courseNumber, queueId),
-    )
-  }, [courseNumber])
-
   const populateStudents = useCallback(async () => {
     const tempS = []
-    const students = await API.profile.getAllStudents(courseNumber)
+    // TODO: optimize this endpoint so that it will filter the students out on the server side. This is the only place this endpoint is used
+    const students = await API.profile.getAllStudents(courseId)
     if (!students) {
       console.error("can't get all students")
     }
@@ -109,12 +100,11 @@ export function AddStudentsModal({
       tempS.push(student)
     })
     setStudentsState(tempS)
-  }, [courseNumber])
+  }, [courseId])
 
   useEffect(() => {
-    getQuestions()
     populateStudents()
-  }, [getQuestions, populateStudents])
+  }, [populateStudents])
 
   const handleSubmit = () => {
     selectOptions.forEach((student, i) => {
@@ -191,19 +181,19 @@ export function AddStudentsModal({
         onClose()
       }}
     >
-      {questionsTypeState.length > 0 ? (
+      {questionTypes?.length > 0 ? (
         <>
           <QuestionText>
             What category(s) does your question fall under?
           </QuestionText>
           <AntdSelect
             mode="multiple"
-            placeholder="Select question types"
+            placeholder="Select question tags"
             onChange={onTypeChange}
             style={{ width: '100%' }}
             value={questionTypeInput.map((type) => type.id)}
             tagRender={(props) => {
-              const type = questionsTypeState.find(
+              const type = questionTypes?.find(
                 (type) => type.id === props.value,
               )
               return (
@@ -215,7 +205,7 @@ export function AddStudentsModal({
               )
             }}
           >
-            {questionsTypeState.map((type) => (
+            {questionTypes?.map((type) => (
               <AntdSelect.Option value={type.id} key={type.id}>
                 {type.name}
               </AntdSelect.Option>
@@ -224,8 +214,7 @@ export function AddStudentsModal({
         </>
       ) : (
         <p>
-          There are no question types. Add them in &apos;Edit Queue
-          Details&apos;
+          There are no question tags. Add them in &apos;Edit Queue Details&apos;
         </p>
       )}
       <OverrideCollapse>

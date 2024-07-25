@@ -9,6 +9,8 @@ import * as supertest from 'supertest';
 import { Connection } from 'typeorm';
 import { addGlobalsToApp } from '../../src/bootstrap';
 import { LoginModule } from '../../src/login/login.module';
+import { ApplicationConfigService } from 'config/application_config.service';
+import { ApplicationConfigModule } from 'config/application_config.module';
 
 export interface SupertestOptions {
   userId?: number;
@@ -19,7 +21,7 @@ export const TestTypeOrmModule = TypeOrmModule.forRoot({
   host: 'localhost',
   port: 5432,
   username: process.env.POSTGRES_USER || 'helpme',
-  password: process.env.TESTDBPASS || '',
+  password: process.env.TESTDBPASS || 'mysecretpassword',
   database: 'test',
   entities: ['./**/*.entity.ts'],
   synchronize: true,
@@ -38,6 +40,7 @@ export function setupIntegrationTest(
   let app: INestApplication;
   let jwtService: JwtService;
   let conn: Connection;
+  let appConfig: ApplicationConfigService;
 
   beforeAll(async () => {
     let testModuleBuilder = Test.createTestingModule({
@@ -46,6 +49,7 @@ export function setupIntegrationTest(
         LoginModule,
         TestTypeOrmModule,
         TestConfigModule,
+        ApplicationConfigModule,
         RedisModule.register([
           { name: 'pub' },
           { name: 'sub' },
@@ -62,7 +66,12 @@ export function setupIntegrationTest(
     app = testModule.createNestApplication();
     addGlobalsToApp(app);
     jwtService = testModule.get<JwtService>(JwtService);
+    appConfig = testModule.get<ApplicationConfigService>(
+      ApplicationConfigService,
+    );
     conn = testModule.get<Connection>(Connection);
+
+    await appConfig.loadConfig();
     await app.init();
   });
 

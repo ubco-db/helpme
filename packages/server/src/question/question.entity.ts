@@ -1,4 +1,3 @@
-//got rid of questiontype
 import { QuestionStatus, Role, StatusInQueue } from '@koh/common';
 import { Exclude } from 'class-transformer';
 import {
@@ -76,6 +75,9 @@ export class QuestionModel extends BaseEntity {
   @Column()
   groupable: boolean;
 
+  @Column({ default: false })
+  isTaskQuestion: boolean;
+
   @ManyToOne((type) => QuestionGroupModel, { nullable: true })
   @JoinColumn({ name: 'groupId' })
   group: QuestionGroupModel;
@@ -112,10 +114,12 @@ export class QuestionModel extends BaseEntity {
   static inQueueWithStatus(
     queueId: number,
     statuses: QuestionStatus[],
+    limit = 100,
   ): SelectQueryBuilder<QuestionModel> {
     return this.createQueryBuilder('question')
       .where('question.queueId = :queueId', { queueId })
       .andWhere('question.status IN (:...statuses)', { statuses })
+      .limit(limit)
       .orderBy('question.createdAt', 'ASC');
   }
 

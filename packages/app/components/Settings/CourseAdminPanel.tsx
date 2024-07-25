@@ -15,7 +15,7 @@ import { useProfile } from '../../hooks/useProfile'
 import CourseRosterPage from './CourseRosterPage'
 import { SettingsPanelAvatar } from './SettingsSharedComponents'
 import TACheckInCheckOutTimes from './TACheckInCheckOutTimes'
-import ExportQuestions from './ExportQuestions'
+import ExportData from './ExportData'
 import EditQuestions from './EditQuestions'
 import { useRoleInCourse } from '../../hooks/useRoleInCourse'
 import { Role } from '@koh/common'
@@ -132,36 +132,36 @@ export default function CourseAdminPanel({
             key={CourseAdminOptions.EXPORT}
             icon={<DownloadOutlined />}
           >
-            Export questions
+            Export Data
           </Menu.Item>
           <Menu.Item key={CourseAdminOptions.EDIT} icon={<TableOutlined />}>
-            Edit questions
+            Edit Questions
           </Menu.Item>
         </Menu>
       </Col>
-      <VerticalDivider />
-      <Space direction="vertical" size={40} style={{ flexGrow: 1 }}>
-        <Col span={20}>
-          {currentSettings === CourseAdminOptions.EDIT_COURSE && (
-            <EditCourse courseId={courseId} />
-          )}
-          {currentSettings === CourseAdminOptions.CHECK_IN && (
-            <TACheckInCheckOutTimes courseId={courseId} />
-          )}
-          {currentSettings === CourseAdminOptions.ROSTER && (
-            <CourseRosterPage courseId={courseId} />
-          )}
-          {currentSettings === CourseAdminOptions.FEATURES && (
-            <ToggleFeaturesPage courseId={courseId} />
-          )}
-          {currentSettings === CourseAdminOptions.EXPORT && (
-            <ExportQuestions courseId={courseId} />
-          )}
-          {currentSettings === CourseAdminOptions.EDIT && (
-            <EditQuestions courseId={courseId} />
-          )}
-        </Col>
-      </Space>
+      <Col span={1}>
+        <VerticalDivider />
+      </Col>
+      <Col span={19}>
+        {currentSettings === CourseAdminOptions.EDIT_COURSE && (
+          <EditCourse courseId={courseId} />
+        )}
+        {currentSettings === CourseAdminOptions.CHECK_IN && (
+          <TACheckInCheckOutTimes courseId={courseId} />
+        )}
+        {currentSettings === CourseAdminOptions.ROSTER && (
+          <CourseRosterPage courseId={courseId} />
+        )}
+        {currentSettings === CourseAdminOptions.FEATURES && (
+          <ToggleFeaturesPage courseId={courseId} />
+        )}
+        {currentSettings === CourseAdminOptions.EXPORT && (
+          <ExportData courseId={courseId} />
+        )}
+        {currentSettings === CourseAdminOptions.EDIT && (
+          <EditQuestions courseId={courseId} />
+        )}
+      </Col>
     </Row>
   )
 }

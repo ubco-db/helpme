@@ -10,12 +10,10 @@ import {
   GetCourseResponse,
   GetInsightOutputResponse,
   GetProfileResponse,
-  GetQuestionResponse,
   GetQueueResponse,
   GroupQuestionsParams,
   ListInsightsResponse,
   ListQuestionsResponse,
-  RegisterCourseParams,
   EditCourseInfoParams,
   SemesterPartial,
   TACheckinTimesResponse,
@@ -32,7 +30,6 @@ import {
   CreateAsyncQuestions,
   UpdateAsyncQuestions,
   AsyncQuestion,
-  CoursePartial,
   Calendar,
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
@@ -50,6 +47,12 @@ import {
   QuestionTypeParams,
   UBCOuserParam,
   CourseSettingsResponse,
+  StudentAssignmentProgress,
+  QueueConfig,
+  AllStudentAssignmentProgress,
+  setQueueConfigResponse,
+  QuestionTypeType,
+  StudentTaskProgressWithUser,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -202,9 +205,7 @@ class APIClient {
     getOrganizationCourses: async (organizationId: number) =>
       this.req('GET', `/api/v1/courses/${organizationId}/organization_courses`),
     getAsyncQuestions: async (cid: number): Promise<AsyncQuestion[]> =>
-      this.req('GET', `/api/v1/courses/${cid}/questions`, undefined),
-    getAllCourses: async (): Promise<CoursePartial[]> =>
-      this.req('GET', `/api/v1/courses`),
+      this.req('GET', `/api/v1/courses/${cid}/asyncQuestions`, undefined),
     get: async (courseId: number) =>
       this.req('GET', `/api/v1/courses/${courseId}`, GetCourseResponse),
     getUserInfo: async (
@@ -225,8 +226,6 @@ class APIClient {
         `/api/v1/courses/${courseId}/withdraw_course`,
         undefined,
       ),
-    registerCourses: async (params: RegisterCourseParams[]): Promise<void> =>
-      this.req('POST', `/api/v1/courses/register_courses`, undefined, params),
     editCourseInfo: async (
       courseId: number,
       params: EditCourseInfoParams,
@@ -281,6 +280,30 @@ class APIClient {
     ): Promise<CourseSettingsResponse> =>
       this.req('GET', `/api/v1/courses/${courseId}/features`),
   }
+  studentTaskProgress = {
+    getAssignmentProgress: async (
+      userId: number,
+      courseId: number,
+      assignmentName: string,
+    ): Promise<StudentAssignmentProgress> =>
+      this.req(
+        'GET',
+        `/api/v1/studentTaskProgress/student/${userId}/${courseId}/${assignmentName}`,
+      ),
+    getAllAssignmentProgressForQueue: async (
+      queueId: number,
+      courseId: number,
+      assignmentName: string,
+    ): Promise<AllStudentAssignmentProgress> =>
+      this.req(
+        'GET',
+        `/api/v1/studentTaskProgress/queue/${queueId}/${courseId}/${assignmentName}`,
+      ),
+    getAllTaskProgressForCourse: async (
+      courseId: number,
+    ): Promise<StudentTaskProgressWithUser[]> =>
+      this.req('GET', `/api/v1/studentTaskProgress/course/${courseId}`),
+  }
   taStatus = {
     checkIn: async (
       courseId: number,
@@ -292,25 +315,16 @@ class APIClient {
       room: string,
     ): Promise<TACheckoutResponse> =>
       this.req('DELETE', `/api/v1/courses/${courseId}/ta_location/${room}`),
-    makeQueue: async (
-      courseId: number,
-      room: string,
-      isProfessorQueue: boolean,
-      notes: string,
-    ): Promise<TAUpdateStatusResponse> =>
-      this.req(
-        'POST',
-        `/api/v1/courses/${courseId}/generate_queue/${room}`,
-        QueuePartial,
-        { notes, isProfessorQueue },
-      ),
   }
   asyncQuestions = {
     create: async (body: CreateAsyncQuestions, cid: number) =>
       this.req('POST', `/api/v1/asyncQuestions/${cid}`, AsyncQuestion, body),
     update: async (qid: number, body: UpdateAsyncQuestions) =>
       this.req('PATCH', `/api/v1/asyncQuestions/${qid}`, AsyncQuestion, body),
-    vote: async (qid: number, vote: number) =>
+    vote: async (
+      qid: number,
+      vote: number,
+    ): Promise<{ questionSumVotes: number; vote: number }> =>
       this.req('POST', `/api/v1/asyncQuestions/${qid}/${vote}`, undefined, {
         vote,
       }),
@@ -333,8 +347,6 @@ class APIClient {
       ),
     getAllQuestions: async (cid: number): Promise<questions[]> =>
       this.req('GET', `/api/v1/questions/allQuestions/${cid}`, undefined),
-    get: async (questionId: number): Promise<GetQuestionResponse> =>
-      this.req('GET', `/api/v1/questions/${questionId}`, GetQuestionResponse),
     update: async (questionId: number, params: UpdateQuestionParams) =>
       this.req(
         'PATCH',
@@ -344,31 +356,31 @@ class APIClient {
       ),
     notify: async (questionId: number): Promise<void> =>
       this.req('POST', `/api/v1/questions/${questionId}/notify`),
-    group: async (params: GroupQuestionsParams): Promise<void> =>
-      this.req('POST', '/api/v1/questions/group', undefined, params),
-    resolveGroup: async (groupId: number, queueId: number): Promise<void> =>
-      this.req(
-        'PATCH',
-        `/api/v1/questions/resolveGroup/${groupId}`,
-        undefined,
-        { queueId },
-      ),
   }
   questionType = {
     getQuestionTypes: async (
       courseId: number,
       queueId: number | null,
-    ): Promise<any> =>
-      this.req('GET', `/api/v1/questionType/${courseId}/${queueId}`, undefined),
+    ): Promise<QuestionTypeType[]> => {
+      try {
+        return await this.req(
+          'GET',
+          `/api/v1/questionType/${courseId}/${queueId}`,
+          undefined,
+        )
+      } catch (error) {
+        return []
+      }
+    },
     addQuestionType: async (
       courseId: number,
       body: QuestionTypeParams,
-    ): Promise<any> =>
+    ): Promise<string> =>
       this.req('POST', `/api/v1/questionType/${courseId}`, undefined, body),
     deleteQuestionType: async (
       courseId: number,
       questionTypeId: number,
-    ): Promise<void> =>
+    ): Promise<string> =>
       this.req('DELETE', `/api/v1/questionType/${courseId}/${questionTypeId}`),
   }
   calendar = {
@@ -393,6 +405,24 @@ class APIClient {
       this.req('POST', `/api/v1/queues/${queueId}/clean`),
     disable: async (queueId: number): Promise<void> =>
       this.req('DELETE', `/api/v1/queues/${queueId}`),
+    updateConfig: async (
+      queueId: number,
+      config: QueueConfig,
+    ): Promise<setQueueConfigResponse> =>
+      this.req('PATCH', `/api/v1/queues/${queueId}/config`, undefined, config),
+    createQueue: async (
+      courseId: number,
+      room: string,
+      isProfessorQueue: boolean,
+      notes: string,
+      config: QueueConfig,
+    ): Promise<TAUpdateStatusResponse> =>
+      this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/create_queue/${room}`,
+        QueuePartial,
+        { notes, isProfessorQueue, config },
+      ),
   }
   notif = {
     desktop: {
@@ -592,14 +622,6 @@ class APIClient {
         `/api/v1/organization/${organizationId}/get_courses/${page}${
           search ? `?search=${search}` : ''
         }`,
-      ),
-    addCourse: async (
-      courseId: number,
-      organizationId: number,
-    ): Promise<void> =>
-      this.req(
-        'POST',
-        `/api/v1/organization/${organizationId}/add_course/${courseId}`,
       ),
     getProfessors: async (organizationId: number): Promise<any> =>
       this.req('GET', `/api/v1/organization/${organizationId}/get_professors`),

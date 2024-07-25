@@ -63,7 +63,7 @@ export const ChatbotComponent: React.FC = () => {
   useEffect(() => {
     axios
       .get(`/chat/${cid}/allSuggestedQuestions`, {
-        headers: { HMS_API_TOKEN: profile.chat_token.token },
+        headers: { HMS_API_TOKEN: profile?.chat_token?.token },
       })
       .then((res) => {
         res.data.forEach((question) => {
@@ -76,13 +76,16 @@ export const ChatbotComponent: React.FC = () => {
           ])
         })
       })
+      .catch((err) => {
+        console.error(err)
+      })
     if (profile && profile.chat_token) {
       setQuestionsLeft(profile.chat_token.max_uses - profile.chat_token.used)
     }
     return () => {
       setInteractionId(null)
     }
-  }, [profile])
+  }, [profile, cid])
 
   const query = async () => {
     try {

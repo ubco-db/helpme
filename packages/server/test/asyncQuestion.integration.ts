@@ -10,7 +10,7 @@ import {
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
-import { Role, asyncQuestionStatus } from '@koh/common';
+import { Role } from '@koh/common';
 
 describe('AsyncQuestion Integration', () => {
   const supertest = setupIntegrationTest(asyncQuestionModule);
@@ -54,7 +54,10 @@ describe('AsyncQuestion Integration', () => {
       role: Role.STUDENT,
     });
 
-    asyncQuestion = await AsyncQuestionFactory.create({ creator: studentUser });
+    asyncQuestion = await AsyncQuestionFactory.create({
+      creator: studentUser,
+      course: course,
+    });
   });
   describe('Async question creation', () => {
     it('Student can create a question', async () => {
@@ -121,6 +124,31 @@ describe('AsyncQuestion Integration', () => {
           status: 'HumanAnswered',
         })
         .expect(401);
+    });
+
+    it('Allows professors to modify a question even if they are a student in another course', async () => {
+      const prof = await UserFactory.create();
+      const otherCourse = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user: prof,
+        course: otherCourse,
+        role: Role.STUDENT,
+      });
+      await UserCourseFactory.create({
+        user: prof,
+        course,
+        role: Role.PROFESSOR,
+      });
+      await supertest({ userId: prof.id })
+        .patch(`/asyncQuestions/${asyncQuestion.id}`)
+        .send({
+          status: 'HumanAnswered',
+        })
+        .expect(200)
+        .then((response) => {
+          expect(response.body).toHaveProperty('status', 'HumanAnswered');
+          expect(response.body.status).toBe('HumanAnswered');
+        });
     });
   });
 

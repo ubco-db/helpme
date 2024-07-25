@@ -7,19 +7,10 @@ import { useCourse } from '../../hooks/useCourse'
 import { useProfile } from '../../hooks/useProfile'
 import { useRoleInCourse } from '../../hooks/useRoleInCourse'
 import QueueCheckInModal from './QueueCheckInModal'
-import QueueCreateModal from './QueueCreateModal'
 import TACheckinButton, { CheckinButton } from './TACheckinButton'
 import { LoginOutlined } from '@ant-design/icons'
 
-interface TodayPageCheckinButtonProps {
-  createQueueModalVisible: boolean
-  setCreateQueueModalVisible: React.Dispatch<React.SetStateAction<boolean>>
-}
-
-export default function TodayPageCheckinButton({
-  createQueueModalVisible,
-  setCreateQueueModalVisible,
-}: TodayPageCheckinButtonProps): ReactElement {
+export default function TodayPageCheckinButton(): ReactElement {
   // state for check in modal
   const [checkInModalVisible, setCheckInModalVisible] = useState(false)
 
@@ -36,30 +27,6 @@ export default function TodayPageCheckinButton({
   )
 
   const numQueues = course?.queues.length
-
-  const renderProperModal = () => {
-    numQueues !== 0
-      ? setCheckInModalVisible(true)
-      : setCreateQueueModalVisible(true)
-  }
-
-  const submitMakeQueue = async (submittedForm) => {
-    const queueRequest = await submittedForm.validateFields()
-    try {
-      await API.taStatus.makeQueue(
-        Number(cid),
-        queueRequest.officeHourName,
-        !queueRequest.allowTA,
-        queueRequest.notes,
-      )
-      message.success(`Created a new queue ${queueRequest.officeHourName}`)
-      mutateCourse()
-
-      setCreateQueueModalVisible(false)
-    } catch (err) {
-      message.error(err.response?.data?.message)
-    }
-  }
 
   return (
     <>
@@ -100,20 +67,13 @@ export default function TodayPageCheckinButton({
           queues={availableQueues}
         />
       )}
-      {createQueueModalVisible && (
-        <QueueCreateModal
-          visible={createQueueModalVisible}
-          onSubmit={submitMakeQueue}
-          onCancel={() => setCreateQueueModalVisible(false)}
-          role={role}
-          lastName={profile?.lastName ?? ''}
-        />
-      )}
-      {!queueCheckedIn && role !== Role.STUDENT && (
+      {!queueCheckedIn && role !== Role.STUDENT && numQueues !== 0 && (
         <CheckinButton
           type="default"
           size="large"
-          onClick={() => renderProperModal()}
+          onClick={() => {
+            setCheckInModalVisible(true)
+          }}
           className="w-fit"
           icon={<LoginOutlined />}
         >

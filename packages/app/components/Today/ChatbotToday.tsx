@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Input, Button, Card, Avatar, Spin, Tooltip, message } from 'antd'
 import styled from 'styled-components'
-import { API } from '@koh/api-client'
 import {
   UserOutlined,
   RobotOutlined,
@@ -12,12 +11,16 @@ import { useProfile } from '../../hooks/useProfile'
 import axios from 'axios'
 
 const ChatbotContainer = styled.div`
-  width: 100%;
-  @media (min-width: 650px) {
-    width: 90%;
-    height: 100%;
+  display: flex;
+  flex-direction: column;
+  width: 90%;
+  height: 80vh;
+  overflow: auto;
+
+  // mobile-only styles
+  @media (max-width: 650px) {
+    width: 100%;
   }
-  overflow: hidden;
 `
 const StyledInput = styled(Input)`
   width: 100%;
@@ -51,7 +54,7 @@ export const ChatbotToday: React.FC = () => {
   const { cid } = router.query
   const profile = useProfile()
   const [isLoading, setIsLoading] = useState(false)
-  const [interactionId, setInteractionId] = useState<number | null>(null)
+  const [, setInteractionId] = useState<number | null>(null)
   const [preDeterminedQuestions, setPreDeterminedQuestions] = useState<
     PreDeterminedQuestion[]
   >([])
@@ -82,13 +85,16 @@ export const ChatbotToday: React.FC = () => {
           ])
         })
       })
+      .catch((err) => {
+        console.error(err)
+      })
     if (profile && profile.chat_token) {
       setQuestionsLeft(profile.chat_token.max_uses - profile.chat_token.used)
     }
     return () => {
       setInteractionId(null)
     }
-  }, [profile])
+  }, [profile, cid])
 
   const query = async () => {
     try {
@@ -167,7 +173,7 @@ export const ChatbotToday: React.FC = () => {
       <ChatbotContainer>
         <Card
           title="Course chatbot"
-          className="flex h-full max-h-[750px] w-full flex-col overflow-y-auto"
+          className="flex w-full flex-auto flex-col overflow-y-auto"
         >
           <div className="grow-1 overflow-y-auto">
             {messages &&

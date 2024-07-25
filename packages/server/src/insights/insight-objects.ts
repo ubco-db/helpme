@@ -2,7 +2,6 @@ import {
   BarChartOutputType,
   InsightComponent,
   InsightObject,
-  QuestionTypes,
   Role,
   SimpleDisplayOutputType,
   SimpleTableOutputType,
@@ -208,7 +207,7 @@ const getActiveStudents = async (filters: Filter[]): Promise<any[]> => {
 };
 
 export const QuestionTypeBreakdown: InsightObject = {
-  displayName: 'Question Type Breakdown',
+  displayName: 'Question Tag Breakdown',
   description:
     'What is the distribution of student-selected question-types on the question form?',
   roles: [Role.PROFESSOR],
@@ -262,8 +261,8 @@ export const QuestionTypeBreakdown: InsightObject = {
         a.questionTypeName === b.questionTypeName
           ? 0
           : a.questionTypeName > b.questionTypeName
-          ? 1
-          : -1,
+            ? 1
+            : -1,
       ),
       xField: 'totalQuestions',
       yField: 'questionTypeName',

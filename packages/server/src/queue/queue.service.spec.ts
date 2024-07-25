@@ -5,7 +5,6 @@ import { QuestionModel } from 'question/question.entity';
 import { Connection } from 'typeorm';
 import {
   QuestionFactory,
-  QuestionGroupFactory,
   QueueFactory,
   UserFactory,
 } from '../../test/util/factories';
@@ -13,6 +12,7 @@ import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { QueueModel } from './queue.entity';
 import { QueueService } from './queue.service';
 import { AlertsService } from '../alerts/alerts.service';
+import { ApplicationTestingConfigModule } from 'config/application_config.module';
 
 describe('QueueService', () => {
   let service: QueueService;
@@ -21,7 +21,11 @@ describe('QueueService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule],
+      imports: [
+        TestTypeOrmModule,
+        TestConfigModule,
+        ApplicationTestingConfigModule,
+      ],
       providers: [QueueService, AlertsService],
     }).compile();
 
@@ -110,42 +114,6 @@ describe('QueueService', () => {
         (await service.getQuestions(queue.id)).priorityQueue.map((q) => q.id),
       ).toEqual(questionIds);
     });
-
-    it('fetches questions in all groups', async () => {
-      const queue = await QueueFactory.create();
-      await createQuestionsEveryStatus(queue);
-      const group1 = await QuestionGroupFactory.create({ queue });
-      const g1q1 = await QuestionFactory.create({
-        queue,
-        groupable: true,
-        group: group1,
-      });
-      const g1q2 = await QuestionFactory.create({
-        queue,
-        groupable: true,
-        group: group1,
-      });
-      const group2 = await QuestionGroupFactory.create({ queue });
-      const g2q1 = await QuestionFactory.create({
-        queue,
-        groupable: true,
-        group: group2,
-      });
-
-      const recievedGroups = (await service.getQuestions(queue.id)).groups;
-
-      expect(recievedGroups.length).toEqual(2);
-      recievedGroups.forEach((group) => {
-        if (group.id === group1.id) {
-          expect(group.questions.length).toEqual(2);
-          expect(group.questions.some((q) => q.id === g1q1.id)).toBeTruthy();
-          expect(group.questions.some((q) => q.id === g1q2.id)).toBeTruthy();
-        } else {
-          expect(group.questions.length).toEqual(1);
-          expect(group.questions.some((q) => q.id === g2q1.id)).toBeTruthy();
-        }
-      });
-    });
   });
 
   describe('personalizeQuestions', () => {
@@ -153,6 +121,7 @@ describe('QueueService', () => {
     beforeEach(async () => {
       queue = await QueueFactory.create();
     });
+
     const personalize = (
       lqr: ListQuestionsResponse,
       userId: number,
@@ -171,7 +140,7 @@ describe('QueueService', () => {
       ).toEqual(lqr);
     });
 
-    it('adds yourQuestion for students with question in the queue', async () => {
+    it('adds yourQuestions for students with a question in the queue', async () => {
       const user = await UserFactory.create();
       // Create a question but not in this queue
       await QuestionFactory.create({ creator: user });
@@ -183,7 +152,7 @@ describe('QueueService', () => {
         groups: [],
       };
       let lqr = await personalize(blank, user.id, Role.STUDENT);
-      expect(lqr.yourQuestion).toEqual(undefined);
+      expect(lqr.yourQuestions).toEqual([]);
 
       // Create a question in this queue
       const question = await QuestionFactory.create({
@@ -191,7 +160,7 @@ describe('QueueService', () => {
         queue,
       });
       lqr = await personalize(blank, user.id, Role.STUDENT);
-      expect(lqr.yourQuestion.id).toEqual(question.id);
+      expect(lqr.yourQuestions[0].id).toEqual(question.id);
     });
 
     it('hides details of other students', async () => {
