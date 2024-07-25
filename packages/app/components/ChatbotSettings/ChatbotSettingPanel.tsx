@@ -61,7 +61,7 @@ export default function ChatbotSettingsPanel({
           key={ChatbotSettingsOptions.DOCUMENT_SETTINGS}
           icon={<RobotOutlined />}
         >
-          Document Settings
+          Document Chunk Settings
         </Menu.Item>
         <Menu.Item
           key={ChatbotSettingsOptions.CHATBOT_QUESTIONS}
