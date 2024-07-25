@@ -283,6 +283,7 @@ export default function ChatbotQuestions({
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          HMS_API_TOKEN: profile.chat_token.token,
         },
       })
 
