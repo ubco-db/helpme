@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import ExpandableText from '../common/ExpandableText'
 import EditChatbotQuestionModal from '../Settings/EditChatbotQuestionModal'
 import { useProfile } from '../../hooks/useProfile'
+import { filter } from 'lodash'
 
 interface Loc {
   pageNumber: number
@@ -51,27 +52,36 @@ export default function ChatbotQuestions({
   const profile = useProfile()
   const [search, setSearch] = useState('')
   const [editingRecord, setEditingRecord] = useState(null)
+  const [filteredQuestions, setFilteredQuestions] = useState<ChatbotQuestion[]>(
+    [],
+  )
   const [editRecordModalVisible, setEditRecordModalVisible] = useState(false)
   const [chatQuestions, setChatQuestions] = useState<ChatbotQuestion[]>([])
   const [existingDocuments, setExistingDocuments] = useState([])
   const [selectedDocuments, setSelectedDocuments] = useState([])
 
   useEffect(() => {
-    fetch(`/chat/${courseId}/aggregateDocuments`, {
-      headers: { HMS_API_TOKEN: profile.chat_token.token },
-    })
-      .then((res) => res.json())
-      .then((json) => {
-        // Convert the json to the expected format
-        const formattedDocuments = json.map((doc) => ({
-          docId: doc.id,
-          docName: doc.pageContent,
-          sourceLink: doc.metadata.source,
-          pageNumbers: [],
-        }))
-        setExistingDocuments(formattedDocuments)
+    if (courseId) {
+      fetch(`/chat/${courseId}/aggregateDocuments`, {
+        headers: { HMS_API_TOKEN: profile.chat_token.token },
       })
-  }, [addModelOpen, courseId, profile?.chat_token.token])
+        .then((res) => res.json())
+        .then((json) => {
+          // Convert the json to the expected format
+          const formattedDocuments = json.map((doc) => ({
+            docId: doc.id,
+            docName: doc.pageContent,
+            sourceLink: doc.metadata.source,
+            pageNumbers: [],
+          }))
+          setExistingDocuments(formattedDocuments)
+        })
+    }
+    const filtered = chatQuestions.filter((q) =>
+      q.question.toLowerCase().includes(search.toLowerCase()),
+    )
+    setFilteredQuestions(filtered)
+  }, [addModelOpen, courseId, profile?.chat_token.token, search, chatQuestions])
 
   const columns = [
     {
@@ -232,6 +242,7 @@ export default function ChatbotQuestions({
       }))
 
       setChatQuestions(parsedQuestions)
+      setFilteredQuestions(parsedQuestions)
     } catch (e) {
       console.error('Failed to fetch questions:', e)
       toast.error('Failed to load questions.')
@@ -427,7 +438,7 @@ export default function ChatbotQuestions({
       />
       <Table
         columns={columns}
-        dataSource={chatQuestions}
+        dataSource={filteredQuestions}
         style={{ maxWidth: '1000px' }}
         pagination={{ pageSize: 7 }}
       />

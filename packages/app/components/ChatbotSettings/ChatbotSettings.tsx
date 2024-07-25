@@ -22,6 +22,7 @@ import { RcFile } from 'antd/lib/upload'
 import Dragger from 'antd/lib/upload/Dragger'
 import ChatbotParameter from './ChatbotParameter'
 import { useProfile } from '../../hooks/useProfile'
+import axios from 'axios'
 
 export interface ChatbotDocument {
   id: number
@@ -43,6 +44,7 @@ export default function ChatbotSettings({
 }: ChatbotPanelProps): ReactElement {
   const [form] = Form.useForm()
   const profile = useProfile()
+  const courseId = useRouter().query.cid
   const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =
     useState(false)
   const [addDocumentModalOpen, setAddDocumentModalOpen] = useState(false)
@@ -52,8 +54,9 @@ export default function ChatbotSettings({
   const [countProcessed, setCountProcessed] = useState(0)
   const [selectViewEnabled, setSelectViewEnabled] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
-  const [totalDocuments] = useState(0)
+  const [totalDocuments, setTotalDocuments] = useState(0)
   const [chatbotDocuments, setChatbotDocuments] = useState([])
+  const [filteredDocuments, setFilteredDocuments] = useState([])
 
   const [fileList, setFileList] = useState([])
 
@@ -76,12 +79,20 @@ export default function ChatbotSettings({
   }
   const hasSelected = selectedRowKeys.length > 0
 
+  useEffect(() => {
+    getDocuments()
+  }, [cid])
+
+  useEffect(() => {
+    filterDocuments()
+  }, [search, chatbotDocuments])
+
   const handleDeleteSelectedDocuments = async () => {
     setLoading(true)
     setCountProcessed(0)
     try {
       for (const docId of selectedRowKeys) {
-        await fetch(`/chat/${cid}/${docId}/document`, {
+        await fetch(`/chat/${courseId}/${docId}/document`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -160,34 +171,38 @@ export default function ChatbotSettings({
         ),
     },
   ]
-
-  const getDocuments = useCallback(async () => {
-    setLoading(true)
+  const getDocuments = async () => {
     try {
-      fetch(`/chat/${cid}/aggregateDocuments`, {
-        headers: { HMS_API_TOKEN: profile?.chat_token.token },
+      const response = await axios.get(`/chat/${courseId}/aggregateDocuments`, {
+        headers: {
+          HMS_API_TOKEN: profile?.chat_token.token,
+        },
       })
-        .then((res) => res.json())
-        .then((json) => {
-          // Convert the json to the expected format
-          const formattedDocuments = json.map((doc) => ({
-            key: doc.id,
-            docId: doc.id,
-            docName: doc.pageContent,
-            sourceLink: doc.metadata.source,
-            pageNumbers: [],
-          }))
-          setChatbotDocuments(formattedDocuments)
-        })
+      console.log(response)
+      const formattedDocuments = response.data.map((doc) => ({
+        key: doc.id,
+        docId: doc.id,
+        docName: doc.pageContent,
+        sourceLink: doc.metadata.source,
+        pageNumbers: [],
+      }))
+      setChatbotDocuments(formattedDocuments)
+      setTotalDocuments(formattedDocuments.length)
     } catch (e) {
+      console.error(e)
       setChatbotDocuments([])
+      setTotalDocuments(0)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
-  }, [cid, profile?.chat_token.token])
+  }
 
-  useEffect(() => {
-    getDocuments()
-  }, [getDocuments])
+  const filterDocuments = () => {
+    const filtered = chatbotDocuments.filter((doc) =>
+      doc.docName.toLowerCase().includes(search.toLowerCase()),
+    )
+    setFilteredDocuments(filtered)
+  }
 
   const addUrl = async (url: string) => {
     setLoading(true)
@@ -460,7 +475,7 @@ export default function ChatbotSettings({
       <Table
         columns={columns}
         rowSelection={selectViewEnabled && rowSelection}
-        dataSource={chatbotDocuments}
+        dataSource={filteredDocuments}
         style={{ maxWidth: '800px' }}
         pagination={false}
       />
