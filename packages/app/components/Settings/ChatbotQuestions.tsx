@@ -53,6 +53,9 @@ export default function ChatbotQuestions({
   const [editingRecord, setEditingRecord] = useState(null)
   const [editRecordModalVisible, setEditRecordModalVisible] = useState(false)
   const [chatQuestions, setChatQuestions] = useState<ChatbotQuestion[]>([])
+  const [filteredQuestions, setFilteredQuestions] = useState<ChatbotQuestion[]>(
+    [],
+  )
   const [existingDocuments, setExistingDocuments] = useState([])
   const [selectedDocuments, setSelectedDocuments] = useState([])
 
@@ -202,6 +205,13 @@ export default function ChatbotQuestions({
     getQuestions()
   }, [editingRecord, getQuestions])
 
+  useEffect(() => {
+    const filtered = chatQuestions.filter((q) =>
+      q.question.toLowerCase().includes(search.toLowerCase()),
+    )
+    setFilteredQuestions(filtered)
+  }, [search, chatQuestions])
+
   const showModal = (record) => {
     setEditingRecord(record)
     setEditRecordModalVisible(true)
@@ -232,6 +242,7 @@ export default function ChatbotQuestions({
       }))
 
       setChatQuestions(parsedQuestions)
+      setFilteredQuestions(parsedQuestions)
     } catch (e) {
       console.error('Failed to fetch questions:', e)
       toast.error('Failed to load questions.')
@@ -428,7 +439,7 @@ export default function ChatbotQuestions({
       />
       <Table
         columns={columns}
-        dataSource={chatQuestions}
+        dataSource={filteredQuestions}
         style={{ maxWidth: '1000px' }}
         pagination={{ pageSize: 7 }}
       />
