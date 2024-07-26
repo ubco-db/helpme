@@ -181,9 +181,9 @@ export class QuestionController {
         createdAt: new Date(),
       }).save();
 
-      const questions = await this.queueService.getQuestions(queueId);
+      const queueQuestions = await this.queueService.getQuestions(queueId);
 
-      await this.redisQueueService.setQuestions(`q:${queueId}`, questions);
+      await this.redisQueueService.setQuestions(`q:${queueId}`, queueQuestions);
 
       return question;
     } catch (err) {
@@ -300,9 +300,9 @@ export class QuestionController {
     try {
       await newQuestion.save();
 
-      const questions = await this.queueService.getQuestions(queueId);
+      const queueQuestions = await this.queueService.getQuestions(queueId);
 
-      await this.redisQueueService.setQuestions(`q:${queueId}`, questions);
+      await this.redisQueueService.setQuestions(`q:${queueId}`, queueQuestions);
 
       return newQuestion;
     } catch (err) {
@@ -385,12 +385,12 @@ export class QuestionController {
 
       try {
         await question.save();
-        const questions = await this.queueService.getQuestions(
+        const queueQuestions = await this.queueService.getQuestions(
           question.queue.id,
         );
         await this.redisQueueService.setQuestions(
           `q:${question.queue.id}`,
-          questions,
+          queueQuestions,
         );
       } catch (err) {
         console.error(err);
@@ -458,10 +458,12 @@ export class QuestionController {
         await this.questionService.markTasksDone(question, question.creatorId);
       }
 
-      const questions = await this.queueService.getQuestions(question.queue.id);
+      const queueQuestions = await this.queueService.getQuestions(
+        question.queue.id,
+      );
       await this.redisQueueService.setQuestions(
         `q:${question.queue.id}`,
-        questions,
+        queueQuestions,
       );
 
       return question;

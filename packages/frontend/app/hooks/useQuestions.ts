@@ -37,7 +37,7 @@ export function useQuestions(qid: number): UseQuestionReturn {
     data: queueQuestions,
     error: questionsError,
     mutate: mutateQuestions,
-  } = useSWR(key, async () => API.questions.index(Number(qid)), {
+  } = useSWR(key, async () => API.questions.index(qid), {
     refreshInterval: isLive ? 0 : 10 * 1000,
   })
   return { queueQuestions, questionsError, mutateQuestions }

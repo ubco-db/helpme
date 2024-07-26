@@ -1,11 +1,11 @@
 'use client'
 
 import { DeleteOutlined, UploadOutlined } from '@ant-design/icons'
-import { API } from '@koh/api-client'
 import { Col, message, Row, Skeleton, Upload } from 'antd'
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import SettingsPanelAvatar from './SettingsPanelAvatar'
+import { API } from '@/app/api'
 
 const AvatarSettings: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false)

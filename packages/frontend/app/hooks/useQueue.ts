@@ -8,13 +8,13 @@ import { API } from '../api'
 type queueResponse = SWRResponse<QueuePartial, any>
 
 interface UseQueueReturn {
-  queue?: queueResponse['data']
+  queue: queueResponse['data']
   queueError: queueResponse['error']
   mutateQueue: queueResponse['mutate']
   isLive: boolean
 }
 
-type OnUpdate = (lastUpdated: Date) => void
+type OnUpdate = (value: Date) => void
 
 interface RefreshInfo {
   lastUpdated: Date

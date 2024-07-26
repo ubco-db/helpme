@@ -2,16 +2,24 @@ import { AsyncQuestion, Question, QueuePartial } from '@koh/common'
 
 export function getWaitTime(question: Question): string {
   if (!question.createdAt) {
-    return ''
+    return formatWaitTime(0)
   }
-  return ''
+  // A dirty fix until we can get the serializer working properly again (i renamed `questions` in SSEQueueResponse to `queueQuestions` and renamed `queue` in ListQuestionsResponse to `questions` and stuff broke for some reason)
+  if (typeof question.createdAt === 'string') {
+    const now = new Date()
+    const tempDate = new Date(Date.parse(question.createdAt))
+    const difference = now.getTime() - tempDate.getTime()
+    return formatWaitTime(difference / 60000)
+  }
   const now = new Date()
   const difference = now.getTime() - question.createdAt.getTime()
   return formatWaitTime(difference / 60000)
 }
 
 export function getAsyncWaitTime(question: AsyncQuestion): string {
-  if (!question.createdAt) return formatWaitTime(0)
+  if (!question.createdAt) {
+    return formatWaitTime(0)
+  }
   const now = new Date()
   const createdAt = new Date(question.createdAt)
   const difference = now.getTime() - createdAt.getTime()

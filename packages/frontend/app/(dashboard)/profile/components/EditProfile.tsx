@@ -1,6 +1,5 @@
 'use client'
 
-import { API } from '@koh/api-client'
 import {
   AccountType,
   GetProfileResponse,
@@ -10,6 +9,7 @@ import { Card, Col, Form, Input, message, Row } from 'antd'
 import { useState } from 'react'
 import useSWR from 'swr'
 import { pick } from 'lodash'
+import { API } from '@/app/api'
 
 const EditProfile: React.FC = () => {
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>

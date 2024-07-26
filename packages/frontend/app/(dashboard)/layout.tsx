@@ -8,43 +8,24 @@ import { userApi } from '../api/userApi'
 import Link from 'next/link'
 import { Spin } from 'antd'
 import HeaderBar from '../components/HeaderBar'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { LayoutProps } from '@/app/typings/types'
 import StandardPageContainer from '../components/StandardPageContainer'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [profile, setProfile] = useState<User>()
   const pathname = usePathname()
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    setIsLoading(true)
     const fetchUserDetails = async () => {
       const userDetails = await userApi.getUser()
       const response = await userDetails.json()
 
       setProfile(response)
-      setIsLoading(false)
-      console.log('done loading!')
     }
 
     fetchUserDetails()
   }, [])
-
-  // after 5 seconds of loading, redirect to login page (this way, the user is not stuck on loading screen forever)
-  useEffect(() => {
-    let timer: string | number | NodeJS.Timeout | undefined
-    console.log('isLoading:', isLoading)
-    if (isLoading) {
-      timer = setTimeout(() => {
-        console.log('redirecting to login page...')
-        router.push('/login')
-      }, 5000) // 5 seconds
-    }
-
-    return () => clearTimeout(timer) // Cleanup on unmount or if loading ends
-  }, [isLoading, router])
 
   return !profile ? (
     <main className="mt-20 flex content-center justify-center">

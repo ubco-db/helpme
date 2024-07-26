@@ -251,12 +251,12 @@ export enum OrganizationRole {
 }
 
 /**
- * A Queue that students can join with thier tickets.
+ * A Queue that students can join with their tickets.
  * @param id - The unique id number for a Queue.
  * @param course - The course that this office hours queue is for.
  * @param room - The full name of the building + room # that the current office hours queue is in.
  * @param staffList - The list of TA user's that are currently helping at office hours.
- * @param questions - The list of the students questions assocaited with the queue.
+ * @param questions - The list of the students questions associated with the queue.
  * @param startTime - The scheduled start time of this queue based on the parsed ical.
  * @param endTime - The scheduled end time of this queue.
  */
@@ -273,7 +273,7 @@ export interface Queue {
 }
 
 /**
- * A Queue partial to be shown on the course page. It's like the fulle Queue object but without the questions.
+ * A Queue partial to be shown on the course page. It's like the full Queue object but without the questions.
  * @param id - The unique id number for a Queue.
  * @param room - The full name of the building + room # that the current office hours queue is in.
  * @param staffList - The list of TA user's that are currently helping at office hours.

@@ -238,7 +238,7 @@ const TagGroupSwitchMobile: React.FC<{
 }
 
 const QueueUpToDateInfo: React.FC<{ queueId: number }> = ({ queueId }) => {
-  const [lastUpdated, setLastUpdated] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const { isLive } = useQueue(queueId, setLastUpdated)
   return (
     <div className="mb-0 flex flex-row items-center text-xl text-[#5f6b79] md:mb-5">

@@ -28,12 +28,12 @@ export class QueueSSEService {
 
   // Send event with new questions, but no more than once a second
   updateQuestions = this.throttleUpdate(async (queueId) => {
-    const questions = await this.queueService.getQuestions(queueId);
-    if (questions) {
+    const queueQuestions = await this.queueService.getQuestions(queueId);
+    if (queueQuestions) {
       this.sendToRoom(queueId, async ({ role, userId }) => ({
-        questions: await this.queueService.personalizeQuestions(
+        queueQuestions: await this.queueService.personalizeQuestions(
           queueId,
-          questions,
+          queueQuestions,
           userId,
           role,
         ),

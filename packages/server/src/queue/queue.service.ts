@@ -63,28 +63,28 @@ export class QueueService {
     const unresolvedRephraseQuestionAlerts =
       await this.alertsService.getUnresolvedRephraseQuestionAlert(queueId);
 
-    const questions = new ListQuestionsResponse();
+    const queueQuestions = new ListQuestionsResponse();
 
-    questions.questions = questionsFromDb.filter((question) =>
+    queueQuestions.questions = questionsFromDb.filter((question) =>
       StatusInQueue.includes(question.status as OpenQuestionStatus),
     );
 
-    questions.questionsGettingHelp = questionsFromDb.filter(
+    queueQuestions.questionsGettingHelp = questionsFromDb.filter(
       (question) =>
         question.status === OpenQuestionStatus.Helping && !question.groupId,
     );
 
-    questions.priorityQueue = questionsFromDb.filter((question) =>
+    queueQuestions.priorityQueue = questionsFromDb.filter((question) =>
       StatusInPriorityQueue.includes(question.status as OpenQuestionStatus),
     );
 
-    questions.groups = [];
+    queueQuestions.groups = [];
 
-    questions.unresolvedAlerts = unresolvedRephraseQuestionAlerts.map(
+    queueQuestions.unresolvedAlerts = unresolvedRephraseQuestionAlerts.map(
       (alert) => alert.payload,
     );
 
-    questions.questions = questions.questions.map((question) => {
+    queueQuestions.questions = queueQuestions.questions.map((question) => {
       const temp = pick(question, [
         'id',
         'queueId',
@@ -113,22 +113,22 @@ export class QueueService {
 
       return temp as Question;
     });
-    return questions;
+    return queueQuestions;
   }
 
   /** Hide sensitive data to other students */
   // TODO: remove this function since it gives no new information for the client (like the client already has their own name and pfp and their own questions, so why are we attaching those things together here on the server?)
   async personalizeQuestions(
     queueId: number,
-    questions: ListQuestionsResponse,
+    queueQuestions: ListQuestionsResponse,
     userId: number,
     role: Role,
   ): Promise<ListQuestionsResponse> {
     if (role === Role.STUDENT) {
       const newLQR = new ListQuestionsResponse();
-      Object.assign(newLQR, questions);
+      Object.assign(newLQR, queueQuestions);
 
-      newLQR.questions = questions.questions.map((question) => {
+      newLQR.questions = queueQuestions.questions.map((question) => {
         const creator =
           question.creator.id === userId
             ? question.creator
@@ -139,7 +139,7 @@ export class QueueService {
         );
       });
 
-      newLQR.questionsGettingHelp = questions.questionsGettingHelp.map(
+      newLQR.questionsGettingHelp = queueQuestions.questionsGettingHelp.map(
         (question) => {
           const creator =
             question.creator.id === userId
@@ -194,7 +194,7 @@ export class QueueService {
       }
       return newLQR;
     }
-    return questions;
+    return queueQuestions;
   }
 
   async updateQueueConfigAndTags(

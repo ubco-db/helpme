@@ -78,7 +78,7 @@ describe('QueueService', () => {
       expect(statuses).toEqual({
         priorityQueue: ['PriorityQueued'],
         questionsGettingHelp: ['Helping'],
-        queue: ['Queued', 'Drafting'],
+        questions: ['Queued', 'Drafting'],
         groups: [],
         unresolvedAlerts: [],
       });
