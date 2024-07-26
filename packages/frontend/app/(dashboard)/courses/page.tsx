@@ -6,7 +6,7 @@ import { Button, Empty } from 'antd'
 import { OrganizationRole } from '@/app/typings/user'
 import { useUserInfo } from '@/app/contexts/userContext'
 import CoursesSection from '../components/coursesSection'
-import OrganizationCard from '../components/OrganizationCard'
+import OrganizationCard from '../components/organizationCard'
 
 export default function CoursesPage(): ReactElement {
   const { userInfo } = useUserInfo()

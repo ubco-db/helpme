@@ -14,9 +14,8 @@ interface TAStatusListProps {
  */
 const TAStatusList: React.FC<TAStatusListProps> = ({ queueId }) => {
   const { queueQuestions } = useQuestions(queueId)
-  const {
-    queue: { staffList },
-  } = useQueue(queueId)
+  const { queue } = useQueue(queueId)
+  const staffList = queue?.staffList ?? []
   if (!queueQuestions) {
     return null
   }
@@ -49,8 +48,8 @@ const TAStatusList: React.FC<TAStatusListProps> = ({ queueId }) => {
 }
 
 interface StatusCardProps {
-  taName: string
-  taPhotoURL: string
+  taName?: string
+  taPhotoURL?: string
   studentName?: string
   helpedAt?: Date
   grouped?: boolean

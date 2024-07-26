@@ -25,6 +25,7 @@ import {
 } from '../../../components/QueueInfoColumnButton'
 import RenderEvery from '@/app/components/RenderEvery'
 import TAStatusList from './TAStatusList'
+import TagGroupSwitch from './TagGroupSwitch'
 
 interface QueueInfoColumnProps {
   queueId: number
@@ -183,9 +184,10 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
               queue?.config?.fifo_queue_view_enabled === false ||
               queue?.config?.tag_groups_queue_view_enabled === false
             ) ? (
-              <TagGroupSwitchMobile
+              <TagGroupSwitch
                 tagGroupsEnabled={tagGroupsEnabled}
                 setTagGroupsEnabled={setTagGroupsEnabled}
+                mobile={true}
                 className="ml-1"
               />
             ) : null}
@@ -197,9 +199,10 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
             queue?.config?.fifo_queue_view_enabled === false ||
             queue?.config?.tag_groups_queue_view_enabled === false
           ) ? (
-            <TagGroupSwitchMobile
+            <TagGroupSwitch
               tagGroupsEnabled={tagGroupsEnabled}
               setTagGroupsEnabled={setTagGroupsEnabled}
+              mobile={true}
             />
           ) : null}
         </div>
@@ -207,33 +210,6 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
         {!isStaff && !hasDemos && buttons}
       </div>
     </div>
-  )
-}
-
-// Note: if you're looking to modify this, there is also a switch in Queue.tsx that will need changing
-const TagGroupSwitchMobile: React.FC<{
-  tagGroupsEnabled: boolean
-  setTagGroupsEnabled: (tagGroupsEnabled: boolean) => void
-  className?: string
-}> = ({ tagGroupsEnabled, setTagGroupsEnabled, className }) => {
-  return (
-    <Switch
-      className={'sm:hidden ' + className} // only show on mobile (sizes greater than sm)
-      defaultChecked={tagGroupsEnabled}
-      onChange={() => {
-        setTimeout(() => {
-          // do a timeout to allow the animation to play
-          setTagGroupsEnabled(!tagGroupsEnabled)
-        }, 200)
-      }}
-      checkedChildren={
-        <div className="flex min-h-[12px] flex-col items-center justify-center">
-          <div className="mb-[2px] min-h-[5px] w-full rounded-[1px] border border-gray-300" />
-          <div className="min-h-[5px] w-full rounded-[1px] border border-gray-300" />
-        </div>
-      }
-      unCheckedChildren={<MenuOutlined />}
-    />
   )
 }
 
