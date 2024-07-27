@@ -3,6 +3,7 @@ import { Table, Radio, Button, Modal, Input, Form, message } from 'antd'
 import { useProfile } from '../../hooks/useProfile'
 import EditDocumentModal from './EditChatbotDocumentModal'
 import axios from 'axios'
+import { head } from 'lodash'
 
 interface ChatbotDocumentsProps {
   courseId: number
@@ -21,6 +22,43 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
   useEffect(() => {
     fetchDocuments()
   }, [addModelOpen, courseId])
+
+  const addDocument = async (values) => {
+    try {
+      const metadata = {
+        name: 'Manually Inserted Information',
+        type: 'inserted_document',
+        content: values.content,
+        courseId: courseId,
+      }
+
+      if (values.pageNumber) {
+        metadata['loc'] = { pageNumber: values.pageNumber }
+      }
+      if (values.source) {
+        metadata['source'] = values.source
+      }
+      const response = await axios.post(
+        `/chat/${courseId}/documentChunk`,
+        {
+          documentText: values.content,
+          metadata: metadata,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            HMS_API_TOKEN: profile.chat_token.token,
+          },
+        },
+      )
+      if (response.status !== 200) {
+        throw new Error('Network response was not ok')
+      }
+      message.success('Document added successfully.')
+    } catch (e) {
+      message.error('Failed to add document.')
+    }
+  }
 
   const fetchDocuments = async () => {
     try {
@@ -70,23 +108,6 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
         </div>
       ),
     },
-    // {
-    //   title: 'Edited Chunk',
-    //   dataIndex: ['pageContent'],
-    //   key: 'editedChunk',
-    //   width: 300,
-    //   render: (text) => (
-    //     <div
-    //       style={{
-    //         maxHeight: '150px',
-    //         overflow: 'auto',
-    //         whiteSpace: 'pre-wrap',
-    //       }}
-    //     >
-    //       {text}
-    //     </div>
-    //   ),
-    // },
     {
       title: 'Page Number',
       dataIndex: ['metadata', 'loc', 'pageNumber'],
@@ -194,15 +215,6 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
           </div>
           <div className="mt-4">
             <Form.Item
-              label="Document Name"
-              name="documentName"
-              rules={[
-                { required: true, message: 'Please input a document name!' },
-              ]}
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item
               label="Content"
               name="content"
               rules={[
@@ -265,8 +277,4 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
       )}
     </div>
   )
-}
-
-const addDocument = async (values) => {
-  // Add documents
 }
