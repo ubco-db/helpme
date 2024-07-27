@@ -44,7 +44,7 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
             await API.taStatus.checkOut(courseId, room)
             mutateCourse()
           }}
-          className={`mb-3 flex items-center justify-center rounded-md text-sm font-semibold text-red-600 sm:mb-0 ${className}`}
+          className={`mb-3 flex items-center justify-center rounded-md text-sm font-semibold text-red-600 disabled:text-gray-400 md:mb-0 ${className}`}
           icon={<LogoutOutlined />}
         >
           Check Out
@@ -60,7 +60,7 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
             checkInTA(courseId, room, mutateCourse, router)
           }}
           disabled={disabled || !course}
-          className={`mb-3 flex items-center justify-center rounded-md bg-[#1890ff] text-sm font-semibold text-white sm:mb-0 ${className}`}
+          className={`mb-3 flex items-center justify-center rounded-md bg-[#1890ff] text-sm font-semibold text-white disabled:bg-opacity-30 disabled:text-gray-400 md:mb-0 ${className}`}
           icon={<LoginOutlined />}
         >
           Check In

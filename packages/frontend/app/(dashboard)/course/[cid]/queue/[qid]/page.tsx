@@ -576,21 +576,31 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             <>
               <Tooltip
                 title={
-                  queue.isDisabled && 'Cannot check into a disabled queue!'
+                  (queue.isDisabled && 'Cannot check into a disabled queue!') ||
+                  (staffCheckedIntoAnotherQueue &&
+                    'You are already checked into another queue') ||
+                  (helpingQuestions &&
+                    helpingQuestions.length > 0 &&
+                    'You cannot check out while helping a student') ||
+                  (queue.isProfessorQueue &&
+                    role !== Role.PROFESSOR &&
+                    'Only professors can check into this queue')
                 }
               >
-                <TACheckinButton
-                  courseId={cid}
-                  room={queue.room}
-                  disabled={
-                    staffCheckedIntoAnotherQueue ||
-                    (helpingQuestions && helpingQuestions.length > 0) ||
-                    (queue.isProfessorQueue && role !== Role.PROFESSOR) ||
-                    queue.isDisabled
-                  }
-                  state={isUserCheckedIn ? 'CheckedIn' : 'CheckedOut'}
-                  className="w-1/3 md:mb-3 md:w-full"
-                />
+                <span>
+                  <TACheckinButton
+                    courseId={cid}
+                    room={queue.room}
+                    disabled={
+                      staffCheckedIntoAnotherQueue ||
+                      (helpingQuestions && helpingQuestions.length > 0) ||
+                      (queue.isProfessorQueue && role !== Role.PROFESSOR) ||
+                      queue.isDisabled
+                    }
+                    state={isUserCheckedIn ? 'CheckedIn' : 'CheckedOut'}
+                    className="w-1/3 md:mb-3 md:w-full"
+                  />
+                </span>
               </Tooltip>
               <EditQueueButton
                 onClick={() => setQueueSettingsModal(true)}
