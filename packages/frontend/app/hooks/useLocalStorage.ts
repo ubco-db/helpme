@@ -4,8 +4,12 @@ const isWindow = typeof window !== 'undefined'
 
 export function useLocalStorage<T>(
   key: string,
-  initialValue: T,
-): [T, Dispatch<SetStateAction<T>>, Dispatch<SetStateAction<void>>] {
+  initialValue: T | null,
+): [
+  T | null,
+  Dispatch<SetStateAction<T | null>>,
+  Dispatch<SetStateAction<void>>,
+] {
   const [storedValue, setStoredValue] = useState<T | null>(() => {
     try {
       const item = isWindow && window.localStorage.getItem(key)
@@ -16,7 +20,7 @@ export function useLocalStorage<T>(
     }
   })
 
-  const setValue = (value: T) => {
+  const setValue: Dispatch<SetStateAction<T | null>> = (value) => {
     try {
       const valueToStore =
         value instanceof Function ? value(storedValue) : value

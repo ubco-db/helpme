@@ -3,7 +3,7 @@ import { Button } from 'antd'
 import Modal from 'antd/lib/modal/Modal'
 
 type StudentRemovedFromQueueModalProps = {
-  question: Question
+  question: Question | undefined
   leaveQueue: () => void
   joinQueue: () => void
 }

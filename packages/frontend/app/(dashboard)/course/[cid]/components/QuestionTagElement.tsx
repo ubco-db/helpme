@@ -112,7 +112,7 @@ export function CheckableQuestionTag({
       style={{
         backgroundColor: checked ? tagColor : undefined,
         borderRadius: '15px',
-        padding: '0px 7px',
+        padding: '4px 9px',
         margin: '2px',
         display: 'inline-block',
         cursor: 'pointer',
@@ -140,8 +140,8 @@ export function CheckableQuestionTag({
 
 interface QuestionTagSelectorProps {
   questionTags: QuestionType[]
-  onChange: (newSelectedTags: number[]) => void
-  value: number[]
+  onChange?: (newSelectedTags: number[]) => void
+  value?: number[]
   className?: string
   ariaLabel?: string
   ariaLabelledBy?: string
@@ -163,7 +163,9 @@ export function QuestionTagSelector({
       : selectedTags.filter((id) => id !== tagID)
 
     setSelectedTags(newSelectedTags)
-    onChange(newSelectedTags)
+    if (onChange) {
+      onChange(newSelectedTags)
+    }
   }
 
   return (

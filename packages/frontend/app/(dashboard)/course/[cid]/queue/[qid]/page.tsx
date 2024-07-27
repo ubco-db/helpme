@@ -78,6 +78,9 @@ import TACheckinButton from '../../components/TACheckinButton'
 import { API } from '@/app/api'
 import TagGroupSwitch from './components/TagGroupSwitch'
 import QueueQuestions from './components/QueueQuestions'
+import { useRouter } from 'next/navigation'
+import CreateQuestionModal from './components/modals/CreateQuestionModal'
+import StudentRemovedFromQueueModal from './components/modals/StudentRemovedFromQueueModal'
 
 const Panel = Collapse.Panel
 
@@ -88,6 +91,7 @@ type QueuePageProps = {
 export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const cid = Number(params.cid)
   const qid = Number(params.qid)
+  const router = useRouter()
   const { queue } = useQueue(qid)
   const isQueueOnline = queue?.room.startsWith('Online')
   const { queueQuestions, mutateQuestions } = useQuestions(qid)
@@ -105,7 +109,8 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const isUserCheckedIn = isCheckedIn(queue?.staffList, userInfo.id)
   const [isStaff, setIsStaff] = useState(false)
   const { course } = useCourse(cid)
-  const [popupEditQuestion, setPopupEditQuestion] = useState(false)
+  const [editQuestionModalVisible, setEditQuestionModalVisible] =
+    useState(false)
   const [popupEditDemo, setPopupEditDemo] = useState(false)
   const role = getRoleInCourse(userInfo, cid)
   const [questionTypes] = useQuestionTypes(cid, qid)
@@ -141,7 +146,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const [tagGroupsEnabled, setTagGroupsEnabled] = useState(
     queueConfig?.default_view === 'tag_groups',
   )
-  const [, , deleteDraftQuestion] = useLocalStorage('draftQuestion', null)
+  const [, , deleteStoredDraftQuestion] = useLocalStorage('draftQuestion', null)
   const [isFirstQuestion, setIsFirstQuestion] = useLocalStorage(
     'isFirstQuestion',
     true,
@@ -226,16 +231,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const studentDemoId = studentDemo?.id
   const studentDemoStatus = studentDemo?.status
 
-  // delete draft question if the studentQuestionStatus changes to a ClosedQuestionStatus
-  useEffect(() => {
-    if (
-      studentQuestionStatus &&
-      studentQuestionStatus in ClosedQuestionStatus
-    ) {
-      deleteDraftQuestion()
-    }
-  }, [studentQuestionStatus, deleteDraftQuestion])
-
   const updateQuestionStatus = useCallback(
     async (id: number, status: QuestionStatus) => {
       await API.questions.update(id, { status })
@@ -309,7 +304,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       if (isTaskQuestion) {
         setPopupEditDemo(true)
       } else {
-        setPopupEditQuestion(true)
+        setEditQuestionModalVisible(true)
       }
       mutate(`/api/v1/queues/${qid}/questions`)
     },
@@ -321,7 +316,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       setPopupEditDemo(false)
       setIsJoiningDemo(false)
     } else {
-      setPopupEditQuestion(false)
+      setEditQuestionModalVisible(false)
       setIsJoiningQuestion(false)
     }
   }, [])
@@ -352,7 +347,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               questions: questionsWithNewQuestionAppended,
             })
           }
-          isTaskQuestion ? setPopupEditDemo(true) : setPopupEditQuestion(true)
+          isTaskQuestion
+            ? setPopupEditDemo(true)
+            : setEditQuestionModalVisible(true)
         })
         .catch((e) => {
           if (e.response?.data?.message?.includes(specificErrorMessage)) {
@@ -380,8 +377,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           ClosedQuestionStatus.ConfirmedDeleted,
         )
       } else if (studentQuestionId) {
-        //delete draft when they leave the queue
-        deleteDraftQuestion()
         await updateQuestionStatus(
           studentQuestionId,
           ClosedQuestionStatus.ConfirmedDeleted,
@@ -393,7 +388,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       closeEditQuestionDemoModal,
       updateQuestionStatus,
       studentDemoId,
-      deleteDraftQuestion,
       studentQuestionId,
     ],
   )
@@ -460,7 +454,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   )
 
   const handleFirstQuestionNotification = useCallback(
-    (router: NextRouter, cid: number) => {
+    (cid: number) => {
       if (isFirstQuestion) {
         notification.warning({
           message: 'Enable Notifications',
@@ -555,31 +549,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     // If none of the above conditions are met, the task is valid
     return true
   }
-
-  const finishQuestionOrDemoAndClose = useCallback(
-    (
-      text: string,
-      qt: QuestionTypeParams[],
-      router: NextRouter,
-      cid: number,
-      location: string,
-      isTaskQuestion: boolean,
-      groupable: boolean,
-    ) => {
-      if (!isTaskQuestion) {
-        deleteDraftQuestion()
-      }
-      finishQuestionOrDemo(text, qt, groupable, isTaskQuestion, location)
-      handleFirstQuestionNotification(router, cid)
-      closeEditQuestionDemoModal(isTaskQuestion)
-    },
-    [
-      deleteDraftQuestion,
-      finishQuestionOrDemo,
-      closeEditQuestionDemoModal,
-      handleFirstQuestionNotification,
-    ],
-  )
 
   function RenderQueueInfoCol(): ReactElement {
     const [isJoinQueueModalLoading, setIsJoinQueueModalLoading] =
@@ -793,6 +762,53 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             staffListLength={queue.staffList.length}
           />
         </div>
+        {isStaff ? (
+          <></>
+        ) : (
+          <>
+            <CreateQuestionModal
+              queueId={qid}
+              courseId={cid}
+              open={
+                (!studentQuestion && isJoiningQuestion) ||
+                editQuestionModalVisible
+              }
+              question={studentQuestion}
+              leaveQueue={() => leaveQueue(false)}
+              finishQuestion={(
+                text,
+                questionTypes,
+                location,
+                isTaskQuestion,
+                groupable,
+              ) => {
+                finishQuestionOrDemo(
+                  text,
+                  questionTypes ?? [],
+                  groupable,
+                  isTaskQuestion,
+                  location,
+                )
+                handleFirstQuestionNotification(cid)
+                closeEditQuestionDemoModal(isTaskQuestion)
+              }}
+              position={
+                studentQuestionIndex ? studentQuestionIndex + 1 : undefined
+              }
+              cancel={() => closeEditQuestionDemoModal(false)}
+            />
+            <StudentRemovedFromQueueModal
+              question={studentQuestion}
+              leaveQueue={() => leaveQueue(false)}
+              joinQueue={() => joinQueueAfterDeletion(false)}
+            />
+            <StudentRemovedFromQueueModal
+              question={studentDemo}
+              leaveQueue={() => leaveQueue(true)}
+              joinQueue={() => joinQueueAfterDeletion(true)}
+            />
+          </>
+        )}
         {/* {isStaff ? (
           <>
             <EditQueueModal
@@ -818,19 +834,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           </>
         ) : (
           <>
-            <QuestionForm
-              visible={
-                (questions && !studentQuestion && isJoiningQuestion) ||
-                // && studentQuestion.status !== QuestionStatusKeys.Drafting)
-                popupEditQuestion
-              }
-              question={studentQuestion}
-              leaveQueue={() => leaveQueue(false)}
-              finishQuestion={finishQuestionOrDemoAndClose}
-              position={studentQuestionIndex + 1}
-              cancel={() => closeEditQuestionDemoModal(false)}
-              queueId={qid}
-            />
             {isDemoQueue && (
               <DemoForm
                 configTasks={configTasks}
@@ -856,16 +859,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               visible={studentDemo?.status === LimboQuestionStatus.CantFind}
               leaveQueue={() => leaveQueue(true)}
               rejoinQueue={() => rejoinQueue(true)}
-            />
-            <StudentRemovedFromQueueModal
-              question={studentQuestion}
-              leaveQueue={() => leaveQueue(false)}
-              joinQueue={() => joinQueueAfterDeletion(false)}
-            />
-            <StudentRemovedFromQueueModal
-              question={studentDemo}
-              leaveQueue={() => leaveQueue(true)}
-              joinQueue={() => joinQueueAfterDeletion(true)}
             />
           </>
         )} */}
