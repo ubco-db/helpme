@@ -38,10 +38,16 @@ a {
   text-decoration: none;
 }
 
-.ant-btn-primary {
+.ant-btn.ant-btn-primary {
   border-color: #3684c6;
-  background-color: #3684c6;
-  background: #3684c6 !important;
+  background: #3684c6;
+  color: white
+}
+
+.ant-btn.ant-btn-primary:not(:disabled):not(.ant-btn-disabled):hover,
+.ant-btn.ant-btn-primary:not(:disabled):not(.ant-btn-disabled):focus {
+  background-color: #5fa0d5;
+  border-color: #5fa0d5;
 }
 
 h1 {

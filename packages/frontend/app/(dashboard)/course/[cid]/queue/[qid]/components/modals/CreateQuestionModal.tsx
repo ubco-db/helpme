@@ -104,7 +104,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
               ? storedDraftQuestion?.location
               : question?.location,
           }}
-          onValuesChange={(values) => {
+          onValuesChange={(changedValues, values) => {
             setStoredDraftQuestion(values)
           }}
           clearOnDestroy

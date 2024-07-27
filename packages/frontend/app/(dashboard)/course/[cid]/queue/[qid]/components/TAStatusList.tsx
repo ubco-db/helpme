@@ -100,6 +100,11 @@ interface HelpingForProps {
   helpedAt: Date
 }
 const HelpingFor: React.FC<HelpingForProps> = ({ studentName, helpedAt }) => {
+  // A dirty fix until we can get the serializer working properly again (i renamed `questions` in SSEQueueResponse to `queueQuestions` and renamed `queue` in ListQuestionsResponse to `questions` and stuff broke for some reason)
+  let tempDate = helpedAt
+  if (typeof helpedAt === 'string') {
+    tempDate = new Date(Date.parse(helpedAt))
+  }
   return (
     <RenderEvery
       render={() => (
@@ -108,7 +113,7 @@ const HelpingFor: React.FC<HelpingForProps> = ({ studentName, helpedAt }) => {
           <span className="text-blue-400">{studentName ?? 'a student'}</span>{' '}
           for{' '}
           <span className="text-blue-400">
-            {formatWaitTime((Date.now() - helpedAt.getTime()) / 60000)}
+            {formatWaitTime((Date.now() - tempDate.getTime()) / 60000)}
           </span>
         </span>
       )}

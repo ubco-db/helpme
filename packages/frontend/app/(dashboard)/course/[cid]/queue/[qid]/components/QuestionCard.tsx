@@ -62,7 +62,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
         )}
         <Col flex="1 1">
           {question.status === 'Drafting' ? (
-            <div className="text-xl text-gray-400">
+            <div className="text-base text-gray-400">
               {question.isTaskQuestion
                 ? 'Unfinished Demo'
                 : 'Unfinished Question'}

@@ -15,19 +15,22 @@ const CircleButton: React.FC<CircleButtonProps> = ({
   <Button
     size="large"
     shape="circle"
+    danger={variant === 'red'}
+    type={variant === 'primary' ? 'primary' : 'default'}
     disabled={disabled}
     className={cn(
       'ml-2 mt-[0.35rem] md:ml-3',
       disabled && 'pointer-events-none bg-opacity-40',
-      variant === 'default' && 'border-none bg-white text-black',
+      variant === 'default' &&
+        'border bg-white text-black hover:bg-gray-100 focus:bg-gray-100',
       variant === 'primary' &&
         'bg-[#3684c6] text-white hover:bg-[#3c93dd] focus:bg-[#3c93dd]',
       variant === 'red' &&
         'bg-[#e26567] text-white hover:bg-[#fc7f81] focus:bg-[#fc7f81]',
       variant === 'orange' &&
-        'bg-[#ff8c00] text-white hover:bg-[#ffa700] focus:bg-[#ffa700]',
+        'bg-[#ff8c00] text-white hover:border-orange-400 hover:bg-[#ffa700] focus:bg-[#ffa700]',
       variant === 'green' &&
-        'bg-[#66bb6a] text-white hover:bg-[#82c985] focus:bg-[#82c985]',
+        'bg-[#66bb6a] text-white hover:border-green-500 hover:bg-[#82c985] focus:bg-[#82c985]',
       className,
     )}
     {...props}

@@ -1,3 +1,5 @@
+'use client'
+
 import { Collapse, Divider } from 'antd'
 import QueueHeader from './QueueHeader'
 import TagGroupSwitch from './TagGroupSwitch'

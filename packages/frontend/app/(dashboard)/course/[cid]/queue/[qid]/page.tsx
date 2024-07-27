@@ -81,6 +81,7 @@ import QueueQuestions from './components/QueueQuestions'
 import { useRouter } from 'next/navigation'
 import CreateQuestionModal from './components/modals/CreateQuestionModal'
 import StudentRemovedFromQueueModal from './components/modals/StudentRemovedFromQueueModal'
+import StudentBanner from './components/StudentBanner'
 
 const Panel = Collapse.Panel
 
@@ -638,7 +639,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 <div>
                   <JoinQueueButton
                     id="join-queue-button"
-                    type="primary"
                     disabled={
                       !queue?.allowQuestions ||
                       queue?.isDisabled ||
@@ -666,7 +666,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   <div>
                     <JoinQueueButton
                       id="join-queue-button-demo"
-                      type="primary"
                       disabled={
                         !queue?.allowQuestions ||
                         queue?.isDisabled ||
@@ -723,20 +722,18 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 )
               })}
             </>
-          ) : // ) : !isStaff ? (
-          //   <>
-          //     <StudentBanner
-          //       queueId={qid}
-          //       editQuestion={() => openEditQuestionDemoModal(false)}
-          //       editDemo={() => openEditQuestionDemoModal(true)}
-          //       leaveQueueQuestion={() => leaveQueue(false)}
-          //       leaveQueueDemo={() => leaveQueue(true)}
-          //       configTasks={configTasks}
-          //       zoomLink={course?.zoomLink}
-          //       isQueueOnline={isQueueOnline}
-          //     />
-          //   </>
-          null}
+          ) : !isStaff ? (
+            <StudentBanner
+              queueId={qid}
+              editQuestion={() => openEditQuestionDemoModal(false)}
+              editDemo={() => openEditQuestionDemoModal(true)}
+              leaveQueueQuestion={() => leaveQueue(false)}
+              leaveQueueDemo={() => leaveQueue(true)}
+              configTasks={configTasks}
+              zoomLink={course?.zoomLink}
+              isQueueOnline={isQueueOnline}
+            />
+          ) : null}
           <QueueQuestions
             questions={queueQuestions.questions}
             cid={cid}

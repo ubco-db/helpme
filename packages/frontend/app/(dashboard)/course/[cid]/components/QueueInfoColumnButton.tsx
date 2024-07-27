@@ -6,8 +6,9 @@ const JoinQueueButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
 > = (props) => (
   <QueueInfoColumnButton
+    className={`${props.className}`}
+    type="primary"
     {...props}
-    className={`bg-[#3684c6] text-white enabled:hover:bg-blue-400 enabled:focus:bg-blue-400 ${props.className}`}
   />
 )
 
@@ -15,8 +16,8 @@ const EditQueueButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
 > = (props) => (
   <QueueInfoColumnButton
-    {...props}
     className={`text-gray-900 enabled:hover:bg-gray-100 enabled:focus:bg-gray-100 ${props.className}`}
+    {...props}
   />
 )
 
@@ -24,8 +25,8 @@ const DisableQueueButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
 > = (props) => (
   <QueueInfoColumnButton
-    {...props}
     className={`bg-red-600 text-white hover:bg-red-500 focus:bg-red-500 ${props.className}`}
+    {...props}
   />
 )
 
@@ -33,8 +34,8 @@ const ClearQueueButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
 > = (props) => (
   <QueueInfoColumnButton
-    {...props}
     className={`border border-red-600 bg-white text-red-600 hover:bg-gray-100 focus:bg-gray-100 ${props.className}`}
+    {...props}
   />
 )
 
