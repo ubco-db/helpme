@@ -7,10 +7,11 @@ import {
   OrganizationCourseResponse,
   User,
 } from '@koh/common'
-import { Card, Spin } from 'antd'
+import { Card, message, Spin } from 'antd'
 import { useEffect, useState } from 'react'
 import EditCourseForm from './EditCourseForm'
 import ArchiveCourse from './ArchiveCourse'
+import { useRouter } from 'next/navigation'
 
 type EditCourseProps = {
   courseId: number
@@ -24,10 +25,22 @@ const EditCourse: React.FC<EditCourseProps> = ({
   user,
 }) => {
   const [courseData, setCourseData] = useState<OrganizationCourseResponse>()
+  const router = useRouter()
 
   const fetchCourseData = async () => {
-    const response: OrganizationCourseResponse =
-      await API.organizations.getCourse(organization.id, courseId)
+    const response: OrganizationCourseResponse | null = await API.organizations
+      .getCourse(organization.id, courseId)
+      .catch((error) => {
+        message.error(error.response.data.message)
+
+        setTimeout(() => {
+          router.back()
+        }, 1_500)
+        return null
+      })
+
+    if (!response) return
+
     setCourseData(response)
   }
 

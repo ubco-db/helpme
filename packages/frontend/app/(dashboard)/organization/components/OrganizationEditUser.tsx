@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
-import { Card, Spin } from 'antd'
+import { Card, message, Spin } from 'antd'
 import OrganizationEditUserGeneralForm from './OrganizationEditUserGeneralForm'
 import {
   GetOrganizationResponse,
@@ -11,6 +11,7 @@ import OrganizationEditUserCoursesForm from './OrganizationEditUserCoursesForm'
 import { API } from '@/app/api'
 import { useEffect, useState } from 'react'
 import OrganizationEditUserDangerZoneForm from './OrganizationEditUserDangerZoneForm'
+import { useRouter } from 'next/navigation'
 
 type OrganizationEditUserProps = {
   userId: number
@@ -22,9 +23,10 @@ const OrganizationEditUser: React.FC<OrganizationEditUserProps> = ({
   organization,
 }) => {
   const [userData, setUserData] = useState<GetOrganizationUserResponse>()
+  const router = useRouter()
 
   const fetchUserData = async () => {
-    const response: GetOrganizationUserResponse = await API.organizations
+    const response: GetOrganizationUserResponse | null = await API.organizations
       .getUser(organization.id, userId)
       .then((userInfo) => {
         userInfo.courses = userInfo?.courses.map((course) => {
@@ -35,6 +37,16 @@ const OrganizationEditUser: React.FC<OrganizationEditUserProps> = ({
         })
         return userInfo
       })
+      .catch((error) => {
+        message.error(error.response.data.message)
+
+        setTimeout(() => {
+          router.back()
+        }, 1_500)
+        return null
+      })
+
+    if (!response) return
 
     setUserData(response)
   }
