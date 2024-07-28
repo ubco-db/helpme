@@ -116,7 +116,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="container mx-auto h-auto w-1/2 pt-20 text-center">
+      <div className="xlg:w-1/2 container mx-auto h-auto w-full pt-20 text-center md:w-1/2 lg:w-1/2 ">
         <Card className="mx-auto max-w-md sm:px-2 md:px-6">
           <h2 className="my-4 text-left">Login</h2>
 

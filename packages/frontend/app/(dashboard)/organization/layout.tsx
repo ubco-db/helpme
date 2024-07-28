@@ -31,7 +31,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className="mt-8">
+    <div className="mt-2">
       <h2>My Organization</h2>
       <div className="mt-5 gap-8 sm:flex lg:grid lg:grid-cols-10">
         <div className="lg:col-span-2">

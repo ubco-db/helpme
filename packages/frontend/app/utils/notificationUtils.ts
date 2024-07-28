@@ -1,6 +1,6 @@
-import { API } from '@koh/api-client'
 import { DesktopNotifBody } from '@koh/common'
 import platform from 'platform'
+import { API } from '../api'
 
 const doesBrowserSupportNotifications = () =>
   'serviceWorker' in window.navigator && 'PushManager' in window

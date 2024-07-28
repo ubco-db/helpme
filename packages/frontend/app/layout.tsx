@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   title: 'HelpMe',
   description:
     'HelpMe is a platform to help you find course help when you need it.',
+  viewport: 'width=device-width, initial-scale=1',
 }
 
 export default function RootLayout({
@@ -21,17 +22,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <>
-      <html lang="en" id="html">
-        <body
-          className={cn(
-            'bg-background min-h-screen font-sans antialiased',
-            interFontSans.variable,
-          )}
-        >
-          <AntdRegistry>{children}</AntdRegistry>
-        </body>
-      </html>
-    </>
+    <html lang="en" id="html">
+      <body
+        className={cn(
+          'bg-background min-h-screen font-sans antialiased',
+          interFontSans.variable,
+        )}
+      >
+        <AntdRegistry>{children}</AntdRegistry>
+      </body>
+    </html>
   )
 }

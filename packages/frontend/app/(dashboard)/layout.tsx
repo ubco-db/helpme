@@ -52,7 +52,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </StandardPageContainer>
       </header>
       {/* the main content of the page takes up 100% - the height of the header bar */}
-      <main className="flex h-[calc(100%-3rem)] flex-1 flex-wrap">
+      <main className="flex flex-1 flex-wrap">
         {pathname === '/courses' && (
           <img
             src={`/api/v1/organization/${profile.organization.orgId}/get_banner/${profile.organization.organizationBannerUrl}`}
