@@ -144,10 +144,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
             arrow={{ pointAtCenter: true }}
             onConfirm={() => clearQueue(queueId, queue)}
           >
-            <ClearQueueButton
-              icon={<ClearOutlined />}
-              className="hidden sm:flex"
-            >
+            <ClearQueueButton icon={<ClearOutlined />}>
               Clear Queue
             </ClearQueueButton>
           </Popconfirm>

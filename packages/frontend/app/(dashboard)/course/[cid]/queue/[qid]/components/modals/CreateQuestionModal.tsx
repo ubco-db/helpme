@@ -54,7 +54,6 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
     const newQuestionTypeInput = questionTypes?.filter((questionType) =>
       values.questionTypesInput.includes(questionType.id),
     )
-    console.log('values', values)
 
     finishQuestion(
       values.questionText,

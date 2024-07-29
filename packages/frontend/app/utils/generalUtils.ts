@@ -74,6 +74,28 @@ export function nameToRGB(
 }
 
 /**
+ * Convert a string to a hex color
+ * @param str {string} The string to convert
+ * @returns {string} The hex color
+ */
+export default function stringToHexColor(str: string): string {
+  // Create a hash from the string
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+
+  // Convert the hash to a hex string
+  let color = '#'
+  for (let i = 0; i < 3; i++) {
+    const value = (hash >> (i * 8)) & 0xff
+    color += `0${value.toString(16)}`.slice(-2)
+  }
+
+  return color
+}
+
+/**
  * Returns the role of the user in the course.
  */
 export function getRoleInCourse(userInfo: User, courseId: number): Role {
@@ -89,5 +111,23 @@ export function getRoleInCourse(userInfo: User, courseId: number): Role {
  * @returns an error message (or object)
  */
 export function getErrorMessage(e: any): any {
-  return e.response?.data?.message ?? e.body?.message ?? e.message
+  return (
+    e.response?.data?.message ??
+    e.response?.data ??
+    e.body?.message ??
+    e.message
+  )
+}
+
+/**
+ * Gets the brightness of a color
+ * @param color The color in hex
+ * @returns a number between 0 and 255 representing the brightness of the color
+ */
+export function getBrightness(color: string): number {
+  const rgb = parseInt(color.slice(1), 16)
+  const r = (rgb >> 16) & 0xff
+  const g = (rgb >> 8) & 0xff
+  const b = (rgb >> 0) & 0xff
+  return (r * 299 + g * 587 + b * 114) / 1000
 }

@@ -62,7 +62,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             height={100}
           />
         )}
-        <StandardPageContainer>{children}</StandardPageContainer>
+        <StandardPageContainer className="h-full">
+          {children}
+        </StandardPageContainer>
       </main>
     </UserInfoProvider>
   )

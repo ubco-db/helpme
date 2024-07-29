@@ -20,7 +20,7 @@ export default function CoursesPage(): ReactElement {
       <OrganizationCard>
         <img
           src={`/api/v1/organization/${userInfo?.organization?.orgId}/get_logo/${userInfo?.organization?.organizationLogoUrl}`}
-          className="h-15 object-contain object-center"
+          className="h-15 object-contain object-center p-1"
           alt="Organization Logo"
           width={100}
           height={100}
