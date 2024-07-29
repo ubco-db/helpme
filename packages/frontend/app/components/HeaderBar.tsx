@@ -27,6 +27,7 @@ import {
   CalendarDays,
   LineChart,
   MenuIcon,
+  MessageCircleQuestion,
   Settings,
   Undo2,
   UsersRound,
@@ -205,6 +206,12 @@ const NavBar = ({
                   ))}
                 </ul>
               </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <Link href={`/course/${courseId}/async_questions`}>
+                <MessageCircleQuestion strokeWidth={1.5} className="mr-3" />
+                Anytime Qs
+              </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <Link href={`/course/${courseId}/schedule`}>

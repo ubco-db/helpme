@@ -17,8 +17,8 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
 }): ReactElement => {
   return (
     <Link
-      href={`/course/${cid}/async_question`}
-      aria-label="Async Question Centre"
+      href={`/course/${cid}/async_questions`}
+      aria-label="Anytime Question Hub"
       id={linkId}
     >
       <Card
@@ -28,7 +28,7 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
           borderRadius: '6px 6px 0 0',
         }}
         className={`${styles.asyncCentreCard} open-queue-card my-4`}
-        title="Async Question Centre"
+        title="Anytime Question Hub"
         extra={<RightOutlined className=" text-3xl text-gray-100" />}
       >
         <div className="flex items-center justify-between">
