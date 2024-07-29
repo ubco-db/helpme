@@ -74,10 +74,10 @@ const ChatbotParameter: React.FC<ChatbotParameterProps> = ({
   }, [courseId, profile?.chat_token.token, form])
 
   useEffect(() => {
-    if (visible) {
+    if (visible && courseId) {
       fetchChatbotSettings()
     }
-  }, [visible, fetchChatbotSettings])
+  }, [visible, courseId, fetchChatbotSettings])
 
   const handleUpdate = async (values: any) => {
     const updateData = {

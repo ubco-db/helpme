@@ -60,7 +60,7 @@ export default function AddQuestionModal({
 
   return (
     <Modal
-      title="Create a new question for your students!"
+      title="Create QA pair"
       visible={visible}
       onCancel={onClose}
       footer={[

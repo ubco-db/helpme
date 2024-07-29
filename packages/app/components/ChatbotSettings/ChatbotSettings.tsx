@@ -37,14 +37,13 @@ export interface ChatbotDocumentResponse {
 }
 
 interface ChatbotPanelProps {
-  cid: number
+  courseId: number
 }
 export default function ChatbotSettings({
-  cid,
+  courseId,
 }: ChatbotPanelProps): ReactElement {
   const [form] = Form.useForm()
   const profile = useProfile()
-  const courseId = useRouter().query.cid
   const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =
     useState(false)
   const [addDocumentModalOpen, setAddDocumentModalOpen] = useState(false)
@@ -81,7 +80,7 @@ export default function ChatbotSettings({
 
   useEffect(() => {
     getDocuments()
-  }, [cid])
+  }, [courseId])
 
   useEffect(() => {
     filterDocuments()
@@ -178,7 +177,6 @@ export default function ChatbotSettings({
           HMS_API_TOKEN: profile?.chat_token.token,
         },
       })
-      console.log(response)
       const formattedDocuments = response.data.map((doc) => ({
         key: doc.id,
         docId: doc.id,
@@ -211,7 +209,7 @@ export default function ChatbotSettings({
         url: url,
       }
 
-      const response = await fetch(`/chat/${cid}/document/url/github`, {
+      const response = await fetch(`/chat/${courseId}/document/url/github`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -250,7 +248,7 @@ export default function ChatbotSettings({
           new Blob([JSON.stringify(jsonData)], { type: 'application/json' }),
         )
 
-        const response = await fetch(`/chat/${cid}/document`, {
+        const response = await fetch(`/chat/${courseId}/document`, {
           method: 'POST',
           body: formData,
           headers: { HMS_API_TOKEN: profile.chat_token.token },
@@ -271,16 +269,19 @@ export default function ChatbotSettings({
   const handleDeleteDocument = async (record: any) => {
     setLoading(true)
     try {
-      const response = await fetch(`/chat/${cid}/${record.docId}/document`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          HMS_API_TOKEN: profile.chat_token.token,
+      const response = await fetch(
+        `/chat/${courseId}/${record.docId}/document`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            HMS_API_TOKEN: profile.chat_token.token,
+          },
         },
-      })
+      )
 
       if (!response.ok) {
-        throw new Error(`Failed to upload ${file.name}`)
+        throw new Error(`Failed to upload ${File.name}`)
       }
 
       toast.success('Document deleted.')
@@ -490,7 +491,7 @@ export default function ChatbotSettings({
         <ChatbotParameter
           visible={chatbotParameterModalOpen}
           onClose={() => setChatbotParameterModalOpen(false)}
-          courseId={Number(cid)}
+          courseId={Number(courseId)}
         />
       )}
     </div>
