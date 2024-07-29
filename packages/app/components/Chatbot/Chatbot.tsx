@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { Input, Button, Card, Avatar, Spin, Tooltip, message } from 'antd'
-import { CheckCircleOutlined } from '@ant-design/icons'
+import {
+  CheckCircleOutlined,
+  UserOutlined,
+  RobotOutlined,
+} from '@ant-design/icons'
 import styled from 'styled-components'
 import { API } from '@koh/api-client'
-import { UserOutlined, RobotOutlined } from '@ant-design/icons'
 import router from 'next/router'
 import { useProfile } from '../../hooks/useProfile'
 import axios from 'axios'
@@ -15,13 +18,14 @@ const ChatbotContainer = styled.div`
   right: 20px;
   width: 100vw;
   max-width: 400px;
-  zindex: 9999;
+  z-index: 9999;
 `
 
 export interface SourceDocument {
   docName: string
   sourceLink: string
   pageNumbers: number[]
+  metadata?: { type?: string }
 }
 
 interface PreDeterminedQuestion {
@@ -47,7 +51,6 @@ export const ChatbotComponent: React.FC = () => {
     PreDeterminedQuestion[]
   >([])
   const [questionsLeft, setQuestionsLeft] = useState<number>(0)
-
   const [messages, setMessages] = useState<Message[]>([
     {
       type: 'apiMessage',
@@ -55,10 +58,10 @@ export const ChatbotComponent: React.FC = () => {
         'Hello, how can I assist you? I can help with anything course related.',
     },
   ])
-
   const courseFeatures = useCourseFeatures(Number(cid))
-
   const [isOpen, setIsOpen] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const hasAskedQuestion = useRef(false) // to track if the user has asked a question
 
   useEffect(() => {
     axios
@@ -72,6 +75,8 @@ export const ChatbotComponent: React.FC = () => {
             {
               question: question.pageContent,
               answer: question.metadata.answer,
+              sourceDocuments: question.metadata.sourceDocuments,
+              verified: question.metadata.verified,
             },
           ])
         })
@@ -115,6 +120,10 @@ export const ChatbotComponent: React.FC = () => {
   }
 
   const handleAsk = async () => {
+    if (!hasAskedQuestion.current) {
+      hasAskedQuestion.current = true
+      setPreDeterminedQuestions([]) // clear predetermined questions upon the first question
+    }
     setIsLoading(true)
 
     const result = await query()
@@ -127,8 +136,8 @@ export const ChatbotComponent: React.FC = () => {
     const answer = result ? result.answer : "Sorry, I couldn't find the answer"
     const sourceDocuments = result ? result.sourceDocuments : []
 
-    setMessages([
-      ...messages,
+    setMessages((prevMessages) => [
+      ...prevMessages,
       { type: 'userMessage', message: input },
       {
         type: 'apiMessage',
@@ -144,8 +153,8 @@ export const ChatbotComponent: React.FC = () => {
   }
 
   const answerPreDeterminedQuestion = (question: string, answer: string) => {
-    setMessages([
-      ...messages,
+    setMessages((prevMessages) => [
+      ...prevMessages,
       { type: 'userMessage', message: question },
       {
         type: 'apiMessage',
@@ -153,6 +162,44 @@ export const ChatbotComponent: React.FC = () => {
       },
     ])
     setPreDeterminedQuestions([])
+  }
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  const resetChat = () => {
+    setMessages([
+      {
+        type: 'apiMessage',
+        message:
+          'Hello, how can I assist you? I can help with anything course related.',
+      },
+    ])
+    setPreDeterminedQuestions([])
+    hasAskedQuestion.current = false
+    axios
+      .get(`/chat/${cid}/allSuggestedQuestions`, {
+        headers: { HMS_API_TOKEN: profile?.chat_token?.token },
+      })
+      .then((res) => {
+        res.data.forEach((question) => {
+          setPreDeterminedQuestions((prev) => [
+            ...prev,
+            {
+              question: question.pageContent,
+              answer: question.metadata.answer,
+            },
+          ])
+        })
+      })
+      .catch((err) => {
+        console.error(err)
+      })
   }
 
   if (!cid || !courseFeatures?.chatBotEnabled) {
@@ -164,16 +211,26 @@ export const ChatbotComponent: React.FC = () => {
       {isOpen ? (
         <Card
           title="Course chatbot"
-          extra={<a onClick={() => setIsOpen(false)}>Close</a>}
+          extra={
+            <>
+              <Button
+                onClick={resetChat}
+                type="danger"
+                style={{ marginRight: 10 }}
+              >
+                Reset Chat
+              </Button>
+              <a onClick={() => setIsOpen(false)}>Close</a>
+            </>
+          }
         >
           <div className="max-h-[70vh] overflow-y-auto">
             {messages &&
-              messages.map((item) => (
-                <>
+              messages.map((item, index) => (
+                <React.Fragment key={index}>
                   {item.type === 'userMessage' ? (
                     <div className="align-items-start m-1 mb-3 flex justify-end">
                       <div className="mr-2 max-w-[300px] rounded-xl bg-blue-900 px-3 py-2 text-white">
-                        {' '}
                         {item.message}
                       </div>
                       <Avatar size="small" icon={<UserOutlined />} />
@@ -204,44 +261,50 @@ export const ChatbotComponent: React.FC = () => {
                         </div>
                         <div className="flex flex-col gap-1">
                           {item.sourceDocuments &&
-                            item.sourceDocuments.map((sourceDocument) => (
-                              <div
-                                className="align-items-start flex h-fit w-fit max-w-[280px] justify-start gap-3 rounded-xl bg-slate-100 p-1 font-semibold"
-                                key={sourceDocument.docName}
+                            item.sourceDocuments.map((sourceDocument, idx) => (
+                              <Tooltip
+                                title={
+                                  sourceDocument.type
+                                    ? sourceDocument.content
+                                    : ''
+                                }
+                                key={idx}
                               >
-                                <p className="px-2 py-1">
-                                  {sourceDocument.docName}
-                                </p>
-                                <div className="flex gap-1">
-                                  {sourceDocument.pageNumbers &&
-                                    sourceDocument.pageNumbers.map((part) => (
-                                      <div
-                                        className={`flex flex-grow items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
-                                          sourceDocument.sourceLink &&
-                                          'hover:bg-black-300 cursor-pointer hover:text-white'
-                                        }`}
-                                        key={`${sourceDocument.docName}-${part}`}
-                                        onClick={() => {
-                                          if (sourceDocument.sourceLink) {
-                                            window.open(
-                                              sourceDocument.sourceLink,
-                                            )
-                                          }
-                                        }}
-                                      >
-                                        <p className="h-fit w-fit text-xs leading-4">
-                                          {`p. ${part}`}
-                                        </p>
-                                      </div>
-                                    ))}
+                                <div className="align-items-start flex h-fit w-fit max-w-[280px] justify-start gap-3 rounded-xl bg-slate-100 p-1 font-semibold">
+                                  <p className="px-2 py-1">
+                                    {sourceDocument.docName}
+                                  </p>
+                                  <div className="flex gap-1">
+                                    {sourceDocument.pageNumbers &&
+                                      sourceDocument.pageNumbers.map((part) => (
+                                        <div
+                                          className={`flex flex-grow items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
+                                            sourceDocument.sourceLink &&
+                                            'hover:bg-black-300 cursor-pointer hover:text-white'
+                                          }`}
+                                          key={`${sourceDocument.docName}-${part}`}
+                                          onClick={() => {
+                                            if (sourceDocument.sourceLink) {
+                                              window.open(
+                                                sourceDocument.sourceLink,
+                                              )
+                                            }
+                                          }}
+                                        >
+                                          <p className="h-fit w-fit text-xs leading-4">
+                                            {`p. ${part}`}
+                                          </p>
+                                        </div>
+                                      ))}
+                                  </div>
                                 </div>
-                              </div>
+                              </Tooltip>
                             ))}
                         </div>
                       </div>
                     </div>
                   )}
-                </>
+                </React.Fragment>
               ))}
 
             {preDeterminedQuestions &&
@@ -260,12 +323,10 @@ export const ChatbotComponent: React.FC = () => {
                     }
                     className="mr-2 max-w-[300px] cursor-pointer rounded-xl border-2 border-blue-900 bg-transparent px-3 py-2 text-blue-900 transition hover:bg-blue-900 hover:text-white"
                   >
-                    {' '}
                     {question.question}
                   </div>
                 </div>
               ))}
-            {/* TODO: Remove, answers should stream*/}
             {isLoading && (
               <Spin
                 style={{
@@ -274,6 +335,7 @@ export const ChatbotComponent: React.FC = () => {
                 }}
               />
             )}
+            <div ref={messagesEndRef} />
           </div>
           <Input
             value={input}

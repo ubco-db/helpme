@@ -5,7 +5,7 @@ import { chunk, mean } from 'lodash'
 import moment from 'moment'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import React, { ReactElement, useCallback, useState } from 'react'
+import React, { ReactElement, useCallback, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { StandardPageContainer } from '../../../components/common/PageContainer'
 import NavBar from '../../../components/Nav/NavBar'
@@ -18,7 +18,10 @@ import { useCourse } from '../../../hooks/useCourse'
 import PopularTimes from '../../../components/Today/PopularTimes/PopularTimes'
 import AsyncQuestionCard from '../../../components/Questions/AsyncQuestions/AsyncQuestionCard'
 import { orderBy } from 'lodash'
+import SchedulePanel from '../../../components/Schedule/SchedulePanel'
 import { ChatbotToday } from '../../../components/Today/ChatbotToday'
+import { useChatbotContext } from '../../../providers/chatbotProvider'
+
 import { useCourseFeatures } from '../../../hooks/useCourseFeatures'
 import { useProfile } from '../../../hooks/useProfile'
 
@@ -84,6 +87,7 @@ const collapseHeatmap = (heatmap: Heatmap): Heatmap =>
   })
 
 export default function Today(): ReactElement {
+  const { setCid, setOpen } = useChatbotContext()
   const router = useRouter()
   const { cid } = router.query
   const profile = useProfile()
@@ -93,10 +97,13 @@ export default function Today(): ReactElement {
 
   const courseFeatures = useCourseFeatures(Number(cid))
 
-  const onlyChatBotEnabled =
-    courseFeatures?.chatBotEnabled &&
-    !courseFeatures?.queueEnabled &&
-    !courseFeatures?.asyncQueueEnabled
+  useEffect(() => {
+    setOpen(true)
+  }, [])
+
+  useEffect(() => {
+    setCid(cid)
+  }, [cid])
 
   const sortByProfOrder = role == Role.PROFESSOR ? 'desc' : 'asc'
   const sortedQueues =
@@ -172,95 +179,87 @@ export default function Today(): ReactElement {
         )}
 
         <NavBar courseId={Number(cid)} />
-        {(!onlyChatBotEnabled && (
-          <Container>
-            <Row gutter={64}>
-              <TodayCol md={12} xs={24}>
-                <Row justify="space-between">
-                  <Title>{course?.name} Help Centre</Title>
-                  {courseFeatures.queueEnabled && <TodayPageCheckinButton />}
-                </Row>
-                <Row>
-                  <div>
-                    <i>
-                      You are a{' '}
-                      <RoleColorSpan>{roleToString(role)}</RoleColorSpan> for
-                      this course
-                    </i>
-                  </div>
-                </Row>
-                {courseFeatures.queueEnabled &&
-                  (course?.queues?.length === 0 ? (
-                    <>
-                      <h1 style={{ paddingTop: '100px' }}>
-                        There are no queues for this course, try asking async
-                        questions
-                      </h1>
-                    </>
-                  ) : (
-                    sortedQueues?.map((q) => (
-                      <QueueCard
-                        linkId={
-                          q.id === sortedQueues[0].id ? 'first-queue' : ''
-                        }
-                        key={q.id}
-                        queue={q}
-                        isTA={role === Role.TA || role === Role.PROFESSOR}
-                        updateQueueNotes={updateQueueNotes}
-                      />
-                    ))
-                  ))}
 
-                {!course && <QueueCardSkeleton />}
-
-                {courseFeatures.asyncQueueEnabled && (
-                  <AsyncQuestionCard></AsyncQuestionCard>
-                )}
-
-                {role !== Role.STUDENT && courseFeatures.queueEnabled && (
-                  <Row>
-                    <CreateQueueButton
-                      onClick={() => setCreateQueueModalVisible(true)}
-                    >
-                      + Create Queue
-                    </CreateQueueButton>
-                  </Row>
-                )}
-
-                {createQueueModalVisible && role !== Role.STUDENT && (
-                  <QueueCreateModal
-                    visible={createQueueModalVisible}
-                    onSubmit={submitCreateQueue}
-                    onCancel={() => setCreateQueueModalVisible(false)}
-                    role={role}
-                    lastName={profile?.lastName}
-                  />
-                )}
-                {
-                  // This only works with UTC offsets in the form N:00, to help with other offsets, the size of the array might have to change to a size of 24*7*4 (for every 15 min interval)
-                  course && course.heatmap && courseFeatures.queueEnabled && (
-                    <PopularTimes
-                      heatmap={collapseHeatmap(
-                        arrayRotate(
-                          course.heatmap,
-                          -Math.floor(moment().utcOffset() / 15),
-                        ),
-                      )}
+        <Container>
+          <Row gutter={64}>
+            <TodayCol md={12} xs={24}>
+              <Row justify="space-between">
+                <Title>{course?.name} Help Centre</Title>
+                {courseFeatures.queueEnabled && <TodayPageCheckinButton />}
+              </Row>
+              <Row>
+                <div>
+                  <i>
+                    You are a{' '}
+                    <RoleColorSpan>{roleToString(role)}</RoleColorSpan> for this
+                    course
+                  </i>
+                </div>
+              </Row>
+              {courseFeatures.queueEnabled &&
+                (course?.queues?.length === 0 ? (
+                  <>
+                    <h1 style={{ paddingTop: '100px' }}>
+                      There are no queues for this course, try asking async
+                      questions
+                    </h1>
+                  </>
+                ) : (
+                  sortedQueues?.map((q) => (
+                    <QueueCard
+                      linkId={q.id === sortedQueues[0].id ? 'first-queue' : ''}
+                      key={q.id}
+                      queue={q}
+                      isTA={role === Role.TA || role === Role.PROFESSOR}
+                      updateQueueNotes={updateQueueNotes}
                     />
-                  )
-                }
-              </TodayCol>
-              <TodayCol md={12} sm={24} className="h-[100vh]">
-                {courseFeatures.chatBotEnabled && <ChatbotToday />}
-              </TodayCol>
-            </Row>
-          </Container>
-        )) || (
-          // only show if only the chatbot is enabled
-          <div className="mt-3 flex h-[100vh] flex-col items-center justify-items-end">
-            <ChatbotToday />
-          </div>
-        )}
+                  ))
+                ))}
+
+              {!course && <QueueCardSkeleton />}
+
+              {courseFeatures.asyncQueueEnabled && (
+                <AsyncQuestionCard></AsyncQuestionCard>
+              )}
+
+              {role !== Role.STUDENT && courseFeatures.queueEnabled && (
+                <Row>
+                  <CreateQueueButton
+                    onClick={() => setCreateQueueModalVisible(true)}
+                  >
+                    + Create Queue
+                  </CreateQueueButton>
+                </Row>
+              )}
+
+              {createQueueModalVisible && role !== Role.STUDENT && (
+                <QueueCreateModal
+                  visible={createQueueModalVisible}
+                  onSubmit={submitCreateQueue}
+                  onCancel={() => setCreateQueueModalVisible(false)}
+                  role={role}
+                  lastName={profile?.lastName}
+                />
+              )}
+              {
+                // This only works with UTC offsets in the form N:00, to help with other offsets, the size of the array might have to change to a size of 24*7*4 (for every 15 min interval)
+                course && course.heatmap && courseFeatures.queueEnabled && (
+                  <PopularTimes
+                    heatmap={collapseHeatmap(
+                      arrayRotate(
+                        course.heatmap,
+                        -Math.floor(moment().utcOffset() / 15),
+                      ),
+                    )}
+                  />
+                )
+              }
+            </TodayCol>
+            <TodayCol md={12} sm={24}>
+              <SchedulePanel courseId={Number(cid)} defaultView="timeGridDay" />
+            </TodayCol>
+          </Row>
+        </Container>
       </StandardPageContainer>
     )
   }

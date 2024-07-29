@@ -10,8 +10,10 @@ import {
   message,
 } from 'antd'
 import router from 'next/router'
-import { useProfile } from '../../hooks/useProfile'
+import axios from 'axios'
+import { useProfile } from '../../../hooks/useProfile'
 const { Panel } = Collapse
+
 interface EditChatbotQuestionModalProps {
   editingRecord: any
   visible: boolean
@@ -19,7 +21,7 @@ interface EditChatbotQuestionModalProps {
   onSuccessfulUpdate: () => void
 }
 
-const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
+const EditQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   editingRecord,
   visible,
   setEditingRecord,
@@ -28,6 +30,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   const [form] = Form.useForm()
   const { cid } = router.query
   const profile = useProfile()
+  const chatbotToken = profile?.chat_token?.token
   // stores all related documents in db
   const [existingDocuments, setExistingDocuments] = useState([])
   // stores selected documents for the question
@@ -35,7 +38,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
 
   useEffect(() => {
     fetch(`/chat/${cid}/aggregateDocuments`, {
-      headers: { HMS_API_TOKEN: profile.chat_token.token },
+      headers: { HMS_API_TOKEN: chatbotToken },
     })
       .then((res) => res.json())
       .then((json) => {
@@ -48,7 +51,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         }))
         setExistingDocuments(formattedDocuments)
       })
-  }, [cid, visible, profile?.chat_token.token])
+  }, [cid, visible, chatbotToken])
 
   useEffect(() => {
     // Reset form with new editing record when visible or editingRecord changes
@@ -57,6 +60,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       form.setFieldsValue(editingRecord)
     }
   }, [editingRecord, visible, form])
+
   const onFormSubmit = async (values) => {
     values.sourceDocuments.forEach((doc) => {
       if (typeof doc.pageNumbers === 'string') {
@@ -85,7 +89,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          HMS_API_TOKEN: profile.chat_token.token,
+          HMS_API_TOKEN: chatbotToken,
         },
         body: JSON.stringify(valuesWithId),
       })
@@ -103,6 +107,47 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
     }
   }
 
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields()
+      const response = await axios.post(
+        `/chat/${cid}/documentChunk`,
+        {
+          documentText: values.question + '\n' + values.answer,
+          metadata: {
+            name: 'inserted Q&A',
+            type: 'inserted_question',
+            id: editingRecord.id,
+            courseId: cid,
+          },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            HMS_API_TOKEN: chatbotToken,
+          },
+        },
+      )
+
+      if (response.status !== 200) {
+        throw new Error('Network response was not ok')
+      }
+      setEditingRecord(null)
+      message.success('Document updated successfully.')
+    } catch (e) {
+      message.error('Failed to update document.')
+    }
+  }
+  const confirmInsert = () => {
+    Modal.confirm({
+      title: 'Are you sure you want to insert this QA into DocumentStore?',
+      content: 'Once inserted, this action cannot be undone.',
+      onOk: handleOk,
+      onCancel() {
+        console.log('Insert cancelled')
+      },
+    })
+  }
   return (
     <Modal
       title="Edit Question"
@@ -171,14 +216,12 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
                     </Form.Item>
                     <Form.Item
                       name={[field.name, 'sourceLink']}
-                      rules={[{ required: true }]}
                       label="Source Link"
                     >
                       <Input placeholder="Source Link" />
                     </Form.Item>
                     <Form.Item
                       name={[field.name, 'pageNumbers']}
-                      rules={[{ required: true }]}
                       label="Page Numbers (comma separated)"
                     >
                       <Input placeholder="1,2,3" />
@@ -253,10 +296,17 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
           <Button type="primary" htmlType="submit">
             Save Changes
           </Button>
+          <Button
+            type="default"
+            onClick={confirmInsert}
+            style={{ marginLeft: '10px' }}
+          >
+            Insert QA into DocumentStore
+          </Button>
         </Form.Item>
       </Form>
     </Modal>
   )
 }
 
-export default EditChatbotQuestionModal
+export default EditQuestionModal
