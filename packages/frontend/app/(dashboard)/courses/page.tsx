@@ -32,8 +32,8 @@ export default function CoursesPage(): ReactElement {
           </p>
         </div>
       </OrganizationCard>
-      <div className="mt-5 flex items-center justify-between">
-        <h1>My Courses</h1>
+      <div className="mt-5 flex items-center justify-between align-middle">
+        <h1 className="mt-0">My Courses</h1>
         {(userInfo?.organization?.organizationRole ===
           OrganizationRole.PROFESSOR ||
           userInfo?.organization?.organizationRole ===

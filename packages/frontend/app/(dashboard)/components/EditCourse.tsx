@@ -69,7 +69,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
   }, [])
 
   return courseData ? (
-    <div className="space-y-5">
+    <div className="mb-5 space-y-5">
       <Card bordered={true} title="Edit Course">
         <EditCourseForm
           courseData={courseData}
