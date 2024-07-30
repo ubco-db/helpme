@@ -82,6 +82,7 @@ import { useRouter } from 'next/navigation'
 import CreateQuestionModal from './components/modals/CreateQuestionModal'
 import StudentRemovedFromQueueModal from './components/modals/StudentRemovedFromQueueModal'
 import StudentBanner from './components/StudentBanner'
+import EditQueueModal from './components/modals/EditQueueModal'
 
 const Panel = Collapse.Panel
 
@@ -96,7 +97,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const { queue } = useQueue(qid)
   const isQueueOnline = queue?.room.startsWith('Online')
   const { queueQuestions, mutateQuestions } = useQuestions(qid)
-  const [queueSettingsModal, setQueueSettingsModal] = useState(false)
+  const [queueSettingsModalOpen, setQueueSettingsModalOpen] = useState(false)
   const [addStudentsModal, setAddStudentsModal] = useState(false)
   const [assignmentReportModal, setAssignmentReportModal] = useState(false)
   const {
@@ -603,7 +604,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 </span>
               </Tooltip>
               <EditQueueButton
-                onClick={() => setQueueSettingsModal(true)}
+                onClick={() => setQueueSettingsModalOpen(true)}
                 icon={<EditOutlined />}
               >
                 {/* only show the "Details" part on desktop to keep button small on mobile */}
@@ -770,7 +771,14 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           />
         </div>
         {isStaff ? (
-          <></>
+          <>
+            <EditQueueModal
+              queueId={qid}
+              courseId={cid}
+              open={queueSettingsModalOpen}
+              onClose={() => setQueueSettingsModalOpen(false)}
+            />
+          </>
         ) : (
           <>
             <CreateQuestionModal

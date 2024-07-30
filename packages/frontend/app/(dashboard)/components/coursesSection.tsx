@@ -4,7 +4,7 @@ import React from 'react'
 import Meta from 'antd/es/card/Meta'
 import Link from 'next/link'
 import { CourseRole } from '@/app/typings/user'
-import stringToHexColor from '@/app/utils/colorUtils'
+import stringToHexColor from '@/app/utils/generalUtils'
 
 interface CoursesSectionProps {
   courses: UserCourse[]

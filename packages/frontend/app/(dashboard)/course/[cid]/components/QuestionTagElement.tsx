@@ -1,28 +1,25 @@
-import { ReactElement, useState } from 'react'
-import { QuestionType } from '@koh/common'
+'use client'
 
-//
-// QUESTION TAGS
-//
+import { useState } from 'react'
+import { QuestionType } from '@koh/common'
+import { getBrightness } from '@/app/utils/generalUtils'
+
 interface QuestionTagElementProps {
   tagName: string
   tagColor: string
   onClick?: () => void
   className?: string
 }
-export function QuestionTagElement({
+
+/**
+ * This is the main component for displaying a question tag. Named QuestionTagElement to avoid confusion with types and variables.
+ */
+const QuestionTagElement: React.FC<QuestionTagElementProps> = ({
   tagName,
   tagColor,
   onClick,
   className,
-}: QuestionTagElementProps): ReactElement {
-  function getBrightness(color: string): number {
-    const rgb = parseInt(color.slice(1), 16)
-    const r = (rgb >> 16) & 0xff
-    const g = (rgb >> 8) & 0xff
-    const b = (rgb >> 0) & 0xff
-    return (r * 299 + g * 587 + b * 114) / 1000
-  }
+}) => {
   const textColor = !tagName
     ? 'red'
     : getBrightness(tagColor) < 128
@@ -49,40 +46,55 @@ export function QuestionTagElement({
   )
 }
 
-//
-// CHECKABLE (like checkbox) QUESTION TAGS
-//
-
 interface CheckableQuestionTagProps {
   tagName: string
   tagColor: string
-  tagID: number
-  onChange: (tagID: number, checked: boolean) => void
+  tagID?: number
+  onChangeWithID?: (tagID: number, checked: boolean) => void
+  onChangeWithName?: (tagName: string) => void
   checked: boolean
+  checkStyle?: 'default' | 'delete'
 }
 
-export function CheckableQuestionTag({
+/**
+ * A component that displays a question tag that can be checked or unchecked.
+ * @param checkStyle - what the tag will look like when it's checked. 'default' is a filled in tag, 'delete' is a tag with crossed out text.
+ */
+const CheckableQuestionTag: React.FC<CheckableQuestionTagProps> = ({
   tagName,
   tagColor,
   tagID,
-  onChange,
+  onChangeWithID,
+  onChangeWithName,
   checked,
-}: CheckableQuestionTagProps): React.ReactElement {
-  function getBrightness(color: string): number {
-    const rgb = parseInt(color.slice(1), 16)
-    const r = (rgb >> 16) & 0xff
-    const g = (rgb >> 8) & 0xff
-    const b = (rgb >> 0) & 0xff
-    return (r * 299 + g * 587 + b * 114) / 1000
-  }
-  const textColor = checked
-    ? getBrightness(tagColor) < 128
-      ? 'white'
-      : 'black'
-    : 'gray'
+  checkStyle = 'default',
+}) => {
+  // if checkStyle is delete, text color is dark or light red when checked and normal when unchecked.
+  // If checkStyle is default, the text color is normal when checked and gray when unchecked.
+  const textColor =
+    checkStyle === 'default'
+      ? checked
+        ? getBrightness(tagColor) < 128
+          ? 'white'
+          : 'black'
+        : 'gray'
+      : checkStyle === 'delete'
+        ? checked
+          ? getBrightness(tagColor) < 128
+            ? 'lightcoral'
+            : 'darkred'
+          : getBrightness(tagColor) < 128
+            ? 'white'
+            : 'black'
+        : 'gray'
 
   const handleClick = () => {
-    onChange(tagID, !checked)
+    if (onChangeWithID && tagID) {
+      onChangeWithID(tagID, !checked)
+    }
+    if (onChangeWithName) {
+      onChangeWithName(tagName)
+    }
   }
 
   // for making it so you can press enter to toggle it
@@ -110,7 +122,8 @@ export function CheckableQuestionTag({
   return (
     <div
       style={{
-        backgroundColor: checked ? tagColor : undefined,
+        backgroundColor:
+          checkStyle === 'delete' ? tagColor : checked ? tagColor : undefined,
         borderRadius: '15px',
         padding: '4px 9px',
         margin: '2px',
@@ -129,32 +142,41 @@ export function CheckableQuestionTag({
       role="checkbox"
       aria-checked={checked}
     >
-      <div style={{ fontSize: 'smaller', color: textColor }}>{tagName}</div>
+      <div style={{ fontSize: 'smaller', color: textColor }}>
+        {checkStyle === 'delete' && checked ? (
+          <s
+            style={{
+              display: checkStyle === 'delete' && checked ? 'inline' : 'none',
+            }}
+          >
+            {tagName}
+          </s>
+        ) : (
+          tagName
+        )}
+      </div>
     </div>
   )
 }
-
-//
-// QUESTION TAG SELECTOR
-//
 
 interface QuestionTagSelectorProps {
   questionTags: QuestionType[]
   onChange?: (newSelectedTags: number[]) => void
   value?: number[]
   className?: string
-  ariaLabel?: string
-  ariaLabelledBy?: string
+  [key: string]: any
 }
 
-export function QuestionTagSelector({
+/**
+ * A component that allows the user to select from a list of question tags.
+ */
+const QuestionTagSelector: React.FC<QuestionTagSelectorProps> = ({
   questionTags,
   onChange,
   value,
   className,
-  ariaLabel,
-  ariaLabelledBy,
-}: QuestionTagSelectorProps): React.ReactElement {
+  ...props
+}) => {
   const [selectedTags, setSelectedTags] = useState(value || [])
 
   const handleTagClick = (tagID: number, checked: boolean) => {
@@ -169,12 +191,7 @@ export function QuestionTagSelector({
   }
 
   return (
-    <div
-      className={className}
-      role="group"
-      aria-label={ariaLabel}
-      aria-labelledby={ariaLabelledBy}
-    >
+    <div className={className} role="group" {...props}>
       {questionTags.map((tag) =>
         tag.name ? ( // don't display question tags with no name (e.g. glitched ones)
           <CheckableQuestionTag
@@ -183,10 +200,69 @@ export function QuestionTagSelector({
             tagColor={tag.color}
             tagID={tag.id}
             checked={selectedTags.includes(tag.id)}
-            onChange={handleTagClick}
+            onChangeWithID={handleTagClick}
           />
         ) : null,
       )}
     </div>
   )
+}
+
+interface QuestionTagDeleteSelectorProps {
+  currentTags: QuestionType[]
+  onChange?: (newSelectedTags: number[]) => void
+  value?: number[]
+  className?: string
+  [key: string]: any
+}
+
+/**
+ * This component is used for TAs for deleting question tags for queues.
+ * @param currentTags - the current question tags for this queue.
+ * @param value - Tag IDs that the TA has marked for deletion but are not yet saved. Will be automatically used by antd's Form.Item
+ * @param onChange - the function to call when the tags marked for deletion change. Will be automatically used by antd's Form.Item
+ */
+const QuestionTagDeleteSelector: React.FC<QuestionTagDeleteSelectorProps> = ({
+  currentTags,
+  onChange,
+  value,
+  className,
+  ...props
+}) => {
+  const [selectedTags, setSelectedTags] = useState(value || [])
+
+  const handleCurrentTagClick = (tagID: number, checked: boolean) => {
+    const newSelectedTags = checked
+      ? [...selectedTags, tagID]
+      : selectedTags.filter((id) => id !== tagID)
+
+    setSelectedTags(newSelectedTags)
+    if (onChange) {
+      onChange(newSelectedTags)
+    }
+  }
+
+  return (
+    <div className={className} role="group" {...props}>
+      {currentTags.map((tag) => (
+        <CheckableQuestionTag
+          key={tag.id}
+          tagName={tag.name}
+          tagColor={tag.color}
+          tagID={tag.id}
+          // "checked" tasks are tasks that are marked for deletion for this component
+          checked={selectedTags.includes(tag.id)}
+          onChangeWithID={handleCurrentTagClick}
+          checkStyle="delete"
+        />
+      ))}
+    </div>
+  )
+}
+
+export {
+  QuestionTagElement,
+  QuestionTagSelector,
+  CheckableQuestionTag,
+  QuestionTagDeleteSelector,
 }

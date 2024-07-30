@@ -51,8 +51,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <HeaderBar />
         </StandardPageContainer>
       </header>
-      {/* the main content of the page takes up 100% - the height of the header bar */}
-      <main className="flex flex-1 flex-wrap">
+      {/* the main content of the page takes up 100% - (the height of the header bar). This is needed so that the scroll bar doesn't show up on every page */}
+      <main className="h-[calc(100%-3.1rem)]">
         {pathname === '/courses' && (
           <img
             src={`/api/v1/organization/${profile.organization.orgId}/get_banner/${profile.organization.organizationBannerUrl}`}
@@ -62,7 +62,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             height={100}
           />
         )}
-        <StandardPageContainer>{children}</StandardPageContainer>
+        <StandardPageContainer className="h-full">
+          {children}
+        </StandardPageContainer>
       </main>
     </UserInfoProvider>
   )

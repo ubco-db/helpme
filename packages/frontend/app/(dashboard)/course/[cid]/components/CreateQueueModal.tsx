@@ -149,7 +149,7 @@ export default function CreateQueueModal({
   return (
     <Modal
       title={`Create a new queue`}
-      visible={visible}
+      open={visible}
       onCancel={onCancel}
       okText="Create"
       onOk={handleSubmit}
@@ -204,7 +204,7 @@ export default function CreateQueueModal({
         >
           <TextArea
             rows={4}
-            placeholder="Ex. Lab name, lab section, physical room location, any announcements, a mix of these, or any other details"
+            placeholder="Ex. Lab name, lab section, physical room location, any announcements, links to external resources, a mix of these, or any other details"
           />
         </Form.Item>
 
@@ -215,7 +215,7 @@ export default function CreateQueueModal({
                 <strong>Queue Config</strong>&nbsp;
                 <Tooltip
                   title={
-                    'Here you can specify a JSON config to automatically set up question tags, tasks, and other settings for the queue. For example, you can use this to set up a chemistry lab that requires certain tasks to be checked off (e.g. have the TA look at the experiment before continuing). It is recommended to create a new queue for each lab assignment. You can also easily externally save this config and copy/paste this config to other queues and courses.'
+                    'Here you can specify a JSON config to automatically set up question tags, tasks, and other settings for the queue. For example, you can use this to set up a chemistry lab that requires certain tasks to be checked off (e.g. have the TA look at the experiment before continuing). You can also easily externally save this config and copy/paste this config to other queues and courses.'
                   }
                 >
                   <QuestionCircleOutlined style={{ color: 'gray' }} />
