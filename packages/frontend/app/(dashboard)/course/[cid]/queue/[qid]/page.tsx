@@ -599,7 +599,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       queue.isDisabled
                     }
                     state={isUserCheckedIn ? 'CheckedIn' : 'CheckedOut'}
-                    className="w-1/3 md:mb-3 md:w-full"
+                    className="w-full md:mb-3"
                   />
                 </span>
               </Tooltip>

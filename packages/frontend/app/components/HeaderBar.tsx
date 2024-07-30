@@ -164,7 +164,7 @@ const NavBar = ({
           <img
             width={48}
             height={48}
-            className="h-12 w-full object-contain p-1"
+            className="h-12 w-full object-contain p-1 pr-4"
             alt="Organization Logo"
             src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
           />
@@ -181,7 +181,11 @@ const NavBar = ({
             <NavigationMenuItem>
               {/* This "NavigationMenuTrigger" is just the "Queues" button */}
               <NavigationMenuTrigger
-                className={isAQueuePage ? 'bg-zinc-300/80' : ''}
+                className={
+                  isAQueuePage
+                    ? 'bg-zinc-300/80 md:border-b-2 md:border-[#3684c6] md:bg-white'
+                    : ''
+                }
                 onFocus={setNavigationSubMenuLeftSide}
                 onClick={setNavigationSubMenuLeftSide}
                 onMouseEnter={setNavigationSubMenuLeftSide}
@@ -355,7 +359,7 @@ const HeaderBar: React.FC = () => {
       <img
         width={48}
         height={48}
-        className="h-12 object-contain"
+        className="h-12 object-contain p-1"
         alt="Organization Logo"
         src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
       />

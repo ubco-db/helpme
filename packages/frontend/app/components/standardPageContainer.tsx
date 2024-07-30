@@ -11,7 +11,7 @@ const StandardPageContainer: React.FC<ContentCardProps> = ({
 }) => {
   return (
     <div
-      className={`mx-auto flex w-full flex-1 flex-col px-4 sm:px-5 md:px-8 xl:max-w-[1500px] ${className}`}
+      className={`mx-auto flex w-full flex-1 flex-col px-1 sm:px-5 md:px-8 xl:max-w-[1500px] ${className}`}
     >
       {children}
     </div>

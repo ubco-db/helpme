@@ -11,6 +11,8 @@ const NavigationContext = React.createContext<{
 /**
  * This is a shadcn navigation menu component. It is mostly the same as the default except with darker hover styles as well as more padding on its elements.
  * It also has custom styles for the submenu (i.e. the "Queues" tab) and support for vertical orientation
+ * It also has a bunch of other styles changed (e.g. blue borders/links instead of darkened background on desktop).
+ * I would not recommend updating this component to future shadcn versions of the component.
  */
 const NavigationMenu = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Root>,
@@ -46,8 +48,7 @@ const NavigationMenuList = React.forwardRef<
       ref={ref}
       className={cn(
         'group flex w-full flex-1 list-none justify-start',
-        (!orientation || orientation === 'horizontal') &&
-          'items-center space-x-1',
+        (!orientation || orientation === 'horizontal') && 'items-center',
         orientation === 'vertical' && 'h-full flex-col items-end space-y-1',
         className,
       )}
@@ -70,22 +71,32 @@ const navigationMenuTriggerStyle = cva([
   'md:w-max', // On desktop devices use max width
   'items-center', // Vertical alignment
   'justify-start md:justify-center', // Horizontal alignment
-  'rounded-md', // Border radius
+  'rounded-md md:rounded-none', // Border radius (none on desktop)
+  'disabled:pointer-events-none', // Disabled state pointer events
+  'disabled:opacity-50', // Disabled state opacity
   'bg-white', // Background color
   'pl-4 pr-8', // Horizontal padding
-  'py-6', // Vertical padding
+  'py-7', // Vertical padding
   'text-sm', // Text size
   'font-medium', // Font weight
   'transition-colors', // Transition for color changes
-  'hover:bg-zinc-200/70', // Hover background color
-  'hover:text-zinc-900', // Hover text color
-  'focus:bg-zinc-200', // Focus background color
-  'focus:text-zinc-900', // Focus text color
-  'focus:outline-none', // Focus outline removal
-  'disabled:pointer-events-none', // Disabled state pointer events
-  'disabled:opacity-50', // Disabled state opacity
-  'data-[active]:bg-zinc-300/80', // Active state background color
   'data-[state=open]:bg-zinc-300/50', // Open state background color
+  'focus:outline-none', // Focus outline removal
+  // Hover and focus styles on DESKTOP
+  'md:data-[active]:border-b-2 md:data-[active]:border-[#3684c6]', // blue border on active state
+  'md:focus:border-b-2 md:focus:border-[#3684c6]', // blue border on focus
+  'md:hover:border-b-2 md:hover:border-[#3684c6]', // blue border on hover
+  'md:focus:text-[#3684c6] md:hover:text-[#3684c6]', // blue text on focus and hover
+  'md:data-[state=open]:text-[#3684c6]', // blue text on open state
+  'md:data-[state=open]:border-b-2 md:data-[state=open]:border-[#3684c6]', // blue border on open state
+  'md:data-[state=open]:bg-white md:focus:bg-white md:hover:bg-white md:data-[active]:bg-white', // keep background white on open & active state, focus, and hover
+  // Hover and focus styles on MOBILE
+  'hover:text-zinc-900', // Hover text color
+  'focus:text-zinc-900', // Focus text color
+  'hover:bg-zinc-200/70', // Hover background color
+  'focus:bg-zinc-200', // Focus background color
+  'data-[active]:bg-zinc-300/80', // Active state background color
+  // Dark mode styles (came with shadcn, haven't touched them)
   'dark:bg-zinc-950', // Dark mode background color
   'dark:hover:bg-zinc-800', // Dark mode hover background color
   'dark:hover:text-zinc-50', // Dark mode hover text color
@@ -158,7 +169,7 @@ const NavigationMenuViewport = React.forwardRef<
       className={cn(
         'absolute flex justify-center',
         (!orientation || orientation === 'horizontal') && 'left-0 top-full',
-        orientation === 'vertical' && 'left-2 top-[6rem]',
+        orientation === 'vertical' && 'left-2 top-[7.1rem]',
       )}
     >
       <NavigationMenuPrimitive.Viewport

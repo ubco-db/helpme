@@ -44,7 +44,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   ) : (
     <UserInfoProvider profile={profile}>
       <header className={`border-b border-b-zinc-200 bg-white`}>
-        <StandardPageContainer>
+        <StandardPageContainer className="!pl-0">
           <Link href={'#skip-link-target'} className="skip-link">
             Skip to main content
           </Link>
@@ -52,7 +52,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </StandardPageContainer>
       </header>
       {/* the main content of the page takes up 100% - (the height of the header bar). This is needed so that the scroll bar doesn't show up on every page */}
-      <main className="h-[calc(100%-3.1rem)]">
+      <main className="h-[calc(100%-3.7rem)]">
         {pathname === '/courses' && (
           <img
             src={`/api/v1/organization/${profile.organization.orgId}/get_banner/${profile.organization.organizationBannerUrl}`}
