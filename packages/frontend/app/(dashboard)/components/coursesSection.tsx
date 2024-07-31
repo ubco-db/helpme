@@ -81,7 +81,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({ courses }) => {
               CourseRole.PROFESSOR && (
               <Link
                 className="ant-btn ant-btn-primary ant-btn-block mt-4 block rounded p-2 text-center font-medium text-white"
-                href={`organization/course/${course.course.id}/edit`}
+                href={`/course/${course.course.id}/settings`}
               >
                 Edit Course
               </Link>

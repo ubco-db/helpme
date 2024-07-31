@@ -225,9 +225,11 @@ const NavBar = ({
             </NavigationMenuItem>
             {(role === Role.TA || role === Role.PROFESSOR) && (
               <NavigationMenuItem>
-                <Link href={`/course/${courseId}/admin`}>
+                <Link
+                  href={`/course/${courseId}/settings${role === Role.TA ? '/export_data' : ''}`}
+                >
                   <Settings strokeWidth={1.5} className="mr-3" />
-                  Admin Panel
+                  Course Settings
                 </Link>
               </NavigationMenuItem>
             )}

@@ -12,6 +12,8 @@ import { useEffect, useState } from 'react'
 import EditCourseForm from './EditCourseForm'
 import ArchiveCourse from './ArchiveCourse'
 import { useRouter } from 'next/navigation'
+import CourseInviteCode from './CourseInviteCode'
+import CourseFeaturesForm from './CourseFeaturesForm'
 
 type EditCourseProps = {
   courseId: number
@@ -25,6 +27,8 @@ const EditCourse: React.FC<EditCourseProps> = ({
   user,
 }) => {
   const [courseData, setCourseData] = useState<OrganizationCourseResponse>()
+  const [featuresEnabled, setFeaturesEnabled] = useState(false)
+
   const router = useRouter()
 
   const fetchCourseData = async () => {
@@ -44,12 +48,28 @@ const EditCourse: React.FC<EditCourseProps> = ({
     setCourseData(response)
   }
 
+  const checkFeaturesDisabled = async () => {
+    if (user.courses.length === 0) {
+      setFeaturesEnabled(false)
+      return
+    }
+
+    const isUserInCourse = user.courses.find(
+      (course) => course.course.id === courseId,
+    )
+
+    if (isUserInCourse) {
+      setFeaturesEnabled(true)
+    }
+  }
+
   useEffect(() => {
     fetchCourseData()
+    checkFeaturesDisabled()
   }, [])
 
   return courseData ? (
-    <div className="space-y-5">
+    <div className="mb-5 space-y-5">
       <Card bordered={true} title="Edit Course">
         <EditCourseForm
           courseData={courseData}
@@ -58,6 +78,21 @@ const EditCourse: React.FC<EditCourseProps> = ({
           user={user}
         />
       </Card>
+
+      {featuresEnabled && (
+        <>
+          <Card bordered={true} title="Course Features">
+            <CourseFeaturesForm courseData={courseData} />
+          </Card>
+
+          <Card bordered={true} title="Course Invite Code">
+            <CourseInviteCode
+              fetchCourseData={fetchCourseData}
+              courseData={courseData}
+            />
+          </Card>
+        </>
+      )}
 
       <Card
         bordered={true}
