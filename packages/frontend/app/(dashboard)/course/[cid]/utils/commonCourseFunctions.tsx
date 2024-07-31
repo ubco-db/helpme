@@ -30,7 +30,8 @@ export async function checkInTA(
       router.push(`/course/${courseId}/queue/${response.id}`)
     })
     .catch((err) => {
-      message.error(err.response?.data?.message)
+      const errorMessage = getErrorMessage(err)
+      message.error(errorMessage)
     })
 }
 

@@ -19,7 +19,7 @@ const CircleButton: React.FC<CircleButtonProps> = ({
     type={variant === 'primary' ? 'primary' : 'default'}
     disabled={disabled}
     className={cn(
-      'ml-2 mt-[0.35rem] md:ml-3',
+      'ml-2 mt-[0.35rem] md:ml-3 md:mt-0',
       disabled && 'pointer-events-none bg-opacity-40',
       variant === 'default' &&
         'border bg-white text-black hover:bg-gray-100 focus:bg-gray-100',

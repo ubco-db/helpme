@@ -83,6 +83,7 @@ import CreateQuestionModal from './components/modals/CreateQuestionModal'
 import StudentRemovedFromQueueModal from './components/modals/StudentRemovedFromQueueModal'
 import StudentBanner from './components/StudentBanner'
 import EditQueueModal from './components/modals/EditQueueModal'
+import AddStudentsToQueueModal from './components/modals/AddStudentsToQueueModal'
 
 const Panel = Collapse.Panel
 
@@ -98,7 +99,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const isQueueOnline = queue?.room.startsWith('Online')
   const { queueQuestions, mutateQuestions } = useQuestions(qid)
   const [queueSettingsModalOpen, setQueueSettingsModalOpen] = useState(false)
-  const [addStudentsModal, setAddStudentsModal] = useState(false)
+  const [addStudentsModalOpen, setAddStudentsModalOpen] = useState(false)
   const [assignmentReportModal, setAssignmentReportModal] = useState(false)
   const {
     studentQuestion,
@@ -614,7 +615,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               </EditQueueButton>
               <EditQueueButton
                 disabled={!isUserCheckedIn}
-                onClick={() => setAddStudentsModal(true)}
+                onClick={() => setAddStudentsModalOpen(true)}
                 icon={<PlusOutlined />}
               >
                 {/* "+ Add Students to Queue" on desktop, "+ Students" on mobile */}
@@ -778,6 +779,16 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               open={queueSettingsModalOpen}
               onClose={() => setQueueSettingsModalOpen(false)}
             />
+            <AddStudentsToQueueModal
+              queueId={qid}
+              courseId={cid}
+              open={addStudentsModalOpen}
+              onAddStudent={() => {
+                mutateQuestions()
+                setAddStudentsModalOpen(false)
+              }}
+              onCancel={() => setAddStudentsModalOpen(false)}
+            />
           </>
         ) : (
           <>
@@ -810,7 +821,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               position={
                 studentQuestionIndex ? studentQuestionIndex + 1 : undefined
               }
-              cancel={() => closeEditQuestionDemoModal(false)}
+              onCancel={() => closeEditQuestionDemoModal(false)}
             />
             <StudentRemovedFromQueueModal
               question={studentQuestion}
@@ -826,16 +837,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
         )}
         {/* {isStaff ? (
           <>
-            <EditQueueModal
-              queueId={qid}
-              visible={queueSettingsModal}
-              onClose={() => setQueueSettingsModal(false)}
-            />
-            <AddStudentsModal
-              queueId={qid}
-              visible={addStudentsModal}
-              onClose={() => setAddStudentsModal(false)}
-            />
             {isDemoQueue && (
               <AssignmentReportModal
                 queueId={qid}

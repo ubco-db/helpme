@@ -48,7 +48,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   return (
     <Card
       className={`mb-2 rounded-md px-2 text-gray-600 shadow-md ${className}`}
-      classNames={{ body: 'px-2.5 py-0 md:py-2' }}
+      classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
     >
       <Row className="items-center">
         {isStaff && ( // only show avatar if staff for now. TODO: fix endpoint to allow queues to access student avatars and names if prof enabled it

@@ -20,7 +20,7 @@ interface CreateQuestionModalProps {
     groupable: boolean,
   ) => void
   position: number | undefined
-  cancel: () => void
+  onCancel: () => void
 }
 
 interface FormValues {
@@ -37,7 +37,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
   leaveQueue,
   finishQuestion,
   position,
-  cancel,
+  onCancel,
 }) => {
   const drafting = question?.status === OpenQuestionStatus.Drafting
   const helping = question?.status === OpenQuestionStatus.Helping
@@ -65,8 +65,6 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
     deleteStoredDraftQuestion()
   }
 
-  // TODO: change this to only be an option if the queue is hybrid. Strictly in-person or online queues should not have this option
-
   return (
     <Modal
       open={open}
@@ -81,11 +79,11 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
             deleteStoredDraftQuestion()
             leaveQueue()
           } else {
-            cancel()
+            onCancel()
           }
         },
       }}
-      onCancel={cancel}
+      onCancel={onCancel}
       destroyOnClose
       modalRender={(dom) => (
         <Form
@@ -162,6 +160,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
         />
       </Form.Item>
 
+      {/* TODO: change this to only be an option if the queue is hybrid. Strictly in-person or online queues should not have this option */}
       <Form.Item name="location" label="Are you joining the queue in-person?">
         <Radio.Group className="mb-1">
           <Radio value="In Person">Yes</Radio>

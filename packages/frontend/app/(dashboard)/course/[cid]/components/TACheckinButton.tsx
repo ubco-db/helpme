@@ -1,9 +1,11 @@
-import { Button } from 'antd'
+import { Button, message } from 'antd'
 import { useRouter } from 'next/navigation'
 import { LoginOutlined, LogoutOutlined } from '@ant-design/icons'
 import { useCourse } from '@/app/hooks/useCourse'
 import { checkInTA } from '../utils/commonCourseFunctions'
 import { API } from '@/app/api'
+import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useState } from 'react'
 
 type CheckInButtonState =
   | 'CheckedIn'
@@ -30,6 +32,7 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
 }) => {
   const router = useRouter()
   const { course, mutateCourse } = useCourse(courseId)
+  const [loading, setLoading] = useState(false)
 
   return (
     <>
@@ -38,11 +41,22 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
           type="default"
           size="large"
           disabled={disabled}
+          loading={loading}
           onClick={async () => {
             onClick?.()
             if (preventDefaultAction) return
-            await API.taStatus.checkOut(courseId, room)
-            mutateCourse()
+            setLoading(true)
+            await API.taStatus
+              .checkOut(courseId, room)
+              .then(() => {
+                mutateCourse()
+                setLoading(false)
+              })
+              .catch((err) => {
+                const errorMessage = getErrorMessage(err)
+                message.error(errorMessage)
+                setLoading(false)
+              })
           }}
           className={`flex items-center justify-center rounded-md text-sm font-semibold text-red-600 disabled:text-gray-400 ${className}`}
           icon={<LogoutOutlined />}
@@ -54,10 +68,14 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
         <Button
           type="default"
           size="large"
+          loading={loading}
           onClick={() => {
             onClick?.()
             if (preventDefaultAction) return
-            checkInTA(courseId, room, mutateCourse, router)
+            setLoading(true)
+            checkInTA(courseId, room, mutateCourse, router).then(() =>
+              setLoading(false),
+            )
           }}
           disabled={disabled || !course}
           className={`flex items-center justify-center rounded-md bg-[#1890ff] text-sm font-semibold text-white disabled:bg-opacity-30 disabled:text-gray-400 ${className}`}

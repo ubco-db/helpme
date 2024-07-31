@@ -6,13 +6,13 @@ import UserAvatar from '@/app/components/UserAvatar'
 import RenderEvery from '@/app/components/RenderEvery'
 import { formatWaitTime } from '@/app/utils/timeFormatUtils'
 
-interface TAStatusListProps {
+interface StaffListProps {
   queueId: number
 }
 /**
  * Row of ta statuses
  */
-const TAStatusList: React.FC<TAStatusListProps> = ({ queueId }) => {
+const StaffList: React.FC<StaffListProps> = ({ queueId }) => {
   const { queueQuestions } = useQuestions(queueId)
   const { queue } = useQueue(queueId)
   const staffList = queue?.staffList ?? []
@@ -122,4 +122,4 @@ const HelpingFor: React.FC<HelpingForProps> = ({ studentName, helpedAt }) => {
   )
 }
 
-export default TAStatusList
+export default StaffList
