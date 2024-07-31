@@ -1785,11 +1785,11 @@ describe('Course Integration', () => {
       expect(resp.body).toEqual([
         {
           id: student1.id,
-          name: student1.name,
+          name: student1.firstName + ' ' + student1.lastName,
         },
         {
           id: student2.id,
-          name: student2.name,
+          name: student2.firstName + ' ' + student2.lastName,
         },
       ]);
     });
@@ -1836,7 +1836,11 @@ describe('Course Integration', () => {
       expect(resp.body).toEqual([
         {
           id: student2.id,
-          name: student2.name,
+          name: student2.firstName + ' ' + student2.lastName,
+        },
+        {
+          id: student3.id,
+          name: student3.firstName + ' ' + student3.lastName,
         },
       ]);
     });
