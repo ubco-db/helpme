@@ -120,12 +120,6 @@ class APIClient {
       this.req('PATCH', `/api/v1/profile`, undefined, body),
     deleteProfilePicture: async (): Promise<void> =>
       this.req('DELETE', `/api/v1/profile/delete_profile_picture`),
-    getAllStudents: async (courseId: number): Promise<any> =>
-      this.req('GET', `/api/v1/profile/${courseId}/id`, undefined),
-    getStudent: async (sid: number): Promise<any> =>
-      this.req('GET', `/api/v1/profile/${sid}/student`, undefined),
-    inQueue: async (sid: number): Promise<boolean> =>
-      this.req('GET', `/api/v1/profile/${sid}/inQueue`, undefined),
   }
 
   chatbot = {
@@ -278,6 +272,14 @@ class APIClient {
       courseId: number,
     ): Promise<CourseSettingsResponse> =>
       this.req('GET', `/api/v1/courses/${courseId}/features`),
+    getAllStudentsNotInQueue: async (
+      courseId: number,
+    ): Promise<{ name: string; id: number }[]> =>
+      this.req(
+        'GET',
+        `/api/v1/courses/${courseId}/students_not_in_queue`,
+        undefined,
+      ),
   }
   studentTaskProgress = {
     getAssignmentProgress: async (

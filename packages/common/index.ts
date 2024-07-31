@@ -132,6 +132,15 @@ export class UserPartial {
 }
 
 /**
+ * A User with minimal information.
+ * Used in AddStudentsToQueueModal, can be used elsewhere.
+ */
+export type UserTiny = {
+  id: number
+  name: string
+}
+
+/**
  * Represents a partial course data needed on the front end when nested in a response.
  * @param id - The id number of this Course.
  * @param name - The subject and course number of this course. Ex: "CS 2500"
