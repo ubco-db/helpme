@@ -1814,13 +1814,20 @@ describe('Course Integration', () => {
         role: Role.STUDENT,
         course: course,
       });
+      await UserCourseFactory.create({
+        user: student3,
+        role: Role.STUDENT,
+        course: course,
+      });
       const queue = await QueueFactory.create({
         course: course,
+        courseId: course.id,
       });
       await QuestionFactory.create({
         queue: queue,
         status: QuestionStatusKeys.Queued,
         creatorId: student1.id,
+        creator: student1,
       });
       await QuestionFactory.create({
         queue: queue,
