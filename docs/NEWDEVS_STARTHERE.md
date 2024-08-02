@@ -1,3 +1,18 @@
+# Glossary
+
+- [Preface](#preface)
+- [INTRO TO THE CODEBASE AND TECHSTACK](#intro-to-the-codebase-and-techstack)
+  - [Codebase](#codebase)
+  - [Technologies Guide](#technologies-guide)
+    - [Frontend](#frontend)
+      - [Next.js](#nextjs)
+      - [Tailwind and CSS](#tailwind-and-css)
+    - [Backend](#backend)
+- [History](#history)
+- [TODO](#todo)
+  - [For the whole project](#for-the-whole-project)
+  - [For this document](#for-this-document)
+
 # Preface
 
 This guide is intended for new developers who are looking to contribute to the HelpMe system and seeks to explain how some of the technologies are used as well as the history of the system. 
@@ -49,6 +64,17 @@ All pages are functions (e.g. `export default function CoursePage(...)`) and all
 
 `'use client'` & `'use server'` - These are from Next.js, and allow us to define whether a component is rendered on the client or the server. In general, you want to use 'use server' where possible, as it allows the server to make calls to the database and render the page right away, improving load times and performance. The only issue is that 'use server' cannot be used with components that the user interacts with as well as other restrictions. Our application is pretty client-heavy (with lots of interactions from the user) and was also built before server components were possible, so most of the components are client components. Server components can have client components in them, but not vice-versa (with the exception of layout.tsx, which can still be client.tsx). More info here https://nextjs.org/learn/react-foundations/server-and-client-components
 
+#### Tailwind and CSS
+
+`Tailwind` basically creates a className for every single css property (and culls unused ones). Helps keep styling close to where the code was written (LoC) and prevents worrying about changing a css file and breaking something else. While it covers about 99.9% of cases, there are still some scenarios where you will need to create custom css (such as animations). You can either add said custom css inside `globals.css` or you can modify the `tailwind.config.js` file to add custom css classes.
+
+#### JSX
+
+`JSX` is a syntax extension for JavaScript that looks similar to XML or HTML. It is used with React to describe what the UI should look like.
+
+Want to conditionally render something like an `if` statement? Do: `{condition && (<Component />)}`
+Want to conditionally render something like an `elseif` statement? Do: `{condition ? (<Component />) : (<OtherComponent />)}`
+
 ### Backend
 
 `module` - I believe this is only for nestjs for connecting the service to the controller, but maybe you can do some other cool stuff here.
@@ -93,3 +119,4 @@ During the 2024 Summer, a massive undertaking was done to refactor and re-write 
 - Add more technologies
 - Merge stuff from DEVELOPING.md
 - move DEVELOPING.md, ENVIRONMENT_VARIABLES.md , and other .mds into docs, then make markdown links to the other documents.
+- make glossary actually work
