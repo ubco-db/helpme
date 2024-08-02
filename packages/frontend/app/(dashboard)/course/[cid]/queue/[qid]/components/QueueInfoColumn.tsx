@@ -24,7 +24,6 @@ import {
   DisableQueueButton,
 } from '../../../components/QueueInfoColumnButton'
 import RenderEvery from '@/app/components/RenderEvery'
-import TAStatusList from './StaffList'
 import TagGroupSwitch from './TagGroupSwitch'
 import StaffList from './StaffList'
 

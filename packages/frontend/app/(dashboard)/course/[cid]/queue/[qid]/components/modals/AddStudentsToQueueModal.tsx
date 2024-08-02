@@ -62,12 +62,17 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
       onCancel()
       return
     }
+    if (!selectedStudent) {
+      message.error('Please select a student')
+      return
+    }
     setIsLoading(true)
-    const newQuestionTypeInput = values.questionTypesInput
-      ? questionTypes?.filter((questionType) =>
-          values.questionTypesInput.includes(questionType.id),
-        )
-      : []
+    const newQuestionTypeInput =
+      values.questionTypesInput && questionTypes
+        ? questionTypes.filter((questionType) =>
+            values.questionTypesInput.includes(questionType.id),
+          )
+        : []
     await API.questions
       .TAcreate(
         {
@@ -79,10 +84,10 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
           questionTypes: newQuestionTypeInput,
           isTaskQuestion: false,
         },
-        values.studentId,
+        selectedStudent.id,
       )
       .then(async (response) => {
-        message.success(`${selectedStudent?.name} has been added to the queue`)
+        message.success(`${selectedStudent.name} has been added to the queue`)
         if (values.help) {
           await API.questions
             .update(response.id, {

@@ -189,3 +189,42 @@ h1, h2, h3, h4, h5, h6 {
 .ant-form-item-label {
   font-weight: 500;
 }
+
+@keyframes flashAnimation {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.flashing {
+  animation: flashAnimation 2s infinite;
+}
+
+@keyframes expand {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 1000px; /* Adjust as needed */
+    opacity: 1;
+  }
+}
+
+@keyframes collapse {
+  from {
+    max-height: 1000px; /* Adjust as needed */
+    opacity: 1;
+  }
+  to {
+    max-height: 0;
+    opacity: 0;
+  }
+}
+
+.expand {
+  animation: expand 0.3s ease-out forwards;
+}
+
+.collapse {
+  animation: collapse 0.3s ease-out forwards;
+}

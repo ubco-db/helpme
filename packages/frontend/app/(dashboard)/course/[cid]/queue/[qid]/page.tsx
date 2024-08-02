@@ -110,12 +110,12 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   } = useStudentQuestion(qid)
   const { userInfo } = useUserInfo()
   const isUserCheckedIn = isCheckedIn(queue?.staffList, userInfo.id)
-  const [isStaff, setIsStaff] = useState(false)
   const { course } = useCourse(cid)
   const [editQuestionModalVisible, setEditQuestionModalVisible] =
     useState(false)
   const [popupEditDemo, setPopupEditDemo] = useState(false)
   const role = getRoleInCourse(userInfo, cid)
+  const isStaff = role === Role.TA || role === Role.PROFESSOR
   const [questionTypes] = useQuestionTypes(cid, qid)
   const queueConfig = queue?.config
   const configTasks = queueConfig?.tasks
@@ -159,22 +159,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     userInfo.id,
     role,
   )
-  // Memoize the calculation of isStaff based on relevant profile changes
-  const isUserStaff = useMemo(() => {
-    return (
-      userInfo.courses?.some(
-        (course) =>
-          course.course.id === cid &&
-          (course.role === Role.PROFESSOR || course.role === Role.TA),
-      ) || false
-    )
-  }, [userInfo.courses, cid])
-  // Update isStaff state only when isUserStaff changes
-  // Previously, this was done in the useEffect hook with profile as a dependency, but this caused unnecessary re-renders on anything that's dependent on isStaff
-  // This is because profile is a complex object and changes frequently, so it's better to compare the derived value (isUserStaff) instead
-  useEffect(() => {
-    setIsStaff(isUserStaff)
-  }, [isUserStaff])
 
   const [openTagGroups, setOpenTagGroups] = useState<string[]>([])
   const tagGroupsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null) // need to keep track of timeouts so that old timeouts won't keep running when the user starts a new timeout (to prevent flickering when a tag group is spammed open/closed, UX thing)

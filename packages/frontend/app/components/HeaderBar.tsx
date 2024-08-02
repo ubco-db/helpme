@@ -212,7 +212,7 @@ const NavBar = ({
               </NavigationMenuContent>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <Link href={`/course/${courseId}/async_questions`}>
+              <Link href={`/course/${courseId}/async_centre`}>
                 <MessageCircleQuestion strokeWidth={1.5} className="mr-3" />
                 Anytime Qs
               </Link>

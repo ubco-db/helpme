@@ -51,9 +51,12 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
 
   const [form] = Form.useForm()
   const onFinish = (values: FormValues) => {
-    const newQuestionTypeInput = questionTypes?.filter((questionType) =>
-      values.questionTypesInput.includes(questionType.id),
-    )
+    const newQuestionTypeInput =
+      values.questionTypesInput && questionTypes
+        ? questionTypes.filter((questionType) =>
+            values.questionTypesInput.includes(questionType.id),
+          )
+        : []
 
     finishQuestion(
       values.questionText,

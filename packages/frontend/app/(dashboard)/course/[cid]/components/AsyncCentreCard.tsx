@@ -17,7 +17,7 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
 }): ReactElement => {
   return (
     <Link
-      href={`/course/${cid}/async_questions`}
+      href={`/course/${cid}/async_centre`}
       aria-label="Anytime Question Hub"
       id={linkId}
     >

@@ -1,25 +1,21 @@
-import { API } from '@koh/api-client'
 import { AsyncQuestion } from '@koh/common'
+import useSWR from 'swr'
+import { API } from '../api'
 
-import useSWR, { responseInterface } from 'swr'
-type questionsResponse = responseInterface<AsyncQuestion[], any>
+export function useAsnycQuestions(
+  cid: number,
+): [
+  AsyncQuestion[] | undefined,
+  (
+    data?: AsyncQuestion[] | Promise<AsyncQuestion[]>,
+    shouldRevalidate?: boolean,
+  ) => Promise<AsyncQuestion[] | undefined>,
+] {
+  const key = `/api/v1/courses/${cid}/asyncQuestions`
 
-interface UseQuestionReturn {
-  questions?: questionsResponse['data']
-  questionsError: questionsResponse['error']
-  mutateQuestions: questionsResponse['mutate']
-}
-
-export function useAsnycQuestions(cid: number): UseQuestionReturn {
-  const key = cid && `/api/v1/courses/${cid}/asyncQuestions`
-
-  const {
-    data: questions,
-    error: questionsError,
-    mutate: mutateQuestions,
-  } = useSWR(key, async () => API.course.getAsyncQuestions(Number(cid)), {
-    refreshInterval: 0,
+  const { data: asyncQuestions, mutate } = useSWR(key, async () => {
+    return await API.course.getAsyncQuestions(cid)
   })
 
-  return { questions, questionsError, mutateQuestions }
+  return [asyncQuestions, mutate]
 }

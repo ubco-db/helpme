@@ -5,6 +5,7 @@ import {
   IsDate,
   IsDefined,
   IsEnum,
+  IsHexColor,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -1125,9 +1126,9 @@ export class QuestionTypeParams {
   @IsNotEmpty()
   name!: string
 
-  @IsString()
-  @IsOptional()
-  color?: string
+  @IsHexColor()
+  @IsNotEmpty()
+  color!: string
 
   @IsInt()
   @IsOptional()
