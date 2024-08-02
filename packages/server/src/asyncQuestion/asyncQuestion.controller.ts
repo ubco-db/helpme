@@ -169,12 +169,12 @@ export class asyncQuestionController {
 
     delete question.course;
 
-    question.aiAnswerText = body.aiAnswerText;
-    question.answerText = body.answerText;
-
     // If not creator, check if user is TA/PROF of course of question
-
-    Object.assign(question, body);
+    Object.keys(body).forEach((key) => {
+      if (body[key] !== undefined && body[key] !== null) {
+        question[key] = body[key];
+      }
+    });
     if (
       body.status === asyncQuestionStatus.HumanAnswered ||
       body.status === asyncQuestionStatus.AIAnsweredResolved
@@ -190,9 +190,10 @@ export class asyncQuestionController {
       const requester = await UserCourseModel.findOne({
         where: {
           userId: user.id,
+          courseId: courseId,
         },
       });
-      if (requester.role === Role.STUDENT) {
+      if (!requester || requester.role === Role.STUDENT) {
         throw new HttpException(
           'No permission to update question.',
           HttpStatus.UNAUTHORIZED,
@@ -201,7 +202,10 @@ export class asyncQuestionController {
     }
     const updatedQuestion = await question.save();
 
-    if (!body?.visible) {
+    if (
+      body.status === asyncQuestionStatus.TADeleted ||
+      body.status === asyncQuestionStatus.StudentDeleted
+    ) {
       await this.redisQueueService.deleteAsyncQuestion(
         `c:${courseId}:aq`,
         updatedQuestion,

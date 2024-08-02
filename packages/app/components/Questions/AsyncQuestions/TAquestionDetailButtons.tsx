@@ -18,7 +18,11 @@ export function TAquestionDetailButtons({
   const [answerQuestionVisible, setAnswerQuestionVisbile] = useState(false)
 
   return (
-    <>
+    <div
+      onClick={(e) => {
+        e.stopPropagation()
+      }}
+    >
       <Popconfirm
         title="Are you sure you want to delete the question?"
         okText="Yes"
@@ -56,6 +60,6 @@ export function TAquestionDetailButtons({
         question={question}
         onClose={() => setAnswerQuestionVisbile(false)}
       />
-    </>
+    </div>
   )
 }

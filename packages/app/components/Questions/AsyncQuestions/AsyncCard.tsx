@@ -169,6 +169,7 @@ export default function AsyncCard({
                       question={question}
                       hasUnresolvedRephraseAlert={false}
                       setIsExpandedTrue={setIsExpandedTrue}
+                      onStatusChange={onStatusChange}
                     />
                   </>
                 )}

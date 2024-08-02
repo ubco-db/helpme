@@ -4,6 +4,8 @@ import { Input, Form, Button, message, Switch } from 'antd'
 import { API } from '@koh/api-client'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { default as React } from 'react'
+import { useAsnycQuestions } from '../../../hooks/useAsyncQuestions'
+import { useRouter } from 'next/router'
 
 interface EditQueueModalProps {
   visible: boolean
@@ -18,6 +20,9 @@ export function AnswerQuestionModal({
 }: EditQueueModalProps): ReactElement {
   const [form] = Form.useForm()
   const [visibleStatus, setVisibleStatus] = useState(false)
+  const router = useRouter()
+  const { cid } = router.query
+  const { mutateQuestions } = useAsnycQuestions(Number(cid))
   //use questions for form validation
   useEffect(() => {
     form.setFieldsValue(question)
@@ -33,6 +38,7 @@ export function AnswerQuestionModal({
       .then((value) => {
         if (value) {
           message.success('Response posted/edited')
+          mutateQuestions()
         } else {
           message.error("Couldn't post response")
         }
