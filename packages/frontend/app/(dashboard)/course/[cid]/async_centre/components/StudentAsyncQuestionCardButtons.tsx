@@ -1,22 +1,23 @@
-import { CloseOutlined, DeleteOutlined, FormOutlined } from '@ant-design/icons'
+import { API } from '@/app/api'
+import { getErrorMessage } from '@/app/utils/generalUtils'
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { message, Popconfirm, Tooltip } from 'antd'
 import { useState } from 'react'
 import CircleButton from '../../queue/[qid]/components/CircleButton'
-import PostResponseModal from './modals/PostResponseModal'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import CreateAsyncQuestionModal from './modals/CreateAsyncQuestionModal'
 
-type TAAsyncQuestionCardButtonsProps = {
+type StudentAsyncQuestionCardButtonsProps = {
   question: AsyncQuestion
   onAsyncQuestionUpdate: () => void
+  courseId: number
 }
 
-const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
-  question,
-  onAsyncQuestionUpdate,
-}) => {
-  const [postResponseModalOpen, setPostResponseModalOpen] = useState(false)
+const StudentAsyncQuestionCardButtons: React.FC<
+  StudentAsyncQuestionCardButtonsProps
+> = ({ question, onAsyncQuestionUpdate, courseId }) => {
+  const [createAsyncQuestionModalOpen, setCreateAsyncQuestionModalOpen] =
+    useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
   return (
@@ -26,7 +27,7 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
       }}
     >
       <Popconfirm
-        title="Are you sure you want to delete the question?"
+        title="Are you sure you want to delete your question?"
         okText="Yes"
         cancelText="No"
         okButtonProps={{ loading: deleteLoading }}
@@ -35,11 +36,11 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
           setDeleteLoading(true)
           await API.asyncQuestions
             .update(question.id, {
-              status: asyncQuestionStatus.TADeleted,
+              status: asyncQuestionStatus.StudentDeleted,
               visible: false,
             })
             .then(() => {
-              message.success('Removed Question')
+              message.success('Question Successfully Deleted')
               onAsyncQuestionUpdate()
               setDeleteLoading(false)
             })
@@ -54,26 +55,26 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
           <CircleButton variant="red" icon={<DeleteOutlined />} />
         </Tooltip>
       </Popconfirm>
-      <Tooltip title="Post response">
+      <Tooltip title="Edit Your Question">
         <CircleButton
-          variant="primary"
-          icon={<FormOutlined />}
+          icon={<EditOutlined />}
           onClick={() => {
-            setPostResponseModalOpen(true)
+            setCreateAsyncQuestionModalOpen(true)
           }}
         />
       </Tooltip>
-      <PostResponseModal
-        open={postResponseModalOpen}
+      <CreateAsyncQuestionModal
+        courseId={courseId}
         question={question}
-        onCancel={() => setPostResponseModalOpen(false)}
-        onPostResponse={() => {
+        open={createAsyncQuestionModalOpen}
+        onCancel={() => setCreateAsyncQuestionModalOpen(false)}
+        onCreateOrUpdateQuestion={() => {
+          setCreateAsyncQuestionModalOpen(false)
           onAsyncQuestionUpdate()
-          setPostResponseModalOpen(false)
         }}
       />
     </div>
   )
 }
 
-export default TAAsyncQuestionCardButtons
+export default StudentAsyncQuestionCardButtons

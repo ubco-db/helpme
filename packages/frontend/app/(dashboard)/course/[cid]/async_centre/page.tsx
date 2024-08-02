@@ -20,6 +20,7 @@ import {
 import VerticalDivider from '@/app/components/VerticalDivider'
 import CreateAsyncQuestionModal from './components/modals/CreateAsyncQuestionModal'
 import AsyncQuestionCard from './components/AsyncQuestionCard'
+import EditAsyncCentreModal from './components/modals/EditAsyncCentreModal'
 
 type AsyncCentrePageProps = {
   params: { cid: string }
@@ -32,7 +33,8 @@ export default function AsyncCentrePage({
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
-  const [asyncQuestionModalOpen, setAsyncQuestionModalOpen] = useState(false)
+  const [createAsyncQuestionModalOpen, setCreateAsyncQuestionModalOpen] =
+    useState(false)
   const [editAsyncCentreModalOpen, setEditAsyncCentreModalOpen] =
     useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
@@ -262,7 +264,9 @@ export default function AsyncCentrePage({
               Settings
             </EditQueueButton>
           ) : (
-            <JoinQueueButton onClick={() => setAsyncQuestionModalOpen(true)}>
+            <JoinQueueButton
+              onClick={() => setCreateAsyncQuestionModalOpen(true)}
+            >
               Post Question
             </JoinQueueButton>
           )
@@ -277,9 +281,10 @@ export default function AsyncCentrePage({
           <AsyncQuestionCard
             key={question.id}
             question={question}
-            onStatusChange={mutateAsyncQuestions}
-            isStaff={isStaff}
             userId={userInfo.id}
+            mutateAsyncQuestions={mutateAsyncQuestions}
+            isStaff={isStaff}
+            courseId={courseId}
             onQuestionTypeClick={(questionType) => {
               setQuestionTypeInput((prevInput) => {
                 const index = prevInput.indexOf(questionType)
@@ -296,20 +301,26 @@ export default function AsyncCentrePage({
         ))}
       </div>
       {isStaff ? (
-        <></>
+        <>
+          {/* Note: these are not all of the modals. TAAsyncQuestionCardButtons contains PostResponseModal and StudentAsyncQuestionButtons contains a second CreateAsyncQuestionModal */}
+          <EditAsyncCentreModal
+            courseId={courseId}
+            open={editAsyncCentreModalOpen}
+            onCancel={() => setEditAsyncCentreModalOpen(false)}
+            onEditSuccess={() => {
+              mutateAsyncQuestions()
+              setEditAsyncCentreModalOpen(false)
+            }}
+          />
+        </>
       ) : (
-        // <EditAsyncQuestionsModal
-        //     visible={editAsyncQuestionsModal}
-        //     onClose={() => setEditAsyncQuestionsModal(false)}
-        //     courseId={courseId}
-        // />
         <CreateAsyncQuestionModal
           courseId={courseId}
-          open={asyncQuestionModalOpen}
-          onCancel={() => setAsyncQuestionModalOpen(false)}
-          onCreateQuestion={() => {
+          open={createAsyncQuestionModalOpen}
+          onCancel={() => setCreateAsyncQuestionModalOpen(false)}
+          onCreateOrUpdateQuestion={() => {
             mutateAsyncQuestions()
-            setAsyncQuestionModalOpen(false)
+            setCreateAsyncQuestionModalOpen(false)
           }}
         />
       )}

@@ -1,29 +1,33 @@
 import React, { useState } from 'react'
-import { Modal, Input, Form, message } from 'antd'
+import { Modal, Input, Form, message, Checkbox, Tooltip } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../components/QuestionTagElement'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { AsyncQuestion } from '@koh/common'
 
 interface FormValues {
   QuestionAbstract: string
   questionText: string
   questionTypesInput: number[]
+  refreshAIAnswer: boolean
 }
 
 interface CreateAsyncQuestionModalProps {
   courseId: number
   open: boolean
   onCancel: () => void
-  onCreateQuestion: () => void
+  onCreateOrUpdateQuestion: () => void
+  question?: AsyncQuestion // if it's defined, then it's an edit modal
 }
 
 const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
   courseId,
   open,
   onCancel,
-  onCreateQuestion,
+  onCreateOrUpdateQuestion,
+  question,
 }) => {
   const { userInfo } = useUserInfo()
   const [questionTypes] = useQuestionTypes(courseId, null)
@@ -32,20 +36,24 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
 
   const getAiAnswer = async (question: string) => {
     try {
-      const data = {
-        question: question,
-        history: [],
+      if (userInfo.chat_token.used < userInfo.chat_token.max_uses) {
+        const data = {
+          question: question,
+          history: [],
+        }
+        const response = await fetch(`/chat/${courseId}/ask`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            HMS_API_TOKEN: userInfo.chat_token.token,
+          },
+          body: JSON.stringify(data),
+        })
+        const json = await response.json()
+        return json.answer
+      } else {
+        return 'All AI uses have been used up for today. Please try again tomorrow.'
       }
-      const response = await fetch(`/chat/${courseId}/ask`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          HMS_API_TOKEN: userInfo.chat_token.token,
-        },
-        body: JSON.stringify(data),
-      })
-      const json = await response.json()
-      return json.answer
     } catch (e) {
       return ''
     }
@@ -60,42 +68,92 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           )
         : []
 
-    // since the ai chatbot may not be running, we don't have a catch statement if it fails and instead we just give it a question text of ''
-    await getAiAnswer(
-      `
-        Question Abstract: ${values.QuestionAbstract}
-        Question Text: ${values.questionText}
-        Question Types: ${newQuestionTypeInput.map((questionType) => questionType.name).join(', ')}
-      `,
-    ).then(async (aiAnswer) => {
-      await API.asyncQuestions
-        .create(
-          {
+    // If editing a question, update the question. Else create a new one
+    if (question && question.id) {
+      if (values.refreshAIAnswer) {
+        await getAiAnswer(
+          `
+            Question Abstract: ${values.QuestionAbstract}
+            Question Text: ${values.questionText}
+            Question Types: ${newQuestionTypeInput.map((questionType) => questionType.name).join(', ')}
+          `,
+        ).then(async (aiAnswer) => {
+          if (!question.id) return //i am absolutely lost on why typescript is throwing an error without this. TODO: cry
+          await API.asyncQuestions
+            .update(question.id, {
+              questionTypes: newQuestionTypeInput,
+              questionText: values.questionText,
+              questionAbstract: values.QuestionAbstract,
+              aiAnswerText: aiAnswer,
+              answerText: aiAnswer,
+            })
+            .then(() => {
+              message.success('Question Updated')
+              setIsLoading(false)
+              onCreateOrUpdateQuestion()
+            })
+            .catch((e) => {
+              const errorMessage = getErrorMessage(e)
+              message.error('Error updating question:', errorMessage)
+              setIsLoading(false)
+            })
+        })
+      } else {
+        await API.asyncQuestions
+          .update(question.id, {
             questionTypes: newQuestionTypeInput,
             questionText: values.questionText,
-            aiAnswerText: aiAnswer,
-            answerText: aiAnswer,
             questionAbstract: values.QuestionAbstract,
-          },
-          courseId,
-        )
-        .then(() => {
-          message.success('Question Posted')
-          setIsLoading(false)
-          onCreateQuestion()
-        })
-        .catch((e) => {
-          const errorMessage = getErrorMessage(e)
-          message.error('Error creating question:', errorMessage)
-          setIsLoading(false)
-        })
-    })
+          })
+          .then(() => {
+            message.success('Question Updated')
+            setIsLoading(false)
+            onCreateOrUpdateQuestion()
+          })
+          .catch((e) => {
+            const errorMessage = getErrorMessage(e)
+            message.error('Error updating question:', errorMessage)
+            setIsLoading(false)
+          })
+      }
+    } else {
+      // since the ai chatbot may not be running, we don't have a catch statement if it fails and instead we just give it a question text of ''
+      await getAiAnswer(
+        `
+          Question Abstract: ${values.QuestionAbstract}
+          Question Text: ${values.questionText}
+          Question Types: ${newQuestionTypeInput.map((questionType) => questionType.name).join(', ')}
+        `,
+      ).then(async (aiAnswer) => {
+        await API.asyncQuestions
+          .create(
+            {
+              questionTypes: newQuestionTypeInput,
+              questionText: values.questionText,
+              aiAnswerText: aiAnswer,
+              answerText: aiAnswer,
+              questionAbstract: values.QuestionAbstract,
+            },
+            courseId,
+          )
+          .then(() => {
+            message.success('Question Posted')
+            setIsLoading(false)
+            onCreateOrUpdateQuestion()
+          })
+          .catch((e) => {
+            const errorMessage = getErrorMessage(e)
+            message.error('Error creating question:', errorMessage)
+            setIsLoading(false)
+          })
+      })
+    }
   }
 
   return (
     <Modal
       open={open}
-      title="What do you need help with?"
+      title={question ? 'Edit Question' : 'What do you need help with?'}
       okText="Finish"
       cancelText="Cancel"
       okButtonProps={{
@@ -104,7 +162,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
         loading: isLoading,
       }}
       cancelButtonProps={{
-        danger: true,
+        danger: !question,
       }}
       onCancel={onCancel}
       destroyOnClose
@@ -113,6 +171,13 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           layout="vertical"
           form={form}
           name="form_in_modal"
+          initialValues={{
+            QuestionAbstract: question?.questionAbstract,
+            questionText: question?.questionText,
+            questionTypesInput: question?.questionTypes?.map(
+              (questionType) => questionType.id,
+            ),
+          }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
         >
@@ -153,7 +218,27 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           <QuestionTagSelector questionTags={questionTypes} />
         </Form.Item>
       )}
-      <div className="text-gray-700">
+      {question && (
+        <Tooltip
+          placement="topLeft"
+          title={
+            userInfo.chat_token.used >= userInfo.chat_token.max_uses
+              ? 'You are out of AI answers for today. Please try again tomorrow.'
+              : null
+          }
+        >
+          <Form.Item name="refreshAIAnswer" valuePropName="checked">
+            <Checkbox
+              disabled={
+                userInfo.chat_token.used >= userInfo.chat_token.max_uses
+              }
+            >
+              Get a new AI answer?
+            </Checkbox>
+          </Form.Item>
+        </Tooltip>
+      )}
+      <div className="text-gray-600">
         Your question will be anonymous. Other students will not see your name
         or profile image.
       </div>

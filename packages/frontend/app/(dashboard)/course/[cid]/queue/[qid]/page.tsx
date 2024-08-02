@@ -761,7 +761,8 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               queueId={qid}
               courseId={cid}
               open={queueSettingsModalOpen}
-              onClose={() => setQueueSettingsModalOpen(false)}
+              onEditSuccess={() => setQueueSettingsModalOpen(false)}
+              onCancel={() => setQueueSettingsModalOpen(false)}
             />
             <AddStudentsToQueueModal
               queueId={qid}

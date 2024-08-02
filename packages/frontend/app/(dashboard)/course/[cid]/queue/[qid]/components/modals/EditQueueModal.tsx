@@ -50,18 +50,10 @@ import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 const { TextArea } = Input
 type Color = GetProp<ColorPickerProps, 'value'>
 
-interface EditQueueModalProps {
-  queueId: number
-  courseId: number
-  open: boolean
-  onClose: () => void
-}
-
 type QuestionTypeForCreation = {
   name: string
   color: string | Color
 }
-
 interface FormValues {
   notes: string
   allowQuestions: boolean
@@ -71,11 +63,20 @@ interface FormValues {
   queue_config: string
 }
 
+interface EditQueueModalProps {
+  queueId: number
+  courseId: number
+  open: boolean
+  onCancel: () => void
+  onEditSuccess: () => void
+}
+
 const EditQueueModal: React.FC<EditQueueModalProps> = ({
   queueId,
   courseId,
   open,
-  onClose,
+  onCancel,
+  onEditSuccess,
 }) => {
   const { queue, mutateQueue } = useQueue(queueId)
   const [form] = Form.useForm()
@@ -133,7 +134,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
 
   const onFinish = async (values: FormValues) => {
     let errorsHaveOccurred = false
-
     const deletePromises =
       values.questionTypesForDeletion?.map((tagID) =>
         API.questionType
@@ -147,7 +147,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             message.error(`Error deleting question tag: ${errorMessage}`)
           }),
       ) || []
-
     const createPromises =
       values.questionTypesForCreation?.map((questionType) => {
         const newQuestionType: QuestionTypeParams = {
@@ -170,7 +169,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             message.error(`Error creating question tag: ${errorMessage}`)
           })
       }) || []
-
     const zoomLinkPromise =
       values.zoomLink !== course?.zoomLink
         ? API.course
@@ -188,12 +186,10 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               message.error(`Failed to change zoom link: ${errorMessage}`)
             })
         : Promise.resolve()
-
     const updateQueueParams: UpdateQueueParams = pick(values, [
       'notes',
       'allowQuestions',
     ])
-
     const updateQueuePromise =
       updateQueueParams.notes !== queue?.notes ||
       updateQueueParams.allowQuestions !== queue?.allowQuestions
@@ -208,7 +204,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               message.error(`Failed to save queue details: ${errorMessage}`)
             })
         : Promise.resolve()
-
     await Promise.all([
       ...deletePromises,
       ...createPromises,
@@ -218,7 +213,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
     mutateQuestionTypes()
     mutateQueue()
     if (!errorsHaveOccurred) {
-      onClose()
+      onEditSuccess()
     }
   }
 
@@ -234,7 +229,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         disabled: configHasChanges,
       }}
       width={800}
-      onCancel={onClose}
+      onCancel={onCancel}
       destroyOnClose
       modalRender={(dom) => (
         <Form

@@ -7,6 +7,9 @@ import UserAvatar from '@/app/components/UserAvatar'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { QuestionTagElement } from '../../components/QuestionTagElement'
 import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
+import TAAsyncQuestionCardButtons from './TAAsyncQuestionCardButtons'
+import StudentAsyncQuestionCardButtons from './StudentAsyncQuestionCardButtons'
+import { ArrowBigDown, ArrowBigUp } from 'lucide-react'
 
 const statusDisplayMap = {
   [asyncQuestionStatus.AIAnsweredNeedsAttention]:
@@ -22,8 +25,8 @@ interface AsyncQuestionCardProps {
   question: AsyncQuestion
   isStaff: boolean
   userId: number
-  buttons: React.ReactNode
-  onStatusChange: () => void
+  courseId: number
+  mutateAsyncQuestions: () => void
   onQuestionTypeClick: (questionType: any) => void
 }
 
@@ -31,8 +34,8 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   question,
   isStaff,
   userId,
-  buttons,
-  onStatusChange,
+  courseId,
+  mutateAsyncQuestions,
   onQuestionTypeClick,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -55,7 +58,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     await API.asyncQuestions
       .update(question.id, { status: newstatus })
       .then(() => {
-        onStatusChange()
+        mutateAsyncQuestions()
         message.success(
           `Question has been marked as ${
             resolved ? 'resolved' : 'needing faculty attention'
@@ -93,9 +96,11 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
               <Button
                 type="text"
                 icon={
-                  <UpOutlined
+                  <ArrowBigUp
                     style={
-                      thisUserThisQuestionVote == 1 ? { color: 'green' } : {}
+                      thisUserThisQuestionVote == 1
+                        ? { color: 'green' }
+                        : { color: 'gray' }
                     }
                   />
                 }
@@ -112,9 +117,11 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
               <Button
                 type="text"
                 icon={
-                  <DownOutlined
+                  <ArrowBigDown
                     style={
-                      thisUserThisQuestionVote == -1 ? { color: 'red' } : {}
+                      thisUserThisQuestionVote == -1
+                        ? { color: 'red' }
+                        : { color: 'gray' }
                     }
                   />
                 }
@@ -160,28 +167,22 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   </div>
                   <div className="flex items-center">
                     <div className="text-sm">{getAsyncWaitTime(question)}</div>
-                    {isStaff && (
-                      <>
-                        {/* <TAquestionDetailButtons
-                          question={question}
-                          hasUnresolvedRephraseAlert={false}
-                          setIsExpandedTrue={setIsExpandedTrue}
-                        /> */}
-                      </>
-                    )}
-                    {userId === question.creatorId &&
-                    question.status === asyncQuestionStatus.AIAnswered ? (
+                    {isStaff ? (
+                      <TAAsyncQuestionCardButtons
+                        question={question}
+                        onAsyncQuestionUpdate={mutateAsyncQuestions}
+                      />
+                    ) : userId === question.creatorId &&
+                      question.status === asyncQuestionStatus.AIAnswered ? (
                       <>
                         {/* Students can edit their own questions, but only if question is not resolved, note that AIAnswer is default */}
-                        {/* <StudentQuestionDetailButtons
+                        <StudentAsyncQuestionCardButtons
                           question={question}
-                          setIsExpandedTrue={setIsExpandedTrue}
-                          onStatusChange={onStatusChange}
-                        /> */}
+                          onAsyncQuestionUpdate={mutateAsyncQuestions}
+                          courseId={courseId}
+                        />
                       </>
-                    ) : (
-                      <></>
-                    )}
+                    ) : null}
                   </div>
                 </div>
                 <div>

@@ -4,6 +4,7 @@ import { Input, Form, message, Switch, Checkbox } from 'antd'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
+import { useAsnycQuestions } from '@/app/hooks/useAsyncQuestions'
 
 interface FormValues {
   answerText: string
@@ -80,11 +81,12 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
     >
       <Form.Item
         name="answerText"
+        label="Answer Text"
         rules={[{ required: true, message: 'Please input your response.' }]}
       >
         <Input.TextArea
           placeholder="Your response to the question"
-          autoSize={{ minRows: 3, maxRows: 9 }}
+          autoSize={{ minRows: 3, maxRows: 15 }}
           allowClear
         />
       </Form.Item>
