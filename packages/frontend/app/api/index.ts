@@ -28,7 +28,7 @@ import {
   questions,
   CreateAsyncQuestions,
   UpdateAsyncQuestions,
-  AsyncQuestion,
+  AsyncQuestionParams,
   Calendar,
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
@@ -50,8 +50,9 @@ import {
   QueueConfig,
   AllStudentAssignmentProgress,
   setQueueConfigResponse,
-  QuestionTypeType,
   StudentTaskProgressWithUser,
+  AsyncQuestion,
+  QuestionType,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -319,9 +320,19 @@ class APIClient {
   }
   asyncQuestions = {
     create: async (body: CreateAsyncQuestions, cid: number) =>
-      this.req('POST', `/api/v1/asyncQuestions/${cid}`, AsyncQuestion, body),
+      this.req(
+        'POST',
+        `/api/v1/asyncQuestions/${cid}`,
+        AsyncQuestionParams,
+        body,
+      ),
     update: async (qid: number, body: UpdateAsyncQuestions) =>
-      this.req('PATCH', `/api/v1/asyncQuestions/${qid}`, AsyncQuestion, body),
+      this.req(
+        'PATCH',
+        `/api/v1/asyncQuestions/${qid}`,
+        AsyncQuestionParams,
+        body,
+      ),
     vote: async (
       qid: number,
       vote: number,
@@ -362,7 +373,7 @@ class APIClient {
     getQuestionTypes: async (
       courseId: number,
       queueId: number | null,
-    ): Promise<QuestionTypeType[]> => {
+    ): Promise<QuestionType[]> => {
       try {
         return await this.req(
           'GET',

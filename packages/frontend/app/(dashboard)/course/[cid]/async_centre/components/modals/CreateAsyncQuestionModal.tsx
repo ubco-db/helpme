@@ -69,7 +69,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
         : []
 
     // If editing a question, update the question. Else create a new one
-    if (question && question.id) {
+    if (question) {
       if (values.refreshAIAnswer) {
         await getAiAnswer(
           `
@@ -78,7 +78,6 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
             Question Types: ${newQuestionTypeInput.map((questionType) => questionType.name).join(', ')}
           `,
         ).then(async (aiAnswer) => {
-          if (!question.id) return //i am absolutely lost on why typescript is throwing an error without this. TODO: cry
           await API.asyncQuestions
             .update(question.id, {
               questionTypes: newQuestionTypeInput,

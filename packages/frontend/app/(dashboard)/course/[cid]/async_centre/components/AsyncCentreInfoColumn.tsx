@@ -11,7 +11,7 @@ const AsyncCentreInfoColumn: React.FC<AsyncCentreInfoColumnProps> = ({
 }) => {
   return (
     <div className="relative flex flex-shrink-0 flex-col pb-3 md:mt-8 md:w-72 md:pb-7">
-      <h2 className="mb-8 inline-block overflow-visible whitespace-nowrap text-2xl font-bold text-[#212934]">
+      <h1 className="mb-8 inline-block overflow-visible whitespace-nowrap text-2xl font-bold text-[#212934]">
         Anytime Question Hub{' '}
         <Tooltip
           title={
@@ -20,7 +20,7 @@ const AsyncCentreInfoColumn: React.FC<AsyncCentreInfoColumnProps> = ({
         >
           <QuestionCircleOutlined style={{ color: 'gray' }} />
         </Tooltip>
-      </h2>
+      </h1>
 
       {buttons}
     </div>

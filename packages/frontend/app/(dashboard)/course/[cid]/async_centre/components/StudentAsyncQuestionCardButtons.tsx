@@ -32,7 +32,6 @@ const StudentAsyncQuestionCardButtons: React.FC<
         cancelText="No"
         okButtonProps={{ loading: deleteLoading }}
         onConfirm={async () => {
-          if (!question.id) return
           setDeleteLoading(true)
           await API.asyncQuestions
             .update(question.id, {

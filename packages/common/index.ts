@@ -459,9 +459,31 @@ export class QuestionGroup {
 }
 
 /**
+ * This AsyncQuestion is one that is already created and not used for sending data to the server (hence why there's no decorators). Used on frontend.
+ */
+export type AsyncQuestion = {
+  id: number
+  creator: UserPartial
+  questionText?: string
+  creatorId?: number
+  taHelped?: User
+  createdAt: Date
+  questionTypes: QuestionType[]
+  status: asyncQuestionStatus
+  questionAbstract: string
+  answerText?: string
+  aiAnswerText?: string
+  closedAt?: Date
+  visible?: boolean
+  verified: boolean
+  votes?: AsyncQuestionVotes[]
+  votesSum: number
+}
+
+/**
  * An async question is created when a student wants help from a TA.
  */
-export class AsyncQuestion {
+export class AsyncQuestionParams {
   @IsOptional()
   @IsInt()
   id?: number
@@ -1090,9 +1112,9 @@ export class ResolveGroupParams {
   queueId!: number
 }
 
-export class CreateAsyncQuestions extends AsyncQuestion {}
+export class CreateAsyncQuestions extends AsyncQuestionParams {}
 
-export class UpdateAsyncQuestions extends AsyncQuestion {}
+export class UpdateAsyncQuestions extends AsyncQuestionParams {}
 
 export type TAUpdateStatusResponse = QueuePartial
 export type QueueNotePayloadType = {

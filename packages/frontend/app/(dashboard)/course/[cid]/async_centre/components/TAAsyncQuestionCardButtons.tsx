@@ -1,4 +1,4 @@
-import { CloseOutlined, DeleteOutlined, FormOutlined } from '@ant-design/icons'
+import { DeleteOutlined, FormOutlined } from '@ant-design/icons'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { message, Popconfirm, Tooltip } from 'antd'
 import { useState } from 'react'
@@ -31,7 +31,6 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
         cancelText="No"
         okButtonProps={{ loading: deleteLoading }}
         onConfirm={async () => {
-          if (!question.id) return
           setDeleteLoading(true)
           await API.asyncQuestions
             .update(question.id, {

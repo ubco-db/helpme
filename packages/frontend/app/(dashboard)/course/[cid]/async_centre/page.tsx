@@ -2,13 +2,12 @@
 
 import {
   AsyncQuestion,
-  QuestionTypeParams,
+  QuestionType,
   Role,
   asyncQuestionStatus,
 } from '@koh/common'
 import React, { ReactElement, useCallback, useEffect, useState } from 'react'
-import { Select } from 'antd'
-import PropTypes from 'prop-types'
+import { Segmented, Select } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getRoleInCourse } from '@/app/utils/generalUtils'
 import { useAsnycQuestions } from '@/app/hooks/useAsyncQuestions'
@@ -21,6 +20,15 @@ import VerticalDivider from '@/app/components/VerticalDivider'
 import CreateAsyncQuestionModal from './components/modals/CreateAsyncQuestionModal'
 import AsyncQuestionCard from './components/AsyncQuestionCard'
 import EditAsyncCentreModal from './components/modals/EditAsyncCentreModal'
+import { QuestionTagElement } from '../components/QuestionTagElement'
+import {
+  EyeInvisibleOutlined,
+  EyeOutlined,
+  TeamOutlined,
+  UserOutlined,
+} from '@ant-design/icons'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
+import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 
 type AsyncCentrePageProps = {
   params: { cid: string }
@@ -33,297 +41,296 @@ export default function AsyncCentrePage({
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
+  const [asyncQuestions, mutateAsyncQuestions] = useAsnycQuestions(courseId)
   const [createAsyncQuestionModalOpen, setCreateAsyncQuestionModalOpen] =
     useState(false)
   const [editAsyncCentreModalOpen, setEditAsyncCentreModalOpen] =
     useState(false)
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [visibleFilter, setVisibleFilter] = useState('all')
+  const [questionTypes] = useQuestionTypes(courseId, null)
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'helped' | 'unhelped'
+  >('all')
+  const [visibleFilter, setVisibleFilter] = useState<
+    'all' | 'visible' | 'hidden'
+  >('all')
   const [creatorFilter, setCreatorFilter] = useState<'all' | 'mine'>('all')
 
-  const [questionTypeInput, setQuestionTypeInput] = useState([])
-
-  const [questionsTypeState, setQuestionsTypeState] = useState<
-    QuestionTypeParams[]
+  const [selectedQuestionTags, setSelectedQuestionTags] = useState<
+    QuestionType[]
   >([])
-
   const [displayedQuestions, setDisplayedQuestions] = useState<AsyncQuestion[]>(
     [],
   )
+  const [sortBy, setSortBy] = useState<
+    'newest' | 'oldest' | 'most-votes' | 'least-votes'
+  >('newest')
 
-  const [sortBy, setSortBy] = useState('newest')
-
-  const onTypeChange = (selectedTypes) => {
-    setQuestionTypeInput(selectedTypes)
-  }
-
-  const [asyncQuestions, mutateAsyncQuestions] = useAsnycQuestions(courseId)
-
-  // const applySort = useCallback(
-  //     (displayedQuestions: AsyncQuestion[]) => {
-  //         return displayedQuestions.sort((a, b) => {
-  //             switch (sortBy) {
-  //                 case 'newest':
-  //                     return (
-  //                         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  //                     )
-  //                 case 'oldest':
-  //                     return (
-  //                         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  //                     )
-  //                 case 'most-votes':
-  //                     return b.votesSum - a.votesSum
-  //                 case 'least-votes':
-  //                     return a.votesSum - b.votesSum
-  //                 default:
-  //                     return 0
-  //             }
-  //         })
-  //     },
-  //     [sortBy],
-  // )
-
-  // useEffect(() => {
-  //     let displayedQuestions = questions || []
-  //     // Apply status filter
-  //     if (statusFilter === 'helped') {
-  //         displayedQuestions = displayedQuestions.filter(
-  //             (question) => question.status === asyncQuestionStatus.HumanAnswered,
-  //         )
-  //     } else if (statusFilter === 'unhelped') {
-  //         displayedQuestions = displayedQuestions.filter(
-  //             (question) =>
-  //                 question.status === asyncQuestionStatus.AIAnswered ||
-  //                 question.status === asyncQuestionStatus.AIAnsweredNeedsAttention,
-  //         )
-  //     }
-  //     // Apply visibility filter
-  //     if (visibleFilter === 'visible') {
-  //         displayedQuestions = displayedQuestions.filter(
-  //             (question) => question.visible,
-  //         )
-  //     } else if (visibleFilter === 'hidden') {
-  //         displayedQuestions = displayedQuestions.filter(
-  //             (question) => !question.visible,
-  //         )
-  //     }
-
-  //     // Apply question type filter
-  //     if (questionTypeInput.length > 0) {
-  //         displayedQuestions = displayedQuestions.filter((question) => {
-  //             const questionTypes = question.questionTypes.map((type) => type.id)
-  //             return questionTypeInput.every((type) => questionTypes.includes(type))
-  //         })
-  //     }
-
-  //     if (creatorFilter === 'mine') {
-  //         displayedQuestions = displayedQuestions.filter(
-  //             (question) => question.creatorId === profile.id,
-  //         )
-  //     }
-
-  //     displayedQuestions = applySort(displayedQuestions)
-  //     setDisplayedQuestions(displayedQuestions)
-
-  //     const shownQuestionTypes = displayedQuestions
-  //         .map((question) => question.questionTypes)
-  //         .flat()
-  //     setQuestionsTypeState(shownQuestionTypes)
-  // }, [
-  //     visibleFilter,
-  //     statusFilter,
-  //     questions,
-  //     questionTypeInput,
-  //     isStaff,
-  //     creatorFilter,
-  //     profile?.id,
-  //     sortBy,
-  //     applySort,
-  // ])
-
-  // const RenderQuestionTypeFilter = () => {
-  //     return (
-  //         <Select
-  //             mode="multiple"
-  //             placeholder="Select question tags"
-  //             onChange={onTypeChange}
-  //             style={{ width: '50%' }}
-  //             value={questionTypeInput}
-  //             tagRender={(props) => {
-  //                 const type = questionsTypeState.find(
-  //                     (type) => type.id === props.value,
-  //                 )
-  //                 return (
-  //                     <QuestionType
-  //                         typeName={type ? type.name : ''}
-  //                         typeColor={type ? type.color : ''}
-  //                         onClick={props.onClose}
-  //                     />
-  //                 )
-  //             }}
-  //         >
-  //             {questionsTypeState.map((type) => (
-  //                 <Select.Option value={type.id} key={type.id}>
-  //                     {type.name}
-  //                 </Select.Option>
-  //             ))}
-  //         </Select>
-  //     )
-  // }
-
-  // const RenderCreatorFilter = () => {
-  //     return (
-  //         <Select
-  //             id="creator-filter-select"
-  //             value={creatorFilter}
-  //             onChange={(value) => setCreatorFilter(value)}
-  //             className="select-filter"
-  //         >
-  //             <Select.Option value="all">All Questions</Select.Option>
-  //             <Select.Option value="mine">My Questions</Select.Option>
-  //         </Select>
-  //     )
-  // }
-
-  // const RenderQuestionStatusFilter = () => {
-  //     return (
-  //         <>
-  //             <Select
-  //                 id="status-filter-select"
-  //                 value={statusFilter}
-  //                 onChange={(value) => setStatusFilter(value)}
-  //                 className="select-filter"
-  //                 style={{ width: 200 }}
-  //             >
-  //                 <Select.Option value="all">Verification status</Select.Option>
-  //                 <Select.Option value="helped">Verified questions</Select.Option>
-  //                 <Select.Option value="unhelped">Unverified questions</Select.Option>
-  //             </Select>
-  //         </>
-  //     )
-  // }
-
-  // const RenderVisibleFilter = () => {
-  //     return (
-  //         <>
-  //             <Select
-  //                 id="visible-filter-select"
-  //                 value={visibleFilter}
-  //                 onChange={(value) => setVisibleFilter(value)}
-  //                 className="select-filter"
-  //                 style={{ width: 200 }}
-  //             >
-  //                 <Select.Option value="all">Visibility</Select.Option>
-  //                 <Select.Option value="visible">Visible Only</Select.Option>
-  //                 <Select.Option value="hidden">Hidden Only</Select.Option>
-  //             </Select>
-  //         </>
-  //     )
-  // }
-
-  // const RenderFilters = () => {
-  //     return (
-  //         <>
-  //             <h2 className="flex-shrink-0">Filter Questions</h2>
-  //             <div className="mb-4 flex items-center gap-x-4">
-  //                 <RenderQuestionStatusFilter />
-  //                 <RenderVisibleFilter />
-  //                 {!isStaff && <RenderCreatorFilter />}
-  //                 <RenderQuestionTypeFilter />
-  //             </div>
-  //         </>
-  //     )
-  // }
-
-  // const RenderSortBy = () => {
-  //     return (
-  //         <div className="mb-1 flex items-center gap-x-4">
-  //             <h2 className="flex-shrink-0">Sort By</h2>
-  //             <Select
-  //                 id="sort-by-select"
-  //                 value={sortBy}
-  //                 className="sort-by-select"
-  //                 style={{ width: 200 }}
-  //                 onChange={(value) => setSortBy(value)}
-  //             >
-  //                 <Select.Option value="newest">Newest</Select.Option>
-  //                 <Select.Option value="oldest">Oldest</Select.Option>
-  //                 <Select.Option value="most-votes">Most Votes</Select.Option>
-  //                 <Select.Option value="least-votes">Least Votes</Select.Option>
-  //             </Select>
-  //         </div>
-  //     )
-  // }
-
-  return (
-    <div className="flex h-full flex-1 flex-col md:flex-row">
-      <AsyncCentreInfoColumn
-        buttons={
-          isStaff ? (
-            <EditQueueButton onClick={() => setEditAsyncCentreModalOpen(true)}>
-              Settings
-            </EditQueueButton>
-          ) : (
-            <JoinQueueButton
-              onClick={() => setCreateAsyncQuestionModalOpen(true)}
-            >
-              Post Question
-            </JoinQueueButton>
-          )
+  const applySort = useCallback(
+    (displayedQuestions: AsyncQuestion[]) => {
+      return displayedQuestions.sort((a, b) => {
+        switch (sortBy) {
+          case 'newest':
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            )
+          case 'oldest':
+            return (
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            )
+          case 'most-votes':
+            return b.votesSum - a.votesSum
+          case 'least-votes':
+            return a.votesSum - b.votesSum
+          default:
+            return 0
         }
-      />
-      <VerticalDivider />
-      <div className="flex-grow md:mt-4">
-        {/* <RenderFilters /> */}
-        {/* <RenderSortBy /> */}
-
-        {asyncQuestions?.map((question) => (
-          <AsyncQuestionCard
-            key={question.id}
-            question={question}
-            userId={userInfo.id}
-            mutateAsyncQuestions={mutateAsyncQuestions}
-            isStaff={isStaff}
-            courseId={courseId}
-            onQuestionTypeClick={(questionType) => {
-              setQuestionTypeInput((prevInput) => {
-                const index = prevInput.indexOf(questionType)
-                if (index > -1) {
-                  // questionType is in the array, remove it
-                  return prevInput.filter((qt) => qt !== questionType)
-                } else {
-                  // questionType is not in the array, add it
-                  return [...prevInput, questionType]
-                }
-              })
-            }}
-          />
-        ))}
-      </div>
-      {isStaff ? (
-        <>
-          {/* Note: these are not all of the modals. TAAsyncQuestionCardButtons contains PostResponseModal and StudentAsyncQuestionButtons contains a second CreateAsyncQuestionModal */}
-          <EditAsyncCentreModal
-            courseId={courseId}
-            open={editAsyncCentreModalOpen}
-            onCancel={() => setEditAsyncCentreModalOpen(false)}
-            onEditSuccess={() => {
-              mutateAsyncQuestions()
-              setEditAsyncCentreModalOpen(false)
-            }}
-          />
-        </>
-      ) : (
-        <CreateAsyncQuestionModal
-          courseId={courseId}
-          open={createAsyncQuestionModalOpen}
-          onCancel={() => setCreateAsyncQuestionModalOpen(false)}
-          onCreateOrUpdateQuestion={() => {
-            mutateAsyncQuestions()
-            setCreateAsyncQuestionModalOpen(false)
-          }}
-        />
-      )}
-    </div>
+      })
+    },
+    [sortBy],
   )
+
+  useEffect(() => {
+    let displayedQuestions = asyncQuestions || []
+    // Apply status filter
+    if (statusFilter === 'helped') {
+      displayedQuestions = displayedQuestions.filter(
+        (question) => question.status === asyncQuestionStatus.HumanAnswered,
+      )
+    } else if (statusFilter === 'unhelped') {
+      displayedQuestions = displayedQuestions.filter(
+        (question) =>
+          question.status === asyncQuestionStatus.AIAnswered ||
+          question.status === asyncQuestionStatus.AIAnsweredNeedsAttention,
+      )
+    }
+    // Apply visibility filter
+    if (visibleFilter === 'visible') {
+      displayedQuestions = displayedQuestions.filter(
+        (question) => question.visible,
+      )
+    } else if (visibleFilter === 'hidden') {
+      displayedQuestions = displayedQuestions.filter(
+        (question) => !question.visible,
+      )
+    }
+
+    // Apply question type filter
+    if (selectedQuestionTags.length > 0) {
+      displayedQuestions = displayedQuestions.filter((question) => {
+        const questionTypeIds = question.questionTypes.map((type) => type.id)
+        return selectedQuestionTags.every((type) =>
+          questionTypeIds.includes(type.id),
+        )
+      })
+    }
+
+    if (creatorFilter === 'mine') {
+      displayedQuestions = displayedQuestions.filter(
+        (question) => question.creatorId === userInfo.id,
+      )
+    }
+
+    displayedQuestions = applySort(displayedQuestions)
+    setDisplayedQuestions(displayedQuestions)
+  }, [
+    visibleFilter,
+    statusFilter,
+    asyncQuestions,
+    selectedQuestionTags,
+    isStaff,
+    creatorFilter,
+    userInfo.id,
+    sortBy,
+    applySort,
+  ])
+
+  const RenderQuestionTypeFilter = useCallback(() => {
+    if (!questionTypes) {
+      return null
+    }
+    return (
+      <Select
+        mode="multiple"
+        placeholder="Select question tags"
+        onChange={(value: number[]) => {
+          setSelectedQuestionTags(
+            questionTypes.filter((tag) => value.includes(tag.id)),
+          )
+        }}
+        className="w-1/2"
+        allowClear
+        tagRender={(props) => {
+          const tag = questionTypes.find((tag) => tag.id === props.value)
+          return (
+            <QuestionTagElement
+              tagName={tag ? tag.name : ''}
+              tagColor={tag ? tag.color : ''}
+              onClick={props.onClose}
+            />
+          )
+        }}
+        options={questionTypes.map((tag) => ({
+          label: tag.name,
+          value: tag.id,
+        }))}
+      />
+    )
+  }, [questionTypes])
+
+  const RenderCreatorFilter = useCallback(() => {
+    return (
+      <Segmented
+        onChange={(value: 'all' | 'mine') => setCreatorFilter(value)}
+        options={[
+          {
+            label: 'All',
+            value: 'all',
+            icon: <TeamOutlined />,
+          },
+          {
+            label: 'Mine',
+            value: 'mine',
+            icon: <UserOutlined />,
+          },
+        ]}
+      />
+    )
+  }, [])
+
+  const RenderQuestionStatusFilter = useCallback(() => {
+    return (
+      <Segmented
+        onChange={(value: 'all' | 'helped' | 'unhelped') =>
+          setStatusFilter(value)
+        }
+        options={[
+          {
+            label: 'All',
+            value: 'all',
+          },
+          {
+            label: 'Verified',
+            value: 'helped',
+          },
+          {
+            label: 'Unverified',
+            value: 'unhelped',
+          },
+        ]}
+      />
+    )
+  }, [])
+
+  const RenderVisibleFilter = useCallback(() => {
+    return (
+      <Segmented
+        onChange={(value: 'all' | 'visible' | 'hidden') =>
+          setVisibleFilter(value)
+        }
+        options={[
+          {
+            label: 'All',
+            value: 'all',
+          },
+          {
+            label: 'Visible',
+            value: 'visible',
+            icon: <EyeOutlined />,
+          },
+          {
+            label: 'Hidden',
+            value: 'hidden',
+            icon: <EyeInvisibleOutlined />,
+          },
+        ]}
+      />
+    )
+  }, [])
+
+  if (!userInfo) {
+    return <CenteredSpinner tip="Loading User Info..." />
+  } else if (asyncQuestions === undefined || asyncQuestions === null) {
+    return <CenteredSpinner tip="Loading Questions..." />
+  } else {
+    return (
+      <div className="flex h-full flex-1 flex-col md:flex-row">
+        <AsyncCentreInfoColumn
+          buttons={
+            isStaff ? (
+              <EditQueueButton
+                onClick={() => setEditAsyncCentreModalOpen(true)}
+              >
+                Settings
+              </EditQueueButton>
+            ) : (
+              <JoinQueueButton
+                onClick={() => setCreateAsyncQuestionModalOpen(true)}
+              >
+                Post Question
+              </JoinQueueButton>
+            )
+          }
+        />
+        <VerticalDivider />
+        <div className="flex-grow md:mt-4">
+          <h3 className="flex-shrink-0 text-lg font-bold">Filter Questions</h3>
+          <div className="mb-4 flex items-center gap-x-4">
+            <RenderQuestionStatusFilter />
+            <RenderVisibleFilter />
+            {!isStaff && <RenderCreatorFilter />}
+            <RenderQuestionTypeFilter />
+          </div>
+          <div className="mb-1 flex items-center gap-x-4">
+            <h3 className="flex-shrink-0 text-lg font-bold">Sort By</h3>
+            <Select
+              value={sortBy}
+              className="w-28"
+              onChange={(value) => setSortBy(value)}
+              options={[
+                { label: 'Newest', value: 'newest' },
+                { label: 'Oldest', value: 'oldest' },
+                { label: 'Most Votes', value: 'most-votes' },
+                { label: 'Least Votes', value: 'least-votes' },
+              ]}
+            />
+          </div>
+
+          {displayedQuestions.map((question) => (
+            <AsyncQuestionCard
+              key={question.id}
+              question={question}
+              userId={userInfo.id}
+              mutateAsyncQuestions={mutateAsyncQuestions}
+              isStaff={isStaff}
+              courseId={courseId}
+            />
+          ))}
+        </div>
+        {isStaff ? (
+          <>
+            {/* Note: these are not all of the modals. TAAsyncQuestionCardButtons contains PostResponseModal and StudentAsyncQuestionButtons contains a second CreateAsyncQuestionModal */}
+            <EditAsyncCentreModal
+              courseId={courseId}
+              open={editAsyncCentreModalOpen}
+              onCancel={() => setEditAsyncCentreModalOpen(false)}
+              onEditSuccess={() => {
+                mutateAsyncQuestions()
+                setEditAsyncCentreModalOpen(false)
+              }}
+            />
+          </>
+        ) : (
+          <CreateAsyncQuestionModal
+            courseId={courseId}
+            open={createAsyncQuestionModalOpen}
+            onCancel={() => setCreateAsyncQuestionModalOpen(false)}
+            onCreateOrUpdateQuestion={() => {
+              mutateAsyncQuestions()
+              setCreateAsyncQuestionModalOpen(false)
+            }}
+          />
+        )}
+      </div>
+    )
+  }
 }

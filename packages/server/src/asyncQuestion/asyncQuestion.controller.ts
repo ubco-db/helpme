@@ -2,7 +2,7 @@ import {
   CreateAsyncQuestions,
   ERROR_MESSAGES,
   Role,
-  AsyncQuestion,
+  AsyncQuestionParams,
   asyncQuestionStatus,
   UpdateAsyncQuestions,
 } from '@koh/common';
@@ -155,7 +155,7 @@ export class asyncQuestionController {
     @Param('questionId') questionId: number,
     @Body() body: UpdateAsyncQuestions,
     @User() user: UserModel,
-  ): Promise<AsyncQuestion> {
+  ): Promise<AsyncQuestionParams> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
       relations: ['course', 'creator', 'taHelped', 'votes'],
