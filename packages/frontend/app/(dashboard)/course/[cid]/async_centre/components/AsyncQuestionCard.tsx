@@ -1,7 +1,12 @@
 import { useState } from 'react'
-import { Button, Col, message, Row } from 'antd'
+import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
-import { DownOutlined, UpOutlined } from '@ant-design/icons'
+import {
+  CheckCircleOutlined,
+  DownOutlined,
+  EyeInvisibleOutlined,
+  UpOutlined,
+} from '@ant-design/icons'
 import { API } from '@/app/api'
 import UserAvatar from '@/app/components/UserAvatar'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
@@ -16,7 +21,7 @@ const statusDisplayMap = {
   [asyncQuestionStatus.AIAnsweredNeedsAttention]:
     'AI Answered, Needs Attention',
   [asyncQuestionStatus.AIAnsweredResolved]: 'AI Answered, Resolved',
-  [asyncQuestionStatus.HumanAnswered]: 'Human Answered',
+  [asyncQuestionStatus.HumanAnswered]: 'Human Verified',
   [asyncQuestionStatus.AIAnswered]: 'Answered by AI',
   [asyncQuestionStatus.TADeleted]: 'Deleted by TA',
   [asyncQuestionStatus.StudentDeleted]: 'Deleted by Student',
@@ -75,10 +80,11 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     <div
       className={cn(
         'mb-2 mt-2 flex flex-col rounded-lg bg-white p-2 shadow-lg',
-        question.status === asyncQuestionStatus.HumanAnswered ||
-          question.status === asyncQuestionStatus.AIAnsweredResolved
-          ? 'bg-green-100/50'
-          : 'bg-yellow-100/50',
+        (question.status === asyncQuestionStatus.HumanAnswered ||
+          question.status === asyncQuestionStatus.AIAnsweredResolved) &&
+          question.answerText
+          ? 'bg-white'
+          : 'bg-yellow-100/25',
       )}
       onClick={() => setIsExpanded(!isExpanded)}
     >
@@ -134,10 +140,19 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                     size={46}
                     username={question.creator.name}
                     photoURL={question.creator.photoURL}
-                    className="mr-3"
+                    className="mr-3 hidden md:flex"
                   />
-                  <div className="flex-grow text-sm italic">
-                    {question.creator.name}
+                  <UserAvatar
+                    size={36}
+                    username={question.creator.name}
+                    photoURL={question.creator.photoURL}
+                    className="mr-3 flex md:hidden"
+                  />
+                  <div className="flex-grow text-sm italic text-gray-500">
+                    <span className="mr-2 font-semibold">
+                      {question.creator.name}
+                    </span>
+                    <span>{getAsyncWaitTime(question)} ago</span>
                   </div>
                 </>
               ) : (
@@ -145,20 +160,42 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   Anonymous Student
                 </div>
               )}
-              <div
-                className={`flex flex-grow items-center justify-center rounded-full px-2 py-1
-          ${
-            question.status === asyncQuestionStatus.HumanAnswered
-              ? 'bg-green-200'
-              : 'bg-yellow-200'
-          }`}
+              {/* If it's the students' question, show a tag to indicate whether it is publicly visible or not */}
+              {userId === question.creatorId && (
+                <Tooltip
+                  title={
+                    question.visible
+                      ? "A Staff member liked your question and decided to make it publicly visible. Don't worry! Your name and picture are hidden and you appear as an anonymous student."
+                      : 'Only you and staff can see this question.'
+                  }
+                >
+                  <Tag
+                    color={question.visible ? 'blue' : 'default'}
+                    icon={question.visible ? null : <EyeInvisibleOutlined />}
+                  >
+                    {question.visible ? 'Public' : 'Private'}
+                  </Tag>
+                </Tooltip>
+              )}
+              <Tag
+                icon={
+                  question.verified && (
+                    <Tooltip title="This Question's Answer was marked as Verified by Staff">
+                      <CheckCircleOutlined />
+                    </Tooltip>
+                  )
+                }
+                color={
+                  question.status === asyncQuestionStatus.HumanAnswered
+                    ? 'green'
+                    : 'gold'
+                }
               >
                 {!question.answerText
                   ? 'Awaiting Answer'
                   : statusDisplayMap[question.status]}
-              </div>
+              </Tag>
               <div className="flex items-center">
-                <div className="text-sm">{getAsyncWaitTime(question)}</div>
                 {isStaff ? (
                   <TAAsyncQuestionCardButtons
                     question={question}
@@ -179,6 +216,12 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             </div>
             <div>
               <h4 className="font-bold">{question.questionAbstract}</h4>
+              {/* When not expanded, show only 1 line of the questionText */}
+              {!isExpanded && question.questionText && (
+                <div className="max-w-[50vw] overflow-hidden overflow-ellipsis whitespace-nowrap">
+                  {question.questionText}
+                </div>
+              )}
               {isExpanded && (
                 <div>
                   {question.questionText && <div>{question.questionText}</div>}

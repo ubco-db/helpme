@@ -29,21 +29,35 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
 
   const onFinish = async (values: FormValues) => {
     setIsLoading(true)
+    // if the answer text is the same as the current answer text and the status is AIAnswered, AIAnsweredNeedsAttention, or AIAnsweredResolved, then the status should remain the same
+    // unless the TA changes the verified status to true, then it will always be HumanAnswered (displayed as Human Verified)
+    const newStatus =
+      question.answerText === values.answerText && !values.verified
+        ? question.status in
+          [
+            asyncQuestionStatus.AIAnswered,
+            asyncQuestionStatus.AIAnsweredNeedsAttention,
+            asyncQuestionStatus.AIAnsweredResolved,
+          ]
+          ? question.status
+          : asyncQuestionStatus.HumanAnswered
+        : asyncQuestionStatus.HumanAnswered
     await API.asyncQuestions
       .update(question.id, {
         answerText: values.answerText,
         visible: values.visible,
-        status: asyncQuestionStatus.HumanAnswered,
+        status: newStatus,
         verified: values.verified,
       })
       .then(() => {
         message.success('Response Successfully Posted/Edited')
-        setIsLoading(false)
         onPostResponse()
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
         message.error('Error posting response:', errorMessage)
+      })
+      .finally(() => {
         setIsLoading(false)
       })
   }

@@ -17,13 +17,18 @@ export function getWaitTime(question: Question): string {
 }
 
 export function getAsyncWaitTime(question: AsyncQuestion): string {
-  if (!question.createdAt) {
-    return formatWaitTime(0)
-  }
   const now = new Date()
   const createdAt = new Date(question.createdAt)
-  const difference = now.getTime() - createdAt.getTime()
-  return formatWaitTime(difference / 60000)
+  const differenceInMinutes = (now.getTime() - createdAt.getTime()) / 60000
+  if (differenceInMinutes < 60) {
+    return formatWaitTime(differenceInMinutes)
+  } else if (differenceInMinutes < 60 * 24) {
+    return `${Math.floor(differenceInMinutes / 60)}h`
+  } else {
+    // format in days if it's been more than a day
+    const days = Math.floor(differenceInMinutes / (60 * 24))
+    return `${days} ${days === 1 ? 'day' : 'days'}`
+  }
 }
 
 export function formatWaitTime(minutes: number): string {

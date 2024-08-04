@@ -7,7 +7,7 @@ import {
   asyncQuestionStatus,
 } from '@koh/common'
 import React, { ReactElement, useCallback, useEffect, useState } from 'react'
-import { Segmented, Select } from 'antd'
+import { Button, Popover, Segmented, Select } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getRoleInCourse } from '@/app/utils/generalUtils'
 import { useAsnycQuestions } from '@/app/hooks/useAsyncQuestions'
@@ -24,6 +24,7 @@ import { QuestionTagElement } from '../components/QuestionTagElement'
 import {
   EyeInvisibleOutlined,
   EyeOutlined,
+  FilterOutlined,
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons'
@@ -157,7 +158,7 @@ export default function AsyncCentrePage({
             questionTypes.filter((tag) => value.includes(tag.id)),
           )
         }}
-        className="w-1/2"
+        className="w-full md:w-1/2"
         allowClear
         tagRender={(props) => {
           const tag = questionTypes.find((tag) => tag.id === props.value)
@@ -168,6 +169,16 @@ export default function AsyncCentrePage({
               onClick={props.onClose}
             />
           )
+        }}
+        optionRender={(props) => {
+          const tag = questionTypes.find((tag) => tag.id === props.value)
+          if (tag) {
+            return (
+              <QuestionTagElement tagName={tag.name} tagColor={tag.color} />
+            )
+          } else {
+            return null
+          }
         }}
         options={questionTypes.map((tag) => ({
           label: tag.name,
@@ -180,6 +191,7 @@ export default function AsyncCentrePage({
   const RenderCreatorFilter = useCallback(() => {
     return (
       <Segmented
+        className="w-fit"
         onChange={(value: 'all' | 'mine') => setCreatorFilter(value)}
         options={[
           {
@@ -200,6 +212,7 @@ export default function AsyncCentrePage({
   const RenderQuestionStatusFilter = useCallback(() => {
     return (
       <Segmented
+        className="w-fit"
         onChange={(value: 'all' | 'helped' | 'unhelped') =>
           setStatusFilter(value)
         }
@@ -224,6 +237,7 @@ export default function AsyncCentrePage({
   const RenderVisibleFilter = useCallback(() => {
     return (
       <Segmented
+        className="w-fit"
         onChange={(value: 'all' | 'visible' | 'hidden') =>
           setVisibleFilter(value)
         }
@@ -273,14 +287,17 @@ export default function AsyncCentrePage({
         />
         <VerticalDivider />
         <div className="flex-grow md:mt-4">
-          <h3 className="flex-shrink-0 text-lg font-bold">Filter Questions</h3>
-          <div className="mb-4 flex items-center gap-x-4">
+          {/* Filters on DESKTOP ONLY */}
+          <h3 className="hidden flex-shrink-0 text-lg font-bold md:block">
+            Filter Questions
+          </h3>
+          <div className="mb-4 hidden items-center gap-x-4 md:flex">
             <RenderQuestionStatusFilter />
-            <RenderVisibleFilter />
+            {isStaff && <RenderVisibleFilter />}
             {!isStaff && <RenderCreatorFilter />}
             <RenderQuestionTypeFilter />
           </div>
-          <div className="mb-1 flex items-center gap-x-4">
+          <div className="mb-1 flex items-center gap-x-2">
             <h3 className="flex-shrink-0 text-lg font-bold">Sort By</h3>
             <Select
               value={sortBy}
@@ -293,6 +310,22 @@ export default function AsyncCentrePage({
                 { label: 'Least Votes', value: 'least-votes' },
               ]}
             />
+            {/* Filters on MOBILE ONLY */}
+            <Popover
+              title="Filter Questions"
+              className="md:hidden"
+              content={
+                <div className="flex flex-col gap-y-3">
+                  <RenderQuestionStatusFilter />
+                  <RenderVisibleFilter />
+                  {!isStaff && <RenderCreatorFilter />}
+                  <RenderQuestionTypeFilter />
+                </div>
+              }
+              trigger="click"
+            >
+              <Button icon={<FilterOutlined />} />
+            </Popover>
           </div>
 
           {displayedQuestions.map((question) => (

@@ -52,7 +52,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </StandardPageContainer>
       </header>
       {/* the main content of the page takes up 100% - (the height of the header bar). This is needed so that the scroll bar doesn't show up on every page */}
-      <main className="h-[calc(100%-3.7rem)]">
+      <main className="h-[calc(100%-3.7rem)] min-h-[calc(100%-3.7rem)]">
         {pathname === '/courses' && (
           <img
             src={`/api/v1/organization/${profile.organization.orgId}/get_banner/${profile.organization.organizationBannerUrl}`}
@@ -62,7 +62,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             height={100}
           />
         )}
-        <StandardPageContainer className="h-full">
+        <StandardPageContainer className="min-h-full">
           {children}
         </StandardPageContainer>
       </main>
