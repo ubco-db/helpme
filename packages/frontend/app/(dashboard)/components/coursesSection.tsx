@@ -1,5 +1,5 @@
-import { UserCourse } from '@koh/common'
-import { Card, Tag } from 'antd'
+import { Role, UserCourse } from '@koh/common'
+import { Button, Card, Tag } from 'antd'
 import React from 'react'
 import Meta from 'antd/es/card/Meta'
 import Link from 'next/link'
@@ -70,20 +70,26 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({ courses }) => {
 
             <Link
               id={index == 0 ? 'skip-link-target' : ''}
-              className="ant-btn ant-btn-primary ant-btn-block mt-5 block rounded p-2 text-center font-medium text-white"
               href={`course/${course.course.id}`}
-              aria-label={`${course.course.name} Course Page`}
             >
-              Course page
+              <Button
+                type="primary"
+                className="mt-5 rounded p-[1.1rem] font-medium"
+                block
+              >
+                Course page
+              </Button>
             </Link>
 
-            {(course.role as unknown as CourseRole) ===
-              CourseRole.PROFESSOR && (
-              <Link
-                className="ant-btn ant-btn-primary ant-btn-block mt-4 block rounded p-2 text-center font-medium text-white"
-                href={`/course/${course.course.id}/settings`}
-              >
-                Edit Course
+            {course.role === Role.PROFESSOR && (
+              <Link href={`/course/${course.course.id}/settings`}>
+                <Button
+                  type="primary"
+                  className="mt-4 rounded p-[1.1rem] font-medium"
+                  block
+                >
+                  Edit Course
+                </Button>
               </Link>
             )}
           </Card>

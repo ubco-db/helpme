@@ -18,18 +18,20 @@
   @tailwind components;
   @tailwind utilities;
 
-  :root {
+:root {
     /* styles used by some shadcn components but can also be used elsewhere.
     Example usage: className="text-muted" or className="bg-accent"
     If wanting to add more variables to be used, make sure to adjust tailwind.config.ts
     */
     --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
---accent-foreground: 222.2 47.4% 11.2%;
---border: 214.3 31.8% 91.4%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --border: 214.3 31.8% 91.4%;
+    --helpmeblue: #3684c6;
+    --helpmeblue-light:#5fa0d5; /* alternative color is #3c93dd but #5fa0d5 looks closer to antd button hover */
   }
-  
+
 body {
   background: #f8f9fb;
 }
@@ -38,17 +40,17 @@ a {
   text-decoration: none;
 }
 
-.ant-btn.ant-btn-primary {
+/* .ant-btn.ant-btn-primary {
   border-color: #3684c6;
   background: #3684c6;
   color: white
-}
+} */
 
-.ant-btn.ant-btn-primary:not(:disabled):not(.ant-btn-disabled):hover,
+/* .ant-btn.ant-btn-primary:not(:disabled):not(.ant-btn-disabled):hover,
 .ant-btn.ant-btn-primary:not(:disabled):not(.ant-btn-disabled):focus {
   background-color: #5fa0d5;
   border-color: #5fa0d5;
-}
+} */
 
 h1 {
   display: block;

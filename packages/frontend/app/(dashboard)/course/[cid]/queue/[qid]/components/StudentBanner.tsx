@@ -91,7 +91,7 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
 
   return (
     <div className="mb-1 w-full md:mb-0">
-      <div className="relative  flex min-h-[3rem] items-center justify-between rounded-t-md bg-[#3684C6] pl-4 pr-1.5 shadow-md md:min-h-14 md:pl-6">
+      <div className="bg-helpmeblue  relative flex min-h-[3rem] items-center justify-between rounded-t-md pl-4 pr-1.5 shadow-md md:min-h-14 md:pl-6">
         <div className="text-xl text-white md:text-2xl">
           {getTitle(studentQuestion?.status, studentDemo?.status)}
         </div>
@@ -177,7 +177,7 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
       case 'ReQueueing':
         return 'border-[#66BB6A]'
       case 'PriorityQueued':
-        return 'border-[#3684C6]'
+        return 'border-helpmeblue'
       default:
         return 'border-none'
     }

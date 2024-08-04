@@ -13,40 +13,54 @@ interface SettingsMenuProps {
 }
 
 const SettingsMenu: React.FC<SettingsMenuProps> = ({ setCurrentSettings }) => {
-  const { Panel } = Collapse
-
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   return isMobile ? (
-    <Collapse accordion className="xlg:hidden mt-10 md:hidden lg:hidden">
-      <Panel header="Personal Information" key="profile">
-        <EditProfile />
-      </Panel>
-      <Panel header="Notifications" key="notifications">
-        <NotificationsSettings />
-      </Panel>
-      <Panel header="Course Preferences" key="preferences">
-        <CoursePreference />
-      </Panel>
-    </Collapse>
+    <Collapse
+      accordion
+      className="mt-4 w-[95vw] md:hidden"
+      size="small"
+      items={[
+        {
+          key: SettingsOptions.PROFILE,
+          label: 'Personal Information',
+          children: <EditProfile />,
+        },
+        {
+          key: SettingsOptions.NOTIFICATIONS,
+          label: 'Notifications',
+          children: <NotificationsSettings />,
+        },
+        {
+          key: SettingsOptions.PREFERENCES,
+          label: 'Course Preferences',
+          children: <CoursePreference />,
+        },
+      ]}
+    />
   ) : (
     <Menu
       className="mt-5 bg-transparent text-left"
       defaultSelectedKeys={[SettingsOptions.PROFILE]}
       onClick={(e) => setCurrentSettings(e.key as SettingsOptions)}
-    >
-      <Menu.Item key={SettingsOptions.PROFILE} icon={<UserOutlined />}>
-        Personal Information
-      </Menu.Item>
-
-      <Menu.Item key={SettingsOptions.NOTIFICATIONS} icon={<BellOutlined />}>
-        Notifications
-      </Menu.Item>
-
-      <Menu.Item key={SettingsOptions.PREFERENCES} icon={<BookOutlined />}>
-        Course Preferences
-      </Menu.Item>
-    </Menu>
+      items={[
+        {
+          key: SettingsOptions.PROFILE,
+          label: 'Personal Information',
+          icon: <UserOutlined />,
+        },
+        {
+          key: SettingsOptions.NOTIFICATIONS,
+          label: 'Notifications',
+          icon: <BellOutlined />,
+        },
+        {
+          key: SettingsOptions.PREFERENCES,
+          label: 'Course Preferences',
+          icon: <BookOutlined />,
+        },
+      ]}
+    />
   )
 }
 

@@ -24,7 +24,7 @@ const CircleButton: React.FC<CircleButtonProps> = ({
       variant === 'default' &&
         'border bg-white text-black hover:bg-gray-100 focus:bg-gray-100',
       variant === 'primary' &&
-        'bg-[#3684c6] text-white hover:bg-[#3c93dd] focus:bg-[#3c93dd]',
+        'bg-helpmeblue hover:bg-helpmeblue-light focus:bg-helpmeblue-light text-white',
       variant === 'red' &&
         'bg-[#e26567] text-white hover:bg-[#fc7f81] focus:bg-[#fc7f81]',
       variant === 'orange' &&

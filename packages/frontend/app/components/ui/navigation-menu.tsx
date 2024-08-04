@@ -83,12 +83,12 @@ const navigationMenuTriggerStyle = cva([
   'data-[state=open]:bg-zinc-300/50', // Open state background color
   'focus:outline-none', // Focus outline removal
   // Hover and focus styles on DESKTOP
-  'md:data-[active]:border-b-2 md:data-[active]:border-[#3684c6]', // blue border on active state
-  'md:focus:border-b-2 md:focus:border-[#3684c6]', // blue border on focus
-  'md:hover:border-b-2 md:hover:border-[#3684c6]', // blue border on hover
-  'md:focus:text-[#3684c6] md:hover:text-[#3684c6]', // blue text on focus and hover
-  'md:data-[state=open]:text-[#3684c6]', // blue text on open state
-  'md:data-[state=open]:border-b-2 md:data-[state=open]:border-[#3684c6]', // blue border on open state
+  'md:data-[active]:border-b-2 md:data-[active]:border-helpmeblue', // blue border on active state
+  'md:focus:border-b-2 md:focus:border-helpmeblue', // blue border on focus
+  'md:hover:border-b-2 md:hover:border-helpmeblue', // blue border on hover
+  'md:focus:text-helpmeblue md:hover:text-helpmeblue', // blue text on focus and hover
+  'md:data-[state=open]:text-helpmeblue', // blue text on open state
+  'md:data-[state=open]:border-b-2 md:data-[state=open]:border-helpmeblue', // blue border on open state
   'md:data-[state=open]:bg-white md:focus:bg-white md:hover:bg-white md:data-[active]:bg-white', // keep background white on open & active state, focus, and hover
   // Hover and focus styles on MOBILE
   'hover:text-zinc-900', // Hover text color

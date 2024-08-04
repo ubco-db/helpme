@@ -58,7 +58,7 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
                 setLoading(false)
               })
           }}
-          className={`flex items-center justify-center rounded-md text-sm font-semibold text-red-600 disabled:text-gray-400 ${className}`}
+          className={`flex items-center justify-center rounded-md text-sm font-semibold text-red-600 hover:border-gray-300 hover:bg-gray-100 focus:bg-gray-100 disabled:text-gray-400 ${className}`}
           icon={<LogoutOutlined />}
         >
           Check Out

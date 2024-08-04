@@ -99,7 +99,7 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                   <div>
                     <i>
                       You are a{' '}
-                      <span className="font-bold text-[#3684c6]">
+                      <span className="text-helpmeblue font-bold">
                         {role.charAt(0).toUpperCase() + role.slice(1)}
                       </span>{' '}
                       for this course

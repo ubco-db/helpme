@@ -1,8 +1,9 @@
 import { API } from '@/app/api'
 import { useCourse } from '@/app/hooks/useCourse'
+import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 import { ExclamationCircleOutlined } from '@ant-design/icons'
 import { UserCourse } from '@koh/common'
-import { Button, message, Modal, Table } from 'antd'
+import { Button, message, Modal, Table, TableColumnsType } from 'antd'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
 
@@ -13,6 +14,8 @@ const CoursePreference: React.FC = () => {
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
     API.profile.index(),
   )
+
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
   async function withdraw(course: UserCourse) {
     await API.course.withdrawCourse(course.course.id)
@@ -44,7 +47,7 @@ const CoursePreference: React.FC = () => {
     return <>{course.course?.coordinator_email}</>
   }
 
-  const columns = [
+  const columns: TableColumnsType = [
     {
       title: 'Course name',
       dataIndex: 'name',
@@ -65,12 +68,12 @@ const CoursePreference: React.FC = () => {
     },
     {
       title: '',
+      align: 'right',
       key: 'courseId',
       dataIndex: 'courseId',
       render: function withdrawButton(courseId: number) {
         return (
           <Button
-            style={{ marginLeft: '20px' }}
             type="primary"
             shape="round"
             onClick={() => {
@@ -104,7 +107,11 @@ const CoursePreference: React.FC = () => {
   return (
     profile && (
       <div>
-        <Table columns={columns} dataSource={createCourseDataSource()} />
+        <Table
+          columns={columns}
+          size={isMobile ? 'small' : 'large'}
+          dataSource={createCourseDataSource()}
+        />
       </div>
     )
   )

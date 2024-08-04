@@ -15,33 +15,31 @@ const ProfileSettings: React.FC = () => {
   )
 
   return (
-    <div>
-      <Row className="flex-col md:flex-row lg:flex-row">
-        <Col
-          span={5}
-          className="mx-auto w-full max-w-max text-center md:mx-0 lg:mx-0"
-        >
-          <AvatarSettings />
-          <SettingsMenu setCurrentSettings={setCurrentSettings} />
+    <Row className="flex-grow flex-col md:flex-row">
+      <Col
+        span={5}
+        className="mx-auto mt-2 h-fit w-full max-w-max text-center md:mx-0 md:mt-0"
+      >
+        <AvatarSettings />
+        <SettingsMenu setCurrentSettings={setCurrentSettings} />
+      </Col>
+      <div className="mr-8 hidden border-r border-gray-300 md:mr-8 md:block md:border-r md:border-gray-300" />
+      <Space
+        direction="vertical"
+        size={40}
+        className="hidden h-fit flex-grow md:block"
+      >
+        <Col>
+          {currentSettings === SettingsOptions.PROFILE && <EditProfile />}
+          {currentSettings === SettingsOptions.NOTIFICATIONS && (
+            <NotificationsSettings />
+          )}
+          {currentSettings === SettingsOptions.PREFERENCES && (
+            <CoursePreference />
+          )}
         </Col>
-        <div className="mr-8 hidden border-r border-gray-300 md:mr-8 md:block md:border-r md:border-gray-300 lg:block" />
-        <Space
-          direction="vertical"
-          size={40}
-          className="hidden flex-grow md:block lg:block xl:block"
-        >
-          <Col>
-            {currentSettings === SettingsOptions.PROFILE && <EditProfile />}
-            {currentSettings === SettingsOptions.NOTIFICATIONS && (
-              <NotificationsSettings />
-            )}
-            {currentSettings === SettingsOptions.PREFERENCES && (
-              <CoursePreference />
-            )}
-          </Col>
-        </Space>
-      </Row>
-    </div>
+      </Space>
+    </Row>
   )
 }
 

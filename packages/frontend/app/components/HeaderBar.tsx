@@ -117,11 +117,13 @@ const NavBar = ({
   userInfo,
   courseId,
   isAQueuePage,
+  isProfilePage,
   orientation = 'horizontal',
 }: {
   userInfo: User
   courseId: number | null
   isAQueuePage: boolean
+  isProfilePage: boolean
   orientation?: 'horizontal' | 'vertical'
 }) => {
   const { course } = useCourse(courseId)
@@ -183,7 +185,7 @@ const NavBar = ({
               <NavigationMenuTrigger
                 className={
                   isAQueuePage
-                    ? 'bg-zinc-300/80 md:border-b-2 md:border-[#3684c6] md:bg-white'
+                    ? 'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white'
                     : ''
                 }
                 onFocus={setNavigationSubMenuLeftSide}
@@ -268,7 +270,7 @@ const NavBar = ({
         {/* DESKTOP ONLY PART OF NAVBAR */}
         <NavigationMenuItem className="!ml-auto hidden md:block">
           <NavigationMenuTrigger
-            className="!pl-4"
+            className={`!pl-4 ${isProfilePage ? 'md:border-helpmeblue md:border-b-2' : ''}`}
             onFocus={setNavigationSubMenuRightSide}
             onClick={setNavigationSubMenuRightSide}
             onMouseEnter={setNavigationSubMenuRightSide}
@@ -346,6 +348,7 @@ const HeaderBar: React.FC = () => {
       ? Number(URLSegments[4])
       : null
   const isAQueuePage = URLSegments[3] === 'queue'
+  const isProfilePage = URLSegments[1] === 'profile'
   const { course } = useCourse(courseId)
 
   // DESKTOP HEADER
@@ -354,6 +357,7 @@ const HeaderBar: React.FC = () => {
       userInfo={userInfo}
       courseId={courseId}
       isAQueuePage={isAQueuePage}
+      isProfilePage={isProfilePage}
     />
   ) : (
     // MOBILE HEADER AND NAV DRAWER
@@ -366,7 +370,9 @@ const HeaderBar: React.FC = () => {
         src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
       />
       <div className="flex h-14 grow flex-col items-center justify-center">
-        <h1 className="leading-none">{course?.name}</h1>
+        <h1 className="leading-none">
+          {isProfilePage ? 'Profile' : course?.name}
+        </h1>
         <h2 className="text-base leading-none text-slate-500">
           {queueId
             ? course?.queues?.find((queue) => queue.id === queueId)?.room
@@ -379,7 +385,7 @@ const HeaderBar: React.FC = () => {
         </DrawerTrigger>
         <DrawerContent>
           {/* INSIDE DRAWER */}
-          <div className="flex h-full flex-col items-start justify-start">
+          <div className="flex h-screen flex-col items-start justify-start">
             <div className="my-1 flex w-full items-center justify-center border-b border-b-zinc-200 bg-white py-1 pr-5">
               <img
                 width={48}

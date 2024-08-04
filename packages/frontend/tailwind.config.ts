@@ -42,6 +42,10 @@ const config = {
         accent: 'hsl(var(--accent))',
         'accent-foreground': 'hsl(var(--accent-foreground))',
         border: 'hsl(var(--border))',
+        helpmeblue: {
+          light: 'var(--helpmeblue-light)',
+          DEFAULT: 'var(--helpmeblue)',
+        },
       },
     },
   },

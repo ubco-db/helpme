@@ -1,12 +1,13 @@
 'use client'
 
 import { DeleteOutlined, UploadOutlined } from '@ant-design/icons'
-import { Col, message, Row, Skeleton, Upload } from 'antd'
+import { Col, message, Popconfirm, Row, Skeleton, Upload } from 'antd'
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import { API } from '@/app/api'
-import { SelfAvatar } from '@/app/components/UserAvatar'
+import UserAvatar from '@/app/components/UserAvatar'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 const AvatarSettings: React.FC = () => {
   const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 0
@@ -19,7 +20,7 @@ const AvatarSettings: React.FC = () => {
   )
 
   useEffect(() => {
-    const widthDivider = isMobile ? 2 : 10
+    const widthDivider = isMobile ? 3 : 10
     setAvatarSize(windowWidth / widthDivider)
   }, [windowWidth, isMobile])
 
@@ -51,7 +52,6 @@ const AvatarSettings: React.FC = () => {
       if (response.ok) {
         message.success(`${file.name} file uploaded successfully`)
         mutate() // Refresh profile data
-        window.location.reload()
       } else {
         message.error(`${file.name} file upload failed: ${data.message}`)
       }
@@ -65,7 +65,7 @@ const AvatarSettings: React.FC = () => {
   return (
     <Col>
       {avatarSize ? (
-        <Row className="justify-center">
+        <Row className="justify-evenly md:justify-center">
           {uploading ? (
             <Skeleton.Avatar
               active={true}
@@ -79,7 +79,11 @@ const AvatarSettings: React.FC = () => {
               }}
             />
           ) : (
-            <SelfAvatar size={avatarSize} />
+            <UserAvatar
+              photoURL={profile?.photoURL}
+              username={profile?.firstName}
+              size={avatarSize}
+            />
           )}
           <Col>
             {profile && (
@@ -102,27 +106,33 @@ const AvatarSettings: React.FC = () => {
               </button>
             </Upload>
             {profile?.photoURL && (
-              <button
-                onClick={async () => {
-                  try {
-                    await API.profile.deleteProfilePicture()
-                    message.success(
-                      "You've successfully deleted your profile picture",
-                    )
-                    mutate()
-                    window.location.reload()
-                  } catch (e) {
-                    message.error(
-                      'There was an error with deleting your profile picture, please contact HelpMe Office Hours team for assistance',
-                    )
-                    throw e
-                  }
+              <Popconfirm
+                title="Are you sure you want to delete your profile picture?"
+                onConfirm={async () => {
+                  await API.profile
+                    .deleteProfilePicture()
+                    .then(() => {
+                      message.success(
+                        "You've successfully deleted your profile picture",
+                      )
+                      mutate()
+                    })
+                    .catch((e) => {
+                      const errorMessage = getErrorMessage(e)
+                      message.error(
+                        'Failed to delete profile picture:',
+                        errorMessage,
+                      )
+                    })
                 }}
-                className="mt-2 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2"
+                okText="Yes"
+                cancelText="No"
               >
-                <DeleteOutlined />
-                <span>Delete Profile Picture</span>
-              </button>
+                <button className="mt-2 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2">
+                  <DeleteOutlined />
+                  <span>Delete Profile Picture</span>
+                </button>
+              </Popconfirm>
             )}
           </Col>
         </Row>
