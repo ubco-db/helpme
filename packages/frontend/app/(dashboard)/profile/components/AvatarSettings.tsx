@@ -8,12 +8,14 @@ import { API } from '@/app/api'
 import UserAvatar from '@/app/components/UserAvatar'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 const AvatarSettings: React.FC = () => {
   const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 0
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [avatarSize, setAvatarSize] = useState(windowWidth / 2)
   const [uploading, setUploading] = useState(false)
+  const { userInfo, setUserInfo } = useUserInfo()
 
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
     API.profile.index(),
@@ -51,7 +53,11 @@ const AvatarSettings: React.FC = () => {
       const data = await response.json()
       if (response.ok) {
         message.success(`${file.name} file uploaded successfully`)
-        mutate() // Refresh profile data
+        const newUser = await mutate() //update the context
+        setUserInfo({
+          ...userInfo,
+          photoURL: newUser ? newUser.photoURL : userInfo.photoURL,
+        })
       } else {
         message.error(`${file.name} file upload failed: ${data.message}`)
       }
@@ -81,7 +87,7 @@ const AvatarSettings: React.FC = () => {
           ) : (
             <UserAvatar
               photoURL={profile?.photoURL}
-              username={profile?.firstName}
+              username={profile?.name}
               size={avatarSize}
             />
           )}
@@ -116,6 +122,7 @@ const AvatarSettings: React.FC = () => {
                         "You've successfully deleted your profile picture",
                       )
                       mutate()
+                      setUserInfo({ ...userInfo, photoURL: '' })
                     })
                     .catch((e) => {
                       const errorMessage = getErrorMessage(e)

@@ -1,42 +1,56 @@
 import { API } from '@/app/api'
+import { useUserInfo } from '@/app/contexts/userContext'
 import { useCourse } from '@/app/hooks/useCourse'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 import { ExclamationCircleOutlined } from '@ant-design/icons'
 import { UserCourse } from '@koh/common'
 import { Button, message, Modal, Table, TableColumnsType } from 'antd'
-import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
 
 const { confirm } = Modal
 
 const CoursePreference: React.FC = () => {
-  const router = useRouter()
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
     API.profile.index(),
   )
-
+  const { userInfo, setUserInfo } = useUserInfo()
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   async function withdraw(course: UserCourse) {
-    await API.course.withdrawCourse(course.course.id)
-    message.success('Successfully withdrew from ' + course.course.name)
-    await mutate()
-    router.push('/')
+    await API.course
+      .withdrawCourse(course.course.id)
+      .then(async (res) => {
+        message.success('Successfully withdrew from ' + course.course.name)
+        const newUser = await mutate() //update the context
+        setUserInfo({
+          ...userInfo,
+          courses: newUser ? newUser.courses : userInfo.courses,
+        })
+      })
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error(
+          `Failed to withdraw from ${course.course.name}: ${errorMessage}`,
+        )
+      })
   }
 
   function showConfirm(courseId: number) {
     const course = profile?.courses.find((c) => c.course.id === courseId)
-
+    if (!course) {
+      return
+    }
     confirm({
       title: `Please Confirm!`,
       icon: <ExclamationCircleOutlined />,
       content: `Please confirm that you want to unenroll from ${
-        course?.course.name
+        course.course.name
       } as a ${
-        course?.role ? formattedRoles[course.role] : ''
+        formattedRoles[course.role]
       }.  The only way to get back is by contacting a professor!`,
       onOk() {
-        withdraw(course as UserCourse)
+        withdraw(course)
       },
     })
   }

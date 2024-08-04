@@ -5,11 +5,14 @@ import { pick } from 'lodash'
 import { GetProfileResponse, UpdateProfileParams } from '@koh/common'
 import { QuestionCircleOutlined } from '@ant-design/icons'
 import DeviceNotificationPanel from './DeviceNotificationPanel'
+import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 const NotificationsSettings: React.FC = () => {
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
     API.profile.index(),
   )
+  const { userInfo, setUserInfo } = useUserInfo()
 
   const [form] = Form.useForm()
 
@@ -17,7 +20,13 @@ const NotificationsSettings: React.FC = () => {
     const newProfile = { ...profile, ...updateProfile }
     mutate(newProfile as GetProfileResponse, false)
     await API.profile.patch(pick(newProfile, ['desktopNotifsEnabled']))
-    mutate()
+    const newUser = await mutate() //update the context
+    setUserInfo({
+      ...userInfo,
+      desktopNotifsEnabled: newUser
+        ? newUser.desktopNotifsEnabled
+        : userInfo.desktopNotifsEnabled,
+    })
     return newProfile
   }
 
@@ -29,8 +38,9 @@ const NotificationsSettings: React.FC = () => {
       message.success(
         'Your notification settings have been successfully updated',
       )
-    } catch (e: any) {
-      message.error(e.message)
+    } catch (e) {
+      const errorMessage = getErrorMessage(e)
+      message.error('Error updating notification settings:', errorMessage)
     }
   }
 

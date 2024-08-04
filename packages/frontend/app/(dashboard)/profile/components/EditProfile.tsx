@@ -5,18 +5,21 @@ import {
   GetProfileResponse,
   UpdateProfileParams,
 } from '@koh/common'
-import { Card, Col, Form, Input, message, Row } from 'antd'
+import { Button, Card, Col, Form, Input, message, Row } from 'antd'
 import { useState } from 'react'
 import useSWR from 'swr'
 import { pick } from 'lodash'
 import { API } from '@/app/api'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
+import { useUserInfo } from '@/app/contexts/userContext'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 const EditProfile: React.FC = () => {
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
     API.profile.index(),
   )
   const [form] = Form.useForm()
+  const { userInfo, setUserInfo } = useUserInfo()
 
   const [screenReaderMessage, setScreenReaderMessage] = useState(' ')
 
@@ -26,20 +29,19 @@ const EditProfile: React.FC = () => {
     if (profile && profile.accountType === AccountType.LEGACY) {
       newProfile = { ...profile, ...updateProfile }
       newProfile.sid = parseInt(`${newProfile.sid}`, 10)
-      mutate(newProfile, false)
       if (profile.email === updateProfile.email) {
         await API.profile
           .patch(pick(newProfile, ['firstName', 'lastName', 'sid']))
-          .catch(async (error) => {
-            const errorMessage = await error.response.data.message
-            throw new Error(errorMessage)
+          .catch((error) => {
+            const errorMessage = getErrorMessage(error)
+            message.error('Error updating profile:', errorMessage)
           })
       } else {
         await API.profile
           .patch(pick(newProfile, ['firstName', 'lastName', 'email', 'sid']))
-          .catch(async (error) => {
-            const errorMessage = await error.response.data.message
-            throw new Error(errorMessage)
+          .catch((error) => {
+            const errorMessage = getErrorMessage(error)
+            message.error('Error updating profile:', errorMessage)
           })
       }
     } else {
@@ -52,26 +54,22 @@ const EditProfile: React.FC = () => {
         },
       }
       newProfile.sid = parseInt(`${newProfile.sid}`, 10)
-      await mutate(newProfile as GetProfileResponse, false)
-
       await API.profile
         .patch(pick(newProfile, ['firstName', 'lastName', 'sid']))
-        .catch(async (error) => {
-          const errorMessage = await error.response.data.message
-          throw new Error(errorMessage)
+        .catch((error) => {
+          const errorMessage = getErrorMessage(error)
+          message.error('Error updating profile:', errorMessage)
         })
     }
 
-    await mutate()
+    const newUser = await mutate() //update the context
+    setUserInfo({ ...userInfo, ...newUser })
     return newProfile
   }
 
   const handleOk = async () => {
     const value = await form.validateFields()
-    const newProfile = await editProfile(value).catch(async (error) => {
-      const errorMessage = await error.message
-      await message.error(errorMessage)
-    })
+    const newProfile = await editProfile(value)
     if (!newProfile) return
 
     form.setFieldsValue(newProfile)
@@ -147,28 +145,22 @@ const EditProfile: React.FC = () => {
               </Col>
 
               <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                <Form.Item
-                  label="Student ID"
-                  name="sid"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Your student id can't be empty!",
-                    },
-                  ]}
-                >
+                <Form.Item label="Student ID" name="sid">
                   <Input />
                 </Form.Item>
               </Col>
             </Row>
           </Form>
-          <button
+          <Button
             key="submit"
+            htmlType="submit"
+            type="primary"
+            block
             onClick={handleOk}
-            className="btn btn-primary w-full rounded bg-blue-500 p-2 text-white"
+            className="rounded p-4"
           >
             Save
-          </button>
+          </Button>
         </Card>
       </div>
     )
