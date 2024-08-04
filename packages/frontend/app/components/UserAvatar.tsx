@@ -2,7 +2,7 @@ import { UserOutlined } from '@ant-design/icons'
 import { Avatar, AvatarProps } from 'antd'
 import React, { ReactElement } from 'react'
 import { useUserInfo } from '../contexts/userContext'
-import { getInitialsFromName, nameToRGB } from '../utils/generalUtils'
+import { cn, getInitialsFromName, nameToRGB } from '../utils/generalUtils'
 
 type SelfAvatarProps = Omit<AvatarProps, 'icon' | 'src'>
 type UserAvatarProps = Omit<AvatarProps, 'icon' | 'src'> & {
@@ -29,10 +29,15 @@ export function SelfAvatar({ ...props }: SelfAvatarProps): ReactElement {
 export default function UserAvatar({
   photoURL,
   username,
+  className,
   ...props
 }: UserAvatarProps): ReactElement {
+  const fontSize =
+    props.size && Number(props.size) > 80 ? Number(props.size) / 4 : 18
+
   return photoURL && username ? (
     <Avatar
+      className={cn(className)}
       {...props}
       icon={<UserOutlined />}
       src={
@@ -43,13 +48,21 @@ export default function UserAvatar({
     />
   ) : username ? (
     <Avatar
-      className={`bg-[${username ? nameToRGB(username) : '#1abc9c'}] ${props.className}`}
+      style={{
+        backgroundColor: nameToRGB(username), // using tailwind by doing bg-[${nameToRGB(username)}] does not seem to work
+        fontSize: `${fontSize}px`,
+      }}
+      className={cn(`font-normal`, className)}
       {...props}
       gap={2}
     >
       {getInitialsFromName(username)}
     </Avatar>
   ) : (
-    <Avatar {...props} icon={<UserOutlined />} />
+    <Avatar
+      className={cn('bg-[#1abc9c]', className)}
+      {...props}
+      icon={<UserOutlined />}
+    />
   )
 }

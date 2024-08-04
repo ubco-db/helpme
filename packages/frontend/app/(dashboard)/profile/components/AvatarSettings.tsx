@@ -4,12 +4,13 @@ import { DeleteOutlined, UploadOutlined } from '@ant-design/icons'
 import { Col, message, Row, Skeleton, Upload } from 'antd'
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
-import SettingsPanelAvatar from './SettingsPanelAvatar'
 import { API } from '@/app/api'
+import { SelfAvatar } from '@/app/components/UserAvatar'
+import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 
 const AvatarSettings: React.FC = () => {
-  const [isMobile, setIsMobile] = useState(false)
   const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 0
+  const isMobile = useMediaQuery('(max-width: 768px)')
   const [avatarSize, setAvatarSize] = useState(windowWidth / 2)
   const [uploading, setUploading] = useState(false)
 
@@ -18,7 +19,6 @@ const AvatarSettings: React.FC = () => {
   )
 
   useEffect(() => {
-    setIsMobile(windowWidth < 768)
     const widthDivider = isMobile ? 2 : 10
     setAvatarSize(windowWidth / widthDivider)
   }, [windowWidth, isMobile])
@@ -79,7 +79,7 @@ const AvatarSettings: React.FC = () => {
               }}
             />
           ) : (
-            <SettingsPanelAvatar avatarSize={avatarSize} />
+            <SelfAvatar size={avatarSize} />
           )}
           <Col>
             {profile && (

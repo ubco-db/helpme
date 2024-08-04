@@ -10,6 +10,7 @@ import { useState } from 'react'
 import useSWR from 'swr'
 import { pick } from 'lodash'
 import { API } from '@/app/api'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
 
 const EditProfile: React.FC = () => {
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
@@ -80,92 +81,98 @@ const EditProfile: React.FC = () => {
     )
   }
 
-  return profile ? (
-    <div>
-      <div aria-live="polite" className="sr-only">
-        {screenReaderMessage}
+  if (!profile) {
+    return <CenteredSpinner tip="Loading Profile..." />
+  } else {
+    return (
+      <div>
+        <div aria-live="polite" className="sr-only">
+          {screenReaderMessage}
+        </div>
+        <Card title="Personal Information" className="mt-5">
+          <Form
+            wrapperCol={{ span: 24 }}
+            form={form}
+            initialValues={profile}
+            layout="vertical"
+          >
+            <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
+              <Col xs={{ span: 24 }} sm={{ span: 12 }}>
+                <Form.Item
+                  label="First Name"
+                  name="firstName"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Your name can't be empty!",
+                    },
+                  ]}
+                >
+                  <Input />
+                </Form.Item>
+              </Col>
+
+              <Col xs={{ span: 24 }} sm={{ span: 12 }}>
+                <Form.Item
+                  label="Last Name"
+                  name="lastName"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Your name can't be empty!",
+                    },
+                  ]}
+                >
+                  <Input />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
+              <Col xs={{ span: 24 }} sm={{ span: 12 }}>
+                <Form.Item
+                  label="Email"
+                  name="email"
+                  rules={[
+                    {
+                      required: profile.accountType === AccountType.LEGACY,
+                      message: "Your email can't be empty!",
+                    },
+                  ]}
+                >
+                  <Input
+                    disabled={profile.accountType !== AccountType.LEGACY}
+                  />
+                </Form.Item>
+              </Col>
+
+              <Col xs={{ span: 24 }} sm={{ span: 12 }}>
+                <Form.Item
+                  label="Student ID"
+                  name="sid"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Your student id can't be empty!",
+                    },
+                  ]}
+                >
+                  <Input />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Form>
+          <button
+            key="submit"
+            onClick={handleOk}
+            className="btn btn-primary w-full rounded bg-blue-500 p-2 text-white"
+          >
+            Save
+          </button>
+        </Card>
       </div>
-      <Card title="Personal Information" className="mt-5">
-        <Form
-          wrapperCol={{ span: 24 }}
-          form={form}
-          initialValues={profile}
-          layout="vertical"
-        >
-          <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
-            <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-              <Form.Item
-                label="First Name"
-                name="firstName"
-                rules={[
-                  {
-                    required: true,
-                    message: "Your name can't be empty!",
-                  },
-                ]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-
-            <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-              <Form.Item
-                label="Last Name"
-                name="lastName"
-                rules={[
-                  {
-                    required: true,
-                    message: "Your name can't be empty!",
-                  },
-                ]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
-            <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-              <Form.Item
-                label="Email"
-                name="email"
-                rules={[
-                  {
-                    required: profile.accountType === AccountType.LEGACY,
-                    message: "Your email can't be empty!",
-                  },
-                ]}
-              >
-                <Input disabled={profile.accountType !== AccountType.LEGACY} />
-              </Form.Item>
-            </Col>
-
-            <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-              <Form.Item
-                label="Student ID"
-                name="sid"
-                rules={[
-                  {
-                    required: true,
-                    message: "Your student id can't be empty!",
-                  },
-                ]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-        <button
-          key="submit"
-          onClick={handleOk}
-          className="btn btn-primary w-full rounded bg-blue-500 p-2 text-white"
-        >
-          Save
-        </button>
-      </Card>
-    </div>
-  ) : null
+    )
+  }
 }
 
 export default EditProfile
