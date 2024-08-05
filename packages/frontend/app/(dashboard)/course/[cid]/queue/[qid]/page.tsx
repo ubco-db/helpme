@@ -597,17 +597,27 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   Edit Queue <span className="hidden sm:inline">Details</span>
                 </span>
               </EditQueueButton>
-              <EditQueueButton
-                disabled={!isUserCheckedIn}
-                onClick={() => setAddStudentsModalOpen(true)}
-                icon={<PlusOutlined />}
+              <Tooltip
+                title={
+                  !isUserCheckedIn
+                    ? 'You must be checked in to add students to the queue'
+                    : ''
+                }
               >
-                {/* "+ Add Students to Queue" on desktop, "+ Students" on mobile */}
                 <span>
-                  <span className="hidden sm:inline">Add</span> Students{' '}
-                  <span className="hidden sm:inline">to Queue</span>
+                  <EditQueueButton
+                    disabled={!isUserCheckedIn}
+                    onClick={() => setAddStudentsModalOpen(true)}
+                    icon={<PlusOutlined />}
+                  >
+                    {/* "+ Add Students to Queue" on desktop, "+ Students" on mobile */}
+                    <span>
+                      <span className="hidden sm:inline">Add</span> Students{' '}
+                      <span className="hidden sm:inline">to Queue</span>
+                    </span>
+                  </EditQueueButton>
                 </span>
-              </EditQueueButton>
+              </Tooltip>
               {isDemoQueue && (
                 <EditQueueButton
                   onClick={() => setAssignmentReportModal(true)}

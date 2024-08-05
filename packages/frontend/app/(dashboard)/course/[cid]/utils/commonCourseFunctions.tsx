@@ -56,8 +56,7 @@ export function confirmDisable(
     title: `Please Confirm!`,
     icon: <ExclamationCircleOutlined />,
     className: 'whitespace-pre-wrap',
-    content: `Please confirm that you want to disable the queue: ${queue.room}.\n
-      This queue will no longer appear in the app, and any students currently in the queue will be removed.`,
+    content: `Please confirm that you want to disable the queue: ${queue.room}.\n\nThis queue will no longer appear in the app, and any students currently in the queue will be removed.`,
     onOk() {
       disableQueue(queueId, queue, router, redirectURL)
     },

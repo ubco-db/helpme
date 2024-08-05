@@ -27,7 +27,7 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, cid)
   const { course } = useCourse(cid)
-  const [createQueueModalVisible, setCreateQueueModalVisible] = useState(false)
+  const [createQueueModalOpen, setCreateQueueModalOpen] = useState(false)
 
   const courseFeatures = useCourseFeatures(cid)
   const onlyChatBotEnabled = useMemo(
@@ -125,22 +125,22 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                 {role !== Role.STUDENT && courseFeatures.queueEnabled && (
                   <Row>
                     <Button
-                      className="mx-auto rounded-md bg-[#1890ff] px-4 py-1 text-sm font-semibold text-white"
-                      onClick={() => setCreateQueueModalVisible(true)}
+                      type="primary"
+                      className="mx-auto rounded-md px-4 py-1 font-semibold"
+                      onClick={() => setCreateQueueModalOpen(true)}
                     >
                       + Create Queue
                     </Button>
                   </Row>
                 )}
 
-                {createQueueModalVisible && role !== Role.STUDENT && (
+                {createQueueModalOpen && role !== Role.STUDENT && (
                   <CreateQueueModal
                     cid={cid}
-                    visible={createQueueModalVisible}
-                    onSuccessfulSubmit={() => setCreateQueueModalVisible(false)}
-                    onCancel={() => setCreateQueueModalVisible(false)}
+                    open={createQueueModalOpen}
+                    onSuccessfulSubmit={() => setCreateQueueModalOpen(false)}
+                    onCancel={() => setCreateQueueModalOpen(false)}
                     role={role}
-                    lastName={userInfo?.lastName ?? 'Professor'}
                   />
                 )}
                 {

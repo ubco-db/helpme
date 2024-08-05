@@ -50,11 +50,12 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
               .checkOut(courseId, room)
               .then(() => {
                 mutateCourse()
-                setLoading(false)
               })
               .catch((err) => {
                 const errorMessage = getErrorMessage(err)
                 message.error(errorMessage)
+              })
+              .finally(() => {
                 setLoading(false)
               })
           }}
@@ -66,7 +67,7 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
       )}
       {state === 'CheckedOut' && (
         <Button
-          type="default"
+          type="primary"
           size="large"
           loading={loading}
           onClick={() => {
@@ -78,7 +79,7 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
             )
           }}
           disabled={disabled || !course}
-          className={`flex items-center justify-center rounded-md bg-[#1890ff] text-sm font-semibold text-white disabled:bg-opacity-30 disabled:text-gray-400 ${className}`}
+          className={`flex items-center justify-center rounded-md font-semibold ${className}`}
           icon={<LoginOutlined />}
         >
           Check In
