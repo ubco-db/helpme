@@ -6,6 +6,8 @@ import CircleButton from '../../queue/[qid]/components/CircleButton'
 import PostResponseModal from './modals/PostResponseModal'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useMediaQuery } from '@/app/hooks/useMediaQuery'
+import { deleteAsyncQuestion } from '../utils/commonAsyncFunctions'
 
 type TAAsyncQuestionCardButtonsProps = {
   question: AsyncQuestion
@@ -18,43 +20,30 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
 }) => {
   const [postResponseModalOpen, setPostResponseModalOpen] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
   return (
-    <div
-      onClick={(e) => {
-        e.stopPropagation()
-      }}
-    >
+    <>
+      {/* Note: Delete button not shown on mobile. Instead, it's in PostResponseModal.tsx*/}
       <Popconfirm
+        className="hidden md:flex"
         title="Are you sure you want to delete the question?"
         okText="Yes"
         cancelText="No"
         okButtonProps={{ loading: deleteLoading }}
         onConfirm={async () => {
           setDeleteLoading(true)
-          await API.asyncQuestions
-            .update(question.id, {
-              status: asyncQuestionStatus.TADeleted,
-              visible: false,
-            })
-            .then(() => {
-              message.success('Removed Question')
-              onAsyncQuestionUpdate()
-              setDeleteLoading(false)
-            })
-            .catch((e) => {
-              const errorMessage = getErrorMessage(e)
-              message.error('Error deleting question:', errorMessage)
-              setDeleteLoading(false)
-            })
+          await deleteAsyncQuestion(question.id, true, onAsyncQuestionUpdate)
+          setDeleteLoading(false)
         }}
       >
-        <Tooltip title="Delete Question">
+        <Tooltip title={isMobile ? '' : 'Delete Question'}>
           <CircleButton variant="red" icon={<DeleteOutlined />} />
         </Tooltip>
       </Popconfirm>
-      <Tooltip title="Post response">
+      <Tooltip title={isMobile ? '' : 'Post response'}>
         <CircleButton
+          className="mt-0"
           variant="primary"
           icon={<FormOutlined />}
           onClick={() => {
@@ -71,7 +60,7 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
           setPostResponseModalOpen(false)
         }}
       />
-    </div>
+    </>
   )
 }
 

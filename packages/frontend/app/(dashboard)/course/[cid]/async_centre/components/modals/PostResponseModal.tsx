@@ -1,9 +1,20 @@
 import { useState } from 'react'
 import Modal from 'antd/lib/modal/Modal'
-import { Input, Form, message, Switch, Checkbox } from 'antd'
+import {
+  Input,
+  Form,
+  message,
+  Switch,
+  Checkbox,
+  Button,
+  Popconfirm,
+  Tooltip,
+} from 'antd'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
+import { DeleteOutlined } from '@ant-design/icons'
+import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
 
 interface FormValues {
   answerText: string
@@ -26,6 +37,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
 }) => {
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const onFinish = async (values: FormValues) => {
     setIsLoading(true)
@@ -74,6 +86,32 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
         loading: isLoading,
       }}
       onCancel={onCancel}
+      // display delete button for mobile in footer
+      footer={(_, { OkBtn, CancelBtn }) => (
+        <div className="flex justify-between md:justify-end">
+          <Popconfirm
+            className="inline-flex md:hidden"
+            title="Are you sure you want to delete the question?"
+            okText="Yes"
+            cancelText="No"
+            okButtonProps={{ loading: deleteLoading }}
+            onConfirm={async () => {
+              setDeleteLoading(true)
+              await deleteAsyncQuestion(question.id, true, onPostResponse)
+              setDeleteLoading(false)
+            }}
+          >
+            <Button danger type="primary" icon={<DeleteOutlined />}>
+              {' '}
+              Delete Question{' '}
+            </Button>
+          </Popconfirm>
+          <div className="flex gap-2">
+            <CancelBtn />
+            <OkBtn />
+          </div>
+        </div>
+      )}
       destroyOnClose
       modalRender={(dom) => (
         <Form

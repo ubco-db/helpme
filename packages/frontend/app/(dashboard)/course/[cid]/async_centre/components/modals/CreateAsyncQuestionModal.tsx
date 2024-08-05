@@ -1,11 +1,22 @@
 import React, { useState } from 'react'
-import { Modal, Input, Form, message, Checkbox, Tooltip } from 'antd'
+import {
+  Modal,
+  Input,
+  Form,
+  message,
+  Checkbox,
+  Tooltip,
+  Button,
+  Popconfirm,
+} from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../components/QuestionTagElement'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { AsyncQuestion } from '@koh/common'
+import { DeleteOutlined } from '@ant-design/icons'
+import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
 
 interface FormValues {
   QuestionAbstract: string
@@ -33,6 +44,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
   const [questionTypes] = useQuestionTypes(courseId, null)
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const getAiAnswer = async (question: string) => {
     try {
@@ -106,12 +118,13 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           })
           .then(() => {
             message.success('Question Updated')
-            setIsLoading(false)
             onCreateOrUpdateQuestion()
           })
           .catch((e) => {
             const errorMessage = getErrorMessage(e)
             message.error('Error updating question:', errorMessage)
+          })
+          .finally(() => {
             setIsLoading(false)
           })
       }
@@ -164,6 +177,40 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
         danger: !question,
       }}
       onCancel={onCancel}
+      // display delete button for mobile in footer
+      footer={(_, { OkBtn, CancelBtn }) => (
+        <div
+          className={`flex md:justify-end ${question ? 'justify-between' : 'justify-end'}`}
+        >
+          {question && (
+            <Popconfirm
+              className="flex md:hidden"
+              title="Are you sure you want to delete your question?"
+              okText="Yes"
+              cancelText="No"
+              okButtonProps={{ loading: deleteLoading }}
+              onConfirm={async () => {
+                setDeleteLoading(true)
+                await deleteAsyncQuestion(
+                  question.id,
+                  false,
+                  onCreateOrUpdateQuestion,
+                )
+                setDeleteLoading(false)
+              }}
+            >
+              <Button danger type="primary" icon={<DeleteOutlined />}>
+                {' '}
+                Delete Question{' '}
+              </Button>
+            </Popconfirm>
+          )}
+          <div className="ml-1 flex gap-2">
+            <CancelBtn />
+            <OkBtn />
+          </div>
+        </div>
+      )}
       destroyOnClose
       modalRender={(dom) => (
         <Form
@@ -189,8 +236,8 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
         rules={[
           { required: true, message: 'Please input your question abstract' },
           {
-            max: 50,
-            message: 'Question abstract must be less than 50 characters',
+            max: 100,
+            message: 'Question abstract must be less than 100 characters',
           },
         ]}
       >
@@ -198,7 +245,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           placeholder="Question Abstract"
           count={{
             show: true,
-            max: 50,
+            max: 100,
           }}
         />
       </Form.Item>

@@ -49,7 +49,7 @@ export default function AsyncCentrePage({
     useState(false)
   const [questionTypes] = useQuestionTypes(courseId, null)
   const [statusFilter, setStatusFilter] = useState<
-    'all' | 'helped' | 'unhelped'
+    'all' | 'verified' | 'unverified'
   >('all')
   const [visibleFilter, setVisibleFilter] = useState<
     'all' | 'visible' | 'hidden'
@@ -93,15 +93,16 @@ export default function AsyncCentrePage({
   useEffect(() => {
     let displayedQuestions = asyncQuestions || []
     // Apply status filter
-    if (statusFilter === 'helped') {
+    if (statusFilter === 'verified') {
       displayedQuestions = displayedQuestions.filter(
         (question) => question.status === asyncQuestionStatus.HumanAnswered,
       )
-    } else if (statusFilter === 'unhelped') {
+    } else if (statusFilter === 'unverified') {
       displayedQuestions = displayedQuestions.filter(
         (question) =>
           question.status === asyncQuestionStatus.AIAnswered ||
-          question.status === asyncQuestionStatus.AIAnsweredNeedsAttention,
+          question.status === asyncQuestionStatus.AIAnsweredNeedsAttention ||
+          !question.answerText,
       )
     }
     // Apply visibility filter
@@ -213,7 +214,7 @@ export default function AsyncCentrePage({
     return (
       <Segmented
         className="w-fit"
-        onChange={(value: 'all' | 'helped' | 'unhelped') =>
+        onChange={(value: 'all' | 'verified' | 'unverified') =>
           setStatusFilter(value)
         }
         options={[
@@ -223,11 +224,11 @@ export default function AsyncCentrePage({
           },
           {
             label: 'Verified',
-            value: 'helped',
+            value: 'verified',
           },
           {
             label: 'Unverified',
-            value: 'unhelped',
+            value: 'unverified',
           },
         ]}
       />
@@ -286,7 +287,7 @@ export default function AsyncCentrePage({
           }
         />
         <VerticalDivider />
-        <div className="flex-grow md:mt-4">
+        <div className="md:mt-4 md:max-w-[60vw] xl:max-w-[50vw]">
           {/* Filters on DESKTOP ONLY */}
           <h3 className="hidden flex-shrink-0 text-lg font-bold md:block">
             Filter Questions
@@ -317,7 +318,7 @@ export default function AsyncCentrePage({
               content={
                 <div className="flex flex-col gap-y-3">
                   <RenderQuestionStatusFilter />
-                  <RenderVisibleFilter />
+                  {isStaff && <RenderVisibleFilter />}
                   {!isStaff && <RenderCreatorFilter />}
                   <RenderQuestionTypeFilter />
                 </div>

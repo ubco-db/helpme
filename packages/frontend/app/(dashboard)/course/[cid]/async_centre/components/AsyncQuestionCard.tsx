@@ -43,6 +43,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   mutateAsyncQuestions,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [truncateText, setTruncateText] = useState(true) // after the max-height transition is finished on expanding the text, truncate it to show a `...`
   const [voteCount, setVoteCount] = useState(question.votesSum)
   const [thisUserThisQuestionVote, setThisUserThisQuestionVote] = useState(
     question.votes?.find((vote) => vote.userId === userId)?.vote,
@@ -50,6 +51,8 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   const shouldFlash =
     question.status === asyncQuestionStatus.AIAnswered &&
     userId === question.creatorId
+
+  const showUser = (isStaff || userId == question.creatorId) && question.creator
 
   const handleFeedback = async (resolved: boolean) => {
     const newstatus = resolved
@@ -80,16 +83,32 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     <div
       className={cn(
         'mb-2 mt-2 flex flex-col rounded-lg bg-white p-2 shadow-lg',
-        (question.status === asyncQuestionStatus.HumanAnswered ||
-          question.status === asyncQuestionStatus.AIAnsweredResolved) &&
-          question.answerText
-          ? 'bg-white'
-          : 'bg-yellow-100/25',
+        isStaff &&
+          (question.status === asyncQuestionStatus.AIAnswered ||
+            question.status === asyncQuestionStatus.AIAnsweredNeedsAttention ||
+            !question.answerText)
+          ? 'outline outline-1 outline-offset-1 outline-yellow-500'
+          : '',
       )}
-      onClick={() => setIsExpanded(!isExpanded)}
+      onClick={() => {
+        setIsExpanded(!isExpanded)
+        // after the max-height transition is finished on expanding the text, truncate it to show a `...`
+        // truncating the questionText before the animation is finished will cause the animation to jump
+        // Also, this logic is reversed for some reason
+        if (isExpanded) {
+          //// Collapsing the card
+          setTimeout(() => {
+            setTruncateText(true)
+          }, 300)
+        } else {
+          //// Expanding the card
+          // however, we do want to instantly remove the truncation when expanding the card
+          setTruncateText(false)
+        }
+      }}
     >
       <Row wrap={false}>
-        <Col flex="none" className="mr-4 items-center justify-center">
+        <Col flex="none" className="mr-1 items-center justify-center md:mr-2">
           <Button
             type="text"
             icon={
@@ -108,7 +127,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
               }
             }}
           />
-          <div className="my-2 flex items-center justify-center">
+          <div className="my-1 flex items-center justify-center md:my-2">
             {voteCount}
           </div>
           <Button
@@ -132,70 +151,86 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
         </Col>
 
         <Col flex="auto" className="w-full">
-          <div className="mb-4">
-            <div className="justify between flex items-start">
-              {(isStaff || userId == question.creatorId) && question.creator ? (
-                <>
-                  <UserAvatar
-                    size={46}
-                    username={question.creator.name}
-                    photoURL={question.creator.photoURL}
-                    className="mr-3 hidden md:flex"
-                  />
-                  <UserAvatar
-                    size={36}
-                    username={question.creator.name}
-                    photoURL={question.creator.photoURL}
-                    className="mr-3 flex md:hidden"
-                  />
-                  <div className="flex-grow text-sm italic text-gray-500">
+          <div className="mb-1 flex flex-col md:mb-4">
+            <div className="mb-1 flex justify-between">
+              <div className="flex flex-grow">
+                {showUser && (
+                  <>
+                    <UserAvatar
+                      size={40}
+                      username={question.creator.name}
+                      photoURL={question.creator.photoURL}
+                      className="mr-2 hidden md:flex"
+                    />
+                    <UserAvatar
+                      size={34}
+                      username={question.creator.name}
+                      photoURL={question.creator.photoURL}
+                      className="mr-2 flex md:hidden"
+                    />
+                  </>
+                )}
+                <div className="flex flex-grow flex-col justify-between md:flex-row">
+                  <div
+                    className={`flex-grow text-sm italic text-gray-500 ${showUser && 'md:pt-2.5'}`}
+                  >
                     <span className="mr-2 font-semibold">
-                      {question.creator.name}
+                      {showUser ? question.creator.name : 'Anonymous Student'}
                     </span>
                     <span>{getAsyncWaitTime(question)} ago</span>
                   </div>
-                </>
-              ) : (
-                <div className="flex-grow text-sm italic">
-                  Anonymous Student
+                  <div>
+                    {/* If it's the students' question, show a tag to indicate whether it is publicly visible or not */}
+                    {(userId === question.creatorId || isStaff) && (
+                      <Tooltip
+                        title={
+                          isStaff
+                            ? question.visible
+                              ? 'This question was marked public by a staff member and can be seen by all students'
+                              : 'Only you and the question creator can see this question'
+                            : question.visible
+                              ? "A Staff member liked your question and decided to make it publicly visible. Don't worry! Your name and picture are hidden and you appear as an anonymous student."
+                              : 'Only you and staff can see this question.'
+                        }
+                      >
+                        <Tag
+                          color={question.visible ? 'blue' : 'default'}
+                          icon={
+                            question.visible ? null : <EyeInvisibleOutlined />
+                          }
+                        >
+                          {question.visible ? 'Public' : 'Private'}
+                        </Tag>
+                      </Tooltip>
+                    )}
+                    <Tag
+                      icon={
+                        question.verified && (
+                          <Tooltip title="This Question's Answer was marked as Verified by Staff">
+                            <CheckCircleOutlined />
+                          </Tooltip>
+                        )
+                      }
+                      color={
+                        question.status === asyncQuestionStatus.HumanAnswered
+                          ? 'green'
+                          : 'gold'
+                      }
+                    >
+                      {!question.answerText
+                        ? 'Awaiting Answer'
+                        : statusDisplayMap[question.status]}
+                    </Tag>
+                  </div>
                 </div>
-              )}
-              {/* If it's the students' question, show a tag to indicate whether it is publicly visible or not */}
-              {userId === question.creatorId && (
-                <Tooltip
-                  title={
-                    question.visible
-                      ? "A Staff member liked your question and decided to make it publicly visible. Don't worry! Your name and picture are hidden and you appear as an anonymous student."
-                      : 'Only you and staff can see this question.'
-                  }
-                >
-                  <Tag
-                    color={question.visible ? 'blue' : 'default'}
-                    icon={question.visible ? null : <EyeInvisibleOutlined />}
-                  >
-                    {question.visible ? 'Public' : 'Private'}
-                  </Tag>
-                </Tooltip>
-              )}
-              <Tag
-                icon={
-                  question.verified && (
-                    <Tooltip title="This Question's Answer was marked as Verified by Staff">
-                      <CheckCircleOutlined />
-                    </Tooltip>
-                  )
-                }
-                color={
-                  question.status === asyncQuestionStatus.HumanAnswered
-                    ? 'green'
-                    : 'gold'
-                }
+              </div>
+
+              <div
+                onClick={(e) => {
+                  e.stopPropagation()
+                }}
+                className="flex items-center"
               >
-                {!question.answerText
-                  ? 'Awaiting Answer'
-                  : statusDisplayMap[question.status]}
-              </Tag>
-              <div className="flex items-center">
                 {isStaff ? (
                   <TAAsyncQuestionCardButtons
                     question={question}
@@ -214,31 +249,28 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 ) : null}
               </div>
             </div>
-            <div>
+            <div className="flex-grow">
               <h4 className="font-bold">{question.questionAbstract}</h4>
-              {/* When not expanded, show only 1 line of the questionText */}
-              {!isExpanded && question.questionText && (
-                <div className="max-w-[50vw] overflow-hidden overflow-ellipsis whitespace-nowrap">
-                  {question.questionText}
-                </div>
-              )}
-              {isExpanded && (
-                <div>
-                  {question.questionText && <div>{question.questionText}</div>}
 
-                  {question.answerText ? (
-                    <>
-                      <br />
-                      <div>
-                        <strong>Answer:</strong>
-                        <div>{question.answerText}</div>
-                      </div>
-                    </>
-                  ) : (
-                    <></>
-                  )}
-                </div>
-              )}
+              {/* When not expanded, show only 1 line of the questionText */}
+              <div
+                className={cn(
+                  'expandable-text',
+                  isExpanded ? 'expanded' : '',
+                  truncateText ? 'line-clamp-1' : '',
+                )}
+              >
+                {question.questionText}
+                {question.answerText && (
+                  <>
+                    <br />
+                    <br />
+                    <strong>Answer:</strong>
+                    <br />
+                    {question.answerText}
+                  </>
+                )}
+              </div>
             </div>
             <div className="flex flex-wrap">
               {question.questionTypes?.map((questionType, index) => (
@@ -259,8 +291,21 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 )}
               >
                 {/* Students vote on whether they still need faculty help */}
-                <Button onClick={() => handleFeedback(true)}>Satisfied</Button>
-                <Button type="primary" onClick={() => handleFeedback(false)}>
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleFeedback(true)
+                  }}
+                >
+                  Satisfied
+                </Button>
+                <Button
+                  type="primary"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleFeedback(false)
+                  }}
+                >
                   Still need faculty Help
                 </Button>
               </div>

@@ -9,7 +9,7 @@ export default function Home(): ReactElement {
       <Head>
         <title>HelpMe</title>
       </Head>
-      <div className="ml-auto mr-auto max-w-[500px] pt-10 text-center">
+      <div className="ml-auto mr-auto max-w-[600px] pt-10 text-center">
         <div className="flex flex-col items-center justify-center">
           <Image
             src="/ubc_logo.png"
@@ -35,11 +35,13 @@ export default function Home(): ReactElement {
           </li>
           <li className="m-2">
             For more information, contact Ramon Lawrence,{' '}
-            <a href="mailto:ramon.lawrence@ubc.ca">ramon.lawrence@ubc.ca</a>
+            <a href="mailto:ramon.lawrence@ubc.ca" className="text-blue-500">
+              ramon.lawrence@ubc.ca
+            </a>
           </li>
         </ul>
 
-        <Button type="primary" className="rounded-lg" href="/login">
+        <Button type="primary" className="mt-4 rounded-lg" href="/login">
           Login &gt;
         </Button>
       </div>

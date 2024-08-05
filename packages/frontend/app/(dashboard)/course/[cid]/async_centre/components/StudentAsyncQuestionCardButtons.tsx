@@ -6,6 +6,8 @@ import { message, Popconfirm, Tooltip } from 'antd'
 import { useState } from 'react'
 import CircleButton from '../../queue/[qid]/components/CircleButton'
 import CreateAsyncQuestionModal from './modals/CreateAsyncQuestionModal'
+import { useMediaQuery } from '@/app/hooks/useMediaQuery'
+import { deleteAsyncQuestion } from '../utils/commonAsyncFunctions'
 
 type StudentAsyncQuestionCardButtonsProps = {
   question: AsyncQuestion
@@ -19,43 +21,30 @@ const StudentAsyncQuestionCardButtons: React.FC<
   const [createAsyncQuestionModalOpen, setCreateAsyncQuestionModalOpen] =
     useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
   return (
-    <div
-      onClick={(e) => {
-        e.stopPropagation()
-      }}
-    >
+    <>
+      {/* Note: Delete button not shown on mobile. Instead, it's in CreateAsyncQuestionModal.tsx*/}
       <Popconfirm
+        className="hidden md:flex"
         title="Are you sure you want to delete your question?"
         okText="Yes"
         cancelText="No"
         okButtonProps={{ loading: deleteLoading }}
         onConfirm={async () => {
           setDeleteLoading(true)
-          await API.asyncQuestions
-            .update(question.id, {
-              status: asyncQuestionStatus.StudentDeleted,
-              visible: false,
-            })
-            .then(() => {
-              message.success('Question Successfully Deleted')
-              onAsyncQuestionUpdate()
-              setDeleteLoading(false)
-            })
-            .catch((e) => {
-              const errorMessage = getErrorMessage(e)
-              message.error('Error deleting question:', errorMessage)
-              setDeleteLoading(false)
-            })
+          await deleteAsyncQuestion(question.id, false, onAsyncQuestionUpdate)
+          setDeleteLoading(false)
         }}
       >
-        <Tooltip title="Delete Question">
+        <Tooltip title={isMobile ? '' : 'Delete Question'}>
           <CircleButton variant="red" icon={<DeleteOutlined />} />
         </Tooltip>
       </Popconfirm>
-      <Tooltip title="Edit Your Question">
+      <Tooltip title={isMobile ? '' : 'Edit Your Question'}>
         <CircleButton
+          className="mt-0"
           icon={<EditOutlined />}
           onClick={() => {
             setCreateAsyncQuestionModalOpen(true)
@@ -72,7 +61,7 @@ const StudentAsyncQuestionCardButtons: React.FC<
           onAsyncQuestionUpdate()
         }}
       />
-    </div>
+    </>
   )
 }
 
