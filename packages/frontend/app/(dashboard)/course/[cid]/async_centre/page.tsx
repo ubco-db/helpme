@@ -159,7 +159,7 @@ export default function AsyncCentrePage({
             questionTypes.filter((tag) => value.includes(tag.id)),
           )
         }}
-        className="w-full md:w-1/2"
+        className="min-w-40 flex-grow"
         allowClear
         tagRender={(props) => {
           const tag = questionTypes.find((tag) => tag.id === props.value)
@@ -287,16 +287,18 @@ export default function AsyncCentrePage({
           }
         />
         <VerticalDivider />
-        <div className="md:mt-4 md:max-w-[60vw] xl:max-w-[50vw]">
+        <div className="flex-grow md:mt-4">
           {/* Filters on DESKTOP ONLY */}
-          <h3 className="hidden flex-shrink-0 text-lg font-bold md:block">
-            Filter Questions
-          </h3>
           <div className="mb-4 hidden items-center gap-x-4 md:flex">
-            <RenderQuestionStatusFilter />
-            {isStaff && <RenderVisibleFilter />}
-            {!isStaff && <RenderCreatorFilter />}
-            <RenderQuestionTypeFilter />
+            <h3 className="hidden flex-shrink-0 text-lg font-bold md:block">
+              Filter Questions
+            </h3>
+            <div className="hidden flex-grow items-center gap-x-4 md:flex">
+              <RenderQuestionStatusFilter />
+              {isStaff && <RenderVisibleFilter />}
+              {!isStaff && <RenderCreatorFilter />}
+              <RenderQuestionTypeFilter />
+            </div>
           </div>
           <div className="mb-1 flex items-center gap-x-2">
             <h3 className="flex-shrink-0 text-lg font-bold">Sort By</h3>
