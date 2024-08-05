@@ -192,9 +192,6 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Initial state */
 .expandable-text {
-  /* display: -webkit-box; */
-  /* -webkit-line-clamp: 1; */
-  /* -webkit-box-orient: vertical; */
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -208,4 +205,8 @@ h1, h2, h3, h4, h5, h6 {
   max-height: 300vh;
   /* only slow down near the very start of the transition */
   transition: max-height 0.3s cubic-bezier(1,0,1,0)
+}
+
+.time-graph-container .popularTimes__bar {
+  cursor: pointer
 }
