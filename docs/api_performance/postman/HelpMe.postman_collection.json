@@ -1,0 +1,492 @@
+{
+	"info": {
+		"_postman_id": "5e0ce7a0-ab70-4bf1-8ea6-b6500f04db0c",
+		"name": "HelpMe",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "8426167"
+	},
+	"item": [
+		{
+			"name": "api/v1/profile",
+			"item": [
+				{
+					"name": "_",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "auth_token="
+							}
+						],
+						"url": {
+							"raw": "{{host}}/profile",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": ":c/id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "auth_token="
+							}
+						],
+						"url": {
+							"raw": "{{host}}/profile/15/id",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"profile",
+								"15",
+								"id"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": ":id/inQueue",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "auth_token="
+							}
+						],
+						"url": {
+							"raw": "{{host}}/profile/8/inQueue",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"profile",
+								"8",
+								"inQueue"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "_",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Define new values for the fields",
+									"const sid = Math.floor(Math.random() * 1_000_000);",
+									"",
+									"// Check if the request body is not empty and is a valid JSON",
+									"if (pm.request.body.raw) {",
+									"    try {",
+									"        // Get the current body as a JSON object",
+									"        let body = JSON.parse(pm.request.body.raw);",
+									"",
+									"        // Update the body fields with new values",
+									"        body.sid = sid;",
+									"",
+									"        // Set the updated body back to the request",
+									"        pm.request.body.raw = JSON.stringify(body);",
+									"    } catch (e) {",
+									"        console.error('Error parsing request body:', e);",
+									"    }",
+									"} else {",
+									"    console.error('Request body is empty or not valid JSON');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "auth_token="
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sid\": 200\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/profile",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get_picture/:photoUrl",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "auth_token="
+							}
+						],
+						"url": {
+							"raw": "{{host}}/profile/get_picture/10-62p4e905unusrmlppf1il",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"profile",
+								"get_picture",
+								"10-62p4e905unusrmlppf1il"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "api/v1/semesters",
+			"item": [
+				{
+					"name": "_",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/semesters",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"semesters"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "api/v1/queues",
+			"item": [
+				{
+					"name": ":queueId",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "auth_token="
+							}
+						],
+						"url": {
+							"raw": "{{host}}/queues/7",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"queues",
+								"7"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": ":queueId/questions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "auth_token="
+							}
+						],
+						"url": {
+							"raw": "{{host}}/queues/7/questions",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"queues",
+								"7",
+								"questions"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "api/v1/questionType",
+			"item": [
+				{
+					"name": ":c",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "auth_token="
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{$randomInt}}{{$randomLoremWords}}{{$randomInt}}{{$randomAlphaNumeric}}{{$randomAlphaNumeric}}{{$randomAlphaNumeric}}\",\n    \"queueId\": 7\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/questionType/15",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"questionType",
+								"15"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": ":c/:queueId",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "auth_token="
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{$randomInt}}{{$randomLoremWords}}{{$randomInt}}{{$randomAlphaNumeric}}{{$randomAlphaNumeric}}{{$randomAlphaNumeric}}\",\n    \"queueId\": 7\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/questionType/15/7",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"questionType",
+								"15",
+								"7"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "api/v1/questions",
+			"item": [
+				{
+					"name": ":questionId",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "auth_token="
+							}
+						],
+						"url": {
+							"raw": "{{host}}/questions/15",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"questions",
+								"15"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "allQuestions/:cid",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "auth_token="
+							}
+						],
+						"url": {
+							"raw": "{{host}}/questions/allQuestions/15",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"questions",
+								"allQuestions",
+								"15"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": ":questionId",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "auth_token="
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"text\": \"{{$randomLoremSentences}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/questions/10",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"questions",
+								"10"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": ":questionId Copy",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEwLCJleHBpcmVzSW4iOjI1OTIwMDAsImlhdCI6MTcxODk4MTY5Mn0.QBJ498rzbW_JPxMHPEmDWVbnXf2Ru7iVtZ_6A6E356w"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"text\": \"{{$randomLoremSentences}}\",\n    \"queueId\": 1,\n    \"force\": true,\n    \"groupable\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/questions",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"questions"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
