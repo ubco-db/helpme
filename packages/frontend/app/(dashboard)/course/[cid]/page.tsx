@@ -3,7 +3,6 @@
 import { Role } from '@koh/common'
 import { Col, Row, Button } from 'antd'
 import { ReactElement, useMemo, useState } from 'react'
-import { orderBy } from 'lodash'
 // import { ChatbotToday } from '../../../components/Today/ChatbotToday'
 import QueueCard from './components/QueueCard'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
@@ -17,6 +16,7 @@ import CoursePageCheckInButton from './components/CoursePageCheckInButton'
 import PopularTimes from './components/popularTimes/PopularTimes'
 import { arrayRotate, collapseHeatmap } from './utils/popularTimesFunctions'
 import moment from 'moment'
+import { sortQueues } from './utils/commonCourseFunctions'
 
 type CoursePageProps = {
   params: { cid: string }
@@ -40,12 +40,7 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
 
   const sortedQueues = useMemo(() => {
     if (!course?.queues) return []
-
-    return orderBy(
-      course.queues,
-      ['isOpen', 'staffList.length', 'room'],
-      ['desc', 'desc', 'asc'],
-    )
+    return sortQueues(course.queues)
   }, [course?.queues])
 
   const skipLinkTarget: 'first-queue' | 'async-centre' | 'chatbot-input' | '' =

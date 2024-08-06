@@ -1,9 +1,10 @@
 import { API } from '@/app/api'
 import { message, Modal } from 'antd'
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
-import { UserPartial } from '@koh/common'
+import { QueuePartial, UserPartial } from '@koh/common'
 import { ExclamationCircleOutlined } from '@ant-design/icons'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { orderBy } from 'lodash'
 
 export async function checkInTA(
   courseId: number,
@@ -100,4 +101,16 @@ export async function clearQueue(
       const errorMessage = getErrorMessage(err)
       message.error('Unable to clean queue: ' + errorMessage)
     })
+}
+
+export function sortQueues(queues: QueuePartial[]) {
+  return orderBy(
+    queues,
+    [
+      'staffList.length',
+      'isProfessorQueue',
+      (queue) => queue.room.toLowerCase(),
+    ],
+    ['desc', 'desc', 'asc'],
+  )
 }

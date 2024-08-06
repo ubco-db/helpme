@@ -3,18 +3,17 @@
 import {
   EditOutlined,
   NotificationOutlined,
-  RightOutlined,
   StopOutlined,
 } from '@ant-design/icons'
 import { Button, Card, Divider, Input, message, Row, Tag, Tooltip } from 'antd'
 import Link from 'next/link'
 import React, { ReactElement, useState } from 'react'
-import styles from './QueueCard.module.css'
 import UserAvatar from '@/app/components/UserAvatar'
 import { QueuePartial } from '@koh/common'
 import { useCourse } from '@/app/hooks/useCourse'
 import { API } from '@/app/api'
 import Linkify from '@/app/components/Linkify'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 
 interface QueueCardProps {
   cid: number
@@ -47,10 +46,9 @@ const QueueCard: React.FC<QueueCardProps> = ({
       .then(() => {
         mutateCourse()
         message.success('Queue notes updated successfully')
-        return
       })
       .catch((e) => {
-        const errorMessage = e?.response?.data?.message ?? e.message
+        const errorMessage = getErrorMessage(e)
         message.error(`Error updating queue notes: ${errorMessage}`)
       })
   }
@@ -59,24 +57,26 @@ const QueueCard: React.FC<QueueCardProps> = ({
       href={isLinkEnabled ? `/course/${cid}/queue/${queue.id}` : ''}
       aria-label={
         queue.room +
-        ' Queue ' +
-        (queue.staffList.length >= 1 ? '. It has staff checked in. ' : '')
+        ' Queue' +
+        (queue.staffList.length >= 1 ? '. It has staff checked in.' : '')
       }
       id={linkId}
     >
       <Card
-        headStyle={{
-          background: queue.isOpen ? '#25426C' : '#25426cbf',
-          color: '#FFFFFF',
-          borderRadius: '6px 6px 0 0',
+        classNames={{
+          header: cn(
+            'text-white rounded-t-lg',
+            queue.isOpen ? 'bg-[#25426C]' : 'bg-[#1e3659]',
+          ),
+          body: 'pt-4',
         }}
         // make the card glow if there are staff members in the queue
-        className={
-          styles.queueCard +
-          ' open-queue-card my-4 ' +
-          (queue.staffList.length >= 1 ? ' glowy ' : '') +
-          (isLinkEnabled ? ' cursor-pointer ' : '')
-        }
+        className={cn(
+          'my-4 rounded-md',
+          queue.staffList.length >= 1 ? 'glowy' : '',
+          isLinkEnabled ? 'cursor-pointer' : '',
+          'queueCard',
+        )}
         title={
           <span className="mr-8 flex flex-row flex-wrap items-center justify-between">
             <div>
@@ -103,13 +103,14 @@ const QueueCard: React.FC<QueueCardProps> = ({
                 )}
               </div>
             </div>
-            <div className="mr-8 h-fit text-sm font-normal text-gray-200">
-              <span className="text-lg font-medium">{queue.queueSize}</span> in
-              queue
-            </div>
           </span>
         }
-        extra={<RightOutlined className=" text-3xl text-gray-100" />}
+        extra={
+          <div className="mr-8 h-fit text-sm font-normal text-gray-200">
+            <span className="text-lg font-medium">{queue.queueSize}</span> in
+            queue
+          </div>
+        }
       >
         <div className="flex flex-row items-center justify-start">
           <div className=" mr-3 text-sm">

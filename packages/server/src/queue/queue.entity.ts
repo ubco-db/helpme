@@ -66,6 +66,7 @@ export class QueueModel extends BaseEntity {
 
   isOpen: boolean;
 
+  // This seems really weird, since staffList is always going to be >=0, so all queues are always open.
   async checkIsOpen(): Promise<boolean> {
     if (!this.staffList) {
       console.error(ERROR_MESSAGES.queueController.missingStaffList, this.id);

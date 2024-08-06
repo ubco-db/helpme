@@ -1,10 +1,8 @@
 'use client'
 
-import { RightOutlined } from '@ant-design/icons'
 import { Card } from 'antd'
 import Link from 'next/link'
 import React, { ReactElement } from 'react'
-import styles from './AsyncCentreCard.module.css'
 
 interface AsyncCentreCardProps {
   cid: number
@@ -22,14 +20,11 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
       id={linkId}
     >
       <Card
-        headStyle={{
-          background: 'rgb(60, 66, 111)',
-          color: '#FFFFFF',
-          borderRadius: '6px 6px 0 0',
+        classNames={{
+          header: 'text-white bg-[#3C426F] rounded-t-lg',
         }}
-        className={`${styles.asyncCentreCard} open-queue-card my-4`}
+        className="asyncCentreCard my-4 rounded-t-lg"
         title="Anytime Question Hub"
-        extra={<RightOutlined className=" text-3xl text-gray-100" />}
       >
         <div className="flex items-center justify-between">
           <span className="text-md italic text-gray-600">

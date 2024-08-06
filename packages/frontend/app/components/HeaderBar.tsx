@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
 
-import React, { useCallback } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
 import {
   NavigationMenu,
@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 import { HomeOutlined, LogoutOutlined } from '@ant-design/icons'
 import { Popconfirm } from 'antd'
+import { sortQueues } from '../(dashboard)/course/[cid]/utils/commonCourseFunctions'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -117,25 +118,22 @@ const NavBar = ({
   userInfo,
   courseId,
   isAQueuePage,
-  isProfilePage,
+  isProfilePage = false,
   orientation = 'horizontal',
 }: {
   userInfo: User
   courseId: number | null
   isAQueuePage: boolean
-  isProfilePage: boolean
+  isProfilePage?: boolean
   orientation?: 'horizontal' | 'vertical'
 }) => {
   const { course } = useCourse(courseId)
   const router = useRouter()
   const role = courseId ? getRoleInCourse(userInfo, courseId) : null
-  // only show open queues, sorted by name
-  const openQueues =
-    orderBy(
-      course?.queues?.filter((queue) => queue.isOpen),
-      ['room'],
-      ['asc'],
-    ) ?? []
+  const sortedQueues = useMemo(() => {
+    if (!course?.queues) return []
+    return sortQueues(course.queues)
+  }, [course?.queues])
 
   // This is to move the "Queues" and "Profile" submenu to show on the left or right side (there is only one component, so it needs to be moved around like this)
   const setNavigationSubMenuRightSide = useCallback(() => {
@@ -196,8 +194,11 @@ const NavBar = ({
                 Queues
               </NavigationMenuTrigger>
               <NavigationMenuContent>
-                <ul className="grid w-[60vw] gap-1 p-4 md:grid-cols-2 lg:w-[600px] lg:gap-2 ">
-                  {openQueues.map((queue) => (
+                {/* On mobile, if there are more than 6 queues, put the queue list into two columns */}
+                <ul
+                  className={`grid gap-1 p-4 md:grid-cols-2 lg:w-[600px] lg:gap-2 ${sortedQueues.length > 6 ? 'w-[95vw] grid-cols-2' : 'w-[60vw]'}`}
+                >
+                  {sortedQueues.map((queue) => (
                     <ListItem
                       key={queue.id}
                       title={queue.room}
