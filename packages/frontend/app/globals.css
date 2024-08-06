@@ -28,8 +28,9 @@
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --border: 214.3 31.8% 91.4%;
-    --helpmeblue: #3684c6;
-    --helpmeblue-light:#5fa0d5; /* alternative color is #3c93dd but #5fa0d5 looks closer to antd button hover */
+    /* Writing RGB values like this allows you to use tailwind's <alpha-value> in tailwind.config.cs https://tailwindcss.com/docs/customizing-colors#using-css-variables */
+    --helpmeblue: 54 132 196;
+    --helpmeblue-light: 95 160 213; /* alternative color is #3c93dd but #5fa0d5 looks closer to antd button hover */
   }
 
 body {

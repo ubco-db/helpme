@@ -43,8 +43,8 @@ const config = {
         'accent-foreground': 'hsl(var(--accent-foreground))',
         border: 'hsl(var(--border))',
         helpmeblue: {
-          light: 'var(--helpmeblue-light)',
-          DEFAULT: 'var(--helpmeblue)',
+          light: 'rgb(var(--helpmeblue-light) / <alpha-value>)',
+          DEFAULT: 'rgb(var(--helpmeblue) / <alpha-value>)',
         },
       },
     },

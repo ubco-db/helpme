@@ -106,7 +106,7 @@ const PopularTimes: React.FC<HeatmapProps> = ({ heatmap }) => {
       </div>
       <div className="mb-5 flex items-center text-2xl">
         <button
-          className="px-1 py-5"
+          className="px-1 py-5 hover:text-gray-500 active:text-gray-400"
           aria-label="Previous Day"
           onClick={() => setCurrentDayOfWeek((7 + currentDayOfWeek - 1) % 7)}
         >
@@ -129,7 +129,7 @@ const PopularTimes: React.FC<HeatmapProps> = ({ heatmap }) => {
           </ParentSize>
         </div>
         <button
-          className="px-1 py-5 text-2xl"
+          className="px-1 py-5 text-2xl hover:text-gray-500 active:text-gray-400"
           aria-label="Next Day"
           onClick={() => setCurrentDayOfWeek((currentDayOfWeek + 1) % 7)}
         >
