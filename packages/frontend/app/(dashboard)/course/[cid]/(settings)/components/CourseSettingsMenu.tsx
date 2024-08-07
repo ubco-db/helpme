@@ -16,7 +16,7 @@ enum CourseAdminOptions {
   ROSTER = 'ROSTER',
   ADD = 'ADD',
   EXPORT_DATA = 'EXPORT_DATA',
-  EDIT = 'EDIT',
+  EDIT_QUESTIONS = 'EDIT_QUESTIONS',
   SETTINGS = 'SETTINGS',
 }
 
@@ -45,6 +45,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsMenyProps> = ({
         break
       case CourseAdminOptions.EXPORT_DATA:
         router.push(`${basePath}/export_data`)
+        break
+      case CourseAdminOptions.EDIT_QUESTIONS:
+        router.push(`${basePath}/edit_questions`)
         break
     }
   }
@@ -93,7 +96,10 @@ const CourseSettingsMenu: React.FC<CourseSettingsMenyProps> = ({
         Export Data
       </Menu.Item>
 
-      <Menu.Item key={CourseAdminOptions.EDIT} icon={<TableOutlined />}>
+      <Menu.Item
+        key={CourseAdminOptions.EDIT_QUESTIONS}
+        icon={<TableOutlined />}
+      >
         Edit Questions
       </Menu.Item>
     </Menu>
