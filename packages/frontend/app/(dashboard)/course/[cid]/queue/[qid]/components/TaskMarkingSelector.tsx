@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { ConfigTasks } from '@koh/common'
+import { getBrightness } from '@/app/utils/generalUtils'
 
 /*
-  This component is used when the TA is helping a student (used on the student queue card). 
+  This component is used when the TA is helping a student (used on the QuestionCard). 
   Allows the TA to choose what tasks (of the one's the student is asking to be marked) are good and should be marked 
 */
 
@@ -15,21 +16,14 @@ interface CheckableMarkingTaskProps {
   decorative: boolean
 }
 
-function CheckableMarkingTask({
+const CheckableMarkingTask: React.FC<CheckableMarkingTaskProps> = ({
   taskId,
   taskName,
   taskColor,
   onChange,
   checked,
   decorative,
-}: CheckableMarkingTaskProps): React.ReactElement {
-  function getBrightness(color: string): number {
-    const rgb = parseInt(color.slice(1), 16)
-    const r = (rgb >> 16) & 0xff
-    const g = (rgb >> 8) & 0xff
-    const b = (rgb >> 0) & 0xff
-    return (r * 299 + g * 587 + b * 114) / 1000
-  }
+}) => {
   const textColor = checked
     ? getBrightness(taskColor) < 128
       ? 'white'
@@ -111,14 +105,14 @@ interface TaskMarkingSelectorProps {
   ariaLabelledBy?: string
 }
 
-export default function TaskMarkingSelector({
+const TaskMarkingSelector: React.FC<TaskMarkingSelectorProps> = ({
   onChange,
   tasksStudentWouldLikeMarked,
   configTasks,
   className,
   ariaLabel,
   ariaLabelledBy,
-}: TaskMarkingSelectorProps): React.ReactElement {
+}) => {
   const [selectedTasks, setSelectedTasks] = useState<string[]>([])
 
   const handleTaskClick = (taskId: string, checked: boolean) => {
@@ -155,3 +149,5 @@ export default function TaskMarkingSelector({
     </div>
   )
 }
+
+export default TaskMarkingSelector

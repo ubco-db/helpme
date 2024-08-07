@@ -99,7 +99,11 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
       <div className="rounded-b-md bg-[#ABD4F3] px-2 py-4 md:p-[0.4rem]">
         <QuestionDetailCard
           question={studentQuestion}
-          spot={studentQuestionIndex ? studentQuestionIndex + 1 : undefined}
+          spot={
+            studentQuestionIndex === undefined
+              ? undefined
+              : studentQuestionIndex + 1
+          }
           isQueueOnline={!!isQueueOnline}
           zoomLink={zoomLink}
           leaveQueue={leaveQueueQuestion}
@@ -113,7 +117,9 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
         <QuestionDetailCard
           question={studentDemo}
           configTasks={configTasks}
-          spot={studentDemoIndex ? studentDemoIndex + 1 : undefined}
+          spot={
+            studentDemoIndex === undefined ? undefined : studentDemoIndex + 1
+          }
           isQueueOnline={!!isQueueOnline}
           zoomLink={zoomLink}
           leaveQueue={leaveQueueDemo}
@@ -186,7 +192,7 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
   return (
     <div
       className={cn(
-        'mx-2 flex min-h-[63px] rounded border-4 border-dashed bg-[#599cd6] p-[0.4rem] text-white md:mx-[0.4rem] md:p-2',
+        'm-2 flex min-h-[63px] rounded border-4 border-dashed bg-[#599cd6] p-[0.4rem] text-white md:mx-[0.4rem] md:p-2',
         getStatusBorderColor(question.status),
       )}
     >

@@ -98,11 +98,12 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
             })
         }
         onAddStudent()
-        setIsLoading(false)
       })
       .catch((err) => {
         const errorMessage = getErrorMessage(err)
         message.error(errorMessage)
+      })
+      .finally(() => {
         setIsLoading(false)
       })
   }
