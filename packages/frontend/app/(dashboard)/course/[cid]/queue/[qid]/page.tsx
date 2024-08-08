@@ -1,18 +1,10 @@
 'use client'
 
-import {
-  ReactElement,
-  useCallback,
-  useState,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react'
+import { ReactElement, useCallback, useState, useEffect, useRef } from 'react'
 import {
   QuestionTypeParams,
   ClosedQuestionStatus,
   ERROR_MESSAGES,
-  LimboQuestionStatus,
   OpenQuestionStatus,
   Question,
   Role,
@@ -20,33 +12,13 @@ import {
   ConfigTasksWithAssignmentProgress,
   transformIntoTaskTree,
   TaskTree,
-  Task,
-  parseTaskIdsFromQuestionText,
   QuestionType,
 } from '@koh/common'
-// import { QueueInfoColumn } from '../Queue/QueueInfoColumn'
-import {
-  Tooltip,
-  message,
-  notification,
-  Button,
-  Switch,
-  Card,
-  Divider,
-  Collapse,
-} from 'antd'
+import { Tooltip, message, notification, Button } from 'antd'
 // import CantFindModal from './StudentCantFindModal'
-// import StudentBanner from './StudentBanner'
 import { mutate } from 'swr'
-// import QuestionForm from './QuestionForm'
-// import DemoForm from './DemoForm'
-// import { AddStudentsModal } from './TAAddStudent'
-// import { EditQueueModal } from './EditQueueModal'
 import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
 import { ListChecks, ListTodoIcon } from 'lucide-react'
-// import { useStudentAssignmentProgress } from '../../../hooks/useStudentAssignmentProgress'
-// import { AssignmentReportModal } from './AssignmentReportModal'
-// import JoinTagGroupButton from './JoinTagGroupButton'
 import { useQueue } from '@/app/hooks/useQueue'
 import { useUserInfo } from '@/app/contexts/userContext'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
@@ -77,6 +49,7 @@ import StudentBanner from './components/StudentBanner'
 import EditQueueModal from './components/modals/EditQueueModal'
 import AddStudentsToQueueModal from './components/modals/AddStudentsToQueueModal'
 import CreateDemoModal from './components/modals/CreateDemoModal'
+import AssignmentReportModal from './components/modals/AssignmentReportModal'
 
 type QueuePageProps = {
   params: { cid: string; qid: string }
@@ -91,7 +64,8 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const { queueQuestions, mutateQuestions } = useQuestions(qid)
   const [queueSettingsModalOpen, setQueueSettingsModalOpen] = useState(false)
   const [addStudentsModalOpen, setAddStudentsModalOpen] = useState(false)
-  const [assignmentReportModal, setAssignmentReportModal] = useState(false)
+  const [assignmentReportModalOpen, setAssignmentReportModalOpen] =
+    useState(false)
   const {
     studentQuestion,
     studentDemo,
@@ -139,7 +113,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const [tagGroupsEnabled, setTagGroupsEnabled] = useState(
     queueConfig?.default_view === 'tag_groups',
   )
-  const [, , deleteStoredDraftQuestion] = useLocalStorage('draftQuestion', null)
   const [isFirstQuestion, setIsFirstQuestion] = useLocalStorage(
     'isFirstQuestion',
     true,
@@ -567,7 +540,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               </Tooltip>
               {isDemoQueue && (
                 <EditQueueButton
-                  onClick={() => setAssignmentReportModal(true)}
+                  onClick={() => setAssignmentReportModalOpen(true)}
                   icon={<ListChecks className="mr-1" />}
                 >
                   {/* "View Students {lab} Progress" on desktop, "{lab} Progress" on mobile */}
@@ -731,6 +704,16 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               }}
               onCancel={() => setAddStudentsModalOpen(false)}
             />
+            {isDemoQueue && (
+              <AssignmentReportModal
+                queueId={qid}
+                courseId={cid}
+                assignmentName={queueConfig?.assignment_id}
+                configTasks={configTasks}
+                open={assignmentReportModalOpen}
+                onClose={() => setAssignmentReportModalOpen(false)}
+              />
+            )}
           </>
         ) : (
           <>

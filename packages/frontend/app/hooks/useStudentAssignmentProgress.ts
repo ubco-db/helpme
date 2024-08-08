@@ -16,18 +16,15 @@ export function useStudentAssignmentProgress(
       ? `/api/studentTaskProgress/student/${userId}/${cid}/${assignmentId}`
       : null
   const { data: studentAssignmentProgress } = useSWR(key, async () => {
-    if (isDemoQueue && !isStaff && assignmentId) {
+    if (isDemoQueue && assignmentId && !isStaff) {
       return await API.studentTaskProgress.getAssignmentProgress(
         userId,
         cid,
         assignmentId,
       )
     } else {
-      return null
+      return undefined
     }
   })
-  if (studentAssignmentProgress === null) {
-    return {}
-  }
   return studentAssignmentProgress
 }
