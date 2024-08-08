@@ -7,7 +7,7 @@ import {
 } from '@ant-design/icons'
 import { Heatmap } from '@koh/common'
 import { ParentSize } from '@visx/responsive'
-import { Dropdown, Menu } from 'antd'
+import { Dropdown } from 'antd'
 import { chunk, uniq, mean, sortBy } from 'lodash'
 import { useState } from 'react'
 import TimeGraph from './TimeGraph'

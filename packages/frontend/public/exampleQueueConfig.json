@@ -1,0 +1,20 @@
+{
+    "fifo_queue_view_enabled": true,
+    "tag_groups_queue_view_enabled": true,
+    "default_view": "fifo",
+    "minimum_tags": 0,
+    "tags": {
+      "tag1": {
+        "display_name": "General",
+        "color_hex": "#66FF66"
+      },
+      "tag2": {
+        "display_name": "Bugs",
+        "color_hex": "#66AA66"
+      },
+      "tag3": {
+        "display_name": "Important",
+        "color_hex": "#FF0000"
+      }
+    }
+  }
