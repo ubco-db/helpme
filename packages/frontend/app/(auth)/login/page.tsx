@@ -224,6 +224,7 @@ export default function LoginPage() {
                       onChange={onEmailChange}
                       className="rounded-lg border px-2 py-2"
                       placeholder="Email"
+                      autoComplete="email"
                       type="email"
                     />
                   </Form.Item>
@@ -241,6 +242,7 @@ export default function LoginPage() {
                       prefix={<LockOutlined className="site-form-item-icon" />}
                       onChange={onPassChange}
                       type="password"
+                      autoComplete="current-password"
                       className="rounded-lg border px-2 py-2"
                       placeholder="Password"
                     />

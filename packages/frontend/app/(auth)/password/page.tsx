@@ -92,6 +92,7 @@ export default function ForgetPassword() {
               type="email"
               placeholder=""
               className="text-1xl p-2 text-center"
+              autoComplete="email"
             />
           </Form.Item>
 

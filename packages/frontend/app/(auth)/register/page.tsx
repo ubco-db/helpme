@@ -195,7 +195,11 @@ export default function RegisterPage(): ReactElement {
                   },
                 ]}
               >
-                <Input allowClear={true} type="password" />
+                <Input
+                  allowClear={true}
+                  type="password"
+                  autoComplete="new-password"
+                />
               </Form.Item>
 
               <Form.Item
@@ -205,7 +209,11 @@ export default function RegisterPage(): ReactElement {
                   { required: true, message: 'Please confirm your password' },
                 ]}
               >
-                <Input allowClear={true} type="password" />
+                <Input
+                  allowClear={true}
+                  type="password"
+                  autoComplete="new-password"
+                />
               </Form.Item>
 
               <Form.Item label="Student Number" name="sid">
