@@ -42,13 +42,7 @@ import { mutate } from 'swr'
 // import DemoForm from './DemoForm'
 // import { AddStudentsModal } from './TAAddStudent'
 // import { EditQueueModal } from './EditQueueModal'
-import {
-  EditOutlined,
-  LoginOutlined,
-  MenuOutlined,
-  PlusOutlined,
-} from '@ant-design/icons'
-import { NextRouter } from 'next/router'
+import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
 import { ListChecks, ListTodoIcon } from 'lucide-react'
 // import { useStudentAssignmentProgress } from '../../../hooks/useStudentAssignmentProgress'
 // import { AssignmentReportModal } from './AssignmentReportModal'
@@ -71,12 +65,10 @@ import { useStudentQuestion } from '@/app/hooks/useStudentQuestion'
 import { isCheckedIn } from '../../utils/commonCourseFunctions'
 import { getHelpingQuestions } from './utils/commonQueueFunctions'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
-import { QuestionTagElement } from '../../components/QuestionTagElement'
 import { useLocalStorage } from '@/app/hooks/useLocalStorage'
 import QueueInfoColumn from './components/QueueInfoColumn'
 import TACheckinButton from '../../components/TACheckinButton'
 import { API } from '@/app/api'
-import TagGroupSwitch from './components/TagGroupSwitch'
 import QueueQuestions from './components/QueueQuestions'
 import { useRouter } from 'next/navigation'
 import CreateQuestionModal from './components/modals/CreateQuestionModal'
@@ -85,8 +77,6 @@ import StudentBanner from './components/StudentBanner'
 import EditQueueModal from './components/modals/EditQueueModal'
 import AddStudentsToQueueModal from './components/modals/AddStudentsToQueueModal'
 import CreateDemoModal from './components/modals/CreateDemoModal'
-
-const Panel = Collapse.Panel
 
 type QueuePageProps = {
   params: { cid: string; qid: string }
@@ -493,49 +483,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       setTaskTree(transformIntoTaskTree(configTasksCopy)) // transformIntoTaskTree changes each precondition to carry a reference to the actual task object instead of just a string
     }
   }, [tagGroupsEnabled, configTasks, studentAssignmentProgress])
-
-  const isTaskJoinable = (
-    task: Task,
-    isFirst = true,
-    studentDemoText: string | undefined,
-  ): boolean => {
-    // Goal: Before joining, for the task's preconditions, make sure there are no blocking tasks that are not done (this is done recursively)
-    if (task.blocking && !task.isDone && !isFirst) {
-      return false
-    }
-
-    // Goal: Before joining, all the task's preconditions must be in the student's demo (this is also done recursively)
-    if (
-      !(
-        !task.precondition ||
-        studentDemoText?.includes(` "${task.precondition.taskId}"`)
-      )
-    ) {
-      return false
-    }
-
-    // Goal: Before leaving, the student's demo must not have any tasks that depend on this task
-    if (isFirst) {
-      if (
-        Object.entries(taskTree).some(([, tempTask]) => {
-          return (
-            tempTask.precondition?.taskId === task.taskId &&
-            studentDemoText?.includes(` "${tempTask.taskId}"`)
-          )
-        })
-      ) {
-        return false
-      }
-    }
-
-    // If there's a precondition, recursively check it, marking it as not the first task
-    if (task.precondition) {
-      return isTaskJoinable(task.precondition, false, studentDemoText)
-    }
-
-    // If none of the above conditions are met, the task is valid
-    return true
-  }
 
   function RenderQueueInfoCol(): ReactElement {
     const [isJoinQueueModalLoading, setIsJoinQueueModalLoading] =

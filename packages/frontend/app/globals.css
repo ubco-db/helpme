@@ -161,6 +161,7 @@ h1, h2, h3, h4, h5, h6 {
     filter: blur(1.5px);
 }
 
+
 .tag-group .ant-collapse-content-box {
   padding: 0.9rem;
   background-color: #f0f4ff;
@@ -169,6 +170,13 @@ h1, h2, h3, h4, h5, h6 {
 .tag-group:has(.join-or-leave-tag-group-button:hover) {
   outline: 1px solid lightskyblue;
   outline-offset: -1px; /* Adjusts the outline to sit just outside the element */
+}
+
+.shadow-deep-inner {
+  box-shadow: inset 0 4px 4px rgba(0, 0, 0, 0.25) !important
+}
+.shadow-deep {
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25) !important
 }
 
 .ant-form-item-label {
@@ -227,9 +235,3 @@ background: rgb(47, 76, 128) !important;
 .asyncCentreCard:hover .ant-card-head, a:focus .asyncCentreCard .ant-card-head {
   background: rgb(70, 76, 121) !important;
 }
-/* make the green arrow right on hover (still uncertain on whether to keep this) */
-/* .queueCard:hover .anticon.anticon-right, a:focus .queueCard .anticon.anticon-right,
-.asyncCentreCard:hover .anticon.anticon-right, a:focus .asyncCentreCard .anticon.anticon-right {
-  color: lightgreen !important;
-  transition: color 0.3s ease-in-out;
-} */
