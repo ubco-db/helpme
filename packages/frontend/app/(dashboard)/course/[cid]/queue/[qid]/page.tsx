@@ -13,6 +13,7 @@ import {
   transformIntoTaskTree,
   TaskTree,
   QuestionType,
+  LimboQuestionStatus,
 } from '@koh/common'
 import { Tooltip, message, notification, Button } from 'antd'
 // import CantFindModal from './StudentCantFindModal'
@@ -50,6 +51,7 @@ import EditQueueModal from './components/modals/EditQueueModal'
 import AddStudentsToQueueModal from './components/modals/AddStudentsToQueueModal'
 import CreateDemoModal from './components/modals/CreateDemoModal'
 import AssignmentReportModal from './components/modals/AssignmentReportModal'
+import CantFindModal from './components/modals/CantFindModal'
 
 type QueuePageProps = {
   params: { cid: string; qid: string }
@@ -754,6 +756,12 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               leaveQueue={() => leaveQueue(false)}
               joinQueue={() => joinQueueAfterDeletion(false)}
             />
+            <CantFindModal
+              open={studentQuestion?.status === LimboQuestionStatus.CantFind}
+              leaveQueue={() => leaveQueue(false)}
+              rejoinQueue={() => rejoinQueue(false)}
+            />
+
             {isDemoQueue && (
               <>
                 <CreateDemoModal
@@ -792,37 +800,15 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   leaveQueue={() => leaveQueue(true)}
                   joinQueue={() => joinQueueAfterDeletion(true)}
                 />
+                <CantFindModal
+                  open={studentDemo?.status === LimboQuestionStatus.CantFind}
+                  leaveQueue={() => leaveQueue(true)}
+                  rejoinQueue={() => rejoinQueue(true)}
+                />
               </>
             )}
           </>
         )}
-        {/* {isStaff ? (
-          <>
-            {isDemoQueue && (
-              <AssignmentReportModal
-                queueId={qid}
-                courseId={cid}
-                assignmentName={queueConfig?.assignment_id}
-                configTasks={configTasks}
-                visible={assignmentReportModal}
-                onClose={() => setAssignmentReportModal(false)}
-              />
-            )}
-          </>
-        ) : (
-          <>
-            <CantFindModal
-              visible={studentQuestion?.status === LimboQuestionStatus.CantFind}
-              leaveQueue={() => leaveQueue(false)}
-              rejoinQueue={() => rejoinQueue(false)}
-            />
-            <CantFindModal
-              visible={studentDemo?.status === LimboQuestionStatus.CantFind}
-              leaveQueue={() => leaveQueue(true)}
-              rejoinQueue={() => rejoinQueue(true)}
-            />
-          </>
-        )} */}
       </div>
     )
   }
