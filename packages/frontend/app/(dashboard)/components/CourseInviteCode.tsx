@@ -1,10 +1,15 @@
 'use client'
 
 import { API } from '@/app/api'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 import { CopyOutlined } from '@ant-design/icons'
 import { OrganizationCourseResponse } from '@koh/common'
 import { Button, Form, Input, message } from 'antd'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
+
+interface FormValues {
+  courseInviteCode: string | null
+}
 
 type CourseInviteCodeProps = {
   courseData: OrganizationCourseResponse
@@ -16,37 +21,50 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
   fetchCourseData,
 }) => {
   const [form] = Form.useForm()
-  const [courseCode, setCourseCode] = useState(
-    courseData.course?.courseInviteCode,
+  const courseCode = courseData.course?.courseInviteCode
+  const [copyLinkText, setCopyLinkText] = useState('Copy Link')
+
+  const updateCourseCode = useCallback(
+    async (inviteCode: string | null) => {
+      await API.course
+        .editCourseInfo(Number(courseData.course?.id), {
+          courseId: courseData.course?.id,
+          courseInviteCode: inviteCode,
+        })
+        .then(() => {
+          fetchCourseData()
+          form.setFieldsValue({ courseInviteCode: inviteCode })
+          message.success('Updated invite code')
+        })
+        .catch((error) => {
+          const errorMessage = getErrorMessage(error)
+          message.error('Failed to update invite code:', errorMessage)
+        })
+    },
+    [courseData.course?.courseInviteCode],
   )
 
-  const submit = async () => {
-    const value = await form.validateFields()
-    await API.course
-      .editCourseInfo(Number(courseData.course?.id), {
-        courseId: courseData.course?.id,
-        courseInviteCode: value.courseInviteCode,
-      })
-      .then(() => {
-        setCourseCode(value.courseInviteCode)
-        fetchCourseData()
-        message.success('Edited Course info')
-      })
-      .catch((error) => {
-        message.error(error.response.data.message)
-      })
+  const submit = async (values: FormValues) => {
+    updateCourseCode(values.courseInviteCode)
   }
 
+  const isHttps = window.location.protocol === 'https:'
+  const baseURL = `${isHttps ? 'https' : 'http'}://${window.location.host}`
+  const inviteURL =
+    courseCode === null || courseCode === undefined
+      ? 'No invite code set. No students can join the course'
+      : `${baseURL}/invite?cid=${courseData.course?.id}&code=${encodeURIComponent(courseCode)}`
+
   const handleCopy = () => {
-    const isHttps = window.location.protocol === 'https:'
-    const baseURL = `${isHttps ? 'https' : 'http'}://${window.location.host}`
-
-    const inviteURL = `${baseURL}/course/${courseData.course?.id}/invite?code=${
-      courseCode || ''
-    }`
-
+    if (courseCode === null) {
+      message.error('No invite code set')
+      return
+    }
     navigator.clipboard.writeText(inviteURL).then(() => {
-      message.success('Invite code copied to clipboard')
+      setCopyLinkText('Copied!')
+      setTimeout(() => {
+        setCopyLinkText('Copy Link')
+      }, 1000)
     })
   }
 
@@ -58,39 +76,50 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
         initialValues={{
           courseInviteCode: courseCode,
         }}
-        onFinish={submit}
+        onFinish={(values) => submit(values)}
       >
         <Form.Item
           className="flex-1"
           label="Invite Code"
           name="courseInviteCode"
-          tooltip="This is the code that students will use to join the course."
+          tooltip="The invite code gets added onto the invite link and is there to prevent anyone without the code from joining the course. You can set it to anything you like, though preferably not something easy to guess. Once set, you can share the invite link to your students."
         >
-          <div className="flex space-x-3">
-            <Input
-              allowClear={true}
-              value={courseCode}
-              onChange={(e) => setCourseCode(e.target.value)}
-            />
-            <Button
-              onClick={handleCopy}
-              type="primary"
-              className="h-auto p-3"
-              disabled={courseCode === null}
-            >
-              <CopyOutlined />
-            </Button>
-          </div>
+          <Input allowClear={true} />
         </Form.Item>
-        <Form.Item>
+        <div className="mb-4 flex items-center justify-center space-x-2">
+          <div>{inviteURL}</div>
           <Button
+            onClick={handleCopy}
             type="primary"
-            htmlType="submit"
-            className="h-auto w-full p-3"
+            className=""
+            disabled={courseCode === null}
+            icon={<CopyOutlined />}
           >
-            Update Invite Code
+            {copyLinkText}
           </Button>
-        </Form.Item>
+        </div>
+        <div className="flex w-full items-center justify-end space-x-4">
+          <Form.Item className="w-1/4">
+            <Button
+              danger
+              onClick={async () => {
+                await updateCourseCode(null)
+              }}
+              className="h-auto w-full p-3"
+            >
+              Clear Invite Code
+            </Button>
+          </Form.Item>
+          <Form.Item className="w-3/4">
+            <Button
+              type="primary"
+              htmlType="submit"
+              className="h-auto w-full p-3"
+            >
+              Update Invite Code
+            </Button>
+          </Form.Item>
+        </div>
       </Form>
     </div>
   )

@@ -8,18 +8,16 @@ export default async function SettingsPage({
 }: {
   params: { cid: string }
 }) {
-  const currrentUser: User = await (await userApi.getUser()).json()
+  const currentUser: User = await (await userApi.getUser()).json()
   const organization: GetOrganizationResponse =
-    await organizationApi.getOrganization(
-      currrentUser.organization?.orgId ?? -1,
-    )
+    await organizationApi.getOrganization(currentUser.organization?.orgId ?? -1)
   const courseId = Number(params.cid)
 
   return (
     <EditCourse
       courseId={courseId}
       organization={organization}
-      user={currrentUser}
+      user={currentUser}
     />
   )
 }

@@ -20,10 +20,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const fetchUserDetails = async () => {
       const userDetails = await userApi.getUser()
       const response = await userDetails.json()
-
       setProfile(response)
     }
-
     fetchUserDetails()
   }, [])
 
