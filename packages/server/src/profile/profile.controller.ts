@@ -2,7 +2,6 @@ import {
   DesktopNotifPartial,
   ERROR_MESSAGES,
   GetProfileResponse,
-  QuestionStatusKeys,
   UpdateProfileParams,
   AccountType,
 } from '@koh/common';
@@ -14,7 +13,6 @@ import {
   Get,
   HttpException,
   HttpStatus,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -36,10 +34,6 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from './user.entity';
 import { ProfileService } from './profile.service';
-import { UserCourseModel } from './user-course.entity';
-import { Role } from '@koh/common';
-import { throwError } from 'rxjs';
-import { QuestionModel } from 'question/question.entity';
 import { OrganizationService } from '../organization/organization.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 
@@ -49,54 +43,6 @@ export class ProfileController {
     private profileService: ProfileService,
     private organizationService: OrganizationService,
   ) {}
-
-  //potential problem-should fix later. Currently checking whether question in database, but student can be in different queues(so find with both queues and user id)
-  //get all student in course
-  @Get(':c/id')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  async getAllStudents(
-    @Param('c') c: number,
-    @Res() res: Response,
-  ): Promise<any> {
-    const students = await UserCourseModel.find({
-      relations: ['user'],
-      where: {
-        courseId: c,
-        role: Role.STUDENT,
-      },
-    });
-    if (students) {
-      const temp = students.map((student) => {
-        return { value: student.user.name, id: student.user.id };
-      });
-      res.status(200).send(temp);
-      return temp;
-    }
-  }
-
-  @Get(':id/inQueue')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  async inQueue(
-    @Param('id') id: number,
-    @Res() res: Response,
-  ): Promise<boolean> {
-    const questions = await QuestionModel.find({
-      where: {
-        creatorId: id,
-      },
-    });
-    if (!questions) {
-      throwError;
-    }
-    for (let i = 0; i < questions.length; i++) {
-      if (questions[i]?.status === QuestionStatusKeys.Queued) {
-        res.status(200).send(true);
-        return true;
-      }
-    }
-    res.status(200).send(false);
-    return false;
-  }
 
   @Get()
   @UseGuards(JwtAuthGuard)

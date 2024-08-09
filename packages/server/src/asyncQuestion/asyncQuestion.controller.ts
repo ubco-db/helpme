@@ -2,7 +2,7 @@ import {
   CreateAsyncQuestions,
   ERROR_MESSAGES,
   Role,
-  AsyncQuestion,
+  AsyncQuestionParams,
   asyncQuestionStatus,
   UpdateAsyncQuestions,
 } from '@koh/common';
@@ -155,7 +155,7 @@ export class asyncQuestionController {
     @Param('questionId') questionId: number,
     @Body() body: UpdateAsyncQuestions,
     @User() user: UserModel,
-  ): Promise<AsyncQuestion> {
+  ): Promise<AsyncQuestionParams> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
       relations: ['course', 'creator', 'taHelped', 'votes'],
@@ -195,7 +195,18 @@ export class asyncQuestionController {
       });
       if (!requester || requester.role === Role.STUDENT) {
         throw new HttpException(
-          'No permission to update question.',
+          'You must be staff in order to update questions other than your own',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+    } else {
+      // if you created the question (i.e. a student), you can't update the status to illegal ones
+      if (
+        body.status === asyncQuestionStatus.TADeleted ||
+        body.status === asyncQuestionStatus.HumanAnswered
+      ) {
+        throw new HttpException(
+          `You cannot update your own question's status to ${body.status}`,
           HttpStatus.UNAUTHORIZED,
         );
       }

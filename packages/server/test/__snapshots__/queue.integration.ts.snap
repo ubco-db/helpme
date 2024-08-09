@@ -12,8 +12,7 @@ exports[`Queue Integration GET /queues/:id/questions returns questions in the qu
 {
   "groups": [],
   "priorityQueue": [],
-  "questionsGettingHelp": [],
-  "queue": [
+  "questions": [
     {
       "closedAt": null,
       "createdAt": "2020-03-01T05:00:00.000Z",
@@ -37,6 +36,7 @@ exports[`Queue Integration GET /queues/:id/questions returns questions in the qu
       "text": "in queue",
     },
   ],
+  "questionsGettingHelp": [],
   "unresolvedAlerts": [],
   "yourQuestions": [],
 }

@@ -61,10 +61,10 @@ export class AuthController {
     });
 
     if (!organization) {
-      return res.redirect(`/auth/failed/40000`);
+      return res.redirect(`/failed/40000`);
     }
     if (!organization.ssoEnabled) {
-      return res.redirect(`/auth/failed/40002`);
+      return res.redirect(`/failed/40002`);
     }
 
     const uid = req.headers['x-trust-auth-uid'] ?? null;
@@ -74,7 +74,7 @@ export class AuthController {
     const lastName = req.headers['x-trust-auth-lastname'] ?? null;
 
     if (!uid || !mail || !role || !givenName || !lastName) {
-      return res.redirect(`/auth/failed/40001`);
+      return res.redirect(`/failed/40001`);
     }
 
     try {
@@ -88,7 +88,7 @@ export class AuthController {
 
       this.enter(req, res, userId);
     } catch (err) {
-      return res.redirect(`/auth/failed/40001`);
+      return res.redirect(`/failed/40001`);
     }
   }
 
@@ -157,7 +157,7 @@ export class AuthController {
     if (cookie) {
       const decodedCookie = decodeURIComponent(cookie);
       return res.status(HttpStatus.TEMPORARY_REDIRECT).send({
-        redirectUri: `/course/${decodedCookie.split(',')[0]}/invite?code=${decodedCookie.split(',')[1]}`,
+        redirectUri: `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`,
       });
     } else {
       return res.status(HttpStatus.ACCEPTED).send({
@@ -433,7 +433,7 @@ export class AuthController {
     const organizationId = getCookie(req, 'organization.id');
 
     if (!organizationId) {
-      res.redirect(`/auth/failed/40000`);
+      res.redirect(`/failed/40000`);
     } else {
       try {
         let payload: number;
@@ -458,7 +458,7 @@ export class AuthController {
 
         this.enter(req, res, payload);
       } catch (err) {
-        res.redirect(`/auth/failed/40001`);
+        res.redirect(`/failed/40001`);
       }
     }
   }
@@ -477,7 +477,7 @@ export class AuthController {
 
     if (cookie) {
       const decodedCookie = decodeURIComponent(cookie);
-      redirectUrl = `/course/${decodedCookie.split(',')[0]}/invite?code=${decodedCookie.split(',')[1]}`;
+      redirectUrl = `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`;
     } else {
       redirectUrl = '/courses';
     }

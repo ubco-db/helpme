@@ -10,7 +10,7 @@ import {
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
-import { Role } from '@koh/common';
+import { asyncQuestionStatus, Role } from '@koh/common';
 
 describe('AsyncQuestion Integration', () => {
   const supertest = setupIntegrationTest(asyncQuestionModule);
@@ -93,13 +93,16 @@ describe('AsyncQuestion Integration', () => {
       await supertest({ userId: TAuser.id })
         .patch(`/asyncQuestions/${asyncQuestion.id}`)
         .send({
-          status: 'HumanAnswered',
+          status: asyncQuestionStatus.HumanAnswered,
         })
         .expect(200)
         .then((response) => {
-          expect(response.body).toHaveProperty('status', 'HumanAnswered');
+          expect(response.body).toHaveProperty(
+            'status',
+            asyncQuestionStatus.HumanAnswered,
+          );
           expect(response.body).toHaveProperty('closedAt');
-          expect(response.body.status).toBe('HumanAnswered');
+          expect(response.body.status).toBe(asyncQuestionStatus.HumanAnswered);
           expect(response.body.closedAt).not.toBeNull();
         });
     });
@@ -108,12 +111,15 @@ describe('AsyncQuestion Integration', () => {
       await supertest({ userId: studentUser.id })
         .patch(`/asyncQuestions/${asyncQuestion.id}`)
         .send({
-          status: 'HumanAnswered',
+          status: asyncQuestionStatus.AIAnswered,
         })
         .expect(200)
         .then((response) => {
-          expect(response.body).toHaveProperty('status', 'HumanAnswered');
-          expect(response.body.status).toBe('HumanAnswered');
+          expect(response.body).toHaveProperty(
+            'status',
+            asyncQuestionStatus.AIAnswered,
+          );
+          expect(response.body.status).toBe(asyncQuestionStatus.AIAnswered);
         });
     });
 
@@ -121,7 +127,7 @@ describe('AsyncQuestion Integration', () => {
       await supertest({ userId: studentUser2.id })
         .patch(`/asyncQuestions/${asyncQuestion.id}`)
         .send({
-          status: 'HumanAnswered',
+          status: asyncQuestionStatus.HumanAnswered,
         })
         .expect(401);
     });
@@ -142,12 +148,15 @@ describe('AsyncQuestion Integration', () => {
       await supertest({ userId: prof.id })
         .patch(`/asyncQuestions/${asyncQuestion.id}`)
         .send({
-          status: 'HumanAnswered',
+          status: asyncQuestionStatus.HumanAnswered,
         })
         .expect(200)
         .then((response) => {
-          expect(response.body).toHaveProperty('status', 'HumanAnswered');
-          expect(response.body.status).toBe('HumanAnswered');
+          expect(response.body).toHaveProperty(
+            'status',
+            asyncQuestionStatus.HumanAnswered,
+          );
+          expect(response.body.status).toBe(asyncQuestionStatus.HumanAnswered);
         });
     });
   });

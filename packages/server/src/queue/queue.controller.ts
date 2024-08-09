@@ -75,22 +75,25 @@ export class QueueController {
   ): Promise<ListQuestionsResponse> {
     try {
       const queueKeys = await this.redisQueueService.getKey(`q:${queueId}`);
-      let questions: any;
+      let queueQuestions: any;
 
       if (Object.keys(queueKeys).length === 0) {
         console.log('Fetching from database');
 
-        questions = await this.queueService.getQuestions(queueId);
-        if (questions)
-          await this.redisQueueService.setQuestions(`q:${queueId}`, questions);
+        queueQuestions = await this.queueService.getQuestions(queueId);
+        if (queueQuestions)
+          await this.redisQueueService.setQuestions(
+            `q:${queueId}`,
+            queueQuestions,
+          );
       } else {
         console.log('Fetching from Redis');
-        questions = queueKeys.questions;
+        queueQuestions = queueKeys.questions;
       }
 
       return await this.queueService.personalizeQuestions(
         queueId,
-        questions,
+        queueQuestions,
         userId,
         role,
       );

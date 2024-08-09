@@ -9,10 +9,6 @@ import { EntityManager, getManager, IsNull } from 'typeorm';
 import { QuestionTypeModel } from './question-type.entity';
 import { QueueModel } from '../queue/queue.entity';
 
-/**
- * Get data in service of the queue controller and SSE
- * WHY? To ensure data returned by endpoints is *exactly* equal to data sent by SSE
- */
 @Injectable()
 export class QuestionTypeService {
   async addQuestionType(
@@ -40,14 +36,12 @@ export class QuestionTypeService {
         );
       }
 
-      await transactionalEntityManager
-        .create(QuestionTypeModel, {
-          cid: courseId,
-          name: newQuestionType.name,
-          color: newQuestionType.color,
-          queueId: queueId,
-        })
-        .save();
+      await transactionalEntityManager.save(QuestionTypeModel, {
+        cid: courseId,
+        name: newQuestionType.name,
+        color: newQuestionType.color,
+        queueId: queueId,
+      });
     });
 
     return `Successfully created ${newQuestionType.name}`;
@@ -59,9 +53,12 @@ export class QuestionTypeService {
     transactionalEntityManager: EntityManager,
   ): Promise<void> {
     // update the queue's config to include the new question type
-    const queue: QueueModel = await transactionalEntityManager.findOne(
+    const queue = await transactionalEntityManager.findOne(
       QueueModel,
       queueId,
+      {
+        lock: { mode: 'pessimistic_write' },
+      },
     );
     if (!queue) {
       throw new NotFoundException(`Queue ${queueId} not found`);

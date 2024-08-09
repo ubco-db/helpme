@@ -146,7 +146,7 @@ export class LoginController {
 
     if (cookie) {
       const decodedCookie = decodeURIComponent(cookie);
-      redirectUrl = `/course/${decodedCookie.split(',')[0]}/invite?code=${decodedCookie.split(',')[1]}`;
+      redirectUrl = `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`;
     } else {
       redirectUrl = '/courses';
     }

@@ -1,0 +1,237 @@
+@import 'antd/dist/reset.css';
+
+::before,
+::after {
+  box-sizing: border-box; /* 1 */
+  border-width: 0; /* 2 */
+  border-style: solid; /* 2 */
+  border-color: theme('borderColor.DEFAULT', currentColor); /* 2 */
+}
+
+::before,
+::after {
+  --tw-content: '';
+}
+
+
+@tailwind base;
+  @tailwind components;
+  @tailwind utilities;
+
+:root {
+    /* styles used by some shadcn components but can also be used elsewhere.
+    Example usage: className="text-muted" or className="bg-accent"
+    If wanting to add more variables to be used, make sure to adjust tailwind.config.ts
+    */
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --border: 214.3 31.8% 91.4%;
+    /* Writing RGB values like this allows you to use tailwind's <alpha-value> in tailwind.config.cs https://tailwindcss.com/docs/customizing-colors#using-css-variables */
+    --helpmeblue: 54 132 196;
+    --helpmeblue-light: 95 160 213; /* alternative color is #3c93dd but #5fa0d5 looks closer to antd button hover */
+  }
+
+body {
+  background: #f8f9fb;
+}
+
+a {
+  text-decoration: none;
+}
+
+h1 {
+  display: block;
+  font-size: 2em;
+  font-weight: bold;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: inherit;
+  margin-bottom: inherit;
+}
+
+h2 {
+  display: block;
+  font-size: 1.5em;
+  font-weight: bold;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: inherit;
+  margin-bottom: inherit;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #000;
+  color: #fff;
+  padding: 8px;
+  z-index: 100;
+  transition: top 0.3s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+.organization-card {
+  margin-top: -100px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(26, 26, 26, 0.1);
+}
+
+.child-divs-w-full > div:first-child {
+  width: 100%;
+  height: 100%;
+}
+
+
+.glowy:before, .glowy:after {
+	content: '';
+	position: absolute;
+	left: -1.5px;
+	top: -1.5px;
+	background: linear-gradient(45deg, #fb0094, #0000ff, #00ff00,#ffff00, #ff0000, #fb0094, 
+		#0000ff, #00ff00,#ffff00, #ff0000);
+	background-size: 400%;
+	width: calc(100% + 3px);
+	height: calc(100% + 3px);
+	z-index: -1;
+	animation: steam 20s linear infinite;
+    border-radius: 6px;
+}
+
+@keyframes steam {
+	0% {
+		background-position: 0 0;
+	}
+	50% {
+		background-position: 400% 0;
+	}
+	100% {
+		background-position: 0 0;
+	}
+}
+
+.glowy:after {
+	filter: blur(1.5px);
+}
+
+/* make the border a static blue if the person has prefers-reduce-motion on their system */
+@media (prefers-reduced-motion: reduce) {
+    .glowy:before, .glowy:after {
+        background: #0000ff;
+        animation: none;
+    }
+}
+
+/* used to add a fancy highlight animation in TaskMarkingSelector */
+.highlight-spin:before {
+    content: '';
+    position: absolute;
+    left: -2.5px;
+    top: -3px;
+    background: conic-gradient(transparent, green 50%, transparent 50%),
+        conic-gradient(from 180deg, transparent, green 50%, transparent 50%);
+    width: calc(100% + 5px);
+    height: calc(100% + 6px);
+    z-index: -1;
+    animation: circle-spin 5s linear infinite;
+    transform-origin: center;
+    border-radius: 15px;
+}
+
+@keyframes circle-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.highlight-spin:after {
+    filter: blur(1.5px);
+}
+
+
+.tag-group .ant-collapse-content-box {
+  padding: 0.9rem;
+  background-color: #f0f4ff;
+}
+
+.tag-group:has(.join-or-leave-tag-group-button:hover) {
+  outline: 1px solid lightskyblue;
+  outline-offset: -1px; /* Adjusts the outline to sit just outside the element */
+}
+
+.shadow-deep-inner {
+  box-shadow: inset 0 4px 4px rgba(0, 0, 0, 0.25) !important
+}
+.shadow-deep {
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25) !important
+}
+
+.ant-form-item-label {
+  font-weight: 500;
+}
+
+@keyframes flashAnimation {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.flashing {
+  animation: flashAnimation 2s infinite;
+}
+
+
+/* Initial state */
+.expandable-text {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 1.2rem;
+  /* only slow down near the very end of the transition */
+  transition: max-height 0.3s cubic-bezier(0,1,0,1); 
+}
+
+/* Expanded state */
+.expandable-text.expanded {
+  max-height: 300vh;
+  /* only slow down near the very start of the transition */
+  transition: max-height 0.3s cubic-bezier(1,0,1,0)
+}
+
+.time-graph-container .popularTimes__bar {
+  cursor: pointer
+}
+
+
+.queueCard, .asyncCentreCard {
+  /* Tailwind shadows don't look great in this scenario so went with custom */
+  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.3s ease;
+}
+.queueCard:hover, .queueCard:focus, .asyncCentreCard:hover, .asyncCentreCard:focus {
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.45);
+}
+@media (max-width: 650px) {
+  /* make the box shadow more pronounced on mobile to make it look more tap-able */
+  .queueCard, .asyncCentreCard {
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+.queueCard:hover .ant-card-head, a:focus .queueCard .ant-card-head {
+background: rgb(47, 76, 128) !important;
+}
+.asyncCentreCard:hover .ant-card-head, a:focus .asyncCentreCard .ant-card-head {
+  background: rgb(70, 76, 121) !important;
+}

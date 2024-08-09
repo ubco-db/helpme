@@ -63,7 +63,6 @@ export class AsyncQuestionModel extends BaseEntity {
   @Column()
   createdAt: Date;
 
-  // When the question was last helped (getting help again on priority queue overwrites)
   @Column({ nullable: true })
   closedAt: Date;
 

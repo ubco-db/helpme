@@ -124,7 +124,10 @@ export class CourseService {
       );
     }
 
-    if (Object.values(coursePatch).some((x) => x === null || x === '')) {
+    // Destructure coursePatch to separate courseInviteCode from other fields
+    const { courseInviteCode, ...otherFields } = coursePatch;
+    // Allow courseInviteCode to be null or empty but no other fields
+    if (Object.values(otherFields).some((x) => x === null || x === '')) {
       throw new BadRequestException(
         ERROR_MESSAGES.courseController.updateCourse,
       );
@@ -197,7 +200,7 @@ export class CourseService {
       course.enabled = coursePatch.enabled;
     }
 
-    if (coursePatch.courseInviteCode) {
+    if (coursePatch.courseInviteCode !== undefined) {
       course.courseInviteCode = coursePatch.courseInviteCode;
     }
 
