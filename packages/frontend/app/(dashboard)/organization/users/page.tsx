@@ -10,7 +10,7 @@ const OrganizationUserPage: React.FC = (): ReactElement => {
   const { userInfo } = useUserInfo()
 
   const { data: organization } = useSWR(
-    `organizaton/users`,
+    `organization/users`,
     async () => await API.organizations.get(userInfo.organization?.orgId || -1),
   )
 
