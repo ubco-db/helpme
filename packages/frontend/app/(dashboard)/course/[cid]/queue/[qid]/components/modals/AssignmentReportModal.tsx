@@ -84,7 +84,7 @@ const AssignmentReportModal: React.FC<AssignmentReportModalProps> = ({
       <div>
         {Object.entries(allStudentAssignmentProgress).map(
           ([, studentDetailsAndProgress], index) => (
-            <Card key={index}>
+            <Card key={index} size="small" classNames={{ body: 'py-1' }}>
               <Row className="items-center">
                 <Col flex="0 1 auto" className="mr-2">
                   <UserAvatar
@@ -97,23 +97,29 @@ const AssignmentReportModal: React.FC<AssignmentReportModalProps> = ({
                   <Row>
                     {configTasks &&
                       Object.entries(configTasks).map(
-                        ([taskKey, taskValue], index) => (
-                          <QuestionTagElement
-                            key={index}
-                            tagName={
-                              studentDetailsAndProgress.assignmentProgress &&
-                              studentDetailsAndProgress.assignmentProgress[
-                                taskKey
-                              ] &&
-                              studentDetailsAndProgress.assignmentProgress[
-                                taskKey
-                              ].isDone
-                                ? '✔️'
-                                : ` ${taskValue.short_display_name} `
-                            }
-                            tagColor={'#f0f0f0'}
-                          />
-                        ),
+                        ([taskKey, taskValue], index) => {
+                          const isTaskDone =
+                            studentDetailsAndProgress.assignmentProgress &&
+                            studentDetailsAndProgress.assignmentProgress[
+                              taskKey
+                            ] &&
+                            studentDetailsAndProgress.assignmentProgress[
+                              taskKey
+                            ].isDone
+
+                          return (
+                            <QuestionTagElement
+                              className={isTaskDone ? '' : '!px-3'}
+                              key={index}
+                              tagName={
+                                isTaskDone
+                                  ? '✔️'
+                                  : `${taskValue.short_display_name} `
+                              }
+                              tagColor={'#f0f0f0'}
+                            />
+                          )
+                        },
                       )}
                   </Row>
                   <Row>
