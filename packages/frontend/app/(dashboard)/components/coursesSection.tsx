@@ -39,7 +39,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({ courses }) => {
         return (
           <Card
             key={course.course.id}
-            className="m-2 w-full shadow md:w-1/2 lg:w-1/3 xl:w-1/4"
+            className="m-2 w-full shadow md:w-[46%] lg:w-[30.5%] xl:w-[22.5%]"
             cover={
               <div className="relative block h-32 w-full">
                 <div
@@ -62,6 +62,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({ courses }) => {
             }
           >
             <div className="flex items-center justify-between align-middle">
+              {/* TODO: add the course section to the name since out of all the places to put the section, it should probably show up here. */}
               <Meta title={course.course.name} />
               <Tag color="success" className="text-base capitalize">
                 {course.role}

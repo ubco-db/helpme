@@ -1,12 +1,16 @@
 import useSWR from 'swr'
 import { API } from '../api'
 
-export function useCourseFeatures(courseId: number) {
-  const key = courseId && !isNaN(courseId) ? `${courseId}/features` : null
+export function useCourseFeatures(courseId: number | undefined | null) {
+  const key =
+    courseId === undefined || courseId === null ? null : `${courseId}/features`
 
   const { data: courseFeatures } = useSWR(
     key,
-    async () => await API.course.getCourseFeatures(courseId),
+    async () =>
+      await API.course.getCourseFeatures(
+        courseId === undefined || courseId === null ? 0 : courseId,
+      ),
     {
       onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
         // if the API responded with 404, stop retrying

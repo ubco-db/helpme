@@ -1,35 +1,15 @@
-'use client'
-
-import { organizationApi } from '@/app/api/organizationApi'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { Organization } from '@/app/typings/organization'
-import { LayoutProps } from '@/app/typings/types'
-import { Spin } from 'antd'
-import { useEffect, useState } from 'react'
 import SidebarNavigation from './components/SidebarNavigation'
+import { Metadata } from 'next'
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { userInfo } = useUserInfo()
-  const [organization, setOrganization] = useState<Organization>()
+export const metadata: Metadata = {
+  title: 'HelpMe | Organization Panel',
+}
 
-  useEffect(() => {
-    const fetchDataAsync = async () => {
-      const response = await organizationApi.getOrganization(
-        Number(userInfo?.organization?.orgId) ?? -1,
-      )
-
-      setOrganization(response)
-    }
-
-    fetchDataAsync()
-
-    document.title = `Organization Panel`
-  }, [organization?.name, userInfo?.organization?.orgId])
-
-  if (!organization) {
-    return <Spin />
-  }
-
+export default function OrganizationLayout({
+  children, // will be a page or nested layout
+}: {
+  children: React.ReactNode
+}) {
   return (
     <div className="mt-2">
       <h2>My Organization</h2>
@@ -42,5 +22,3 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     </div>
   )
 }
-
-export default Layout

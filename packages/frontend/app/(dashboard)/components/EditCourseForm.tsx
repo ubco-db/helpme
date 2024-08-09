@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
 import { API } from '@/app/api'
@@ -6,6 +5,7 @@ import {
   COURSE_TIMEZONES,
   GetOrganizationResponse,
   OrganizationCourseResponse,
+  OrganizationProfessor,
   OrganizationRole,
   User,
 } from '@koh/common'
@@ -19,14 +19,6 @@ type EditCourseFormProps = {
   user: User
 }
 
-type OrganizationProfessors = {
-  organizationUser: {
-    id: number
-    name: string
-  }
-  userId: number
-}
-
 const EditCourseForm: React.FC<EditCourseFormProps> = ({
   courseData,
   organization,
@@ -34,7 +26,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
   user,
 }) => {
   const [formGeneral] = Form.useForm()
-  const [professors, setProfessors] = useState<OrganizationProfessors[]>()
+  const [professors, setProfessors] = useState<OrganizationProfessor[]>()
 
   const isAdmin =
     user && user.organization?.organizationRole === OrganizationRole.ADMIN
@@ -77,14 +69,6 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       return
     }
 
-    if (
-      courseData.course?.sectionGroupName &&
-      sectionGroupNameField.length < 1
-    ) {
-      message.error('Section group name cannot be empty')
-      return
-    }
-
     if (courseData.course?.zoomLink && zoomLinkField.length < 1) {
       message.error('Zoom link cannot be empty')
       return
@@ -102,7 +86,10 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       return
     }
 
-    if (isNaN(semesterNameField.split(',')[1])) {
+    if (
+      !semesterNameField.split(',')[1] ||
+      isNaN(Number(semesterNameField.split(',')[1]))
+    ) {
       message.error('Year must be a number')
       return
     }
@@ -140,14 +127,14 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       })
   }
 
-  const fetchProfessors = async () => {
-    const response = await API.organizations.getProfessors(organization.id)
-    setProfessors(response)
-  }
-
   useEffect(() => {
+    const fetchProfessors = async () => {
+      if (!isAdmin) return
+      const response = await API.organizations.getProfessors(organization.id)
+      setProfessors(response)
+    }
     fetchProfessors()
-  }, [])
+  }, [isAdmin])
 
   return (
     professors && (
@@ -171,6 +158,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
             name="courseName"
             tooltip="Name of the course"
             className="flex-1"
+            rules={[{ required: true, message: 'Please input a course name' }]}
           >
             <Input allowClear={true} />
           </Form.Item>
@@ -189,7 +177,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
           <Form.Item
             label="Section Group Name"
             name="sectionGroupName"
-            tooltip="Name of the section group"
+            tooltip="Name of the section group (E.g. if you're in COSC 111 001, the section group is 001)"
             className="flex-1"
           >
             <Input allowClear={true} />
@@ -198,7 +186,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
           <Form.Item
             label="Zoom Link"
             name="zoomLink"
-            tooltip="Link to the zoom meeting"
+            tooltip="Link to the zoom meeting for queues. Currently, this is shared between all queues. When a student is helped, they will have the option to click this link."
             className="flex-1"
           >
             <Input allowClear={true} />
@@ -211,6 +199,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
             name="courseTimezone"
             tooltip="Timezone of the course"
             className="flex-1"
+            rules={[{ required: true, message: 'Please select a timezone' }]}
           >
             <Select>
               {COURSE_TIMEZONES.map((timezone) => (
@@ -226,6 +215,27 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
             name="semesterName"
             tooltip="Semester of the course"
             className="flex-1"
+            rules={[
+              { required: true, message: 'Semester is required' },
+              {
+                validator: (_, value) => {
+                  if (value) {
+                    const parts = value.split(',')
+                    if (parts.length !== 2) {
+                      return Promise.reject(
+                        new Error(
+                          'Semester must be in the format "season,year". E.g. Fall,2021',
+                        ),
+                      )
+                    }
+                    if (!parts[1] || isNaN(Number(parts[1]))) {
+                      return Promise.reject(new Error('Year must be a number'))
+                    }
+                  }
+                  return Promise.resolve()
+                },
+              },
+            ]}
           >
             <Input allowClear={true} placeholder="season,year" />
           </Form.Item>
@@ -241,7 +251,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
               className="flex-1"
             >
               <Select mode="multiple" placeholder="Select professors">
-                {professors.map((prof: OrganizationProfessors) => (
+                {professors.map((prof: OrganizationProfessor) => (
                   <Select.Option
                     value={prof.organizationUser.id}
                     key={prof.organizationUser.id}

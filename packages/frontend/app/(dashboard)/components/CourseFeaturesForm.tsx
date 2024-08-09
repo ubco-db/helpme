@@ -31,7 +31,7 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
         <CourseFeatureSwitch
           featureName="asyncQueueEnabled"
           defaultChecked={courseFeatures.asyncQueueEnabled}
-          title="Asynchronous Question Centre"
+          title="Anytime Question Hub"
           description="This feature allows students to ask questions asynchronously (e.g. outside of office hours or labs) that can then be answered by the professor. It also features automatic AI-generated answers based on uploaded course content."
           courseId={Number(courseData.course?.id)}
         />

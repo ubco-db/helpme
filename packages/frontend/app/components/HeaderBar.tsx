@@ -13,7 +13,6 @@ import {
   navigationMenuTriggerStyle,
   navigationMenuTriggerStyleForSubMenu,
 } from '@/app/components/ui/navigation-menu'
-import { orderBy } from 'lodash'
 import { usePathname, useRouter } from 'next/navigation'
 import NextLink from 'next/link'
 import { OrganizationRole } from '../typings/user'
@@ -35,6 +34,7 @@ import {
 import { HomeOutlined, LogoutOutlined } from '@ant-design/icons'
 import { Popconfirm } from 'antd'
 import { sortQueues } from '../(dashboard)/course/[cid]/utils/commonCourseFunctions'
+import { useCourseFeatures } from '../hooks/useCourseFeatures'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -108,8 +108,6 @@ const ListItem = React.forwardRef<
 })
 ListItem.displayName = 'ListItem'
 
-// add a isDesktop to this
-// maybe consider renaming navbar to Header and calling this navbar
 /**
  * This is the Navbar (i.e. all the nav bar tabs). It is separate from the other components in the header.
  * This gets rendered in two areas: in the mobile drawer and in the desktop (both located in the HeaderBar component)
@@ -129,6 +127,7 @@ const NavBar = ({
 }) => {
   const { course } = useCourse(courseId)
   const router = useRouter()
+  const courseFeatures = useCourseFeatures(courseId)
   const role = courseId ? getRoleInCourse(userInfo, courseId) : null
   const sortedQueues = useMemo(() => {
     if (!course?.queues) return []
@@ -178,54 +177,60 @@ const NavBar = ({
                 {course.name}
               </Link>
             </NavigationMenuItem>
-            <NavigationMenuItem>
-              {/* This "NavigationMenuTrigger" is just the "Queues" button */}
-              <NavigationMenuTrigger
-                className={
-                  isAQueuePage
-                    ? 'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white'
-                    : ''
-                }
-                onFocus={setNavigationSubMenuLeftSide}
-                onClick={setNavigationSubMenuLeftSide}
-                onMouseEnter={setNavigationSubMenuLeftSide}
-              >
-                <UsersRound strokeWidth={1.5} className="mr-3" />
-                Queues
-              </NavigationMenuTrigger>
-              <NavigationMenuContent>
-                {/* On mobile, if there are more than 6 queues, put the queue list into two columns */}
-                <ul
-                  className={`grid gap-1 p-4 md:grid-cols-2 lg:w-[600px] lg:gap-2 ${sortedQueues.length > 6 ? 'w-[95vw] grid-cols-2' : 'w-[60vw]'}`}
+            {courseFeatures?.queueEnabled && (
+              <NavigationMenuItem>
+                {/* This "NavigationMenuTrigger" is just the "Queues" button */}
+                <NavigationMenuTrigger
+                  className={
+                    isAQueuePage
+                      ? 'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white'
+                      : ''
+                  }
+                  onFocus={setNavigationSubMenuLeftSide}
+                  onClick={setNavigationSubMenuLeftSide}
+                  onMouseEnter={setNavigationSubMenuLeftSide}
                 >
-                  {sortedQueues.map((queue) => (
-                    <ListItem
-                      key={queue.id}
-                      title={queue.room}
-                      href={`/course/${courseId}/queue/${queue.id}`}
-                    >
-                      <>
-                        {`${queue.staffList.length > 0 ? `${queue.staffList.length} staff checked in` : ''}`}
-                        <br />
-                        {`${queue.queueSize > 0 ? `${queue.queueSize} students in queue` : ''}`}
-                      </>
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <Link href={`/course/${courseId}/async_centre`}>
-                <MessageCircleQuestion strokeWidth={1.5} className="mr-3" />
-                Anytime Qs
-              </Link>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <Link href={`/course/${courseId}/schedule`}>
-                <CalendarDays strokeWidth={1.5} className="mr-3" />
-                Schedule
-              </Link>
-            </NavigationMenuItem>
+                  <UsersRound strokeWidth={1.5} className="mr-3" />
+                  Queues
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  {/* On mobile, if there are more than 6 queues, put the queue list into two columns */}
+                  <ul
+                    className={`grid gap-1 p-4 md:grid-cols-2 lg:w-[600px] lg:gap-2 ${sortedQueues.length > 6 ? 'w-[95vw] grid-cols-2' : 'w-[60vw]'}`}
+                  >
+                    {sortedQueues.map((queue) => (
+                      <ListItem
+                        key={queue.id}
+                        title={queue.room}
+                        href={`/course/${courseId}/queue/${queue.id}`}
+                      >
+                        <>
+                          {`${queue.staffList.length > 0 ? `${queue.staffList.length} staff checked in` : ''}`}
+                          <br />
+                          {`${queue.queueSize > 0 ? `${queue.queueSize} students in queue` : ''}`}
+                        </>
+                      </ListItem>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            )}
+            {courseFeatures?.asyncQueueEnabled && (
+              <NavigationMenuItem>
+                <Link href={`/course/${courseId}/async_centre`}>
+                  <MessageCircleQuestion strokeWidth={1.5} className="mr-3" />
+                  Anytime Qs
+                </Link>
+              </NavigationMenuItem>
+            )}
+            {courseFeatures?.queueEnabled && (
+              <NavigationMenuItem>
+                <Link href={`/course/${courseId}/schedule`}>
+                  <CalendarDays strokeWidth={1.5} className="mr-3" />
+                  Schedule
+                </Link>
+              </NavigationMenuItem>
+            )}
             {(role === Role.TA || role === Role.PROFESSOR) && (
               <NavigationMenuItem>
                 <Link

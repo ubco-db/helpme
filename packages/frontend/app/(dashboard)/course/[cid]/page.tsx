@@ -84,28 +84,19 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                   </div>
                 </Row>
                 {courseFeatures.queueEnabled &&
-                  (course?.queues?.length === 0 ? (
-                    <>
-                      <h1 style={{ paddingTop: '100px' }}>
-                        There are no queues for this course, try asking async
-                        questions
-                      </h1>
-                    </>
-                  ) : (
-                    sortedQueues?.map((q) => (
-                      <QueueCard
-                        cid={cid}
-                        linkId={
-                          skipLinkTarget == 'first-queue' &&
-                          q.id === sortedQueues[0].id
-                            ? 'skip-link-target'
-                            : ''
-                        }
-                        key={q.id}
-                        queue={q}
-                        isTA={role === Role.TA || role === Role.PROFESSOR}
-                      />
-                    ))
+                  sortedQueues?.map((q) => (
+                    <QueueCard
+                      cid={cid}
+                      linkId={
+                        skipLinkTarget == 'first-queue' &&
+                        q.id === sortedQueues[0].id
+                          ? 'skip-link-target'
+                          : ''
+                      }
+                      key={q.id}
+                      queue={q}
+                      isTA={role === Role.TA || role === Role.PROFESSOR}
+                    />
                   ))}
 
                 {courseFeatures.asyncQueueEnabled && (

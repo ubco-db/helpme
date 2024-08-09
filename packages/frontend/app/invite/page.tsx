@@ -71,7 +71,7 @@ export default function CourseInvitePage(): ReactElement {
   } else {
     return (
       <>
-        <title>{`Invitation to join '${course.name}'`}</title>
+        <title>{`HelpMe - Invitation to join '${course.name}'`}</title>
         <div className="mt-20 flex items-center justify-center">
           {profile.organization?.orgId !== course.organizationCourse?.id ? (
             <InviteCard

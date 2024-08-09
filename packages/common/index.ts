@@ -931,6 +931,14 @@ export class GetOrganizationUserResponse {
   courses!: OrganizationCourse[]
 }
 
+export type OrganizationProfessor = {
+  organizationUser: {
+    id: number
+    name: string
+  }
+  userId: number
+}
+
 export class InteractionParams {
   @IsInt()
   courseId!: number
