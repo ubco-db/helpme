@@ -35,7 +35,6 @@ interface ChatbotSettings {
     modelName: string
     prompt: string
     similarityThresholdDocuments: number
-    similarityThresholdQuestions: number
     temperature: number
     topK: number
   }
@@ -84,7 +83,6 @@ const ChatbotParameter: React.FC<ChatbotParameterProps> = ({
       modelName: values.modelName,
       prompt: values.prompt,
       similarityThresholdDocuments: values.similarityThresholdDocuments,
-      similarityThresholdQuestions: values.similarityThresholdQuestions,
       temperature: values.temperature,
       topK: values.topK,
     }
@@ -171,26 +169,9 @@ const ChatbotParameter: React.FC<ChatbotParameterProps> = ({
         </Form.Item>
 
         <Form.Item
-          name="similarityThresholdQuestions"
-          label={
-            <Tooltip title="Chatbot returns previous answer immediately upon finding a question above this similarity threshold.">
-              Similarity Threshold Questions <InfoCircleOutlined />
-            </Tooltip>
-          }
-          rules={[
-            {
-              required: true,
-              message: 'Please input the similarity threshold questions!',
-            },
-          ]}
-        >
-          <InputNumber min={0} max={1} step={0.1} />
-        </Form.Item>
-
-        <Form.Item
           name="temperature"
           label={
-            <Tooltip title="Adjust the temperature to control the randomness of the response generation. Lower values make responses more predictable.">
+            <Tooltip title="Adjust the temperature to control the randomness of the generation. Lower values make responses more predictable. Only applies for some models.">
               Temperature <InfoCircleOutlined />
             </Tooltip>
           }
@@ -214,7 +195,7 @@ const ChatbotParameter: React.FC<ChatbotParameterProps> = ({
         <Form.Item
           name="similarityThresholdDocuments"
           label={
-            <Tooltip title="Set the minimum similarity threshold when retrieving relavent information blocks.">
+            <Tooltip title="Set the minimum similarity threshold when retrieving relevant information blocks.">
               Similarity Threshold Documents <InfoCircleOutlined />
             </Tooltip>
           }
