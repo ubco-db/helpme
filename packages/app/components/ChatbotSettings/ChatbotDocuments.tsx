@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { Table, Radio, Button, Modal, Input, Form, message } from 'antd'
+import { Table, Button, Modal, Input, Form, message } from 'antd'
 import { useProfile } from '../../hooks/useProfile'
 import EditDocumentModal from './EditChatbotDocumentModal'
 import axios from 'axios'
-import { head } from 'lodash'
 
 interface ChatbotDocumentsProps {
   courseId: number
@@ -28,8 +27,6 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
       const metadata = {
         name: 'Manually Inserted Information',
         type: 'inserted_document',
-        content: values.content,
-        courseId: courseId,
       }
 
       if (values.pageNumber) {
@@ -197,8 +194,8 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
   }
 
   return (
-    <div className="max-w-[1000px]">
-      <div className="justify-left flex w-full items-center">
+    <div className="m-auto my-5 max-w-[800px]">
+      <div className="flex w-full items-center justify-between">
         <div>
           <h3 className="m-0 p-0 text-4xl font-bold text-gray-900">
             View Chatbot Documents
@@ -257,7 +254,7 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
         onChange={handleSearch}
         onPressEnter={fetchDocuments}
       />
-      <div className="flex justify-start">
+      <div className="flex justify-between">
         <Table
           columns={columns}
           dataSource={filteredDocuments}

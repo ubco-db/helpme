@@ -1,14 +1,9 @@
 import React, { useState } from 'react'
 import { Row, Col, Space, Menu } from 'antd'
 import { RobotOutlined } from '@ant-design/icons'
-import styled from 'styled-components'
-import { useRouter } from 'next/router'
-import { Role } from '@koh/common'
-import DefaultErrorPage from 'next/error'
 import ChatbotSettings from './ChatbotSettings'
 import ChatbotQuestions from './ChatbotQuestions'
 import ChatbotDocuments from './ChatbotDocuments'
-import { useRoleInCourse } from '../../hooks/useRoleInCourse'
 
 export enum ChatbotSettingsOptions {
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
@@ -20,17 +15,9 @@ interface ChatbotSettingsPanelProps {
   courseId: number
 }
 
-const VerticalDivider = styled.div`
-  @media (min-width: 767px) {
-    border-right: 1px solid #cfd6de;
-    margin-right: 32px;
-  }
-`
-
 export default function ChatbotSettingsPanel({
   courseId,
 }: ChatbotSettingsPanelProps): React.ReactElement {
-  const role = useRoleInCourse(Number(courseId))
   const [currentSettings, setCurrentSettings] = useState(
     ChatbotSettingsOptions.CHATBOT_SETTINGS,
   )

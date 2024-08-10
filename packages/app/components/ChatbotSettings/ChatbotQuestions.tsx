@@ -186,34 +186,35 @@ export default function ChatbotQuestions({
       ),
     },
     {
-      title: 'Edit',
-      dataIndex: 'edit',
-      key: 'edit',
+      title: 'Actions',
+      key: 'actions',
+      width: 150,
       render: (_, record) => (
-        <Button onClick={() => showEditModal(record)}>Edit</Button>
-      ),
-    },
-    {
-      title: 'Delete',
-      dataIndex: 'delete',
-      key: 'delete',
-      render: (_, record) => (
-        <Button
-          onClick={() => {
-            Modal.confirm({
-              title: 'Are you sure you want to delete this question?',
-              content: 'This action cannot be undone.',
-              okText: 'Yes',
-              okType: 'danger',
-              cancelText: 'No',
-              onOk() {
-                deleteQuestion(record.id)
-              },
-            })
-          }}
-        >
-          Delete
-        </Button>
+        <div>
+          <Button
+            style={{ marginBottom: '8px' }}
+            onClick={() => showEditModal(record)}
+          >
+            Edit
+          </Button>
+          <Button
+            danger
+            onClick={() => {
+              Modal.confirm({
+                title: 'Are you sure you want to delete this question?',
+                content: 'This action cannot be undone.',
+                okText: 'Yes',
+                okType: 'danger',
+                cancelText: 'No',
+                onOk() {
+                  deleteQuestion(record.id)
+                },
+              })
+            }}
+          >
+            Delete
+          </Button>
+        </div>
       ),
     },
   ]

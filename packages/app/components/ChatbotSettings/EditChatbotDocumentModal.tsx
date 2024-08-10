@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Radio, Modal, Input, Form, message } from 'antd'
+import { useEffect } from 'react'
+import { Modal, Input, Form, message } from 'antd'
 
 /* eslint-disable react/prop-types */
 export default function EditDocumentModal({
@@ -11,7 +11,6 @@ export default function EditDocumentModal({
   chatbotToken,
 }) {
   const [form] = Form.useForm()
-  const [selectedText, setSelectedText] = useState('content')
 
   useEffect(() => {
     if (editingRecord) {

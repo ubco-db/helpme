@@ -9,8 +9,7 @@ import {
   Tooltip,
   message,
 } from 'antd'
-import React, { ReactElement, useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
+import React, { ReactElement, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import {
   FileAddOutlined,
