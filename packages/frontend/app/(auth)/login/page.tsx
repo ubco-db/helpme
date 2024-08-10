@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { userApi } from '@/app/api/userApi'
 import { useRouter } from 'next/navigation'
 import { LoginData } from '@/app/typings/user'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -114,160 +115,181 @@ export default function LoginPage() {
     recaptchaRef?.current?.reset()
   }
 
-  return (
-    <>
-      <div className="xlg:w-1/2 container mx-auto h-auto w-full pt-20 text-center md:w-1/2 lg:w-1/2 ">
-        <Card className="mx-auto max-w-md sm:px-2 md:px-6">
-          <h2 className="my-4 text-left">Login</h2>
+  useEffect(() => {
+    if (organizations.length === 1) {
+      showLoginMenu(organizations[0].id)
+    }
+  }, [organizations])
 
-          {!loginMenu && (
-            <div>
-              <p className="text-left text-stone-400">
-                Select your organization.
-              </p>
+  if (organizations.length === 0) {
+    return (
+      <main>
+        <CenteredSpinner tip="Loading Organizations..." />
+      </main>
+    )
+  } else {
+    return (
+      <main>
+        <title>Helpme | Login</title>
+        <div className="xlg:w-1/2 container mx-auto h-auto w-full pt-20 text-center md:w-1/2 lg:w-1/2 ">
+          <Card className="mx-auto max-w-md sm:px-2 md:px-6">
+            <h2 className="my-4 text-left">Login</h2>
 
-              <Select
-                className="mt-2 w-full text-left"
-                placeholder="Available Organizations"
-                options={organizations.map((organization) => {
-                  return {
-                    label: organization.name,
-                    value: organization.id,
-                  }
-                })}
-                onChange={(value) => {
-                  showLoginMenu(value)
-                }}
-              />
-            </div>
-          )}
-
-          {loginMenu && (
-            <div>
-              {organizations && organizations.length > 1 && (
-                <Button
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left"
-                  onClick={() => setLoginMenu(false)}
-                >
-                  <LeftOutlined />
-                  <span className="font-semibold"> Go Back</span>
-                </Button>
-              )}
-
-              {organization && organization.googleAuthEnabled && (
-                <Button
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left"
-                  onClick={() => loginWithGoogle()}
-                >
-                  <Image
-                    className="h-6 w-6"
-                    src="https://www.svgrepo.com/show/475656/google-color.svg"
-                    loading="lazy"
-                    alt="google logo"
-                    width={24}
-                    height={24}
-                  />
-                  <span className="font-semibold">Log in with Google</span>
-                </Button>
-              )}
-
-              {organization && organization.ssoEnabled && (
-                <Button
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left"
-                  onClick={() => loginWithInstitution()}
-                >
-                  <span className="font-semibold">Log in with Institution</span>
-                </Button>
-              )}
-
-              {organization && organization.legacyAuthEnabled && (
-                <p className="my-5 font-medium uppercase text-stone-400">
-                  Or login with email
+            {!loginMenu && (
+              <div>
+                <p className="text-left text-stone-400">
+                  Select your organization.
                 </p>
-              )}
 
-              {!accountActiveResponse && (
-                <Alert
-                  message="System Notice"
-                  description="Your account has been deactivated. Please contact your organization admin for more information."
-                  type="error"
-                  style={{ marginBottom: 20, textAlign: 'left' }}
-                />
-              )}
-              {organization && organization.legacyAuthEnabled && (
-                <Form
-                  name="normal_login"
-                  className="login-form"
-                  initialValues={{ remember: true }}
-                  onFinish={login}
-                >
-                  <ReCAPTCHA
-                    ref={recaptchaRef}
-                    size="invisible"
-                    sitekey={
-                      process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ??
-                      'nokeyprovided'
+                <Select
+                  className="mt-2 w-full text-left"
+                  placeholder="Available Organizations"
+                  options={organizations.map((organization) => {
+                    return {
+                      label: organization.name,
+                      value: organization.id,
                     }
-                    onChange={onReCAPTCHAChange}
+                  })}
+                  onChange={(value) => {
+                    showLoginMenu(value)
+                  }}
+                />
+              </div>
+            )}
+
+            {loginMenu && (
+              <div>
+                {organizations && organizations.length > 1 && (
+                  <Button
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left"
+                    onClick={() => setLoginMenu(false)}
+                  >
+                    <LeftOutlined />
+                    <span className="font-semibold"> Go Back</span>
+                  </Button>
+                )}
+
+                {organization && organization.googleAuthEnabled && (
+                  <Button
+                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left"
+                    onClick={() => loginWithGoogle()}
+                  >
+                    <Image
+                      className="h-6 w-6"
+                      src="https://www.svgrepo.com/show/475656/google-color.svg"
+                      loading="lazy"
+                      alt="google logo"
+                      width={24}
+                      height={24}
+                    />
+                    <span className="font-semibold">Log in with Google</span>
+                  </Button>
+                )}
+
+                {organization && organization.ssoEnabled && (
+                  <Button
+                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left"
+                    onClick={() => loginWithInstitution()}
+                  >
+                    <span className="font-semibold">
+                      Log in with Institution
+                    </span>
+                  </Button>
+                )}
+
+                {organization && organization.legacyAuthEnabled && (
+                  <p className="my-5 font-medium uppercase text-stone-400">
+                    Or login with email
+                  </p>
+                )}
+
+                {!accountActiveResponse && (
+                  <Alert
+                    message="System Notice"
+                    description="Your account has been deactivated. Please contact your organization admin for more information."
+                    type="error"
+                    style={{ marginBottom: 20, textAlign: 'left' }}
                   />
-                  <Form.Item
-                    name="email"
-                    rules={[
-                      {
-                        required: true,
-                        message: 'Please enter a valid email.',
-                      },
-                    ]}
+                )}
+                {organization && organization.legacyAuthEnabled && (
+                  <Form
+                    name="normal_login"
+                    className="login-form"
+                    initialValues={{ remember: true }}
+                    onFinish={login}
                   >
-                    <Input
-                      prefix={<UserOutlined className="site-form-item-icon" />}
-                      onChange={onEmailChange}
-                      className="rounded-lg border px-2 py-2"
-                      placeholder="Email"
-                      autoComplete="email"
-                      type="email"
+                    <ReCAPTCHA
+                      ref={recaptchaRef}
+                      size="invisible"
+                      sitekey={
+                        process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ??
+                        'nokeyprovided'
+                      }
+                      onChange={onReCAPTCHAChange}
                     />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="password"
-                    rules={[
-                      {
-                        required: true,
-                        message: 'Please enter a valid password.',
-                      },
-                    ]}
-                  >
-                    <Input
-                      prefix={<LockOutlined className="site-form-item-icon" />}
-                      onChange={onPassChange}
-                      type="password"
-                      autoComplete="current-password"
-                      className="rounded-lg border px-2 py-2"
-                      placeholder="Password"
-                    />
-                  </Form.Item>
-
-                  <Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      className="h-auto w-full items-center justify-center rounded-lg border px-2 py-2 "
+                    <Form.Item
+                      name="email"
+                      rules={[
+                        {
+                          required: true,
+                          message: 'Please enter a valid email.',
+                        },
+                      ]}
                     >
-                      <span className="font-semibold">Log in</span>
-                    </Button>
-                  </Form.Item>
+                      <Input
+                        prefix={
+                          <UserOutlined className="site-form-item-icon" />
+                        }
+                        onChange={onEmailChange}
+                        className="rounded-lg border px-2 py-2"
+                        placeholder="Email"
+                        autoComplete="email"
+                        type="email"
+                      />
+                    </Form.Item>
 
-                  <div className="d-flex flex-row space-x-8 text-center">
-                    <Link href="/password">Forgot password</Link>
-                    <Link href="/register">Create account</Link>
-                  </div>
-                </Form>
-              )}
-            </div>
-          )}
-        </Card>
-      </div>
-    </>
-  )
+                    <Form.Item
+                      name="password"
+                      rules={[
+                        {
+                          required: true,
+                          message: 'Please enter a valid password.',
+                        },
+                      ]}
+                    >
+                      <Input
+                        prefix={
+                          <LockOutlined className="site-form-item-icon" />
+                        }
+                        onChange={onPassChange}
+                        type="password"
+                        autoComplete="current-password"
+                        className="rounded-lg border px-2 py-2"
+                        placeholder="Password"
+                      />
+                    </Form.Item>
+
+                    <Form.Item>
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        className="h-auto w-full items-center justify-center rounded-lg border px-2 py-2 "
+                      >
+                        <span className="font-semibold">Log in</span>
+                      </Button>
+                    </Form.Item>
+
+                    <div className="d-flex flex-row space-x-8 text-center">
+                      <Link href="/password">Forgot password</Link>
+                      <Link href="/register">Create account</Link>
+                    </div>
+                  </Form>
+                )}
+              </div>
+            )}
+          </Card>
+        </div>
+      </main>
+    )
+  }
 }

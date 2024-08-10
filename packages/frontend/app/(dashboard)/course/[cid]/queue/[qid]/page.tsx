@@ -16,7 +16,6 @@ import {
   LimboQuestionStatus,
 } from '@koh/common'
 import { Tooltip, message, notification, Button } from 'antd'
-// import CantFindModal from './StudentCantFindModal'
 import { mutate } from 'swr'
 import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
 import { ListChecks, ListTodoIcon } from 'lucide-react'

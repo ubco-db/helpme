@@ -13,6 +13,7 @@ const Linkify: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           target="_blank"
           rel="noopener noreferrer"
           key={key}
+          className="text-blue-500 hover:underline"
         >
           {url}
         </a>

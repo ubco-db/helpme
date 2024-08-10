@@ -14,7 +14,11 @@ export const metadata: Metadata = {
   title: 'HelpMe',
   description:
     'HelpMe is a platform to help you find course help when you need it.',
-  viewport: 'width=device-width, initial-scale=1',
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({
