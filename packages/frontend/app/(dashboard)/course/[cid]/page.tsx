@@ -17,6 +17,7 @@ import PopularTimes from './components/popularTimes/PopularTimes'
 import { arrayRotate, collapseHeatmap } from './utils/popularTimesFunctions'
 import moment from 'moment'
 import { sortQueues } from './utils/commonCourseFunctions'
+import { useRouter } from 'next/navigation'
 
 type CoursePageProps = {
   params: { cid: string }
@@ -24,6 +25,7 @@ type CoursePageProps = {
 
 export default function CoursePage({ params }: CoursePageProps): ReactElement {
   const cid = Number(params.cid)
+  const router = useRouter()
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, cid)
   const { course } = useCourse(cid)
@@ -84,28 +86,19 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                   </div>
                 </Row>
                 {courseFeatures.queueEnabled &&
-                  (course?.queues?.length === 0 ? (
-                    <>
-                      <h1 style={{ paddingTop: '100px' }}>
-                        There are no queues for this course, try asking async
-                        questions
-                      </h1>
-                    </>
-                  ) : (
-                    sortedQueues?.map((q) => (
-                      <QueueCard
-                        cid={cid}
-                        linkId={
-                          skipLinkTarget == 'first-queue' &&
-                          q.id === sortedQueues[0].id
-                            ? 'skip-link-target'
-                            : ''
-                        }
-                        key={q.id}
-                        queue={q}
-                        isTA={role === Role.TA || role === Role.PROFESSOR}
-                      />
-                    ))
+                  sortedQueues?.map((q) => (
+                    <QueueCard
+                      cid={cid}
+                      linkId={
+                        skipLinkTarget == 'first-queue' &&
+                        q.id === sortedQueues[0].id
+                          ? 'skip-link-target'
+                          : ''
+                      }
+                      key={q.id}
+                      queue={q}
+                      isTA={role === Role.TA || role === Role.PROFESSOR}
+                    />
                   ))}
 
                 {courseFeatures.asyncQueueEnabled && (
@@ -117,27 +110,29 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                   />
                 )}
 
-                {role !== Role.STUDENT && courseFeatures.queueEnabled && (
-                  <Row>
-                    <Button
-                      type="primary"
-                      className="mx-auto rounded-md px-4 py-1 font-semibold"
-                      onClick={() => setCreateQueueModalOpen(true)}
-                    >
-                      + Create Queue
-                    </Button>
-                  </Row>
-                )}
+                {role === Role.TA ||
+                  (role === Role.PROFESSOR && courseFeatures.queueEnabled && (
+                    <Row>
+                      <Button
+                        type="primary"
+                        className="mx-auto rounded-md px-4 py-1 font-semibold"
+                        onClick={() => setCreateQueueModalOpen(true)}
+                      >
+                        + Create Queue
+                      </Button>
+                    </Row>
+                  ))}
 
-                {createQueueModalOpen && role !== Role.STUDENT && (
-                  <CreateQueueModal
-                    cid={cid}
-                    open={createQueueModalOpen}
-                    onSuccessfulSubmit={() => setCreateQueueModalOpen(false)}
-                    onCancel={() => setCreateQueueModalOpen(false)}
-                    role={role}
-                  />
-                )}
+                {role === Role.TA ||
+                  (role === Role.PROFESSOR && (
+                    <CreateQueueModal
+                      cid={cid}
+                      open={createQueueModalOpen}
+                      onSuccessfulSubmit={() => setCreateQueueModalOpen(false)}
+                      onCancel={() => setCreateQueueModalOpen(false)}
+                      role={role}
+                    />
+                  ))}
                 {
                   // This only works with UTC offsets in the form N:00, to help with other offsets, the size of the array might have to change to a size of 24*7*4 (for every 15 min interval)
                   course && course.heatmap && courseFeatures.queueEnabled && (

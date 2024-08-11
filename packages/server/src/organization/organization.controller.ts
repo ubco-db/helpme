@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Body,
   Controller,
@@ -30,6 +29,7 @@ import {
   UserRole,
   COURSE_TIMEZONES,
   CourseSettingsRequestBody,
+  OrganizationProfessor,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -58,6 +58,7 @@ import { CourseSettingsModel } from 'course/course_settings.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
+import _ from 'lodash';
 
 @Controller('organization')
 export class OrganizationController {
@@ -1295,7 +1296,9 @@ export class OrganizationController {
   @Get(':oid/get_professors')
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
-  async getProfessors(@Param('oid') oid: number): Promise<any> {
+  async getProfessors(
+    @Param('oid') oid: number,
+  ): Promise<OrganizationProfessor[]> {
     const orgProfs = await OrganizationUserModel.find({
       where: {
         organizationId: oid,
@@ -1303,7 +1306,15 @@ export class OrganizationController {
       },
       relations: ['organizationUser'],
     });
-    return orgProfs;
+    const professors: OrganizationProfessor[] = _.map(orgProfs, (prof) => ({
+      organizationUser: {
+        id: prof.organizationUser.id,
+        name: prof.organizationUser.name,
+      },
+      userId: prof.userId,
+    }));
+
+    return professors;
   }
 
   @Post(':oid/add_member/:uid')

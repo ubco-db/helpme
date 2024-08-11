@@ -1,6 +1,7 @@
 'use client'
 
 import { API } from '@/app/api'
+import UserAvatar from '@/app/components/UserAvatar'
 import { SearchOutlined } from '@ant-design/icons'
 import {
   GetOrganizationResponse,
@@ -8,7 +9,7 @@ import {
   User,
   UserRole,
 } from '@koh/common'
-import { Avatar, Input, List, Pagination, Select, Spin } from 'antd'
+import { Avatar, Button, Input, List, Pagination, Select, Spin } from 'antd'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import useSWR, { mutate } from 'swr'
@@ -59,21 +60,6 @@ const UsersTable: React.FC<UsersTableProps> = ({
     `users/${page}/${search}`,
     async () => await API.organizations.getUsers(organization.id, page, search),
   )
-
-  const getUserProfilePicture = (photoUrl: string) => {
-    if (photoUrl && photoUrl.startsWith('http')) {
-      return <Avatar src={photoUrl} className="mt-3" />
-    } else if (photoUrl) {
-      return (
-        <Avatar
-          src={'/api/v1/profile/get_picture/' + photoUrl}
-          style={{ marginRight: 10 }}
-        />
-      )
-    } else {
-      return <Avatar style={{ marginRight: 10 }}>N/A</Avatar>
-    }
-  }
 
   if (!users) {
     return (
@@ -128,7 +114,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
                       }))}
                     />,
 
-                    <button
+                    <Button
                       key=""
                       disabled={
                         item.userId === profile.id ||
@@ -136,17 +122,21 @@ const UsersTable: React.FC<UsersTableProps> = ({
                           UserRole.ADMIN.toLowerCase() ||
                         item.organizationRole === OrganizationRole.ADMIN
                       }
-                      className="rounded-lg bg-blue-500 p-2 px-8 text-white disabled:bg-gray-400 disabled:text-gray-300"
                       onClick={() =>
                         router.push(`/organization/user/${item.userId}/edit`)
                       }
                     >
                       Edit
-                    </button>,
+                    </Button>,
                   ]}
                 >
                   <List.Item.Meta
-                    avatar={getUserProfilePicture(item.photoUrl)}
+                    avatar={
+                      <UserAvatar
+                        username={item.firstName + ' ' + item.lastName}
+                        photoURL={item.photoUrl}
+                      />
+                    }
                     title={item.firstName + ' ' + (item.lastName ?? '')}
                     description={item.email}
                   />

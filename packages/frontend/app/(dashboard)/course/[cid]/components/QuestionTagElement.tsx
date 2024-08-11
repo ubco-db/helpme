@@ -34,7 +34,7 @@ const QuestionTagElement: React.FC<QuestionTagElementProps> = ({
         padding: '0px 7px',
         margin: '2px',
         display: 'inline-block',
-        cursor: onClick ? 'pointer' : 'default',
+        cursor: onClick ? 'pointer' : '',
       }}
       onClick={onClick}
       className={className}

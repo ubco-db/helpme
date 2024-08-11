@@ -216,7 +216,7 @@ export class QueueService {
       // tags to delete
       const oldTagKeys =
         oldConfig && oldConfig.tags ? Object.keys(oldConfig.tags) : [];
-      const newTagKeys = Object.keys(newConfig.tags);
+      const newTagKeys = newConfig.tags ? Object.keys(newConfig.tags) : [];
       const tagsToDelete = oldTagKeys.filter(
         (tag) => !newTagKeys.includes(tag),
       );
@@ -233,32 +233,36 @@ export class QueueService {
       }
 
       // tags to update or create
-      for (const [newTagId, newTag] of Object.entries(newConfig.tags)) {
-        if (oldConfig && oldConfig.tags && oldConfig.tags[newTagId]) {
-          // update the question type if the color_hex or display_name has changed
-          const oldTag = oldConfig.tags[newTagId];
-          if (
-            oldTag.color_hex !== newTag.color_hex ||
-            oldTag.display_name !== newTag.display_name
-          ) {
-            const updated = await transactionalEntityManager.update(
-              QuestionTypeModel,
-              { queueId, name: oldTag.display_name },
-              { color: newTag.color_hex, name: newTag.display_name },
-            );
-            if (updated.affected > 0) {
-              questionTypeMessages.push(`Updated tag: ${newTag.display_name}`);
+      if (newConfig.tags) {
+        for (const [newTagId, newTag] of Object.entries(newConfig.tags)) {
+          if (oldConfig && oldConfig.tags && oldConfig.tags[newTagId]) {
+            // update the question type if the color_hex or display_name has changed
+            const oldTag = oldConfig.tags[newTagId];
+            if (
+              oldTag.color_hex !== newTag.color_hex ||
+              oldTag.display_name !== newTag.display_name
+            ) {
+              const updated = await transactionalEntityManager.update(
+                QuestionTypeModel,
+                { queueId, name: oldTag.display_name },
+                { color: newTag.color_hex, name: newTag.display_name },
+              );
+              if (updated.affected > 0) {
+                questionTypeMessages.push(
+                  `Updated tag: ${newTag.display_name}`,
+                );
+              }
             }
+          } else {
+            // create a new question type
+            await transactionalEntityManager.insert(QuestionTypeModel, {
+              queueId,
+              cid: queue.courseId,
+              color: newTag.color_hex,
+              name: newTag.display_name,
+            });
+            questionTypeMessages.push(`Created tag: ${newTag.display_name}`);
           }
-        } else {
-          // create a new question type
-          await transactionalEntityManager.insert(QuestionTypeModel, {
-            queueId,
-            cid: queue.courseId,
-            color: newTag.color_hex,
-            name: newTag.display_name,
-          });
-          questionTypeMessages.push(`Created tag: ${newTag.display_name}`);
         }
       }
 

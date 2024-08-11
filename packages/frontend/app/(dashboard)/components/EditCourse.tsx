@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
 import { API } from '@/app/api'
@@ -7,13 +6,14 @@ import {
   OrganizationCourseResponse,
   User,
 } from '@koh/common'
-import { Card, message, Spin } from 'antd'
+import { Card, message } from 'antd'
 import { useEffect, useState } from 'react'
 import EditCourseForm from './EditCourseForm'
 import ArchiveCourse from './ArchiveCourse'
 import { useRouter } from 'next/navigation'
 import CourseInviteCode from './CourseInviteCode'
 import CourseFeaturesForm from './CourseFeaturesForm'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
 
 type EditCourseProps = {
   courseId: number
@@ -107,7 +107,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
       </Card>
     </div>
   ) : (
-    <Spin />
+    <CenteredSpinner tip="Loading course..." />
   )
 }
 

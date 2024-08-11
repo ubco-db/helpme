@@ -794,7 +794,10 @@ export class CourseController {
       return;
     }
 
-    if (course.course.courseInviteCode !== code) {
+    if (
+      course.course.courseInviteCode === null ||
+      course.course.courseInviteCode !== code
+    ) {
       res.status(HttpStatus.BAD_REQUEST).send({
         message: ERROR_MESSAGES.courseController.invalidInviteCode,
       });

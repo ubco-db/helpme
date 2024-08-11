@@ -53,6 +53,8 @@ import {
   StudentTaskProgressWithUser,
   AsyncQuestion,
   QuestionType,
+  OrganizationUser,
+  OrganizationProfessor,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -630,7 +632,9 @@ class APIClient {
           search ? `?search=${search}` : ''
         }`,
       ),
-    getProfessors: async (organizationId: number): Promise<any> =>
+    getProfessors: async (
+      organizationId: number,
+    ): Promise<OrganizationProfessor[]> =>
       this.req('GET', `/api/v1/organization/${organizationId}/get_professors`),
   }
 

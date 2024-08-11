@@ -17,6 +17,8 @@ import {
 } from '@koh/common'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
 import QuestionCard from './QuestionCard'
+import JoinTagGroupButton from './JoinTagGroupButton'
+import { useCallback } from 'react'
 
 const Panel = Collapse.Panel
 
@@ -84,6 +86,52 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
   openTagGroups,
   staffListLength,
 }) => {
+  const isTaskJoinable = useCallback(
+    (
+      task: Task,
+      isFirst = true,
+      studentDemoText: string | undefined,
+    ): boolean => {
+      // Goal: Before joining, for the task's preconditions, make sure there are no blocking tasks that are not done (this is done recursively)
+      if (task.blocking && !task.isDone && !isFirst) {
+        return false
+      }
+      // Goal: Before joining, all the task's preconditions must be in the student's demo (this is also done recursively)
+      if (
+        !(
+          !task.precondition ||
+          studentDemoText?.includes(` "${task.precondition.taskId}"`)
+        )
+      ) {
+        return false
+      }
+      // Goal: Before leaving, the student's demo must not have any tasks that depend on this task
+      if (isFirst) {
+        if (
+          taskTree &&
+          Object.entries(taskTree).some(([, tempTask]) => {
+            return (
+              tempTask.precondition?.taskId === task.taskId &&
+              studentDemoText?.includes(` "${tempTask.taskId}"`)
+            )
+          })
+        ) {
+          return false
+        }
+      }
+      // If there's a precondition, recursively check it, marking it as not the first task
+      if (task.precondition) {
+        return isTaskJoinable(task.precondition, false, studentDemoText)
+      }
+      // If none of the above conditions are met, the task is valid
+      return true
+    },
+    [taskTree],
+  )
+
+  // TODO: this does still needs to be updated to the newest version of Collapse from antd, where it uses the 'items' prop instead of Collapse.Panel.
+  // This will help with all the console deprecation warnings.
+  // However, this is kind of a difficult task as the Divider will need to be separate and there will likely need to be two Collapse components instead, which may mess with things.
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -150,7 +198,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                           {task.blocking && (
                             <span className="mr-2 text-gray-400">blocking</span>
                           )}
-                          {/* {!isStaff && (
+                          {!isStaff && (
                             <JoinTagGroupButton
                               studentQuestion={studentQuestion}
                               studentDemo={studentDemo}
@@ -167,7 +215,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                                 ) || staffListLength < 1
                               }
                             />
-                          )} */}
+                          )}
                         </div>
                       </div>
                     }
@@ -230,7 +278,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                               : ''}
                         </span>
                       </div>
-                      {/* {!isStaff && (
+                      {!isStaff && (
                         <JoinTagGroupButton
                           studentQuestion={studentQuestion}
                           studentDemo={studentDemo}
@@ -240,7 +288,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                           questionType={tag}
                           disabled={staffListLength < 1}
                         />
-                      )} */}
+                      )}
                     </div>
                   }
                 >

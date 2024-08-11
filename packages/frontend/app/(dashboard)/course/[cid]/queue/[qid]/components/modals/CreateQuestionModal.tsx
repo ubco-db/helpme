@@ -5,12 +5,12 @@ import { Alert, Form, Modal, Radio } from 'antd'
 import { QuestionTagSelector } from '../../../../components/QuestionTagElement'
 import { toOrdinal } from '@/app/utils/generalUtils'
 import TextArea from 'antd/es/input/TextArea'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
 
 interface CreateQuestionModalProps {
   queueId: number
   courseId: number
   open: boolean
-  question: Question | undefined
   leaveQueue: () => void
   finishQuestion: (
     text: string,
@@ -19,8 +19,9 @@ interface CreateQuestionModalProps {
     isTaskQuestion: boolean,
     groupable: boolean,
   ) => void
-  position: number | undefined
   onCancel: () => void
+  question: Question | undefined
+  position?: number
 }
 
 interface FormValues {
@@ -33,11 +34,11 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
   queueId,
   courseId,
   open,
-  question,
   leaveQueue,
   finishQuestion,
-  position,
   onCancel,
+  question,
+  position,
 }) => {
   const drafting = question?.status === OpenQuestionStatus.Drafting
   const helping = question?.status === OpenQuestionStatus.Helping
@@ -88,31 +89,38 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
       }}
       onCancel={onCancel}
       destroyOnClose
-      modalRender={(dom) => (
-        <Form
-          layout="vertical"
-          form={form}
-          name="form_in_modal"
-          initialValues={{
-            questionTypesInput: drafting
-              ? storedDraftQuestion?.questionTypesInput
-              : question?.questionTypes?.map((type) => type.id),
-            questionText: drafting
-              ? storedDraftQuestion?.questionText
-              : question?.text,
-            location: drafting
-              ? storedDraftQuestion?.location
-              : question?.location,
-          }}
-          onValuesChange={(changedValues, values) => {
-            setStoredDraftQuestion(values)
-          }}
-          clearOnDestroy
-          onFinish={(values) => onFinish(values)}
-        >
-          {dom}
-        </Form>
-      )}
+      loading={!question}
+      modalRender={(dom) => {
+        if (!question) {
+          return <>{dom}</>
+        } else {
+          return (
+            <Form
+              layout="vertical"
+              form={form}
+              name="form_in_modal"
+              initialValues={{
+                questionTypesInput: drafting
+                  ? storedDraftQuestion?.questionTypesInput
+                  : question.questionTypes?.map((type) => type.id),
+                questionText: drafting
+                  ? storedDraftQuestion?.questionText
+                  : question.text,
+                location: drafting
+                  ? storedDraftQuestion?.location
+                  : question.location,
+              }}
+              onValuesChange={(changedValues, values) => {
+                setStoredDraftQuestion(values)
+              }}
+              clearOnDestroy
+              onFinish={(values) => onFinish(values)}
+            >
+              {dom}
+            </Form>
+          )
+        }
+      }}
     >
       {drafting && (
         <Alert

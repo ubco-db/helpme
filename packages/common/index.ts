@@ -879,7 +879,8 @@ export class GetCourseResponse {
 
   @Type(() => OrganizationPartial)
   organizationCourse?: OrganizationPartial
-  courseInviteCode!: string
+
+  courseInviteCode!: string | null
 }
 
 export class GetLimitedCourseResponse {
@@ -928,6 +929,14 @@ export class GetOrganizationUserResponse {
   organizationRole!: string
   user!: OrganizationUser
   courses!: OrganizationCourse[]
+}
+
+export type OrganizationProfessor = {
+  organizationUser: {
+    id: number
+    name: string
+  }
+  userId: number
 }
 
 export class InteractionParams {
@@ -1359,7 +1368,7 @@ export class EditCourseInfoParams {
 
   @IsString()
   @IsOptional()
-  courseInviteCode?: string
+  courseInviteCode?: string | null
 }
 
 export class SemesterPartial {

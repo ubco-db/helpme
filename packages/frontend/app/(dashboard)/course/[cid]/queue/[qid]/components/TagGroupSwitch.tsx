@@ -1,6 +1,6 @@
 import { cn } from '@/app/utils/generalUtils'
 import { MenuOutlined } from '@ant-design/icons'
-import { Switch } from 'antd'
+import { Segmented } from 'antd'
 
 const TagGroupSwitch: React.FC<{
   tagGroupsEnabled: boolean
@@ -9,8 +9,13 @@ const TagGroupSwitch: React.FC<{
   className?: string
 }> = ({ tagGroupsEnabled, setTagGroupsEnabled, mobile, className }) => {
   return (
-    <Switch
-      className={cn(mobile ? 'md:hidden ' : 'hidden md:block', className)}
+    <Segmented
+      className={cn(
+        mobile ? 'md:hidden ' : 'hidden md:block',
+        'border border-gray-200',
+        className,
+      )}
+      size="small"
       defaultChecked={tagGroupsEnabled}
       onChange={() => {
         setTimeout(() => {
@@ -18,13 +23,19 @@ const TagGroupSwitch: React.FC<{
           setTagGroupsEnabled(!tagGroupsEnabled)
         }, 200)
       }}
-      checkedChildren={
-        <div className="flex min-h-[12px] flex-col items-center justify-center">
-          <div className="mb-[2px] mt-[5px] min-h-[5px] w-full rounded-[1px] border border-gray-300" />
-          <div className="min-h-[5px] w-full rounded-[1px] border border-gray-300" />
-        </div>
-      }
-      unCheckedChildren={<MenuOutlined />}
+      options={[
+        { title: 'First In First Out', value: false, icon: <MenuOutlined /> },
+        {
+          title: 'Tag Groups',
+          value: true,
+          icon: (
+            <div className="flex min-h-[12px] min-w-[14px] flex-col items-center justify-center">
+              <div className="mb-[2px] mt-[3px] min-h-[6px] w-full rounded-[2px] border-2 border-gray-500" />
+              <div className="min-h-[6px] w-full rounded-[2px] border-2 border-gray-500" />
+            </div>
+          ),
+        },
+      ]}
     />
   )
 }

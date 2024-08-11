@@ -10,11 +10,9 @@ type UserEditPageProps = {
 
 export default async function UserEditPage({ params }: UserEditPageProps) {
   const userId = Number(params.userId)
-  const currrentUser: User = await (await userApi.getUser()).json()
+  const currentUser: User = await (await userApi.getUser()).json()
   const organization: GetOrganizationResponse =
-    await organizationApi.getOrganization(
-      currrentUser.organization?.orgId ?? -1,
-    )
+    await organizationApi.getOrganization(currentUser.organization?.orgId ?? -1)
 
   return organization ? (
     <div className="mb-10">

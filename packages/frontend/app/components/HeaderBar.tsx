@@ -13,7 +13,6 @@ import {
   navigationMenuTriggerStyle,
   navigationMenuTriggerStyleForSubMenu,
 } from '@/app/components/ui/navigation-menu'
-import { orderBy } from 'lodash'
 import { usePathname, useRouter } from 'next/navigation'
 import NextLink from 'next/link'
 import { OrganizationRole } from '../typings/user'
@@ -35,6 +34,8 @@ import {
 import { HomeOutlined, LogoutOutlined } from '@ant-design/icons'
 import { Popconfirm } from 'antd'
 import { sortQueues } from '../(dashboard)/course/[cid]/utils/commonCourseFunctions'
+import { useCourseFeatures } from '../hooks/useCourseFeatures'
+import CenteredSpinner from './CenteredSpinner'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -108,8 +109,6 @@ const ListItem = React.forwardRef<
 })
 ListItem.displayName = 'ListItem'
 
-// add a isDesktop to this
-// maybe consider renaming navbar to Header and calling this navbar
 /**
  * This is the Navbar (i.e. all the nav bar tabs). It is separate from the other components in the header.
  * This gets rendered in two areas: in the mobile drawer and in the desktop (both located in the HeaderBar component)
@@ -129,6 +128,7 @@ const NavBar = ({
 }) => {
   const { course } = useCourse(courseId)
   const router = useRouter()
+  const courseFeatures = useCourseFeatures(courseId)
   const role = courseId ? getRoleInCourse(userInfo, courseId) : null
   const sortedQueues = useMemo(() => {
     if (!course?.queues) return []
@@ -151,182 +151,203 @@ const NavBar = ({
     }
   }, [])
 
-  return (
-    <NavigationMenu orientation={orientation}>
-      <NavigationMenuList>
-        <NextLink
-          href={course ? `/course/${courseId}` : '/courses'}
-          aria-hidden="true"
-          className="hidden md:block"
-          tabIndex={-1}
-        >
-          {/* This organization logo is only visible on desktop */}
-          <img
-            width={48}
-            height={48}
-            className="h-12 w-full object-contain p-1 pr-4"
-            alt="Organization Logo"
-            src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
-          />
-        </NextLink>
-        {course ? (
-          <>
-            <NavigationMenuItem>
-              <Link className="!font-bold " href={`/course/${courseId}`}>
-                {/* <House strokeWidth={1.5} className='mr-3' /> */}
-                <HomeOutlined className="mr-3 text-2xl" />
-                {course.name}
-              </Link>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              {/* This "NavigationMenuTrigger" is just the "Queues" button */}
-              <NavigationMenuTrigger
-                className={
-                  isAQueuePage
-                    ? 'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white'
-                    : ''
-                }
-                onFocus={setNavigationSubMenuLeftSide}
-                onClick={setNavigationSubMenuLeftSide}
-                onMouseEnter={setNavigationSubMenuLeftSide}
-              >
-                <UsersRound strokeWidth={1.5} className="mr-3" />
-                Queues
-              </NavigationMenuTrigger>
-              <NavigationMenuContent>
-                {/* On mobile, if there are more than 6 queues, put the queue list into two columns */}
-                <ul
-                  className={`grid gap-1 p-4 md:grid-cols-2 lg:w-[600px] lg:gap-2 ${sortedQueues.length > 6 ? 'w-[95vw] grid-cols-2' : 'w-[60vw]'}`}
-                >
-                  {sortedQueues.map((queue) => (
-                    <ListItem
-                      key={queue.id}
-                      title={queue.room}
-                      href={`/course/${courseId}/queue/${queue.id}`}
+  // Could this redirect be put elsewhere? Yes it can. However, since all of the data needed is already here and this component is on all course pages, this way is easiest and most efficient.
+  if (
+    course &&
+    !course.enabled &&
+    role !== Role.TA &&
+    role !== Role.PROFESSOR &&
+    userInfo.organization?.organizationRole !== OrganizationRole.ADMIN
+  ) {
+    router.push('/courses')
+    return <CenteredSpinner tip="Course is archived. Redirecting..." />
+  } else {
+    return (
+      <NavigationMenu orientation={orientation}>
+        <NavigationMenuList>
+          <NextLink
+            href={course ? `/course/${courseId}` : '/courses'}
+            aria-hidden="true"
+            className="hidden md:block"
+            tabIndex={-1}
+          >
+            {/* This organization logo is only visible on desktop */}
+            <img
+              width={48}
+              height={48}
+              className="h-12 w-full object-contain p-1 pr-4"
+              alt="Organization Logo"
+              src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
+            />
+          </NextLink>
+          {course ? (
+            <>
+              <NavigationMenuItem>
+                <Link className="!font-bold " href={`/course/${courseId}`}>
+                  {/* <House strokeWidth={1.5} className='mr-3' /> */}
+                  <HomeOutlined className="mr-3 text-2xl" />
+                  {course.name}
+                </Link>
+              </NavigationMenuItem>
+              {courseFeatures?.queueEnabled && (
+                <NavigationMenuItem>
+                  {/* This "NavigationMenuTrigger" is just the "Queues" button */}
+                  <NavigationMenuTrigger
+                    className={
+                      isAQueuePage
+                        ? 'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white'
+                        : ''
+                    }
+                    onFocus={setNavigationSubMenuLeftSide}
+                    onClick={setNavigationSubMenuLeftSide}
+                    onMouseEnter={setNavigationSubMenuLeftSide}
+                  >
+                    <UsersRound strokeWidth={1.5} className="mr-3" />
+                    Queues
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    {/* On mobile, if there are more than 6 queues, put the queue list into two columns */}
+                    <ul
+                      className={`grid gap-1 p-4 md:grid-cols-2 lg:w-[600px] lg:gap-2 ${sortedQueues.length > 6 ? 'w-[95vw] grid-cols-2' : 'w-[60vw]'}`}
                     >
-                      <>
-                        {`${queue.staffList.length > 0 ? `${queue.staffList.length} staff checked in` : ''}`}
-                        <br />
-                        {`${queue.queueSize > 0 ? `${queue.queueSize} students in queue` : ''}`}
-                      </>
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <Link href={`/course/${courseId}/async_centre`}>
-                <MessageCircleQuestion strokeWidth={1.5} className="mr-3" />
-                Anytime Qs
-              </Link>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <Link href={`/course/${courseId}/schedule`}>
-                <CalendarDays strokeWidth={1.5} className="mr-3" />
-                Schedule
-              </Link>
-            </NavigationMenuItem>
-            {(role === Role.TA || role === Role.PROFESSOR) && (
+                      {sortedQueues.map((queue) => (
+                        <ListItem
+                          key={queue.id}
+                          title={queue.room}
+                          href={`/course/${courseId}/queue/${queue.id}`}
+                        >
+                          <>
+                            {`${queue.staffList.length > 0 ? `${queue.staffList.length} staff checked in` : ''}`}
+                            <br />
+                            {`${queue.queueSize > 0 ? `${queue.queueSize} students in queue` : ''}`}
+                          </>
+                        </ListItem>
+                      ))}
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              )}
+              {courseFeatures?.asyncQueueEnabled && (
+                <NavigationMenuItem>
+                  <Link href={`/course/${courseId}/async_centre`}>
+                    <MessageCircleQuestion strokeWidth={1.5} className="mr-3" />
+                    Anytime Qs
+                  </Link>
+                </NavigationMenuItem>
+              )}
+              {courseFeatures?.queueEnabled && (
+                <NavigationMenuItem>
+                  <Link href={`/course/${courseId}/schedule`}>
+                    <CalendarDays strokeWidth={1.5} className="mr-3" />
+                    Schedule
+                  </Link>
+                </NavigationMenuItem>
+              )}
+              {(role === Role.TA || role === Role.PROFESSOR) && (
+                <NavigationMenuItem>
+                  <Link
+                    href={`/course/${courseId}/settings${role === Role.TA ? '/export_data' : ''}`}
+                  >
+                    <Settings strokeWidth={1.5} className="mr-3" />
+                    Course Settings
+                  </Link>
+                </NavigationMenuItem>
+              )}
+              {role === Role.PROFESSOR && (
+                <NavigationMenuItem>
+                  <Link href={`/course/${courseId}/insights`}>
+                    <LineChart strokeWidth={1.5} className="mr-3" />
+                    Insights
+                  </Link>
+                </NavigationMenuItem>
+              )}
               <NavigationMenuItem>
-                <Link
-                  href={`/course/${courseId}/settings${role === Role.TA ? '/export_data' : ''}`}
-                >
-                  <Settings strokeWidth={1.5} className="mr-3" />
-                  Course Settings
+                <Link href={`/courses`}>
+                  <Undo2 strokeWidth={1.5} className="mr-3" />
+                  My Courses
                 </Link>
               </NavigationMenuItem>
-            )}
-            {role === Role.PROFESSOR && (
+            </>
+          ) : !courseId ? (
+            <>
               <NavigationMenuItem>
-                <Link href={`/course/${courseId}/insights`}>
-                  <LineChart strokeWidth={1.5} className="mr-3" />
-                  Insights
+                <Link href="/courses" className="md:pl-8">
+                  My Courses
                 </Link>
               </NavigationMenuItem>
-            )}
-            <NavigationMenuItem>
-              <Link href={`/courses`}>
-                <Undo2 strokeWidth={1.5} className="mr-3" />
-                My Courses
-              </Link>
-            </NavigationMenuItem>
-          </>
-        ) : !courseId ? (
-          <>
-            <NavigationMenuItem>
-              <Link href="/courses" className="md:pl-8">
-                My Courses
-              </Link>
-            </NavigationMenuItem>
-            {userInfo?.organization?.organizationRole ===
-              OrganizationRole.ADMIN && (
-              <NavigationMenuItem>
-                <Link className="md:pl-8" href="/organization/settings">
-                  Organization Settings
-                </Link>
-              </NavigationMenuItem>
-            )}
-          </>
-        ) : null}
-        {/* DESKTOP ONLY PART OF NAVBAR */}
-        <NavigationMenuItem className="!ml-auto hidden md:block">
-          <NavigationMenuTrigger
-            className={`!pl-4 ${isProfilePage ? 'md:border-helpmeblue md:border-b-2' : ''}`}
-            onFocus={setNavigationSubMenuRightSide}
-            onClick={setNavigationSubMenuRightSide}
-            onMouseEnter={setNavigationSubMenuRightSide}
-          >
-            <SelfAvatar size={40} className="mr-2" />
-            {userInfo?.firstName}
-          </NavigationMenuTrigger>
-          <NavigationMenuContent className="hidden md:flex">
-            <ul className="grid w-[200px] grid-cols-1 gap-1 p-2">
-              <ListItem key="profile" title="Profile" href="/profile">
-                {userInfo?.email}
-              </ListItem>
-              <ListItem
-                key="logout"
-                title="Logout"
-                titleElement={<span className="text-red-700">Log Out</span>}
-                href="/api/v1/logout"
-              ></ListItem>
-            </ul>
-          </NavigationMenuContent>
-        </NavigationMenuItem>
-        {/* MOBILE ONLY PART OF NAVBAR */}
-        <div className="!mb-2 !mt-auto -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
-        <NavigationMenuItem className="md:hidden">
-          <Link href="/profile" className="!pl-0">
-            <SelfAvatar size={40} className="mr-2" />
-            {userInfo?.firstName}
-          </Link>
-        </NavigationMenuItem>
-        <NavigationMenuItem className="mb-2 md:hidden">
-          <Popconfirm
-            title="Are you sure you want to log out?"
-            onConfirm={() => {
-              router.push('/api/v1/logout')
-            }}
-            okText="Yes"
-            cancelText="No"
-            // this places the Popconfirm just below the Link in the DOM rather than at the very bottom of the DOM (important for accessibility and prevent buttons being clicked underneath the Popconfirm)
-            getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
-          >
-            <Link
-              href="/api/v1/logout"
-              className="text-red-700"
-              onClick={(e) => {
-                e.preventDefault()
-              }}
+              {userInfo?.organization?.organizationRole ===
+                OrganizationRole.ADMIN && (
+                <NavigationMenuItem>
+                  <Link className="md:pl-8" href="/organization/settings">
+                    Organization Settings
+                  </Link>
+                </NavigationMenuItem>
+              )}
+            </>
+          ) : null}
+          {/* DESKTOP ONLY PART OF NAVBAR */}
+          <NavigationMenuItem className="!ml-auto hidden md:block">
+            <NavigationMenuTrigger
+              className={`!pl-4 ${isProfilePage ? 'md:border-helpmeblue md:border-b-2' : ''}`}
+              onFocus={setNavigationSubMenuRightSide}
+              onClick={setNavigationSubMenuRightSide}
+              onMouseEnter={setNavigationSubMenuRightSide}
             >
-              <LogoutOutlined size={40} className="mr-2 rotate-180 text-2xl" />
-              Log Out
+              <SelfAvatar size={40} className="mr-2" />
+              {userInfo?.firstName}
+            </NavigationMenuTrigger>
+            <NavigationMenuContent className="hidden md:flex">
+              <ul className="grid w-[200px] grid-cols-1 gap-1 p-2">
+                <ListItem key="profile" title="Profile" href="/profile">
+                  {userInfo?.email}
+                </ListItem>
+                <ListItem
+                  key="logout"
+                  title="Logout"
+                  titleElement={<span className="text-red-700">Log Out</span>}
+                  href="/api/v1/logout"
+                ></ListItem>
+              </ul>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+          {/* MOBILE ONLY PART OF NAVBAR */}
+          <div className="!mb-2 !mt-auto -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
+          <NavigationMenuItem className="md:hidden">
+            <Link href="/profile" className="!pl-0">
+              <SelfAvatar size={40} className="mr-2" />
+              {userInfo?.firstName}
             </Link>
-          </Popconfirm>
-        </NavigationMenuItem>
-      </NavigationMenuList>
-    </NavigationMenu>
-  )
+          </NavigationMenuItem>
+          <NavigationMenuItem className="mb-2 md:hidden">
+            <Popconfirm
+              title="Are you sure you want to log out?"
+              onConfirm={() => {
+                router.push('/api/v1/logout')
+              }}
+              okText="Yes"
+              cancelText="No"
+              // this places the Popconfirm just below the Link in the DOM rather than at the very bottom of the DOM (important for accessibility and prevent buttons being clicked underneath the Popconfirm)
+              getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
+            >
+              <Link
+                href="/api/v1/logout"
+                className="text-red-700"
+                onClick={(e) => {
+                  e.preventDefault()
+                }}
+              >
+                <LogoutOutlined
+                  size={40}
+                  className="mr-2 rotate-180 text-2xl"
+                />
+                Log Out
+              </Link>
+            </Popconfirm>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>
+    )
+  }
 }
 
 /**

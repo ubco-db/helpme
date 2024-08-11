@@ -1,104 +1,59 @@
+import { toOrdinal } from '@/app/utils/generalUtils'
 import {
   QuestionTypeParams,
   OpenQuestionStatus,
   Question,
   StudentAssignmentProgress,
   ConfigTasks,
+  parseTaskIdsFromQuestionText,
 } from '@koh/common'
-import { Alert, Button, Modal, Tooltip } from 'antd'
-import { NextRouter, useRouter } from 'next/router'
-import { default as React, ReactElement, useEffect, useState } from 'react'
-import styled from 'styled-components'
-import { toOrdinal } from '../../../utils/ordinal'
-import { TaskSelector } from './TaskSelector'
+import { Alert, Form, Modal } from 'antd'
+import TaskSelector from '../TaskSelector'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
 
-const Container = styled.div`
-  max-width: 960px;
-`
+interface FormValues {
+  taskIds: string[]
+}
 
-const QuestionText = styled.div`
-  font-weight: normal;
-  font-size: 14px;
-  line-height: 22px;
-  margin-bottom: 4px;
-`
-
-const FormButton = styled(Button)`
-  margin-left: 8px;
-`
-
-const SaveChangesButton = styled(Button)`
-  margin-left: 8px;
-  background: #3684c6;
-`
-
-interface DemoFormProps {
+interface CreateDemoModalProps {
   configTasks: ConfigTasks
-  studentAssignmentProgress: StudentAssignmentProgress
-  visible: boolean
-  question: Question
+  studentAssignmentProgress: StudentAssignmentProgress | undefined
+  open: boolean
   leaveQueue: () => void
   finishDemo: (
     text: string,
     questionType: QuestionTypeParams[],
-    router: NextRouter,
-    courseId: number,
     location: string,
     isTaskQuestion: boolean,
-    groupable?: boolean,
+    groupable: boolean,
   ) => void
-  position: number
-  cancel: () => void
+  onCancel: () => void
+  question: Question | undefined
+  position?: number
 }
 
-export default function DemoForm({
+const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
   configTasks,
   studentAssignmentProgress,
-  visible,
-  question,
+  open,
   leaveQueue,
   finishDemo,
+  onCancel,
+  question,
   position,
-  cancel,
-}: DemoFormProps): ReactElement {
-  const router = useRouter()
-  const courseId = router.query['cid']
-
+}) => {
   const drafting = question?.status === OpenQuestionStatus.Drafting
   const helping = question?.status === OpenQuestionStatus.Helping
+  const [form] = Form.useForm()
 
-  const [questionText, setQuestionText] = useState<string>(question?.text || '')
-
-  const [tasksInput, setTasksInput] = useState<string[]>(
-    question?.text?.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || [],
-  ) // gives an array of "part1","part2",etc.)
-
-  useEffect(() => {
-    if (question && !visible) {
-      setQuestionText(question.text)
-      setTasksInput(
-        question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || [],
-      )
-    }
-  }, [question, visible])
-
-  const onTaskChange = (newTasks: string[]) => {
-    setTasksInput(newTasks)
-
-    // set question text to be "Mark "task1" "task2"..."
-    const newQuestionText = `Mark ${newTasks
+  const onFinish = (values: FormValues) => {
+    const newQuestionText = `Mark ${values.taskIds
       .map((task) => `"${task}"`)
       .join(' ')}`
-    setQuestionText(newQuestionText)
-  }
 
-  // on button submit click, conditionally choose to go back to the queue
-  const onClickSubmit = () => {
     finishDemo(
-      questionText,
+      newQuestionText,
       [], // no question types for demos
-      router,
-      Number(courseId),
       'In Person', // for now, all demos are in person
       true, //isTaskQuestion
       false, //groupable
@@ -107,74 +62,86 @@ export default function DemoForm({
 
   return (
     <Modal
-      open={visible}
-      closable={true}
-      onCancel={() => {
-        cancel()
-      }}
+      open={open}
       title={drafting ? 'Create Demo' : 'Edit Your Demo'}
-      footer={
-        <div>
-          {drafting ? (
-            <FormButton danger onClick={leaveQueue}>
-              Leave Queue
-            </FormButton>
-          ) : (
-            <FormButton onClick={cancel}>Cancel</FormButton>
-          )}
-          <Tooltip
-            title={
-              tasksInput.length < 1 ? 'You must select at least one task' : null
-            }
-          >
-            <SaveChangesButton
-              type="primary"
-              disabled={tasksInput.length < 1} // must select at least one task
-              onClick={onClickSubmit}
+      okText={drafting ? 'Finish' : 'Save Changes'}
+      cancelText={drafting ? 'Leave Queue' : 'Cancel'}
+      okButtonProps={{ autoFocus: true, htmlType: 'submit' }}
+      cancelButtonProps={{
+        danger: drafting,
+        onClick: () => {
+          if (drafting) {
+            leaveQueue()
+          } else {
+            onCancel()
+          }
+        },
+      }}
+      onCancel={onCancel}
+      destroyOnClose
+      loading={!question}
+      modalRender={(dom) => {
+        if (!question) {
+          return <>{dom}</>
+        } else {
+          return (
+            <Form
+              layout="vertical"
+              form={form}
+              name="form_in_modal"
+              initialValues={{
+                taskIds: drafting
+                  ? []
+                  : parseTaskIdsFromQuestionText(question.text),
+              }}
+              clearOnDestroy
+              onFinish={(values) => onFinish(values)}
             >
-              {drafting ? 'Finish' : 'Save Changes'}
-            </SaveChangesButton>
-          </Tooltip>
-        </div>
-      }
+              {dom}
+            </Form>
+          )
+        }
+      }}
     >
-      <Container>
-        {drafting && (
-          <Alert
-            style={{ marginBottom: '1rem' }}
-            message={`You are currently ${toOrdinal(position)} in queue`}
-            description="Your spot in queue has been temporarily reserved. Please select what parts you want checked to finish joining the queue."
-            type="success"
-            showIcon
+      {drafting && (
+        <Alert
+          className="mb-4"
+          message={`You are currently ${position ? toOrdinal(position) : ''} in queue`}
+          description="Your spot in queue has been temporarily reserved. Please select what parts you want checked to finish joining the queue."
+          type="success"
+          showIcon
+        />
+      )}
+      {helping && (
+        <Alert
+          className="mb-4"
+          message={`A TA is coming to help you`}
+          description="Please click 'Save Changes' to submit what you've filled out"
+          type="info"
+          showIcon
+        />
+      )}
+      {Object.keys(configTasks).length > 0 ? (
+        <Form.Item
+          name="taskIds"
+          label="What parts are being checked?"
+          rules={[
+            {
+              required: true,
+              message: 'Please select at least one task',
+            },
+          ]}
+        >
+          <TaskSelector
+            studentAssignmentProgress={studentAssignmentProgress}
+            configTasks={configTasks}
           />
-        )}
-        {helping && (
-          <Alert
-            style={{ marginBottom: '1rem' }}
-            message={`A TA is coming to help you`}
-            description="Please click 'Save Changes' to submit what you've filled out"
-            type="info"
-            showIcon
-          />
-        )}
-        {Object.keys(configTasks).length > 0 ? (
-          <section>
-            <QuestionText id="question-type-text">
-              What parts are being checked?
-            </QuestionText>
-            <TaskSelector
-              studentAssignmentProgress={studentAssignmentProgress}
-              configTasks={configTasks}
-              onChange={onTaskChange}
-              value={tasksInput}
-              className="mb-4"
-              ariaLabelledBy="question-type-text"
-            ></TaskSelector>
-          </section>
-        ) : (
-          <p>No Tasks Found. Please let your TA/Prof know of this issue</p>
-        )}
-      </Container>
+        </Form.Item>
+      ) : (
+        <p>No Tasks Found. Please let your TA/Prof know of this issue</p>
+      )}
     </Modal>
   )
 }
+
+export default CreateDemoModal

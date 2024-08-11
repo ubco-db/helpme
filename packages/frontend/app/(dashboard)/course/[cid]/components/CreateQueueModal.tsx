@@ -16,79 +16,8 @@ import { useCourse } from '@/app/hooks/useCourse'
 import QueueConfigHelp from './QueueConfigHelp'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-
-const exampleLabConfig = {
-  fifo_queue_view_enabled: true,
-  tag_groups_queue_view_enabled: true,
-  default_view: 'fifo',
-  minimum_tags: 1,
-  tags: {
-    tag1: {
-      display_name: 'General',
-      color_hex: '#66FF66',
-    },
-    tag2: {
-      display_name: 'Bugs',
-      color_hex: '#66AA66',
-    },
-    tag3: {
-      display_name: 'Important',
-      color_hex: '#FF0000',
-    },
-  },
-  assignment_id: 'lab1',
-  tasks: {
-    task1: {
-      display_name: 'Task 1',
-      short_display_name: '1',
-      blocking: false,
-      color_hex: '#ffedb8',
-      precondition: null,
-    },
-    task2: {
-      display_name: 'Task 2',
-      short_display_name: '2',
-      blocking: false,
-      color_hex: '#fadf8e',
-      precondition: 'task1',
-    },
-    task3: {
-      display_name: 'Task 3',
-      short_display_name: '3',
-      blocking: true,
-      color_hex: '#f7ce52',
-      precondition: 'task2',
-    },
-    task4: {
-      display_name: 'Task 4',
-      short_display_name: '4',
-      blocking: false,
-      color_hex: '#ffce52',
-      precondition: 'task3',
-    },
-  },
-}
-
-const exampleConfig = {
-  fifo_queue_view_enabled: true,
-  tag_groups_queue_view_enabled: true,
-  default_view: 'fifo',
-  minimum_tags: 0,
-  tags: {
-    tag1: {
-      display_name: 'General',
-      color_hex: '#66FF66',
-    },
-    tag2: {
-      display_name: 'Bugs',
-      color_hex: '#66AA66',
-    },
-    tag3: {
-      display_name: 'Important',
-      color_hex: '#FF0000',
-    },
-  },
-}
+import exampleConfig from '@/public/exampleQueueConfig.json'
+import exampleLabConfig from '@/public/exampleQueueLabConfig.json'
 
 type ConfigPresets = 'default' | 'lab'
 

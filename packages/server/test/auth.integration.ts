@@ -228,7 +228,7 @@ describe('Auth Integration', () => {
       await mockJWT.signAsync({ userId: 1 });
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/course/1/invite?code=inviteCode');
+      expect(res.header['location']).toBe('/invite?cid=1&code=inviteCode');
     });
   });
 
