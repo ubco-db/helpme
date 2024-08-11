@@ -130,11 +130,18 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
   useEffect(() => {
     const fetchProfessors = async () => {
       if (!isAdmin) return
-      const response = await API.organizations.getProfessors(organization.id)
-      setProfessors(response)
+      await API.organizations
+        .getProfessors(organization.id)
+        .then((response) => {
+          setProfessors(response ?? [])
+        })
+        .catch((error) => {
+          message.error(error.response.data.message)
+          setProfessors([])
+        })
     }
     fetchProfessors()
-  }, [isAdmin])
+  }, [isAdmin, organization.id])
 
   return (
     professors && (

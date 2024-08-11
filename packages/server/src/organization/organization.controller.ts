@@ -1298,7 +1298,8 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async getProfessors(
     @Param('oid') oid: number,
-  ): Promise<OrganizationProfessor[]> {
+    @Res() res: Response,
+  ): Promise<Response<OrganizationProfessor[]>> {
     const orgProfs = await OrganizationUserModel.find({
       where: {
         organizationId: oid,
@@ -1306,7 +1307,8 @@ export class OrganizationController {
       },
       relations: ['organizationUser'],
     });
-    const professors: OrganizationProfessor[] = _.map(orgProfs, (prof) => ({
+
+    const professors: OrganizationProfessor[] = orgProfs.map((prof) => ({
       organizationUser: {
         id: prof.organizationUser.id,
         name: prof.organizationUser.name,
@@ -1314,7 +1316,7 @@ export class OrganizationController {
       userId: prof.userId,
     }));
 
-    return professors;
+    return res.status(HttpStatus.OK).send(professors);
   }
 
   @Post(':oid/add_member/:uid')

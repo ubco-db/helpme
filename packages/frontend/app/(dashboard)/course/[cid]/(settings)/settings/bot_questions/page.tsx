@@ -12,8 +12,9 @@ import {
   Switch,
   Table,
 } from 'antd'
-import { useCallback, useEffect, useState } from 'react'
+import { SetStateAction, useCallback, useEffect, useState } from 'react'
 import ExpandableText from '../../components/ExpandableText'
+import EditChatbotQuestionModal from '../../components/EditChatbotQuestionModal'
 
 type BotQuestionsPageProps = {
   params: {
@@ -194,12 +195,14 @@ const BotQuestionsPage: React.FC<BotQuestionsPageProps> = ({
       title: 'Verified',
       dataIndex: 'verified',
       key: 'verified',
-      sorter: (a, b) => a.verified - b.verified,
+      sorter: (a: { verified: number }, b: { verified: number }) =>
+        a.verified - b.verified,
       filters: [
         { text: 'Verified', value: true },
         { text: 'Not Verified', value: false },
       ],
-      onFilter: (value, record) => record.verified === value,
+      onFilter: (value: any, record: { verified: any }) =>
+        record.verified === value,
       render: (verified: boolean) => (
         <span
           className={`rounded px-2 py-1 ${
@@ -214,12 +217,14 @@ const BotQuestionsPage: React.FC<BotQuestionsPageProps> = ({
       title: 'Suggested',
       dataIndex: 'suggested',
       key: 'suggested',
-      sorter: (a, b) => a.suggested - b.suggested,
+      sorter: (a: { suggested: number }, b: { suggested: number }) =>
+        a.suggested - b.suggested,
       filters: [
         { text: 'Suggested', value: true },
         { text: 'Not Suggested', value: false },
       ],
-      onFilter: (value, record) => record.suggested === value,
+      onFilter: (value: any, record: { suggested: any }) =>
+        record.suggested === value,
       render: (suggested: boolean) => (
         <span
           className={`rounded px-2 py-1 ${
@@ -267,7 +272,7 @@ const BotQuestionsPage: React.FC<BotQuestionsPageProps> = ({
     getQuestions()
   }, [editingRecord, getQuestions])
 
-  const showModal = (record) => {
+  const showModal = (record: SetStateAction<null>) => {
     setEditingRecord(record)
     setEditRecordModalVisible(true)
   }
@@ -392,7 +397,7 @@ const BotQuestionsPage: React.FC<BotQuestionsPageProps> = ({
                 (doc: SelectedDocument) => doc.docId === selectedDocId,
               )
               if (selectedDoc) {
-                setSelectedDocuments((prev) => {
+                setSelectedDocuments((prev: any) => {
                   const isAlreadySelected = prev.some(
                     (doc: SelectedDocument) => doc.docId === selectedDocId,
                   )
@@ -420,15 +425,15 @@ const BotQuestionsPage: React.FC<BotQuestionsPageProps> = ({
               <Input
                 type="text"
                 placeholder="Enter page numbers (comma separated)"
-                value={doc.pageNumbers}
+                value={doc.pageNumbers as any}
                 onChange={(e) => {
                   const updatedPageNumbers = e.target.value
                   // Split by comma, trim whitespace, filter empty strings, convert to numbers
                   const pageNumbersArray = updatedPageNumbers
                     .split(',')
                     .map(Number)
-                  setSelectedDocuments((prev) =>
-                    prev.map((d, idx) =>
+                  setSelectedDocuments((prev: any) =>
+                    prev.map((d: any, idx: number) =>
                       idx === index
                         ? { ...d, pageNumbers: pageNumbersArray } // array of numbers
                         : d,
@@ -459,19 +464,19 @@ const BotQuestionsPage: React.FC<BotQuestionsPageProps> = ({
         onPressEnter={getQuestions}
       />
       <Table
-        columns={columns}
+        columns={columns as any}
         dataSource={chatQuestions}
         className="mt-5 w-full"
         pagination={{ pageSize: 7 }}
       />
-
-      {/* TODO: Add modal */}
-      {/* <EditChatbotQuestionModal
+      <EditChatbotQuestionModal
         editingRecord={editingRecord}
         visible={editRecordModalVisible}
         setEditingRecord={setEditRecordModalVisible}
         onSuccessfulUpdate={getQuestions}
-      /> */}
+        courseId={Number(params.cid)}
+        profile={userInfo}
+      />
     </Card>
   )
 }
