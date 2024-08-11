@@ -3,6 +3,7 @@
 import {
   BellOutlined,
   DownloadOutlined,
+  RobotOutlined,
   ScheduleOutlined,
   SettingOutlined,
   TableOutlined,
@@ -18,6 +19,8 @@ enum CourseAdminOptions {
   EXPORT_DATA = 'EXPORT_DATA',
   EDIT_QUESTIONS = 'EDIT_QUESTIONS',
   SETTINGS = 'SETTINGS',
+  BOT_SETTINGS = 'BOT_SETTINGS',
+  BOT_QUESTIONS = 'BOT_QUESTIONS',
 }
 
 type CourseSettingsMenyProps = {
@@ -48,6 +51,12 @@ const CourseSettingsMenu: React.FC<CourseSettingsMenyProps> = ({
         break
       case CourseAdminOptions.EDIT_QUESTIONS:
         router.push(`${basePath}/edit_questions`)
+        break
+      case CourseAdminOptions.BOT_SETTINGS:
+        router.push(`${basePath}/bot_settings`)
+        break
+      case CourseAdminOptions.BOT_QUESTIONS:
+        router.push(`${basePath}/bot_questions`)
         break
     }
   }
@@ -101,6 +110,17 @@ const CourseSettingsMenu: React.FC<CourseSettingsMenyProps> = ({
         icon={<TableOutlined />}
       >
         Edit Questions
+      </Menu.Item>
+
+      <Menu.Item key={CourseAdminOptions.BOT_SETTINGS} icon={<RobotOutlined />}>
+        Chatbot Settings
+      </Menu.Item>
+
+      <Menu.Item
+        key={CourseAdminOptions.BOT_QUESTIONS}
+        icon={<RobotOutlined />}
+      >
+        Chatbot Questions
       </Menu.Item>
     </Menu>
   )
