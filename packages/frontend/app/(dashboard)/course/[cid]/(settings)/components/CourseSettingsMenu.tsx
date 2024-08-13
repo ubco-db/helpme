@@ -9,8 +9,10 @@ import {
   TableOutlined,
 } from '@ant-design/icons'
 import { Role } from '@koh/common'
-import { Menu } from 'antd'
+import { Menu, MenuProps } from 'antd'
 import { usePathname, useRouter } from 'next/navigation'
+
+type MenuItem = Required<MenuProps>['items'][number]
 
 enum CourseAdminOptions {
   CHECK_IN = 'CHECK_IN',
@@ -43,6 +45,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsMenyProps> = ({
       case CourseAdminOptions.SETTINGS:
         router.push(basePath)
         break
+      case CourseAdminOptions.CHECK_IN:
+        router.push(`${basePath}/check_in`)
+        break
       case CourseAdminOptions.ROSTER:
         router.push(`${basePath}/roster`)
         break
@@ -69,60 +74,62 @@ const CourseSettingsMenu: React.FC<CourseSettingsMenyProps> = ({
     ]
   }
 
+  const baseMenuItems: MenuItem[] = [
+    {
+      key: CourseAdminOptions.EDIT_QUESTIONS,
+      icon: <TableOutlined />,
+      label: 'Edit Questions',
+    },
+    {
+      key: CourseAdminOptions.EXPORT_DATA,
+      icon: <DownloadOutlined />,
+      label: 'Export Data',
+    },
+    {
+      key: CourseAdminOptions.BOT_SETTINGS,
+      icon: <RobotOutlined />,
+      label: 'Chatbot Settings',
+    },
+    {
+      key: CourseAdminOptions.BOT_QUESTIONS,
+      icon: <RobotOutlined />,
+      label: 'Chatbot Questions',
+    },
+  ]
+
+  const professorMenuItems: MenuItem[] = [
+    {
+      key: CourseAdminOptions.SETTINGS,
+      icon: <SettingOutlined />,
+      label: 'General Settings',
+    },
+    {
+      key: CourseAdminOptions.ROSTER,
+      icon: <BellOutlined />,
+      label: 'Course Roster',
+    },
+  ]
+
+  if (courseFeatures?.queueEnabled) {
+    professorMenuItems.push({
+      key: CourseAdminOptions.CHECK_IN,
+      icon: <ScheduleOutlined />,
+      label: 'TA Check In/Out Times',
+    })
+  }
+
+  const menuItems =
+    courseRole === Role.PROFESSOR
+      ? [...professorMenuItems, ...baseMenuItems]
+      : baseMenuItems
+
   return (
     <Menu
       defaultSelectedKeys={[handleCurrentMenuItem()]}
       onClick={(item) => handleMenuClick(item)}
       className="bg-[#f8f9fb]"
-    >
-      {courseRole === Role.PROFESSOR && (
-        <>
-          <Menu.Item
-            key={CourseAdminOptions.SETTINGS}
-            icon={<SettingOutlined />}
-          >
-            General Settings
-          </Menu.Item>
-
-          {courseFeatures?.queueEnabled && (
-            <Menu.Item
-              key={CourseAdminOptions.CHECK_IN}
-              icon={<ScheduleOutlined />}
-            >
-              TA Check In/Out Times
-            </Menu.Item>
-          )}
-
-          <Menu.Item key={CourseAdminOptions.ROSTER} icon={<BellOutlined />}>
-            Course Roster
-          </Menu.Item>
-        </>
-      )}
-      <Menu.Item
-        key={CourseAdminOptions.EXPORT_DATA}
-        icon={<DownloadOutlined />}
-      >
-        Export Data
-      </Menu.Item>
-
-      <Menu.Item
-        key={CourseAdminOptions.EDIT_QUESTIONS}
-        icon={<TableOutlined />}
-      >
-        Edit Questions
-      </Menu.Item>
-
-      <Menu.Item key={CourseAdminOptions.BOT_SETTINGS} icon={<RobotOutlined />}>
-        Chatbot Settings
-      </Menu.Item>
-
-      <Menu.Item
-        key={CourseAdminOptions.BOT_QUESTIONS}
-        icon={<RobotOutlined />}
-      >
-        Chatbot Questions
-      </Menu.Item>
-    </Menu>
+      items={menuItems}
+    />
   )
 }
 

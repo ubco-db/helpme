@@ -2068,7 +2068,8 @@ export const ERROR_MESSAGES = {
         bodyStatus: string,
       ): string =>
         `${role} cannot change status from ${questionStatus} to ${bodyStatus}`,
-      taOnlyEditQuestionStatus: 'TA/Professors can only edit question status',
+      taOnlyEditQuestionStatus:
+        'TA/Professors can only edit question status, text, and tags',
       otherTAHelping: 'Another TA is currently helping with this question',
       otherTAResolved: 'Another TA has already resolved this question',
       taHelpingOther: 'TA is already helping someone else',

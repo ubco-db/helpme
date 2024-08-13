@@ -413,13 +413,18 @@ export class QuestionController {
       })) > 0;
 
     if (isTaOrProf) {
-      if (
-        !question.isTaskQuestion &&
-        (Object.keys(body).length !== 1 || Object.keys(body)[0] !== 'status')
-      ) {
-        throw new UnauthorizedException(
-          ERROR_MESSAGES.questionController.updateQuestion.taOnlyEditQuestionStatus,
+      if (!question.isTaskQuestion) {
+        // Staff cannot edit anything except status, questionTypes, and text
+        const allowedKeys = ['status', 'questionTypes', 'text'];
+        const bodyKeys = Object.keys(body);
+        const hasInvalidKeys = bodyKeys.some(
+          (key) => !allowedKeys.includes(key),
         );
+        if (hasInvalidKeys) {
+          throw new UnauthorizedException(
+            ERROR_MESSAGES.questionController.updateQuestion.taOnlyEditQuestionStatus,
+          );
+        }
         // When the TA is marking a task question, they can choose to mark only some of the tasks as done, which requires the TA to be able to modify the task question's text
       } else if (
         question.isTaskQuestion &&
@@ -456,6 +461,41 @@ export class QuestionController {
         question.isTaskQuestion
       ) {
         await this.questionService.markTasksDone(question, question.creatorId);
+      }
+
+      // if the TA is updating the questionTypes or text, update the question
+      if (body.questionTypes || body.text) {
+        if (body.questionTypes) {
+          // actually assigns all the new question attributes to the question
+          question = Object.assign(question, body);
+          // update the questionTypes
+          if (body.questionTypes) {
+            question.questionTypes = await Promise.all(
+              body.questionTypes.map(async (type) => {
+                const questionType = await QuestionTypeModel.findOne({
+                  where: {
+                    id: type.id,
+                  },
+                });
+                if (!questionType) {
+                  throw new BadRequestException(
+                    ERROR_MESSAGES.questionController.createQuestion.invalidQuestionType,
+                  );
+                }
+                return questionType;
+              }),
+            );
+          }
+          try {
+            await question.save();
+          } catch (err) {
+            console.error(err);
+            throw new HttpException(
+              ERROR_MESSAGES.questionController.saveQError,
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+          }
+        }
       }
 
       const queueQuestions = await this.queueService.getQuestions(

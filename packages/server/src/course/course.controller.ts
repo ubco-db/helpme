@@ -1016,4 +1016,13 @@ export class CourseController {
   private isSecure(): boolean {
     return this.configService.get<string>('DOMAIN').startsWith('https://');
   }
+
+  @Get(':id/question_types')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async getAllQuestionTypes(
+    @Param('id') courseId: number,
+  ): Promise<QuestionTypeModel[]> {
+    return QuestionTypeModel.find({ where: { cid: courseId } });
+  }
 }

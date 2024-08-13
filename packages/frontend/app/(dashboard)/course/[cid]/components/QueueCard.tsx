@@ -148,10 +148,7 @@ const QueueCard: React.FC<QueueCardProps> = ({
             </div>
           ) : queue.notes ? (
             <div className="whitespace-pre-wrap break-words text-[rgb(125,125,125)]">
-              <NotificationOutlined />{' '}
-              <i>
-                <Linkify>{queue.notes}</Linkify>
-              </i>
+              <NotificationOutlined /> <i>{queue.notes}</i>
             </div>
           ) : isTA ? (
             <i className="font-light text-gray-400"> no notes provided </i>

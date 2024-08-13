@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { getErrorMessage } from '../utils/generalUtils'
 import CenteredSpinner from '../components/CenteredSpinner'
 import InviteCard from './components/InviteCard'
+import Image from 'next/image'
 
 export default function CourseInvitePage(): ReactElement {
   const searchParams = useSearchParams()
@@ -132,10 +133,10 @@ export default function CourseInvitePage(): ReactElement {
                 await addStudent(userData)
               }}
               cover={
-                <img
+                <Image
                   alt="generic course image"
                   height="200"
-                  style={{ objectFit: 'cover' }}
+                  width="400"
                   src="https://open-2021.sites.olt.ubc.ca/files/2020/10/OSIP-2020-Slider.jpg"
                 />
               }

@@ -5,6 +5,7 @@ import {
   OpenQuestionStatus,
   parseTaskIdsFromQuestionText,
   QuestionStatus,
+  QuestionTypeParams,
   Role,
   StudentAssignmentProgress,
   StudentTaskProgress,
@@ -24,6 +25,7 @@ import { UserModel } from 'profile/user.entity';
 import { QuestionModel } from './question.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
+import { QuestionTypeModel } from 'questionType/question-type.entity';
 
 @Injectable()
 export class QuestionService {

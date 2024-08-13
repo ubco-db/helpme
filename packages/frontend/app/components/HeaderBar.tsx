@@ -117,12 +117,14 @@ const NavBar = ({
   userInfo,
   courseId,
   isAQueuePage,
+  isACourseSettingsPage,
   isProfilePage = false,
   orientation = 'horizontal',
 }: {
   userInfo: User
   courseId: number | null
   isAQueuePage: boolean
+  isACourseSettingsPage: boolean
   isProfilePage?: boolean
   orientation?: 'horizontal' | 'vertical'
 }) => {
@@ -244,7 +246,13 @@ const NavBar = ({
                 </NavigationMenuItem>
               )}
               {(role === Role.TA || role === Role.PROFESSOR) && (
-                <NavigationMenuItem>
+                <NavigationMenuItem
+                  className={
+                    isACourseSettingsPage
+                      ? 'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white'
+                      : ''
+                  }
+                >
                   <Link
                     href={`/course/${courseId}/settings${role === Role.TA ? '/export_data' : ''}`}
                   >
@@ -370,6 +378,8 @@ const HeaderBar: React.FC = () => {
       ? Number(URLSegments[4])
       : null
   const isAQueuePage = URLSegments[3] === 'queue'
+  const isACourseSettingsPage =
+    URLSegments[3] === 'settings' && !!URLSegments[4]
   const isProfilePage = URLSegments[1] === 'profile'
   const { course } = useCourse(courseId)
 
@@ -379,6 +389,7 @@ const HeaderBar: React.FC = () => {
       userInfo={userInfo}
       courseId={courseId}
       isAQueuePage={isAQueuePage}
+      isACourseSettingsPage={isACourseSettingsPage}
       isProfilePage={isProfilePage}
     />
   ) : (
@@ -424,6 +435,7 @@ const HeaderBar: React.FC = () => {
               userInfo={userInfo}
               courseId={courseId}
               isAQueuePage={isAQueuePage}
+              isACourseSettingsPage={isACourseSettingsPage}
               orientation="vertical"
             />
           </div>

@@ -1,24 +1,27 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
 import { API } from '@/app/api'
 import { SearchOutlined } from '@ant-design/icons'
 import {
   Button,
-  Card,
   Form,
   Input,
+  InputRef,
   message,
   Popconfirm,
   Select,
   Space,
   Table,
+  TableColumnType,
   Typography,
 } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { pick } from 'lodash'
 import type { ColumnType, FilterConfirmProps } from 'antd/es/table/interface'
-import { questions } from '@koh/common'
+import { questions, QuestionType } from '@koh/common'
+import { getErrorMessage } from '@/app/utils/generalUtils'
+import Highlighter from 'react-highlight-words'
+import { QuestionTagElement } from '../../../components/QuestionTagElement'
+import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
 
 type EditQuestionsPageProps = {
   params: {
@@ -26,6 +29,10 @@ type EditQuestionsPageProps = {
   }
 }
 
+interface ExtendedQuestion extends questions {
+  questionTypeNames: string[]
+}
+type QuestionAttributes = keyof ExtendedQuestion
 interface EditableCellProps extends React.HTMLAttributes<HTMLElement> {
   editing: boolean
   dataIndex: string
@@ -75,31 +82,55 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
 }: {
   params: { cid: string }
 }) => {
+  const cid = Number(params.cid)
+
   const [editingKey, setEditingKey] = useState(-1)
-  const [data, setData] = useState<questions[]>([])
+  const [data, setData] = useState<ExtendedQuestion[]>([])
+  const [questionTypes, setQuestionTypes] = useState<QuestionType[]>([])
   const [form] = Form.useForm()
   const [searchText, setSearchText] = useState('')
   const [searchedColumn, setSearchedColumn] = useState('')
-  const searchInput = useRef(null)
-
-  const getData = async () => {
-    return await API.questions.getAllQuestions(Number(params.cid))
-  }
+  const searchInput = useRef<InputRef>(null)
 
   useEffect(() => {
-    getData().then((d) => {
-      pick(d, [
-        'id',
-        'queueId',
-        'text',
-        'questionType',
-        'createdAt',
-        'status',
-        'location',
-      ])
-      setData(d)
-    })
-  }, [])
+    async function fetchData() {
+      await API.questions
+        .getAllQuestions(cid)
+        .then((d) => {
+          const newQuestions = d.map((question) => {
+            const questionTypeNamesArray = question.questionTypes
+              ? question.questionTypes.map((type) => type.name)
+              : []
+            return {
+              id: question.id,
+              queueId: question.queueId,
+              text: question.text,
+              createdAt: question.createdAt, //formatDateAndTimeForExcel(question.createdAt),
+              status: question.status,
+              location: question.location,
+              creatorName: question.creatorName,
+              helpName: question.helpName,
+              questionTypeNames: questionTypeNamesArray,
+            }
+          })
+          setData(newQuestions)
+        })
+        .catch((e) => {
+          const errorMessage = getErrorMessage(e)
+          message.error(`Error fetching questions: ${errorMessage}`)
+        })
+      await API.course
+        .getAllQuestionTypes(cid)
+        .then((d) => {
+          setQuestionTypes(d)
+        })
+        .catch((e) => {
+          const errorMessage = getErrorMessage(e)
+          message.error(`Error fetching question types: ${errorMessage}`)
+        })
+    }
+    fetchData()
+  }, [cid])
 
   const handleSearch = (
     selectedKeys: string[],
@@ -135,8 +166,9 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
         setData(newData)
         setEditingKey(-1)
       }
-    } catch (errInfo) {
-      message.error('Failed to save question')
+    } catch (err) {
+      const errorMessage = getErrorMessage(err)
+      message.error(`Error updating question: ${errorMessage}`)
     }
   }
 
@@ -149,16 +181,22 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
     setEditingKey(-1)
   }
 
-  const isEditing = (record: questions) => record.id === editingKey
+  console.log(data)
+
+  const isEditing = (record: ExtendedQuestion) => record.id === editingKey
+
   //for search bars
-  const getColumnSearchProps = (dataIndex: string): ColumnType<questions> => ({
+  const getColumnSearchProps = (
+    dataIndex: QuestionAttributes,
+  ): TableColumnType<ExtendedQuestion> => ({
     filterDropdown: ({
       setSelectedKeys,
       selectedKeys,
       confirm,
       clearFilters,
+      close,
     }) => (
-      <div className="p-4" onKeyDown={(e) => e.stopPropagation()}>
+      <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
         <Input
           ref={searchInput}
           placeholder={`Search ${dataIndex}`}
@@ -169,7 +207,7 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
           onPressEnter={() =>
             handleSearch(selectedKeys as string[], confirm, dataIndex)
           }
-          className="mb-8 block"
+          style={{ marginBottom: 8, display: 'block' }}
         />
         <Space>
           <Button
@@ -178,15 +216,28 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
               handleSearch(selectedKeys as string[], confirm, dataIndex)
             }
             icon={<SearchOutlined />}
-            size="middle"
+            size="small"
+            style={{ width: 90 }}
           >
             Search
           </Button>
           <Button
             onClick={() => clearFilters && handleReset(clearFilters)}
-            size="middle"
+            size="small"
+            style={{ width: 90 }}
           >
             Reset
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => {
+              confirm({ closeDropdown: false })
+              setSearchText((selectedKeys as string[])[0])
+              setSearchedColumn(dataIndex)
+            }}
+          >
+            Filter
           </Button>
           <Button
             type="link"
@@ -195,14 +246,63 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
               close()
             }}
           >
-            Close
+            close
           </Button>
         </Space>
       </div>
     ),
     filterIcon: (filtered: boolean) => (
-      <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
+      <SearchOutlined style={{ color: filtered ? '#1677ff' : undefined }} />
     ),
+    onFilter: (value, record) => {
+      if (!record[dataIndex]) {
+        return false
+      }
+      return record[dataIndex]
+        .toString()
+        .toLowerCase()
+        .includes((value as string).toLowerCase())
+    },
+    onFilterDropdownOpenChange: (visible) => {
+      if (visible) {
+        setTimeout(() => searchInput.current?.select(), 100)
+      }
+    },
+    render: (text) => {
+      if (dataIndex === 'questionTypeNames') {
+        return (
+          <span>
+            {text.map((tag: string) => {
+              const myQuestionType = questionTypes.find(
+                (type) => type.name === tag,
+              )
+              if (!myQuestionType) {
+                return null
+              } else {
+                return (
+                  <QuestionTagElement
+                    key={myQuestionType.id}
+                    tagName={myQuestionType.name}
+                    tagColor={myQuestionType.color}
+                  />
+                )
+              }
+            })}
+          </span>
+        )
+      } else {
+        return searchedColumn === dataIndex ? (
+          <Highlighter
+            highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+            searchWords={[searchText]}
+            autoEscape
+            textToHighlight={text ? text.toString() : ''}
+          />
+        ) : (
+          text
+        )
+      }
+    },
   })
 
   const columns = [
@@ -235,12 +335,12 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
       ...getColumnSearchProps('status'),
     },
     {
-      title: 'Question Type',
-      dataIndex: 'questionType',
-      key: 'questionType',
+      title: 'Question Tags',
+      dataIndex: 'questionTypeNames',
+      key: 'questionTypeNames',
       width: 150,
       editable: true,
-      ...getColumnSearchProps('questionType'),
+      ...getColumnSearchProps('questionTypeNames'),
     },
     {
       title: 'Date Created',
@@ -248,6 +348,7 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
       key: 'createdAt',
       width: 150,
       editable: false,
+      render: (text: Date) => formatDateAndTimeForExcel(text),
     },
     {
       title: 'text',
@@ -257,13 +358,13 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
       editable: true,
     },
     {
-      title: 'operation',
+      title: 'Edit',
       dataIndex: 'operation',
       width: 100,
       editable: false,
       // render: (_: any, record) =>
       //   <a onClick={() => editQuestion(record.id)}>Edit</a>
-      render: (_: any, record: questions) => {
+      render: (_: any, record: ExtendedQuestion) => {
         const editable = isEditing(record)
         return editable ? (
           <span>
@@ -295,7 +396,7 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
     }
     return {
       ...col,
-      onCell: (record: questions) => ({
+      onCell: (record: ExtendedQuestion) => ({
         record,
         inputType: 'text',
         dataIndex: col.dataIndex,
@@ -306,24 +407,23 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
   })
 
   return (
-    <Card title="Edit Questions page">
-      <Form>
-        <Table
-          components={{
-            body: {
-              cell: EditableCell,
-            },
-          }}
-          dataSource={data}
-          columns={mergedColumns as ColumnType<questions>[]}
-          bordered
-          rowClassName={'editable-row'}
-          pagination={{
-            onChange: cancel,
-          }}
-        />
-      </Form>
-    </Card>
+    <Form>
+      <Table
+        components={{
+          body: {
+            cell: EditableCell,
+          },
+        }}
+        dataSource={data}
+        columns={mergedColumns as ColumnType<ExtendedQuestion>[]}
+        bordered
+        size="small"
+        rowClassName={'editable-row'}
+        pagination={{
+          onChange: cancel,
+        }}
+      />
+    </Form>
   )
 }
 

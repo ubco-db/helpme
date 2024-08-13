@@ -67,3 +67,17 @@ export function formatDateHour(hours: number): string {
   hours = hours ? hours : 12 // the hour '0' should be '12'
   return hours + ampm
 }
+
+export function formatDateAndTimeForExcel(date: Date | undefined): string {
+  if (date === undefined) return ''
+
+  const validDate = typeof date === 'string' ? new Date(date) : date
+  if (!validDate || isNaN(validDate.getTime())) return ''
+  // Convert to local time and extract parts
+  const localDate = new Date(
+    validDate.getTime() - validDate.getTimezoneOffset() * 60_000,
+  )
+  const [datePart, timePart] = localDate.toISOString().split('T')
+  const timeString = timePart.split('.')[0] // Remove milliseconds
+  return `${datePart} ${timeString}` // Format: YYYY-MM-DD HH:MM:SS
+}

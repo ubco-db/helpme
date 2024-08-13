@@ -131,7 +131,6 @@ class APIClient {
       userId: number
     }): Promise<Interaction> =>
       this.req('POST', `/api/v1/chatbot/interaction`, undefined, body),
-
     getQuestions: async (
       questionText: string,
       pageSize: number,
@@ -143,23 +142,19 @@ class APIClient {
         `/api/v1/chatbot/question?questionText=${questionText}&pageSize=${pageSize}&currentPage=${currentPage}&cid=${courseId}`,
         undefined,
       ),
-
     createQuestion: async (
       body: ChatBotQuestionParams,
     ): Promise<ChatbotQuestion> =>
       this.req('POST', `/api/v1/chatbot/question`, undefined, body),
-
     editQuestion: async (body: {
       data: ChatBotQuestionParams
       questionId: number
     }): Promise<ChatbotQuestion> =>
       this.req('PATCH', `/api/v1/chatbot/question`, undefined, body),
-
     deleteQuestion: async (
       body: ChatBotQuestionParams,
     ): Promise<ChatbotQuestion> =>
       this.req('DELETE', `/api/v1/chatbot/question`, undefined, body),
-
     getDocuments: async (
       courseId: number,
       searchText: string,
@@ -171,13 +166,11 @@ class APIClient {
         `/api/v1/chatbot/${courseId}/document?searchText=${searchText}&pageSize=${pageSize}&currentPage=${currentPage}`,
         undefined,
       ),
-
     addDocument: async (body: {
       data: DocumentParams
       courseId: number
     }): Promise<ChatbotDocument> =>
       this.req('POST', `/api/v1/chatbot/document`, undefined, body),
-
     deleteDocument: async (body: {
       documentId: number
     }): Promise<ChatbotDocument> =>
@@ -283,6 +276,8 @@ class APIClient {
         `/api/v1/courses/${courseId}/students_not_in_queue`,
         undefined,
       ),
+    getAllQuestionTypes: async (courseId: number): Promise<QuestionType[]> =>
+      this.req('GET', `/api/v1/courses/${courseId}/question_types`),
   }
   studentTaskProgress = {
     getAssignmentProgress: async (
