@@ -11,12 +11,9 @@ import OrganizationCard from '../components/organizationCard'
 export default function CoursesPage(): ReactElement {
   const { userInfo } = useUserInfo()
 
-  useEffect(() => {
-    document.title = 'Courses'
-  }, [])
-
   return (
     <>
+      <title>HelpMe | My Courses</title>
       <OrganizationCard>
         <img
           src={`/api/v1/organization/${userInfo?.organization?.orgId}/get_logo/${userInfo?.organization?.organizationLogoUrl}`}

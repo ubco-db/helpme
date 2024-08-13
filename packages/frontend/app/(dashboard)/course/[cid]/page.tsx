@@ -25,7 +25,6 @@ type CoursePageProps = {
 
 export default function CoursePage({ params }: CoursePageProps): ReactElement {
   const cid = Number(params.cid)
-  const router = useRouter()
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, cid)
   const { course } = useCourse(cid)
@@ -62,6 +61,7 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
   } else {
     return (
       <>
+        <title>HelpMe | {course?.name}</title>
         {(!onlyChatBotEnabled && (
           <div className="mt-8">
             <Row gutter={64}>

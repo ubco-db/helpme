@@ -15,6 +15,7 @@ export default function CourseInvitePage(): ReactElement {
   const router = useRouter()
   const cid = Number(searchParams.get('cid'))
   const code = decodeURIComponent(searchParams.get('code') ?? '')
+  const [errorGettingCourse, setErrorGettingCourse] = useState(false)
 
   const [profile, setProfile] = useState<User>()
   useEffect(() => {
@@ -34,9 +35,8 @@ export default function CourseInvitePage(): ReactElement {
         .then((res) => {
           setCourse(res)
         })
-        .catch((error) => {
-          const errorMessage = getErrorMessage(error)
-          message.error(errorMessage)
+        .catch(() => {
+          setErrorGettingCourse(true)
         })
     }
     if (cid) {
@@ -59,7 +59,27 @@ export default function CourseInvitePage(): ReactElement {
       })
   }
 
-  if (!profile) {
+  if (!cid) {
+    return (
+      <div className="mt-20 flex items-center justify-center">
+        <InviteCard
+          title="Invalid Course ID in invite link. Please ensure the link is correct and try again."
+          buttonLabel="Back to my courses"
+          buttonAction={() => router.push('/courses')}
+        />
+      </div>
+    )
+  } else if (errorGettingCourse) {
+    return (
+      <div className="mt-20 flex items-center justify-center">
+        <InviteCard
+          title="Error: Invalid invite link code. Please ensure the link is correct and try again. Otherwise, please contact your professor."
+          buttonLabel="Back to my courses"
+          buttonAction={() => router.push('/courses')}
+        />
+      </div>
+    )
+  } else if (!profile) {
     return <CenteredSpinner tip="Loading User..." />
   } else if (
     profile.courses.some((userCourse) => userCourse.course.id === cid)

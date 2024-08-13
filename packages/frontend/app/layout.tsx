@@ -13,7 +13,7 @@ const interFontSans = Inter({
 export const metadata: Metadata = {
   title: 'HelpMe',
   description:
-    'HelpMe is a platform to help you find course help when you need it.',
+    'HelpMe is a platform used by professors and students to improve student learning. Features include queues, anytime questions, and a course chatbot.',
 }
 
 export const viewport = {
