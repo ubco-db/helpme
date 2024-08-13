@@ -15,6 +15,7 @@ import StandardPageContainer from '../components/StandardPageContainer'
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [profile, setProfile] = useState<User>()
   const pathname = usePathname()
+  const URLSegments = pathname.split('/')
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -60,9 +61,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             height={100}
           />
         )}
-        <StandardPageContainer className="min-h-full">
-          {children}
-        </StandardPageContainer>
+        {/* On certain pages (like pages with big tables), we want to let the width take up the whole page */}
+        {URLSegments[4] === 'edit_questions' ? (
+          <div className="p-1">{children}</div>
+        ) : (
+          <StandardPageContainer className="min-h-full">
+            {children}
+          </StandardPageContainer>
+        )}
       </main>
     </UserInfoProvider>
   )

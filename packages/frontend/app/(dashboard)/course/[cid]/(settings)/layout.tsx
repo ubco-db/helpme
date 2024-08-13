@@ -29,7 +29,7 @@ export default async function Layout({
 
   return (
     <>
-      <div className="mb-10 mt-8 flex flex-col space-y-3 md:flex-row md:space-x-3 md:space-y-0">
+      <div className="mb-10 mt-2 flex flex-col space-y-3 md:flex-row md:space-x-3 md:space-y-0">
         <CourseSettingsMenu
           courseRole={courseRole}
           courseFeatures={courseFeatures}
