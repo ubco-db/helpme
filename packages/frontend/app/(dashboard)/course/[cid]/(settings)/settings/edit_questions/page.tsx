@@ -9,16 +9,13 @@ import {
   InputRef,
   message,
   Popconfirm,
-  Select,
   Space,
-  Spin,
   Table,
   TableColumnType,
-  TableProps,
   Typography,
 } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import type { ColumnType, FilterConfirmProps } from 'antd/es/table/interface'
+import type { FilterConfirmProps } from 'antd/es/table/interface'
 import { questions, QuestionType, UpdateQuestionParams } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import Highlighter from 'react-highlight-words'
@@ -37,6 +34,7 @@ type EditQuestionsPageProps = {
 interface ExtendedQuestion extends questions {
   questionTypeNames: string[]
   QuestionTypeIds?: number[]
+  createdAtString: string
 }
 type QuestionAttributes = keyof ExtendedQuestion
 
@@ -123,7 +121,8 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
               id: question.id,
               queueId: question.queueId,
               text: question.text,
-              createdAt: question.createdAt, //formatDateAndTimeForExcel(question.createdAt),
+              createdAt: question.createdAt,
+              createdAtString: formatDateAndTimeForExcel(question.createdAt),
               status: question.status,
               location: question.location,
               creatorName: question.creatorName,
@@ -168,10 +167,10 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
       const newData = [...data]
       const index = newData.findIndex((item) => key === item.id)
       // send update request to backend
-      // I think typescript is having a stroke
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const newQuestionTypes = row.QuestionTypeIds
         ? questionTypes.filter((questionType) =>
+            // I think typescript is having a stroke
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             row.QuestionTypeIds!.includes(questionType.id),
           )
         : []
@@ -347,10 +346,11 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
       title: 'Asked by',
       dataIndex: 'creatorName',
       key: 'creatorName',
-      sorter: (
-        a: { creatorName: string | any[] },
-        b: { creatorName: string | any[] },
-      ) => a.creatorName.length - b.creatorName.length,
+      sorter: (a: ExtendedQuestion, b: ExtendedQuestion) => {
+        const nameA = a.creatorName || ''
+        const nameB = b.creatorName || ''
+        return nameA.localeCompare(nameB)
+      },
       width: '15%',
       editable: false,
       ...getColumnSearchProps('creatorName'),
@@ -359,6 +359,11 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
       title: 'Helper',
       dataIndex: 'helpName',
       key: 'helpName',
+      sorter: (a: ExtendedQuestion, b: ExtendedQuestion) => {
+        const nameA = a.helpName || ''
+        const nameB = b.helpName || ''
+        return nameA.localeCompare(nameB)
+      },
       width: 150,
       editable: false,
       ...getColumnSearchProps('helpName'),
@@ -367,6 +372,11 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
+      sorter: (a: ExtendedQuestion, b: ExtendedQuestion) => {
+        const statusA = a.status || ''
+        const statusB = b.status || ''
+        return statusA.localeCompare(statusB)
+      },
       width: 150,
       editable: false,
       ...getColumnSearchProps('status'),
@@ -375,17 +385,25 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
       title: 'Question Tags',
       dataIndex: 'questionTypeNames',
       key: 'questionTypeNames',
+      sorter: (a: ExtendedQuestion, b: ExtendedQuestion) => {
+        const questionTagsA = a.questionTypeNames.join(', ') || ''
+        const questionTagsB = b.questionTypeNames.join(', ') || ''
+        return questionTagsA.localeCompare(questionTagsB)
+      },
       width: 150,
       editable: true,
       ...getColumnSearchProps('questionTypeNames'),
     },
     {
       title: 'Date Created',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
+      dataIndex: 'createdAtString',
+      key: 'createdAtString',
+      defaultSortOrder: 'descend',
+      sorter: (a: ExtendedQuestion, b: ExtendedQuestion) =>
+        a.createdAtString.localeCompare(b.createdAtString),
       width: 150,
       editable: false,
-      render: (text: Date) => formatDateAndTimeForExcel(text),
+      ...getColumnSearchProps('createdAtString'),
     },
     {
       title: 'text',
@@ -425,38 +443,37 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
     },
   ]
 
-  const mergedColumns: TableProps<ExtendedQuestion>['columns'] = columns.map(
-    (col) => {
-      if (!col.editable) {
-        return col
-      }
-      return {
-        ...col,
-        onCell: (record: ExtendedQuestion) => ({
-          record,
-          inputType:
-            col.dataIndex === 'questionTypeNames' ? 'questionType' : 'text',
-          dataIndex:
-            col.dataIndex === 'questionTypeNames'
-              ? 'QuestionTypeIds'
-              : col.dataIndex,
-          title: col.title,
-          editing: isEditing(record),
-          courseId: cid,
-          questionTypesForThisQueue:
-            col.dataIndex === 'questionTypeNames'
-              ? questionTypes.filter((questionType) => {
-                  if (record.queueId) {
-                    return questionType.queueId === record.queueId
-                  } else {
-                    return false
-                  }
-                })
-              : [],
-        }),
-      }
-    },
-  )
+  // should be of type TableProps<ExtendedQuestion>['columns'], but it causes a typeScript error for some reason
+  const mergedColumns: any = columns.map((col) => {
+    if (!col.editable) {
+      return col
+    }
+    return {
+      ...col,
+      onCell: (record: ExtendedQuestion) => ({
+        record,
+        inputType:
+          col.dataIndex === 'questionTypeNames' ? 'questionType' : 'text',
+        dataIndex:
+          col.dataIndex === 'questionTypeNames'
+            ? 'QuestionTypeIds'
+            : col.dataIndex,
+        title: col.title,
+        editing: isEditing(record),
+        courseId: cid,
+        questionTypesForThisQueue:
+          col.dataIndex === 'questionTypeNames'
+            ? questionTypes.filter((questionType) => {
+                if (record.queueId) {
+                  return questionType.queueId === record.queueId
+                } else {
+                  return false
+                }
+              })
+            : [],
+      }),
+    }
+  })
 
   return (
     <Form form={form} component={false}>
