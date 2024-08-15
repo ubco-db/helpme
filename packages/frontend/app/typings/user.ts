@@ -21,6 +21,7 @@ export enum OrganizationRole {
   PROFESSOR = 'professor',
 }
 
+// TODO: these should probably be removed in favour of the types in @koh/common we already have
 export enum CourseRole {
   STUDENT = 'student',
   PROFESSOR = 'professor',

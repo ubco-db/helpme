@@ -28,15 +28,13 @@ export default async function Layout({
   const courseFeatures = await courseApi.getCourseFeatures(Number(params.cid))
 
   return (
-    <>
-      <div className="mb-10 mt-2 flex flex-col space-y-3 md:flex-row md:space-x-3 md:space-y-0">
-        <CourseSettingsMenu
-          courseRole={courseRole}
-          courseFeatures={courseFeatures}
-          courseId={Number(params.cid)}
-        />
-        <div className="flex-1">{children}</div>
-      </div>
-    </>
+    <div className="mb-10 mt-2 flex flex-col space-y-3 md:flex-row md:space-x-3 md:space-y-0">
+      <CourseSettingsMenu
+        courseRole={courseRole}
+        courseFeatures={courseFeatures}
+        courseId={Number(params.cid)}
+      />
+      <div className="flex-1">{children}</div>
+    </div>
   )
 }

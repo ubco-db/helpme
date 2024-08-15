@@ -453,8 +453,10 @@ export class QuestionController {
           );
         }
       }
-      await this.questionService.validateNotHelpingOther(body.status, userId);
-      await this.questionService.changeStatus(body.status, question, userId);
+      if (body.status) {
+        await this.questionService.validateNotHelpingOther(body.status, userId);
+        await this.questionService.changeStatus(body.status, question, userId);
+      }
       // if it's a task question, update the studentTaskProgress for the student
       if (
         question.status === ClosedQuestionStatus.Resolved &&
@@ -465,36 +467,35 @@ export class QuestionController {
 
       // if the TA is updating the questionTypes or text, update the question
       if (body.questionTypes || body.text) {
+        if (body.text) {
+          question.text = body.text;
+        }
+        // update the questionTypes
         if (body.questionTypes) {
-          // actually assigns all the new question attributes to the question
-          question = Object.assign(question, body);
-          // update the questionTypes
-          if (body.questionTypes) {
-            question.questionTypes = await Promise.all(
-              body.questionTypes.map(async (type) => {
-                const questionType = await QuestionTypeModel.findOne({
-                  where: {
-                    id: type.id,
-                  },
-                });
-                if (!questionType) {
-                  throw new BadRequestException(
-                    ERROR_MESSAGES.questionController.createQuestion.invalidQuestionType,
-                  );
-                }
-                return questionType;
-              }),
-            );
-          }
-          try {
-            await question.save();
-          } catch (err) {
-            console.error(err);
-            throw new HttpException(
-              ERROR_MESSAGES.questionController.saveQError,
-              HttpStatus.INTERNAL_SERVER_ERROR,
-            );
-          }
+          question.questionTypes = await Promise.all(
+            body.questionTypes.map(async (type) => {
+              const questionType = await QuestionTypeModel.findOne({
+                where: {
+                  id: type.id,
+                },
+              });
+              if (!questionType) {
+                throw new BadRequestException(
+                  ERROR_MESSAGES.questionController.createQuestion.invalidQuestionType,
+                );
+              }
+              return questionType;
+            }),
+          );
+        }
+        try {
+          await question.save();
+        } catch (err) {
+          console.error(err);
+          throw new HttpException(
+            ERROR_MESSAGES.questionController.saveQError,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
         }
       }
 
