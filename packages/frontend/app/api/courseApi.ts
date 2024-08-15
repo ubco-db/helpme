@@ -1,5 +1,10 @@
 import { fetchAuthToken } from './cookieApi'
 
+/**
+ * Course "API".
+ * Note: our main "API" is in index.ts
+ * TODO: This should be merged into the main API file and all calls to these methods should be changed.
+ */
 export const courseApi = {
   getCourseFeatures: async (courseId: number) => {
     const authToken = await fetchAuthToken()

@@ -638,4 +638,8 @@ class APIClient {
   }
 }
 
+/**
+ * This is our main "API" that basically has function calls for all the endpoints in our backend.
+ * TODO: Some of the ones here are old and should be removed, others are missing types, and the other Api files should be merged with this one.
+ */
 export const API = new APIClient(process.env.NEXT_PUBLIC_API_URL)

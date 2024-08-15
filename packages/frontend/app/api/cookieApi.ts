@@ -3,6 +3,13 @@
 import { cookies } from 'next/headers'
 
 /**
+ * Cookie "API".
+ * Note: our main "API" is in index.ts
+ * TODO: This should be merged into the main API file and all calls to these methods should be changed.
+ * Though maybe this one should just be a regular function and moved to a utils file
+ */
+
+/**
  * Fetches the 'auth_token' from the cookies.
  *
  * @async

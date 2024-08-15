@@ -17,6 +17,8 @@
 
 This guide is intended for new developers who are looking to contribute to the HelpMe system and seeks to explain how some of the technologies are used as well as the history of the system. 
 
+**Important:** When you're reading this, don't worry if you don't understand everything yet. Just give it a light read to gain a surface level understanding about what's talked about. Then when you encounter relevant code, you can refer back to this to get the full context.
+
 `DEVELOPING.md` has more details on how to set up the system and start developing. 
 
 # INTRO TO THE CODEBASE AND TECHSTACK
@@ -34,7 +36,7 @@ File structure is as follows:
     - `/test` - contains integration tests
   - `/frontend` - frontend code
     - `/api`
-        - `index.ts` - This is our first important index.ts. Contains functions that call the backend endpoints. It keeps the fetch calls all in one place, making it easier to maintain (e.g. if you renamed an endpoint)  
+        - `index.ts` - This is our first important index.ts. Contains functions that call the backend endpoints. It keeps the fetch calls all in one place, making it easier to maintain (e.g. if you renamed an endpoint, you only need to change in 1 area)  
     - `/app` - contains all the pages and components
     - `/public` 
   - `/common` - shared code between the frontend and backend
@@ -46,7 +48,12 @@ File structure is as follows:
 
 ### Frontend
 
-`hooks` - Unlike regular functions, hooks can have side effects and can be used to manage state. They are used in React to manage state and side effects in functional components. We use hooks to manage the state of the application, such as the queue, courses, and questions.
+`hooks` - Unlike regular functions, hooks cannot be conditionally called. React has a lot of different hooks, but the most common ones are: 
+- `useState` is used to store state in a component (like if a modal is open)
+- `useEffect` is used to run code when the component is rendered. The second argument is an array of dependencies, which will cause the code to re-run if any of the dependencies change. If you want the code to only run once, pass an empty array.
+- `useCallback` is used to memoize functions (i.e. store a function so it doesn't get recreated every time the component is rendered)
+- `useContext` is basically like a global state variable. Useful for not needing to pass props down through many layers of components. We use this for the userInfo context, which stores the user's information (e.g. their name, email, etc.)
+- We also have a lot of custom hooks that we have made, such as `useCourse`, `useQueue`, `useQuestions`, and `useQuestionTypes`. These are wrappers around useSWR for getting up-to-date data from the backend.
 
 `swr` - Normally, if you want all clients to have up-to-date data, you need to either have the server initiate requests/messages (e.g. using websockets) or by having clients poll the server every so often to see if there is new data. SWR is a javascript library that basically adds a fancy polling system to your endpoints to keep your data up-to-date. You can wrap your endpoint calls with useSWR and it will make sure your data is up to date (though it won't update quite as fast as websockets). We make great use of this library in our codebase. For example, we use it to make sure course data is up-to-date (useCourse), for getting up-to-date questionTypes (useQuestionTypes),
 
@@ -62,7 +69,22 @@ Note if you are looking at the Next.js docs: Make sure you set it to "Using App 
 
 All pages are functions (e.g. `export default function CoursePage(...)`) and all components are react functional components (e.g. `const CircleButton: React.FC<CircleButtonProps> = ({...`)
 
-`'use client'` & `'use server'` - These are from Next.js, and allow us to define whether a component is rendered on the client or the server. In general, you want to use 'use server' where possible, as it allows the server to make calls to the database and render the page right away, improving load times and performance. The only issue is that 'use server' cannot be used with components that the user interacts with as well as other restrictions. Our application is pretty client-heavy (with lots of interactions from the user) and was also built before server components were possible, so most of the components are client components. Server components can have client components in them, but not vice-versa (with the exception of layout.tsx, which can still be client.tsx). More info here https://nextjs.org/learn/react-foundations/server-and-client-components
+**Hydration Error** - This error occurs when the server and client render different things. This can happen when the server renders a component that the client doesn't, or when the server renders a component with different props than the client. Usually, these happen from some illegal HTML (e.g. a div inside a p tag) or some other nonos. The most common one I've encountered is ones with antd's `<Spin/>`, and can be fixed by making sure it's within the `<main>` content of the page. More here https://nextjs.org/docs/messages/react-hydration-error
+
+##### What's with all these `'use client'` & `'use server'` things? 
+
+These are from Next.js, and allow us to define whether a component is rendered on the client, the server, or as a server action.
+
+`'use client'` - This component will be sent to the browser to be rendered. Any component that stores state (i.e. with `useState`), has interactability (buttons, forms, etc.), or uses *any* hooks (such as `useCourse` or `useEffect`)
+
+**Components with no 'use client' or 'use server'** - These are **server components**. These are rendered on the server and sent to the browser and in general you want as many things as possible to be server components. They have the advantage that any fetch calls within them will be made right-away on the server, before anything is rendered, which can improve performance a lot. They can also have client components within them, but not vice-versa (with the exception of layout.tsx), so try to have server components near the root and client components as far down as possible. 
+
+`'use server'` - In general, don't use this as that's for *making server actions* and *NOT for designating server components*. Server actions are "asynchronous functions" and are sorta like endpoints. We don't really use these as we are using our own endpoints. 
+
+Our application is pretty client-heavy (with lots of interactions from the user) and was also built before server components were possible, so most of the components are client components. 
+
+More info here https://nextjs.org/learn/react-foundations/server-and-client-components and here https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations
+
 
 #### Tailwind and CSS
 
@@ -82,6 +104,14 @@ Want to conditionally render something like an `elseif` statement? Do: `{conditi
 `controller` - Defines an endpoint and the various calls you can make to it. Takes in requests, does business logic, and then sends a response (please use `@Res` for sending a response, as it is more flexible). They're supposed to be fairly lightweight and not call the database directly; however, nearly all of our endpoints are implemented incorrectly where the entire endpoint is written in the controller. Integration tests test these.
 
 `service` - These define methods that make calls to the database. Unit tests test these.
+
+`entity` - These define the database schema. If you make any changes to these, be sure to make a migration (see `DEVELOPING.md`) 
+
+`redis` - A fast, in-memory database that we use for caching frequently accessed data. Sometimes, there can be issues where the redis database is not in sync with the actual database. If this happens, follow these steps to flush the redis cache:
+1. Open the redis container in docker desktop and go to the "Exec" tab
+2. Run `redis-cli` to open the redis command line
+3. Run `flushall` to flush the cache
+
 
 # History
 

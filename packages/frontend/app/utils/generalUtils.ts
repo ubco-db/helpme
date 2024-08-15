@@ -115,7 +115,8 @@ export function getErrorMessage(e: any): any {
     e.response?.data?.message ??
     e.response?.data ??
     e.body?.message ??
-    e.message
+    e.message ??
+    e
   )
 }
 

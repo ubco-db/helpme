@@ -1,5 +1,10 @@
 import { fetchAuthToken } from './cookieApi'
 
+/**
+ * Organization "API".
+ * Note: our main "API" is in index.ts
+ * TODO: This should be merged into the main API file and all calls to these methods should be changed.
+ */
 export const organizationApi = {
   getOrganizations: async () => {
     const response = await fetch(`http://localhost:3000/api/v1/organization`)

@@ -31,9 +31,15 @@ type EditQuestionsPageProps = {
   }
 }
 
+/*
+  Question but with some extra attributes:
+  - questionTypeNames: string[] - Used for searching and displaying question tags
+  - QuestionTypeIds: number[] - Used for updating question tags when editing a question.
+  - createdAtString: string - Used for searching, sorting, and displaying date created
+*/
 interface ExtendedQuestion extends questions {
   questionTypeNames: string[]
-  QuestionTypeIds?: number[]
+  QuestionTypeIds: number[]
   createdAtString: string
 }
 type QuestionAttributes = keyof ExtendedQuestion
@@ -45,7 +51,6 @@ interface EditableCellProps extends React.HTMLAttributes<HTMLElement> {
   inputType: 'questionType' | 'text'
   record: ExtendedQuestion | undefined
   index: number
-  courseId: number
   questionTypesForThisQueue: QuestionType[]
 }
 
@@ -56,7 +61,6 @@ const EditableCell: React.FC<React.PropsWithChildren<EditableCellProps>> = ({
   inputType,
   record,
   index,
-  courseId,
   questionTypesForThisQueue,
   children,
   ...restProps
@@ -87,6 +91,10 @@ const EditableCell: React.FC<React.PropsWithChildren<EditableCellProps>> = ({
   )
 }
 
+/**
+ * Contains a table allowing staff to search, sort, and edit questions.
+ * Combines multiple examples from antd's offical docs for Table, plus some custom logic.
+ */
 const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
   params,
 }: {
@@ -460,7 +468,6 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
             : col.dataIndex,
         title: col.title,
         editing: isEditing(record),
-        courseId: cid,
         questionTypesForThisQueue:
           col.dataIndex === 'questionTypeNames'
             ? questionTypes.filter((questionType) => {

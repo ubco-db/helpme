@@ -1,6 +1,11 @@
 import { LoginData, PasswordResetData, RegisterData } from '../typings/user'
 import { fetchAuthToken } from './cookieApi'
 
+/**
+ * User "API".
+ * Note: our main "API" is in index.ts
+ * TODO: This should be merged into the main API file and all calls to these methods should be changed.
+ */
 export const userApi = {
   /**
    * Register a new account using email and password

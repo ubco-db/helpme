@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { userApi } from './app/api/userApi'
 import { OrganizationRole } from './app/typings/user'
-import { User } from '@koh/common'
+import { isProd, User } from '@koh/common'
 
 const publicPages = ['/login', '/register', '/failed*', '/password*', '/']
 
@@ -24,6 +24,11 @@ export async function middleware(request: NextRequest) {
   const { url, nextUrl, cookies } = request
 
   const isAuthPageRequested = isPublicPages(nextUrl.pathname)
+
+  // Case: If not on production, allow access to /dev pages (to skip other middleware checks)
+  if (nextUrl.pathname.startsWith('/dev') && !isProd()) {
+    return NextResponse.next()
+  }
 
   // Case: User tries to access a page that requires authentication without an auth token
   if (!cookies.has('auth_token') && !isAuthPageRequested) {

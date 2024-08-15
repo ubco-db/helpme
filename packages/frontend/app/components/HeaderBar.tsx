@@ -249,7 +249,8 @@ const NavBar = ({
                 <NavigationMenuItem
                   className={
                     isACourseSettingsPage
-                      ? 'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white'
+                      ? // the hover:border-none is because the inner link has a hover effect that adds another border
+                        'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white md:hover:border-none md:focus:border-none'
                       : ''
                   }
                 >

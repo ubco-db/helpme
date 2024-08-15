@@ -85,7 +85,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
             <CourseFeaturesForm courseData={courseData} />
           </Card>
 
-          <Card bordered={true} title="Course Invite Code">
+          <Card bordered={true} title="Course Invite Link">
             <CourseInviteCode
               fetchCourseData={fetchCourseData}
               courseData={courseData}
