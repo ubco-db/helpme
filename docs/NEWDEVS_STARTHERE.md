@@ -138,6 +138,8 @@ During the 2024 Summer, a massive undertaking was done to refactor and re-write 
 - Rewrite a lot of the code to have better performance, usability, accessibility, and maintainability
 - Rename files and components to make more sense
 
+[2024-07-29] Renamed Asynchronous Question Centre to Anytime Questions Hub. Most code will still refer to it as the Async Centre/Async Questions.
+
 # TODO
 
 ## For the whole project
