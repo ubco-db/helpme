@@ -248,7 +248,7 @@ export class CourseController {
       courseInviteCode: courseWithOrganization.courseInviteCode,
     };
 
-    res.cookie('__SECURE_REDIRECT', `${id},${code}`, {
+    res.cookie('__SECURE_REDIRECT', `${id},${code},${organization.id}`, {
       httpOnly: true,
       secure: this.isSecure(),
     });

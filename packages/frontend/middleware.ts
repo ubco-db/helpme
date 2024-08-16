@@ -3,7 +3,15 @@ import { userApi } from './app/api/userApi'
 import { OrganizationRole } from './app/typings/user'
 import { isProd, User } from '@koh/common'
 
-const publicPages = ['/login', '/register', '/failed*', '/password*', '/']
+// These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
+const publicPages = [
+  '/login',
+  '/register',
+  '/failed*',
+  '/password*',
+  '/',
+  '/invite*',
+]
 
 const isPublicPages = (url: string) => {
   return publicPages.some((page) => {
@@ -74,8 +82,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Case: User has auth token and tries to access a public page
-  if (isAuthPageRequested && cookies.has('auth_token')) {
+  // Case: User has auth token and tries to access a public page that isn't /invite
+  if (
+    isAuthPageRequested &&
+    cookies.has('auth_token') &&
+    !nextUrl.pathname.startsWith('/invite')
+  ) {
     return NextResponse.redirect(new URL('/courses', url))
   }
 

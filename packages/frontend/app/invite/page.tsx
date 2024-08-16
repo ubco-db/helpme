@@ -17,12 +17,17 @@ export default function CourseInvitePage(): ReactElement {
   const cid = Number(searchParams.get('cid'))
   const code = decodeURIComponent(searchParams.get('code') ?? '')
   const [errorGettingCourse, setErrorGettingCourse] = useState(false)
+  const [errorGettingUser, setErrorGettingUser] = useState(false)
 
   const [profile, setProfile] = useState<User>()
   useEffect(() => {
     const fetchUserDetails = async () => {
       const userDetails = await userApi.getUser()
       const response = await userDetails.json()
+      if (response.statusCode === 401) {
+        setErrorGettingUser(true)
+        return
+      }
       setProfile(response)
     }
     fetchUserDetails()
@@ -35,6 +40,11 @@ export default function CourseInvitePage(): ReactElement {
         .getLimitedCourseResponse(cid, code)
         .then((res) => {
           setCourse(res)
+          // if the user is not found, redirect to login
+          // These needs to be done after getLimitedCourseResponse does its thing since that is the endpoint that sets the cookies for redirect
+          if (errorGettingUser) {
+            router.push('/login')
+          }
         })
         .catch(() => {
           setErrorGettingCourse(true)
@@ -43,7 +53,7 @@ export default function CourseInvitePage(): ReactElement {
     if (cid) {
       fetchData()
     }
-  }, [cid, code, profile])
+  }, [cid, code, errorGettingUser])
 
   const cardMetaTitle = `You have been invited to join '${course?.name}'`
   const cardMetaDescription = `This course is managed by ${course?.organizationCourse?.name}`
@@ -83,6 +93,7 @@ export default function CourseInvitePage(): ReactElement {
   } else if (!profile) {
     return <CenteredSpinner tip="Loading User..." />
   } else if (
+    profile.courses &&
     profile.courses.some((userCourse) => userCourse.course.id === cid)
   ) {
     router.push(`/course/${cid}`)
@@ -94,7 +105,8 @@ export default function CourseInvitePage(): ReactElement {
       <>
         <title>{`HelpMe - Invitation to join '${course.name}'`}</title>
         <div className="mt-20 flex items-center justify-center">
-          {profile.organization?.orgId !== course.organizationCourse?.id ? (
+          {profile.organization &&
+          profile.organization.orgId !== course.organizationCourse?.id ? (
             <InviteCard
               // this is an edge case
               title="You cannot join a course that is not in your organization"

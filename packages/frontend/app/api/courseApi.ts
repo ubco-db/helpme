@@ -1,3 +1,4 @@
+import { GetCourseResponse } from '@koh/common'
 import { fetchAuthToken } from './cookieApi'
 
 /**
@@ -24,7 +25,7 @@ export const courseApi = {
     return response.json()
   },
 
-  getCourse: async (courseId: number) => {
+  getCourse: async (courseId: number): Promise<GetCourseResponse> => {
     const authToken = await fetchAuthToken()
     const response = await fetch(
       `http://localhost:3000/api/v1/courses/${courseId}`,
