@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { cn } from '@/app/utils/generalUtils'
 
 const items = [
   {
@@ -41,11 +42,14 @@ const SidebarNavigation: React.FC = () => {
   const pathname = usePathname()
 
   return (
-    <>
+    <nav className="rounded bg-white shadow-md">
       {items.map((item) => (
         <Link href={item.url} key={item.key}>
           <div
-            className={`flex cursor-pointer items-center justify-between rounded bg-white p-4 shadow-md ${pathname === item.url ? 'bg-[#e6f7ff] text-[#1890ff]' : ''}`}
+            className={cn(
+              'flex cursor-pointer items-center justify-between rounded bg-white p-4 hover:bg-gray-200 focus:bg-gray-200',
+              pathname === item.url ? 'bg-[#e6f7ff] text-[#1890ff]' : '',
+            )}
           >
             <div className="flex items-center">
               {item.icon}
@@ -54,7 +58,7 @@ const SidebarNavigation: React.FC = () => {
           </div>
         </Link>
       ))}
-    </>
+    </nav>
   )
 }
 
