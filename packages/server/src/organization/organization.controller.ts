@@ -601,7 +601,11 @@ export class OrganizationController {
               id: oid,
             },
           });
-
+          if (!organization) {
+            return res.status(HttpStatus.NOT_FOUND).send({
+              message: `Organization not found`,
+            });
+          }
           organization.logoUrl = null;
           await organization.save();
           return res.status(HttpStatus.NOT_FOUND).send({
