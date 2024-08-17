@@ -34,10 +34,10 @@ const CheckInModal: React.FC<CheckInModalProps> = ({
     >
       <div className="flex flex-row flex-wrap items-end justify-between">
         <div className="flex flex-grow flex-col justify-start">
-          <h3>Select a Queue to Check In to</h3>
+          <h3>Select a Queue to check in to</h3>
           <Select
             showSearch
-            style={{ width: 200 }}
+            style={{ width: 300 }}
             placeholder="Select a queue"
             onChange={onQueueUpdate}
             optionFilterProp="label"

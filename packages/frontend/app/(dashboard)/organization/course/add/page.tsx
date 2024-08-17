@@ -130,7 +130,7 @@ export default function AddCoursePage(): ReactElement {
   } else {
     return (
       <>
-        <title>{organization?.name} | Add Course</title>
+        <title>{`${organization?.name} | Add Course`}</title>
         <Row>
           <Col span={24}>
             <Card bordered={true} title="Add Course">

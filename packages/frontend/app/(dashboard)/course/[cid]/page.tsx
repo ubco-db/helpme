@@ -17,7 +17,6 @@ import PopularTimes from './components/popularTimes/PopularTimes'
 import { arrayRotate, collapseHeatmap } from './utils/popularTimesFunctions'
 import moment from 'moment'
 import { sortQueues } from './utils/commonCourseFunctions'
-import { useRouter } from 'next/navigation'
 
 type CoursePageProps = {
   params: { cid: string }
@@ -61,7 +60,7 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
   } else {
     return (
       <>
-        <title>HelpMe | {course?.name}</title>
+        <title>{`HelpMe | ${course.name}`}</title>
         {(!onlyChatBotEnabled && (
           <div className="mt-8">
             <Row gutter={64}>

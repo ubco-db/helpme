@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import { InboxOutlined } from '@ant-design/icons'
@@ -20,6 +19,7 @@ import { useUserInfo } from '@/app/contexts/userContext'
 import { Organization } from '@/app/typings/organization'
 import { organizationApi } from '@/app/api/organizationApi'
 import { API } from '@/app/api'
+import Image from 'next/image'
 
 export default function SettingsPage(): ReactElement {
   const [formGeneral] = Form.useForm()
@@ -277,7 +277,8 @@ export default function SettingsPage(): ReactElement {
                   </Upload.Dragger>
                 </Col>
                 <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <img
+                  <Image
+                    unoptimized
                     width={100}
                     height={100}
                     alt="Organization Logo"
@@ -314,7 +315,8 @@ export default function SettingsPage(): ReactElement {
                   </Upload.Dragger>
                 </Col>
                 <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <img
+                  <Image
+                    unoptimized
                     width={100}
                     height={100}
                     alt="Organization Banner"

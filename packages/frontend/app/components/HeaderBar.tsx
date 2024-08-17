@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import React, { useCallback, useMemo } from 'react'
@@ -36,6 +35,7 @@ import { Popconfirm } from 'antd'
 import { sortQueues } from '../(dashboard)/course/[cid]/utils/commonCourseFunctions'
 import { useCourseFeatures } from '../hooks/useCourseFeatures'
 import CenteredSpinner from './CenteredSpinner'
+import Image from 'next/image'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -174,12 +174,13 @@ const NavBar = ({
             tabIndex={-1}
           >
             {/* This organization logo is only visible on desktop */}
-            <img
+            <Image
               width={48}
               height={48}
               className="h-12 w-full object-contain p-1 pr-4"
               alt="Organization Logo"
               src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
+              unoptimized
             />
           </NextLink>
           {course ? (
@@ -396,12 +397,13 @@ const HeaderBar: React.FC = () => {
   ) : (
     // MOBILE HEADER AND NAV DRAWER
     <div className="flex items-center justify-between">
-      <img
+      <Image
         width={48}
         height={48}
         className="h-12 object-contain p-1"
         alt="Organization Logo"
         src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
+        unoptimized
       />
       <div className="flex h-14 grow flex-col items-center justify-center">
         <h1 className="leading-none">
@@ -421,12 +423,13 @@ const HeaderBar: React.FC = () => {
           {/* INSIDE DRAWER */}
           <div className="flex h-screen flex-col items-start justify-start">
             <div className="my-1 flex w-full items-center justify-center border-b border-b-zinc-200 bg-white py-1 pr-5">
-              <img
+              <Image
                 width={48}
                 height={48}
                 className="h-12 object-contain"
                 alt="Organization Logo"
                 src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
+                unoptimized
               />
               <span className="text-2xl font-semibold leading-none">
                 {userInfo?.organization?.organizationName}

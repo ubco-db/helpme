@@ -626,9 +626,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   } else {
     return (
       <div className="flex h-full flex-1 flex-col md:flex-row">
-        <title>
-          HelpMe | {course.name} - {queue.room}
-        </title>
+        <title>{`HelpMe | ${course.name} - ${queue.room}`}</title>
         <RenderQueueInfoCol />
         <VerticalDivider />
         <div className="flex-grow md:mt-8">

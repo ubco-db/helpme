@@ -101,7 +101,7 @@ export class LoginController {
         delete body.recaptchaToken;
         return res.status(200).send({ token, ...body });
       } else {
-        return res.status(401).json({ message: 'Invalid credentials' });
+        return res.status(401).json({ message: 'Wrong Password' });
       }
     });
   }

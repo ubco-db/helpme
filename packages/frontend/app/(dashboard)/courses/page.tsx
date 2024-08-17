@@ -1,12 +1,12 @@
-/* eslint-disable @next/next/no-img-element */
 'use client'
 
-import { ReactElement, useEffect } from 'react'
+import { ReactElement } from 'react'
 import { Button, Empty } from 'antd'
 import { OrganizationRole } from '@/app/typings/user'
 import { useUserInfo } from '@/app/contexts/userContext'
 import CoursesSection from '../components/coursesSection'
 import OrganizationCard from '../components/organizationCard'
+import Image from 'next/image'
 
 export default function CoursesPage(): ReactElement {
   const { userInfo } = useUserInfo()
@@ -15,12 +15,13 @@ export default function CoursesPage(): ReactElement {
     <>
       <title>HelpMe | My Courses</title>
       <OrganizationCard>
-        <img
+        <Image
           src={`/api/v1/organization/${userInfo?.organization?.orgId}/get_logo/${userInfo?.organization?.organizationLogoUrl}`}
           className="h-15 object-contain object-center p-1"
           alt="Organization Logo"
           width={100}
           height={100}
+          unoptimized //needed otherwise next.js won't retrieve the url properly
         />
         <div>
           <h1>{userInfo?.organization?.organizationName}</h1>

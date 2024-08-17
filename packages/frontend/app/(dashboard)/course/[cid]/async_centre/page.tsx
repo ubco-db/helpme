@@ -269,9 +269,7 @@ export default function AsyncCentrePage({
   } else {
     return (
       <div className="flex h-full flex-1 flex-col md:flex-row">
-        <title>
-          HelpMe | {userInfo.courses[courseId].course.name} - Anytime Questions
-        </title>
+        <title>{`HelpMe | ${userInfo.courses.find((e) => e.course.id === courseId)?.course.name ?? ''} - Anytime Questions`}</title>
         <AsyncCentreInfoColumn
           buttons={
             isStaff ? (

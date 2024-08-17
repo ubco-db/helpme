@@ -121,16 +121,16 @@ export default function LoginPage() {
 
   useEffect(() => {
     async function smartlySetOrganization() {
-      // if (organizations.length === 1) {
-      //   showLoginMenu(organizations[0].id)
-      // }
+      if (organizations.length === 1) {
+        showLoginMenu(organizations[0].id)
+      }
       // get courseId from SECURE_REDIRECT (from invite code) and get the course's organization, and then set the organization to that
       if (organizationIdForInvitedCourse) {
         showLoginMenu(organizationIdForInvitedCourse)
       }
     }
     smartlySetOrganization()
-  }, [organizations, showLoginMenu])
+  }, [organizationIdForInvitedCourse, organizations, showLoginMenu])
 
   if (organizations.length === 0) {
     return (
@@ -141,7 +141,7 @@ export default function LoginPage() {
   } else {
     return (
       <main>
-        <title>Helpme | Login</title>
+        <title>HelpMe | Login</title>
         <div className="container mx-auto h-auto w-full pt-20 text-center md:w-1/2">
           {loginMenu && (
             <Button type="link" className="mr-96" onClick={hideLoginMenu}>
@@ -182,12 +182,12 @@ export default function LoginPage() {
                   >
                     {organization.logoUrl && (
                       <Image
-                        src={organization.logoUrl}
-                        className="h-6 w-6"
+                        src={`/api/v1/organization/${organization.id}/get_logo/${organization.logoUrl}`}
                         loading="lazy"
-                        alt="google logo"
+                        alt="Org Logo"
                         width={24}
                         height={24}
+                        unoptimized
                       />
                     )}
                     <span className="font-semibold">

@@ -581,8 +581,8 @@ export class OrganizationController {
     );
   }
 
+  // Uses no guards as this is a public endpoint (so it shows up on login page)
   @Get(':oid/get_logo/:photoUrl')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async getLogoImage(
     @Param('photoUrl') photoUrl: string,
     @Param('oid') oid: number,

@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import React, { useEffect, useState } from 'react'
@@ -11,6 +10,7 @@ import HeaderBar from '../components/HeaderBar'
 import { usePathname } from 'next/navigation'
 import { LayoutProps } from '@/app/typings/types'
 import StandardPageContainer from '../components/StandardPageContainer'
+import Image from 'next/image'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [profile, setProfile] = useState<User>()
@@ -53,7 +53,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* the main content of the page takes up 100% - (the height of the header bar). This is needed so that the scroll bar doesn't show up on every page */}
       <main className="h-[calc(100%-3.7rem)] min-h-[calc(100%-3.7rem)]">
         {pathname === '/courses' && (
-          <img
+          <Image
+            unoptimized
             src={`/api/v1/organization/${profile.organization.orgId}/get_banner/${profile.organization.organizationBannerUrl}`}
             alt="Organization Banner"
             className="h-[20vh] w-full object-cover object-center"
