@@ -9,8 +9,7 @@ import {
   Tooltip,
   message,
 } from 'antd'
-import React, { ReactElement, useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
+import React, { ReactElement, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import {
   FileAddOutlined,
@@ -22,6 +21,7 @@ import { RcFile } from 'antd/lib/upload'
 import Dragger from 'antd/lib/upload/Dragger'
 import ChatbotParameter from './ChatbotParameter'
 import { useProfile } from '../../hooks/useProfile'
+import axios from 'axios'
 
 export interface ChatbotDocument {
   id: number
@@ -35,11 +35,14 @@ export interface ChatbotDocumentResponse {
   total: number
 }
 
-export default function ChatbotSettings(): ReactElement {
+interface ChatbotPanelProps {
+  courseId: number
+}
+export default function ChatbotSettings({
+  courseId,
+}: ChatbotPanelProps): ReactElement {
   const [form] = Form.useForm()
-  const router = useRouter()
   const profile = useProfile()
-  const { cid } = router.query
   const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =
     useState(false)
   const [addDocumentModalOpen, setAddDocumentModalOpen] = useState(false)
@@ -49,8 +52,9 @@ export default function ChatbotSettings(): ReactElement {
   const [countProcessed, setCountProcessed] = useState(0)
   const [selectViewEnabled, setSelectViewEnabled] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
-  const [totalDocuments] = useState(0)
+  const [totalDocuments, setTotalDocuments] = useState(0)
   const [chatbotDocuments, setChatbotDocuments] = useState([])
+  const [filteredDocuments, setFilteredDocuments] = useState([])
 
   const [fileList, setFileList] = useState([])
 
@@ -73,12 +77,20 @@ export default function ChatbotSettings(): ReactElement {
   }
   const hasSelected = selectedRowKeys.length > 0
 
+  useEffect(() => {
+    getDocuments()
+  }, [courseId])
+
+  useEffect(() => {
+    filterDocuments()
+  }, [search, chatbotDocuments])
+
   const handleDeleteSelectedDocuments = async () => {
     setLoading(true)
     setCountProcessed(0)
     try {
       for (const docId of selectedRowKeys) {
-        await fetch(`/chat/${cid}/${docId}/document`, {
+        await fetch(`/chat/${courseId}/${docId}/document`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -157,34 +169,37 @@ export default function ChatbotSettings(): ReactElement {
         ),
     },
   ]
-
-  const getDocuments = useCallback(async () => {
-    setLoading(true)
+  const getDocuments = async () => {
     try {
-      fetch(`/chat/${cid}/aggregateDocuments`, {
-        headers: { HMS_API_TOKEN: profile?.chat_token.token },
+      const response = await axios.get(`/chat/${courseId}/aggregateDocuments`, {
+        headers: {
+          HMS_API_TOKEN: profile?.chat_token.token,
+        },
       })
-        .then((res) => res.json())
-        .then((json) => {
-          // Convert the json to the expected format
-          const formattedDocuments = json.map((doc) => ({
-            key: doc.id,
-            docId: doc.id,
-            docName: doc.pageContent,
-            sourceLink: doc.metadata.source,
-            pageNumbers: [],
-          }))
-          setChatbotDocuments(formattedDocuments)
-        })
+      const formattedDocuments = response.data.map((doc) => ({
+        key: doc.id,
+        docId: doc.id,
+        docName: doc.pageContent,
+        sourceLink: doc.metadata.source,
+        pageNumbers: [],
+      }))
+      setChatbotDocuments(formattedDocuments)
+      setTotalDocuments(formattedDocuments.length)
     } catch (e) {
+      console.error(e)
       setChatbotDocuments([])
+      setTotalDocuments(0)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
-  }, [cid, profile?.chat_token.token])
+  }
 
-  useEffect(() => {
-    getDocuments()
-  }, [getDocuments])
+  const filterDocuments = () => {
+    const filtered = chatbotDocuments.filter((doc) =>
+      doc.docName.toLowerCase().includes(search.toLowerCase()),
+    )
+    setFilteredDocuments(filtered)
+  }
 
   const addUrl = async (url: string) => {
     setLoading(true)
@@ -193,7 +208,7 @@ export default function ChatbotSettings(): ReactElement {
         url: url,
       }
 
-      const response = await fetch(`/chat/${cid}/document/url/github`, {
+      const response = await fetch(`/chat/${courseId}/document/url/github`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -232,7 +247,7 @@ export default function ChatbotSettings(): ReactElement {
           new Blob([JSON.stringify(jsonData)], { type: 'application/json' }),
         )
 
-        const response = await fetch(`/chat/${cid}/document`, {
+        const response = await fetch(`/chat/${courseId}/document`, {
           method: 'POST',
           body: formData,
           headers: { HMS_API_TOKEN: profile.chat_token.token },
@@ -253,16 +268,19 @@ export default function ChatbotSettings(): ReactElement {
   const handleDeleteDocument = async (record: any) => {
     setLoading(true)
     try {
-      const response = await fetch(`/chat/${cid}/${record.docId}/document`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          HMS_API_TOKEN: profile.chat_token.token,
+      const response = await fetch(
+        `/chat/${courseId}/${record.docId}/document`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            HMS_API_TOKEN: profile.chat_token.token,
+          },
         },
-      })
+      )
 
       if (!response.ok) {
-        throw new Error(`Failed to upload ${file.name}`)
+        throw new Error(`Failed to upload ${File.name}`)
       }
 
       toast.success('Document deleted.')
@@ -457,7 +475,7 @@ export default function ChatbotSettings(): ReactElement {
       <Table
         columns={columns}
         rowSelection={selectViewEnabled && rowSelection}
-        dataSource={chatbotDocuments}
+        dataSource={filteredDocuments}
         style={{ maxWidth: '800px' }}
         pagination={false}
       />
@@ -472,7 +490,7 @@ export default function ChatbotSettings(): ReactElement {
         <ChatbotParameter
           visible={chatbotParameterModalOpen}
           onClose={() => setChatbotParameterModalOpen(false)}
-          courseId={Number(cid)}
+          courseId={Number(courseId)}
         />
       )}
     </div>

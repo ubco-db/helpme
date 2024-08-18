@@ -202,6 +202,13 @@ export default function NavBar({ courseId }: NavBarProps): ReactElement {
     })
   }
 
+  if (role === Role.PROFESSOR || role === Role.TA) {
+    tabs.push({
+      href: '/course/[cid]/AI_settings',
+      as: `/course/${courseId}/AI_settings`,
+      text: 'Chatbot',
+    })
+  }
   if (role === Role.PROFESSOR) {
     tabs.push({
       href: '/course/[cid]/insights',
