@@ -1,6 +1,6 @@
 import {
   ERROR_MESSAGES,
-  KhouryProfCourse,
+  QuestionStatusKeys,
   Role,
   TACheckinTimesResponse,
 } from '@koh/common';
@@ -24,6 +24,7 @@ import {
   UserCourseFactory,
   UserFactory,
   CourseSettingsFactory,
+  QuestionFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -1712,6 +1713,143 @@ describe('Course Integration', () => {
         queueEnabled: false,
         settingsFound: true,
       });
+    });
+  });
+
+  describe('GET /courses/:id/students_not_in_queue', () => {
+    it('should return 401 if user is not authorized', async () => {
+      await supertest().get(`/courses/1/students_not_in_queue`).expect(401);
+    });
+    it('should not allow students to access the endpoint', async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: student,
+        role: Role.STUDENT,
+        course: course,
+      });
+
+      await supertest({ userId: student.id })
+        .get(`/courses/${course.id}/students_not_in_queue`)
+        .expect(403);
+    });
+    it('should return 404 if course is not found', async () => {
+      const professor = await UserFactory.create();
+      await supertest({ userId: professor.id })
+        .get(`/courses/1/students_not_in_queue`)
+        .expect(404);
+    });
+    it('should return 200 and an empty array if no students are found', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course,
+      });
+
+      const resp = await supertest({ userId: professor.id }).get(
+        `/courses/${course.id}/students_not_in_queue`,
+      );
+
+      expect(resp.status).toBe(200);
+      expect(resp.body).toEqual([]);
+    });
+    it('should return 200 and all students if there are no queues', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      const student1 = await UserFactory.create();
+      const student2 = await UserFactory.create();
+      const student3 = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: student1,
+        role: Role.STUDENT,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: student2,
+        role: Role.STUDENT,
+        course: course,
+      });
+
+      const resp = await supertest({ userId: professor.id }).get(
+        `/courses/${course.id}/students_not_in_queue`,
+      );
+
+      expect(resp.status).toBe(200);
+      expect(resp.body).toEqual([
+        {
+          id: student1.id,
+          name: student1.firstName + ' ' + student1.lastName,
+        },
+        {
+          id: student2.id,
+          name: student2.firstName + ' ' + student2.lastName,
+        },
+      ]);
+    });
+    it('should return 200 and all students not in a queue', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      const student1 = await UserFactory.create();
+      const student2 = await UserFactory.create();
+      const student3 = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: student1,
+        role: Role.STUDENT,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: student2,
+        role: Role.STUDENT,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: student3,
+        role: Role.STUDENT,
+        course: course,
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+        courseId: course.id,
+      });
+      await QuestionFactory.create({
+        queue: queue,
+        status: QuestionStatusKeys.Queued,
+        creatorId: student1.id,
+        creator: student1,
+      });
+      await QuestionFactory.create({
+        queue: queue,
+        status: QuestionStatusKeys.Resolved,
+        creatorId: student2.id,
+      });
+
+      const resp = await supertest({ userId: professor.id }).get(
+        `/courses/${course.id}/students_not_in_queue`,
+      );
+
+      expect(resp.status).toBe(200);
+      expect(resp.body).toEqual([
+        {
+          id: student2.id,
+          name: student2.firstName + ' ' + student2.lastName,
+        },
+        {
+          id: student3.id,
+          name: student3.firstName + ' ' + student3.lastName,
+        },
+      ]);
     });
   });
 });

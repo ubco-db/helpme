@@ -15,7 +15,7 @@ export class AsyncQuestionVotesModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne((type) => UserModel)
+  @ManyToOne((type) => UserModel, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: UserModel;
 
@@ -23,7 +23,7 @@ export class AsyncQuestionVotesModel extends BaseEntity {
   @Exclude()
   userId: number;
 
-  @ManyToOne((type) => AsyncQuestionModel)
+  @ManyToOne((type) => AsyncQuestionModel, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'questionId' })
   question: AsyncQuestionModel;
 

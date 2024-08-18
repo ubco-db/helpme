@@ -161,8 +161,8 @@ describe('Queue Integration', () => {
         .expect(200);
 
       expect(res.body).toMatchSnapshot();
-      expect(res.body.queue[0].creator).not.toHaveProperty('firstName');
-      expect(res.body.queue[0].creator).not.toHaveProperty('lastName');
+      expect(res.body.questions[0].creator).not.toHaveProperty('firstName');
+      expect(res.body.questions[0].creator).not.toHaveProperty('lastName');
     });
 
     it('returns all creator data for ta', async () => {
@@ -189,7 +189,7 @@ describe('Queue Integration', () => {
       const res = await supertest({ userId: ta.user.id })
         .get(`/queues/${queue.id}/questions`)
         .expect(200);
-      expect(res.body.queue[0].creator).toHaveProperty('name');
+      expect(res.body.questions[0].creator).toHaveProperty('name');
     });
 
     it('returns 404 when a user is not a member of the course', async () => {

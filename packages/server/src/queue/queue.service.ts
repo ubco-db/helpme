@@ -63,28 +63,28 @@ export class QueueService {
     const unresolvedRephraseQuestionAlerts =
       await this.alertsService.getUnresolvedRephraseQuestionAlert(queueId);
 
-    const questions = new ListQuestionsResponse();
+    const queueQuestions = new ListQuestionsResponse();
 
-    questions.queue = questionsFromDb.filter((question) =>
+    queueQuestions.questions = questionsFromDb.filter((question) =>
       StatusInQueue.includes(question.status as OpenQuestionStatus),
     );
 
-    questions.questionsGettingHelp = questionsFromDb.filter(
+    queueQuestions.questionsGettingHelp = questionsFromDb.filter(
       (question) =>
         question.status === OpenQuestionStatus.Helping && !question.groupId,
     );
 
-    questions.priorityQueue = questionsFromDb.filter((question) =>
+    queueQuestions.priorityQueue = questionsFromDb.filter((question) =>
       StatusInPriorityQueue.includes(question.status as OpenQuestionStatus),
     );
 
-    questions.groups = [];
+    queueQuestions.groups = [];
 
-    questions.unresolvedAlerts = unresolvedRephraseQuestionAlerts.map(
+    queueQuestions.unresolvedAlerts = unresolvedRephraseQuestionAlerts.map(
       (alert) => alert.payload,
     );
 
-    questions.queue = questions.queue.map((question) => {
+    queueQuestions.questions = queueQuestions.questions.map((question) => {
       const temp = pick(question, [
         'id',
         'queueId',
@@ -113,22 +113,22 @@ export class QueueService {
 
       return temp as Question;
     });
-    return questions;
+    return queueQuestions;
   }
 
   /** Hide sensitive data to other students */
   // TODO: remove this function since it gives no new information for the client (like the client already has their own name and pfp and their own questions, so why are we attaching those things together here on the server?)
   async personalizeQuestions(
     queueId: number,
-    questions: ListQuestionsResponse,
+    queueQuestions: ListQuestionsResponse,
     userId: number,
     role: Role,
   ): Promise<ListQuestionsResponse> {
     if (role === Role.STUDENT) {
       const newLQR = new ListQuestionsResponse();
-      Object.assign(newLQR, questions);
+      Object.assign(newLQR, queueQuestions);
 
-      newLQR.queue = questions.queue.map((question) => {
+      newLQR.questions = queueQuestions.questions.map((question) => {
         const creator =
           question.creator.id === userId
             ? question.creator
@@ -139,7 +139,7 @@ export class QueueService {
         );
       });
 
-      newLQR.questionsGettingHelp = questions.questionsGettingHelp.map(
+      newLQR.questionsGettingHelp = queueQuestions.questionsGettingHelp.map(
         (question) => {
           const creator =
             question.creator.id === userId
@@ -194,7 +194,7 @@ export class QueueService {
       }
       return newLQR;
     }
-    return questions;
+    return queueQuestions;
   }
 
   async updateQueueConfigAndTags(
@@ -216,7 +216,7 @@ export class QueueService {
       // tags to delete
       const oldTagKeys =
         oldConfig && oldConfig.tags ? Object.keys(oldConfig.tags) : [];
-      const newTagKeys = Object.keys(newConfig.tags);
+      const newTagKeys = newConfig.tags ? Object.keys(newConfig.tags) : [];
       const tagsToDelete = oldTagKeys.filter(
         (tag) => !newTagKeys.includes(tag),
       );
@@ -233,32 +233,36 @@ export class QueueService {
       }
 
       // tags to update or create
-      for (const [newTagId, newTag] of Object.entries(newConfig.tags)) {
-        if (oldConfig && oldConfig.tags && oldConfig.tags[newTagId]) {
-          // update the question type if the color_hex or display_name has changed
-          const oldTag = oldConfig.tags[newTagId];
-          if (
-            oldTag.color_hex !== newTag.color_hex ||
-            oldTag.display_name !== newTag.display_name
-          ) {
-            const updated = await transactionalEntityManager.update(
-              QuestionTypeModel,
-              { queueId, name: oldTag.display_name },
-              { color: newTag.color_hex, name: newTag.display_name },
-            );
-            if (updated.affected > 0) {
-              questionTypeMessages.push(`Updated tag: ${newTag.display_name}`);
+      if (newConfig.tags) {
+        for (const [newTagId, newTag] of Object.entries(newConfig.tags)) {
+          if (oldConfig && oldConfig.tags && oldConfig.tags[newTagId]) {
+            // update the question type if the color_hex or display_name has changed
+            const oldTag = oldConfig.tags[newTagId];
+            if (
+              oldTag.color_hex !== newTag.color_hex ||
+              oldTag.display_name !== newTag.display_name
+            ) {
+              const updated = await transactionalEntityManager.update(
+                QuestionTypeModel,
+                { queueId, name: oldTag.display_name },
+                { color: newTag.color_hex, name: newTag.display_name },
+              );
+              if (updated.affected > 0) {
+                questionTypeMessages.push(
+                  `Updated tag: ${newTag.display_name}`,
+                );
+              }
             }
+          } else {
+            // create a new question type
+            await transactionalEntityManager.insert(QuestionTypeModel, {
+              queueId,
+              cid: queue.courseId,
+              color: newTag.color_hex,
+              name: newTag.display_name,
+            });
+            questionTypeMessages.push(`Created tag: ${newTag.display_name}`);
           }
-        } else {
-          // create a new question type
-          await transactionalEntityManager.insert(QuestionTypeModel, {
-            queueId,
-            cid: queue.courseId,
-            color: newTag.color_hex,
-            name: newTag.display_name,
-          });
-          questionTypeMessages.push(`Created tag: ${newTag.display_name}`);
         }
       }
 

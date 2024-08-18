@@ -1,0 +1,114 @@
+'use client'
+
+import { API } from '@/app/api'
+import { useUserInfo } from '@/app/contexts/userContext'
+import { SearchOutlined } from '@ant-design/icons'
+import { Button, Col, Input, List, Pagination, Row, Space } from 'antd'
+import { useEffect, useState } from 'react'
+import useSWR, { mutate } from 'swr'
+
+interface CourseData {
+  courseId: number
+  courseName: string
+}
+
+const CoursesTable: React.FC = () => {
+  const { userInfo } = useUserInfo()
+
+  const [page, setPage] = useState(1)
+  const [input, setInput] = useState('')
+  const [search, setSearch] = useState('')
+
+  const handleInput = (event: any) => {
+    event.preventDefault()
+    setInput(event.target.value)
+  }
+
+  const handleSearch = (event: any) => {
+    event.preventDefault()
+    setSearch(event.target.value)
+    setPage(1)
+  }
+
+  useEffect(() => {
+    return () => {
+      // Clear the cache for the "CoursesTab" component
+      mutate(`courses/${page}/${search}`)
+    }
+  }, [page, search])
+
+  const { data: courses } = useSWR(
+    `courses/${page}/${search}`,
+    async () =>
+      await API.organizations.getCourses(
+        userInfo?.organization?.orgId ?? -1,
+        page,
+        search,
+      ),
+  )
+
+  return (
+    userInfo &&
+    courses && (
+      <>
+        <div className="bg-white">
+          <Row>
+            <Col sm={{ span: 18 }}>
+              <Input
+                placeholder="Search Courses"
+                prefix={<SearchOutlined />}
+                value={input}
+                onChange={handleInput}
+                onPressEnter={handleSearch}
+              />
+            </Col>
+            <Col sm={{ span: 1 }}>
+              <Space></Space>
+            </Col>
+            <Col>
+              <Button type="primary" href={`/organization/course/add`}>
+                Add New Course
+              </Button>
+            </Col>
+          </Row>
+
+          <List
+            style={{ marginTop: 20 }}
+            dataSource={courses}
+            renderItem={(item: CourseData) => (
+              <>
+                <List.Item
+                  style={{ borderBottom: '1px solid #f0f0f0', padding: 10 }}
+                  key={item.courseId}
+                  actions={[
+                    <Button
+                      key=""
+                      type="primary"
+                      href={`/organization/course/${item.courseId}/edit`}
+                    >
+                      Edit
+                    </Button>,
+                  ]}
+                >
+                  <List.Item.Meta title={item.courseName} />
+                </List.Item>
+              </>
+            )}
+          />
+        </div>
+        {courses.total > 50 && (
+          <Pagination
+            className="float-right"
+            current={page}
+            pageSize={50}
+            total={courses.total}
+            onChange={(page) => setPage(page)}
+            showSizeChanger={false}
+          />
+        )}
+      </>
+    )
+  )
+}
+
+export default CoursesTable

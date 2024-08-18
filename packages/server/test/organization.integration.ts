@@ -1343,10 +1343,32 @@ describe('Organization Integration', () => {
   });
 
   describe('GET /organization/:oid/get_logo/:photoUrl', () => {
-    it('should return 401 when user is not logged in', async () => {
-      const response = await supertest().get(`/organization/1/get_logo/1`);
+    it('should return 404 when getting an invalid organization', async () => {
+      const response = await supertest().get(`/organization/1/get_logo/999`);
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(404);
+    });
+    it('should return 200 when user is not logged in since it is public', async () => {
+      const file = Buffer.from([]);
+      const fileName = 'test.png';
+
+      await fs.writeFileSync(
+        `${process.env.UPLOAD_LOCATION}/${fileName}`,
+        file,
+      );
+
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create({
+        logoUrl: fileName,
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_logo/${organization.logoUrl}`,
+      );
+
+      expect(res.status).toBe(200);
+
+      await fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, fileName));
     });
 
     it('should return 404 when image is not found', async () => {

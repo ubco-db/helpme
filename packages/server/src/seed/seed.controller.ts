@@ -1,4 +1,4 @@
-import { OrganizationRole, Role } from '@koh/common';
+import { OrganizationRole, QueueConfig, Role } from '@koh/common';
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AlertModel } from 'alerts/alerts.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
@@ -41,6 +41,79 @@ import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { InteractionModel } from 'chatbot/interaction.entity';
 import { ChatbotQuestionModel } from 'chatbot/question.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
+
+const exampleConfig = {
+  fifo_queue_view_enabled: true,
+  tag_groups_queue_view_enabled: true,
+  default_view: 'fifo',
+  minimum_tags: 0,
+  tags: {
+    tag1: {
+      display_name: 'General',
+      color_hex: '#66FF66',
+    },
+    tag2: {
+      display_name: 'Bugs',
+      color_hex: '#66AA66',
+    },
+    tag3: {
+      display_name: 'Important',
+      color_hex: '#FF0000',
+    },
+  },
+};
+
+const exampleLabConfig = {
+  fifo_queue_view_enabled: true,
+  tag_groups_queue_view_enabled: true,
+  default_view: 'fifo',
+  minimum_tags: 1,
+  tags: {
+    tag1: {
+      display_name: 'General',
+      color_hex: '#66FF66',
+    },
+    tag2: {
+      display_name: 'Bugs',
+      color_hex: '#66AA66',
+    },
+    tag3: {
+      display_name: 'Important',
+      color_hex: '#FF0000',
+    },
+  },
+  assignment_id: 'lab1',
+  tasks: {
+    task1: {
+      display_name: 'Task 1',
+      short_display_name: '1',
+      blocking: false,
+      color_hex: '#ffedb8',
+      precondition: null,
+    },
+    task2: {
+      display_name: 'Task 2',
+      short_display_name: '2',
+      blocking: false,
+      color_hex: '#fadf8e',
+      precondition: 'task1',
+    },
+    task3: {
+      display_name: 'Task 3',
+      short_display_name: '3',
+      blocking: true,
+      color_hex: '#f7ce52',
+      precondition: 'task2',
+    },
+    task4: {
+      display_name: 'Task 4',
+      short_display_name: '4',
+      blocking: false,
+      color_hex: '#ffce52',
+      precondition: 'task3',
+    },
+  },
+};
 
 @UseGuards(NonProductionGuard)
 @Controller('seeds')
@@ -303,6 +376,7 @@ export class SeedController {
 
     const queue = await QueueFactory.create({
       room: 'Online',
+      config: exampleConfig as QueueConfig,
       course: course,
       allowQuestions: true,
     });
@@ -310,6 +384,25 @@ export class SeedController {
     const questionType = await QuestionTypeFactory.create({
       cid: course.id,
       queue: queue,
+    });
+
+    await QuestionTypeFactory.create({
+      cid: course.id,
+      queue: queue,
+      name: 'General',
+      color: '#66FF66',
+    });
+    await QuestionTypeFactory.create({
+      cid: course.id,
+      queue: queue,
+      name: 'Bugs',
+      color: '#66AA66',
+    });
+    await QuestionTypeFactory.create({
+      cid: course.id,
+      queue: queue,
+      name: 'Important',
+      color: '#FF0000',
     });
 
     await QuestionFactory.create({
@@ -334,64 +427,7 @@ export class SeedController {
       room: 'Example Lab Room',
       course: course,
       allowQuestions: true,
-      config: {
-        fifo_queue_view_enabled: true,
-        tag_groups_queue_view_enabled: true,
-        default_view: 'fifo',
-        minimum_tags: 1,
-        tags: {
-          tag1: {
-            display_name: 'General',
-            color_hex: '#66FF66',
-          },
-          tag2: {
-            display_name: 'Bugs',
-            color_hex: '#66AA66',
-          },
-          tag3: {
-            display_name: 'Important',
-            color_hex: '#FF0000',
-          },
-        },
-        assignment_id: 'lab1',
-        tasks: {
-          task1: {
-            display_name: 'Task 1',
-            short_display_name: '1',
-            blocking: false,
-            color_hex: '#ffedb8',
-            precondition: null,
-          },
-          task2: {
-            display_name: 'Task 2',
-            short_display_name: '2',
-            blocking: false,
-            color_hex: '#fadf8e',
-            precondition: 'task1',
-          },
-          task3: {
-            display_name: 'Task 3',
-            short_display_name: '3',
-            blocking: true,
-            color_hex: '#f7ce52',
-            precondition: 'task2',
-          },
-          task4: {
-            display_name: 'Task 4',
-            short_display_name: '4',
-            blocking: false,
-            color_hex: '#deb22c',
-            precondition: 'task3',
-          },
-          task5: {
-            display_name: 'Task 5',
-            short_display_name: '5',
-            blocking: false,
-            color_hex: '#d4a42c',
-            precondition: 'task4',
-          },
-        },
-      },
+      config: exampleLabConfig as QueueConfig,
     });
 
     await QuestionTypeFactory.create({
@@ -465,7 +501,7 @@ export class SeedController {
     });
 
     await QuestionFactory.create({
-      queue: professorQueue,
+      queue: queueLab,
       createdAt: new Date(Date.now() - 1500000),
       questionTypes: [questionType2],
     });

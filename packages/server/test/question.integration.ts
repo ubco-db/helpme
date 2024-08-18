@@ -960,7 +960,7 @@ describe('Question Integration', () => {
         status: QuestionStatusKeys.Resolved,
       });
     });
-    it('PATCH anything other than status as TA not allowed', async () => {
+    it('PATCH anything other than status, text, and questionTypes not allowed', async () => {
       const course = await CourseFactory.create();
       const ta = await UserFactory.create();
       await TACourseFactory.create({ course: course, user: ta });
@@ -969,15 +969,51 @@ describe('Question Integration', () => {
         text: 'Help pls',
         queue: await QueueFactory.create({ course: course, staffList: [ta] }),
       });
+      const qt = await QuestionTypeFactory.create({
+        cid: course.id,
+        queueId: q.queueId,
+      });
 
       expect(await q.queue.checkIsOpen()).toBe(true);
 
       await supertest({ userId: ta.id })
         .patch(`/questions/${q.id}`)
         .send({
-          text: 'bonjour',
+          text: 'Help please',
+        })
+        .expect(200);
+      await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          questionTypes: [{ id: qt.id }],
+        })
+        .expect(200);
+      await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          queueId: 999,
         })
         .expect(401);
+      await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          isTaskQuestion: true,
+        })
+        .expect(401);
+
+      const updatedQuestion = await QuestionModel.findOne({ id: q.id });
+      expect(updatedQuestion.text).toBe('Help please');
+      expect(updatedQuestion.isTaskQuestion).toBe(false);
+      expect(updatedQuestion.queueId).toBe(q.queueId);
+      expect(updatedQuestion.questionTypes).toEqual([
+        {
+          cid: qt.cid,
+          color: qt.color,
+          id: qt.id,
+          name: qt.name,
+          queueId: qt.queueId,
+        },
+      ]);
     });
     it('PATCH invalid state transition not allowed', async () => {
       const q = await QuestionFactory.create({ text: 'Help pls' });

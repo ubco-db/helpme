@@ -181,9 +181,9 @@ export class QuestionController {
         createdAt: new Date(),
       }).save();
 
-      const questions = await this.queueService.getQuestions(queueId);
+      const queueQuestions = await this.queueService.getQuestions(queueId);
 
-      await this.redisQueueService.setQuestions(`q:${queueId}`, questions);
+      await this.redisQueueService.setQuestions(`q:${queueId}`, queueQuestions);
 
       return question;
     } catch (err) {
@@ -300,9 +300,9 @@ export class QuestionController {
     try {
       await newQuestion.save();
 
-      const questions = await this.queueService.getQuestions(queueId);
+      const queueQuestions = await this.queueService.getQuestions(queueId);
 
-      await this.redisQueueService.setQuestions(`q:${queueId}`, questions);
+      await this.redisQueueService.setQuestions(`q:${queueId}`, queueQuestions);
 
       return newQuestion;
     } catch (err) {
@@ -385,12 +385,12 @@ export class QuestionController {
 
       try {
         await question.save();
-        const questions = await this.queueService.getQuestions(
+        const queueQuestions = await this.queueService.getQuestions(
           question.queue.id,
         );
         await this.redisQueueService.setQuestions(
           `q:${question.queue.id}`,
-          questions,
+          queueQuestions,
         );
       } catch (err) {
         console.error(err);
@@ -413,13 +413,18 @@ export class QuestionController {
       })) > 0;
 
     if (isTaOrProf) {
-      if (
-        !question.isTaskQuestion &&
-        (Object.keys(body).length !== 1 || Object.keys(body)[0] !== 'status')
-      ) {
-        throw new UnauthorizedException(
-          ERROR_MESSAGES.questionController.updateQuestion.taOnlyEditQuestionStatus,
+      if (!question.isTaskQuestion) {
+        // Staff cannot edit anything except status, questionTypes, and text
+        const allowedKeys = ['status', 'questionTypes', 'text'];
+        const bodyKeys = Object.keys(body);
+        const hasInvalidKeys = bodyKeys.some(
+          (key) => !allowedKeys.includes(key),
         );
+        if (hasInvalidKeys) {
+          throw new UnauthorizedException(
+            ERROR_MESSAGES.questionController.updateQuestion.taOnlyEditQuestionStatus,
+          );
+        }
         // When the TA is marking a task question, they can choose to mark only some of the tasks as done, which requires the TA to be able to modify the task question's text
       } else if (
         question.isTaskQuestion &&
@@ -448,8 +453,10 @@ export class QuestionController {
           );
         }
       }
-      await this.questionService.validateNotHelpingOther(body.status, userId);
-      await this.questionService.changeStatus(body.status, question, userId);
+      if (body.status) {
+        await this.questionService.validateNotHelpingOther(body.status, userId);
+        await this.questionService.changeStatus(body.status, question, userId);
+      }
       // if it's a task question, update the studentTaskProgress for the student
       if (
         question.status === ClosedQuestionStatus.Resolved &&
@@ -458,10 +465,46 @@ export class QuestionController {
         await this.questionService.markTasksDone(question, question.creatorId);
       }
 
-      const questions = await this.queueService.getQuestions(question.queue.id);
+      // if the TA is updating the questionTypes or text, update the question
+      if (body.questionTypes || body.text) {
+        if (body.text) {
+          question.text = body.text;
+        }
+        // update the questionTypes
+        if (body.questionTypes) {
+          question.questionTypes = await Promise.all(
+            body.questionTypes.map(async (type) => {
+              const questionType = await QuestionTypeModel.findOne({
+                where: {
+                  id: type.id,
+                },
+              });
+              if (!questionType) {
+                throw new BadRequestException(
+                  ERROR_MESSAGES.questionController.createQuestion.invalidQuestionType,
+                );
+              }
+              return questionType;
+            }),
+          );
+        }
+        try {
+          await question.save();
+        } catch (err) {
+          console.error(err);
+          throw new HttpException(
+            ERROR_MESSAGES.questionController.saveQError,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      }
+
+      const queueQuestions = await this.queueService.getQuestions(
+        question.queue.id,
+      );
       await this.redisQueueService.setQuestions(
         `q:${question.queue.id}`,
-        questions,
+        queueQuestions,
       );
 
       return question;

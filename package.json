@@ -10,7 +10,7 @@
     "test": "yarn workspace @koh/server test",
     "test:cov": "yarn workspace @koh/server test:cov",
     "typeorm": "yarn workspace @koh/server typeorm",
-    "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider concurrently -n \"server,app,proxy\" \"yarn workspace @koh/server dev\" \"yarn workspace @koh/app dev\" \"yarn dev:proxy\"",
+    "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider concurrently -n \"server,frontend,proxy\" \"yarn workspace @koh/server dev\" \"yarn workspace @koh/frontend dev\" \"yarn dev:proxy\"",
     "dev:proxy": "node infrastructure/dev/devProxy.js",
     "dev:db:up": "docker-compose up -d postgresql redis",
     "dev:db:down": "docker-compose -f docker-compose.yml down",
@@ -24,7 +24,7 @@
   "workspaces": {
     "packages": [
       "packages/api-client",
-      "packages/app",
+      "packages/frontend",
       "packages/common",
       "packages/server"
     ]

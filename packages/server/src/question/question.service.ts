@@ -3,7 +3,9 @@ import {
   ERROR_MESSAGES,
   LimboQuestionStatus,
   OpenQuestionStatus,
+  parseTaskIdsFromQuestionText,
   QuestionStatus,
+  QuestionTypeParams,
   Role,
   StudentAssignmentProgress,
   StudentTaskProgress,
@@ -23,6 +25,7 @@ import { UserModel } from 'profile/user.entity';
 import { QuestionModel } from './question.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
+import { QuestionTypeModel } from 'questionType/question-type.entity';
 
 @Injectable()
 export class QuestionService {
@@ -106,8 +109,7 @@ export class QuestionService {
         ERROR_MESSAGES.questionController.studentTaskProgress.notTaskQuestion,
       );
     }
-    const tasks =
-      question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || [];
+    const tasks = parseTaskIdsFromQuestionText(question.text);
     if (tasks.length === 0) {
       throw new BadRequestException(
         ERROR_MESSAGES.questionController.studentTaskProgress.taskParseError,
@@ -229,8 +231,7 @@ export class QuestionService {
       question.status !== ClosedQuestionStatus.DeletedDraft &&
       question.status !== ClosedQuestionStatus.Stale
     ) {
-      const tasks =
-        question.text.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || [];
+      const tasks = parseTaskIdsFromQuestionText(question.text);
       if (tasks.length === 0) {
         throw new BadRequestException(
           ERROR_MESSAGES.questionController.studentTaskProgress.taskParseError,

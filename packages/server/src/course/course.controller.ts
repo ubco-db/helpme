@@ -7,12 +7,14 @@ import {
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
+  QuestionStatusKeys,
   QueueConfig,
   QueuePartial,
   Role,
   TACheckinTimesResponse,
   TACheckoutResponse,
   UBCOuserParam,
+  UserTiny,
   validateQueueConfigInput,
 } from '@koh/common';
 import {
@@ -246,10 +248,14 @@ export class CourseController {
       courseInviteCode: courseWithOrganization.courseInviteCode,
     };
 
-    res.cookie('__SECURE_REDIRECT', `${id},${code}`, {
-      httpOnly: true,
-      secure: this.isSecure(),
-    });
+    res.cookie(
+      '__SECURE_REDIRECT',
+      `${id},${code}${organization ? `,${organization.id}` : ''}`,
+      {
+        httpOnly: true,
+        secure: this.isSecure(),
+      },
+    );
 
     res.status(HttpStatus.OK).send(course_response);
     return;
@@ -792,7 +798,10 @@ export class CourseController {
       return;
     }
 
-    if (course.course.courseInviteCode !== code) {
+    if (
+      course.course.courseInviteCode === null ||
+      course.course.courseInviteCode !== code
+    ) {
       res.status(HttpStatus.BAD_REQUEST).send({
         message: ERROR_MESSAGES.courseController.invalidInviteCode,
       });
@@ -976,7 +985,48 @@ export class CourseController {
     return response;
   }
 
+  @Get(':id/students_not_in_queue')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.TA, Role.PROFESSOR)
+  async getAllStudentsNotInQueue(
+    @Param('id') courseId: number,
+    @Res() res: Response,
+  ): Promise<UserTiny[]> {
+    // have to do a manual query 'cause the current version of typeORM we're using is crunked and creates syntax errors in postgres queries
+    const query = `
+    SELECT "user_model"."firstName" || ' ' || "user_model"."lastName" AS name, "user_model".id AS id
+    FROM "user_course_model"
+    LEFT JOIN "user_model" ON ("user_course_model"."userId" = "user_model".id AND "user_course_model".role = $1)
+    WHERE "user_course_model"."courseId" = $2 AND "user_model".id IS NOT NULL
+    AND NOT EXISTS (
+    SELECT 1
+    FROM "question_model"
+    WHERE "question_model"."creatorId" = "user_model".id
+    AND "question_model".status = $3
+    )
+    ORDER BY name;
+  `;
+
+    const studentsWithoutQuestions = await UserCourseModel.query(query, [
+      Role.STUDENT,
+      courseId,
+      QuestionStatusKeys.Queued,
+    ]);
+
+    res.status(200).send(studentsWithoutQuestions);
+    return studentsWithoutQuestions;
+  }
+
   private isSecure(): boolean {
     return this.configService.get<string>('DOMAIN').startsWith('https://');
+  }
+
+  @Get(':id/question_types')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async getAllQuestionTypes(
+    @Param('id') courseId: number,
+  ): Promise<QuestionTypeModel[]> {
+    return QuestionTypeModel.find({ where: { cid: courseId } });
   }
 }

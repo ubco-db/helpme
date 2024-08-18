@@ -5,6 +5,7 @@ import {
   IsDate,
   IsDefined,
   IsEnum,
+  IsHexColor,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -132,6 +133,15 @@ export class UserPartial {
 }
 
 /**
+ * A User with minimal information.
+ * Used in AddStudentsToQueueModal, can be used elsewhere.
+ */
+export type UserTiny = {
+  id: number
+  name: string
+}
+
+/**
  * Represents a partial course data needed on the front end when nested in a response.
  * @param id - The id number of this Course.
  * @param name - The subject and course number of this course. Ex: "CS 2500"
@@ -251,12 +261,12 @@ export enum OrganizationRole {
 }
 
 /**
- * A Queue that students can join with thier tickets.
+ * A Queue that students can join with their tickets.
  * @param id - The unique id number for a Queue.
  * @param course - The course that this office hours queue is for.
  * @param room - The full name of the building + room # that the current office hours queue is in.
  * @param staffList - The list of TA user's that are currently helping at office hours.
- * @param questions - The list of the students questions assocaited with the queue.
+ * @param questions - The list of the students questions associated with the queue.
  * @param startTime - The scheduled start time of this queue based on the parsed ical.
  * @param endTime - The scheduled end time of this queue.
  */
@@ -273,12 +283,13 @@ export interface Queue {
 }
 
 /**
- * A Queue partial to be shown on the today page.
+ * A Queue partial to be shown on the course page. It's like the full Queue object but without the questions.
  * @param id - The unique id number for a Queue.
  * @param room - The full name of the building + room # that the current office hours queue is in.
  * @param staffList - The list of TA user's that are currently helping at office hours.
  * @param startTime - The scheduled start time of this queue based on the parsed ical.
  * @param endTime - The scheduled end time of this queue.
+ * @param isOpen - A queue is open if it has staff and is not disabled.
  * @param config - A JSON object that contains the configuration for the queue. Contains stuff like tags, tasks, etc.
  */
 export class QueuePartial {
@@ -337,13 +348,13 @@ export class Question {
 
   text?: string
 
-  creatorId?: number
+  creatorId!: number
 
   @Type(() => UserPartial)
   taHelped?: UserPartial
 
   @Type(() => Date)
-  createdAt!: Date
+  createdAt?: Date
 
   @Type(() => Date)
   helpedAt?: Date
@@ -352,7 +363,7 @@ export class Question {
   closedAt?: Date
 
   @Type(() => QuestionTypeParams)
-  questionTypes?: QuestionTypeParams[]
+  questionTypes?: QuestionType[]
 
   status!: QuestionStatus
 
@@ -448,9 +459,31 @@ export class QuestionGroup {
 }
 
 /**
+ * This AsyncQuestion is one that is already created and not used for sending data to the server (hence why there's no decorators). Used on frontend.
+ */
+export type AsyncQuestion = {
+  id: number
+  creator: UserPartial
+  questionText?: string
+  creatorId?: number
+  taHelped?: User
+  createdAt: Date
+  questionTypes: QuestionType[]
+  status: asyncQuestionStatus
+  questionAbstract: string
+  answerText?: string
+  aiAnswerText?: string
+  closedAt?: Date
+  visible?: boolean
+  verified: boolean
+  votes?: AsyncQuestionVotes[]
+  votesSum: number
+}
+
+/**
  * An async question is created when a student wants help from a TA.
  */
-export class AsyncQuestion {
+export class AsyncQuestionParams {
   @IsOptional()
   @IsInt()
   id?: number
@@ -846,7 +879,8 @@ export class GetCourseResponse {
 
   @Type(() => OrganizationPartial)
   organizationCourse?: OrganizationPartial
-  courseInviteCode!: string
+
+  courseInviteCode!: string | null
 }
 
 export class GetLimitedCourseResponse {
@@ -895,6 +929,14 @@ export class GetOrganizationUserResponse {
   organizationRole!: string
   user!: OrganizationUser
   courses!: OrganizationCourse[]
+}
+
+export type OrganizationProfessor = {
+  organizationUser: {
+    id: number
+    name: string
+  }
+  userId: number
 }
 
 export class InteractionParams {
@@ -989,7 +1031,7 @@ export class ListQuestionsResponse {
   questionsGettingHelp!: Array<Question>
 
   @Type(() => Question)
-  queue!: Array<Question>
+  questions!: Array<Question>
 
   @Type(() => Question)
   priorityQueue!: Array<Question>
@@ -1079,9 +1121,9 @@ export class ResolveGroupParams {
   queueId!: number
 }
 
-export class CreateAsyncQuestions extends AsyncQuestion {}
+export class CreateAsyncQuestions extends AsyncQuestionParams {}
 
-export class UpdateAsyncQuestions extends AsyncQuestion {}
+export class UpdateAsyncQuestions extends AsyncQuestionParams {}
 
 export type TAUpdateStatusResponse = QueuePartial
 export type QueueNotePayloadType = {
@@ -1115,22 +1157,21 @@ export class QuestionTypeParams {
   @IsNotEmpty()
   name!: string
 
-  @IsString()
-  @IsOptional()
-  color?: string
+  @IsHexColor()
+  @IsNotEmpty()
+  color!: string
 
   @IsInt()
   @IsOptional()
-  queueId?: number
+  queueId?: number | null
 }
 
-// named QuestionTypeType to not conflict with the UI component QuestionType
-export type QuestionTypeType = {
+export type QuestionType = {
   id: number
   cid: number
   name: string
   color: string
-  queueId: number | null
+  queueId: number | null | undefined
 }
 
 export class TACheckinTimesResponse {
@@ -1327,7 +1368,7 @@ export class EditCourseInfoParams {
 
   @IsString()
   @IsOptional()
-  courseInviteCode?: string
+  courseInviteCode?: string | null
 }
 
 export class SemesterPartial {
@@ -1338,7 +1379,7 @@ export class SemesterPartial {
 
 export class SSEQueueResponse {
   queue?: GetQueueResponse
-  questions?: ListQuestionsResponse
+  queueQuestions?: ListQuestionsResponse
 }
 
 export type GetInsightOutputResponse = PossibleOutputTypes
@@ -1579,6 +1620,17 @@ export interface AllStudentAssignmentProgress {
     userDetails: UserPartial
     assignmentProgress: StudentAssignmentProgress
   }
+}
+
+/**
+ * Parses the task ids from the question text.
+ * @param questionText question text (comes in as `Mark "part1" "part2"`)
+ * @returns an array of task ids (e.g. ["part1", "part2"])
+ */
+export function parseTaskIdsFromQuestionText(
+  questionText: string | undefined,
+): string[] {
+  return questionText?.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || []
 }
 
 /**
@@ -1837,9 +1889,9 @@ export interface Task {
   taskId: string
   isDone?: boolean
   checked?: boolean
-  display_name?: string
-  short_display_name?: string
-  color_hex?: string
+  display_name: string
+  short_display_name: string
+  color_hex: string
   blocking?: boolean
   precondition?: Task | null
   [key: string]: any // Tasks can have any number of additional properties (for expandability, might remove later)
@@ -2016,7 +2068,8 @@ export const ERROR_MESSAGES = {
         bodyStatus: string,
       ): string =>
         `${role} cannot change status from ${questionStatus} to ${bodyStatus}`,
-      taOnlyEditQuestionStatus: 'TA/Professors can only edit question status',
+      taOnlyEditQuestionStatus:
+        'TA/Professors can only edit question status, text, and tags',
       otherTAHelping: 'Another TA is currently helping with this question',
       otherTAResolved: 'Another TA has already resolved this question',
       taHelpingOther: 'TA is already helping someone else',

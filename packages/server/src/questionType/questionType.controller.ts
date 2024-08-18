@@ -137,6 +137,9 @@ export class QuestionTypeController {
           const queue = await transactionalEntityManager.findOne(
             QueueModel,
             questionType.queueId,
+            {
+              lock: { mode: 'pessimistic_write' }, // this is to stop other calls from modifying the queue while we're modifying it
+            },
           );
           queue.config = queue.config || {}; // just in case it's null (It shouldn't be, but it might for old queues)
           queue.config.tags = queue.config.tags || {}; // just in case it's undefined

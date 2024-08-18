@@ -51,7 +51,7 @@ import {
   QueueConfig,
   AllStudentAssignmentProgress,
   setQueueConfigResponse,
-  QuestionTypeType,
+  QuestionType,
   StudentTaskProgressWithUser,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
@@ -361,7 +361,7 @@ class APIClient {
     getQuestionTypes: async (
       courseId: number,
       queueId: number | null,
-    ): Promise<QuestionTypeType[]> => {
+    ): Promise<QuestionType[]> => {
       try {
         return await this.req(
           'GET',
@@ -632,4 +632,4 @@ class APIClient {
   }
 }
 
-export const API = new APIClient(process.env.NEXT_PUBLIC_API_URL)
+export const depricatedAPI = new APIClient(process.env.NEXT_PUBLIC_API_URL)

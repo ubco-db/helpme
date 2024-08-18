@@ -101,7 +101,7 @@ export class LoginController {
         delete body.recaptchaToken;
         return res.status(200).send({ token, ...body });
       } else {
-        return res.status(401).json({ message: 'Invalid credentials' });
+        return res.status(401).json({ message: 'Wrong Password' });
       }
     });
   }
@@ -146,7 +146,7 @@ export class LoginController {
 
     if (cookie) {
       const decodedCookie = decodeURIComponent(cookie);
-      redirectUrl = `/course/${decodedCookie.split(',')[0]}/invite?code=${decodedCookie.split(',')[1]}`;
+      redirectUrl = `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`;
     } else {
       redirectUrl = '/courses';
     }
