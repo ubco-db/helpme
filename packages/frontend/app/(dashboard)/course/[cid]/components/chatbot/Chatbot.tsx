@@ -1,31 +1,34 @@
-import React, { useEffect, useState, useRef } from 'react'
-import { Input, Button, Card, Avatar, Spin, Tooltip, message } from 'antd'
+'use client'
+import { useEffect, useState, useRef, ReactElement, Fragment } from 'react'
+import {
+  Input,
+  Button,
+  Card,
+  Avatar,
+  Spin,
+  Tooltip,
+  message,
+  Space,
+} from 'antd'
 import {
   CheckCircleOutlined,
   UserOutlined,
   RobotOutlined,
+  CloseOutlined,
 } from '@ant-design/icons'
-import styled from 'styled-components'
-import { API } from '@koh/api-client'
-import router from 'next/router'
-import { useProfile } from '../../hooks/useProfile'
 import axios from 'axios'
-import { useCourseFeatures } from '../../hooks/useCourseFeatures'
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
+import { useUserInfo } from '@/app/contexts/userContext'
 
-const ChatbotContainer = styled.div`
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 100vw;
-  max-width: 400px;
-  z-index: 9999;
-`
+const { TextArea } = Input
 
 export interface SourceDocument {
   docName: string
   sourceLink: string
   pageNumbers: number[]
   metadata?: { type?: string }
+  // type?: string
+  // content?: string
 }
 
 interface PreDeterminedQuestion {
@@ -40,11 +43,13 @@ export interface Message {
   sourceDocuments?: SourceDocument[]
   questionId?: number
 }
+interface ChatbotProps {
+  cid: number
+}
 
-export const ChatbotComponent: React.FC = () => {
+const Chatbot: React.FC<ChatbotProps> = ({ cid }): ReactElement => {
   const [input, setInput] = useState('')
-  const { cid } = router.query
-  const profile = useProfile()
+  const { userInfo } = useUserInfo()
   const [isLoading, setIsLoading] = useState(false)
   const [_interactionId, setInteractionId] = useState<number | null>(null)
   const [preDeterminedQuestions, setPreDeterminedQuestions] = useState<
@@ -66,10 +71,10 @@ export const ChatbotComponent: React.FC = () => {
   useEffect(() => {
     axios
       .get(`/chat/${cid}/allSuggestedQuestions`, {
-        headers: { HMS_API_TOKEN: profile?.chat_token?.token },
+        headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
       })
       .then((res) => {
-        res.data.forEach((question) => {
+        res.data.forEach((question: any) => {
           setPreDeterminedQuestions((prev) => [
             ...prev,
             {
@@ -84,13 +89,13 @@ export const ChatbotComponent: React.FC = () => {
       .catch((err) => {
         console.error(err)
       })
-    if (profile && profile.chat_token) {
-      setQuestionsLeft(profile.chat_token.max_uses - profile.chat_token.used)
+    if (userInfo.chat_token) {
+      setQuestionsLeft(userInfo.chat_token.max_uses - userInfo.chat_token.used)
     }
     return () => {
       setInteractionId(null)
     }
-  }, [profile, cid])
+  }, [userInfo, cid])
 
   const query = async () => {
     try {
@@ -102,7 +107,7 @@ export const ChatbotComponent: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          HMS_API_TOKEN: profile.chat_token.token,
+          HMS_API_TOKEN: userInfo.chat_token.token,
         },
         body: JSON.stringify(data),
       })
@@ -184,10 +189,10 @@ export const ChatbotComponent: React.FC = () => {
     hasAskedQuestion.current = false
     axios
       .get(`/chat/${cid}/allSuggestedQuestions`, {
-        headers: { HMS_API_TOKEN: profile?.chat_token?.token },
+        headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
       })
       .then((res) => {
-        res.data.forEach((question) => {
+        res.data.forEach((question: any) => {
           setPreDeterminedQuestions((prev) => [
             ...prev,
             {
@@ -207,31 +212,35 @@ export const ChatbotComponent: React.FC = () => {
   }
 
   return (
-    <ChatbotContainer className="max-h-[90vh]" style={{ zIndex: 1000 }}>
+    <div className="fixed bottom-5 right-5 z-50 max-h-[90vh] w-screen max-w-[400px]">
       {isOpen ? (
         <Card
-          title="Course chatbot"
+          title="Course Chatbot"
+          classNames={{
+            header: 'pr-3',
+            body: 'px-4 pb-4',
+          }}
           extra={
             <>
-              <Button
-                onClick={resetChat}
-                type="danger"
-                style={{ marginRight: 10 }}
-              >
+              <Button onClick={resetChat} danger type="link" className="mr-3">
                 Reset Chat
               </Button>
-              <a onClick={() => setIsOpen(false)}>Close</a>
+              <Button
+                onClick={() => setIsOpen(false)}
+                type="text"
+                icon={<CloseOutlined />}
+              />
             </>
           }
         >
           <div className="max-h-[70vh] overflow-y-auto">
             {messages &&
               messages.map((item, index) => (
-                <React.Fragment key={index}>
+                <Fragment key={index}>
                   {item.type === 'userMessage' ? (
                     <div className="align-items-start m-1 mb-3 flex justify-end">
                       <div className="mr-2 max-w-[300px] rounded-xl bg-blue-900 px-3 py-2 text-white">
-                        {item.message}
+                        {item.message ?? ''}
                       </div>
                       <Avatar size="small" icon={<UserOutlined />} />
                     </div>
@@ -245,7 +254,7 @@ export const ChatbotComponent: React.FC = () => {
                               item.verified ? 'bg-green-100' : 'bg-slate-100'
                             }`}
                           >
-                            {item.message}
+                            {item.message ?? ''}
                             {item.verified && (
                               <Tooltip title="A similar question has been asked before, and the answer has been verified by a faculty member">
                                 <CheckCircleOutlined
@@ -304,7 +313,7 @@ export const ChatbotComponent: React.FC = () => {
                       </div>
                     </div>
                   )}
-                </React.Fragment>
+                </Fragment>
               ))}
 
             {preDeterminedQuestions &&
@@ -337,26 +346,27 @@ export const ChatbotComponent: React.FC = () => {
             )}
             <div ref={messagesEndRef} />
           </div>
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask something..."
-            onPressEnter={input.trim().length > 0 ? handleAsk : undefined}
-            suffix={
-              <Button
-                type="primary"
-                className="bg-blue-900"
-                onClick={handleAsk}
-                disabled={input.trim().length == 0 || isLoading}
-              >
-                Ask
-              </Button>
-            }
-          />
+          <Space.Compact block size="large">
+            <TextArea
+              autoSize={{ minRows: 1.35, maxRows: 20 }}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="rounded-r-none"
+              placeholder="Ask something..."
+              onPressEnter={input.trim().length > 0 ? handleAsk : undefined}
+            />
+            <Button
+              type="primary"
+              onClick={handleAsk}
+              disabled={input.trim().length == 0 || isLoading}
+            >
+              Ask
+            </Button>
+          </Space.Compact>
 
-          {profile && profile.chat_token && (
+          {userInfo.chat_token && (
             <Card.Meta
-              description={`You can ask chatbot ${questionsLeft} more question(s)`}
+              description={`You can ask the chatbot ${questionsLeft} more question${questionsLeft > 1 ? 's' : ''} today`}
               className="mt-3"
             />
           )}
@@ -366,12 +376,14 @@ export const ChatbotComponent: React.FC = () => {
           type="primary"
           icon={<RobotOutlined />}
           size="large"
-          className="mx-5"
+          className="mx-5 rounded-sm"
           onClick={() => setIsOpen(true)}
         >
           Chat now!
         </Button>
       )}
-    </ChatbotContainer>
+    </div>
   )
 }
+
+export default Chatbot

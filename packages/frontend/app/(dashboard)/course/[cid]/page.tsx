@@ -2,7 +2,7 @@
 
 import { Role } from '@koh/common'
 import { Col, Row, Button } from 'antd'
-import { ReactElement, useMemo, useState } from 'react'
+import { ReactElement, useEffect, useMemo, useState } from 'react'
 // import { ChatbotToday } from '../../../components/Today/ChatbotToday'
 import QueueCard from './components/QueueCard'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
@@ -17,6 +17,7 @@ import PopularTimes from './components/popularTimes/PopularTimes'
 import { arrayRotate, collapseHeatmap } from './utils/popularTimesFunctions'
 import moment from 'moment'
 import { sortQueues } from './utils/commonCourseFunctions'
+import { useChatbotContext } from './components/chatbot/ChatbotProvider'
 
 type CoursePageProps = {
   params: { cid: string }
@@ -28,6 +29,15 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
   const role = getRoleInCourse(userInfo, cid)
   const { course } = useCourse(cid)
   const [createQueueModalOpen, setCreateQueueModalOpen] = useState(false)
+  // chatbot
+  const { setCid, setActive } = useChatbotContext()
+  useEffect(() => {
+    setCid(cid)
+  }, [cid, setCid])
+  useEffect(() => {
+    setActive(true)
+    return () => setActive(false) // make the chatbot inactive when the user leaves the page
+  }, [setActive])
 
   const courseFeatures = useCourseFeatures(cid)
   const onlyChatBotEnabled = useMemo(
