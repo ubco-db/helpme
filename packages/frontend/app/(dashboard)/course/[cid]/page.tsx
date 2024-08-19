@@ -187,7 +187,20 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
         )) || (
           // only show if only the chatbot is enabled
           <div className="mt-3 flex h-[100vh] flex-col items-center justify-items-end">
-            {/* <Chatbot cid={cid} variant='huge' /> */}
+            <Chatbot
+              key={cid}
+              cid={cid}
+              variant="huge"
+              preDeterminedQuestions={preDeterminedQuestions}
+              setPreDeterminedQuestions={setPreDeterminedQuestions}
+              questionsLeft={questionsLeft}
+              setQuestionsLeft={setQuestionsLeft}
+              messages={messages}
+              setMessages={setMessages}
+              isOpen={true}
+              /* eslint-disable-next-line @typescript-eslint/no-empty-function */
+              setIsOpen={() => {}}
+            />
           </div>
         )}
       </>

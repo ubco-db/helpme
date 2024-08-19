@@ -59,7 +59,7 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
   children,
 }) => {
   const [cid, setCid] = useState<number | null>(null)
-  const [rendersmallchatbot, setRenderSmallChatbot] = useState(false)
+  const [renderSmallChatbot, setRenderSmallChatbot] = useState(false)
 
   // Chatbot states
   const [preDeterminedQuestions, setPreDeterminedQuestions] = useState<
@@ -85,6 +85,7 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
           'Hello, how can I assist you? I can help with anything course related.',
       },
     ])
+    setIsOpen(false)
   }, [cid])
 
   const values = {
@@ -102,7 +103,7 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
   return (
     <chatbotContext.Provider value={values}>
       {children}
-      {rendersmallchatbot && cid && (
+      {renderSmallChatbot && cid && (
         <Chatbot
           key={cid}
           cid={cid}

@@ -80,7 +80,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
   setIsOpen,
 }): ReactElement => {
   const [input, setInput] = useState('')
-  const { userInfo } = useUserInfo()
+  const { userInfo, setUserInfo } = useUserInfo()
   const [isLoading, setIsLoading] = useState(false)
   const [_interactionId, setInteractionId] = useState<number | null>(null)
   const courseFeatures = useCourseFeatures(cid)
@@ -135,11 +135,25 @@ const Chatbot: React.FC<ChatbotProps> = ({
       const json = await response.json()
       if (questionsLeft > 0) {
         setQuestionsLeft(questionsLeft - 1)
+        setUserInfo({
+          ...userInfo,
+          chat_token: {
+            ...userInfo.chat_token,
+            used: userInfo.chat_token.used + 1,
+          },
+        })
       }
       return json
     } catch (error) {
       if (questionsLeft > 0) {
         setQuestionsLeft(questionsLeft - 1)
+        setUserInfo({
+          ...userInfo,
+          chat_token: {
+            ...userInfo.chat_token,
+            used: userInfo.chat_token.used + 1,
+          },
+        })
       }
       return null
     }
@@ -239,7 +253,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
             : variant === 'big'
               ? 'flex h-[80vh] w-[90%] flex-col overflow-auto'
               : variant === 'huge'
-                ? 'flex h-[80vh] w-[90%] flex-col overflow-auto'
+                ? 'flex h-[90vh] w-[90%] flex-col overflow-auto'
                 : '',
         )}
       >
