@@ -11,10 +11,7 @@ import Chatbot, { Message, PreDeterminedQuestion } from './Chatbot'
 
 interface ChatbotContextType {
   setCid: React.Dispatch<React.SetStateAction<number | null>>
-  setActive: React.Dispatch<React.SetStateAction<boolean>>
-  setChatbotVariant: React.Dispatch<
-    React.SetStateAction<'small' | 'big' | 'huge'>
-  >
+  setRenderSmallChatbot: React.Dispatch<React.SetStateAction<boolean>>
   preDetermineQuestions?: PreDeterminedQuestion[]
   setPreDeterminedQuestions?: React.Dispatch<
     React.SetStateAction<PreDeterminedQuestion[]>
@@ -29,8 +26,7 @@ interface ChatbotContextType {
 
 const chatbotContext = createContext<ChatbotContextType>({
   setCid: () => {},
-  setActive: () => {},
-  setChatbotVariant: () => {},
+  setRenderSmallChatbot: () => {},
   preDetermineQuestions: [],
   setPreDeterminedQuestions: () => {},
   questionsLeft: 0,
@@ -63,10 +59,7 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
   children,
 }) => {
   const [cid, setCid] = useState<number | null>(null)
-  const [active, setActive] = useState(false)
-  const [variant, setChatbotVariant] = useState<'small' | 'big' | 'huge'>(
-    'small',
-  )
+  const [rendersmallchatbot, setRenderSmallChatbot] = useState(false)
 
   // Chatbot states
   const [preDeterminedQuestions, setPreDeterminedQuestions] = useState<
@@ -80,7 +73,7 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
         'Hello, how can I assist you? I can help with anything course related.',
     },
   ])
-  const [isOpen, setIsOpen] = useState(variant === 'small' ? false : true)
+  const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
     // reset chatbot states when course changes
@@ -96,8 +89,7 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
 
   const values = {
     setCid,
-    setActive,
-    setChatbotVariant,
+    setRenderSmallChatbot,
     preDeterminedQuestions,
     setPreDeterminedQuestions,
     questionsLeft,
@@ -110,11 +102,11 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
   return (
     <chatbotContext.Provider value={values}>
       {children}
-      {active && cid && (
+      {rendersmallchatbot && cid && (
         <Chatbot
           key={cid}
           cid={cid}
-          variant={variant}
+          variant="small"
           preDeterminedQuestions={preDeterminedQuestions}
           setPreDeterminedQuestions={setPreDeterminedQuestions}
           questionsLeft={questionsLeft}

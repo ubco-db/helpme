@@ -40,7 +40,7 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
   // chatbot
   const {
     setCid,
-    setActive,
+    setRenderSmallChatbot,
     setChatbotVariant,
     preDeterminedQuestions,
     setPreDeterminedQuestions,
@@ -54,13 +54,8 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
   }, [cid, setCid])
   useEffect(() => {
     // TODO: replace this with the new courseFeature to show the schedule on the course page
-    // setChatbotVariant('big')
-    setActive(false)
-    return () => {
-      // setActive(false) // make the chatbot inactive when the user leaves the page
-      // setChatbotVariant('small')
-    }
-  }, [setActive, setChatbotVariant])
+    setRenderSmallChatbot(false)
+  }, [setRenderSmallChatbot, setChatbotVariant])
 
   const sortedQueues = useMemo(() => {
     if (!course?.queues) return []
@@ -175,7 +170,7 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                 <Chatbot
                   key={cid}
                   cid={cid}
-                  variant={'big'}
+                  variant="big"
                   preDeterminedQuestions={preDeterminedQuestions}
                   setPreDeterminedQuestions={setPreDeterminedQuestions}
                   questionsLeft={questionsLeft}

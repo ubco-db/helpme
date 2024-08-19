@@ -50,14 +50,14 @@ export default function AsyncCentrePage({
     useState(false)
   const [questionTypes] = useQuestionTypes(courseId, null)
   // chatbot
-  const { setCid, setActive } = useChatbotContext()
+  const { setCid, setRenderSmallChatbot } = useChatbotContext()
   useEffect(() => {
     setCid(courseId)
   }, [courseId, setCid])
   useEffect(() => {
-    setActive(true)
-    return () => setActive(false) // make the chatbot inactive when the user leaves the page
-  }, [setActive])
+    setRenderSmallChatbot(true)
+    return () => setRenderSmallChatbot(false) // make the chatbot inactive when the user leaves the page
+  }, [setRenderSmallChatbot])
 
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'verified' | 'unverified'

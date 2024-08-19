@@ -83,19 +83,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const { userInfo } = useUserInfo()
   const [isLoading, setIsLoading] = useState(false)
   const [_interactionId, setInteractionId] = useState<number | null>(null)
-  // const [preDeterminedQuestions, setPreDeterminedQuestions] = useState< //this
-  //   PreDeterminedQuestion[]
-  // >([])
-  // const [questionsLeft, setQuestionsLeft] = useState<number>(0) // this
-  // const [messages, setMessages] = useState<Message[]>([
-  //   {
-  //     type: 'apiMessage',
-  //     message:
-  //       'Hello, how can I assist you? I can help with anything course related.',
-  //   },
-  // ])
   const courseFeatures = useCourseFeatures(cid)
-  // const [isOpen, setIsOpen] = useState(variant === 'small' ? false : true) //this
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
 
@@ -206,7 +194,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
   // const scrollToBottom = () => {
   //   messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   // }
-
   // useEffect(() => {
   //   scrollToBottom()
   // }, [messages])
