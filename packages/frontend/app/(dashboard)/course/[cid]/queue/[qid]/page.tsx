@@ -126,14 +126,14 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   )
 
   // chatbot
-  const { setCid, setActive } = useChatbotContext()
+  const { setCid, setActive, setChatbotVariant } = useChatbotContext()
   useEffect(() => {
     setCid(cid)
   }, [cid, setCid])
   useEffect(() => {
     setActive(true)
     return () => setActive(false) // make the chatbot inactive when the user leaves the page
-  }, [setActive])
+  }, [setActive, setChatbotVariant])
 
   const [openTagGroups, setOpenTagGroups] = useState<string[]>([])
   const tagGroupsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null) // need to keep track of timeouts so that old timeouts won't keep running when the user starts a new timeout (to prevent flickering when a tag group is spammed open/closed, UX thing)
