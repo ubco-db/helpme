@@ -1,16 +1,20 @@
-import { Button, Form, Input, Modal, Table } from 'antd'
-import React, { ReactElement, useEffect, useState } from 'react'
-import toast from 'react-hot-toast'
-import ExpandableText from '../common/ExpandableText'
-import { useProfile } from '../../hooks/useProfile'
-import AddQuestionModal from './ChatbotSettingModals/AddQuestionModal'
-import EditQuestionModal from './ChatbotSettingModals/EditQuestionModal'
+'use client'
+
+import { Button, Divider, Input, message, Modal, Table } from 'antd'
+import React, { ReactElement, useCallback, useEffect, useState } from 'react'
+import ExpandableText from '@/app/components/ExpandableText'
+import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useUserInfo } from '@/app/contexts/userContext'
+import EditChatbotQuestionModal from './components/EditChatbotQuestionModal'
+import { DeleteOutlined } from '@ant-design/icons'
+import Highlighter from 'react-highlight-words'
+import AddChatbotQuestionModal from './components/AddChatbotQuestionModal'
 
 interface Loc {
   pageNumber: number
 }
 
-interface SourceDocument {
+export interface SourceDocument {
   id?: string
   metadata?: {
     loc?: Loc
@@ -20,8 +24,13 @@ interface SourceDocument {
     courseId?: string
   }
   type?: string
+  // TODO: is it content or pageContent? since this file uses both
   content: string
+  pageContent: string
   docName: string
+  docId?: string // no idea if this exists in the actual data
+  pageNumbers?: number[] // same with this, but this might only be for the edit question modal
+  pageNumbersString?: string // same with this, but this might only be for the edit question modal
   sourceLink?: string
   pageNumber?: number
 }
@@ -38,7 +47,8 @@ interface IncomingQuestionData {
   }
 }
 
-interface ChatbotQuestion {
+export interface ChatbotQuestion {
+  id: string
   question: string
   answer: string
   verified: boolean
@@ -47,67 +57,90 @@ interface ChatbotQuestion {
 }
 
 type ChatbotQuestionsProps = {
-  courseId: number
+  params: { cid: string }
 }
 
 export default function ChatbotQuestions({
-  courseId,
+  params,
 }: ChatbotQuestionsProps): ReactElement {
-  const [form] = Form.useForm()
+  const courseId = Number(params.cid)
   const [addModelOpen, setAddModelOpen] = useState(false)
-  const profile = useProfile()
+  const { userInfo } = useUserInfo()
   const [search, setSearch] = useState('')
-  const [editingRecord, setEditingRecord] = useState(null)
+  const [editingRecord, setEditingRecord] = useState<ChatbotQuestion | null>(
+    null,
+  )
   const [filteredQuestions, setFilteredQuestions] = useState<ChatbotQuestion[]>(
     [],
   )
-  const [editRecordModalVisible, setEditRecordModalVisible] = useState(false)
+  const [editRecordModalOpen, setEditRecordModalOpen] = useState(false)
   const [chatQuestions, setChatQuestions] = useState<ChatbotQuestion[]>([])
   const [existingDocuments, setExistingDocuments] = useState([])
 
   useEffect(() => {
-    if (courseId) {
-      fetch(`/chat/${courseId}/aggregateDocuments`, {
-        headers: { HMS_API_TOKEN: profile.chat_token.token },
+    fetch(`/chat/${courseId}/aggregateDocuments`, {
+      headers: { HMS_API_TOKEN: userInfo.chat_token.token },
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        // Convert the json to the expected format
+        const formattedDocuments = json.map((doc: SourceDocument) => ({
+          docId: doc.id,
+          docName: doc.pageContent,
+          sourceLink: doc.metadata?.source || '', // Handle the optional source field
+          pageNumbers: doc.metadata?.loc ? [doc.metadata.loc.pageNumber] : [], // Handle the optional loc field
+        }))
+        setExistingDocuments(formattedDocuments)
       })
-        .then((res) => res.json())
-        .then((json) => {
-          // Convert the json to the expected format
-          const formattedDocuments = json.map((doc) => ({
-            docId: doc.id,
-            docName: doc.pageContent,
-            sourceLink: doc.metadata?.source || '', // Handle the optional source field
-            pageNumbers: doc.metadata?.loc ? [doc.metadata.loc.pageNumber] : [], // Handle the optional loc field
-          }))
-          setExistingDocuments(formattedDocuments)
-        })
-    }
+  }, [userInfo.chat_token.token, courseId])
+
+  useEffect(() => {
     const filtered = chatQuestions.filter((q) =>
       q.question.toLowerCase().includes(search.toLowerCase()),
     )
     setFilteredQuestions(filtered)
-  }, [addModelOpen, courseId, profile?.chat_token.token, search, chatQuestions])
+  }, [search, chatQuestions])
 
-  const columns = [
+  const columns: any[] = [
     {
       title: 'Question',
       dataIndex: 'question',
       key: 'question',
-      sorter: (a, b) => a.question.localeCompare(b.question),
+      sorter: (a: ChatbotQuestion, b: ChatbotQuestion) => {
+        const A = a.question || ''
+        const B = b.question || ''
+        return A.localeCompare(B)
+      },
+      render: (text: string) => (
+        <ExpandableText maxRows={3}>
+          <Highlighter
+            highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+            searchWords={[search]}
+            autoEscape
+            textToHighlight={text ? text.toString() : ''}
+          />
+        </ExpandableText>
+      ),
     },
     {
       title: 'Answer',
       dataIndex: 'answer',
       key: 'answer',
       width: 600,
-      sorter: (a, b) => a.answer.localeCompare(b.answer),
-      render: (text) => <ExpandableText text={text} />,
+      sorter: (a: ChatbotQuestion, b: ChatbotQuestion) => {
+        const A = a.answer || ''
+        const B = b.answer || ''
+        return A.localeCompare(B)
+      },
+      render: (text: string) => (
+        <ExpandableText maxRows={3}>{text}</ExpandableText>
+      ),
     },
     {
       title: 'Source Documents',
       dataIndex: 'sourceDocuments',
       key: 'sourceDocuments',
-      render: (sourceDocuments) => {
+      render: (sourceDocuments: SourceDocument[]) => {
         return (
           <div className="flex flex-col gap-1">
             {sourceDocuments.map((doc, index) => (
@@ -153,13 +186,18 @@ export default function ChatbotQuestions({
       title: 'Verified',
       dataIndex: 'verified',
       key: 'verified',
-      sorter: (a, b) => a.verified - b.verified,
+      sorter: (a: ChatbotQuestion, b: ChatbotQuestion) => {
+        const A = a.verified ? 1 : 0
+        const B = b.verified ? 1 : 0
+        return B - A
+      },
       filters: [
         { text: 'Verified', value: true },
         { text: 'Not Verified', value: false },
       ],
-      onFilter: (value, record) => record.verified === value,
-      render: (verified) => (
+      onFilter: (value: boolean, record: ChatbotQuestion) =>
+        record.verified === value,
+      render: (verified: boolean) => (
         <span
           className={`rounded px-2 py-1 ${verified ? 'bg-green-100' : 'bg-red-100'}`}
         >
@@ -171,13 +209,18 @@ export default function ChatbotQuestions({
       title: 'Suggested',
       dataIndex: 'suggested',
       key: 'suggested',
-      sorter: (a, b) => a.suggested - b.suggested,
+      sorter: (a: ChatbotQuestion, b: ChatbotQuestion) => {
+        const A = a.suggested ? 1 : 0
+        const B = b.suggested ? 1 : 0
+        return B - A
+      },
       filters: [
         { text: 'Suggested', value: true },
         { text: 'Not Suggested', value: false },
       ],
-      onFilter: (value, record) => record.suggested === value,
-      render: (suggested) => (
+      onFilter: (value: boolean, record: ChatbotQuestion) =>
+        record.suggested === value,
+      render: (suggested: boolean) => (
         <span
           className={`rounded px-2 py-1 ${suggested ? 'bg-green-100' : 'bg-red-100'}`}
         >
@@ -188,16 +231,12 @@ export default function ChatbotQuestions({
     {
       title: 'Actions',
       key: 'actions',
-      width: 150,
-      render: (_, record) => (
-        <div>
+      width: 100,
+      render: (_: any, record: ChatbotQuestion) => (
+        <div className="flex gap-2">
+          <Button onClick={() => showEditModal(record)}>Edit</Button>
           <Button
-            style={{ marginBottom: '8px' }}
-            onClick={() => showEditModal(record)}
-          >
-            Edit
-          </Button>
-          <Button
+            icon={<DeleteOutlined />}
             danger
             onClick={() => {
               Modal.confirm({
@@ -211,35 +250,30 @@ export default function ChatbotQuestions({
                 },
               })
             }}
-          >
-            Delete
-          </Button>
+          />
         </div>
       ),
     },
   ]
 
-  useEffect(() => {
-    getQuestions()
-  }, [editingRecord, getQuestions])
-
-  const showEditModal = (record) => {
+  const showEditModal = (record: ChatbotQuestion) => {
     setEditingRecord(record)
-    setEditRecordModalVisible(true)
+    setEditRecordModalOpen(true)
   }
 
-  const getQuestions = async () => {
+  const getQuestions = useCallback(async () => {
     try {
       const response = await fetch(`/chat/${courseId}/allQuestions`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          HMS_API_TOKEN: profile.chat_token.token,
+          HMS_API_TOKEN: userInfo.chat_token.token,
         },
       })
 
       if (!response.ok) {
-        throw new Error('Network response was not ok')
+        const errorMessage = getErrorMessage(response)
+        throw new Error(errorMessage)
       }
       const data: IncomingQuestionData[] = await response.json() // Assuming the response is an array of questions
       // Parse the data into the expected format
@@ -255,45 +289,59 @@ export default function ChatbotQuestions({
       setChatQuestions(parsedQuestions)
       setFilteredQuestions(parsedQuestions)
     } catch (e) {
-      console.error('Failed to fetch questions:', e)
-      toast.error('Failed to load questions.')
+      const errorMessage = getErrorMessage(e)
+      message.error('Failed to fetch questions:' + errorMessage)
     }
-  }
+  }, [])
 
-  const deleteQuestion = async (questionId) => {
+  useEffect(() => {
+    getQuestions()
+  }, [editingRecord, getQuestions])
+
+  const deleteQuestion = async (questionId: string) => {
     try {
       await fetch(`/chat/${courseId}/question/${questionId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          HMS_API_TOKEN: profile.chat_token.token,
+          HMS_API_TOKEN: userInfo.chat_token.token,
         },
       })
 
       getQuestions()
-      toast.success('Question deleted.')
+      message.success('Question successfully deleted')
     } catch (e) {
-      toast.error('Failed to delete question.')
+      message.error('Failed to delete question.')
     }
   }
 
   return (
-    <div className="m-auto my-5 max-w-[1000px]">
-      <AddQuestionModal
-        visible={addModelOpen}
-        onClose={() => setAddModelOpen(false)}
+    <div className="md:mr-2">
+      <AddChatbotQuestionModal
+        open={addModelOpen}
         courseId={courseId}
         existingDocuments={existingDocuments}
-        getQuestions={getQuestions}
+        onCancel={() => setAddModelOpen(false)}
+        onAddSuccess={() => {
+          getQuestions()
+          setAddModelOpen(false)
+        }}
       />
-      <EditQuestionModal
-        visible={editRecordModalVisible}
-        setEditingRecord={setEditRecordModalVisible}
-        editingRecord={editingRecord}
-        onSuccessfulUpdate={getQuestions}
-      />
+      {editingRecord && (
+        <EditChatbotQuestionModal
+          open={editRecordModalOpen}
+          cid={courseId}
+          profile={userInfo}
+          editingRecord={editingRecord}
+          onCancel={() => setEditRecordModalOpen(false)}
+          onSuccessfulUpdate={() => {
+            getQuestions()
+            setEditRecordModalOpen(false)
+          }}
+        />
+      )}
       <div className="flex w-full items-center justify-between">
-        <div className="">
+        <div className="flex-1">
           <h3 className="m-0 p-0 text-4xl font-bold text-gray-900">
             View Chatbot Questions
           </h3>
@@ -301,23 +349,27 @@ export default function ChatbotQuestions({
             View and manage the questions being asked of your chatbot
           </p>
         </div>
-        <Button onClick={() => setAddModelOpen(true)}>Add Question</Button>
+        <Input
+          className="flex-1"
+          placeholder={'Search question...'}
+          value={search}
+          onChange={(e) => {
+            e.preventDefault()
+            setSearch(e.target.value)
+          }}
+          onPressEnter={getQuestions}
+        />
+        <Button className="m-2" onClick={() => setAddModelOpen(true)}>
+          Add Question
+        </Button>
       </div>
-      <hr className="my-5 w-full"></hr>
-      <Input
-        placeholder={'Search question...'}
-        value={search}
-        onChange={(e) => {
-          e.preventDefault()
-          setSearch(e.target.value)
-        }}
-        onPressEnter={getQuestions}
-      />
+      <Divider className="my-3" />
       <Table
         columns={columns}
+        bordered
+        size="small"
         dataSource={filteredQuestions}
-        style={{ maxWidth: '1000px' }}
-        pagination={{ pageSize: 7 }}
+        pagination={{ pageSize: 10 }}
       />
     </div>
   )

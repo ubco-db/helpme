@@ -497,6 +497,7 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
         rowClassName="editable-row"
         pagination={{
           onChange: cancelEdit,
+          pageSize: 20,
         }}
       />
     </Form>

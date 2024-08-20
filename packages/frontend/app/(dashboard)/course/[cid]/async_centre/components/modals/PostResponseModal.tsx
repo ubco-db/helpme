@@ -67,7 +67,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
-        message.error('Error posting response:', errorMessage)
+        message.error('Error posting response:' + errorMessage)
       })
       .finally(() => {
         setIsLoading(false)

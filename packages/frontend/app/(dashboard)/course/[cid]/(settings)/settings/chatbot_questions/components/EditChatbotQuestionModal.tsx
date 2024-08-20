@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Modal,
   Form,
@@ -8,64 +8,121 @@ import {
   Collapse,
   Select,
   message,
+  Tooltip,
 } from 'antd'
-import router from 'next/router'
 import axios from 'axios'
-import { useProfile } from '../../../hooks/useProfile'
-const { Panel } = Collapse
+import { User } from '@koh/common'
+import { ChatbotQuestion, SourceDocument } from '../page'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
-interface EditChatbotQuestionModalProps {
-  editingRecord: any
-  visible: boolean
-  setEditingRecord: (record: any) => void
-  onSuccessfulUpdate: () => void
+interface FormValues {
+  question: string
+  answer: string
+  verified: boolean
+  suggested: boolean
+  sourceDocuments: SourceDocument[]
 }
 
-const EditQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
+interface EditChatbotQuestionModalProps {
+  open: boolean
+  editingRecord: ChatbotQuestion
+  onCancel: () => void
+  onSuccessfulUpdate: () => void
+  cid: number
+  profile: User
+}
+
+const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
+  open,
   editingRecord,
-  visible,
-  setEditingRecord,
+  onCancel,
   onSuccessfulUpdate,
+  cid,
+  profile,
 }) => {
   const [form] = Form.useForm()
-  const { cid } = router.query
-  const profile = useProfile()
-  const chatbotToken = profile?.chat_token?.token
+  const chatbotToken = profile.chat_token.token
+
   // stores all related documents in db
-  const [existingDocuments, setExistingDocuments] = useState([])
+  const [existingDocuments, setExistingDocuments] = useState<SourceDocument[]>(
+    [],
+  )
   // stores selected documents for the question
-  const [selectedDocuments, setSelectedDocuments] = useState([])
+  const [selectedDocuments, setSelectedDocuments] = useState<SourceDocument[]>(
+    [],
+  )
 
   useEffect(() => {
-    fetch(`/chat/${cid}/aggregateDocuments`, {
-      headers: { HMS_API_TOKEN: chatbotToken },
-    })
-      .then((res) => res.json())
-      .then((json) => {
-        // Convert the json to the expected format
-        const formattedDocuments = json.map((doc) => ({
-          docId: doc.id,
-          docName: doc.pageContent,
-          sourceLink: doc.metadata.source,
-          pageNumbers: [],
-        }))
-        setExistingDocuments(formattedDocuments)
+    if (open) {
+      fetch(`/chat/${cid}/aggregateDocuments`, {
+        headers: { HMS_API_TOKEN: chatbotToken },
       })
-  }, [cid, visible, chatbotToken])
-
-  useEffect(() => {
-    // Reset form with new editing record when visible or editingRecord changes
-    if (visible && editingRecord) {
-      form.resetFields()
-      form.setFieldsValue(editingRecord)
+        .then((res) => res.json())
+        .then((json) => {
+          // Convert the json to the expected format
+          const formattedDocuments = json.map((doc: SourceDocument) => ({
+            docId: doc.id,
+            docName: doc.pageContent,
+            sourceLink: doc.metadata?.source,
+            pageNumbers: [],
+          }))
+          setExistingDocuments(formattedDocuments)
+        })
     }
-  }, [editingRecord, visible, form])
+  }, [cid, open, chatbotToken])
 
-  const onFormSubmit = async (values) => {
+  const handleOkInsert = async () => {
+    const values = await form.validateFields()
+    await axios
+      .post(
+        `/chat/${cid}/documentChunk`,
+        {
+          documentText: values.question + '\n' + values.answer,
+          metadata: {
+            name: 'inserted Q&A',
+            type: 'inserted_question',
+            id: editingRecord.id,
+            courseId: cid,
+          },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            HMS_API_TOKEN: chatbotToken,
+          },
+        },
+      )
+      .then((res) => {
+        if (res.status !== 200 && res.status !== 201) {
+          const errorMessage = getErrorMessage(res)
+          message.error('Insert unsuccessful:' + errorMessage)
+        } else {
+          message.success(
+            'Document inserted successfully. You can now cancel or save the changes you made to the Q&A',
+            6,
+          )
+        }
+      })
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to insert document:' + errorMessage)
+      })
+  }
+  const confirmInsert = () => {
+    Modal.confirm({
+      title:
+        'Are you sure you want to insert this Question and Answer into the DocumentStore?',
+      content:
+        'This will treat this question and answer as a source that the AI can then reference and cite in future questions. \nOnce inserted, this action cannot be undone.',
+      onOk: handleOkInsert,
+    })
+  }
+
+  const onFinish = async (values: FormValues) => {
     values.sourceDocuments.forEach((doc) => {
-      if (typeof doc.pageNumbers === 'string') {
-        // Convert string to array of numbers, trimming spaces and ignoring empty entries
-        doc.pageNumbers = doc.pageNumbers
+      // Convert string to array of numbers, trimming spaces and ignoring empty entries
+      if (doc.pageNumbersString) {
+        doc.pageNumbers = doc.pageNumbersString
           .split(',')
           .map((page) => page.trim())
           .filter((page) => page !== '')
@@ -94,219 +151,207 @@ const EditQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         body: JSON.stringify(valuesWithId),
       })
       if (!response.ok) {
-        throw new Error('Network response was not ok')
+        const errorMessage = getErrorMessage(response)
+        console.error('Save unsuccessful:' + errorMessage)
       } else {
         message.success('Question updated successfully')
+        onSuccessfulUpdate()
       }
-      onSuccessfulUpdate()
     } catch (error) {
-      console.error('Error fetching from API:', error)
-      return null
-    } finally {
-      setEditingRecord(null)
+      const errorMessage = getErrorMessage(error)
+      console.error('Error saving question:' + errorMessage)
     }
   }
 
-  const handleOk = async () => {
-    try {
-      const values = await form.validateFields()
-      const response = await axios.post(
-        `/chat/${cid}/documentChunk`,
-        {
-          documentText: values.question + '\n' + values.answer,
-          metadata: {
-            name: 'inserted Q&A',
-            type: 'inserted_question',
-            id: editingRecord.id,
-            courseId: cid,
-          },
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: chatbotToken,
-          },
-        },
-      )
-
-      if (response.status !== 200) {
-        throw new Error('Network response was not ok')
-      }
-      setEditingRecord(null)
-      message.success('Document updated successfully.')
-    } catch (e) {
-      message.error('Failed to update document.')
-    }
-  }
-  const confirmInsert = () => {
-    Modal.confirm({
-      title: 'Are you sure you want to insert this QA into DocumentStore?',
-      content: 'Once inserted, this action cannot be undone.',
-      onOk: handleOk,
-      onCancel() {
-        console.log('Insert cancelled')
-      },
-    })
-  }
   return (
     <Modal
-      title="Edit Question"
-      open={visible}
-      onCancel={() => {
-        setEditingRecord(null)
-        form.resetFields()
+      open={open}
+      title="Edit Chatbot Question"
+      okText="Save Changes"
+      cancelText="Cancel"
+      okButtonProps={{
+        autoFocus: true,
+        htmlType: 'submit',
       }}
-      footer={null}
-    >
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={onFormSubmit}
-        initialValues={editingRecord}
-      >
-        <Form.Item
-          name="question"
-          label="Question"
-          rules={[{ required: true }]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item name="answer" label="Answer" rules={[{ required: true }]}>
-          <Input.TextArea rows={8} />
-        </Form.Item>
-        <Form.Item name="verified" valuePropName="checked">
-          <Checkbox>Mark Q&A as Verified by Human</Checkbox>
-        </Form.Item>
-        <Form.Item name="suggested" valuePropName="checked">
-          <Checkbox>Mark Q&A as Suggested </Checkbox>
-        </Form.Item>
-        <span className="font-bold">Source Documents</span>
-        <Form.List name="sourceDocuments">
-          {(fields, { add, remove }) => (
-            <Collapse>
-              {fields.map((field, index) => (
-                <Panel
-                  header={
-                    (
-                      form.getFieldValue([
-                        'sourceDocuments',
-                        field.name,
-                        'docName',
-                      ]) || `Document ${index + 1}`
-                    ).substring(0, 50) +
-                    ((
-                      form.getFieldValue([
-                        'sourceDocuments',
-                        field.name,
-                        'docName',
-                      ]) || ''
-                    ).length > 50
-                      ? '...'
-                      : '')
-                  }
-                  key={field.key}
-                >
-                  <div style={{ marginBottom: '10px' }}>
-                    <Form.Item
-                      name={[field.name, 'docName']}
-                      rules={[{ required: true }]}
-                      label="Document Name"
-                    >
-                      <Input placeholder="Document Name" />
-                    </Form.Item>
-                    <Form.Item
-                      name={[field.name, 'sourceLink']}
-                      label="Source Link"
-                    >
-                      <Input placeholder="Source Link" />
-                    </Form.Item>
-                    <Form.Item
-                      name={[field.name, 'pageNumbers']}
-                      label="Page Numbers (comma separated)"
-                    >
-                      <Input placeholder="1,2,3" />
-                    </Form.Item>
-                    <Button
-                      onClick={() => remove(field.name)}
-                      style={{ marginBottom: '10px' }}
-                    >
-                      Remove Document
-                    </Button>
-                  </div>
-                </Panel>
-              ))}
-            </Collapse>
-          )}
-        </Form.List>
-
-        <Select
-          className="my-4"
-          placeholder="Select a document to add"
-          style={{ width: '100%' }}
-          onSelect={(selectedDocId) => {
-            const selectedDoc = existingDocuments.find(
-              (doc) => doc.docId === selectedDocId,
-            )
-            if (selectedDoc) {
-              setSelectedDocuments((prev) => {
-                const isAlreadySelected = prev.some(
-                  (doc) => doc.docId === selectedDocId,
-                )
-                if (!isAlreadySelected) {
-                  return [...prev, { ...selectedDoc, pageNumbers: [] }]
-                }
-                return prev
-              })
-            }
+      cancelButtonProps={{
+        danger: true,
+      }}
+      onCancel={onCancel}
+      footer={(_, { OkBtn, CancelBtn }) => (
+        <div className={`flex justify-end gap-2`}>
+          <CancelBtn />
+          <Tooltip title="This will treat this question and answer as a source that the AI can then reference and cite in future questions.">
+            <Button type="default" onClick={confirmInsert}>
+              Insert Q&A into DocumentStore
+            </Button>
+          </Tooltip>
+          <OkBtn />
+        </div>
+      )}
+      destroyOnClose
+      modalRender={(dom) => (
+        <Form
+          layout="vertical"
+          form={form}
+          name="form_in_modal"
+          initialValues={{
+            answer: editingRecord.answer,
+            question: editingRecord.question,
+            verified: editingRecord.verified,
+            suggested: editingRecord.suggested,
+            sourceDocuments: editingRecord.sourceDocuments,
           }}
+          clearOnDestroy
+          onFinish={(values) => onFinish(values)}
         >
-          {existingDocuments.map((doc) => (
-            <Select.Option key={doc.docId} value={doc.docId}>
-              {doc.docName}
-            </Select.Option>
-          ))}
-        </Select>
+          {dom}
+        </Form>
+      )}
+    >
+      <Form.Item
+        name="question"
+        label="Question"
+        rules={[{ required: true, message: 'Please input the question text' }]}
+      >
+        <Input.TextArea autoSize={{ minRows: 1, maxRows: 5 }} />
+      </Form.Item>
+      <Form.Item
+        name="answer"
+        label="Answer"
+        rules={[{ required: true, message: 'Please input the answer text' }]}
+      >
+        <Input.TextArea autoSize={{ minRows: 1, maxRows: 8 }} />
+      </Form.Item>
+      <Form.Item
+        label="Mark Q&A as Verified by Human"
+        layout="horizontal"
+        name="verified"
+        valuePropName="checked"
+      >
+        <Checkbox />
+      </Form.Item>
+      <Form.Item
+        label="Mark Q&A as Suggested"
+        layout="horizontal"
+        name="suggested"
+        valuePropName="checked"
+      >
+        <Checkbox />
+      </Form.Item>
+      <span className="text-lg font-bold">Source Documents</span>
+      <Form.List name="sourceDocuments">
+        {(fields, { add, remove }) => (
+          <Collapse
+            items={fields.map((field, index) => ({
+              header:
+                (
+                  form.getFieldValue([
+                    'sourceDocuments',
+                    field.name,
+                    'docName',
+                  ]) || `Document ${index + 1}`
+                ).substring(0, 50) +
+                ((
+                  form.getFieldValue([
+                    'sourceDocuments',
+                    field.name,
+                    'docName',
+                  ]) || ''
+                ).length > 50
+                  ? '...'
+                  : ''),
+              key: field.key,
+              children: (
+                <div className="mb-2">
+                  <Form.Item
+                    name={[field.name, 'docName']}
+                    rules={[
+                      {
+                        required: true,
+                        message: 'Please input the document name',
+                      },
+                    ]}
+                    label="Document Name"
+                  >
+                    <Input placeholder="Document Name" />
+                  </Form.Item>
+                  <Form.Item
+                    name={[field.name, 'sourceLink']}
+                    label="Source Link"
+                  >
+                    <Input placeholder="Source Link" />
+                  </Form.Item>
+                  <Form.Item
+                    name={[field.name, 'pageNumbers']}
+                    label="Page Numbers (comma separated)"
+                  >
+                    <Input placeholder="1,2,3" />
+                  </Form.Item>
+                  <Button onClick={() => remove(field.name)} className="mb-2">
+                    Remove Document
+                  </Button>
+                </div>
+              ),
+            }))}
+          />
+        )}
+      </Form.List>
 
-        {selectedDocuments.map((doc, index) => (
-          <div key={doc.docId}>
-            <span className="font-bold">{doc.docName}</span>
-            <Input
-              type="text"
-              placeholder="Enter page numbers (comma separated)"
-              value={doc.pageNumbers}
-              onChange={(e) => {
-                const updatedPageNumbers = e.target.value
-                // Split by comma, trim whitespace, filter empty strings, convert to numbers
-                const pageNumbersArray = updatedPageNumbers
-                  .split(',')
-                  .map(Number)
-                setSelectedDocuments((prev) =>
-                  prev.map((d, idx) =>
-                    idx === index
-                      ? { ...d, pageNumbers: pageNumbersArray } // array of numbers
-                      : d,
-                  ),
-                )
-              }}
-            />
-          </div>
+      <Select
+        className="my-4 w-full"
+        placeholder="Select a document to add"
+        onSelect={(selectedDocId) => {
+          const selectedDoc = existingDocuments.find(
+            (doc) => doc.docId === selectedDocId,
+          )
+          if (selectedDoc) {
+            setSelectedDocuments((prev) => {
+              const isAlreadySelected = prev.some(
+                (doc) => doc.docId === selectedDocId,
+              )
+              if (!isAlreadySelected) {
+                return [...prev, { ...selectedDoc, pageNumbers: [] }]
+              }
+              return prev
+            })
+          }
+        }}
+      >
+        {existingDocuments.map((doc) => (
+          <Select.Option key={doc.docId} value={doc.docId}>
+            {doc.docName}
+          </Select.Option>
         ))}
+      </Select>
 
-        <Form.Item>
-          <Button type="primary" htmlType="submit">
-            Save Changes
-          </Button>
-          <Button
-            type="default"
-            onClick={confirmInsert}
-            style={{ marginLeft: '10px' }}
-          >
-            Insert QA into DocumentStore
-          </Button>
-        </Form.Item>
-      </Form>
+      {selectedDocuments.map((doc) => (
+        <div key={doc.docId}>
+          <span className="font-bold">{doc.docName}</span>
+          <Input
+            key={doc.docId}
+            type="text"
+            placeholder="Enter page numbers (comma separated)"
+            value={doc.pageNumbersString}
+            onChange={(e) => {
+              doc.pageNumbersString = e.target.value
+              // const updatedPageNumbers = e.target.value
+              // // Split by comma, trim whitespace, filter empty strings, convert to numbers
+              // const pageNumbersArray = updatedPageNumbers
+              //   .split(',')
+              //   .map(Number)
+              // setSelectedDocuments((prev) =>
+              //   prev.map((d, idx) =>
+              //     idx === index
+              //       ? { ...d, pageNumbers: pageNumbersArray } // array of numbers
+              //       : d,
+              //   ),
+              // )
+            }}
+          />
+        </div>
+      ))}
     </Modal>
   )
 }
 
-export default EditQuestionModal
+export default EditChatbotQuestionModal

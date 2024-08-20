@@ -1,171 +1,188 @@
-import React, { useState } from 'react'
-import { Button, Form, Input, Modal, Select, Switch, message } from 'antd'
+import { useState } from 'react'
+import { Checkbox, Form, Input, Modal, Select, message } from 'antd'
+import { SourceDocument } from '../page'
+import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useUserInfo } from '@/app/contexts/userContext'
 
-interface AddQuestionModalProps {
-  visible: boolean
-  onClose: () => void
-  courseId: number
-  existingDocuments: any[]
-  getQuestions: () => void
+interface FormValues {
+  question: string
+  answer: string
+  verified: boolean
+  suggested: boolean
 }
 
-export default function AddQuestionModal({
-  visible,
-  onClose,
+interface AddChatbotQuestionModalProps {
+  open: boolean
+  courseId: number
+  existingDocuments: SourceDocument[]
+  onCancel: () => void
+  onAddSuccess: () => void
+}
+
+const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
+  open,
   courseId,
   existingDocuments,
-  getQuestions,
-}: AddQuestionModalProps): React.ReactElement {
+  onCancel,
+  onAddSuccess,
+}) => {
   const [form] = Form.useForm()
-  const [selectedDocuments, setSelectedDocuments] = useState([])
+  const { userInfo } = useUserInfo()
+  const [selectedDocuments, setSelectedDocuments] = useState<SourceDocument[]>(
+    [],
+  )
 
-  const addQuestion = async () => {
-    const formData = await form.validateFields()
+  const onFinish = async (values: FormValues) => {
+    selectedDocuments.forEach((doc) => {
+      // Convert string to array of numbers, trimming spaces and ignoring empty entries
+      if (doc.pageNumbersString) {
+        doc.pageNumbers = doc.pageNumbersString
+          .split(',')
+          .map((page) => page.trim())
+          .filter((page) => page !== '')
+          .map((page) => parseInt(page, 10))
+      }
+    })
 
     try {
-      selectedDocuments.forEach((doc) => {
-        if (typeof doc.pageNumbers === 'string') {
-          // Convert string to array of numbers, trimming spaces and ignoring empty entries
-          doc.pageNumbers = doc.pageNumbers
-            .split(',')
-            .map((page) => page.trim())
-            .filter((page) => page !== '')
-            .map((page) => parseInt(page, 10))
-        }
-      })
-
-      await fetch(`/chat/${courseId}/question`, {
+      const response = await fetch(`/chat/${courseId}/question`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          HMS_API_TOKEN: userInfo.chat_token.token,
         },
         body: JSON.stringify({
-          question: formData.questionText,
-          answer: formData.responseText,
-          verified: formData.verified,
-          suggested: formData.suggested,
+          question: values.question,
+          answer: values.answer,
+          verified: values.verified,
+          suggested: values.suggested,
           sourceDocuments: selectedDocuments,
         }),
       })
-
-      getQuestions()
-      onClose()
-      message.success('Question added.')
-    } catch (e) {
-      message.error('Failed to add question.' + e)
-    } finally {
-      form.resetFields()
+      if (!response.ok) {
+        const errorMessage = getErrorMessage(response)
+        message.error('Add unsuccessful: ' + errorMessage)
+      } else {
+        message.success('Question successfully added')
+        onAddSuccess()
+      }
+    } catch (error) {
+      const errorMessage = getErrorMessage(error)
+      message.error('Error adding question:' + errorMessage)
     }
   }
 
   return (
     <Modal
-      title="Create QA pair"
-      visible={visible}
-      onCancel={onClose}
-      footer={[
-        <Button key="cancel" type="ghost" onClick={onClose}>
-          Cancel
-        </Button>,
-        <Button key="submit" type="primary" onClick={addQuestion}>
-          Submit
-        </Button>,
-      ]}
+      open={open}
+      title="Create Question & Answer Pair"
+      okText="Create"
+      cancelText="Cancel"
+      okButtonProps={{
+        autoFocus: true,
+        htmlType: 'submit',
+      }}
+      cancelButtonProps={{
+        danger: true,
+      }}
+      onCancel={onCancel}
+      destroyOnClose
+      modalRender={(dom) => (
+        <Form
+          layout="vertical"
+          form={form}
+          initialValues={{ verified: true, suggested: false }}
+          name="form_in_modal"
+          clearOnDestroy
+          onFinish={(values) => onFinish(values)}
+        >
+          {dom}
+        </Form>
+      )}
     >
-      <Form form={form}>
-        <Form.Item
-          label="Question"
-          name="questionText"
-          rules={[
-            {
-              required: true,
-              message: 'Please input a question!',
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          label="Answer"
-          name="responseText"
-          rules={[
-            {
-              required: true,
-              message: 'Please input an answer!',
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          label="Verified"
-          name="verified"
-          valuePropName="checked"
-          initialValue={true}
-        >
-          <Switch />
-        </Form.Item>
-        <Form.Item
-          label="Suggested"
-          name="suggested"
-          valuePropName="checked"
-          initialValue={false}
-        >
-          <Switch />
-        </Form.Item>
-        <Select
-          className="my-4"
-          placeholder="Select a document to add"
-          style={{ width: '100%' }}
-          onSelect={(selectedDocId) => {
-            const selectedDoc = existingDocuments.find(
-              (doc) => doc.docId === selectedDocId,
-            )
-            if (selectedDoc) {
-              setSelectedDocuments((prev) => {
-                const isAlreadySelected = prev.some(
-                  (doc) => doc.docId === selectedDocId,
-                )
-                if (!isAlreadySelected) {
-                  return [...prev, { ...selectedDoc, pageNumbers: [] }]
-                }
-                return prev
-              })
-            }
-          }}
-        >
-          {existingDocuments.map((doc) => (
-            <Select.Option key={doc.docId} value={doc.docId}>
-              {doc.docName}
-            </Select.Option>
-          ))}
-        </Select>
+      <Form.Item name="question" label="Question" rules={[{ required: true }]}>
+        <Input.TextArea autoSize={{ minRows: 1, maxRows: 5 }} />
+      </Form.Item>
+      <Form.Item
+        name="answer"
+        label="Answer"
+        rules={[{ required: true, message: 'Please input the answer text' }]}
+      >
+        <Input.TextArea autoSize={{ minRows: 1, maxRows: 8 }} />
+      </Form.Item>
+      <Form.Item
+        label="Mark Q&A as Verified by Human"
+        layout="horizontal"
+        name="verified"
+        valuePropName="checked"
+      >
+        <Checkbox />
+      </Form.Item>
+      <Form.Item
+        label="Mark Q&A as Suggested"
+        layout="horizontal"
+        name="suggested"
+        valuePropName="checked"
+      >
+        <Checkbox />
+      </Form.Item>
+      <span className="text-lg font-bold">Source Documents</span>
 
-        {selectedDocuments.map((doc, index) => (
-          <div key={doc.docId}>
-            <span className="font-bold">{doc.docName}</span>
-            <Input
-              type="text"
-              placeholder="Enter page numbers (comma separated)"
-              value={doc.pageNumbers}
-              onChange={(e) => {
-                const updatedPageNumbers = e.target.value
-                // Split by comma, trim whitespace, filter empty strings, convert to numbers
-                const pageNumbersArray = updatedPageNumbers
-                  .split(',')
-                  .map(Number)
-                setSelectedDocuments((prev) =>
-                  prev.map((d, idx) =>
-                    idx === index
-                      ? { ...d, pageNumbers: pageNumbersArray } // array of numbers
-                      : d,
-                  ),
-                )
-              }}
-            />
-          </div>
+      <Select
+        className="my-4 w-full"
+        placeholder="Select a document to add"
+        onSelect={(selectedDocId) => {
+          const selectedDoc = existingDocuments.find(
+            (doc) => doc.docId === selectedDocId,
+          )
+          if (selectedDoc) {
+            setSelectedDocuments((prev) => {
+              const isAlreadySelected = prev.some(
+                (doc) => doc.docId === selectedDocId,
+              )
+              if (!isAlreadySelected) {
+                return [...prev, { ...selectedDoc, pageNumbers: [] }]
+              }
+              return prev
+            })
+          }
+        }}
+      >
+        {existingDocuments.map((doc) => (
+          <Select.Option key={doc.docId} value={doc.docId}>
+            {doc.docName}
+          </Select.Option>
         ))}
-      </Form>
+      </Select>
+
+      {selectedDocuments.map((doc) => (
+        <div key={doc.docId}>
+          <span className="font-bold">{doc.docName}</span>
+          <Input
+            key={doc.docId}
+            type="text"
+            placeholder="Enter page numbers (comma separated)"
+            value={doc.pageNumbersString}
+            onChange={(e) => {
+              doc.pageNumbersString = e.target.value
+              // const updatedPageNumbers = e.target.value
+              // // Split by comma, trim whitespace, filter empty strings, convert to numbers
+              // const pageNumbersArray = updatedPageNumbers
+              //   .split(',')
+              //   .map(Number)
+              // setSelectedDocuments((prev) =>
+              //   prev.map((d, idx) =>
+              //     idx === index
+              //       ? { ...d, pageNumbers: pageNumbersArray } // array of numbers
+              //       : d,
+              //   ),
+              // )
+            }}
+          />
+        </div>
+      ))}
     </Modal>
   )
 }
+
+export default AddChatbotQuestionModal

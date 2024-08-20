@@ -116,6 +116,8 @@ export function getErrorMessage(e: any): any {
     e.response?.data ??
     e.body?.message ??
     e.message ??
+    e.statusText ?? // response.statusText from fetch
+    JSON.stringify(e) ??
     e
   )
 }

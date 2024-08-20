@@ -23,15 +23,16 @@ enum CourseAdminOptions {
   SETTINGS = 'SETTINGS',
   BOT_SETTINGS = 'BOT_SETTINGS',
   BOT_QUESTIONS = 'BOT_QUESTIONS',
+  CHATBOT_QUESTIONS = 'CHATBOT_QUESTIONS',
 }
 
-type CourseSettingsMenyProps = {
+type CourseSettingsManyProps = {
   courseRole: Role
   courseFeatures: any
   courseId: number
 }
 
-const CourseSettingsMenu: React.FC<CourseSettingsMenyProps> = ({
+const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
   courseRole,
   courseFeatures,
   courseId,
@@ -63,6 +64,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsMenyProps> = ({
       case CourseAdminOptions.BOT_QUESTIONS:
         router.push(`${basePath}/bot_questions`)
         break
+      case CourseAdminOptions.CHATBOT_QUESTIONS:
+        router.push(`${basePath}/chatbot_questions`)
+        break
     }
   }
 
@@ -92,6 +96,11 @@ const CourseSettingsMenu: React.FC<CourseSettingsMenyProps> = ({
     },
     {
       key: CourseAdminOptions.BOT_QUESTIONS,
+      icon: <RobotOutlined />,
+      label: 'Chatbot Questions old',
+    },
+    {
+      key: CourseAdminOptions.CHATBOT_QUESTIONS,
       icon: <RobotOutlined />,
       label: 'Chatbot Questions',
     },

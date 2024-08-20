@@ -65,7 +65,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             />
           )}
           {/* On certain pages (like pages with big tables), we want to let the width take up the whole page */}
-          {URLSegments[4] === 'edit_questions' ? (
+          {URLSegments[4] === 'edit_questions' ||
+          URLSegments[4] === 'chatbot_questions' ? (
             <div className="p-1">{children}</div>
           ) : (
             <StandardPageContainer className="min-h-full">

@@ -205,7 +205,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Expanded state */
 .expandable-text.expanded {
-  max-height: 300vh;
+  max-height: 300vh !important;
   /* only slow down near the very start of the transition */
   transition: max-height 0.3s cubic-bezier(1,0,1,0)
 }
