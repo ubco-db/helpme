@@ -11,6 +11,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   UseGuards,
@@ -30,7 +31,7 @@ export class AlertsController {
 
   @Get(':courseId')
   async getAlerts(
-    @Param('courseId') courseId: number,
+    @Param('courseId', ParseIntPipe) courseId: number,
     @User() user: UserModel,
   ): Promise<GetAlertsResponse> {
     const alerts = await AlertModel.find({
@@ -84,7 +85,9 @@ export class AlertsController {
 
   @Patch(':alertId')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
-  async closeAlert(@Param('alertId') alertId: number): Promise<void> {
+  async closeAlert(
+    @Param('alertId', ParseIntPipe) alertId: number,
+  ): Promise<void> {
     const alert = await AlertModel.findOne({
       where: {
         id: alertId,

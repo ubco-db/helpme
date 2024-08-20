@@ -11,6 +11,7 @@ import {
   Body,
   Delete,
   Patch,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import {
@@ -37,12 +38,12 @@ export class InsightsController {
   @Get(':courseId/:insightName')
   async get(
     @CourseRole() role: Role,
-    @Param('courseId') courseId: number,
+    @Param('courseId', ParseIntPipe) courseId: number,
     @Param('insightName') insightName: string,
     @Query('start') start: string,
     @Query('end') end: string,
-    @Query('limit') limit: number,
-    @Query('offset') offset: number,
+    @Query('limit', ParseIntPipe) limit: number,
+    @Query('offset', ParseIntPipe) offset: number,
   ): Promise<GetInsightOutputResponse> {
     // Temporarily disabling insights until we finish refactoring QueueModel
     // Check that the insight name is valid
@@ -68,10 +69,19 @@ export class InsightsController {
     ];
     // Check if the time range filters exist and add them if so
     if (start && end) {
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.insightsController.invalidDateRange,
+        );
+      }
+
       filters.push({
         type: 'timeframe',
-        start: new Date(start),
-        end: new Date(end),
+        start: startDate,
+        end: endDate,
       });
     }
 

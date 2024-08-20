@@ -13,6 +13,7 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
@@ -58,7 +59,7 @@ import { CourseSettingsModel } from 'course/course_settings.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
-import _ from 'lodash';
+import _, { isNumber } from 'lodash';
 
 @Controller('organization')
 export class OrganizationController {
@@ -837,7 +838,10 @@ export class OrganizationController {
 
   @Get(':oid')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  async get(@Res() res: Response, @Param('oid') oid: string): Promise<void> {
+  async get(
+    @Res() res: Response,
+    @Param('oid', ParseIntPipe) oid: number,
+  ): Promise<void> {
     OrganizationModel.findOne({
       where: { id: oid },
     })
@@ -865,7 +869,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async updateUserOrganizationRole(
     @Res() res: Response,
-    @Param('oid') oid: string,
+    @Param('oid', ParseIntPipe) oid: number,
     @Body() organizationUserRolePatch: UpdateOrganizationUserRole,
   ): Promise<void> {
     await OrganizationModel.findOne({
@@ -931,7 +935,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async update(
     @Res() res: Response,
-    @Param('oid') oid: string,
+    @Param('oid', ParseIntPipe) oid: number,
     @Body() organizationPatch: UpdateOrganizationDetailsParams,
   ): Promise<void> {
     OrganizationModel.findOne({
@@ -998,7 +1002,7 @@ export class OrganizationController {
   @Get(':oid/stats')
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
-  async getStats(@Param('oid') oid: number): Promise<{
+  async getStats(@Param('oid', ParseIntPipe) oid: number): Promise<{
     members: number;
     courses: number;
     membersProfessors: number;
@@ -1039,7 +1043,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async deleteUserCourses(
     @Res() res: Response,
-    @Param('uid') uid: number,
+    @Param('uid', ParseIntPipe) uid: number,
     @Body() userCourses: number[],
   ): Promise<Response<void>> {
     if (userCourses.length < 1) {
@@ -1088,7 +1092,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async deleteUserProfilePicture(
     @Res() res: Response,
-    @Param('uid') oid: number,
+    @Param('uid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     const userInfo = await OrganizationUserModel.findOne({
       where: {
@@ -1144,7 +1148,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async patchUserInfo(
     @Res() res: Response,
-    @Param('uid') uid: number,
+    @Param('uid', ParseIntPipe) uid: number,
     @Body() userDetailsBody: UpdateProfileParams,
   ): Promise<Response<void>> {
     const userInfo = await OrganizationUserModel.findOne({
@@ -1233,7 +1237,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async getUser(
     @Res() res: Response,
-    @Param('uid') uid: number,
+    @Param('uid', ParseIntPipe) uid: number,
   ): Promise<Response<GetOrganizationUserResponse>> {
     const userInfo =
       await this.organizationService.getOrganizationUserByUserId(uid);
@@ -1253,8 +1257,8 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getUsers(
-    @Param('oid') oid: number,
-    @Param('page') page: number,
+    @Param('oid', ParseIntPipe) oid: number,
+    @Param('page', ParseIntPipe) page: number,
     @Query('search') search: string,
   ): Promise<UserResponse[]> {
     const pageSize = 50;
@@ -1277,8 +1281,8 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getCourses(
-    @Param('oid') oid: number,
-    @Param('page') page: number,
+    @Param('oid', ParseIntPipe) oid: number,
+    @Param('page', ParseIntPipe) page: number,
     @Query('search') search: string,
   ): Promise<CourseResponse[]> {
     const pageSize = 50;
@@ -1301,7 +1305,7 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getProfessors(
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
     @Res() res: Response,
   ): Promise<Response<OrganizationProfessor[]>> {
     const orgProfs = await OrganizationUserModel.find({
@@ -1327,8 +1331,8 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async addUserToOrganization(
     @Res() res: Response,
-    @Param('oid') oid: string,
-    @Param('uid') uid: string,
+    @Param('oid', ParseIntPipe) oid: number,
+    @Param('uid', ParseIntPipe) uid: number,
   ): Promise<void> {
     UserModel.findOne({
       where: { id: uid },
@@ -1353,8 +1357,8 @@ export class OrganizationController {
             }
 
             const organizationUserModel = new OrganizationUserModel();
-            organizationUserModel.organizationId = parseInt(oid);
-            organizationUserModel.userId = parseInt(uid);
+            organizationUserModel.organizationId = oid;
+            organizationUserModel.userId = uid;
             organizationUserModel.role = OrganizationRole.MEMBER;
 
             organizationUserModel

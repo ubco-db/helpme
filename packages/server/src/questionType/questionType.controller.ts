@@ -11,6 +11,7 @@ import {
   Post,
   Res,
   HttpStatus,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
@@ -35,7 +36,7 @@ export class QuestionTypeController {
   @Roles(Role.TA, Role.PROFESSOR)
   async addQuestionType(
     @Res() res: Response,
-    @Param('courseId') courseId: number,
+    @Param('courseId', ParseIntPipe) courseId: number,
     @Body() newQuestionType: QuestionTypeParams,
   ): Promise<void> {
     let queueId = newQuestionType.queueId;
@@ -82,7 +83,7 @@ export class QuestionTypeController {
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getQuestionTypes(
     @Res() res: Response,
-    @Param('courseId') courseId: number,
+    @Param('courseId', ParseIntPipe) courseId: number,
     @Param('queueId') queueIdString: string,
   ): Promise<QuestionTypeModel[]> {
     let queueId: null | number = null;

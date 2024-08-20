@@ -36,6 +36,7 @@ import {
   UnauthorizedException,
   UseGuards,
   UseInterceptors,
+  ParseIntPipe,
 } from '@nestjs/common';
 import async from 'async';
 import { Response, Request } from 'express';
@@ -79,7 +80,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async getOrganizationCourses(
     @Res() res: Response,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<[]>> {
     const courses = await OrganizationCourseModel.find({
       where: {
@@ -108,7 +109,7 @@ export class CourseController {
   @Get(':cid/asyncQuestions')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async getAsyncQuestions(
-    @Param('cid') cid: number,
+    @Param('cid', ParseIntPipe) cid: number,
     @User() user: UserModel,
     @Res() res: Response,
   ): Promise<AsyncQuestionModel[]> {
@@ -219,7 +220,7 @@ export class CourseController {
 
   @Get('limited/:id/:code')
   async getLimitedCourseResponse(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Param('code') code: string,
     @Res() res: Response,
   ): Promise<Response<GetLimitedCourseResponse>> {
@@ -265,7 +266,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.STUDENT, Role.TA)
   async get(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @User() user: UserModel,
   ): Promise<GetCourseResponse> {
     // TODO: for all course endpoint, check if they're a student or a TA
@@ -387,7 +388,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async editCourseInfo(
-    @Param('id') courseId: number,
+    @Param('id', ParseIntPipe) courseId: number,
     @Body() coursePatch: EditCourseInfoParams,
   ): Promise<void> {
     await this.courseService.editCourse(courseId, coursePatch);
@@ -397,7 +398,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async checkIn(
-    @Param('id') courseId: number,
+    @Param('id', ParseIntPipe) courseId: number,
     @Param('room') room: string,
     @User() user: UserModel,
   ): Promise<QueuePartial> {
@@ -513,7 +514,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async createQueue(
-    @Param('id') courseId: number,
+    @Param('id', ParseIntPipe) courseId: number,
     @Param('room') room: string,
     @User() user: UserModel,
     @Body()
@@ -628,7 +629,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async checkOut(
-    @Param('id') courseId: number,
+    @Param('id', ParseIntPipe) courseId: number,
     @Param('room') room: string,
     @User() user: UserModel,
   ): Promise<TACheckoutResponse> {
@@ -709,7 +710,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.STUDENT, Role.PROFESSOR, Role.TA)
   async withdrawCourse(
-    @Param('id') courseId: number,
+    @Param('id', ParseIntPipe) courseId: number,
     @UserId() userId: number,
   ): Promise<void> {
     const userCourse = await UserCourseModel.findOne({
@@ -722,7 +723,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR)
   async taCheckinTimes(
-    @Param('id') courseId: number,
+    @Param('id', ParseIntPipe) courseId: number,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
   ): Promise<TACheckinTimesResponse> {
@@ -745,8 +746,8 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR)
   async getUserInfo(
-    @Param('id') courseId: number,
-    @Param('page') page: number,
+    @Param('id', ParseIntPipe) courseId: number,
+    @Param('page', ParseIntPipe) page: number,
     @Param('role') role?: Role,
     @Query('search') search?: string,
   ): Promise<GetCourseUserInfoResponse> {
@@ -829,8 +830,8 @@ export class CourseController {
   async addStudent(
     @Res() res: Response,
     @Req() req: Request,
-    @Param('id') courseId: number,
-    @Param('sid') studentId: number,
+    @Param('id', ParseIntPipe) courseId: number,
+    @Param('sid', ParseIntPipe) studentId: number,
   ): Promise<Response<void>> {
     const user = await UserModel.findOne({
       where: { sid: studentId },
@@ -892,8 +893,8 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async updateUserRole(
-    @Param('id') courseId: number,
-    @Param('uid') userId: number,
+    @Param('id', ParseIntPipe) courseId: number,
+    @Param('uid', ParseIntPipe) userId: number,
     @Param('role') role: Role,
     @Res() res: Response,
   ): Promise<void> {
@@ -920,7 +921,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR)
   async enableDisableFeature(
-    @Param('id') courseId: number,
+    @Param('id', ParseIntPipe) courseId: number,
     @Body() body: CourseSettingsRequestBody,
   ): Promise<void> {
     // fetch existing course settings
@@ -966,7 +967,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.STUDENT, Role.TA)
   async getFeatures(
-    @Param('id') courseId: number,
+    @Param('id', ParseIntPipe) courseId: number,
   ): Promise<CourseSettingsResponse> {
     const courseSettings = await CourseSettingsModel.findOne({
       where: { courseId },
@@ -989,7 +990,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async getAllStudentsNotInQueue(
-    @Param('id') courseId: number,
+    @Param('id', ParseIntPipe) courseId: number,
     @Res() res: Response,
   ): Promise<UserTiny[]> {
     // have to do a manual query 'cause the current version of typeORM we're using is crunked and creates syntax errors in postgres queries
@@ -1025,7 +1026,7 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async getAllQuestionTypes(
-    @Param('id') courseId: number,
+    @Param('id', ParseIntPipe) courseId: number,
   ): Promise<QuestionTypeModel[]> {
     return QuestionTypeModel.find({ where: { cid: courseId } });
   }

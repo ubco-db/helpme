@@ -21,6 +21,7 @@ import {
   HttpStatus,
   NotFoundException,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Res,
@@ -54,7 +55,9 @@ export class QueueController {
 
   @Get(':queueId')
   @Roles(Role.TA, Role.PROFESSOR, Role.STUDENT)
-  async getQueue(@Param('queueId') queueId: number): Promise<GetQueueResponse> {
+  async getQueue(
+    @Param('queueId', ParseIntPipe) queueId: number,
+  ): Promise<GetQueueResponse> {
     try {
       return this.queueService.getQueue(queueId);
     } catch (err) {
@@ -109,7 +112,7 @@ export class QueueController {
   @Patch(':queueId')
   @Roles(Role.TA, Role.PROFESSOR)
   async updateQueue(
-    @Param('queueId') queueId: number,
+    @Param('queueId', ParseIntPipe) queueId: number,
     @Body() body: UpdateQueueParams,
   ): Promise<QueueModel> {
     const queue = await this.queueService.getQueue(queueId);
@@ -132,7 +135,9 @@ export class QueueController {
 
   @Post(':queueId/clean')
   @Roles(Role.TA, Role.PROFESSOR)
-  async cleanQueue(@Param('queueId') queueId: number): Promise<void> {
+  async cleanQueue(
+    @Param('queueId', ParseIntPipe) queueId: number,
+  ): Promise<void> {
     // Clean up queue if necessary
     try {
       setTimeout(async () => {
@@ -152,7 +157,7 @@ export class QueueController {
   // Endpoint to send frontend receive server-sent events when queue changes
   @Get(':queueId/sse')
   sendEvent(
-    @Param('queueId') queueId: number,
+    @Param('queueId', ParseIntPipe) queueId: number,
     @QueueRole() role: Role,
     @UserId() userId: number,
     @Res() res: Response,
@@ -174,7 +179,7 @@ export class QueueController {
   @Delete(':queueId')
   @Roles(Role.TA, Role.PROFESSOR)
   async disableQueue(
-    @Param('queueId') queueId: number,
+    @Param('queueId', ParseIntPipe) queueId: number,
     @QueueRole() role: Role,
   ): Promise<void> {
     // disable a queue
@@ -226,7 +231,7 @@ export class QueueController {
   @Patch(':queueId/config')
   @Roles(Role.TA, Role.PROFESSOR)
   async setConfig(
-    @Param('queueId') queueId: number,
+    @Param('queueId', ParseIntPipe) queueId: number,
     @Body() newConfig: QueueConfig,
     @Res() res: Response,
   ): Promise<Response<setQueueConfigResponse>> {

@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   Get,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ChatDocument, ChatQuestion, ChatbotService } from './chatbot.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -69,10 +70,10 @@ export class ChatbotController {
 
   @Get(':courseId/document')
   async getDocuments(
-    @Param('courseId') courseId: number,
+    @Param('courseId', ParseIntPipe) courseId: number,
     @Query('searchText') searchText: string,
-    @Query('pageSize') pageSize: number,
-    @Query('currentPage') currentPage: number,
+    @Query('pageSize', ParseIntPipe) pageSize: number,
+    @Query('currentPage', ParseIntPipe) currentPage: number,
   ): Promise<{ chatDocuments: ChatDocument[]; total: number }> {
     return await this.ChatbotService.getDocuments(
       courseId,
