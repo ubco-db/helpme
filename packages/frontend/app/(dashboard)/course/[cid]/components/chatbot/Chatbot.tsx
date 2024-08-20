@@ -88,7 +88,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
 
   useEffect(() => {
-    if (messages.length === 0) {
+    if (messages.length === 1) {
       axios
         .get(`/chat/${cid}/allSuggestedQuestions`, {
           headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
