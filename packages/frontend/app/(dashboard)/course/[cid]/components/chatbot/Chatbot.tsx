@@ -88,28 +88,30 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
 
   useEffect(() => {
-    axios
-      .get(`/chat/${cid}/allSuggestedQuestions`, {
-        headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
-      })
-      .then((res) => {
-        res.data.forEach((question: PreDeterminedQuestion) => {
-          setPreDeterminedQuestions((prev: PreDeterminedQuestion[]) => {
-            return [
-              ...prev,
-              {
-                question: question.pageContent,
-                answer: question.metadata?.answer,
-                sourceDocuments: question.metadata?.sourceDocuments,
-                verified: question.metadata?.verified,
-              },
-            ]
+    if (messages.length === 0) {
+      axios
+        .get(`/chat/${cid}/allSuggestedQuestions`, {
+          headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
+        })
+        .then((res) => {
+          res.data.forEach((question: PreDeterminedQuestion) => {
+            setPreDeterminedQuestions((prev: PreDeterminedQuestion[]) => {
+              return [
+                ...prev,
+                {
+                  question: question.pageContent,
+                  answer: question.metadata?.answer,
+                  sourceDocuments: question.metadata?.sourceDocuments,
+                  verified: question.metadata?.verified,
+                },
+              ]
+            })
           })
         })
-      })
-      .catch((err) => {
-        console.error(err)
-      })
+        .catch((err) => {
+          console.error(err)
+        })
+    }
     if (userInfo.chat_token) {
       setQuestionsLeft(userInfo.chat_token.max_uses - userInfo.chat_token.used)
     }
