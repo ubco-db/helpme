@@ -1,4 +1,9 @@
-import { OrganizationRole, QueueConfig, Role } from '@koh/common';
+import {
+  MailServiceType,
+  OrganizationRole,
+  QueueConfig,
+  Role,
+} from '@koh/common';
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AlertModel } from 'alerts/alerts.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
@@ -131,6 +136,7 @@ export class SeedController {
     // Children tables should be removed as early as possible.
     await this.seedService.deleteAll(QuestionTypeModel);
     await this.seedService.deleteAll(OrganizationCourseModel);
+    await this.seedService.deleteAll(UserSubscriptionModel);
     await this.seedService.deleteAll(OrganizationUserModel);
     await this.seedService.deleteAll(LastRegistrationModel);
     await this.seedService.deleteAll(ProfSectionGroupsModel);
@@ -154,7 +160,6 @@ export class SeedController {
     await this.seedService.deleteAll(QuestionTypeModel);
     await this.seedService.deleteAll(CourseSettingsModel);
     await this.seedService.deleteAll(MailServiceModel);
-    await this.seedService.deleteAll(UserSubscriptionModel);
     const manager = getManager();
     manager.query('ALTER SEQUENCE user_model_id_seq RESTART WITH 1;');
     manager.query('ALTER SEQUENCE organization_model_id_seq RESTART WITH 1;');
@@ -180,12 +185,14 @@ export class SeedController {
 
     const facultyMailService = await mailServiceFactory.create({
       mailType: OrganizationRole.PROFESSOR,
-      name: 'async_question_created',
+      serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
+      name: 'Notify when a new async question is flagged as needing attention',
       content: 'A student is requesting for help with an async question',
     });
     const studentMailService = await mailServiceFactory.create({
       mailType: OrganizationRole.MEMBER,
-      name: 'async_question_human_answered',
+      serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
+      name: 'Notify when your async question has been answered by a faculty',
       content: 'Your async question has been answered by a faculty',
     });
 
@@ -249,6 +256,7 @@ export class SeedController {
       });
 
       await userSubscriptionFactory.create({
+        isSubscribed: true,
         user: user1,
         service: studentMailService,
       });
@@ -276,6 +284,7 @@ export class SeedController {
       });
 
       await userSubscriptionFactory.create({
+        isSubscribed: true,
         user: user2,
         service: studentMailService,
       });
@@ -351,6 +360,7 @@ export class SeedController {
       });
 
       await userSubscriptionFactory.create({
+        isSubscribed: true,
         user: user5,
         service: facultyMailService,
       });

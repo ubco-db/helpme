@@ -187,5 +187,6 @@ export const mailServiceFactory = new Factory(MailServiceModel)
   .attr('content', 'A new async question is asked, and the student is asking');
 
 export const userSubscriptionFactory = new Factory(UserSubscriptionModel)
+  .attr('isSubscribed', true)
   .assocOne('user', UserFactory)
   .assocOne('service', mailServiceFactory);
