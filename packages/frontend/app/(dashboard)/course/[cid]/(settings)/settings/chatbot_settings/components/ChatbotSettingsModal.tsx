@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   Modal,
@@ -15,10 +17,11 @@ import {
   ExclamationCircleOutlined,
 } from '@ant-design/icons'
 import axios from 'axios'
+import { useUserInfo } from '@/app/contexts/userContext'
 
-interface ChatbotParameterProps {
+interface ChatbotSettingsModalProps {
+  open: boolean
   courseId: number
-  visible: boolean
   onClose: () => void
 }
 
@@ -39,25 +42,26 @@ interface ChatbotSettings {
   }
 }
 
-const ChatbotParameter: React.FC<ChatbotParameterProps> = ({
+const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
+  open,
   courseId,
-  visible,
   onClose,
 }) => {
   const [form] = Form.useForm()
-  const profile = useProfile()
+  const { userInfo } = useUserInfo()
   const [loading, setLoading] = useState(false)
   const [availableModels, setAvailableModels] = useState<AvailableModelTypes>(
     {},
   )
 
   const fetchChatbotSettings = useCallback(async () => {
+    console.log('fetchChatbotSettings')
     try {
       setLoading(true)
       const response = await axios.get<ChatbotSettings>(
         `/chat/${courseId}/oneChatbotSetting`,
         {
-          headers: { HMS_API_TOKEN: profile.chat_token.token },
+          headers: { HMS_API_TOKEN: userInfo.chat_token.token },
         },
       )
       setAvailableModels(response.data.AvailableModelTypes)
@@ -69,13 +73,13 @@ const ChatbotParameter: React.FC<ChatbotParameterProps> = ({
     } finally {
       setLoading(false)
     }
-  }, [courseId, profile?.chat_token.token, form])
+  }, [courseId, userInfo.chat_token.token, form])
 
   useEffect(() => {
-    if (visible && courseId) {
+    if (open && courseId) {
       fetchChatbotSettings()
     }
-  }, [visible, courseId, fetchChatbotSettings])
+  }, [open, courseId, fetchChatbotSettings])
 
   const handleUpdate = async (values: any) => {
     const updateData = {
@@ -89,7 +93,7 @@ const ChatbotParameter: React.FC<ChatbotParameterProps> = ({
     try {
       setLoading(true)
       await axios.patch(`/chat/${courseId}/updateChatbotSetting`, updateData, {
-        headers: { HMS_API_TOKEN: profile.chat_token.token },
+        headers: { HMS_API_TOKEN: userInfo.chat_token.token },
       })
 
       message.success('Settings updated successfully')
@@ -114,7 +118,7 @@ const ChatbotParameter: React.FC<ChatbotParameterProps> = ({
             `/chat/${courseId}/resetChatbotSetting`,
             {},
             {
-              headers: { HMS_API_TOKEN: profile.chat_token.token },
+              headers: { HMS_API_TOKEN: userInfo.chat_token.token },
             },
           )
           message.success('Settings have been reset successfully')
@@ -131,7 +135,7 @@ const ChatbotParameter: React.FC<ChatbotParameterProps> = ({
   return (
     <Modal
       title="Chatbot Settings"
-      open={visible}
+      open={open}
       onCancel={onClose}
       footer={null}
     >
@@ -223,4 +227,4 @@ const ChatbotParameter: React.FC<ChatbotParameterProps> = ({
   )
 }
 
-export default ChatbotParameter
+export default ChatbotSettingsModal

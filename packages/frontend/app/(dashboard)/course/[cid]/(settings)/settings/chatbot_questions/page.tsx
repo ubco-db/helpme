@@ -292,7 +292,7 @@ export default function ChatbotQuestions({
       const errorMessage = getErrorMessage(e)
       message.error('Failed to fetch questions:' + errorMessage)
     }
-  }, [])
+  }, [courseId, userInfo.chat_token.token])
 
   useEffect(() => {
     getQuestions()

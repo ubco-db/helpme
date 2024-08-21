@@ -89,6 +89,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
 
   useEffect(() => {
     if (messages.length === 1) {
+      setPreDeterminedQuestions([])
       axios
         .get(`/chat/${cid}/allSuggestedQuestions`, {
           headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
@@ -118,7 +119,13 @@ const Chatbot: React.FC<ChatbotProps> = ({
     return () => {
       setInteractionId(null)
     }
-  }, [userInfo, cid, setPreDeterminedQuestions])
+  }, [
+    userInfo,
+    cid,
+    setPreDeterminedQuestions,
+    messages.length,
+    setQuestionsLeft,
+  ])
 
   const query = async () => {
     try {

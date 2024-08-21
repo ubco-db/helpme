@@ -330,7 +330,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
           <Input
             key={doc.docId}
             type="text"
-            placeholder="Enter page numbers (comma separated)"
+            placeholder="Enter page numbers (comma separated e.g. 1,2,3)"
             value={doc.pageNumbersString}
             onChange={(e) => {
               doc.pageNumbersString = e.target.value

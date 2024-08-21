@@ -1,3 +1,5 @@
+'use client'
+
 import {
   Button,
   Form,
@@ -18,9 +20,12 @@ import {
 } from '@ant-design/icons'
 import { RcFile } from 'antd/lib/upload'
 import Dragger from 'antd/lib/upload/Dragger'
-import ChatbotParameter from './ChatbotParameter'
 import axios from 'axios'
 import { useUserInfo } from '@/app/contexts/userContext'
+import { SourceDocument } from '../chatbot_questions/page'
+import Link from 'next/link'
+import { TableRowSelection } from 'antd/es/table/interface'
+import ChatbotSettingsModal from './components/ChatbotSettingsModal'
 
 export interface ChatbotDocument {
   id: number
@@ -30,16 +35,17 @@ export interface ChatbotDocument {
 }
 
 export interface ChatbotDocumentResponse {
-  chatQuestions: ChatbotDocument[]
+  chatQuestions: SourceDocument[]
   total: number
 }
 
 interface ChatbotPanelProps {
-  courseId: number
+  params: { cid: string }
 }
 export default function ChatbotSettings({
-  courseId,
+  params,
 }: ChatbotPanelProps): ReactElement {
+  const courseId = Number(params.cid)
   const [form] = Form.useForm()
   const { userInfo } = useUserInfo()
   const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =
@@ -52,33 +58,31 @@ export default function ChatbotSettings({
   const [selectViewEnabled, setSelectViewEnabled] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
   const [totalDocuments, setTotalDocuments] = useState(0)
-  const [chatbotDocuments, setChatbotDocuments] = useState([])
-  const [filteredDocuments, setFilteredDocuments] = useState([])
+  const [chatbotDocuments, setChatbotDocuments] = useState<SourceDocument[]>([])
+  const [filteredDocuments, setFilteredDocuments] = useState<SourceDocument[]>(
+    [],
+  )
 
-  const [fileList, setFileList] = useState([])
+  const [fileList, setFileList] = useState<any[]>([])
 
   const props = {
     name: 'file',
     multiple: true,
     accept: '.docx,.pptx,.txt,.csv,.pdf',
     fileList,
-    onChange(info) {
+    onChange(info: any) {
       setFileList(info.fileList)
     },
     beforeUpload: () => false, // Prevent automatic upload
   }
 
-  const rowSelection = {
+  const rowSelection: TableRowSelection<SourceDocument> = {
     type: 'checkbox',
     onChange: (newSelectedRowKeys: React.Key[]) => {
       setSelectedRowKeys(newSelectedRowKeys)
     },
   }
   const hasSelected = selectedRowKeys.length > 0
-
-  useEffect(() => {
-    filterDocuments()
-  }, [search, chatbotDocuments])
 
   const handleDeleteSelectedDocuments = async () => {
     setLoading(true)
@@ -94,10 +98,10 @@ export default function ChatbotSettings({
         })
         setCountProcessed((prev) => prev + 1)
       }
-      toast.success('Documents deleted.')
+      message.success('Documents deleted.')
       getDocuments()
     } catch (e) {
-      toast.error('Failed to delete documents.')
+      message.error('Failed to delete documents.')
     } finally {
       setSelectViewEnabled(false)
       setSelectedRowKeys([])
@@ -111,15 +115,14 @@ export default function ChatbotSettings({
       dataIndex: 'docName',
       key: 'docName',
     },
-
     {
       title: 'Source',
       dataIndex: 'sourceLink',
       key: 'sourceLink',
-      render: (text, record) => (
-        <a href={record.sourceLink} target="_blank" rel="noopener noreferrer">
+      render: (text: string) => (
+        <Link href={text} target="_blank" rel="noopener noreferrer">
           Source Link
-        </a>
+        </Link>
       ),
     },
     {
@@ -132,7 +135,7 @@ export default function ChatbotSettings({
             {!selectViewEnabled ? 'Select' : 'Cancel'}
           </Button>
 
-          {hasSelected && (
+          {hasSelected && selectViewEnabled && (
             <Button
               disabled={loading}
               onClick={() => handleDeleteSelectedDocuments()}
@@ -152,7 +155,7 @@ export default function ChatbotSettings({
         </>
       ),
       key: 'action',
-      render: (text, record) =>
+      render: (_: any, record: SourceDocument) =>
         !selectViewEnabled && (
           <Button
             disabled={loading}
@@ -172,11 +175,11 @@ export default function ChatbotSettings({
           HMS_API_TOKEN: userInfo.chat_token.token,
         },
       })
-      const formattedDocuments = response.data.map((doc) => ({
+      const formattedDocuments = response.data.map((doc: SourceDocument) => ({
         key: doc.id,
         docId: doc.id,
         docName: doc.pageContent,
-        sourceLink: doc.metadata.source,
+        sourceLink: doc.metadata?.source ?? '',
         pageNumbers: [],
       }))
       setChatbotDocuments(formattedDocuments)
@@ -200,12 +203,12 @@ export default function ChatbotSettings({
     getDocuments()
   }, [getDocuments])
 
-  const filterDocuments = () => {
+  useEffect(() => {
     const filtered = chatbotDocuments.filter((doc) =>
       doc.docName.toLowerCase().includes(search.toLowerCase()),
     )
     setFilteredDocuments(filtered)
-  }
+  }, [search, chatbotDocuments])
 
   const addUrl = async (url: string) => {
     setLoading(true)
@@ -225,8 +228,9 @@ export default function ChatbotSettings({
 
       if (response.ok) {
         message.success('File uploaded.')
+        getDocuments()
       } else {
-        message.warn(
+        message.warning(
           `Failed to upload file, please check the file type of linked document`,
         )
       }
@@ -235,7 +239,6 @@ export default function ChatbotSettings({
     } finally {
       setLoading(false)
     }
-    getDocuments()
   }
 
   const uploadFiles = async (files: RcFile[], source: string) => {
@@ -263,10 +266,10 @@ export default function ChatbotSettings({
           throw new Error(`Failed to upload ${file.name}`)
         }
 
-        toast.success(`${file.name} uploaded.`)
+        message.success(`${file.name} uploaded.`)
         setCountProcessed((prev) => prev + 1)
       } catch (e) {
-        toast.error(`Failed to upload ${file.name}`)
+        message.error(`Failed to upload ${file.name}`)
       }
     }
   }
@@ -289,10 +292,10 @@ export default function ChatbotSettings({
         throw new Error(`Failed to upload ${File.name}`)
       }
 
-      toast.success('Document deleted.')
+      message.success('Document deleted.')
       getDocuments()
     } catch (e) {
-      toast.error('Failed to delete document.')
+      message.error('Failed to delete document.')
     } finally {
       setLoading(false)
     }
@@ -323,17 +326,13 @@ export default function ChatbotSettings({
   }
 
   return (
-    <div className="m-auto my-5 max-w-[800px]">
+    <div className="m-auto my-5">
       <Modal
         title="Add a new document for your chatbot to use."
         open={addDocumentModalOpen}
         onCancel={() => !loading && setAddDocumentModalOpen(false)}
         footer={[
-          <Button
-            key="ok"
-            type="ghost"
-            onClick={() => setAddDocumentModalOpen(false)}
-          >
+          <Button key="ok" onClick={() => setAddDocumentModalOpen(false)}>
             Cancel
           </Button>,
           <Button
@@ -441,6 +440,10 @@ export default function ChatbotSettings({
                       required: true,
                       message: 'Please provide a document preview URL.',
                     },
+                    {
+                      type: 'url',
+                      message: 'Please enter a valid URL.',
+                    },
                   ]}
                 >
                   <Input placeholder="Enter document preview URL..." />
@@ -452,19 +455,22 @@ export default function ChatbotSettings({
       </Modal>
       <div className="flex w-full items-center justify-between">
         <div className="">
-          <h3 className="m-0 p-0 text-4xl font-bold text-gray-900">
-            Manage Chatbot Documents
+          <h3 className="text-4xl font-bold text-gray-900">
+            Manage Chatbot Documents and Settings
           </h3>
           <p className="text-[16px] font-medium text-gray-600">
-            Configure the documents that your chatbot will have access to
+            Configure the chatbot&apos;s parameters and documents that your
+            chatbot will have access to.
           </p>
         </div>
-        <Button onClick={() => setChatbotParameterModalOpen(true)}>
-          Chatbot Parameters
-        </Button>
-        <Button onClick={() => setAddDocumentModalOpen(true)}>
-          Add Document
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setChatbotParameterModalOpen(true)}>
+            Chatbot Settings
+          </Button>
+          <Button onClick={() => setAddDocumentModalOpen(true)}>
+            Add Document
+          </Button>
+        </div>
       </div>
       <hr className="my-5 w-full"></hr>
 
@@ -480,9 +486,8 @@ export default function ChatbotSettings({
       />
       <Table
         columns={columns}
-        rowSelection={selectViewEnabled && rowSelection}
+        rowSelection={selectViewEnabled ? rowSelection : undefined}
         dataSource={filteredDocuments}
-        style={{ maxWidth: '800px' }}
         pagination={false}
       />
       <div className="my-1"></div>
@@ -493,10 +498,10 @@ export default function ChatbotSettings({
         showSizeChanger
       />
       {chatbotParameterModalOpen && (
-        <ChatbotParameter
-          visible={chatbotParameterModalOpen}
+        <ChatbotSettingsModal
+          open={chatbotParameterModalOpen}
+          courseId={courseId}
           onClose={() => setChatbotParameterModalOpen(false)}
-          courseId={Number(courseId)}
         />
       )}
     </div>
