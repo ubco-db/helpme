@@ -55,10 +55,12 @@ import {
   QuestionType,
   OrganizationUser,
   OrganizationProfessor,
+  MailServiceWithSubscription,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
 import { ClassType } from 'class-transformer/ClassTransformer'
+import { get } from 'http'
 
 // Return type of array item, if T is an array
 type ItemIfArray<T> = T extends (infer I)[] ? I : T
@@ -279,6 +281,15 @@ class APIClient {
     getAllQuestionTypes: async (courseId: number): Promise<QuestionType[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
   }
+  emailNotification = {
+    get: async (): Promise<MailServiceWithSubscription[]> =>
+      this.req('GET', `/api/v1/mail-services`),
+    update: async (
+      subscriptions: MailServiceWithSubscription[],
+    ): Promise<void> => {
+      return this.req('PUT', `/api/v1/mail-services`, undefined, subscriptions)
+    },
+  }
   studentTaskProgress = {
     getAssignmentProgress: async (
       userId: number,
@@ -323,10 +334,17 @@ class APIClient {
         AsyncQuestionParams,
         body,
       ),
-    update: async (qid: number, body: UpdateAsyncQuestions) =>
+    studentUpdate: async (qid: number, body: UpdateAsyncQuestions) =>
       this.req(
         'PATCH',
-        `/api/v1/asyncQuestions/${qid}`,
+        `/api/v1/asyncQuestions/student/${qid}`,
+        AsyncQuestionParams,
+        body,
+      ),
+    facultyUpdate: async (qid: number, body: UpdateAsyncQuestions) =>
+      this.req(
+        'PATCH',
+        `/api/v1/asyncQuestions/faculty/${qid}`,
         AsyncQuestionParams,
         body,
       ),

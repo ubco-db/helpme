@@ -55,7 +55,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
           : asyncQuestionStatus.HumanAnswered
         : asyncQuestionStatus.HumanAnswered
     await API.asyncQuestions
-      .update(question.id, {
+      .facultyUpdate(question.id, {
         answerText: values.answerText,
         visible: values.visible,
         status: newStatus,

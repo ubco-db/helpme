@@ -28,6 +28,8 @@ import {
   CourseSettingsFactory,
   QuestionTypeFactory,
   ChatTokenFactory,
+  mailServiceFactory,
+  userSubscriptionFactory,
 } from '../../test/util/factories';
 import { CourseModel } from '../course/course.entity';
 import { NonProductionGuard } from '../guards/non-production.guard';
@@ -41,6 +43,9 @@ import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { InteractionModel } from 'chatbot/interaction.entity';
 import { ChatbotQuestionModel } from 'chatbot/question.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
+import { MailServiceModel } from 'mail/mail-services.entity';
+import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
+import { UserTokenModel } from 'profile/user-token.entity';
 
 const exampleConfig = {
   fifo_queue_view_enabled: true,
@@ -140,6 +145,7 @@ export class SeedController {
     await this.seedService.deleteAll(ChatbotQuestionModel);
     await this.seedService.deleteAll(InteractionModel);
     await this.seedService.deleteAll(ChatTokenModel);
+    await this.seedService.deleteAll(UserTokenModel);
     await this.seedService.deleteAll(UserModel);
     await this.seedService.deleteAll(CourseSectionMappingModel);
     await this.seedService.deleteAll(CourseModel);
@@ -147,6 +153,8 @@ export class SeedController {
     await this.seedService.deleteAll(OrganizationModel);
     await this.seedService.deleteAll(QuestionTypeModel);
     await this.seedService.deleteAll(CourseSettingsModel);
+    await this.seedService.deleteAll(MailServiceModel);
+    await this.seedService.deleteAll(UserSubscriptionModel);
     const manager = getManager();
     manager.query('ALTER SEQUENCE user_model_id_seq RESTART WITH 1;');
     manager.query('ALTER SEQUENCE organization_model_id_seq RESTART WITH 1;');
@@ -169,6 +177,17 @@ export class SeedController {
 
     const tomorrow = new Date();
     tomorrow.setUTCHours(now.getUTCHours() + 19);
+
+    const facultyMailService = await mailServiceFactory.create({
+      mailType: OrganizationRole.PROFESSOR,
+      name: 'async_question_created',
+      content: 'A student is requesting for help with an async question',
+    });
+    const studentMailService = await mailServiceFactory.create({
+      mailType: OrganizationRole.MEMBER,
+      name: 'async_question_human_answered',
+      content: 'Your async question has been answered by a faculty',
+    });
 
     const courseExists = await CourseModel.findOne({
       where: { name: 'CS 304' },
@@ -229,6 +248,11 @@ export class SeedController {
         course: course,
       });
 
+      await userSubscriptionFactory.create({
+        user: user1,
+        service: studentMailService,
+      });
+
       // Student 2
       const user2 = await UserFactory.create({
         email: 'studentTwo@ubc.ca',
@@ -251,6 +275,10 @@ export class SeedController {
         course: course,
       });
 
+      await userSubscriptionFactory.create({
+        user: user2,
+        service: studentMailService,
+      });
       // TA 1
       const user3 = await UserFactory.create({
         email: 'TaOne@ubc.ca',
@@ -322,6 +350,10 @@ export class SeedController {
         course: course,
       });
 
+      await userSubscriptionFactory.create({
+        user: user5,
+        service: facultyMailService,
+      });
       const organization = await OrganizationFactory.create({
         name: 'UBCO',
         description: 'UBC Okanagan',

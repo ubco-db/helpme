@@ -20,6 +20,7 @@ interface RequestUser {
 }
 
 @Controller('mail')
+// process emails
 export class MailController {
   constructor(private mailerService: MailService) {}
 

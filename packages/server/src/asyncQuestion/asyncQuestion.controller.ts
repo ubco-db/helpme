@@ -5,6 +5,7 @@ import {
   AsyncQuestionParams,
   asyncQuestionStatus,
   UpdateAsyncQuestions,
+  OrganizationRole,
 } from '@koh/common';
 import {
   Body,
@@ -26,14 +27,20 @@ import { AsyncQuestionModel } from './asyncQuestion.entity';
 import { CourseModel } from '../course/course.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Response } from 'express';
+import { MailService } from 'mail/mail.service';
 import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { MailServiceModel } from 'mail/mail-services.entity';
+import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class asyncQuestionController {
-  constructor(private readonly redisQueueService: RedisQueueService) {}
+  constructor(
+    private readonly redisQueueService: RedisQueueService,
+    private mailService: MailService,
+  ) {}
 
   @Post(':qid/:vote')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
@@ -150,8 +157,78 @@ export class asyncQuestionController {
     }
   }
 
-  @Patch(':questionId')
-  async updateQuestion(
+  @Patch('student/:questionId')
+  /**
+   * Updates a student's async question.
+   *
+   * @param {number} questionId - The ID of the question to update.
+   * @param {UpdateAsyncQuestions} body - The updated question data.
+   * @param {UserModel} user - The user making the request.
+   * @return {Promise<AsyncQuestionParams>} The updated question.
+   * @throws {NotFoundException} If the question is not found.
+   * @throws {HttpException} If the user is not the creator of the question.
+   * @throws {HttpException} If the user tries to update the question's status to TADeleted or HumanAnswered.
+   */
+  async updateStudentQuestion(
+    @Param('questionId') questionId: number,
+    @Body() body: UpdateAsyncQuestions,
+    @User() user: UserModel,
+  ): Promise<AsyncQuestionParams> {
+    const question = await AsyncQuestionModel.findOne({
+      where: { id: questionId },
+      relations: ['course', 'creator', 'votes'],
+    });
+
+    if (!question) {
+      throw new NotFoundException();
+    }
+
+    if (question.creatorId !== user.id) {
+      throw new HttpException(
+        'You can only update your own questions',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    if (body.status === asyncQuestionStatus.AIAnsweredNeedsAttention) {
+      const subscription = await UserSubscriptionModel.find({
+        where: {
+          service: { name: 'async_question_created' },
+        },
+        relations: ['service', 'user'],
+      });
+      subscription.forEach(async (sub) => {
+        console.log('Sending email to profile', sub.user.email);
+        await this.mailService.sendEmail({
+          receiver: sub.user.email,
+          type: 'async_question_created',
+          subject: 'UBC Helpme - Subscription Update',
+        });
+      });
+    }
+
+    // Update allowed fields
+    Object.keys(body).forEach((key) => {
+      if (body[key] !== undefined && body[key] !== null) {
+        question[key] = body[key];
+      }
+    });
+
+    const updatedQuestion = await question.save();
+
+    // Update Redis queue
+    await this.redisQueueService.updateAsyncQuestion(
+      `c:${question.course.id}:aq`,
+      updatedQuestion,
+    );
+
+    delete question.votes;
+
+    return question;
+  }
+
+  @Patch('faculty/:questionId')
+  async updateTAQuestion(
     @Param('questionId') questionId: number,
     @Body() body: UpdateAsyncQuestions,
     @User() user: UserModel,
@@ -161,56 +238,57 @@ export class asyncQuestionController {
       relations: ['course', 'creator', 'taHelped', 'votes'],
     });
 
-    if (question === undefined) {
+    if (!question) {
       throw new NotFoundException();
     }
 
     const courseId = question.course.id;
 
-    delete question.course;
+    // Verify if user is TA/PROF of the course
+    const requester = await UserCourseModel.findOne({
+      where: {
+        userId: user.id,
+        courseId: courseId,
+      },
+    });
 
-    // If not creator, check if user is TA/PROF of course of question
+    if (!requester || requester.role === Role.STUDENT) {
+      throw new HttpException(
+        'You must be a TA/PROF to update this question',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     Object.keys(body).forEach((key) => {
       if (body[key] !== undefined && body[key] !== null) {
         question[key] = body[key];
       }
     });
+
     if (
       body.status === asyncQuestionStatus.HumanAnswered ||
       body.status === asyncQuestionStatus.AIAnsweredResolved
     ) {
       question.closedAt = new Date();
-    }
-    if (body.status === asyncQuestionStatus.HumanAnswered) {
       question.taHelpedId = user.id;
-    }
-    // if creator, can update question anytime
-    // otherwise has to be TA/PROF of course
-    if (question.creatorId !== user.id) {
-      const requester = await UserCourseModel.findOne({
+      const subscription = await UserSubscriptionModel.findOne({
         where: {
-          userId: user.id,
-          courseId: courseId,
+          user: { id: question.creator.id },
+          service: { name: 'async_question_human_answered' },
         },
+        relations: ['service'],
       });
-      if (!requester || requester.role === Role.STUDENT) {
-        throw new HttpException(
-          'You must be staff in order to update questions other than your own',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-    } else {
-      // if you created the question (i.e. a student), you can't update the status to illegal ones
-      if (
-        body.status === asyncQuestionStatus.TADeleted ||
-        body.status === asyncQuestionStatus.HumanAnswered
-      ) {
-        throw new HttpException(
-          `You cannot update your own question's status to ${body.status}`,
-          HttpStatus.UNAUTHORIZED,
-        );
+
+      if (subscription) {
+        const service = subscription.service;
+        await this.mailService.sendEmail({
+          receiver: question.creator.email,
+          type: service.name,
+          subject: 'UBC Helpme - Subscription Update',
+        });
       }
     }
+
     const updatedQuestion = await question.save();
 
     if (

@@ -17,7 +17,7 @@ import {
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
 import { Ajv } from 'ajv'
-
+import { MailServiceModel } from '../server/src/mail/mail-services.entity'
 export const PROD_URL = 'https://coursehelp.ubc.ca'
 
 // Get domain. works on node and browser
@@ -200,6 +200,10 @@ export const COURSE_TIMEZONES = [
   'Australia/Sydney',
 ]
 
+export enum SubscriptionType {
+  ASYNC_QUESTION_HUMAN_ANSWERED = 'Async question is answered by human',
+  QUESTION_ANSWERED = 'New async questions that needs attention',
+}
 /**
  * Represents one of three possible user roles in a course.
  */
@@ -541,7 +545,6 @@ export class AsyncQuestionParams {
   @IsInt()
   votesSum?: number
 }
-
 export class AsyncQuestionVotes {
   @IsOptional()
   @IsInt()
@@ -1449,10 +1452,22 @@ export type InsightParamsType = {
   offset: number
 }
 
-export type sendEmailAsync = {
+export type sendEmailParams = {
   receiver: string
   subject: string
-  type: asyncQuestionEventType
+  type: string
+}
+
+export type MailServiceWithSubscription = {
+  id: number
+
+  mailType: OrganizationRole
+
+  name: string
+
+  content: string
+
+  isSubscribed: boolean
 }
 
 export class CourseSettingsResponse {

@@ -21,6 +21,8 @@ import { QuestionDocumentModel } from './src/chatbot/questionDocument.entity';
 import { CalendarModel } from './src/calendar/calendar.entity';
 import { OrganizationUserModel } from './src/organization/organization-user.entity';
 import { OrganizationModel } from './src/organization/organization.entity';
+import { MailServiceModel } from 'mail/mail-services.entity';
+import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { OrganizationCourseModel } from './src/organization/organization-course.entity';
 import { ChatbotDocumentModel } from './src/chatbot/chatbotDocument.entity';
 import { CourseSettingsModel } from './src/course/course_settings.entity';
@@ -48,6 +50,8 @@ const typeorm = {
   synchronize: process.env.NODE_ENV !== 'production',
   entities: [
     CourseModel,
+    MailServiceModel,
+    UserSubscriptionModel,
     CourseSectionMappingModel,
     SemesterModel,
     UserModel,

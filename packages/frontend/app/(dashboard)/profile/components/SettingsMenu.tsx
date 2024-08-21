@@ -7,7 +7,7 @@ import { SettingsOptions } from '@/app/typings/enum'
 import NotificationsSettings from './NotificationsSettings'
 import CoursePreference from './CoursePreference'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
-
+import EmailNotfications from './EmailNotifications'
 interface SettingsMenuProps {
   setCurrentSettings: (settings: SettingsOptions) => void
 }
@@ -27,8 +27,13 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ setCurrentSettings }) => {
           children: <EditProfile />,
         },
         {
+          key: SettingsOptions.EMAIL_NOTIFICATIONS,
+          label: 'Email Notifications',
+          children: <EmailNotfications />,
+        },
+        {
           key: SettingsOptions.NOTIFICATIONS,
-          label: 'Notifications',
+          label: 'Browser Queue Notifications',
           children: <NotificationsSettings />,
         },
         {
@@ -50,8 +55,13 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ setCurrentSettings }) => {
           icon: <UserOutlined />,
         },
         {
-          key: SettingsOptions.NOTIFICATIONS,
+          key: SettingsOptions.EMAIL_NOTIFICATIONS,
           label: 'Notifications',
+          icon: <BellOutlined />,
+        },
+        {
+          key: SettingsOptions.NOTIFICATIONS,
+          label: 'Browser Queue Notifications',
           icon: <BellOutlined />,
         },
         {

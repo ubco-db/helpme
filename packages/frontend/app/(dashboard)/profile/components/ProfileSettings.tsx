@@ -8,7 +8,7 @@ import { useState } from 'react'
 import EditProfile from './EditProfile'
 import NotificationsSettings from './NotificationsSettings'
 import CoursePreference from './CoursePreference'
-
+import EmailNotfications from './EmailNotifications'
 const ProfileSettings: React.FC = () => {
   const [currentSettings, setCurrentSettings] = useState(
     SettingsOptions.PROFILE,
@@ -33,6 +33,9 @@ const ProfileSettings: React.FC = () => {
           {currentSettings === SettingsOptions.PROFILE && <EditProfile />}
           {currentSettings === SettingsOptions.NOTIFICATIONS && (
             <NotificationsSettings />
+          )}
+          {currentSettings === SettingsOptions.EMAIL_NOTIFICATIONS && (
+            <EmailNotfications />
           )}
           {currentSettings === SettingsOptions.PREFERENCES && (
             <CoursePreference />
