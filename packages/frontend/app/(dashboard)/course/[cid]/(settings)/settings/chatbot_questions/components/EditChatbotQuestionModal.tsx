@@ -116,9 +116,6 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
-        console.log('e', e)
-        //print type of e
-        console.log('errormessage', errorMessage)
         message.error('Failed to insert document:' + errorMessage)
       })
   }

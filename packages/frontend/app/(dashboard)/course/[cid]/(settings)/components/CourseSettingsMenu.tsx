@@ -21,9 +21,7 @@ enum CourseAdminOptions {
   EXPORT_DATA = 'EXPORT_DATA',
   EDIT_QUESTIONS = 'EDIT_QUESTIONS',
   SETTINGS = 'SETTINGS',
-  BOT_SETTINGS = 'BOT_SETTINGS',
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
-  BOT_QUESTIONS = 'BOT_QUESTIONS',
   CHATBOT_QUESTIONS = 'CHATBOT_QUESTIONS',
 }
 
@@ -59,14 +57,8 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       case CourseAdminOptions.EDIT_QUESTIONS:
         router.push(`${basePath}/edit_questions`)
         break
-      case CourseAdminOptions.BOT_SETTINGS:
-        router.push(`${basePath}/bot_settings`)
-        break
       case CourseAdminOptions.CHATBOT_SETTINGS:
         router.push(`${basePath}/chatbot_settings`)
-        break
-      case CourseAdminOptions.BOT_QUESTIONS:
-        router.push(`${basePath}/bot_questions`)
         break
       case CourseAdminOptions.CHATBOT_QUESTIONS:
         router.push(`${basePath}/chatbot_questions`)
@@ -94,19 +86,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       label: 'Export Data',
     },
     {
-      key: CourseAdminOptions.BOT_SETTINGS,
-      icon: <RobotOutlined />,
-      label: 'Chatbot Settings Old',
-    },
-    {
       key: CourseAdminOptions.CHATBOT_SETTINGS,
       icon: <RobotOutlined />,
       label: 'Chatbot Settings',
-    },
-    {
-      key: CourseAdminOptions.BOT_QUESTIONS,
-      icon: <RobotOutlined />,
-      label: 'Chatbot Questions old',
     },
     {
       key: CourseAdminOptions.CHATBOT_QUESTIONS,
