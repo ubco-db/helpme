@@ -44,6 +44,7 @@ interface IncomingQuestionData {
     verified: boolean
     sourceDocuments: SourceDocument[]
     suggested: boolean
+    inserted?: boolean
   }
 }
 
@@ -54,6 +55,7 @@ export interface ChatbotQuestion {
   verified: boolean
   sourceDocuments: SourceDocument[]
   suggested: boolean
+  inserted?: boolean
 }
 
 type ChatbotQuestionsProps = {
@@ -284,6 +286,7 @@ export default function ChatbotQuestions({
         verified: question.metadata.verified,
         sourceDocuments: question.metadata.sourceDocuments,
         suggested: question.metadata.suggested,
+        inserted: question.metadata.inserted,
       }))
 
       setChatQuestions(parsedQuestions)

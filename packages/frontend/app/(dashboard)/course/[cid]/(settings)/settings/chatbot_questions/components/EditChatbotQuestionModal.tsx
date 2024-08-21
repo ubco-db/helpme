@@ -9,11 +9,13 @@ import {
   Select,
   message,
   Tooltip,
+  Space,
 } from 'antd'
 import axios from 'axios'
 import { User } from '@koh/common'
 import { ChatbotQuestion, SourceDocument } from '../page'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons'
 
 interface FormValues {
   question: string
@@ -21,6 +23,10 @@ interface FormValues {
   verified: boolean
   suggested: boolean
   sourceDocuments: SourceDocument[]
+  selectedDocuments: {
+    docId: string
+    pageNumbersString: string
+  }[]
 }
 
 interface EditChatbotQuestionModalProps {
@@ -41,6 +47,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   profile,
 }) => {
   const [form] = Form.useForm()
+  const [successfulQAInsert, setSuccessfulQAInsert] = useState(false)
   const chatbotToken = profile.chat_token.token
 
   // stores all related documents in db
@@ -92,15 +99,41 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
           },
         },
       )
-      .then((res) => {
+      .then(async (res) => {
         if (res.status !== 200 && res.status !== 201) {
           const errorMessage = getErrorMessage(res)
           message.error('Insert unsuccessful:' + errorMessage)
         } else {
-          message.success(
-            'Document inserted successfully. You can now cancel or save the changes you made to the Q&A',
-            6,
-          )
+          await axios
+            .patch(
+              `/chat/${cid}/question`,
+              {
+                id: editingRecord.id,
+                inserted: true,
+              },
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                  HMS_API_TOKEN: chatbotToken,
+                },
+              },
+            )
+            .then((res) => {
+              if (res.status !== 200 && res.status !== 201) {
+                const errorMessage = getErrorMessage(res)
+                message.error('Insert unsuccessful:' + errorMessage)
+              } else {
+                message.success(
+                  'Document inserted successfully. You can now cancel or save the changes you made to the Q&A',
+                  6,
+                )
+                setSuccessfulQAInsert(true)
+              }
+            })
+            .catch((e) => {
+              const errorMessage = getErrorMessage(e)
+              message.error('Failed to insert document:' + errorMessage)
+            })
         }
       })
       .catch((e) => {
@@ -176,12 +209,23 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       cancelButtonProps={{
         danger: true,
       }}
+      width={800}
       onCancel={onCancel}
       footer={(_, { OkBtn, CancelBtn }) => (
         <div className={`flex justify-end gap-2`}>
           <CancelBtn />
-          <Tooltip title="This will treat this question and answer as a source that the AI can then reference and cite in future questions.">
-            <Button type="default" onClick={confirmInsert}>
+          <Tooltip
+            title={
+              editingRecord.inserted || successfulQAInsert
+                ? 'This question and answer has already been inserted as a new source document'
+                : "This will treat this question and answer as a source that the AI can then reference and cite in future questions (a new document chunk). The question's source documents are ignored"
+            }
+          >
+            <Button
+              type="default"
+              onClick={confirmInsert}
+              disabled={editingRecord.inserted || successfulQAInsert}
+            >
               Insert Q&A into DocumentStore
             </Button>
           </Tooltip>
@@ -242,22 +286,23 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       <Form.List name="sourceDocuments">
         {(fields, { add, remove }) => (
           <Collapse
+            size="small"
             items={fields.map((field, index) => ({
-              header:
+              label:
                 (
                   form.getFieldValue([
                     'sourceDocuments',
                     field.name,
                     'docName',
                   ]) || `Document ${index + 1}`
-                ).substring(0, 50) +
+                ).substring(0, 100) +
                 ((
                   form.getFieldValue([
                     'sourceDocuments',
                     field.name,
                     'docName',
                   ]) || ''
-                ).length > 50
+                ).length > 100
                   ? '...'
                   : ''),
               key: field.key,
@@ -296,58 +341,77 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
           />
         )}
       </Form.List>
+      <span className="text-md font-bold">Add New Source Document</span>
+      <Form.List name="selectedDocuments">
+        {(fields, { add, remove }) => (
+          <>
+            {fields.map(({ key, name, ...restField }) => {
+              // Get the IDs of the documents that have already been selected
+              const selectedDocIds = fields.map((field) => field.name.docId)
 
-      <Select
-        className="my-4 w-full"
-        placeholder="Select a document to add"
-        onSelect={(selectedDocId) => {
-          const selectedDoc = existingDocuments.find(
-            (doc) => doc.docId === selectedDocId,
-          )
-          if (selectedDoc) {
-            setSelectedDocuments((prev) => {
-              const isAlreadySelected = prev.some(
-                (doc) => doc.docId === selectedDocId,
+              // Filter the existing documents to exclude the selected ones
+              const availableDocuments = existingDocuments.filter(
+                (doc) => !selectedDocIds.includes(doc.docId),
               )
-              if (!isAlreadySelected) {
-                return [...prev, { ...selectedDoc, pageNumbers: [] }]
-              }
-              return prev
-            })
-          }
-        }}
-      >
-        {existingDocuments.map((doc) => (
-          <Select.Option key={doc.docId} value={doc.docId}>
-            {doc.docName}
-          </Select.Option>
-        ))}
-      </Select>
 
+              return (
+                <Space key={key} className="flex" align="center">
+                  <Form.Item
+                    {...restField}
+                    name={[name, 'docId']}
+                    rules={[{ required: true, message: 'Select a document' }]}
+                  >
+                    <Select
+                      className="w-3/4"
+                      placeholder="Select a document to add"
+                      options={availableDocuments.map((doc) => ({
+                        label: doc.docName,
+                        value: doc.docId,
+                      }))}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    label="Page Numbers (comma separated e.g. 1,2,3)"
+                    {...restField}
+                    name={[name, 'pageNumbersString']}
+                    rules={[
+                      {
+                        validator: (_: any, value: string) => {
+                          const regex = /^(\d+)(,\d+)*$/
+                          if (value && !regex.test(value)) {
+                            return Promise.reject(
+                              new Error(
+                                'Page numbers must be in format 1,2,3,...',
+                              ),
+                            )
+                          }
+                          return Promise.resolve()
+                        },
+                      },
+                    ]}
+                  >
+                    <Input className="w-1/4" type="text" placeholder="1,2,3" />
+                  </Form.Item>
+                  <MinusCircleOutlined onClick={() => remove(name)} />
+                </Space>
+              )
+            })}
+            <Form.Item>
+              <Button
+                type="dashed"
+                onClick={() => add()}
+                block
+                icon={<PlusOutlined />}
+              >
+                Add Document
+              </Button>
+            </Form.Item>
+          </>
+        )}
+      </Form.List>
       {selectedDocuments.map((doc) => (
         <div key={doc.docId}>
           <span className="font-bold">{doc.docName}</span>
-          <Input
-            key={doc.docId}
-            type="text"
-            placeholder="Enter page numbers (comma separated e.g. 1,2,3)"
-            value={doc.pageNumbersString}
-            onChange={(e) => {
-              doc.pageNumbersString = e.target.value
-              // const updatedPageNumbers = e.target.value
-              // // Split by comma, trim whitespace, filter empty strings, convert to numbers
-              // const pageNumbersArray = updatedPageNumbers
-              //   .split(',')
-              //   .map(Number)
-              // setSelectedDocuments((prev) =>
-              //   prev.map((d, idx) =>
-              //     idx === index
-              //       ? { ...d, pageNumbers: pageNumbersArray } // array of numbers
-              //       : d,
-              //   ),
-              // )
-            }}
-          />
         </div>
       ))}
     </Modal>
