@@ -6,6 +6,7 @@ import {
   asyncQuestionStatus,
   UpdateAsyncQuestions,
   OrganizationRole,
+  MailServiceType,
 } from '@koh/common';
 import {
   Body,
@@ -189,22 +190,42 @@ export class asyncQuestionController {
         HttpStatus.UNAUTHORIZED,
       );
     }
-
     if (body.status === asyncQuestionStatus.AIAnsweredNeedsAttention) {
-      const subscription = await UserSubscriptionModel.find({
-        where: {
-          service: { name: 'async_question_created' },
-        },
-        relations: ['service', 'user'],
-      });
-      subscription.forEach(async (sub) => {
-        console.log('Sending email to profile', sub.user.email);
-        await this.mailService.sendEmail({
-          receiver: sub.user.email,
-          type: 'async_question_created',
-          subject: 'UBC Helpme - Subscription Update',
-        });
-      });
+      const courseId = question.course.id;
+
+      // Step 1: Get all users in the course
+      const usersInCourse = await UserCourseModel.createQueryBuilder(
+        'userCourse',
+      )
+        .select('userCourse.userId')
+        .where('userCourse.courseId = :courseId', { courseId })
+        .getMany();
+
+      const userIds = usersInCourse.map((uc) => uc.userId);
+
+      // Step 2: Get subscriptions for these users
+      const subscriptions = await UserSubscriptionModel.createQueryBuilder(
+        'subscription',
+      )
+        .innerJoinAndSelect('subscription.user', 'user')
+        .innerJoinAndSelect('subscription.service', 'service')
+        .where('subscription.userId IN (:...userIds)', { userIds })
+        .andWhere('service.serviceType = :serviceType', {
+          serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
+        })
+        .andWhere('subscription.isSubscribed = true')
+        .getMany();
+
+      // Send emails in parallel
+      await Promise.all(
+        subscriptions.map((sub) =>
+          this.mailService.sendEmail({
+            receiver: sub.user.email,
+            type: MailServiceType.ASYNC_QUESTION_FLAGGED,
+            subject: 'UBC Helpme - Subscription Update',
+          }),
+        ),
+      );
     }
 
     // Update allowed fields
@@ -283,7 +304,7 @@ export class asyncQuestionController {
         const service = subscription.service;
         await this.mailService.sendEmail({
           receiver: question.creator.email,
-          type: service.name,
+          type: service.serviceType,
           subject: 'UBC Helpme - Subscription Update',
         });
       }

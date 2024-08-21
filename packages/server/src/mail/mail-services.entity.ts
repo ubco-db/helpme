@@ -5,7 +5,7 @@ import {
   BaseEntity,
   OneToMany,
 } from 'typeorm';
-import { OrganizationRole } from '@koh/common';
+import { OrganizationRole, MailServiceType } from '@koh/common';
 import { UserSubscriptionModel } from './user-subscriptions.entity';
 
 @Entity('mail_services')
@@ -15,6 +15,14 @@ export class MailServiceModel extends BaseEntity {
 
   @Column()
   mailType: OrganizationRole;
+
+  // this is the displayed name to users
+  @Column({
+    type: 'enum',
+    enum: MailServiceType,
+    unique: true,
+  })
+  serviceType: MailServiceType;
 
   @Column()
   name: string;

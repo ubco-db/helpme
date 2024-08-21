@@ -1,4 +1,8 @@
-import { MailServiceWithSubscription, sendEmailParams } from '@koh/common';
+import {
+  MailServiceWithSubscription,
+  OrganizationRole,
+  sendEmailParams,
+} from '@koh/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { MailServiceModel } from './mail-services.entity';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -37,7 +41,7 @@ export class MailService {
     // retrieve text to send based on emailPost.type
     const mail = await MailServiceModel.findOne({
       where: {
-        name: emailPost.type,
+        serviceType: emailPost.type,
       },
     });
     if (!mail) {
@@ -54,26 +58,39 @@ export class MailService {
     });
   }
   async findAll(
-    role: string,
+    role: OrganizationRole,
     user: UserModel,
   ): Promise<MailServiceWithSubscription[]> {
-    // Fetch all mail services of the specified role
-    const allMailServices = await MailServiceModel.find({
-      where: { mailType: role },
-    });
+    // Admin has same notification settings as professor for now
+    if (role === OrganizationRole.ADMIN) {
+      role = OrganizationRole.PROFESSOR;
+    }
 
-    // For each mail service, check if the user is subscribed and add 'isSubscribed' property
-    const servicesWithSubscription = await Promise.all(
-      allMailServices.map(async (mailService) => {
-        const userSubscription = await UserSubscriptionModel.findOne({
-          where: {
-            serviceId: mailService.id,
-            userId: user.id,
-          },
-        });
-        return { ...mailService, isSubscribed: !!userSubscription };
-      }),
-    );
+    const mailServicesWithSubscriptions =
+      await MailServiceModel.createQueryBuilder('mailService')
+        .leftJoinAndSelect(
+          'mailService.subscriptions',
+          'subscription',
+          'subscription.userId = :userId',
+          { userId: user.id },
+        )
+        .where('mailService.mailType = :role', { role })
+        .getMany();
+
+    // Map the results to the desired output format
+    const servicesWithSubscription: MailServiceWithSubscription[] =
+      mailServicesWithSubscriptions.map((mailService) => ({
+        id: mailService.id,
+        mailType: mailService.mailType,
+        serviceType: mailService.serviceType,
+        name: mailService.name,
+        content: mailService.content,
+        isSubscribed:
+          mailService.subscriptions.length > 0
+            ? mailService.subscriptions[0].isSubscribed
+            : false,
+      }));
+
     return servicesWithSubscription;
   }
 

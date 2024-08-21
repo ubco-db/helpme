@@ -23,8 +23,7 @@ import { InteractionModel } from '../chatbot/interaction.entity';
 import { UserTokenModel } from './user-token.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
-import { MailServiceModel } from 'mail/mail-services.entity';
-import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
+import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {

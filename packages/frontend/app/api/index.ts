@@ -61,6 +61,7 @@ import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
 import { ClassType } from 'class-transformer/ClassTransformer'
 import { get } from 'http'
+import { UserSubscriptionModel } from '../../../server/src/mail/user-subscriptions.entity'
 
 // Return type of array item, if T is an array
 type ItemIfArray<T> = T extends (infer I)[] ? I : T
@@ -285,9 +286,15 @@ class APIClient {
     get: async (): Promise<MailServiceWithSubscription[]> =>
       this.req('GET', `/api/v1/mail-services`),
     update: async (
-      subscriptions: MailServiceWithSubscription[],
-    ): Promise<void> => {
-      return this.req('PUT', `/api/v1/mail-services`, undefined, subscriptions)
+      mailServiceId: number,
+      isSubscribed: boolean,
+    ): Promise<UserSubscriptionModel> => {
+      return this.req(
+        'PATCH',
+        `/api/v1/mail-services/${mailServiceId}`,
+        undefined,
+        { isSubscribed },
+      )
     },
   }
   studentTaskProgress = {

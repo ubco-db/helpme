@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { API } from '@/app/api'
-import { Button, Form, Switch } from 'antd'
+import { Button, Form, message, Switch, Typography } from 'antd'
 import useSWR from 'swr'
+
+const { Text } = Typography
 
 const EmailNotifications: React.FC = () => {
   const { data: profile, mutate } = useSWR('api/v1/profile', async () =>
@@ -11,10 +13,10 @@ const EmailNotifications: React.FC = () => {
   const [subscriptions, setSubscriptions] = useState<
     { id: any; name: any; isSubscribed: any }[]
   >([])
+  const [isFormChanged, setIsFormChanged] = useState(false)
 
   useEffect(() => {
     API.emailNotification.get().then((data) => {
-      console.log(data)
       const formattedData = data.map((notif: any) => ({
         id: notif.id,
         name: notif.name,
@@ -36,26 +38,34 @@ const EmailNotifications: React.FC = () => {
   const handleOk = async () => {
     try {
       const values = form.getFieldsValue()
-      console.log('values', values)
-      // Convert form values back to the expected format
-      const updatedSubscriptions = subscriptions.map((sub) => ({
-        ...sub,
-        isSubscribed: values[sub.id],
-      }))
-      // await API.emailNotification.update(updatedSubscriptions);
-      // mutate(); // Re-fetch profile data after saving
+      Object.entries(values).map(([mailServiceId, isSubscribed]) =>
+        API.emailNotification.update(
+          parseInt(mailServiceId, 10),
+          Boolean(isSubscribed),
+        ),
+      )
+
+      message.success('Notification settings updated successfully')
     } catch (error) {
       console.error('Failed to save notification settings:', error)
+      message.error('Failed to update notification settings')
     }
+  }
+  const handleFormChange = () => {
+    const currentValues = form.getFieldsValue()
+    const hasChanged = subscriptions.some(
+      (sub) => currentValues[sub.id] !== sub.isSubscribed,
+    )
+    setIsFormChanged(hasChanged)
   }
 
   return (
     <div>
-      <Form form={form} layout="vertical">
+      <Form form={form} layout="vertical" onValuesChange={handleFormChange}>
         {subscriptions.map((subscription) => (
           <Form.Item
             key={subscription.id}
-            label={`Enable ${subscription.name}`}
+            label={<Text strong>{subscription.name}</Text>}
             name={subscription.id}
             valuePropName="checked"
           >
@@ -67,6 +77,7 @@ const EmailNotifications: React.FC = () => {
         key="submit"
         type="primary"
         onClick={handleOk}
+        disabled={!isFormChanged}
         style={{ marginTop: '30px', marginBottom: '15px' }}
       >
         Save

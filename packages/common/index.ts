@@ -200,9 +200,9 @@ export const COURSE_TIMEZONES = [
   'Australia/Sydney',
 ]
 
-export enum SubscriptionType {
-  ASYNC_QUESTION_HUMAN_ANSWERED = 'Async question is answered by human',
-  QUESTION_ANSWERED = 'New async questions that needs attention',
+export enum MailServiceType {
+  ASYNC_QUESTION_HUMAN_ANSWERED = 'async_question_human_answered',
+  ASYNC_QUESTION_FLAGGED = 'async_question_flagged',
 }
 /**
  * Represents one of three possible user roles in a course.
@@ -1455,7 +1455,7 @@ export type InsightParamsType = {
 export type sendEmailParams = {
   receiver: string
   subject: string
-  type: string
+  type: MailServiceType
 }
 
 export type MailServiceWithSubscription = {

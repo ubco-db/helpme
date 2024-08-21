@@ -1,15 +1,12 @@
 import {
   Controller,
   Get,
-  Post,
-  Put,
-  Delete,
-  Body,
   Param,
   Patch,
   UseGuards,
   HttpException,
   HttpStatus,
+  Body,
 } from '@nestjs/common';
 import { MailService } from './mail.service';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
@@ -18,6 +15,7 @@ import { MailServiceWithSubscription, OrganizationRole } from '@koh/common';
 import { User } from 'decorators/user.decorator';
 import { UserModel } from 'profile/user.entity';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
+import { UserSubscriptionModel } from './user-subscriptions.entity';
 @UseGuards(JwtAuthGuard)
 @Controller('mail-services')
 //handles notfication settings for emails
@@ -31,6 +29,7 @@ export class MailServicesController {
     const organizationUser = await OrganizationUserModel.findOne({
       where: { userId: user.id },
     });
+
     if (!Object.values(OrganizationRole).includes(organizationUser.role)) {
       throw new HttpException('Invalid role', HttpStatus.BAD_REQUEST);
     }
@@ -38,23 +37,34 @@ export class MailServicesController {
     return this.mailService.findAll(organizationUser.role, user);
   }
 
-  @Post()
-  async create(
-    @Body() mailService: MailServiceModel,
-  ): Promise<MailServiceModel> {
-    return this.mailService.create(mailService);
-  }
-
-  @Patch(':id')
+  @Patch(':mailServiceId')
   async update(
-    @Param('id') id: number,
-    @Body() mailService: MailServiceModel,
-  ): Promise<MailServiceModel> {
-    return this.mailService.update(id, mailService);
-  }
+    @Param('mailServiceId') id: number,
+    @User() user: UserModel,
+    @Body('isSubscribed') isSubscribed: boolean,
+  ): Promise<UserSubscriptionModel> {
+    let subscription = await UserSubscriptionModel.findOne({
+      where: {
+        userId: user.id,
+        serviceId: id,
+      },
+    });
 
-  @Delete(':id')
-  async remove(@Param('id') id: number): Promise<void> {
-    await this.mailService.remove(id);
+    if (!subscription) {
+      // If no subscription exists, create a new one
+      const mailService = await MailServiceModel.findOne(id);
+      if (!mailService) {
+        throw new HttpException('Invalid mail service', HttpStatus.BAD_REQUEST);
+      }
+
+      subscription = new UserSubscriptionModel();
+      subscription.userId = user.id;
+      subscription.serviceId = id;
+    }
+
+    subscription.isSubscribed = isSubscribed;
+    await subscription.save();
+
+    return subscription;
   }
 }
