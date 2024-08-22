@@ -11,10 +11,9 @@ import {
 import { MailService } from './mail.service';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { MailServiceModel } from './mail-services.entity';
-import { MailServiceWithSubscription, OrganizationRole } from '@koh/common';
+import { MailServiceWithSubscription } from '@koh/common';
 import { User } from 'decorators/user.decorator';
 import { UserModel } from 'profile/user.entity';
-import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { UserSubscriptionModel } from './user-subscriptions.entity';
 @UseGuards(JwtAuthGuard)
 @Controller('mail-services')
@@ -26,15 +25,16 @@ export class MailServicesController {
   async findAll(
     @User() user: UserModel,
   ): Promise<MailServiceWithSubscription[]> {
-    const organizationUser = await OrganizationUserModel.findOne({
-      where: { userId: user.id },
-    });
-
-    if (!Object.values(OrganizationRole).includes(organizationUser.role)) {
-      throw new HttpException('Invalid role', HttpStatus.BAD_REQUEST);
+    try {
+      return this.mailService.findAllSubscriptions(user);
+    } catch (error) {
+      console.error('Error in findAll method:', error);
+      console.log(this.mailService);
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
-
-    return this.mailService.findAll(organizationUser.role, user);
   }
 
   @Patch(':mailServiceId')

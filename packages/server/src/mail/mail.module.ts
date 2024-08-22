@@ -4,6 +4,7 @@ import { MailService } from './mail.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailController } from './mail.controller';
 import { MailServicesController } from './mail-services.controller';
+import { UserModel } from 'profile/user.entity';
 @Global()
 @Module({
   controllers: [MailController, MailServicesController],
@@ -26,3 +27,25 @@ import { MailServicesController } from './mail-services.controller';
   exports: [MailService],
 })
 export class MailModule {}
+
+export type sendEmailAsync = {
+  receiver: string;
+  subject: string;
+  type: any;
+};
+@Module({
+  controllers: [MailController, MailServicesController],
+  providers: [
+    {
+      provide: MailService,
+      // Use an empty class for a mock implementation
+      useValue: {
+        sendUserVerificationCode: () => 'fake code',
+        sendEmail: (_emailPost: sendEmailAsync) => 'fake email',
+        findAllSubscriptions: (user: UserModel) => ['fake subscription'],
+      },
+    },
+  ],
+  exports: [MailService],
+})
+export class MailTestingModule {}

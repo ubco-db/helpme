@@ -1,13 +1,14 @@
 import {
   MailServiceWithSubscription,
   OrganizationRole,
+  Role,
   sendEmailParams,
 } from '@koh/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { MailServiceModel } from './mail-services.entity';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
-import { UserSubscriptionModel } from './user-subscriptions.entity';
+import { UserCourseModel } from 'profile/user-course.entity';
 
 @Injectable()
 export class MailService {
@@ -57,25 +58,35 @@ export class MailService {
         '<br> Check on : <a href="https://coursehelp.ubc.ca/">UBC Course Helper</a>',
     });
   }
-  async findAll(
-    role: OrganizationRole,
+  async findAllSubscriptions(
     user: UserModel,
   ): Promise<MailServiceWithSubscription[]> {
-    // Admin has same notification settings as professor for now
-    if (role === OrganizationRole.ADMIN) {
-      role = OrganizationRole.PROFESSOR;
+    // Check if the user is a professor in any course
+    const isProfInAnyCourse = await UserCourseModel.findOne({
+      where: {
+        userId: user.id,
+        role: Role.PROFESSOR,
+      },
+    });
+
+    let mailServicesQuery = MailServiceModel.createQueryBuilder(
+      'mailService',
+    ).leftJoinAndSelect(
+      'mailService.subscriptions',
+      'subscription',
+      'subscription.userId = :userId',
+      { userId: user.id },
+    );
+
+    // If user is not a professor in any course, filter by MEMBER role
+    if (!isProfInAnyCourse) {
+      mailServicesQuery = mailServicesQuery.where(
+        'mailService.mailType = :role',
+        { role: OrganizationRole.MEMBER },
+      );
     }
 
-    const mailServicesWithSubscriptions =
-      await MailServiceModel.createQueryBuilder('mailService')
-        .leftJoinAndSelect(
-          'mailService.subscriptions',
-          'subscription',
-          'subscription.userId = :userId',
-          { userId: user.id },
-        )
-        .where('mailService.mailType = :role', { role })
-        .getMany();
+    const mailServicesWithSubscriptions = await mailServicesQuery.getMany();
 
     // Map the results to the desired output format
     const servicesWithSubscription: MailServiceWithSubscription[] =
