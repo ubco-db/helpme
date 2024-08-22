@@ -33,7 +33,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ setCurrentSettings }) => {
         },
         {
           key: SettingsOptions.NOTIFICATIONS,
-          label: 'Browser Queue Notifications',
+          label: 'Browser Notifications',
           children: <NotificationsSettings />,
         },
         {
@@ -56,12 +56,12 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ setCurrentSettings }) => {
         },
         {
           key: SettingsOptions.EMAIL_NOTIFICATIONS,
-          label: 'Notifications',
+          label: 'Email Notifications',
           icon: <BellOutlined />,
         },
         {
           key: SettingsOptions.NOTIFICATIONS,
-          label: 'Browser Queue Notifications',
+          label: 'Browser Notifications',
           icon: <BellOutlined />,
         },
         {

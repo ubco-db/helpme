@@ -17,7 +17,6 @@ import {
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
 import { Ajv } from 'ajv'
-import { MailServiceModel } from '../server/src/mail/mail-services.entity'
 export const PROD_URL = 'https://coursehelp.ubc.ca'
 
 // Get domain. works on node and browser

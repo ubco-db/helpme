@@ -53,14 +53,12 @@ import {
   StudentTaskProgressWithUser,
   AsyncQuestion,
   QuestionType,
-  OrganizationUser,
   OrganizationProfessor,
   MailServiceWithSubscription,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
 import { ClassType } from 'class-transformer/ClassTransformer'
-import { get } from 'http'
 import { UserSubscriptionModel } from '../../../server/src/mail/user-subscriptions.entity'
 
 // Return type of array item, if T is an array
