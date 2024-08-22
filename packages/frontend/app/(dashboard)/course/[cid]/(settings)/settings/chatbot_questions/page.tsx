@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, Divider, Input, message, Modal, Table } from 'antd'
-import React, { ReactElement, useCallback, useEffect, useState } from 'react'
+import { ReactElement, useCallback, useEffect, useState } from 'react'
 import ExpandableText from '@/app/components/ExpandableText'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -25,7 +25,7 @@ export interface SourceDocument {
   }
   type?: string
   // TODO: is it content or pageContent? since this file uses both
-  content: string
+  content?: string
   pageContent: string
   docName: string
   docId?: string // no idea if this exists in the actual data
@@ -372,7 +372,6 @@ export default function ChatbotQuestions({
         bordered
         size="small"
         dataSource={filteredQuestions}
-        pagination={{ pageSize: 10 }}
       />
     </div>
   )

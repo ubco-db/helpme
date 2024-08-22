@@ -1,30 +1,46 @@
-import React, { useState, useEffect } from 'react'
-import { Table, Button, Modal, Input, Form, message } from 'antd'
-import { useProfile } from '../../hooks/useProfile'
-import EditDocumentModal from './EditChatbotDocumentModal'
-import axios from 'axios'
+'use client'
 
-interface ChatbotDocumentsProps {
-  courseId: number
+import { useState, useEffect, ReactElement, useCallback } from 'react'
+import { Table, Button, Modal, Input, Form, message } from 'antd'
+// import EditDocumentModal from './EditChatbotDocumentModal'
+import axios from 'axios'
+import { SourceDocument } from '../chatbot_questions/page'
+import { useUserInfo } from '@/app/contexts/userContext'
+import Link from 'next/link'
+import { getErrorMessage } from '@/app/utils/generalUtils'
+import Highlighter from 'react-highlight-words'
+import ExpandableText from '@/app/components/ExpandableText'
+
+interface FormValues {
+  content: string
+  source: string
+  pageNumber: string
 }
 
-export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
-  const [documents, setDocuments] = useState([])
-  const [filteredDocuments, setFilteredDocuments] = useState([])
-  const profile = useProfile()
+interface ChatbotDocumentsProps {
+  params: { cid: string }
+}
+
+export default function ChatbotDocuments({
+  params,
+}: ChatbotDocumentsProps): ReactElement {
+  const courseId = Number(params.cid)
+  const [documents, setDocuments] = useState<SourceDocument[]>([])
+  const [filteredDocuments, setFilteredDocuments] = useState<SourceDocument[]>(
+    [],
+  )
   const [search, setSearch] = useState('')
-  const [addModelOpen, setAddModelOpen] = useState(false)
-  const [editingRecord, setEditingRecord] = useState(null)
+  const [editingRecord, setEditingRecord] = useState<SourceDocument | null>(
+    null,
+  )
   const [editRecordModalVisible, setEditRecordModalVisible] = useState(false)
   const [form] = Form.useForm()
+  const { userInfo } = useUserInfo()
+  const [addDocChunkPopupVisible, setAddDocChunkPopupVisible] = useState(false)
 
-  useEffect(() => {
-    fetchDocuments()
-  }, [addModelOpen, courseId])
-
-  const addDocument = async (values) => {
+  const addDocument = async (values: FormValues) => {
     try {
-      const metadata = {
+      const metadata: any = {
         name: 'Manually Inserted Information',
         type: 'inserted_document',
       }
@@ -44,7 +60,7 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
         {
           headers: {
             'Content-Type': 'application/json',
-            HMS_API_TOKEN: profile.chat_token.token,
+            HMS_API_TOKEN: userInfo.chat_token.token,
           },
         },
       )
@@ -52,78 +68,90 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
         throw new Error('Network response was not ok')
       }
       message.success('Document added successfully.')
+      fetchDocuments()
     } catch (e) {
-      message.error('Failed to add document.')
+      const errorMessage = getErrorMessage(e)
+      message.error('Failed to add document: ' + errorMessage)
     }
   }
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     try {
       const response = await axios.get(`/chat/${courseId}/allDocumentChunks`, {
         headers: {
-          HMS_API_TOKEN: profile.chat_token.token,
+          HMS_API_TOKEN: userInfo.chat_token.token,
         },
       })
       setDocuments(response.data)
       setFilteredDocuments(response.data)
     } catch (e) {
-      message.error('Failed to load documents.')
+      const errorMessage = getErrorMessage(e)
+      message.error('Failed to load documents: ' + errorMessage)
     }
-  }
+  }, [courseId, userInfo.chat_token.token, setDocuments, setFilteredDocuments])
+  useEffect(() => {
+    if (courseId) {
+      fetchDocuments()
+    }
+  }, [courseId, fetchDocuments])
 
   const columns = [
     {
       title: 'Name',
       dataIndex: ['metadata', 'name'],
       key: 'name',
-      width: 80,
-      sorter: (a, b) => a.metadata.name.localeCompare(b.metadata.name),
-      render: (text, record) => (
-        <a
-          href={record.metadata.source}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {text}
-        </a>
+      width: 300,
+      sorter: (a: SourceDocument, b: SourceDocument) => {
+        if (a.metadata?.name && b.metadata?.name) {
+          return a.metadata.name.localeCompare(b.metadata.name)
+        } else {
+          return 0
+        }
+      },
+      render: (text: string, record: SourceDocument) => (
+        <ExpandableText maxRows={4}>
+          <Link
+            href={record.metadata?.source ?? ''}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {text}
+          </Link>
+        </ExpandableText>
       ),
     },
     {
       title: 'Document Content',
       dataIndex: ['pageContent'],
       key: 'pageContent',
-      width: 500,
-      render: (text) => (
-        <div
-          style={{
-            maxHeight: '150px',
-            overflow: 'auto',
-            whiteSpace: 'pre-wrap',
-          }}
-        >
-          {text}
-        </div>
+      render: (text: string) => (
+        <ExpandableText maxRows={4}>
+          <Highlighter
+            highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+            searchWords={[search]}
+            autoEscape
+            textToHighlight={text ? text.toString() : ''}
+          />
+        </ExpandableText>
       ),
     },
     {
-      title: 'Page Number',
+      title: 'Page #',
       dataIndex: ['metadata', 'loc', 'pageNumber'],
       key: 'pageNumber',
-      width: 80,
+      width: 40,
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: 150,
-      render: (_, record) => (
+      width: 100,
+      render: (_: any, record: SourceDocument) => (
         <div>
-          <Button
-            style={{ marginBottom: '8px' }}
-            onClick={() => showModal(record)}
-          >
+          <Button className="m-2" onClick={() => showModal(record)}>
             Edit
           </Button>
           <Button
+            className="m-2"
             danger
             onClick={() => {
               Modal.confirm({
@@ -133,6 +161,9 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
                 okType: 'danger',
                 cancelText: 'No',
                 onOk() {
+                  if (!record.id) {
+                    return
+                  }
                   deleteDocument(record.id)
                 },
               })
@@ -145,40 +176,43 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
     },
   ]
 
-  const showModal = (record) => {
+  const showModal = (record: SourceDocument) => {
     setEditingRecord(record)
     setEditRecordModalVisible(true)
   }
 
-  const deleteDocument = async (documentId) => {
+  const deleteDocument = async (documentId: string) => {
     try {
       await fetch(`/chat/${courseId}/documentChunk/${documentId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          HMS_API_TOKEN: profile.chat_token.token,
+          HMS_API_TOKEN: userInfo.chat_token.token,
         },
       })
       fetchDocuments()
       message.success('Document deleted successfully.')
     } catch (e) {
-      message.error('Failed to delete document.')
+      const errorMessage = getErrorMessage(e)
+      message.error('Failed to delete document: ' + errorMessage)
     }
   }
+  console.log(documents)
 
-  const handleSearch = (e) => {
+  const handleSearch = (e: any) => {
     setSearch(e.target.value)
     const searchTerm = e.target.value.toLowerCase()
-
     const filtered = documents.filter((doc) => {
-      const isNameMatch = doc.metadata.name.toLowerCase().includes(searchTerm)
+      const isNameMatch = doc.pageContent
+        ? doc.pageContent.toLowerCase().includes(searchTerm)
+        : false
       return isNameMatch
     })
 
     setFilteredDocuments(filtered)
   }
 
-  const updateDocumentInState = (updatedDoc) => {
+  const updateDocumentInState = (updatedDoc: SourceDocument) => {
     const updatedDocuments = documents.map((doc) =>
       doc.id === updatedDoc.id ? updatedDoc : doc,
     )
@@ -186,7 +220,9 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
 
     const searchTerm = search.toLowerCase()
     const filtered = updatedDocuments.filter((doc) => {
-      const isNameMatch = doc.metadata.name.toLowerCase().includes(searchTerm)
+      const isNameMatch = doc.pageContent
+        ? doc.pageContent.toLowerCase().includes(searchTerm)
+        : false
       return isNameMatch
     })
 
@@ -194,62 +230,82 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
   }
 
   return (
-    <div className="m-auto my-5 max-w-[800px]">
+    <div className="my-5 ml-0 mr-auto max-w-[1000px]">
       <div className="flex w-full items-center justify-between">
         <div>
           <h3 className="m-0 p-0 text-4xl font-bold text-gray-900">
-            View Chatbot Documents
+            View Chatbot Document Chunks
           </h3>
           <p className="text-[16px] font-medium text-gray-600">
             View and manage the document chunks from your documents
           </p>
         </div>
+        <div>
+          <Button
+            type={addDocChunkPopupVisible ? 'default' : 'primary'}
+            onClick={() => setAddDocChunkPopupVisible(!addDocChunkPopupVisible)}
+          >
+            {addDocChunkPopupVisible
+              ? 'Close Add Document Chunk'
+              : 'Add Document Chunk'}
+          </Button>
+        </div>
       </div>
-      <div className="h-70 top-50 fixed right-0 z-50 w-[360px] bg-white p-4 shadow-lg">
-        <Form form={form} onFinish={addDocument}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">New Document Chunk</h2>
-          </div>
-          <div className="mt-4">
-            <Form.Item
-              label="Content"
-              name="content"
-              rules={[
-                {
-                  required: true,
-                  message: 'Please input the document content!',
-                },
-              ]}
-            >
-              <Input.TextArea />
-            </Form.Item>
-            {/* <Form.Item label="Edited Chunk" name="editedChunk">
+      {addDocChunkPopupVisible && (
+        <div className="h-70 top-50 fixed right-1 z-50 w-[360px] bg-white p-4 shadow-lg">
+          <Form form={form} onFinish={addDocument}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">New Document Chunk</h2>
+            </div>
+            <div className="mt-4">
+              <Form.Item
+                label="Content"
+                name="content"
+                rules={[
+                  {
+                    required: true,
+                    message: 'Please input the document content!',
+                  },
+                ]}
+              >
+                <Input.TextArea />
+              </Form.Item>
+              {/* <Form.Item label="Edited Chunk" name="editedChunk">
               <Input.TextArea />
             </Form.Item> */}
-            <Form.Item label="Source" name="source">
-              <Input />
-            </Form.Item>
-            <Form.Item label="Page Number" name="pageNumber">
-              <Input />
-            </Form.Item>
-            <div className="mt-4 flex justify-end">
-              <Button
-                key="cancel"
-                type="ghost"
-                onClick={() => setAddModelOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button key="submit" type="primary" htmlType="submit">
-                Submit
-              </Button>
+              <Form.Item label="Source" name="source">
+                <Input />
+              </Form.Item>
+              <Form.Item label="Page Number" name="pageNumber">
+                <Input />
+              </Form.Item>
+              <div className="mt-4 flex justify-end">
+                <Button
+                  className="m-2"
+                  key="cancel"
+                  onClick={() => {
+                    form.resetFields() // clear form
+                    setAddDocChunkPopupVisible(false)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="m-2"
+                  key="submit"
+                  type="primary"
+                  htmlType="submit"
+                >
+                  Submit
+                </Button>
+              </div>
             </div>
-          </div>
-        </Form>
-      </div>
+          </Form>
+        </div>
+      )}
       <hr className="my-5 w-full"></hr>
       <Input
-        placeholder={'Search document...'}
+        placeholder={'Search document content...'}
         value={search}
         onChange={handleSearch}
         onPressEnter={fetchDocuments}
@@ -258,20 +314,20 @@ export default function ChatbotDocuments({ courseId }: ChatbotDocumentsProps) {
         <Table
           columns={columns}
           dataSource={filteredDocuments}
-          pagination={{ pageSize: 7 }}
           scroll={{ x: '100%' }}
+          size="small"
         />
       </div>
-      {editingRecord && (
-        <EditDocumentModal
-          editingRecord={editingRecord}
-          courseId={courseId}
-          chatbotToken={profile.chat_token.token}
-          visible={editRecordModalVisible}
-          setEditingRecord={setEditRecordModalVisible}
-          onSuccessfulUpdate={updateDocumentInState}
-        />
-      )}
+      {/* {editingRecord && (
+                <EditDocumentModal
+                    editingRecord={editingRecord}
+                    courseId={courseId}
+                    chatbotToken={userInfo.chat_token.token}
+                    visible={editRecordModalVisible}
+                    setEditingRecord={setEditRecordModalVisible}
+                    onSuccessfulUpdate={updateDocumentInState}
+                />
+            )} */}
     </div>
   )
 }

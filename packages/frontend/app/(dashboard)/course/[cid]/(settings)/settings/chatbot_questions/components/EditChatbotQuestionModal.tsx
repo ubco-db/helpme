@@ -1,21 +1,9 @@
 import { useState, useEffect } from 'react'
-import {
-  Modal,
-  Form,
-  Input,
-  Button,
-  Checkbox,
-  Collapse,
-  Select,
-  message,
-  Tooltip,
-  Space,
-} from 'antd'
+import { Modal, Form, Input, Button, Checkbox, message, Tooltip } from 'antd'
 import axios from 'axios'
 import { User } from '@koh/common'
 import { ChatbotQuestion, SourceDocument } from '../page'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons'
 
 interface FormValues {
   question: string

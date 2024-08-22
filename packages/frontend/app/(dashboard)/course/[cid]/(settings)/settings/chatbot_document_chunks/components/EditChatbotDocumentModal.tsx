@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect } from 'react'
 import { Modal, Input, Form, message } from 'antd'
 

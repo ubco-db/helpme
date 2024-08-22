@@ -11,7 +11,7 @@ import {
   Tooltip,
   message,
 } from 'antd'
-import React, { ReactElement, useCallback, useEffect, useState } from 'react'
+import { ReactElement, useCallback, useEffect, useState } from 'react'
 import {
   FileAddOutlined,
   GithubOutlined,
@@ -26,6 +26,7 @@ import { SourceDocument } from '../chatbot_questions/page'
 import Link from 'next/link'
 import { TableRowSelection } from 'antd/es/table/interface'
 import ChatbotSettingsModal from './components/ChatbotSettingsModal'
+import Highlighter from 'react-highlight-words'
 
 export interface ChatbotDocument {
   id: number
@@ -114,6 +115,14 @@ export default function ChatbotSettings({
       title: 'Name',
       dataIndex: 'docName',
       key: 'docName',
+      render: (text: string) => (
+        <Highlighter
+          highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+          searchWords={[search]}
+          autoEscape
+          textToHighlight={text ? text.toString() : ''}
+        />
+      ),
     },
     {
       title: 'Source',

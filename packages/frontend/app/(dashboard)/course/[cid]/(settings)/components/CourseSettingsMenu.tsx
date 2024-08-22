@@ -61,7 +61,7 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       case CourseAdminOptions.CHATBOT_SETTINGS:
         router.push(`${basePath}/chatbot_settings`)
         break
-      case CourseAdminOptions.CHATBOT_SETTINGS:
+      case CourseAdminOptions.CHATBOT_DOCUMENTS:
         router.push(`${basePath}/chatbot_document_chunks`)
         break
       case CourseAdminOptions.CHATBOT_QUESTIONS:
