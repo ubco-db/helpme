@@ -378,37 +378,35 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                       }
                                       key={idx}
                                     >
-                                      <div className="align-items-start flex h-fit w-fit max-w-[280px] justify-start gap-3 rounded-xl bg-slate-100 p-1 font-semibold">
+                                      <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
                                         <p className="px-2 py-1">
                                           {sourceDocument.docName}
                                         </p>
-                                        <div className="flex gap-1">
-                                          {sourceDocument.pageNumbers &&
-                                            sourceDocument.pageNumbers.map(
-                                              (part) => (
-                                                <div
-                                                  className={`flex flex-grow items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
-                                                    sourceDocument.sourceLink &&
-                                                    'hover:bg-black-300 cursor-pointer hover:text-white'
-                                                  }`}
-                                                  key={`${sourceDocument.docName}-${part}`}
-                                                  onClick={() => {
-                                                    if (
-                                                      sourceDocument.sourceLink
-                                                    ) {
-                                                      window.open(
-                                                        sourceDocument.sourceLink,
-                                                      )
-                                                    }
-                                                  }}
-                                                >
-                                                  <p className="h-fit w-fit text-xs leading-4">
-                                                    {`p. ${part}`}
-                                                  </p>
-                                                </div>
-                                              ),
-                                            )}
-                                        </div>
+                                        {sourceDocument.pageNumbers &&
+                                          sourceDocument.pageNumbers.map(
+                                            (part) => (
+                                              <div
+                                                className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
+                                                  sourceDocument.sourceLink &&
+                                                  'hover:bg-black-300 cursor-pointer hover:text-white'
+                                                }`}
+                                                key={`${sourceDocument.docName}-${part}`}
+                                                onClick={() => {
+                                                  if (
+                                                    sourceDocument.sourceLink
+                                                  ) {
+                                                    window.open(
+                                                      sourceDocument.sourceLink,
+                                                    )
+                                                  }
+                                                }}
+                                              >
+                                                <p className="h-fit w-fit text-xs leading-4">
+                                                  {`p. ${part}`}
+                                                </p>
+                                              </div>
+                                            ),
+                                          )}
                                       </div>
                                     </Tooltip>
                                   ),
