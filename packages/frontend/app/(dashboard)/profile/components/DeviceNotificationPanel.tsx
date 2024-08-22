@@ -95,7 +95,7 @@ const DeviceNotificationPanel: React.FC = () => {
           >
             <List.Item.Meta
               title={renderDeviceInfo(device, device.endpoint === thisEndpoint)}
-              description={`Registered ${device.createdAt.toLocaleDateString()}`}
+              description={`Registered ${new Date(device.createdAt).toLocaleDateString()}`}
             />
           </List.Item>
         )}
