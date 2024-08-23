@@ -186,8 +186,8 @@ export class SeedController {
     const facultyMailService = await mailServiceFactory.create({
       mailType: OrganizationRole.PROFESSOR,
       serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
-      name: 'Notify when a new async question is flagged as needing attention',
-      content: 'A student is requesting for help with an async question',
+      name: 'Notify when a new anytime question is flagged as needing attention',
+      content: 'A student is requesting for help with an anytime question',
     });
     const studentMailService = await mailServiceFactory.create({
       mailType: OrganizationRole.MEMBER,
