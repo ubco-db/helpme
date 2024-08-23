@@ -51,7 +51,7 @@ export class MailService {
 
     await this.mailerService.sendMail({
       to: emailPost.receiver,
-      from: '"UBC helpme support"',
+      from: '"HelpMe Support"',
       subject: emailPost.subject,
       html:
         mail.content +
