@@ -223,6 +223,11 @@ export class asyncQuestionController {
             receiver: sub.user.email,
             type: MailServiceType.ASYNC_QUESTION_FLAGGED,
             subject: 'HelpMe - New Question Marked as Needing Attention',
+            content: `<br> <b>A new question has been posted on the anytime question hub and has been marked as needing attention:</b> 
+            <br> <b>Question Abstract:</b> ${question.questionAbstract}
+            <br> <b>Question Types:</b> ${question.questionTypes.map((qt) => qt.name).join(', ')}
+            <br> <b>Question Text:</b> ${question.questionText}
+            <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
           }),
         ),
       );
@@ -318,6 +323,9 @@ export class asyncQuestionController {
           receiver: question.creator.email,
           type: service.serviceType,
           subject: 'HelpMe - Your Anytime Question Has Been Answered',
+          content: `<br> <b>Your question on the anytime question hub has been answered or verified by staff:</b> 
+          <br> ${question.answerText}
+          <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
         });
       }
     }
