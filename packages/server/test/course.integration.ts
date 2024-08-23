@@ -1556,7 +1556,7 @@ describe('Course Integration', () => {
         .send({ value: true, feature: 'invalidFeature' });
 
       expect(resp.body.message).toEqual([
-        'feature must be one of the following values: chatBotEnabled,asyncQueueEnabled,adsEnabled,queueEnabled',
+        'feature must be one of the following values: chatBotEnabled,asyncQueueEnabled,adsEnabled,queueEnabled,scheduleOnFrontPage,asyncCentreAIAnswers',
       ]);
       expect(resp.status).toBe(400);
     });
@@ -1660,7 +1660,7 @@ describe('Course Integration', () => {
       // DISABLE ASYNC CENTRE AI ANSWERS
       resp = await supertest({ userId: professor.id })
         .patch(`/courses/${course.id}/features`)
-        .send({ value: true, feature: 'asyncCentreAIAnswers' });
+        .send({ value: false, feature: 'asyncCentreAIAnswers' });
 
       expect(resp.status).toBe(200);
 
@@ -1692,7 +1692,7 @@ describe('Course Integration', () => {
       expect(updatedCourseSettings.asyncQueueEnabled).toEqual(false);
       expect(updatedCourseSettings.adsEnabled).toEqual(false);
       expect(updatedCourseSettings.queueEnabled).toEqual(false);
-      expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(true);
+      expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(false);
       expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(true);
     });
   });

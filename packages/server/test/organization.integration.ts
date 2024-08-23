@@ -2317,7 +2317,7 @@ describe('Organization Integration', () => {
           ],
         });
 
-      expect(res.body.message).toEqual('invalid feature');
+      expect(res.body.message).toEqual('invalid feature: invalidFeature');
       expect(res.status).toBe(400);
     });
 
