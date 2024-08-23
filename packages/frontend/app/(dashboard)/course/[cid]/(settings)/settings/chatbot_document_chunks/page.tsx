@@ -2,7 +2,6 @@
 
 import { useState, useEffect, ReactElement, useCallback } from 'react'
 import { Table, Button, Modal, Input, Form, message } from 'antd'
-// import EditDocumentModal from './EditChatbotDocumentModal'
 import axios from 'axios'
 import { SourceDocument } from '../chatbot_questions/page'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -10,6 +9,7 @@ import Link from 'next/link'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import Highlighter from 'react-highlight-words'
 import ExpandableText from '@/app/components/ExpandableText'
+import EditDocumentChunkModal from './components/EditChatbotDocumentChunkModal'
 
 interface FormValues {
   content: string
@@ -33,7 +33,7 @@ export default function ChatbotDocuments({
   const [editingRecord, setEditingRecord] = useState<SourceDocument | null>(
     null,
   )
-  const [editRecordModalVisible, setEditRecordModalVisible] = useState(false)
+  const [editRecordModalOpen, setEditRecordModalOpen] = useState(false)
   const [form] = Form.useForm()
   const { userInfo } = useUserInfo()
   const [addDocChunkPopupVisible, setAddDocChunkPopupVisible] = useState(false)
@@ -178,7 +178,7 @@ export default function ChatbotDocuments({
 
   const showModal = (record: SourceDocument) => {
     setEditingRecord(record)
-    setEditRecordModalVisible(true)
+    setEditRecordModalOpen(true)
   }
 
   const deleteDocument = async (documentId: string) => {
@@ -197,7 +197,6 @@ export default function ChatbotDocuments({
       message.error('Failed to delete document: ' + errorMessage)
     }
   }
-  console.log(documents)
 
   const handleSearch = (e: any) => {
     setSearch(e.target.value)
@@ -311,23 +310,25 @@ export default function ChatbotDocuments({
         onPressEnter={fetchDocuments}
       />
       <div className="flex justify-between">
-        <Table
-          columns={columns}
-          dataSource={filteredDocuments}
-          scroll={{ x: '100%' }}
-          size="small"
-        />
+        <Table columns={columns} dataSource={filteredDocuments} size="small" />
       </div>
-      {/* {editingRecord && (
-                <EditDocumentModal
-                    editingRecord={editingRecord}
-                    courseId={courseId}
-                    chatbotToken={userInfo.chat_token.token}
-                    visible={editRecordModalVisible}
-                    setEditingRecord={setEditRecordModalVisible}
-                    onSuccessfulUpdate={updateDocumentInState}
-                />
-            )} */}
+      {editingRecord && (
+        <EditDocumentChunkModal
+          open={editRecordModalOpen}
+          editingRecord={editingRecord}
+          courseId={courseId}
+          chatbotToken={userInfo.chat_token.token}
+          onCancel={() => {
+            setEditingRecord(null)
+            setEditRecordModalOpen(false)
+          }}
+          onSuccessfulUpdate={(updatedDoc) => {
+            updateDocumentInState(updatedDoc)
+            setEditingRecord(null)
+            setEditRecordModalOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }

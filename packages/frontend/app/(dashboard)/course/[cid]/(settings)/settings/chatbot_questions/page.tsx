@@ -24,13 +24,13 @@ export interface SourceDocument {
     courseId?: string
   }
   type?: string
-  // TODO: is it content or pageContent? since this file uses both
+  // TODO: is it content or pageContent? since this file uses both. EDIT: It seems to be both/either. Gross.
   content?: string
   pageContent: string
   docName: string
-  docId?: string // no idea if this exists in the actual data
+  docId?: string // no idea if this exists in the actual data EDIT: yes it does, sometimes
   pageNumbers?: number[] // same with this, but this might only be for the edit question modal
-  pageNumbersString?: string // same with this, but this might only be for the edit question modal
+  pageNumbersString?: string // used only for the edit question modal
   sourceLink?: string
   pageNumber?: number
 }
