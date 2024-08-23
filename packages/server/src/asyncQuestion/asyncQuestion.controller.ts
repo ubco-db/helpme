@@ -317,7 +317,7 @@ export class asyncQuestionController {
         await this.mailService.sendEmail({
           receiver: question.creator.email,
           type: service.serviceType,
-          subject: 'UBC Helpme - Subscription Update',
+          subject: 'HelpMe - Your Anytime Question Has Been Answered',
         });
       }
     }
