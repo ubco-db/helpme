@@ -1,16 +1,16 @@
-'use client'
 import { ReactElement, useState, useEffect, useRef } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
+import { Event } from '@/app/typings/types'
 import { Spin } from 'antd'
-import './fullcalendar.css'
-import { API } from '@koh/api-client'
+import { API } from '@/app/api'
 import { format } from 'date-fns'
 import EditEventModal from './EditEventModal'
 import CreateEventModal from './CreateEventModal'
+import { Calendar } from '@koh/common'
 
 type ScheduleProps = {
   courseId: number
@@ -22,12 +22,13 @@ export default function TAFacultySchedulePanel({
   defaultView = 'timeGridWeek',
 }: ScheduleProps): ReactElement {
   const calendarRef = useRef(null)
-  const spinnerRef = useRef(null)
+  const spinnerRef = useRef<HTMLDivElement>(null)
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [createModalVisible, setCreateModalVisible] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState(null)
-  const [createEvent, setCreateEvent] = useState(null)
-  const [events, setEvents] = useState([])
+  const [selectedEvent, setSelectedEvent] = useState<any>(null)
+  const [createEvent, setCreateEvent] = useState<{ start: Date; end: Date }>()
+  // see https://fullcalendar.io/docs/event-source-object#options for typing of events
+  const [events, setEvents] = useState<any>([])
 
   useEffect(() => {
     if (courseId) {
@@ -38,40 +39,25 @@ export default function TAFacultySchedulePanel({
   const getEvent = async () => {
     try {
       const result = await API.calendar.getEvents(Number(courseId))
+      console.log(result)
       const modifiedEvents = result.map((event) => parseEvent(event))
       setEvents(modifiedEvents)
     } catch (error) {
-      if (error.response && error.response.status === 404) {
-        setEvents([])
-      } else {
-        console.error('An error occurred while fetching events:', error)
-      }
+      console.error('An error occurred while fetching events:', error)
     }
   }
 
-  const parseEvent = (event) => {
+  const parseEvent = (event: Calendar) => {
     const startDate = new Date(event.start)
     const endDate = new Date(event.end)
-    const returnEvent: {
-      id: any
-      title: any
-      start: Date
-      end: Date
-      locationType: any
-      locationInPerson: any
-      locationOnline: any
-      endRecur?: any
-      daysOfWeek?: any
-      startTime?: any
-      endTime?: any
-    } = {
+    const returnEvent: Event = {
       id: event.id,
       title: event.title,
       start: startDate,
       end: endDate,
       locationType: event.locationType,
-      locationInPerson: event.locationInPerson,
-      locationOnline: event.locationOnline,
+      locationInPerson: event.locationInPerson || null,
+      locationOnline: event.locationOnline || null,
     }
     if (event.endDate) {
       returnEvent['endRecur'] = event.endDate
@@ -84,9 +70,9 @@ export default function TAFacultySchedulePanel({
     }
   }
 
-  const handleEditClick = (clickInfo) => {
+  const handleEditClick = (clickInfo: any) => {
     const selectedEvent = events.find(
-      (event) => Number(event.id) === Number(clickInfo.event.id),
+      (event: any) => Number(event.id) === Number(clickInfo.event.id),
     )
     setSelectedEvent(selectedEvent)
     setEditModalVisible(true)

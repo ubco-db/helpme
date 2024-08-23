@@ -10,24 +10,15 @@ import {
 } from 'antd'
 import { useEffect, useState } from 'react'
 import moment from 'moment'
-import { API } from '@koh/api-client'
+import { API } from '@/app/api'
 import { calendarEventLocationType } from '@koh/common'
-
-const dayToIntMapping = {
-  Sunday: '0',
-  Monday: '1',
-  Tuesday: '2',
-  Wednesday: '3',
-  Thursday: '4',
-  Friday: '5',
-  Saturday: '6',
-}
+import { dayToIntMapping } from '@/app/typings/types'
 
 type CreateEventModalProps = {
   visible: boolean
   onClose: () => void
   courseId: number
-  event: any
+  event: { start: Date; end: Date } | undefined
 }
 
 const CreateEventModal = ({
@@ -39,12 +30,12 @@ const CreateEventModal = ({
   const [form] = Form.useForm()
   const [isRepeating, setIsRepeating] = useState(false)
   const [locationType, setLocationType] = useState(0)
-  const [selectedDays, setSelectedDays] = useState(null)
+  const [selectedDays, setSelectedDays] = useState<string[]>([])
   useEffect(() => {
     //default to the day of the event(create event object)
     setSelectedDays([moment(event?.start).format('dddd')])
   }, [event])
-  const handleDaysChange = (checkedValues) => {
+  const handleDaysChange = (checkedValues: any) => {
     if (!checkedValues.includes(moment(event?.start).format('dddd'))) {
       checkedValues.push(moment(event?.start).format('dddd'))
     }
@@ -58,8 +49,8 @@ const CreateEventModal = ({
         ...formData,
         cid: courseId,
         title: formData.title,
-        end: moment(event.end).toISOString(),
-        start: moment(event.start).toISOString(),
+        end: moment(event?.end).toISOString(),
+        start: moment(event?.start).toISOString(),
       }
       // Set the location type based on the value of locationType
       switch (locationType) {
@@ -91,16 +82,17 @@ const CreateEventModal = ({
           eventObject.endDate = moment(formData.endDate).format('YYYY-MM-DD')
         } else {
           message.error('Please select all fields for repeating events')
-          return // Prevents the function from continuing
+          return
         }
       }
-      createEvent(eventObject)
+      console.log(eventObject)
+      // createEvent(eventObject)
     } catch (validationError) {
       message.error('Event validation failed')
     }
   }
 
-  const createEvent = async (newEvent) => {
+  const createEvent = async (newEvent: any) => {
     try {
       const response = await API.calendar.addCalendar(newEvent)
       if (response) {
@@ -110,7 +102,7 @@ const CreateEventModal = ({
         message.error('Failed to create event')
       }
     } catch (err) {
-      console.error('Error creating the event:', err.message || err)
+      console.error('Error creating the event:', err)
     }
     onClose()
   }

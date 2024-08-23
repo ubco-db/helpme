@@ -400,7 +400,13 @@ class APIClient {
       this.req('GET', `/api/v1/calendar/${cid}`),
     deleteEvent: async (eventId: number): Promise<Calendar> =>
       this.req('DELETE', `/api/v1/calendar/${eventId}/delete`),
+    patchEvent: async (
+      eventId: number,
+      body: Partial<Calendar>,
+    ): Promise<Calendar> =>
+      this.req('PATCH', `/api/v1/calendar/${eventId}`, undefined, body),
   }
+
   queues = {
     get: async (queueId: number): Promise<GetQueueResponse> =>
       this.req('GET', `/api/v1/queues/${queueId}`, GetQueueResponse),

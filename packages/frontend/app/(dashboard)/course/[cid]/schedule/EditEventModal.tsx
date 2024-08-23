@@ -6,26 +6,15 @@ import {
   TimePicker,
   Checkbox,
   Radio,
-  Tooltip,
   message,
 } from 'antd'
 import { useEffect, useState } from 'react'
 import moment from 'moment'
-import { API } from '@koh/api-client'
-import { on } from 'events'
+import { API } from '@/app/api'
 import { calendarEventLocationType } from '@koh/common'
-import { set } from 'lodash'
+import { dayToIntMapping } from '@/app/typings/types'
 
-const dayToIntMapping = {
-  Sunday: '0',
-  Monday: '1',
-  Tuesday: '2',
-  Wednesday: '3',
-  Thursday: '4',
-  Friday: '5',
-  Saturday: '6',
-}
-const locationTypeMapping = {
+const locationTypeMapping: { [key: string]: number } = {
   'in-person': 0,
   online: 1,
   hybrid: 2,
@@ -46,95 +35,106 @@ const EditEventModal = ({
 }: EditEventModalProps) => {
   const [form] = Form.useForm()
   const [isRepeating, setIsRepeating] = useState(false)
-  const [locationType, setLocationType] = useState(
-    locationTypeMapping[event?.locationType],
-  )
-  const [selectedDays, setSelectedDays] = useState(null)
+  const [locationType, setLocationType] = useState<number>(0)
+  const [selectedDays, setSelectedDays] = useState<number[]>([])
 
   useEffect(() => {
-    // Set initial form values with the event data
-    form.setFieldsValue({
-      title: event?.title,
-      locationInPerson: event?.locationInPerson,
-      locationOnline: event?.locationOnline,
-      endDate: event?.endRecur ? moment(event.endRecur) : null,
-      locationType: locationTypeMapping[event?.locationType],
-    })
-    setIsRepeating(!!event?.endRecur)
-    if (event && event.daysOfWeek) {
-      setSelectedDays(event.daysOfWeek.map((dayInt) => intToDayMapping[dayInt]))
+    if (event) {
+      form.setFieldsValue({
+        title: event.title,
+        locationInPerson: event.locationInPerson,
+        locationOnline: event.locationOnline,
+        startTime: moment(event.start),
+        endTime: moment(event.end),
+        endDate: event.endRecur ? moment(event.endRecur) : null,
+        locationType: locationTypeMapping[event.locationType] || 0,
+      })
+      setIsRepeating(!!event.endRecur)
+      setLocationType(locationTypeMapping[event.locationType] || 0)
+      if (event.daysOfWeek) {
+        setSelectedDays(
+          event.daysOfWeek.map((dayInt: number) => intToDayMapping[dayInt]),
+        )
+      }
     }
   }, [event, form])
+
   const intToDayMapping = Object.fromEntries(
     Object.entries(dayToIntMapping).map(([key, value]) => [value, key]),
   )
 
-  const handleDaysChange = (checkedValues) => {
+  const handleDaysChange = (checkedValues: any) => {
     if (!checkedValues.includes(moment(event?.start).format('dddd'))) {
       checkedValues.push(moment(event?.start).format('dddd'))
     }
     setSelectedDays(checkedValues)
   }
+
   const handleOk = async () => {
     try {
       const formData = await form.validateFields()
       const eventObject = {
         ...formData,
         cid: courseId,
-        start: moment(event.start).toISOString(),
-        end: moment(event.end).toISOString(),
+        start: formData.startTime.toISOString(),
+        end: formData.endTime.toISOString(),
       }
+
       switch (locationType) {
-        case 0: // In Person
+        case 0:
           eventObject.locationType = calendarEventLocationType.inPerson
           eventObject.locationInPerson = formData.locationInPerson
           break
-        case 1: // Online
+        case 1:
           eventObject.locationType = calendarEventLocationType.online
           eventObject.locationOnline = formData.locationOnline
           break
-        case 2: // Hybrid
+        case 2:
           eventObject.locationType = calendarEventLocationType.hybrid
           eventObject.locationInPerson = formData.locationInPerson
           eventObject.locationOnline = formData.locationOnline
           break
         default:
           message.error('Invalid location type')
-          return // Prevents the function from continuing
+          return
       }
 
-      // Logic for repeating events
       if (isRepeating) {
         if (formData.endDate && selectedDays) {
           eventObject.daysOfWeek = selectedDays.map(
-            (day) => dayToIntMapping[day],
+            (day: number) => dayToIntMapping[day],
           )
           eventObject.startDate = moment().startOf('day').format('YYYY-MM-DD')
-          eventObject.endDate = moment(formData.endDate).format('YYYY-MM-DD')
+          eventObject.endDate = formData.endDate.format('YYYY-MM-DD')
         } else {
           message.error('Please select all fields for repeating events')
-          return // Prevents the function from continuing
+          return
         }
       }
+
       updateEvent(eventObject)
     } catch (validationError) {
       message.error('Event validation failed')
     }
   }
 
-  const updateEvent = async (updatedEvent) => {
+  const updateEvent = async (updatedEvent: any) => {
     try {
       const response = await API.calendar.patchEvent(event.id, updatedEvent)
       if (response) {
         console.log('Event updated successfully', response)
+        message.success('Event updated successfully')
       } else {
         console.error('Failed to update event')
+        message.error('Failed to update event')
       }
     } catch (err) {
-      console.error('Error updating the event:', err.message || err)
+      console.error('Error updating the event:', err)
+      message.error('Error updating the event')
     }
     onClose()
   }
+
   return (
     <Modal
       title="Edit Event"
@@ -152,20 +152,20 @@ const EditEventModal = ({
           <Input />
         </Form.Item>
 
-        <Form.Item label="Start Time" name="startTime">
-          <TimePicker
-            defaultValue={
-              event ? moment(event.startTime, 'HH:mm:ss') : moment()
-            }
-            format="HH:mm"
-          />
+        <Form.Item
+          label="Start Time"
+          name="startTime"
+          rules={[{ required: true, message: 'Please select the start time!' }]}
+        >
+          <TimePicker format="HH:mm" />
         </Form.Item>
 
-        <Form.Item label="End Time" name="endTime">
-          <TimePicker
-            defaultValue={event ? moment(event.endTime, 'HH:mm:ss') : moment()}
-            format="HH:mm"
-          />
+        <Form.Item
+          label="End Time"
+          name="endTime"
+          rules={[{ required: true, message: 'Please select the end time!' }]}
+        >
+          <TimePicker format="HH:mm" />
         </Form.Item>
 
         <Form.Item>
@@ -179,7 +179,13 @@ const EditEventModal = ({
 
         {isRepeating && (
           <>
-            <Form.Item label="End Date" name="endDate">
+            <Form.Item
+              label="End Date"
+              name="endDate"
+              rules={[
+                { required: true, message: 'Please select the end date!' },
+              ]}
+            >
               <DatePicker />
             </Form.Item>
             <Form.Item label="Repeat on">
@@ -197,6 +203,7 @@ const EditEventModal = ({
             </Form.Item>
           </>
         )}
+
         <Form.Item
           label="Location Type"
           name="locationType"
