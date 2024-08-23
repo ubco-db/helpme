@@ -122,7 +122,6 @@ const EditEventModal = ({
     try {
       const response = await API.calendar.patchEvent(event.id, updatedEvent)
       if (response) {
-        console.log('Event updated successfully', response)
         message.success('Event updated successfully')
       } else {
         console.error('Failed to update event')

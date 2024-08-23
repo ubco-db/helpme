@@ -39,7 +39,6 @@ export default function TAFacultySchedulePanel({
   const getEvent = async () => {
     try {
       const result = await API.calendar.getEvents(Number(courseId))
-      console.log(result)
       const modifiedEvents = result.map((event) => parseEvent(event))
       setEvents(modifiedEvents)
     } catch (error) {

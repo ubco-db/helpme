@@ -394,8 +394,8 @@ class APIClient {
       this.req('DELETE', `/api/v1/questionType/${courseId}/${questionTypeId}`),
   }
   calendar = {
-    addCalendar: async (body: Calendar): Promise<Calendar> =>
-      this.req('POST', `/api/v1/calendar`, undefined, body),
+    addCalendar: async (body: Calendar, cid: number): Promise<Calendar> =>
+      this.req('POST', `/api/v1/calendar/${cid}`, undefined, body),
     getEvents: async (cid: number): Promise<Calendar[]> =>
       this.req('GET', `/api/v1/calendar/${cid}`),
     deleteEvent: async (eventId: number): Promise<Calendar> =>

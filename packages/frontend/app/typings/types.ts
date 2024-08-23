@@ -3,7 +3,7 @@ export interface LayoutProps {
 }
 
 export interface Event {
-  id: number
+  id?: number
   title: string
   start: Date
   end: Date

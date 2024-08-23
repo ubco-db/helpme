@@ -44,7 +44,6 @@ const CreateEventModal = ({
   const handleOk = async () => {
     try {
       const formData = await form.validateFields()
-      console.log(formData)
       const eventObject = {
         ...formData,
         cid: courseId,
@@ -85,8 +84,8 @@ const CreateEventModal = ({
           return
         }
       }
-      console.log(eventObject)
-      // createEvent(eventObject)
+
+      createEvent(eventObject)
     } catch (validationError) {
       message.error('Event validation failed')
     }
@@ -94,7 +93,8 @@ const CreateEventModal = ({
 
   const createEvent = async (newEvent: any) => {
     try {
-      const response = await API.calendar.addCalendar(newEvent)
+      console.log(newEvent)
+      const response = await API.calendar.addCalendar(newEvent, courseId)
       if (response) {
         message.success('Event created successfully')
         form.resetFields()

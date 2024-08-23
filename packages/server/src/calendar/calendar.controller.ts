@@ -11,32 +11,30 @@ import {
   Delete,
   Patch,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CalendarModel } from './calendar.entity';
 import { Calendar, ERROR_MESSAGES } from '@koh/common';
 import { CourseModel } from 'course/course.entity';
-import { Between } from 'typeorm';
 
 @Controller('calendar')
 @UseGuards(JwtAuthGuard)
 export class CalendarController {
   constructor(private readonly calendarService: CalendarService) {}
-  @Post()
-  async addEvent(@Body() body: Calendar): Promise<CalendarModel> {
-    const course = await CourseModel.findOne(body.cid);
+  @Post(':cid')
+  async addEvent(
+    @Body() body: Calendar,
+    @Param('cid', ParseIntPipe) cid: number,
+  ): Promise<CalendarModel> {
+    const course = await CourseModel.findOne(cid);
     if (!course) {
-      console.error(
-        ERROR_MESSAGES.courseController.courseNotFound +
-          'Course ID: ' +
-          body.cid,
-      );
       throw new HttpException(
         ERROR_MESSAGES.courseController.courseNotFound,
         HttpStatus.NOT_FOUND,
       );
     }
-
+    console.log(body);
     try {
       const event = await CalendarModel.create({
         title: body.title,
@@ -89,18 +87,13 @@ export class CalendarController {
   }
 
   @Get(':cid')
-  async getAllEvents(@Param('cid') cid: number): Promise<CalendarModel[]> {
+  async getAllEvents(
+    @Param('cid', ParseIntPipe) cid: number,
+  ): Promise<CalendarModel[]> {
     const events = await CalendarModel.find({ where: { course: cid } });
-    if (!events || events.length === 0) {
-      console.error(ERROR_MESSAGES.courseController.courseNotFound + 'events');
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.courseNotFound,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    return events;
+    return events || [];
   }
+
   @Get(':cid/:date')
   async getEventsForDay(
     @Param('cid') cid: number,
@@ -144,7 +137,7 @@ export class CalendarController {
 
   @Delete(':id/delete')
   async deleteQuestionType(
-    @Param('id') eventId: number,
+    @Param('id', ParseIntPipe) eventId: number,
   ): Promise<CalendarModel> {
     const event = await CalendarModel.findOne(eventId);
     if (!event) {

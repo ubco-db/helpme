@@ -698,7 +698,8 @@ export enum calendarEventLocationType {
 }
 export class Calendar {
   @IsInt()
-  id!: number
+  @IsOptional()
+  id?: number
 
   @IsString()
   title!: string
@@ -733,7 +734,8 @@ export class Calendar {
   locationInPerson?: string
 
   @IsNumber()
-  cid!: number
+  @IsOptional()
+  cid?: number
 
   @IsArray()
   @IsOptional()
