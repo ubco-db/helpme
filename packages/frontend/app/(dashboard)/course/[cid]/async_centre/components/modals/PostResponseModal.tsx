@@ -8,7 +8,6 @@ import {
   Checkbox,
   Button,
   Popconfirm,
-  Tooltip,
 } from 'antd'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
