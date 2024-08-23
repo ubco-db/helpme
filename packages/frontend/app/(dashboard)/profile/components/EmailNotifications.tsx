@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { API } from '@/app/api'
 import {
   Button,
@@ -11,16 +11,26 @@ import {
   Divider,
 } from 'antd'
 const { Text } = Typography
+import { getErrorMessage } from '@/app/utils/generalUtils'
+
+interface Subscription {
+  id: number
+  name: string
+  isSubscribed: boolean
+  mailType: string
+}
 
 const EmailNotifications: React.FC = () => {
   const [form] = Form.useForm()
-  const [subscriptions, setSubscriptions] = useState<
-    { id: any; name: any; isSubscribed: any; mailType: string }[]
-  >([])
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [isFormChanged, setIsFormChanged] = useState(false)
+  const [initialValues, setInitialValues] = useState<{
+    [key: string]: boolean
+  }>({})
 
-  const fetchSubscriptions = () => {
-    API.emailNotification.get().then((data) => {
+  const fetchSubscriptions = useCallback(async () => {
+    try {
+      const data = await API.emailNotification.get()
       const formattedData = data.map((notif: any) => ({
         id: notif.id,
         name: notif.name,
@@ -29,23 +39,27 @@ const EmailNotifications: React.FC = () => {
       }))
       setSubscriptions(formattedData)
 
-      const initialValues: { [key: string]: boolean } = formattedData.reduce<{
-        [key: string]: boolean
-      }>((acc, sub) => {
-        acc[sub.id] = sub.isSubscribed
-        return acc
-      }, {})
-      form.setFieldsValue(initialValues)
-    })
-  }
+      const newInitialValues = formattedData.reduce<{ [key: string]: boolean }>(
+        (acc, sub) => {
+          acc[sub.id] = sub.isSubscribed
+          return acc
+        },
+        {},
+      )
+      setInitialValues(newInitialValues)
+      form.setFieldsValue(newInitialValues)
+    } catch (error) {
+      const errorMessage = getErrorMessage(error)
+      message.error('Failed to load notification settings' + errorMessage)
+    }
+  }, [form])
 
   useEffect(() => {
     fetchSubscriptions()
-  }, [form])
+  }, [fetchSubscriptions])
 
-  const handleOk = async () => {
+  const onFinish = async (values: { [key: string]: boolean }) => {
     try {
-      const values = form.getFieldsValue()
       const promises = Object.entries(values).map(
         ([mailServiceId, isSubscribed]) =>
           API.emailNotification.update(
@@ -64,22 +78,25 @@ const EmailNotifications: React.FC = () => {
         })),
       )
       setIsFormChanged(false)
+      setInitialValues(values)
     } catch (error) {
-      console.error('Failed to save notification settings:', error)
-      message.error('Failed to update notification settings')
+      const errorMessage = getErrorMessage(error)
+      message.error('Error updating notification settings:' + errorMessage)
     }
   }
 
-  const handleFormChange = () => {
-    const currentValues = form.getFieldsValue()
-    const hasChanged = subscriptions.some(
-      (sub) => currentValues[sub.id] !== sub.isSubscribed,
-    )
-    setIsFormChanged(hasChanged)
-  }
+  const handleFormChange = useCallback(
+    (changedValues: any, allValues: any) => {
+      const hasChanged = Object.keys(initialValues).some(
+        (key) => allValues[key] !== initialValues[key],
+      )
+      setIsFormChanged(hasChanged)
+    },
+    [initialValues],
+  )
 
   const renderSubscriptions = (mailType: string) => (
-    <Form.Item noStyle>
+    <div>
       {subscriptions
         .filter((sub) => sub.mailType === mailType)
         .map((subscription) => (
@@ -92,12 +109,18 @@ const EmailNotifications: React.FC = () => {
             <Switch />
           </Form.Item>
         ))}
-    </Form.Item>
+    </div>
   )
 
   return (
     <div>
-      <Form form={form} layout="vertical" onValuesChange={handleFormChange}>
+      <Form
+        form={form}
+        layout="vertical"
+        onValuesChange={handleFormChange}
+        initialValues={initialValues}
+        onFinish={onFinish}
+      >
         <Row gutter={24}>
           <Col span={11}>
             <Typography.Title level={4}>Other Notifications</Typography.Title>
@@ -111,16 +134,18 @@ const EmailNotifications: React.FC = () => {
             {renderSubscriptions('member')}
           </Col>
         </Row>
+        <Form.Item>
+          <Button
+            key="submit"
+            type="primary"
+            htmlType="submit"
+            disabled={!isFormChanged}
+            className="mb-4 mt-8"
+          >
+            Save
+          </Button>
+        </Form.Item>
       </Form>
-      <Button
-        key="submit"
-        type="primary"
-        onClick={handleOk}
-        disabled={!isFormChanged}
-        style={{ marginTop: '30px', marginBottom: '15px' }}
-      >
-        Save
-      </Button>
     </div>
   )
 }

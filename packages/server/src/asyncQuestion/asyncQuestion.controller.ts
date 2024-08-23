@@ -243,6 +243,17 @@ export class asyncQuestionController {
       updatedQuestion,
     );
 
+    if (body.status === asyncQuestionStatus.StudentDeleted) {
+      await this.redisQueueService.deleteAsyncQuestion(
+        `c:${question.course.id}:aq`,
+        updatedQuestion,
+      );
+    } else {
+      await this.redisQueueService.updateAsyncQuestion(
+        `c:${question.course.id}:aq`,
+        updatedQuestion,
+      );
+    }
     delete question.votes;
 
     return question;

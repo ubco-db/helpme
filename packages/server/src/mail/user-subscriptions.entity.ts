@@ -10,9 +10,6 @@ import { MailServiceModel } from './mail-services.entity';
 
 @Entity('user_subscriptions')
 export class UserSubscriptionModel extends BaseEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
-
   @Column()
   serviceId: number;
 
@@ -25,6 +22,12 @@ export class UserSubscriptionModel extends BaseEntity {
   @ManyToOne(() => UserModel, (user) => user.subscriptions)
   user: UserModel;
 
-  @ManyToOne(() => MailServiceModel, (service) => service.subscriptions)
+  @ManyToOne(
+    () => MailServiceModel,
+    (mailService) => mailService.subscriptions,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   service: MailServiceModel;
 }
