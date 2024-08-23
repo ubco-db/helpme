@@ -13,7 +13,7 @@ import { UserCourseModel } from 'profile/user-course.entity';
 @Injectable()
 export class MailService {
   constructor(private mailerService: MailerService) {}
-  APPLICATION_NAME = 'UBC HelpMe';
+  APPLICATION_NAME = 'HelpMe';
   async sendUserVerificationCode(
     code: string,
     receiver: string,
