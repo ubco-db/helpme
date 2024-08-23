@@ -1,4 +1,5 @@
 # Intro
+
 These features (listed below) are a list of features that work together to allow users to have "checkable" questions (i.e. questions that can be "checked off" aka demos).
 
 The primary way for professors to define tasks (right now) is through the "queueConfig", which is just a json that profs can write. This also stores other queue-specific settings (see example json below), and should be used to store any new settings that are queue-specific.
