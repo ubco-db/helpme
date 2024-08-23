@@ -691,7 +691,15 @@ export function isKhouryCourse(
   )
 }
 
+export enum calendarEventLocationType {
+  inPerson = 'in-person',
+  online = 'online',
+  hybrid = 'hybrid',
+}
 export class Calendar {
+  @IsInt()
+  id!: number
+
   @IsString()
   title!: string
 
@@ -702,6 +710,27 @@ export class Calendar {
   @IsDate()
   @Type(() => Date)
   end!: Date
+
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  startDate?: Date
+
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  endDate?: Date
+
+  @IsEnum(calendarEventLocationType)
+  locationType!: calendarEventLocationType
+
+  @IsString()
+  @IsOptional()
+  locationOnline?: string
+
+  @IsString()
+  @IsOptional()
+  locationInPerson?: string
 
   @IsNumber()
   cid!: number
