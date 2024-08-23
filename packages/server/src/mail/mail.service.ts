@@ -55,8 +55,8 @@ export class MailService {
       subject: emailPost.subject,
       html:
         mail.content +
-        '<br> Check on : <a href="https://coursehelp.ubc.ca/">UBC Course Helper</a>' +
-        '<br> Do not want to receive these emails? <a href="https://coursehelp.ubc.ca/profile">Unsubscribe</a>',
+        '<br> View on <a href="https://coursehelp.ubc.ca/courses">HelpMe</a>' +
+        '<br> Do you not want to receive these emails? <a href="https://coursehelp.ubc.ca/profile">Unsubscribe</a>',
     });
   }
   async findAllSubscriptions(
