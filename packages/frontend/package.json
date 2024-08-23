@@ -11,6 +11,7 @@
   "dependencies": {
     "@ant-design/icons": "^5.3.7",
     "@ant-design/nextjs-registry": "^1.0.0",
+    "@fullcalendar/react": "^6.1.15",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-navigation-menu": "^1.2.0",
     "@types/react-highlight-words": "^0.20.0",
@@ -22,6 +23,7 @@
     "class-transformer": "^0.5.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "fullcalendar": "^6.1.15",
     "jdenticon": "^3.3.0",
     "json-to-csv-export": "^2.1.1",
     "lucide-react": "^0.408.0",

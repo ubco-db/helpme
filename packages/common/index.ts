@@ -714,6 +714,7 @@ export class Calendar {
   @IsOptional()
   allDay?: boolean
 }
+
 export class questions {
   @IsInt()
   id!: number
