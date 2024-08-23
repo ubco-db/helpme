@@ -19,7 +19,7 @@ import {
 import axios from 'axios'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { cn } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 
 const { TextArea } = Input
 
@@ -247,7 +247,8 @@ const Chatbot: React.FC<ChatbotProps> = ({
         })
       })
       .catch((err) => {
-        console.error(err)
+        const errorMessage = getErrorMessage(err)
+        message.error('Failed to load suggested questions: ' + errorMessage)
       })
   }
 
@@ -258,7 +259,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
       <div
         className={cn(
           variant === 'small'
-            ? 'fixed bottom-5 right-5 z-50 max-h-[90vh] w-screen max-w-[400px]'
+            ? 'fixed bottom-5 z-50 max-h-[90vh] w-screen md:right-5 md:max-w-[400px]'
             : variant === 'big'
               ? 'flex h-[80vh] w-[90%] flex-col overflow-auto'
               : variant === 'huge'

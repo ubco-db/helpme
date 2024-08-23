@@ -165,18 +165,6 @@ const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
             value={doc.pageNumbersString}
             onChange={(e) => {
               doc.pageNumbersString = e.target.value
-              // const updatedPageNumbers = e.target.value
-              // // Split by comma, trim whitespace, filter empty strings, convert to numbers
-              // const pageNumbersArray = updatedPageNumbers
-              //   .split(',')
-              //   .map(Number)
-              // setSelectedDocuments((prev) =>
-              //   prev.map((d, idx) =>
-              //     idx === index
-              //       ? { ...d, pageNumbers: pageNumbersArray } // array of numbers
-              //       : d,
-              //   ),
-              // )
             }}
           />
         </div>

@@ -143,14 +143,14 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       })
       if (!response.ok) {
         const errorMessage = getErrorMessage(response)
-        console.error('Save unsuccessful:' + errorMessage)
+        message.error('Save unsuccessful:' + errorMessage)
       } else {
         message.success('Question updated successfully')
         onSuccessfulUpdate()
       }
     } catch (error) {
       const errorMessage = getErrorMessage(error)
-      console.error('Error saving question:' + errorMessage)
+      message.error('Error saving question:' + errorMessage)
     }
   }
 

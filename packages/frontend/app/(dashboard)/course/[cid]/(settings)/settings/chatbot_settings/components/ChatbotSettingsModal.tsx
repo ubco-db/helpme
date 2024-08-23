@@ -55,7 +55,6 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
   )
 
   const fetchChatbotSettings = useCallback(async () => {
-    console.log('fetchChatbotSettings')
     try {
       setLoading(true)
       const response = await axios.get<ChatbotSettings>(
