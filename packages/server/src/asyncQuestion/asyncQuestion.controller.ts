@@ -254,6 +254,7 @@ export class asyncQuestionController {
         updatedQuestion,
       );
     }
+    delete question.taHelped;
     delete question.votes;
 
     return question;
