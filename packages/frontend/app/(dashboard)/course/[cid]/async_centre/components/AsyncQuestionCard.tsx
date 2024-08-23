@@ -15,6 +15,7 @@ import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
 import TAAsyncQuestionCardButtons from './TAAsyncQuestionCardButtons'
 import StudentAsyncQuestionCardButtons from './StudentAsyncQuestionCardButtons'
 import { ArrowBigDown, ArrowBigUp } from 'lucide-react'
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 
 const statusDisplayMap = {
   // if the question has no answer text, it will say "awaiting answer"

@@ -55,6 +55,7 @@ import {
   QuestionType,
   OrganizationUser,
   OrganizationProfessor,
+  CourseResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -620,7 +621,7 @@ class APIClient {
       organizationId: number,
       page: number,
       search?: string,
-    ): Promise<any> =>
+    ): Promise<CourseResponse[]> =>
       this.req(
         'GET',
         `/api/v1/organization/${organizationId}/get_courses/${page}${

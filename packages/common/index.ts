@@ -846,6 +846,12 @@ export class GetOrganizationResponse {
   ssoUrl?: string
 }
 
+export interface CourseResponse {
+  courseId: number
+  courseName: string
+  isEnabled: boolean
+}
+
 export class GetCourseResponse {
   id!: number
   name!: string
@@ -1471,6 +1477,12 @@ export class CourseSettingsResponse {
   @IsBoolean()
   queueEnabled!: boolean
 
+  @IsBoolean()
+  scheduleOnFrontPage!: boolean
+
+  @IsBoolean()
+  asyncCentreAIAnswers!: boolean
+
   @IsOptional()
   @IsBoolean()
   settingsFound?: boolean = true //this is mostly just for debugging purposes by viewing network responses
@@ -1485,6 +1497,8 @@ const validFeatures = [
   'asyncQueueEnabled',
   'adsEnabled',
   'queueEnabled',
+  'scheduleOnFrontPage',
+  'asyncCentreAIAnswers',
 ]
 
 export class CourseSettingsRequestBody {
