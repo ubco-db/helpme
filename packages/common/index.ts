@@ -1455,6 +1455,7 @@ export type sendEmailParams = {
   receiver: string
   subject: string
   type: MailServiceType
+  content?: string
 }
 
 export type MailServiceWithSubscription = {

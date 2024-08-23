@@ -15,6 +15,7 @@ import { MailServiceWithSubscription } from '@koh/common';
 import { User } from 'decorators/user.decorator';
 import { UserModel } from 'profile/user.entity';
 import { UserSubscriptionModel } from './user-subscriptions.entity';
+import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 @Controller('mail-services')
 //handles notfication settings for emails
