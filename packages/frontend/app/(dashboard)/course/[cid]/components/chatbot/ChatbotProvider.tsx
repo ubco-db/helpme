@@ -12,22 +12,22 @@ import Chatbot, { Message, PreDeterminedQuestion } from './Chatbot'
 interface ChatbotContextType {
   setCid: React.Dispatch<React.SetStateAction<number | null>>
   setRenderSmallChatbot: React.Dispatch<React.SetStateAction<boolean>>
-  preDetermineQuestions?: PreDeterminedQuestion[]
-  setPreDeterminedQuestions?: React.Dispatch<
+  preDeterminedQuestions: PreDeterminedQuestion[]
+  setPreDeterminedQuestions: React.Dispatch<
     React.SetStateAction<PreDeterminedQuestion[]>
   >
-  questionsLeft?: number
-  setQuestionsLeft?: React.Dispatch<React.SetStateAction<number>>
-  messages?: Message[]
-  setMessages?: React.Dispatch<React.SetStateAction<Message[]>>
-  isOpen?: boolean
-  setIsOpen?: React.Dispatch<React.SetStateAction<boolean>>
+  questionsLeft: number
+  setQuestionsLeft: React.Dispatch<React.SetStateAction<number>>
+  messages: Message[]
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>
+  isOpen: boolean
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 const chatbotContext = createContext<ChatbotContextType>({
   setCid: () => {},
   setRenderSmallChatbot: () => {},
-  preDetermineQuestions: [],
+  preDeterminedQuestions: [],
   setPreDeterminedQuestions: () => {},
   questionsLeft: 0,
   setQuestionsLeft: () => {},

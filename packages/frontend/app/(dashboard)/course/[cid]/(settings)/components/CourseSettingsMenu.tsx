@@ -90,6 +90,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       label: 'Export Data',
     },
     {
+      type: 'divider',
+    },
+    {
       key: CourseAdminOptions.CHATBOT_SETTINGS,
       icon: <RobotOutlined />,
       label: 'Chatbot Settings',
