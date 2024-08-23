@@ -222,7 +222,7 @@ export class asyncQuestionController {
           this.mailService.sendEmail({
             receiver: sub.user.email,
             type: MailServiceType.ASYNC_QUESTION_FLAGGED,
-            subject: 'UBC Helpme - Subscription Update',
+            subject: 'HelpMe - New Question Marked as Needing Attention',
           }),
         ),
       );
