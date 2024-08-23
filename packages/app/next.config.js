@@ -45,7 +45,7 @@ const config = {
     if (
       (SERVICE_VERSION,
         SENTRY_DSN,
-        SENTRY_AUTH_TOKEN && NODE_ENV === "production")
+        SENTRY_AUTH_TOKEN && NODE_ENV === "sentryEnabled")
     ) {
       config.plugins.push(
         new SentryWebpackPlugin({
