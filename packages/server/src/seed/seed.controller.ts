@@ -192,8 +192,8 @@ export class SeedController {
     const studentMailService = await mailServiceFactory.create({
       mailType: OrganizationRole.MEMBER,
       serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
-      name: 'Notify when your async question has been answered by a faculty',
-      content: 'Your async question has been answered by a faculty',
+      name: 'Notify when your anytime question has been answered by faculty',
+      content: 'Your anytime question has been answered by faculty',
     });
 
     const courseExists = await CourseModel.findOne({
