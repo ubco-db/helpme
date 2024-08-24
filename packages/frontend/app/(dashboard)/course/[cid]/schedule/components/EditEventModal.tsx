@@ -11,28 +11,24 @@ import {
   Popconfirm,
 } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
-import moment from 'moment'
+import dayjs from 'dayjs'
 import { API } from '@/app/api'
 import { Event } from '@/app/typings/types'
-import { calendarEventLocationType } from '@koh/common'
+import { Calendar, calendarEventLocationType } from '@koh/common'
 import { dayToIntMapping } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { DeleteOutlined } from '@ant-design/icons'
 
-const locationTypeMapping: { [key: string]: number } = {
-  'in-person': 0,
-  online: 1,
-  hybrid: 2,
-}
-
 interface FormValues {
   title: string
-  locationType: number
-  locationInPerson: string
-  locationOnline: string
-  endDate: moment.Moment
-  startTime: moment.Moment
-  endTime: moment.Moment
+  startTime: Date
+  endTime: Date
+  startDate?: Date
+  endDate?: Date
+  locationType: calendarEventLocationType
+  locationInPerson?: string
+  locationOnline?: string
+  repeatDays?: string[]
 }
 
 type EditEventModalProps = {
@@ -48,10 +44,12 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   event,
   courseId,
 }) => {
-  const [form] = Form.useForm()
+  const [form] = Form.useForm<FormValues>()
   const [isRepeating, setIsRepeating] = useState(false)
-  const [locationType, setLocationType] = useState<number>(0)
-  const [selectedDays, setSelectedDays] = useState<number[]>([])
+  const [locationType, setLocationType] = useState<calendarEventLocationType>(
+    calendarEventLocationType.inPerson,
+  )
+  const [selectedDays, setSelectedDays] = useState<string[]>([])
 
   const intToDayMapping = Object.fromEntries(
     Object.entries(dayToIntMapping).map(([key, value]) => [value, key]),
@@ -59,53 +57,51 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
   useEffect(() => {
     if (event) {
+      if (event.endRecur) {
+        setIsRepeating(true)
+      }
       form.setFieldsValue({
         title: event.title,
-        locationInPerson: event.locationInPerson,
-        locationOnline: event.locationOnline,
-        startTime: moment(event.start),
-        endTime: moment(event.end),
-        endDate: event.endRecur ? moment(event.endRecur) : null,
-        locationType: locationTypeMapping[event.locationType] || 0,
+        locationInPerson: event.locationInPerson || undefined,
+        locationOnline: event.locationOnline || undefined,
+        startTime: dayjs(event.start),
+        endTime: dayjs(event.end),
+        endDate: event.endRecur ? dayjs(event.endRecur) : undefined,
+        locationType: event.locationType as calendarEventLocationType,
       })
-      setIsRepeating(!!event.endRecur)
-      setLocationType(locationTypeMapping[event.locationType] || 0)
-      if (event.daysOfWeek) {
-        setSelectedDays(
-          event.daysOfWeek.map((dayInt: number) => intToDayMapping[dayInt]),
-        )
-      }
+      setLocationType(event.locationType as calendarEventLocationType)
+      setSelectedDays((prevDays) =>
+        event.daysOfWeek
+          ? event.daysOfWeek.map((dayInt) => intToDayMapping[dayInt])
+          : prevDays,
+      )
     }
-  }, [event, form, intToDayMapping])
+  }, [event, form])
 
-  const handleDaysChange = (checkedValues: any) => {
-    if (!checkedValues.includes(moment(event?.start).format('dddd'))) {
-      checkedValues.push(moment(event?.start).format('dddd'))
-    }
+  const handleDaysChange = (checkedValues: string[]) => {
     setSelectedDays(checkedValues)
   }
 
-  const onFinish = async (values: FormValues) => {
-    console.log('values', values)
+  const onFinish = async (values: any) => {
     try {
-      const eventObject: Event = {
-        ...values,
+      const eventObject: Partial<Calendar> = {
         cid: courseId,
-        start: values.startTime ? values.startTime.toISOString() : '',
-        end: values.endTime.toISOString(),
+        title: values.title,
+        start: values.startTime.toDate(),
+        end: values.endTime.toDate(),
+        locationType: values.locationType,
       }
 
-      switch (locationType) {
-        case 0:
-          eventObject.locationType = calendarEventLocationType.inPerson
+      switch (values.locationType) {
+        case calendarEventLocationType.inPerson:
           eventObject.locationInPerson = values.locationInPerson
+          eventObject.locationOnline = undefined
           break
-        case 1:
-          eventObject.locationType = calendarEventLocationType.online
+        case calendarEventLocationType.online:
           eventObject.locationOnline = values.locationOnline
+          eventObject.locationInPerson = undefined
           break
-        case 2:
-          eventObject.locationType = calendarEventLocationType.hybrid
+        case calendarEventLocationType.hybrid:
           eventObject.locationInPerson = values.locationInPerson
           eventObject.locationOnline = values.locationOnline
           break
@@ -117,11 +113,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       if (isRepeating) {
         if (values.endDate && selectedDays) {
           eventObject.daysOfWeek = selectedDays.map(
-            (day: number) => dayToIntMapping[day],
+            (day) => dayToIntMapping[day],
           )
-          if (moment.isMoment(values.endDate)) {
-            eventObject.endDate = values.endDate.format('YYYY-MM-DD')
-          }
+          eventObject.endDate = values.endDate.toDate()
         } else {
           message.error('Please select all fields for repeating events')
           return
@@ -135,7 +129,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   }
 
   const deleteEvent = useCallback(async () => {
-    if (!event) {
+    if (!event?.id) {
       message.error('Event not found')
       return
     }
@@ -153,7 +147,11 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     }
   }, [event, onClose])
 
-  const updateEvent = async (updatedEvent: any) => {
+  const updateEvent = async (updatedEvent: Partial<Calendar>) => {
+    if (!event?.id) {
+      message.error('Event not found')
+      return
+    }
     try {
       const response = await API.calendar.patchEvent(event.id, updatedEvent)
       if (response) {
@@ -280,13 +278,13 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           onChange={(e) => setLocationType(e.target.value)}
           value={locationType}
         >
-          <Radio value={0}>In-Person</Radio>
-          <Radio value={1}>Online</Radio>
-          <Radio value={2}>Hybrid</Radio>
+          <Radio value={calendarEventLocationType.inPerson}>In-Person</Radio>
+          <Radio value={calendarEventLocationType.online}>Online</Radio>
+          <Radio value={calendarEventLocationType.hybrid}>Hybrid</Radio>
         </Radio.Group>
       </Form.Item>
 
-      {locationType === 0 && (
+      {locationType === calendarEventLocationType.inPerson && (
         <Form.Item
           label="Location"
           name="locationInPerson"
@@ -296,7 +294,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         </Form.Item>
       )}
 
-      {locationType === 1 && (
+      {locationType === calendarEventLocationType.online && (
         <Form.Item
           label="Zoom Link"
           name="locationOnline"
@@ -308,7 +306,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         </Form.Item>
       )}
 
-      {locationType === 2 && (
+      {locationType === calendarEventLocationType.hybrid && (
         <>
           <Form.Item
             label="Location"

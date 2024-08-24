@@ -9,21 +9,11 @@ import {
   message,
 } from 'antd'
 import { useEffect, useState } from 'react'
-import moment from 'moment'
 import { API } from '@/app/api'
 import { calendarEventLocationType } from '@koh/common'
-import { Event } from '@/app/typings/types'
 import { dayToIntMapping } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-
-interface FormValues extends Event {
-  title: string
-  locationInPerson: string
-  locationOnline: string
-  startDate: string
-  endDate: string
-}
-
+import dayjs from 'dayjs'
 type CreateEventModalProps = {
   visible: boolean
   onClose: () => void
@@ -43,22 +33,23 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [selectedDays, setSelectedDays] = useState<string[]>([])
   useEffect(() => {
     //default to the day of the event(create event object)
-    setSelectedDays([moment(event?.start).format('dddd')])
+    setSelectedDays([dayjs(event?.start).format('dddd')])
   }, [event])
   const handleDaysChange = (checkedValues: any) => {
-    if (!checkedValues.includes(moment(event?.start).format('dddd'))) {
-      checkedValues.push(moment(event?.start).format('dddd'))
+    if (!checkedValues.includes(dayjs(event?.start).format('dddd'))) {
+      checkedValues.push(dayjs(event?.start).format('dddd'))
     }
     setSelectedDays(checkedValues)
   }
-  const onFinish = async (values: FormValues) => {
+  const onFinish = async (values: any) => {
+    console.log(values)
     try {
       const eventObject = {
         ...values,
         cid: courseId,
         title: values.title,
-        end: moment(event?.end).toISOString(),
-        start: moment(event?.start).toISOString(),
+        end: dayjs(event?.end).toISOString(),
+        start: dayjs(event?.start).toISOString(),
       }
       // Set the location type based on the value of locationType
       switch (locationType) {
@@ -82,12 +73,12 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       // Logic for repeating events
       if (isRepeating) {
-        if (values.endDate && selectedDays) {
+        if (values.startDate && values.endDate && selectedDays) {
           eventObject.daysOfWeek = selectedDays.map(
             (day) => dayToIntMapping[day],
           )
-          eventObject.startDate = moment().startOf('day').format('YYYY-MM-DD')
-          eventObject.endDate = moment(values.endDate).format('YYYY-MM-DD')
+          eventObject.startDate = values.startDate.toDate()
+          eventObject.endDate = values.endDate.toDate()
         } else {
           message.error('Please select all fields for repeating events')
           return
@@ -152,12 +143,12 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       <Form.Item label="Start Time">
         <Tooltip title="To change the time, exit this modal and reselect by dragging over a new area.">
-          <span>{moment(event?.start).format('YYYY-MM-DD HH:mm')}</span>
+          <span>{dayjs(event?.start).format('YYYY-MM-DD HH:mm')}</span>
         </Tooltip>
       </Form.Item>
       <Form.Item label="End Time">
         <Tooltip title="To change the time, exit this modal and reselect by dragging over a new area.">
-          <span>{moment(event?.end).format('YYYY-MM-DD HH:mm')}</span>
+          <span>{dayjs(event?.end).format('YYYY-MM-DD HH:mm')}</span>
         </Tooltip>
       </Form.Item>
       <Form.Item>
@@ -171,8 +162,11 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       {isRepeating ? (
         <>
+          <Form.Item label="Start Date" name="startDate">
+            <DatePicker picker="date" />
+          </Form.Item>
           <Form.Item label="End Date" name="endDate">
-            <DatePicker />
+            <DatePicker picker="date" />
           </Form.Item>
           <Form.Item label="Repeat on">
             <Checkbox.Group
@@ -190,7 +184,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         </>
       ) : (
         <Form.Item label="Event Day">
-          <span>{moment(event?.start).format('dddd')}</span>
+          <span>{dayjs(event?.start).format('dddd')}</span>
         </Form.Item>
       )}
 
