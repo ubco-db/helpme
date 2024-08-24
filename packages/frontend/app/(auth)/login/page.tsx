@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 import { LoginData } from '@/app/typings/user'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useOrganizationProviderForInvitedCourse } from './components/OrganizationProviderForInvitedCourse'
+import { isProd } from '@koh/common'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -65,15 +66,24 @@ export default function LoginPage() {
   }, [])
 
   async function login() {
-    const token = (await recaptchaRef?.current?.executeAsync()) ?? ''
-    if (organization && !organization.legacyAuthEnabled) {
-      message.error('Organization does not support legacy authentication')
-      return
-    }
-    const loginData: LoginData = {
-      email,
-      password,
-      recaptchaToken: token,
+    let loginData: LoginData
+    if (isProd()) {
+      const token = (await recaptchaRef?.current?.executeAsync()) ?? ''
+      if (organization && !organization.legacyAuthEnabled) {
+        message.error('Organization does not support legacy authentication')
+        return
+      }
+      loginData = {
+        email,
+        password,
+        recaptchaToken: token,
+      }
+    } else {
+      loginData = {
+        email,
+        password,
+        recaptchaToken: '',
+      }
     }
     await userApi.login(loginData).then(async (response) => {
       const data = await response.json()

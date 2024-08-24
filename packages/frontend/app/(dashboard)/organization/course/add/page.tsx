@@ -18,7 +18,6 @@ import {
   OrganizationProfessor,
   OrganizationRole,
 } from '@koh/common'
-import DefaultErrorPage from 'next/error'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { API } from '@/app/api'
 import { useRouter } from 'next/navigation'
@@ -38,6 +37,8 @@ interface FormValues {
   chatBotEnabled: boolean
   queueEnabled: boolean
   asyncQueueEnabled: boolean
+  asyncCentreAIAnswers: boolean
+  scheduleOnFrontPage: boolean
 }
 
 export default function AddCoursePage(): ReactElement {
@@ -93,6 +94,8 @@ export default function AddCoursePage(): ReactElement {
       { feature: 'chatBotEnabled', value: values.chatBotEnabled },
       { feature: 'queueEnabled', value: values.queueEnabled },
       { feature: 'asyncQueueEnabled', value: values.asyncQueueEnabled },
+      { feature: 'asyncCentreAIAnswers', value: values.asyncCentreAIAnswers },
+      { feature: 'scheduleOnFrontPage', value: values.scheduleOnFrontPage },
     ]
 
     await API.organizations
@@ -143,6 +146,13 @@ export default function AddCoursePage(): ReactElement {
                   chatBotEnabled: true,
                   queueEnabled: true,
                   asyncQueueEnabled: true,
+                  asyncCentreAIAnswers: true,
+                  scheduleOnFrontPage: false,
+                }}
+                onValuesChange={(changedValues, allValues) => {
+                  if (changedValues.asyncQueueEnabled === false) {
+                    form.setFieldsValue({ asyncCentreAIAnswers: false })
+                  }
                 }}
               >
                 <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
@@ -293,6 +303,24 @@ export default function AddCoursePage(): ReactElement {
                         layout="horizontal"
                         name="asyncQueueEnabled"
                         tooltip="This feature allows students to ask questions asynchronously (e.g. outside of office hours or labs) that can then be answered by the professor. It also features automatic AI-generated answers based on uploaded course content."
+                      >
+                        <Checkbox />
+                      </Form.Item>
+                      <Form.Item
+                        label="Anytime Question AI Answers"
+                        valuePropName="checked"
+                        layout="horizontal"
+                        name="asyncCentreAIAnswers"
+                        tooltip="This feature will enable students question's to immediately get an AI answer when they ask it (on the Anytime Question Hub). From there, students can ask if they are satisfied or still need help with it, in which staff can then edit the answer or verify it."
+                      >
+                        <Checkbox />
+                      </Form.Item>
+                      <Form.Item
+                        label="Schedule on Home Course Page"
+                        valuePropName="checked"
+                        layout="horizontal"
+                        name="scheduleOnFrontPage"
+                        tooltip="By default, a chatbot is displayed on the home course page. Enabling this will replace that chatbot with a preview of today's schedule and show a little 'chat now!' widget for the chatbot like other pages. Choose this option if you think it is more valuable for students to see today's event schedule over a large chatbot component."
                       >
                         <Checkbox />
                       </Form.Item>
