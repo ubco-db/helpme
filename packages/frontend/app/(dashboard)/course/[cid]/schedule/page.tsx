@@ -1,5 +1,4 @@
 'use client'
-import React from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getRoleInCourse } from '@/app/utils/generalUtils'
 import StudentSchedulePanel from './components/StudentSchedulePanel'
@@ -15,14 +14,12 @@ export default function SchedulePage({ params }: SchedulePageProps) {
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, cid)
   return (
-    <div>
-      <div className="mb-5 mt-8">
-        {role === Role.PROFESSOR ? (
-          <TAFacultySchedulePanel courseId={cid} />
-        ) : (
-          <StudentSchedulePanel courseId={cid} />
-        )}
-      </div>
+    <div className="mb-5 mt-8">
+      {role === Role.PROFESSOR ? (
+        <TAFacultySchedulePanel courseId={cid} />
+      ) : (
+        <StudentSchedulePanel courseId={cid} />
+      )}
     </div>
   )
 }

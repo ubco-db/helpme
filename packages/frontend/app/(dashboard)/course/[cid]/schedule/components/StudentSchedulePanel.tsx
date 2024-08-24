@@ -1,4 +1,4 @@
-import { ReactElement, useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
@@ -14,10 +14,10 @@ type ScheduleProps = {
   defaultView?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek'
 }
 
-export default function StudentSchedulePanel({
+const StudentSchedulePanel: React.FC<ScheduleProps> = ({
   courseId,
   defaultView = 'timeGridWeek',
-}: ScheduleProps): ReactElement {
+}) => {
   const [events, setEvents] = useState<any>([])
   const calendarRef = useRef(null)
   const spinnerRef = useRef<HTMLDivElement | null>(null)
@@ -31,11 +31,9 @@ export default function StudentSchedulePanel({
   const getEvent = async () => {
     try {
       const result = await API.calendar.getEvents(Number(courseId))
-      console.log(result)
       const modifiedEvents = result.map((event) => parseEvent(event))
       setEvents(modifiedEvents)
     } catch (error) {
-      console.error('An error occurred while fetching events:', error)
       message.error('An error occurred while fetching events')
     }
   }
@@ -97,3 +95,5 @@ export default function StudentSchedulePanel({
     </div>
   )
 }
+
+export default StudentSchedulePanel

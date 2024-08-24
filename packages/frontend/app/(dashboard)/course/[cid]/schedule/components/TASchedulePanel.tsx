@@ -1,26 +1,27 @@
-import { ReactElement, useState, useEffect, useRef } from 'react'
+import { ReactElement, useState, useEffect, useRef, useCallback } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { Event } from '@/app/typings/types'
-import { Spin } from 'antd'
+import { message, Spin } from 'antd'
 import { API } from '@/app/api'
 import { format } from 'date-fns'
 import EditEventModal from './EditEventModal'
 import CreateEventModal from './CreateEventModal'
 import { Calendar } from '@koh/common'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 type ScheduleProps = {
   courseId: number
   defaultView?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek'
 }
 
-export default function TAFacultySchedulePanel({
+const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
   courseId,
   defaultView = 'timeGridWeek',
-}: ScheduleProps): ReactElement {
+}) => {
   const calendarRef = useRef(null)
   const spinnerRef = useRef<HTMLDivElement>(null)
   const [editModalVisible, setEditModalVisible] = useState(false)
@@ -30,21 +31,22 @@ export default function TAFacultySchedulePanel({
   // see https://fullcalendar.io/docs/event-source-object#options for typing of events
   const [events, setEvents] = useState<any>([])
 
+  const getEvent = useCallback(async () => {
+    try {
+      const result = await API.calendar.getEvents(courseId)
+      const modifiedEvents = result.map((event) => parseEvent(event))
+      setEvents(modifiedEvents)
+    } catch (error) {
+      const errorMessage = getErrorMessage(error)
+      message.error('An error occurred while fetching events: ' + errorMessage)
+    }
+  }, [courseId, setEvents])
+
   useEffect(() => {
     if (courseId) {
       getEvent()
     }
-  }, [courseId, editModalVisible, createModalVisible])
-
-  const getEvent = async () => {
-    try {
-      const result = await API.calendar.getEvents(Number(courseId))
-      const modifiedEvents = result.map((event) => parseEvent(event))
-      setEvents(modifiedEvents)
-    } catch (error) {
-      console.error('An error occurred while fetching events:', error)
-    }
-  }
+  }, [courseId, editModalVisible, createModalVisible, getEvent])
 
   const parseEvent = (event: Calendar) => {
     const startDate = new Date(event.start)
@@ -137,3 +139,5 @@ export default function TAFacultySchedulePanel({
     </div>
   )
 }
+
+export default TAFacultySchedulePanel

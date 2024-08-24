@@ -12,7 +12,17 @@ import { useEffect, useState } from 'react'
 import moment from 'moment'
 import { API } from '@/app/api'
 import { calendarEventLocationType } from '@koh/common'
+import { Event } from '@/app/typings/types'
 import { dayToIntMapping } from '@/app/typings/types'
+import { getErrorMessage } from '@/app/utils/generalUtils'
+
+interface FormValues extends Event {
+  title: string
+  locationInPerson: string
+  locationOnline: string
+  startDate: string
+  endDate: string
+}
 
 type CreateEventModalProps = {
   visible: boolean
@@ -21,12 +31,12 @@ type CreateEventModalProps = {
   event: { start: Date; end: Date } | undefined
 }
 
-const CreateEventModal = ({
+const CreateEventModal: React.FC<CreateEventModalProps> = ({
   event,
   visible,
   onClose,
   courseId,
-}: CreateEventModalProps) => {
+}) => {
   const [form] = Form.useForm()
   const [isRepeating, setIsRepeating] = useState(false)
   const [locationType, setLocationType] = useState(0)
@@ -41,13 +51,12 @@ const CreateEventModal = ({
     }
     setSelectedDays(checkedValues)
   }
-  const handleOk = async () => {
+  const onFinish = async (values: FormValues) => {
     try {
-      const formData = await form.validateFields()
       const eventObject = {
-        ...formData,
+        ...values,
         cid: courseId,
-        title: formData.title,
+        title: values.title,
         end: moment(event?.end).toISOString(),
         start: moment(event?.start).toISOString(),
       }
@@ -55,16 +64,16 @@ const CreateEventModal = ({
       switch (locationType) {
         case 0: // In Person
           eventObject.locationType = calendarEventLocationType.inPerson
-          eventObject.locationInPerson = formData.locationInPerson
+          eventObject.locationInPerson = values.locationInPerson
           break
         case 1: // Online
           eventObject.locationType = calendarEventLocationType.online
-          eventObject.locationOnline = formData.locationOnline
+          eventObject.locationOnline = values.locationOnline
           break
         case 2: // Hybrid
           eventObject.locationType = calendarEventLocationType.hybrid
-          eventObject.locationInPerson = formData.locationInPerson
-          eventObject.locationOnline = formData.locationOnline
+          eventObject.locationInPerson = values.locationInPerson
+          eventObject.locationOnline = values.locationOnline
           break
         default:
           message.error('Invalid location type')
@@ -73,12 +82,12 @@ const CreateEventModal = ({
 
       // Logic for repeating events
       if (isRepeating) {
-        if (formData.endDate && selectedDays) {
+        if (values.endDate && selectedDays) {
           eventObject.daysOfWeek = selectedDays.map(
             (day) => dayToIntMapping[day],
           )
           eventObject.startDate = moment().startOf('day').format('YYYY-MM-DD')
-          eventObject.endDate = moment(formData.endDate).format('YYYY-MM-DD')
+          eventObject.endDate = moment(values.endDate).format('YYYY-MM-DD')
         } else {
           message.error('Please select all fields for repeating events')
           return
@@ -87,99 +96,145 @@ const CreateEventModal = ({
 
       createEvent(eventObject)
     } catch (validationError) {
-      message.error('Event validation failed')
+      const errorMessage = getErrorMessage(validationError)
+      message.error('Event validation failed: ' + errorMessage)
     }
   }
 
   const createEvent = async (newEvent: any) => {
     try {
-      console.log(newEvent)
       const response = await API.calendar.addCalendar(newEvent, courseId)
       if (response) {
         message.success('Event created successfully')
         form.resetFields()
+        onClose()
       } else {
         message.error('Failed to create event')
       }
     } catch (err) {
-      console.error('Error creating the event:', err)
+      const errorMessage = getErrorMessage(err)
+      message.error('Error creating the event: ' + errorMessage)
     }
-    onClose()
   }
 
   return (
-    <Modal open={visible} onOk={handleOk} onCancel={onClose} closable={false}>
-      <Form form={form}>
+    <Modal
+      open={visible}
+      title="Create a new event"
+      okText="Create"
+      cancelText="Cancel"
+      okButtonProps={{
+        autoFocus: true,
+        htmlType: 'submit',
+      }}
+      destroyOnClose
+      onCancel={onClose}
+      modalRender={(dom) => (
+        <Form
+          layout="vertical"
+          form={form}
+          name="form_in_modal"
+          initialValues={{ locationType: 0 }}
+          clearOnDestroy
+          onFinish={(values) => onFinish(values)}
+        >
+          {dom}
+        </Form>
+      )}
+    >
+      <Form.Item
+        label="Title"
+        name="title"
+        rules={[{ required: true, message: 'Please input the title!' }]}
+      >
+        <Input />
+      </Form.Item>
+
+      <Form.Item label="Start Time">
+        <Tooltip title="To change the time, exit this modal and reselect by dragging over a new area.">
+          <span>{moment(event?.start).format('YYYY-MM-DD HH:mm')}</span>
+        </Tooltip>
+      </Form.Item>
+      <Form.Item label="End Time">
+        <Tooltip title="To change the time, exit this modal and reselect by dragging over a new area.">
+          <span>{moment(event?.end).format('YYYY-MM-DD HH:mm')}</span>
+        </Tooltip>
+      </Form.Item>
+      <Form.Item>
+        <Checkbox
+          checked={isRepeating}
+          onChange={(e) => setIsRepeating(e.target.checked)}
+        >
+          Repeat Event
+        </Checkbox>
+      </Form.Item>
+
+      {isRepeating ? (
+        <>
+          <Form.Item label="End Date" name="endDate">
+            <DatePicker />
+          </Form.Item>
+          <Form.Item label="Repeat on">
+            <Checkbox.Group
+              name="repeatDays"
+              value={selectedDays}
+              onChange={handleDaysChange}
+            >
+              {Object.keys(dayToIntMapping).map((day) => (
+                <Checkbox key={day} value={day}>
+                  {day}
+                </Checkbox>
+              ))}
+            </Checkbox.Group>
+          </Form.Item>
+        </>
+      ) : (
+        <Form.Item label="Event Day">
+          <span>{moment(event?.start).format('dddd')}</span>
+        </Form.Item>
+      )}
+
+      <Form.Item
+        label="Location Type"
+        name="locationType"
+        rules={[
+          { required: true, message: 'Please select the location type!' },
+        ]}
+      >
+        <Radio.Group
+          onChange={(e) => setLocationType(e.target.value)}
+          value={locationType}
+        >
+          <Radio value={0}>In-Person</Radio>
+          <Radio value={1}>Online</Radio>
+          <Radio value={2}>Hybrid</Radio>
+        </Radio.Group>
+      </Form.Item>
+
+      {locationType === 0 && (
         <Form.Item
-          label="Title"
-          name="title"
-          rules={[{ required: true, message: 'Please input the title!' }]}
+          label="Location"
+          name="locationInPerson"
+          rules={[{ required: true, message: 'Please input the location!' }]}
         >
           <Input />
         </Form.Item>
+      )}
 
-        <Form.Item label="Start Time">
-          <Tooltip title="To change the time, exit this modal and reselect by dragging over a new area.">
-            <span>{moment(event?.start).format('HH:mm YYYY-MM-DD')}</span>
-          </Tooltip>
-        </Form.Item>
-        <Form.Item label="End Time">
-          <Tooltip title="To change the time, exit this modal and reselect by dragging over a new area.">
-            <span>{moment(event?.end).format('HH:mm YYYY-MM-DD')}</span>
-          </Tooltip>
-        </Form.Item>
-        <Form.Item>
-          <Checkbox
-            checked={isRepeating}
-            onChange={(e) => setIsRepeating(e.target.checked)}
-          >
-            Repeat Event
-          </Checkbox>
-        </Form.Item>
-
-        {isRepeating ? (
-          <>
-            <Form.Item label="End Date" name="endDate">
-              <DatePicker />
-            </Form.Item>
-            <Form.Item label="Repeat on">
-              <Checkbox.Group
-                name="repeatDays"
-                value={selectedDays}
-                onChange={handleDaysChange}
-              >
-                {Object.keys(dayToIntMapping).map((day) => (
-                  <Checkbox key={day} value={day}>
-                    {day}
-                  </Checkbox>
-                ))}
-              </Checkbox.Group>
-            </Form.Item>
-          </>
-        ) : (
-          <Form.Item label="Event Day">
-            <span>{moment(event?.start).format('dddd')}</span>
-          </Form.Item>
-        )}
-
+      {locationType === 1 && (
         <Form.Item
-          label="Location Type"
-          name="locationType"
+          label="Zoom Link"
+          name="locationOnline"
           rules={[
-            { required: true, message: 'Please select the location type!' },
+            { required: true, message: 'Please input the meeting link!' },
           ]}
         >
-          <Radio.Group
-            onChange={(e) => setLocationType(e.target.value)}
-            value={locationType}
-          >
-            <Radio value={0}>In-Person</Radio>
-            <Radio value={1}>Online</Radio>
-            <Radio value={2}>Hybrid</Radio>
-          </Radio.Group>
+          <Input />
         </Form.Item>
+      )}
 
-        {locationType === 0 && (
+      {locationType === 2 && (
+        <>
           <Form.Item
             label="Location"
             name="locationInPerson"
@@ -187,9 +242,6 @@ const CreateEventModal = ({
           >
             <Input />
           </Form.Item>
-        )}
-
-        {locationType === 1 && (
           <Form.Item
             label="Zoom Link"
             name="locationOnline"
@@ -199,31 +251,8 @@ const CreateEventModal = ({
           >
             <Input />
           </Form.Item>
-        )}
-
-        {locationType === 2 && (
-          <>
-            <Form.Item
-              label="Location"
-              name="locationInPerson"
-              rules={[
-                { required: true, message: 'Please input the location!' },
-              ]}
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item
-              label="Zoom Link"
-              name="locationOnline"
-              rules={[
-                { required: true, message: 'Please input the meeting link!' },
-              ]}
-            >
-              <Input />
-            </Form.Item>
-          </>
-        )}
-      </Form>
+        </>
+      )}
     </Modal>
   )
 }
