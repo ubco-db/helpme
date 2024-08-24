@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
@@ -8,6 +8,7 @@ import { API } from '@/app/api'
 import { format } from 'date-fns'
 import { Calendar } from '@koh/common'
 import { Event } from '@/app/typings/types'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 type ScheduleProps = {
   courseId: number
@@ -22,21 +23,22 @@ const StudentSchedulePanel: React.FC<ScheduleProps> = ({
   const calendarRef = useRef(null)
   const spinnerRef = useRef<HTMLDivElement | null>(null)
 
-  useEffect(() => {
-    if (courseId) {
-      getEvent()
-    }
-  }, [courseId])
-
-  const getEvent = async () => {
+  const getEvent = useCallback(async () => {
     try {
       const result = await API.calendar.getEvents(Number(courseId))
       const modifiedEvents = result.map((event) => parseEvent(event))
       setEvents(modifiedEvents)
     } catch (error) {
-      message.error('An error occurred while fetching events')
+      const errorMessage = getErrorMessage(error)
+      message.error('An error occurred while fetching events:' + errorMessage)
     }
-  }
+  }, [courseId, setEvents])
+
+  useEffect(() => {
+    if (courseId) {
+      getEvent()
+    }
+  }, [courseId, getEvent])
 
   const parseEvent = (event: Calendar) => {
     const startDate = new Date(event.start)

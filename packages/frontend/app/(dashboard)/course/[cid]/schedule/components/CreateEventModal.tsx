@@ -31,6 +31,16 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [isRepeating, setIsRepeating] = useState(false)
   const [locationType, setLocationType] = useState(0)
   const [selectedDays, setSelectedDays] = useState<string[]>([])
+
+  useEffect(() => {
+    // reset the form to its default state when modal is closed
+    if (!visible) {
+      setIsRepeating(false)
+      setLocationType(0)
+      setSelectedDays([])
+    }
+  }, [visible])
+
   useEffect(() => {
     //default to the day of the event(create event object)
     setSelectedDays([dayjs(event?.start).format('dddd')])

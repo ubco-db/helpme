@@ -59,6 +59,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     if (event) {
       if (event.endRecur) {
         setIsRepeating(true)
+      } else {
+        setIsRepeating(false)
       }
       form.setFieldsValue({
         title: event.title,
@@ -77,7 +79,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           : prevDays,
       )
     }
-  }, [event, form])
+  }, [event, form, intToDayMapping])
 
   const handleDaysChange = (checkedValues: string[]) => {
     setSelectedDays(checkedValues)
