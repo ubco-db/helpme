@@ -2,8 +2,8 @@
 import React from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getRoleInCourse } from '@/app/utils/generalUtils'
-import StudentSchedulePanel from './StudentSchedulePanel'
-import TAFacultySchedulePanel from './TASchedulePanel'
+import StudentSchedulePanel from './components/StudentSchedulePanel'
+import TAFacultySchedulePanel from './components/TASchedulePanel'
 import { Role } from '@koh/common'
 type SchedulePageProps = {
   params: { cid: string }

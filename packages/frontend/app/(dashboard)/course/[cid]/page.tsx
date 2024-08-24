@@ -17,7 +17,7 @@ import PopularTimes from './components/popularTimes/PopularTimes'
 import { arrayRotate, collapseHeatmap } from './utils/popularTimesFunctions'
 import moment from 'moment'
 import { sortQueues } from './utils/commonCourseFunctions'
-import TAFacultySchedulePanel from './schedule/TASchedulePanel'
+import TAFacultySchedulePanel from './schedule/components/TASchedulePanel'
 
 type CoursePageProps = {
   params: { cid: string }
