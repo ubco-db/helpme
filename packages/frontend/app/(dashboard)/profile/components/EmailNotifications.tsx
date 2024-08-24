@@ -14,6 +14,7 @@ import {
 const { Text } = Typography
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { MailOutlined } from '@ant-design/icons'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 interface Subscription {
   id: number
@@ -24,6 +25,7 @@ interface Subscription {
 
 const EmailNotifications: React.FC = () => {
   const [form] = Form.useForm()
+  const { userInfo } = useUserInfo()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [isFormChanged, setIsFormChanged] = useState(false)
   const [initialValues, setInitialValues] = useState<{
@@ -124,7 +126,9 @@ const EmailNotifications: React.FC = () => {
       classNames={{ body: 'py-2' }}
     >
       <h3 className="mb-2 text-lg text-gray-500">
-        Choose what emails you would like to subscribe to.
+        Choose what emails you would like to subscribe to. Emails will be sent
+        to{' '}
+        <span className="font-medium text-blue-700/60">{userInfo.email}</span>
       </h3>
       <Form
         form={form}
