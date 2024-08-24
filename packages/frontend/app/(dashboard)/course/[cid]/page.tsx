@@ -149,7 +149,11 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
               </Col>
               <Col className="mb-4 h-[100vh]" md={12} sm={24}>
                 {/* {courseFeatures.chatBotEnabled && <ChatbotToday />} */}
-                <TAFacultySchedulePanel courseId={cid} />
+                {courseFeatures.queueEnabled &&
+                  (!courseFeatures.chatBotEnabled ||
+                    courseFeatures.scheduleOnFrontPage) && (
+                    <TAFacultySchedulePanel courseId={cid} />
+                  )}
               </Col>
             </Row>
           </div>
@@ -157,7 +161,6 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
           // only show if only the chatbot is enabled
           <div className="mt-3 flex h-[100vh] flex-col items-center justify-items-end">
             {/* <ChatbotToday /> */}
-            <TAFacultySchedulePanel courseId={cid} />
           </div>
         )}
       </>
