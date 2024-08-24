@@ -7,6 +7,7 @@ export interface Event {
   title: string
   start: Date
   end: Date
+  startDate?: Date | null
   locationType: string
   locationInPerson: string | null
   locationOnline: string | null

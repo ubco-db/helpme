@@ -49,13 +49,14 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
   }, [courseId, editModalVisible, createModalVisible, getEvent])
 
   const parseEvent = (event: Calendar) => {
-    const startDate = new Date(event.start)
-    const endDate = new Date(event.end)
+    const startTime = new Date(event.start)
+    const endTime = new Date(event.end)
     const returnEvent: Event = {
       id: event.id,
       title: event.title,
-      start: startDate,
-      end: endDate,
+      start: startTime,
+      end: endTime,
+      startDate: event.startDate || null,
       locationType: event.locationType,
       locationInPerson: event.locationInPerson || null,
       locationOnline: event.locationOnline || null,
@@ -63,8 +64,8 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
     if (event.endDate) {
       returnEvent['endRecur'] = event.endDate
       returnEvent['daysOfWeek'] = event.daysOfWeek
-      returnEvent['startTime'] = format(startDate, 'HH:mm')
-      returnEvent['endTime'] = format(endDate, 'HH:mm')
+      returnEvent['startTime'] = format(startTime, 'HH:mm')
+      returnEvent['endTime'] = format(endTime, 'HH:mm')
       return returnEvent
     } else {
       return returnEvent

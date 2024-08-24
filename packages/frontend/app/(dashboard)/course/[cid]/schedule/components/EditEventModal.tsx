@@ -57,6 +57,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
   useEffect(() => {
     if (event) {
+      console.log(event)
       if (event.endRecur) {
         setIsRepeating(true)
       }
@@ -66,6 +67,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         locationOnline: event.locationOnline || undefined,
         startTime: dayjs(event.start),
         endTime: dayjs(event.end),
+        startDate: event.endRecur ? dayjs(event.startDate) : undefined,
         endDate: event.endRecur ? dayjs(event.endRecur) : undefined,
         locationType: event.locationType as calendarEventLocationType,
       })
@@ -115,6 +117,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           eventObject.daysOfWeek = selectedDays.map(
             (day) => dayToIntMapping[day],
           )
+          eventObject.startDate = values.startDate.toDate()
           eventObject.endDate = values.endDate.toDate()
         } else {
           message.error('Please select all fields for repeating events')
@@ -244,6 +247,13 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
       {isRepeating && (
         <>
+          <Form.Item
+            label="Start Date"
+            name="startDate"
+            rules={[{ required: true, message: 'Please select the end date!' }]}
+          >
+            <DatePicker />
+          </Form.Item>
           <Form.Item
             label="End Date"
             name="endDate"
