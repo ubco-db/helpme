@@ -79,6 +79,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           : prevDays,
       )
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, event])
 
   const handleDaysChange = (checkedValues: string[]) => {
