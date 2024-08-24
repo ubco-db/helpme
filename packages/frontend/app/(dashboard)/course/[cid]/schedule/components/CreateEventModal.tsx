@@ -42,7 +42,6 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
     setSelectedDays(checkedValues)
   }
   const onFinish = async (values: any) => {
-    console.log(values)
     try {
       const eventObject = {
         ...values,

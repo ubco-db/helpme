@@ -57,7 +57,6 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
   useEffect(() => {
     if (event) {
-      console.log(event)
       if (event.endRecur) {
         setIsRepeating(true)
       }
