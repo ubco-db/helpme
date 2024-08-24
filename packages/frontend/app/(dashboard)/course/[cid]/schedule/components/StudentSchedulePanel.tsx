@@ -79,18 +79,20 @@ const StudentSchedulePanel: React.FC<ScheduleProps> = ({
           plugins={[dayGridPlugin, timeGridPlugin, listPlugin]}
           events={events}
           scrollTime="10:00:00"
+          nowIndicator={true}
+          slotMinTime="08:00:00"
           initialView={defaultView}
           initialEvents={events}
           headerToolbar={{
             start: 'title',
-            center: 'dayGridMonth timeGridWeek timeGridDay listWeek',
+            center: 'dayGridMonth timeGridWeek listWeek',
             end: 'today prev,next',
           }}
           loading={(loading) => {
             if (spinnerRef.current)
               spinnerRef.current.style.display = loading ? 'flex' : 'none'
           }}
-          height="70vh"
+          height="100vh"
           timeZone="local"
         />
       </div>

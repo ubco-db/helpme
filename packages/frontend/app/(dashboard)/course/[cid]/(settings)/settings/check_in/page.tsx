@@ -85,15 +85,6 @@ export default function TACheckInCheckOutTimes({
       studentsHelped: event.numHelped,
     }
     return returnEvent
-    // if (event.endDate) {
-    //   returnEvent['endRecur'] = event.endDate
-    //   returnEvent['daysOfWeek'] = event.daysOfWeek
-    //   returnEvent['startTime'] = format(startDate, 'HH:mm')
-    //   returnEvent['endTime'] = format(endDate, 'HH:mm')
-    //   return returnEvent
-    // } else {
-    //   return returnEvent
-    // }
   }
   if (role !== Role.PROFESSOR) {
     return (
@@ -109,7 +100,7 @@ export default function TACheckInCheckOutTimes({
         >
           <Spin />
         </div>
-        <div className="mb-5">
+        <div className="mb-5 text-sm">
           <FullCalendar
             selectable={false}
             editable={false}
@@ -132,7 +123,7 @@ export default function TACheckInCheckOutTimes({
               if (spinnerRef.current)
                 spinnerRef.current.style.display = loading ? 'flex' : 'none'
             }}
-            height="94vh"
+            height="54em"
             timeZone="local"
             eventClick={(clickInfo) => {
               message.info(

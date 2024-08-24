@@ -109,12 +109,14 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
               setCreateModalVisible(true)
             }}
             events={events}
-            scrollTime="13:00:00"
+            scrollTime="10:00:00"
+            nowIndicator={true}
+            slotMinTime="08:00:00"
             initialView={defaultView}
             initialEvents={events}
             headerToolbar={{
               start: 'title',
-              center: 'dayGridMonth timeGridWeek timeGridDay listWeek',
+              center: 'dayGridMonth timeGridWeek listWeek',
               end: 'today prev,next',
             }}
             loading={(loading) => {
