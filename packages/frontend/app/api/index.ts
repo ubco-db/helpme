@@ -55,11 +55,11 @@ import {
   QuestionType,
   OrganizationProfessor,
   MailServiceWithSubscription,
+  UserMailSubscription,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
 import { ClassType } from 'class-transformer/ClassTransformer'
-import { UserSubscriptionModel } from '../../../server/src/mail/user-subscriptions.entity'
 
 // Return type of array item, if T is an array
 type ItemIfArray<T> = T extends (infer I)[] ? I : T
@@ -286,7 +286,7 @@ class APIClient {
     update: async (
       mailServiceId: number,
       isSubscribed: boolean,
-    ): Promise<UserSubscriptionModel> => {
+    ): Promise<UserMailSubscription> => {
       return this.req(
         'PATCH',
         `/api/v1/mail-services/${mailServiceId}`,

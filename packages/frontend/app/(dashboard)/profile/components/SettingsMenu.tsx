@@ -28,7 +28,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ setCurrentSettings }) => {
         },
         {
           key: SettingsOptions.NOTIFICATIONS,
-          label: 'Browser Notifications',
+          label: 'Notifications',
           children: (
             <div>
               <NotificationsSettings />
@@ -56,7 +56,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ setCurrentSettings }) => {
         },
         {
           key: SettingsOptions.NOTIFICATIONS,
-          label: 'Browser Notifications',
+          label: 'Notifications',
           icon: <BellOutlined />,
         },
         {

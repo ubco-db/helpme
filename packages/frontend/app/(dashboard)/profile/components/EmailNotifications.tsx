@@ -135,15 +135,15 @@ const EmailNotifications: React.FC = () => {
       >
         <Row gutter={24}>
           <Col span={11}>
-            <Typography.Title level={4}>Other Notifications</Typography.Title>
-            {renderSubscriptions('professor')}
+            <Typography.Title level={4}>Member Notifications</Typography.Title>
+            {renderSubscriptions('member')}
           </Col>
           <Col span={2}>
             <Divider type="vertical" style={{ height: '100%' }} />
           </Col>
           <Col span={11}>
-            <Typography.Title level={4}>Member Notifications</Typography.Title>
-            {renderSubscriptions('member')}
+            <Typography.Title level={4}>Other Notifications</Typography.Title>
+            {renderSubscriptions('professor')}
           </Col>
         </Row>
         <Form.Item className="mb-4">

@@ -190,6 +190,16 @@ export class asyncQuestionController {
         HttpStatus.UNAUTHORIZED,
       );
     }
+    // if you created the question (i.e. a student), you can't update the status to illegal ones
+    if (
+      body.status === asyncQuestionStatus.TADeleted ||
+      body.status === asyncQuestionStatus.HumanAnswered
+    ) {
+      throw new HttpException(
+        `You cannot update your own question's status to ${body.status}`,
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
     if (body.status === asyncQuestionStatus.AIAnsweredNeedsAttention) {
       const courseId = question.course.id;
 
