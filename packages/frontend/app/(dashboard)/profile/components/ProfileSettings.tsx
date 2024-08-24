@@ -8,14 +8,15 @@ import { useState } from 'react'
 import EditProfile from './EditProfile'
 import NotificationsSettings from './NotificationsSettings'
 import CoursePreference from './CoursePreference'
-import EmailNotfications from './EmailNotifications'
+import EmailNotifications from './EmailNotifications'
+
 const ProfileSettings: React.FC = () => {
   const [currentSettings, setCurrentSettings] = useState(
     SettingsOptions.PROFILE,
   )
 
   return (
-    <Row className="flex-grow flex-col md:flex-row">
+    <Row className="flex-grow flex-col md:flex-row md:flex-nowrap">
       <Col
         span={5}
         className="mx-auto mt-2 h-fit w-full max-w-max text-center md:mx-0 md:mt-0"
@@ -27,15 +28,15 @@ const ProfileSettings: React.FC = () => {
       <Space
         direction="vertical"
         size={40}
-        className="hidden h-fit flex-grow md:block"
+        className="hidden h-fit flex-grow md:flex"
       >
         <Col>
           {currentSettings === SettingsOptions.PROFILE && <EditProfile />}
           {currentSettings === SettingsOptions.NOTIFICATIONS && (
-            <NotificationsSettings />
-          )}
-          {currentSettings === SettingsOptions.EMAIL_NOTIFICATIONS && (
-            <EmailNotfications />
+            <div>
+              <NotificationsSettings />
+              <EmailNotifications />
+            </div>
           )}
           {currentSettings === SettingsOptions.PREFERENCES && (
             <CoursePreference />

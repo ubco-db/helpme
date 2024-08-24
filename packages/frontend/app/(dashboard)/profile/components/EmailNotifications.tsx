@@ -9,9 +9,11 @@ import {
   Row,
   Col,
   Divider,
+  Card,
 } from 'antd'
 const { Text } = Typography
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { MailOutlined } from '@ant-design/icons'
 
 interface Subscription {
   id: number
@@ -111,9 +113,19 @@ const EmailNotifications: React.FC = () => {
         ))}
     </div>
   )
-
   return (
-    <div>
+    <Card
+      title={
+        <h2>
+          <MailOutlined /> Email Notifications
+        </h2>
+      }
+      bordered
+      classNames={{ body: 'py-2' }}
+    >
+      <h3 className="mb-2 text-lg text-gray-500">
+        Choose what emails you would like to subscribe to.
+      </h3>
       <Form
         form={form}
         layout="vertical"
@@ -134,19 +146,19 @@ const EmailNotifications: React.FC = () => {
             {renderSubscriptions('member')}
           </Col>
         </Row>
-        <Form.Item>
+        <Form.Item className="mb-4">
           <Button
             key="submit"
             type="primary"
             htmlType="submit"
             disabled={!isFormChanged}
-            className="mb-4 mt-8"
+            className="mt-8"
           >
             Save
           </Button>
         </Form.Item>
       </Form>
-    </div>
+    </Card>
   )
 }
 
