@@ -56,7 +56,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   )
 
   useEffect(() => {
-    if (event) {
+    if (event && visible) {
       if (event.endRecur) {
         setIsRepeating(true)
       } else {
@@ -79,7 +79,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           : prevDays,
       )
     }
-  }, [event, form, intToDayMapping])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, event])
 
   const handleDaysChange = (checkedValues: string[]) => {
     setSelectedDays(checkedValues)

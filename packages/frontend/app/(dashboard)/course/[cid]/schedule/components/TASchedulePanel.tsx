@@ -1,4 +1,4 @@
-import { ReactElement, useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
@@ -12,17 +12,24 @@ import EditEventModal from './EditEventModal'
 import CreateEventModal from './CreateEventModal'
 import { Calendar } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 
 type ScheduleProps = {
   courseId: number
   defaultView?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek'
+  condensed?: boolean
 }
 
+/**
+ * Note that for mobile, the defaultView gets ovverriden to 'timeGridDay'
+ */
 const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
   courseId,
   defaultView = 'timeGridWeek',
+  condensed = false,
 }) => {
-  const calendarRef = useRef(null)
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  const calendarRef = useRef<FullCalendar>(null)
   const spinnerRef = useRef<HTMLDivElement>(null)
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [createModalVisible, setCreateModalVisible] = useState(false)
@@ -72,6 +79,14 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
     }
   }
 
+  // sets default view to timeGridDay on mobile
+  useEffect(() => {
+    if (calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi()
+      calendarApi.changeView(isMobile ? 'timeGridDay' : defaultView)
+    }
+  }, [isMobile, defaultView])
+
   const handleEditClick = (clickInfo: any) => {
     const selectedEvent = events.find(
       (event: any) => Number(event.id) === Number(clickInfo.event.id),
@@ -109,19 +124,22 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
               setCreateModalVisible(true)
             }}
             events={events}
-            scrollTime="13:00:00"
-            initialView={defaultView}
+            scrollTime="10:00:00"
+            nowIndicator={true}
+            allDaySlot={!condensed}
+            slotMinTime="08:00:00"
+            initialView={defaultView} // doing isMobile ? 'timeGridDay' : defaultView doesn't work since isMobile is initially false
             initialEvents={events}
             headerToolbar={{
               start: 'title',
-              center: 'dayGridMonth timeGridWeek timeGridDay listWeek',
+              center: `dayGridMonth timeGridWeek ${isMobile ? 'timeGridDay ' : ''}listWeek`, // only show timeGridDay on mobile since it's kinda unnecessary on desktop
               end: 'today prev,next',
             }}
             loading={(loading) => {
               if (spinnerRef.current)
                 spinnerRef.current.style.display = loading ? 'flex' : 'none'
             }}
-            height="100vh"
+            height={condensed ? '56.5em' : '60em'}
           />
           <EditEventModal
             visible={editModalVisible}

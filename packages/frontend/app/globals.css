@@ -31,6 +31,15 @@
     /* Writing RGB values like this allows you to use tailwind's <alpha-value> in tailwind.config.cs https://tailwindcss.com/docs/customizing-colors#using-css-variables */
     --helpmeblue: 54 132 196;
     --helpmeblue-light: 95 160 213; /* alternative color is #3c93dd but #5fa0d5 looks closer to antd button hover */
+  
+    /* FullCalendar button colors */
+    --fc-button-active-bg-color: rgb(224, 224, 224);
+    --fc-button-active-border-color: rgb(180, 180, 180);
+    --fc-button-text-color: rgb(51, 51, 51);
+    --fc-button-bg-color: white;
+    --fc-button-border-color: lightgray;
+    --fc-button-hover-bg-color: rgb(245, 245, 245);
+    --fc-button-hover-border-color: rgb(211, 211, 211);
   }
 
 body {
