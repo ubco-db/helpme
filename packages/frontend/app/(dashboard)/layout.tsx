@@ -9,7 +9,7 @@ import { Spin } from 'antd'
 import HeaderBar from '../components/HeaderBar'
 import { usePathname } from 'next/navigation'
 import { LayoutProps } from '@/app/typings/types'
-import StandardPageContainer from '../components/StandardPageContainer'
+import StandardPageContainer from '../components/standardPageContainer'
 import Image from 'next/image'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {

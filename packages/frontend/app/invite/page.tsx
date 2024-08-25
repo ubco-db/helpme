@@ -1,7 +1,7 @@
 'use client'
 
 import { message } from 'antd'
-import { ReactElement, useEffect, useState } from 'react'
+import { ReactElement, Suspense, useEffect, useState } from 'react'
 import { GetLimitedCourseResponse, UBCOuserParam, User } from '@koh/common'
 import { API } from '@/app/api'
 import { userApi } from '../api/userApi'
@@ -102,7 +102,7 @@ export default function CourseInvitePage(): ReactElement {
     return <CenteredSpinner tip="Loading Course..." />
   } else {
     return (
-      <>
+      <Suspense>
         <title>{`HelpMe - Invitation to join '${course.name}'`}</title>
         <div className="mt-20 flex items-center justify-center">
           {profile.organization &&
@@ -155,7 +155,7 @@ export default function CourseInvitePage(): ReactElement {
             />
           )}
         </div>
-      </>
+      </Suspense>
     )
   }
 }

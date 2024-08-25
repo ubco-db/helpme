@@ -1,6 +1,6 @@
 import { isProd } from '@koh/common'
 import { redirect } from 'next/navigation'
-import StandardPageContainer from '../components/StandardPageContainer'
+import StandardPageContainer from '../components/standardPageContainer'
 
 export default async function Layout({
   children,

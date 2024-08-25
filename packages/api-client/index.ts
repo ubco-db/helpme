@@ -318,9 +318,9 @@ class APIClient {
   }
   asyncQuestions = {
     create: async (body: CreateAsyncQuestions, cid: number) =>
-      this.req('POST', `/api/v1/asyncQuestions/${cid}`, AsyncQuestion, body),
+      this.req('POST', `/api/v1/asyncQuestions/${cid}`, undefined, body),
     update: async (qid: number, body: UpdateAsyncQuestions) =>
-      this.req('PATCH', `/api/v1/asyncQuestions/${qid}`, AsyncQuestion, body),
+      this.req('PATCH', `/api/v1/asyncQuestions/${qid}`, undefined, body),
     vote: async (
       qid: number,
       vote: number,
