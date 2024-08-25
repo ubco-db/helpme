@@ -18,6 +18,7 @@ import { arrayRotate, collapseHeatmap } from './utils/popularTimesFunctions'
 import moment from 'moment'
 import { sortQueues } from './utils/commonCourseFunctions'
 import TAFacultySchedulePanel from './schedule/components/TASchedulePanel'
+import StudentSchedulePanel from './schedule/components/StudentSchedulePanel'
 
 type CoursePageProps = {
   params: { cid: string }
@@ -151,9 +152,12 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                 {/* {courseFeatures.chatBotEnabled && <ChatbotToday />} */}
                 {courseFeatures.queueEnabled &&
                   (!courseFeatures.chatBotEnabled ||
-                    courseFeatures.scheduleOnFrontPage) && (
-                    <TAFacultySchedulePanel courseId={cid} />
-                  )}
+                    courseFeatures.scheduleOnFrontPage) &&
+                  (role === Role.PROFESSOR || role === Role.TA ? (
+                    <TAFacultySchedulePanel courseId={cid} condensed={true} />
+                  ) : (
+                    <StudentSchedulePanel courseId={cid} />
+                  ))}
               </Col>
             </Row>
           </div>
