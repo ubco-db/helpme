@@ -1556,7 +1556,7 @@ describe('Course Integration', () => {
         .send({ value: true, feature: 'invalidFeature' });
 
       expect(resp.body.message).toEqual([
-        'feature must be one of the following values: chatBotEnabled,asyncQueueEnabled,adsEnabled,queueEnabled,scheduleOnFrontPage,asyncCentreAIAnswers',
+        'feature must be one of the following values: chatBotEnabled, asyncQueueEnabled, adsEnabled, queueEnabled, scheduleOnFrontPage, asyncCentreAIAnswers',
       ]);
       expect(resp.status).toBe(400);
     });
