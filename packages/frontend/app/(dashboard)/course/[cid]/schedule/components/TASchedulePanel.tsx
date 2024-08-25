@@ -69,6 +69,7 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
       locationOnline: event.locationOnline || null,
     }
     if (event.endDate) {
+      returnEvent['startRecur'] = event.startDate
       returnEvent['endRecur'] = event.endDate
       returnEvent['daysOfWeek'] = event.daysOfWeek
       returnEvent['startTime'] = format(startTime, 'HH:mm')

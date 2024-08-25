@@ -167,6 +167,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     } catch (err) {
       message.error('Error updating the event')
     }
+    console.log(updatedEvent)
     onClose()
   }
 
@@ -252,14 +253,46 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           <Form.Item
             label="Start Date"
             name="startDate"
-            rules={[{ required: true, message: 'Please select the end date!' }]}
+            dependencies={['endDate']}
+            rules={[
+              { required: true, message: 'Please select the start date!' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || !getFieldValue('endDate')) {
+                    return Promise.resolve()
+                  }
+                  if (value.isBefore(getFieldValue('endDate'))) {
+                    return Promise.resolve()
+                  }
+                  return Promise.reject(
+                    new Error('Start date must be before end date!'),
+                  )
+                },
+              }),
+            ]}
           >
             <DatePicker />
           </Form.Item>
           <Form.Item
             label="End Date"
             name="endDate"
-            rules={[{ required: true, message: 'Please select the end date!' }]}
+            dependencies={['startDate']}
+            rules={[
+              { required: true, message: 'Please select the end date!' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || !getFieldValue('startDate')) {
+                    return Promise.resolve()
+                  }
+                  if (value.isAfter(getFieldValue('startDate'))) {
+                    return Promise.resolve()
+                  }
+                  return Promise.reject(
+                    new Error('End date must be after start date!'),
+                  )
+                },
+              }),
+            ]}
           >
             <DatePicker />
           </Form.Item>

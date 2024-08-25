@@ -14,6 +14,7 @@ export interface Event {
   locationType: string
   locationInPerson: string | null
   locationOnline: string | null
+  startRecur?: Date | null
   endRecur?: Date | null
   daysOfWeek?: string[] | null
   startTime?: string | null
