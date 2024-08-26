@@ -15,14 +15,17 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CalendarModel } from './calendar.entity';
-import { Calendar, ERROR_MESSAGES } from '@koh/common';
+import { Calendar, ERROR_MESSAGES, Role } from '@koh/common';
 import { CourseModel } from 'course/course.entity';
+import { Roles } from 'decorators/roles.decorator';
+import { CourseRolesGuard } from 'guards/course-roles.guard';
 
 @Controller('calendar')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CourseRolesGuard)
 export class CalendarController {
   constructor(private readonly calendarService: CalendarService) {}
   @Post(':cid')
+  @Roles(Role.TA, Role.PROFESSOR)
   async addEvent(
     @Body() body: Calendar,
     @Param('cid', ParseIntPipe) cid: number,
@@ -59,15 +62,16 @@ export class CalendarController {
     }
   }
 
-  @Patch(':id')
+  @Patch(':calId/:cid')
+  @Roles(Role.TA, Role.PROFESSOR)
   async updateEvent(
-    @Param('id', ParseIntPipe) id: string,
+    @Param('calId', ParseIntPipe) calId: string,
     @Body() body: Partial<Calendar>,
   ): Promise<CalendarModel> {
-    const event = await CalendarModel.findOne(id);
+    const event = await CalendarModel.findOne(calId);
 
     if (!event) {
-      console.error('Event not found with ID: ' + id);
+      console.error('Event not found with calID: ' + calId);
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
     }
     Object.keys(body).forEach((key) => {
@@ -87,6 +91,7 @@ export class CalendarController {
   }
 
   @Get(':cid')
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getAllEvents(
     @Param('cid', ParseIntPipe) cid: number,
   ): Promise<CalendarModel[]> {
@@ -135,9 +140,9 @@ export class CalendarController {
     return filteredEvents;
   }
 
-  @Delete(':id/delete')
+  @Delete(':eventId/:cid/delete')
   async deleteCalendarEvent(
-    @Param('id', ParseIntPipe) eventId: number,
+    @Param('eventId', ParseIntPipe) eventId: number,
   ): Promise<CalendarModel> {
     const event = await CalendarModel.findOne(eventId);
     if (!event) {

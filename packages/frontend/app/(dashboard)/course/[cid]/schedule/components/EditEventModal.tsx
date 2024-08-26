@@ -139,7 +139,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       return
     }
     try {
-      const response = await API.calendar.deleteEvent(event.id)
+      const response = await API.calendar.deleteEvent(event.id, courseId)
       if (response) {
         message.success('Event deleted successfully')
         onClose()
@@ -158,7 +158,11 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       return
     }
     try {
-      const response = await API.calendar.patchEvent(event.id, updatedEvent)
+      const response = await API.calendar.patchEvent(
+        event.id,
+        updatedEvent,
+        courseId,
+      )
       if (response) {
         message.success('Event updated successfully')
       } else {
