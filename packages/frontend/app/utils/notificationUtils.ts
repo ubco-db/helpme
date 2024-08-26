@@ -2,7 +2,7 @@ import { DesktopNotifBody } from '@koh/common'
 import platform from 'platform'
 import { API } from '../api'
 
-const doesBrowserSupportNotifications = () =>
+const doesBrowserSupportNotifications = (): boolean =>
   'serviceWorker' in window.navigator && 'PushManager' in window
 
 export enum NotificationStates {
@@ -21,7 +21,6 @@ export function getNotificationState(): NotificationStates {
   }
 }
 
-// Tries to get notification permission and returns whether granted
 export async function requestNotificationPermission(): Promise<NotificationStates> {
   let state = getNotificationState()
   if (state === NotificationStates.notAllowed) {
@@ -31,50 +30,49 @@ export async function requestNotificationPermission(): Promise<NotificationState
   return state
 }
 
-const getRegistration = async (): Promise<ServiceWorkerRegistration> =>
-  await window.navigator?.serviceWorker?.getRegistration()
+const getRegistration = async (): Promise<
+  ServiceWorkerRegistration | undefined
+> => await window.navigator.serviceWorker?.getRegistration()
 
-// 1. subscribe to pushmanager
-// 2. send subscription info to our backend
 export const registerNotificationSubscription = async (): Promise<void> => {
   if (doesBrowserSupportNotifications()) {
     const subscription = await ensureSubscription()
-    const subData = subscription.toJSON() as DesktopNotifBody
-    await API.notif.desktop.register({
-      ...subData,
-      name: `${platform.name} on ${platform.os}`,
-    })
+    if (subscription) {
+      const subData = subscription.toJSON() as DesktopNotifBody
+      await API.notif.desktop.register({
+        ...subData,
+        name: `${platform.name} on ${platform.os}`,
+      })
+    }
   }
 }
 
-/**
- * Ensure we are subscribed to our browser's push service
- */
-async function ensureSubscription(): Promise<PushSubscription> {
-  const pushManager = (await getRegistration())?.pushManager
-  let subscription = await pushManager?.getSubscription()
+async function ensureSubscription(): Promise<PushSubscription | null> {
+  const registration = await getRegistration()
+  if (!registration) return null
+
+  let subscription = await registration.pushManager.getSubscription()
   if (subscription === null) {
     const PUBLICKEY = await API.notif.desktop.credentials()
     console.log(PUBLICKEY)
     const applicationServerKey = urlB64ToUint8Array(PUBLICKEY)
     const options = { applicationServerKey, userVisibleOnly: true }
-    subscription = await pushManager.subscribe(options)
+    subscription = await registration.pushManager.subscribe(options)
   }
   return subscription
 }
 
-export async function getEndpoint(): Promise<string | NotificationStates> {
-  const subscription = await (
-    await getRegistration()
-  )?.pushManager?.getSubscription()
+export async function getEndpoint(): Promise<
+  string | NotificationStates | undefined
+> {
+  const registration = await getRegistration()
+  const subscription = await registration?.pushManager.getSubscription()
   return subscription?.endpoint
 }
 
-// urlB64ToUint8Array is a magic function that will encode the base64 public key
-// to Array buffer which is needed by the subscription option
-export const urlB64ToUint8Array = (base64String: string): ArrayBuffer => {
+export const urlB64ToUint8Array = (base64String: string): Uint8Array => {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/')
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const rawData = atob(base64)
   const outputArray = new Uint8Array(rawData.length)
   for (let i = 0; i < rawData.length; ++i) {

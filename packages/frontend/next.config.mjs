@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
@@ -5,6 +6,7 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
     },
+    missingSuspenseWithCSRBailout: false,
   },
   images: {
     remotePatterns: [
@@ -14,6 +16,6 @@ const nextConfig = {
       },
     ],
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;

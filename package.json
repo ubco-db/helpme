@@ -16,9 +16,9 @@
     "dev:db:down": "docker-compose -f docker-compose.yml down",
     "dev:db:reset": "yarn workspace @koh/server run dev:db:reset",
     "migration:generate": "yarn workspace @koh/server run migration:generate",
-    "build": "NODE_OPTIONS=--openssl-legacy-provider yarn workspace @koh/server run build && yarn workspace @koh/app run build",
-    "ci:start": "yarn concurrently \"yarn dev:proxy\" \"yarn workspace @koh/server prod:start\" \"yarn workspace @koh/app prod:start\"",
-    "prod:start": "NODE_OPTIONS=--openssl-legacy-provider yarn concurrently \"yarn workspace @koh/server prod:start\" \"yarn workspace @koh/app prod:start\"",
+    "build": "NODE_OPTIONS=--openssl-legacy-provider yarn workspace @koh/server run build && yarn workspace @koh/frontend run build",
+    "ci:start": "yarn concurrently \"yarn dev:proxy\" \"yarn workspace @koh/server prod:start\" \"yarn workspace @koh/frontend start\"",
+    "prod:start": "NODE_OPTIONS=--openssl-legacy-provider yarn concurrently \"yarn workspace @koh/server prod:start\" \"yarn workspace @koh/frontend start\"",
     "prepare": "husky install"
   },
   "workspaces": {
@@ -63,11 +63,12 @@
     ]
   },
   "dependencies": {
-    "ajv": "^8.16.0",
+    "ajv": "^8.17.1",
     "lint-staged": "^11.2.6",
     "openai": "^4.28.0",
     "pm2": "^4.4.0",
     "prettier-plugin-tailwindcss": "^0.5.6",
+    "reflect-metadata": "^0.2.2",
     "rimraf": "^3.0.2"
   },
   "percy": {

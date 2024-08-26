@@ -3,7 +3,7 @@
 import { authApi } from '@/app/api/authApi'
 import { mailApi } from '@/app/api/mailApi'
 import { userApi } from '@/app/api/userApi'
-import StandardPageContainer from '@/app/components/StandardPageContainer'
+import StandardPageContainer from '@/app/components/standardPageContainer'
 import { User } from '@koh/common'
 import { Button, Card, Form, Input, message, Spin } from 'antd'
 import { useRouter } from 'next/navigation'

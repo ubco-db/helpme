@@ -5,6 +5,7 @@ import {
   OrganizationRole,
   Role,
   asyncQuestionStatus,
+  calendarEventLocationType,
 } from '@koh/common';
 import { AlertModel } from 'alerts/alerts.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
@@ -31,6 +32,7 @@ import { MailServiceModel } from 'mail/mail-services.entity';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { v4 } from 'uuid';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
+import { CalendarModel } from 'calendar/calendar.entity';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)
@@ -192,3 +194,16 @@ export const userSubscriptionFactory = new Factory(UserSubscriptionModel)
   .attr('isSubscribed', true)
   .assocOne('user', UserFactory)
   .assocOne('service', mailServiceFactory);
+
+export const calendarFactory = new Factory(CalendarModel)
+  .attr('title', 'Zoom Meeting')
+  .attr('start', new Date())
+  .attr('end', new Date())
+  .attr('startDate', null)
+  .attr('endDate', null)
+  .attr('locationType', calendarEventLocationType.online)
+  .attr('locationInPerson', null)
+  .attr('locationOnline', 'https://zoom.us/j/example')
+  .attr('allDay', false)
+  .attr('daysOfWeek', [])
+  .assocOne('course', CourseFactory);

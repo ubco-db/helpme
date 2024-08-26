@@ -42,7 +42,7 @@ export class asyncQuestionController {
   constructor(
     private readonly redisQueueService: RedisQueueService,
     private mailService: MailService,
-  ) { }
+  ) {}
 
   @Post(':qid/:vote')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
@@ -159,7 +159,7 @@ export class asyncQuestionController {
     }
   }
 
-  @Patch(':questionId')
+  @Patch('student/:questionId')
   async updateStudentQuestion(
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,

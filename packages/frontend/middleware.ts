@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { userApi } from './app/api/userApi'
 import { OrganizationRole } from './app/typings/user'
-import { isProd, User } from '@koh/common'
+import { isProd, User } from './middlewareType'
 
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
 const publicPages = [
@@ -33,7 +33,7 @@ export async function middleware(request: NextRequest) {
 
   const isAuthPageRequested = isPublicPages(nextUrl.pathname)
 
-  // Case: If not on production, allow access to /dev pages (to skip other middleware checks)
+  // // Case: If not on production, allow access to /dev pages (to skip other middleware checks)
   if (nextUrl.pathname.startsWith('/dev') && !isProd()) {
     return NextResponse.next()
   }
@@ -95,6 +95,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  unstable_allowDynamic: [
+    '../common/node_modules/reflect-metadata/**',
+    '../common/index.ts',
+  ],
   matcher: [
     /*
      * Match all request paths except for the ones starting with:

@@ -8,6 +8,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { calendarEventLocationType } from '@koh/common';
 
 @Entity('calendar_model')
 export class CalendarModel extends BaseEntity {
@@ -17,17 +18,32 @@ export class CalendarModel extends BaseEntity {
   @Column()
   title: string;
 
-  @Column()
+  @Column({ type: 'timestamp' })
   start: Date;
 
-  @Column()
+  @Column({ type: 'timestamp' })
   end: Date;
+
+  @Column({ type: 'date', nullable: true })
+  startDate: Date;
+
+  @Column({ type: 'date', nullable: true })
+  endDate: Date;
 
   @Column('text', { array: true, nullable: true, default: null })
   daysOfWeek: string[];
 
   @Column({ nullable: true })
   allDay: boolean;
+
+  @Column({ type: 'enum', enum: calendarEventLocationType })
+  locationType: calendarEventLocationType;
+
+  @Column({ nullable: true })
+  locationOnline: string;
+
+  @Column({ nullable: true })
+  locationInPerson: string;
 
   @ManyToOne((type) => CourseModel)
   @JoinColumn({ name: 'course' })

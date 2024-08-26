@@ -3,7 +3,7 @@ import { Typography, Result, Spin, Button } from 'antd'
 import { CloseCircleOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import StandardPageContainer from '@/app/components/StandardPageContainer'
+import StandardPageContainer from '@/app/components/standardPageContainer'
 
 const { Paragraph, Text } = Typography
 

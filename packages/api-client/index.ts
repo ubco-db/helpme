@@ -318,9 +318,9 @@ class APIClient {
   }
   asyncQuestions = {
     create: async (body: CreateAsyncQuestions, cid: number) =>
-      this.req('POST', `/api/v1/asyncQuestions/${cid}`, AsyncQuestion, body),
+      this.req('POST', `/api/v1/asyncQuestions/${cid}`, undefined, body),
     update: async (qid: number, body: UpdateAsyncQuestions) =>
-      this.req('PATCH', `/api/v1/asyncQuestions/${qid}`, AsyncQuestion, body),
+      this.req('PATCH', `/api/v1/asyncQuestions/${qid}`, undefined, body),
     vote: async (
       qid: number,
       vote: number,
@@ -384,12 +384,12 @@ class APIClient {
       this.req('DELETE', `/api/v1/questionType/${courseId}/${questionTypeId}`),
   }
   calendar = {
-    addCalendar: async (body: Calendar): Promise<Calendar> =>
-      this.req('POST', `/api/v1/calendar`, undefined, body),
+    addCalendar: async (body: Calendar, cid: number): Promise<Calendar> =>
+      this.req('POST', `/api/v1/calendar/${cid}`, undefined, body),
     getEvents: async (cid: number): Promise<Calendar[]> =>
       this.req('GET', `/api/v1/calendar/${cid}`),
-    deleteEvent: async (eventId: number): Promise<Calendar> =>
-      this.req('DELETE', `/api/v1/calendar/${eventId}/delete`),
+    deleteEvent: async (eventId: number, cid: number): Promise<Calendar> =>
+      this.req('DELETE', `/api/v1/calendar/${eventId}/${cid}/delete`),
   }
   queues = {
     get: async (queueId: number): Promise<GetQueueResponse> =>

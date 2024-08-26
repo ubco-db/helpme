@@ -1,13 +1,13 @@
-import { API } from '@koh/api-client'
+import { API } from '@/app/api'
 import { GetOrganizationResponse } from '@koh/common'
-import useSWR, { responseInterface } from 'swr'
+import useSWR, { SWRResponse } from 'swr'
 
-type organizationResponse = responseInterface<GetOrganizationResponse, any>
+type OrganizationResponse = SWRResponse<GetOrganizationResponse, any>
 
 interface UseOrganizationReturn {
-  organization?: organizationResponse['data']
-  organizationError: organizationResponse['error']
-  mutateOrganization: organizationResponse['mutate']
+  organization?: OrganizationResponse['data']
+  organizationError: OrganizationResponse['error']
+  mutateOrganization: OrganizationResponse['mutate']
 }
 
 export function useOrganization(organizationId: number): UseOrganizationReturn {
@@ -15,9 +15,9 @@ export function useOrganization(organizationId: number): UseOrganizationReturn {
     data: organization,
     error: organizationError,
     mutate: mutateOrganization,
-  } = useSWR(
-    organizationId && `/api/v1/organizations/${organizationId}`,
-    async () => await API.organizations.get(organizationId),
+  } = useSWR<GetOrganizationResponse>(
+    organizationId ? `/api/v1/organizations/${organizationId}` : null,
+    () => API.organizations.get(organizationId),
   )
 
   return {

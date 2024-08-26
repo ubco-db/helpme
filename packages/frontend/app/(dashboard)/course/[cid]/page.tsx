@@ -16,6 +16,8 @@ import PopularTimes from './components/popularTimes/PopularTimes'
 import { arrayRotate, collapseHeatmap } from './utils/popularTimesFunctions'
 import moment from 'moment'
 import { sortQueues } from './utils/commonCourseFunctions'
+import TAFacultySchedulePanel from './schedule/components/TASchedulePanel'
+import StudentSchedulePanel from './schedule/components/StudentSchedulePanel'
 import { useChatbotContext } from './components/chatbot/ChatbotProvider'
 import Chatbot from './components/chatbot/Chatbot'
 
@@ -52,9 +54,12 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
     setCid(cid)
   }, [cid, setCid])
   useEffect(() => {
-    // TODO: replace this with the new courseFeature to show the schedule on the course page
-    setRenderSmallChatbot(false)
-  }, [setRenderSmallChatbot])
+    const shouldRenderSmallChatbot =
+      courseFeatures?.queueEnabled &&
+      courseFeatures?.chatBotEnabled &&
+      courseFeatures?.scheduleOnFrontPage
+    setRenderSmallChatbot(!!shouldRenderSmallChatbot)
+  }, [courseFeatures, setRenderSmallChatbot])
 
   const sortedQueues = useMemo(() => {
     if (!course?.queues) return []
@@ -165,21 +170,31 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                 }
               </Col>
               <Col className="mb-4 h-[100vh]" md={12} sm={24}>
-                {/* <Chatbot cid={cid} variant='huge' /> */}
-                <Chatbot
-                  key={cid}
-                  cid={cid}
-                  variant="big"
-                  preDeterminedQuestions={preDeterminedQuestions}
-                  setPreDeterminedQuestions={setPreDeterminedQuestions}
-                  questionsLeft={questionsLeft}
-                  setQuestionsLeft={setQuestionsLeft}
-                  messages={messages}
-                  setMessages={setMessages}
-                  isOpen={true}
-                  /* eslint-disable-next-line @typescript-eslint/no-empty-function */
-                  setIsOpen={() => {}}
-                />
+                {courseFeatures.queueEnabled &&
+                (!courseFeatures.chatBotEnabled ||
+                  courseFeatures.scheduleOnFrontPage) ? (
+                  <>
+                    {role === Role.PROFESSOR || role === Role.TA ? (
+                      <TAFacultySchedulePanel courseId={cid} condensed={true} />
+                    ) : (
+                      <StudentSchedulePanel courseId={cid} />
+                    )}
+                  </>
+                ) : (
+                  <Chatbot
+                    key={cid}
+                    cid={cid}
+                    variant="big"
+                    preDeterminedQuestions={preDeterminedQuestions}
+                    setPreDeterminedQuestions={setPreDeterminedQuestions}
+                    questionsLeft={questionsLeft}
+                    setQuestionsLeft={setQuestionsLeft}
+                    messages={messages}
+                    setMessages={setMessages}
+                    isOpen={true}
+                    setIsOpen={() => undefined}
+                  />
+                )}
               </Col>
             </Row>
           </div>
