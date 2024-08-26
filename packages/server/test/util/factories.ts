@@ -1,6 +1,7 @@
 import { QuestionGroupModel } from 'question/question-group.entity';
 import {
   AlertType,
+  MailServiceType,
   OrganizationRole,
   Role,
   asyncQuestionStatus,
@@ -26,6 +27,8 @@ import { CourseSettingsModel } from '../../src/course/course_settings.entity';
 import { AsyncQuestionModel } from '../../src/asyncQuestion/asyncQuestion.entity';
 import { AsyncQuestionVotesModel } from '../../src/asyncQuestion/asyncQuestionVotes.entity';
 import { ChatTokenModel } from '../../src/chatbot/chat-token.entity';
+import { MailServiceModel } from 'mail/mail-services.entity';
+import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { v4 } from 'uuid';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
@@ -178,3 +181,14 @@ export const StudentTaskProgressFactory = new Factory(StudentTaskProgressModel)
   .assocOne('course', CourseFactory)
   .assocOne('user', UserFactory)
   .attr('taskProgress', {});
+
+export const mailServiceFactory = new Factory(MailServiceModel)
+  .attr('mailType', OrganizationRole.PROFESSOR)
+  .attr('serviceType', MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED)
+  .attr('name', 'async_question_created')
+  .attr('content', 'A new async question is asked, and the student is asking');
+
+export const userSubscriptionFactory = new Factory(UserSubscriptionModel)
+  .attr('isSubscribed', true)
+  .assocOne('user', UserFactory)
+  .assocOne('service', mailServiceFactory);

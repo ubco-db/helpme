@@ -81,7 +81,7 @@ describe('AsyncQuestion Integration', () => {
   describe('Async question update', () => {
     it('Faculty can modify any question', async () => {
       await supertest({ userId: TAuser.id })
-        .patch(`/asyncQuestions/${asyncQuestion.id}`)
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
         .send({
           questionAbstract: 'abstract',
           questionText: 'text1',
@@ -91,7 +91,7 @@ describe('AsyncQuestion Integration', () => {
           expect(response.body).toHaveProperty('questionText', 'text1');
         });
       await supertest({ userId: TAuser.id })
-        .patch(`/asyncQuestions/${asyncQuestion.id}`)
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
         .send({
           status: asyncQuestionStatus.HumanAnswered,
         })
@@ -109,7 +109,7 @@ describe('AsyncQuestion Integration', () => {
 
     it('Student can modify their own question', async () => {
       await supertest({ userId: studentUser.id })
-        .patch(`/asyncQuestions/${asyncQuestion.id}`)
+        .patch(`/asyncQuestions/student/${asyncQuestion.id}`)
         .send({
           status: asyncQuestionStatus.AIAnswered,
         })
@@ -125,7 +125,7 @@ describe('AsyncQuestion Integration', () => {
 
     it('Student cannot modify other students question', async () => {
       await supertest({ userId: studentUser2.id })
-        .patch(`/asyncQuestions/${asyncQuestion.id}`)
+        .patch(`/asyncQuestions/student/${asyncQuestion.id}`)
         .send({
           status: asyncQuestionStatus.HumanAnswered,
         })
@@ -146,7 +146,7 @@ describe('AsyncQuestion Integration', () => {
         role: Role.PROFESSOR,
       });
       await supertest({ userId: prof.id })
-        .patch(`/asyncQuestions/${asyncQuestion.id}`)
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
         .send({
           status: asyncQuestionStatus.HumanAnswered,
         })

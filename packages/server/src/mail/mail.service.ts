@@ -1,12 +1,19 @@
-import { asyncQuestionEventType, sendEmailAsync } from '@koh/common';
+import {
+  MailServiceWithSubscription,
+  OrganizationRole,
+  Role,
+  sendEmailParams,
+} from '@koh/common';
 import { MailerService } from '@nestjs-modules/mailer';
-import { Injectable } from '@nestjs/common';
+import { MailServiceModel } from './mail-services.entity';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { UserModel } from 'profile/user.entity';
+import { UserCourseModel } from 'profile/user-course.entity';
 
 @Injectable()
 export class MailService {
   constructor(private mailerService: MailerService) {}
-  APPLICATION_NAME = 'UBC HelpMe';
-
+  APPLICATION_NAME = 'HelpMe';
   async sendUserVerificationCode(
     code: string,
     receiver: string,
@@ -29,22 +36,90 @@ export class MailService {
     });
   }
 
-  async sendEmail(emailPost: sendEmailAsync): Promise<void> {
-    let text = null;
-    if (emailPost.type === asyncQuestionEventType.answered) {
-      text = 'Your async question is answered on UBC helpme';
-    } else if (emailPost.type === asyncQuestionEventType.deleted) {
-      text = 'Your async question has been deleted by the professor';
-    } else if (emailPost.type === asyncQuestionEventType.created) {
-      text = 'Async question created on UBC helpme ';
+  async sendEmail(emailPost: sendEmailParams): Promise<void> {
+    // if function is called, email should be sent
+    // functions that call this function should previously check in user subscriptions and pass in emailPost.receiver
+    // retrieve text to send based on emailPost.type
+    const mail = await MailServiceModel.findOne({
+      where: {
+        serviceType: emailPost.type,
+      },
+    });
+    if (!mail) {
+      throw new HttpException('Mail type/name not found', HttpStatus.NOT_FOUND);
     }
-    if (!text) {
-    }
+
     await this.mailerService.sendMail({
       to: emailPost.receiver,
-      from: '"UBC helpme support" <support@example.com>', // override default from
+      from: '"HelpMe Support"',
       subject: emailPost.subject,
-      text: text + '\n Check on :  https://help.cosc304.ok.ubc.ca',
+      html:
+        emailPost.content ??
+        mail.content +
+          `<br> <a href="${process.env.DOMAIN}/courses">View Your Courses</a>` +
+          `<br> Do you not want to receive these emails? <a href="${process.env.DOMAIN}/profile">Unsubscribe</a>`,
     });
+  }
+  async findAllSubscriptions(
+    user: UserModel,
+  ): Promise<MailServiceWithSubscription[]> {
+    // Check if the user is a professor in any course
+    const isProfInAnyCourse = await UserCourseModel.findOne({
+      where: {
+        userId: user.id,
+        role: Role.PROFESSOR,
+      },
+    });
+
+    let mailServicesQuery = MailServiceModel.createQueryBuilder(
+      'mailService',
+    ).leftJoinAndSelect(
+      'mailService.subscriptions',
+      'subscription',
+      'subscription.userId = :userId',
+      { userId: user.id },
+    );
+
+    // If user is not a professor in any course, filter by MEMBER role
+    if (!isProfInAnyCourse) {
+      mailServicesQuery = mailServicesQuery.where(
+        'mailService.mailType = :role',
+        { role: OrganizationRole.MEMBER },
+      );
+    }
+
+    const mailServicesWithSubscriptions = await mailServicesQuery.getMany();
+
+    // Map the results to the desired output format
+    const servicesWithSubscription: MailServiceWithSubscription[] =
+      mailServicesWithSubscriptions.map((mailService) => ({
+        id: mailService.id,
+        mailType: mailService.mailType,
+        serviceType: mailService.serviceType,
+        name: mailService.name,
+        content: mailService.content,
+        isSubscribed:
+          mailService.subscriptions.length > 0
+            ? mailService.subscriptions[0].isSubscribed
+            : false,
+      }));
+
+    return servicesWithSubscription;
+  }
+
+  async create(mailService: MailServiceModel): Promise<MailServiceModel> {
+    return MailServiceModel.create(mailService).save();
+  }
+
+  async update(
+    id: number,
+    mailService: MailServiceModel,
+  ): Promise<MailServiceModel> {
+    await MailServiceModel.update({ id }, mailService);
+    return MailServiceModel.findOne(id);
+  }
+
+  async remove(id: number): Promise<void> {
+    await MailServiceModel.delete({ id });
   }
 }
