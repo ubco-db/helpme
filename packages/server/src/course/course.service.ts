@@ -234,8 +234,8 @@ export class CourseService {
       )
       .where('"UserCourseModel"."courseId" = :courseId', { courseId });
 
-    // check if searching for specific role
-    if (role) {
+    // check if searching for specific role and ensure it is a valid role
+    if (role && Object.values(Role).includes(role)) {
       query.andWhere('"UserCourseModel".role = :role', { role });
     }
     // check if searching for specific name

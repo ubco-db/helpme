@@ -2153,6 +2153,7 @@ export const ERROR_MESSAGES = {
     insightUnathorized: 'User is not authorized to view this insight',
     insightNameNotFound: 'The insight requested was not found',
     insightsDisabled: 'Insights are currently unavailable, sorry :(',
+    invalidDateRange: 'Invalid date range. Start and End must be valid dates',
   },
   roleGuard: {
     notLoggedIn: 'Must be logged in',

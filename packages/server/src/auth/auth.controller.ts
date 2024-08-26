@@ -9,6 +9,7 @@ import {
   Post,
   Body,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -54,7 +55,7 @@ export class AuthController {
   async shibbolethAuth(
     @Req() req: Request,
     @Res() res: Response,
-    @Param('oid') organizationId: number,
+    @Param('oid', ParseIntPipe) organizationId: number,
   ): Promise<any> {
     const organization = await OrganizationModel.findOne({
       where: { id: organizationId },
@@ -96,7 +97,7 @@ export class AuthController {
   auth(
     @Res() res: Response,
     @Param('method') auth_method: string,
-    @Param('oid') organizationId: number,
+    @Param('oid', ParseIntPipe) organizationId: number,
   ): Response<{ redirectUri: string }> {
     res.cookie('organization.id', organizationId, {
       httpOnly: true,

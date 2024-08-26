@@ -42,6 +42,7 @@ docker-compose build && docker-compose up
 [What is each environmental variable?](docs/ENVIRONMENT_VARIABLES.md)
 [TaskQuestions/Demos/Assignments/TaskProgress Help](docs/taskQuestions_Demos_Assignments_TaskProgress_help.md)
 [Toggle Course Features Help](docs/toggle_course_features_help.md)
+[Backfill Vs Migrations](packages/server/src/backfill/README.md)
 
 ## License
 GPL-3.0

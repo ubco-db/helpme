@@ -8,6 +8,7 @@ import {
   HttpException,
   HttpStatus,
   Delete,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CalendarModel } from './calendar.entity';
@@ -52,7 +53,9 @@ export class CalendarController {
   }
 
   @Get(':cid')
-  async getAllEvents(@Param('cid') cid: number): Promise<CalendarModel[]> {
+  async getAllEvents(
+    @Param('cid', ParseIntPipe) cid: number,
+  ): Promise<CalendarModel[]> {
     const events = await CalendarModel.find({
       where: {
         course: cid,
@@ -71,7 +74,7 @@ export class CalendarController {
 
   @Delete(':id/delete')
   async deleteCalendarEvent(
-    @Param('id') eventId: number,
+    @Param('id', ParseIntPipe) eventId: number,
   ): Promise<CalendarModel> {
     const event = await CalendarModel.findOne(eventId);
     if (!event) {

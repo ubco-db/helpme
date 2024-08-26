@@ -21,6 +21,7 @@ import {
   HttpStatus,
   NotFoundException,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   UnauthorizedException,
@@ -62,7 +63,9 @@ export class QuestionController {
   ) {}
 
   @Get('allQuestions/:cid')
-  async getAllQuestions(@Param('cid') cid: number): Promise<questions[]> {
+  async getAllQuestions(
+    @Param('cid', ParseIntPipe) cid: number,
+  ): Promise<questions[]> {
     const questions = await QuestionModel.find({
       relations: ['queue', 'creator', 'taHelped'],
       where: {
@@ -100,7 +103,7 @@ export class QuestionController {
   @Post('TAcreate/:userId')
   async TAcreateQuestion(
     @Body() body: CreateQuestionParams,
-    @Param('userId') userId: number,
+    @Param('userId', ParseIntPipe) userId: number,
   ): Promise<any> {
     const { text, questionTypes, groupable, isTaskQuestion, queueId, force } =
       body;
@@ -318,7 +321,7 @@ export class QuestionController {
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   // TODO: Use queueRole decorator, but we need to fix its performance first
   async updateQuestion(
-    @Param('questionId') questionId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateQuestionParams,
     @UserId() userId: number,
   ): Promise<UpdateQuestionResponse> {
@@ -517,7 +520,9 @@ export class QuestionController {
 
   @Post(':questionId/notify')
   @Roles(Role.TA, Role.PROFESSOR)
-  async notify(@Param('questionId') questionId: number): Promise<void> {
+  async notify(
+    @Param('questionId', ParseIntPipe) questionId: number,
+  ): Promise<void> {
     const question = await QuestionModel.findOne(questionId, {
       relations: ['queue'],
     });
