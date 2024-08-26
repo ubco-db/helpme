@@ -159,7 +159,7 @@ export class asyncQuestionController {
     }
   }
 
-  @Patch(':questionId')
+  @Patch('student/:questionId')
   async updateStudentQuestion(
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,

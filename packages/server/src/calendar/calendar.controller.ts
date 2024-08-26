@@ -74,10 +74,7 @@ export class CalendarController {
       console.error('Event not found with calID: ' + calId);
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
     }
-    Object.keys(body).forEach((key) => {
-      event[key] = body[key];
-    });
-
+    Object.assign(event, body);
     try {
       await event.save();
       return event;
