@@ -18,7 +18,7 @@ export async function bootstrap(hot: any): Promise<void> {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'sentryEnabled') {
     setupAPM(app);
   }
   app.enableShutdownHooks(); // So we can clean up SSE.

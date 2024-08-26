@@ -3,14 +3,10 @@
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { SearchOutlined } from '@ant-design/icons'
-import { Button, Col, Input, List, Pagination, Row, Space } from 'antd'
+import { CourseResponse } from '@koh/common'
+import { Button, Col, Input, List, Pagination, Row, Space, Tag } from 'antd'
 import { useEffect, useState } from 'react'
 import useSWR, { mutate } from 'swr'
-
-interface CourseData {
-  courseId: number
-  courseName: string
-}
 
 const CoursesTable: React.FC = () => {
   const { userInfo } = useUserInfo()
@@ -75,7 +71,7 @@ const CoursesTable: React.FC = () => {
           <List
             style={{ marginTop: 20 }}
             dataSource={courses}
-            renderItem={(item: CourseData) => (
+            renderItem={(item: CourseResponse) => (
               <>
                 <List.Item
                   style={{ borderBottom: '1px solid #f0f0f0', padding: 10 }}
@@ -91,17 +87,18 @@ const CoursesTable: React.FC = () => {
                   ]}
                 >
                   <List.Item.Meta title={item.courseName} />
+                  {!item.isEnabled && <Tag color="red">Archived</Tag>}
                 </List.Item>
               </>
             )}
           />
         </div>
-        {courses.total > 50 && (
+        {courses.length > 50 && (
           <Pagination
             className="float-right"
             current={page}
             pageSize={50}
-            total={courses.total}
+            total={courses.length}
             onChange={(page) => setPage(page)}
             showSizeChanger={false}
           />

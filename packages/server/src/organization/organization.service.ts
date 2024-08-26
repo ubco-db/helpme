@@ -4,7 +4,12 @@ import { UserModel } from 'profile/user.entity';
 import { Brackets, getRepository } from 'typeorm';
 import { OrganizationCourseModel } from './organization-course.entity';
 import { CourseModel } from 'course/course.entity';
-import { GetOrganizationUserResponse, Role, UserRole } from '@koh/common';
+import {
+  CourseResponse,
+  GetOrganizationUserResponse,
+  Role,
+  UserRole,
+} from '@koh/common';
 import { UserCourseModel } from 'profile/user-course.entity';
 
 export interface UserResponse {
@@ -33,11 +38,6 @@ export interface OrganizationCourseResponse {
   courseId: number;
   course: CourseModel;
   profIds: Array<number>;
-}
-
-export interface CourseResponse {
-  courseId: number;
-  courseName: string;
 }
 
 @Injectable()
@@ -118,6 +118,7 @@ export class OrganizationService {
     const courses = organizationCourses.select([
       'CourseModel.id as courseId',
       'CourseModel.name as courseName',
+      'CourseModel.enabled as isEnabled',
     ]);
 
     const coursesSubset = await courses
@@ -131,6 +132,7 @@ export class OrganizationService {
       return {
         courseId: course.courseid,
         courseName: course.coursename,
+        isEnabled: course.isenabled,
       };
     });
 

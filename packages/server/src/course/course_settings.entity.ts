@@ -31,4 +31,10 @@ export class CourseSettingsModel extends BaseEntity {
 
   @Column('boolean', { default: true })
   queueEnabled: boolean;
+
+  @Column('boolean', { default: false })
+  scheduleOnFrontPage: boolean;
+
+  @Column('boolean', { default: true })
+  asyncCentreAIAnswers: boolean;
 }

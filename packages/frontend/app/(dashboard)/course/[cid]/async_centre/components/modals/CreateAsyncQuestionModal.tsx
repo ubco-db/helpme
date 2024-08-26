@@ -14,9 +14,10 @@ import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../components/QuestionTagElement'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { AsyncQuestion } from '@koh/common'
+import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { DeleteOutlined } from '@ant-design/icons'
 import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 
 interface FormValues {
   QuestionAbstract: string
@@ -45,8 +46,12 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const courseFeatures = useCourseFeatures(courseId)
 
   const getAiAnswer = async (question: string) => {
+    if (!courseFeatures?.asyncCentreAIAnswers) {
+      return ''
+    }
     try {
       if (userInfo.chat_token.used < userInfo.chat_token.max_uses) {
         const data = {
@@ -145,6 +150,9 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
               aiAnswerText: aiAnswer,
               answerText: aiAnswer,
               questionAbstract: values.QuestionAbstract,
+              status: courseFeatures?.asyncCentreAIAnswers
+                ? asyncQuestionStatus.AIAnswered
+                : asyncQuestionStatus.AIAnsweredNeedsAttention,
             },
             courseId,
           )
@@ -264,7 +272,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           <QuestionTagSelector questionTags={questionTypes} />
         </Form.Item>
       )}
-      {question && (
+      {question && courseFeatures?.asyncCentreAIAnswers && (
         <Tooltip
           placement="topLeft"
           title={

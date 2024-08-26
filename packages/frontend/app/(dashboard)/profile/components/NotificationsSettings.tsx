@@ -1,9 +1,9 @@
 import { API } from '@/app/api'
-import { Button, Form, message, Switch, Tooltip } from 'antd'
+import { Button, Card, Form, message, Switch, Tooltip } from 'antd'
 import useSWR from 'swr'
 import { pick } from 'lodash'
 import { GetProfileResponse, UpdateProfileParams } from '@koh/common'
-import { QuestionCircleOutlined } from '@ant-design/icons'
+import { BellOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import DeviceNotificationPanel from './DeviceNotificationPanel'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -45,10 +45,20 @@ const NotificationsSettings: React.FC = () => {
   }
 
   return (
-    <div>
-      <div className="hidden md:block md:flex-grow md:pb-5 md:pt-[50px]">
-        <h1>Notifications</h1>
-      </div>
+    <Card
+      title={
+        <h2>
+          <BellOutlined /> Browser Notifications
+        </h2>
+      }
+      bordered
+      className="my-2"
+      classNames={{ body: 'py-2' }}
+    >
+      <h3 className="mb-2 text-lg text-gray-500">
+        Get notified when you are getting helped (student) or when a new student
+        enters the queue (staff). These will also work on mobile!
+      </h3>
       <Form wrapperCol={{ span: 10 }} form={form} initialValues={profile}>
         <Form.Item
           style={{ flex: 1 }}
@@ -60,7 +70,7 @@ const NotificationsSettings: React.FC = () => {
         </Form.Item>
         <Form.Item shouldUpdate noStyle>
           {() =>
-            form?.getFieldValue('desktopNotifsEnabled') && (
+            form.getFieldValue('desktopNotifsEnabled') && (
               <DeviceNotificationPanel />
             )
           }
@@ -80,11 +90,11 @@ const NotificationsSettings: React.FC = () => {
         key="submit"
         type="primary"
         onClick={handleOk}
-        style={{ marginTop: '30px', marginBottom: '15px' }}
+        className="mb-4 mt-8"
       >
         Save
       </Button>
-    </div>
+    </Card>
   )
 }
 
