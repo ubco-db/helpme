@@ -9,7 +9,7 @@ export async function deleteAsyncQuestion(
   successFunction: () => void,
 ) {
   await API.asyncQuestions
-    .update(questionId, {
+    .facultyUpdate(questionId, {
       status: isStaff
         ? asyncQuestionStatus.TADeleted
         : asyncQuestionStatus.StudentDeleted,
