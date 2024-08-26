@@ -61,7 +61,7 @@ export class CalendarController {
 
   @Patch(':id')
   async updateEvent(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: string,
     @Body() body: Partial<Calendar>,
   ): Promise<CalendarModel> {
     const event = await CalendarModel.findOne(id);
@@ -136,7 +136,7 @@ export class CalendarController {
   }
 
   @Delete(':id/delete')
-  async deleteQuestionType(
+  async deleteCalendarEvent(
     @Param('id', ParseIntPipe) eventId: number,
   ): Promise<CalendarModel> {
     const event = await CalendarModel.findOne(eventId);

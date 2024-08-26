@@ -15,6 +15,7 @@ import {
   HttpStatus,
   NotFoundException,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Res,
@@ -46,8 +47,8 @@ export class asyncQuestionController {
   @Post(':qid/:vote')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async voteQuestion(
-    @Param('qid') qid: number,
-    @Param('vote') vote: number,
+    @Param('qid', ParseIntPipe) qid: number,
+    @Param('vote', ParseIntPipe) vote: number,
     @User() user: UserModel,
     @Res() res: Response,
   ): Promise<Response> {
@@ -106,7 +107,7 @@ export class asyncQuestionController {
   @Roles(Role.STUDENT)
   async createQuestion(
     @Body() body: CreateAsyncQuestions,
-    @Param('cid') cid: number,
+    @Param('cid', ParseIntPipe) cid: number,
     @User() user: UserModel,
     @Res() res: Response,
   ): Promise<any> {
@@ -158,20 +159,9 @@ export class asyncQuestionController {
     }
   }
 
-  @Patch('student/:questionId')
-  /**
-   * Updates a student's async question.
-   *
-   * @param {number} questionId - The ID of the question to update.
-   * @param {UpdateAsyncQuestions} body - The updated question data.
-   * @param {UserModel} user - The user making the request.
-   * @return {Promise<AsyncQuestionParams>} The updated question.
-   * @throws {NotFoundException} If the question is not found.
-   * @throws {HttpException} If the user is not the creator of the question.
-   * @throws {HttpException} If the user tries to update the question's status to TADeleted or HumanAnswered.
-   */
+  @Patch(':questionId')
   async updateStudentQuestion(
-    @Param('questionId') questionId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
     @User() user: UserModel,
   ): Promise<AsyncQuestionParams> {
@@ -277,7 +267,7 @@ export class asyncQuestionController {
 
   @Patch('faculty/:questionId')
   async updateTAQuestion(
-    @Param('questionId') questionId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
     @User() user: UserModel,
   ): Promise<AsyncQuestionParams> {

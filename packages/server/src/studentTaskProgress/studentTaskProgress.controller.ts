@@ -2,7 +2,6 @@ import {
   AllStudentAssignmentProgress,
   Role,
   StudentAssignmentProgress,
-  StudentTaskProgress,
   StudentTaskProgressWithUser,
   UserPartial,
 } from '@koh/common';
@@ -13,6 +12,7 @@ import {
   ClassSerializerInterceptor,
   Get,
   Param,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
@@ -32,8 +32,8 @@ export class StudentTaskProgressController {
   @Get('student/:userId/:courseId/:assignmentName')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getStudentAssignmentProgress(
-    @Param('userId') userId: number,
-    @Param('courseId') courseId: number,
+    @Param('userId', ParseIntPipe) userId: number,
+    @Param('courseId', ParseIntPipe) courseId: number,
     @Param('assignmentName') assignmentName: string,
   ): Promise<StudentAssignmentProgress | null> {
     const studentTaskProgress = await StudentTaskProgressModel.findOne({
@@ -72,8 +72,8 @@ export class StudentTaskProgressController {
   @UseGuards(QueueRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async getAllAssignmentProgressForQueue(
-    @Param('queueId') queueId: number,
-    @Param('courseId') courseId: number,
+    @Param('queueId', ParseIntPipe) queueId: number,
+    @Param('courseId', ParseIntPipe) courseId: number,
     @Param('assignmentName') assignmentName: string,
   ): Promise<AllStudentAssignmentProgress> {
     // this returns the entire StudentTaskProgress for all students (which includes the assignment progress for stuff we don't care about)
@@ -126,7 +126,7 @@ export class StudentTaskProgressController {
   @Get('course/:courseId')
   @Roles(Role.TA, Role.PROFESSOR)
   async getAllStudentTaskProgressForCourse(
-    @Param('courseId') courseId: number,
+    @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<StudentTaskProgressWithUser[]> {
     // doing a left join with userCourse first so that it only gets the students in the course
     // we want to get all students since some may have never made any progress (e.g. if they never attended a lab, they would have no task progress)

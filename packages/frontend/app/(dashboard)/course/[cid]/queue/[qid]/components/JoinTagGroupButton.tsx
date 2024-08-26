@@ -165,7 +165,7 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
       setIsJoined(!isJoined)
     } catch (e) {
       const errorMessage = getErrorMessage(e)
-      message.error('Error:', errorMessage)
+      message.error('Error:' + errorMessage)
     }
     setIsLoading(false)
   }

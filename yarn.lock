@@ -1939,7 +1939,7 @@
     handlebars "^4.0.0"
     pug "^2.0.0"
 
-"@nestjs-modules/mailer@^2.2.1":
+"@nestjs-modules/mailer@^2.0.2":
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/@nestjs-modules/mailer/-/mailer-2.0.2.tgz#aa282c151d1f7a52d4134347d57954b41f7fcbf8"
   integrity sha512-+z4mADQasg0H1ZaGu4zZTuKv2pu+XdErqx99PLFPzCDNTN/q9U59WPgkxVaHnsvKHNopLj5Xap7G4ZpptduoYw==

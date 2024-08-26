@@ -44,7 +44,7 @@ const AssignmentReportModal: React.FC<AssignmentReportModalProps> = ({
         })
         .catch((error) => {
           const errorMessage = getErrorMessage(error)
-          message.error('Failed to load assignment progress:', errorMessage)
+          message.error('Failed to load assignment progress:' + errorMessage)
         })
         .finally(() => {
           setRefreshLoading(false)

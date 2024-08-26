@@ -12,6 +12,7 @@ const proxy = createProxyMiddleware({
     '/admin-static': 'http://localhost:3002',
     '/admin': 'http://localhost:3002/api/v1',
     '/socket.io': 'http://localhost:3002',
+    '/course': 'http://localhost:3001', // so that course/:cid/settings/chatbot_questions doesn't get proxied to /chat
     '/chat': 'http://localhost:3003',
   },
   ws: true,

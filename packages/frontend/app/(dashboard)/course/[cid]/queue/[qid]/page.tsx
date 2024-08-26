@@ -51,6 +51,7 @@ import AddStudentsToQueueModal from './components/modals/AddStudentsToQueueModal
 import CreateDemoModal from './components/modals/CreateDemoModal'
 import AssignmentReportModal from './components/modals/AssignmentReportModal'
 import CantFindModal from './components/modals/CantFindModal'
+import { useChatbotContext } from '../../components/chatbot/ChatbotProvider'
 
 type QueuePageProps = {
   params: { cid: string; qid: string }
@@ -123,6 +124,16 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     userInfo.id,
     role,
   )
+
+  // chatbot
+  const { setCid, setRenderSmallChatbot } = useChatbotContext()
+  useEffect(() => {
+    setCid(cid)
+  }, [cid, setCid])
+  useEffect(() => {
+    setRenderSmallChatbot(true)
+    return () => setRenderSmallChatbot(false) // make the chatbot inactive when the user leaves the page
+  }, [setRenderSmallChatbot])
 
   const [openTagGroups, setOpenTagGroups] = useState<string[]>([])
   const tagGroupsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null) // need to keep track of timeouts so that old timeouts won't keep running when the user starts a new timeout (to prevent flickering when a tag group is spammed open/closed, UX thing)
@@ -434,7 +445,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
         })
       }
     },
-    [isFirstQuestion, setIsFirstQuestion],
+    [isFirstQuestion, router, setIsFirstQuestion],
   )
 
   // used for the "Join" button on the tag groups feature (specifically, for the tasks)

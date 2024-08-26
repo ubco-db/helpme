@@ -110,7 +110,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
             })
             .catch((e) => {
               const errorMessage = getErrorMessage(e)
-              message.error('Error updating question:', errorMessage)
+              message.error('Error updating question:' + errorMessage)
               setIsLoading(false)
             })
         })
@@ -127,7 +127,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           })
           .catch((e) => {
             const errorMessage = getErrorMessage(e)
-            message.error('Error updating question:', errorMessage)
+            message.error('Error updating question:' + errorMessage)
           })
           .finally(() => {
             setIsLoading(false)
@@ -163,7 +163,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           })
           .catch((e) => {
             const errorMessage = getErrorMessage(e)
-            message.error('Error creating question:', errorMessage)
+            message.error('Error creating question:' + errorMessage)
             setIsLoading(false)
           })
       })

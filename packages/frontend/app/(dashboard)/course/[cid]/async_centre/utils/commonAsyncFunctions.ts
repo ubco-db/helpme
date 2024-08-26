@@ -23,6 +23,6 @@ export async function deleteAsyncQuestion(
     })
     .catch((e) => {
       const errorMessage = getErrorMessage(e)
-      message.error('Error deleting question:', errorMessage)
+      message.error('Error deleting question:' + errorMessage)
     })
 }

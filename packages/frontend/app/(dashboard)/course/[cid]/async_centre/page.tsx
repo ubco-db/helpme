@@ -30,6 +30,7 @@ import {
 } from '@ant-design/icons'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
+import { useChatbotContext } from '../components/chatbot/ChatbotProvider'
 
 type AsyncCentrePageProps = {
   params: { cid: string }
@@ -48,6 +49,16 @@ export default function AsyncCentrePage({
   const [editAsyncCentreModalOpen, setEditAsyncCentreModalOpen] =
     useState(false)
   const [questionTypes] = useQuestionTypes(courseId, null)
+  // chatbot
+  const { setCid, setRenderSmallChatbot } = useChatbotContext()
+  useEffect(() => {
+    setCid(courseId)
+  }, [courseId, setCid])
+  useEffect(() => {
+    setRenderSmallChatbot(true)
+    return () => setRenderSmallChatbot(false) // make the chatbot inactive when the user leaves the page
+  }, [setRenderSmallChatbot])
+
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'verified' | 'unverified'
   >('all')

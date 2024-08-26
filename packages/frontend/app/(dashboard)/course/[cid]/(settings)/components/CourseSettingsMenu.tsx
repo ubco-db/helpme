@@ -21,17 +21,18 @@ enum CourseAdminOptions {
   EXPORT_DATA = 'EXPORT_DATA',
   EDIT_QUESTIONS = 'EDIT_QUESTIONS',
   SETTINGS = 'SETTINGS',
-  BOT_SETTINGS = 'BOT_SETTINGS',
-  BOT_QUESTIONS = 'BOT_QUESTIONS',
+  CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
+  CHATBOT_DOCUMENTS = 'CHATBOT_DOCUMENTS',
+  CHATBOT_QUESTIONS = 'CHATBOT_QUESTIONS',
 }
 
-type CourseSettingsMenyProps = {
+type CourseSettingsManyProps = {
   courseRole: Role
   courseFeatures: any
   courseId: number
 }
 
-const CourseSettingsMenu: React.FC<CourseSettingsMenyProps> = ({
+const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
   courseRole,
   courseFeatures,
   courseId,
@@ -57,11 +58,14 @@ const CourseSettingsMenu: React.FC<CourseSettingsMenyProps> = ({
       case CourseAdminOptions.EDIT_QUESTIONS:
         router.push(`${basePath}/edit_questions`)
         break
-      case CourseAdminOptions.BOT_SETTINGS:
-        router.push(`${basePath}/bot_settings`)
+      case CourseAdminOptions.CHATBOT_SETTINGS:
+        router.push(`${basePath}/chatbot_settings`)
         break
-      case CourseAdminOptions.BOT_QUESTIONS:
-        router.push(`${basePath}/bot_questions`)
+      case CourseAdminOptions.CHATBOT_DOCUMENTS:
+        router.push(`${basePath}/chatbot_document_chunks`)
+        break
+      case CourseAdminOptions.CHATBOT_QUESTIONS:
+        router.push(`${basePath}/chatbot_questions`)
         break
     }
   }
@@ -78,7 +82,7 @@ const CourseSettingsMenu: React.FC<CourseSettingsMenyProps> = ({
     {
       key: CourseAdminOptions.EDIT_QUESTIONS,
       icon: <TableOutlined />,
-      label: 'Edit Questions',
+      label: 'Edit Queue Questions',
     },
     {
       key: CourseAdminOptions.EXPORT_DATA,
@@ -86,14 +90,22 @@ const CourseSettingsMenu: React.FC<CourseSettingsMenyProps> = ({
       label: 'Export Data',
     },
     {
-      key: CourseAdminOptions.BOT_SETTINGS,
+      type: 'divider',
+    },
+    {
+      key: CourseAdminOptions.CHATBOT_SETTINGS,
       icon: <RobotOutlined />,
       label: 'Chatbot Settings',
     },
     {
-      key: CourseAdminOptions.BOT_QUESTIONS,
+      key: CourseAdminOptions.CHATBOT_DOCUMENTS,
       icon: <RobotOutlined />,
-      label: 'Chatbot Questions',
+      label: 'Chatbot Document Chunks',
+    },
+    {
+      key: CourseAdminOptions.CHATBOT_QUESTIONS,
+      icon: <RobotOutlined />,
+      label: 'Edit Chatbot Questions',
     },
   ]
 

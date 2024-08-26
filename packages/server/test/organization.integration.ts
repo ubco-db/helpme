@@ -408,8 +408,17 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}`,
       );
 
-      expect(res.status).toBe(200);
       expect(res.body).toMatchSnapshot();
+      expect(res.status).toBe(200);
+    });
+
+    it('should throw an error if oid is NaN', async () => {
+      const user = await UserFactory.create();
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/thisisnotanumber`,
+      );
+
+      expect(res.status).toBe(400);
     });
   });
 

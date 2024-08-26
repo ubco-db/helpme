@@ -66,7 +66,7 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
-        message.error('Error Creating Queue:', errorMessage)
+        message.error('Error Creating Queue:' + errorMessage)
       })
       .finally(() => {
         setIsLoading(false)
