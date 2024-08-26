@@ -452,20 +452,25 @@ const Chatbot: React.FC<ChatbotProps> = ({
               <div>
                 <Space.Compact block size="large">
                   <TextArea
-                    id="chatbot-input" // for the skip link (accessibility)
+                    id="chatbot-input"
                     autoSize={{ minRows: 1.35, maxRows: 20 }}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     className="rounded-r-none"
-                    placeholder="Ask something..."
-                    onPressEnter={
-                      input.trim().length > 0 ? handleAsk : undefined
-                    }
+                    placeholder="Ask something... (Shift+Enter for new line)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        if (input.trim().length > 0 && !isLoading) {
+                          handleAsk()
+                        }
+                      }
+                    }}
                   />
                   <Button
                     type="primary"
                     onClick={handleAsk}
-                    disabled={input.trim().length == 0 || isLoading}
+                    disabled={input.trim().length === 0 || isLoading}
                   >
                     Ask
                   </Button>
