@@ -31,6 +31,7 @@ import {
   COURSE_TIMEZONES,
   CourseSettingsRequestBody,
   OrganizationProfessor,
+  CourseResponse,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -41,7 +42,6 @@ import { OrganizationCourseModel } from './organization-course.entity';
 import { OrganizationModel } from './organization.entity';
 import { Roles } from 'decorators/roles.decorator';
 import {
-  CourseResponse,
   OrganizationCourseResponse,
   OrganizationService,
   UserResponse,
@@ -249,7 +249,7 @@ export class OrganizationController {
         for (const givenFeature of courseDetails.courseSettings) {
           if (!CourseSettingsRequestBody.isValidFeature(givenFeature.feature)) {
             return res.status(HttpStatus.BAD_REQUEST).send({
-              message: 'invalid feature',
+              message: 'invalid feature: ' + givenFeature.feature,
             });
           }
           newCourseSettings[givenFeature.feature] = givenFeature.value;

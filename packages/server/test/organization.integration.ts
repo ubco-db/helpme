@@ -2326,7 +2326,7 @@ describe('Organization Integration', () => {
           ],
         });
 
-      expect(res.body.message).toEqual('invalid feature');
+      expect(res.body.message).toEqual('invalid feature: invalidFeature');
       expect(res.status).toBe(400);
     });
 
@@ -2376,6 +2376,8 @@ describe('Organization Integration', () => {
       expect(updatedCourseSettings.asyncQueueEnabled).toEqual(true);
       expect(updatedCourseSettings.adsEnabled).toEqual(true);
       expect(updatedCourseSettings.queueEnabled).toEqual(true);
+      expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(true);
+      expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(false);
     });
 
     it('should return 200 when course is created', async () => {
@@ -2417,6 +2419,14 @@ describe('Organization Integration', () => {
               feature: 'asyncQueueEnabled',
               value: true,
             },
+            {
+              feature: 'asyncCentreAIAnswers',
+              value: false,
+            },
+            {
+              feature: 'scheduleOnFrontPage',
+              value: true,
+            },
           ],
         });
 
@@ -2437,6 +2447,8 @@ describe('Organization Integration', () => {
       expect(updatedCourseSettings.asyncQueueEnabled).toEqual(true);
       expect(updatedCourseSettings.adsEnabled).toEqual(true); // ungiven value defaults to their default value (true)
       expect(updatedCourseSettings.queueEnabled).toEqual(false);
+      expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(false);
+      expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(true);
     });
   });
 });

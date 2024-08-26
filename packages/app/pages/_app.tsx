@@ -9,9 +9,9 @@ import { ErrorBoundary } from '../components/common/ErrorBoundary'
 import { ChatbotContextProvider } from '../providers/chatbotProvider'
 import * as Sentry from '@sentry/node'
 
-if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
+if (process.env.NODE_ENV === 'sentryEnabled' && typeof window !== 'undefined') {
   Sentry.init({
-    enabled: process.env.NODE_ENV === 'production',
+    enabled: process.env.NODE_ENV === 'sentryEnabled',
     dsn: 'https://9cfb47804c93495ba3a66a9d79cec084@o440615.ingest.sentry.io/5557379',
     tracesSampleRate: 0.2,
   })

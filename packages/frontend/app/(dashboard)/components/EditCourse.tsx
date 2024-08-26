@@ -69,43 +69,46 @@ const EditCourse: React.FC<EditCourseProps> = ({
   }, [])
 
   return courseData ? (
-    <div className="mb-5 space-y-5">
-      <Card bordered={true} title="Edit Course">
-        <EditCourseForm
-          courseData={courseData}
-          organization={organization}
-          fetchCourseData={fetchCourseData}
-          user={user}
-        />
-      </Card>
+    <>
+      <title>{`HelpMe | Editing ${courseData.course?.name}`}</title>
+      <div className="mb-5 space-y-5">
+        <Card bordered={true} title="Edit Course">
+          <EditCourseForm
+            courseData={courseData}
+            organization={organization}
+            fetchCourseData={fetchCourseData}
+            user={user}
+          />
+        </Card>
 
-      {featuresEnabled && (
-        <>
-          <Card bordered={true} title="Course Features">
-            <CourseFeaturesForm courseData={courseData} />
-          </Card>
+        {featuresEnabled && (
+          <>
+            <Card bordered={true} title="Course Features">
+              <CourseFeaturesForm courseData={courseData} />
+            </Card>
 
-          <Card bordered={true} title="Course Invite Link">
-            <CourseInviteCode
-              fetchCourseData={fetchCourseData}
-              courseData={courseData}
-            />
-          </Card>
-        </>
-      )}
+            <Card bordered={true} title="Course Invite Link">
+              <CourseInviteCode
+                fetchCourseData={fetchCourseData}
+                courseData={courseData}
+              />
+            </Card>
+          </>
+        )}
 
-      <Card
-        bordered={true}
-        title="Danger Zone"
-        className="border-2 border-rose-500/[.35]"
-      >
-        <ArchiveCourse
-          courseData={courseData}
-          organization={organization}
-          fetchCourseData={fetchCourseData}
-        />
-      </Card>
-    </div>
+        <Card
+          bordered={true}
+          title="Danger Zone"
+          className="border-2 border-rose-500/[.35]"
+        >
+          <ArchiveCourse
+            courseData={courseData}
+            organization={organization}
+            fetchCourseData={fetchCourseData}
+          />
+        </Card>
+      </div>
+    </>
   ) : (
     <CenteredSpinner tip="Loading course..." />
   )

@@ -1556,7 +1556,7 @@ describe('Course Integration', () => {
         .send({ value: true, feature: 'invalidFeature' });
 
       expect(resp.body.message).toEqual([
-        'feature must be one of the following values: chatBotEnabled,asyncQueueEnabled,adsEnabled,queueEnabled',
+        'feature must be one of the following values: chatBotEnabled,asyncQueueEnabled,adsEnabled,queueEnabled,scheduleOnFrontPage,asyncCentreAIAnswers',
       ]);
       expect(resp.status).toBe(400);
     });
@@ -1578,6 +1578,8 @@ describe('Course Integration', () => {
       expect(updatedCourseSettings.asyncQueueEnabled).toEqual(true);
       expect(updatedCourseSettings.adsEnabled).toEqual(true);
       expect(updatedCourseSettings.queueEnabled).toEqual(true);
+      expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(true);
+      expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(false);
 
       //  DISABLE ASYNC QUEUE
       resp = await supertest({ userId: professor.id })
@@ -1595,6 +1597,8 @@ describe('Course Integration', () => {
       expect(updatedCourseSettings.asyncQueueEnabled).toEqual(false);
       expect(updatedCourseSettings.adsEnabled).toEqual(true);
       expect(updatedCourseSettings.queueEnabled).toEqual(true);
+      expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(true);
+      expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(false);
 
       // DISABLE ADS
       resp = await supertest({ userId: professor.id })
@@ -1612,6 +1616,8 @@ describe('Course Integration', () => {
       expect(updatedCourseSettings.asyncQueueEnabled).toEqual(false);
       expect(updatedCourseSettings.adsEnabled).toEqual(false);
       expect(updatedCourseSettings.queueEnabled).toEqual(true);
+      expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(true);
+      expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(false);
 
       // DISABLE QUEUE
       resp = await supertest({ userId: professor.id })
@@ -1629,6 +1635,8 @@ describe('Course Integration', () => {
       expect(updatedCourseSettings.asyncQueueEnabled).toEqual(false);
       expect(updatedCourseSettings.adsEnabled).toEqual(false);
       expect(updatedCourseSettings.queueEnabled).toEqual(false);
+      expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(true);
+      expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(false);
 
       // ENABLE CHATBOT
       resp = await supertest({ userId: professor.id })
@@ -1646,6 +1654,46 @@ describe('Course Integration', () => {
       expect(updatedCourseSettings.asyncQueueEnabled).toEqual(false);
       expect(updatedCourseSettings.adsEnabled).toEqual(false);
       expect(updatedCourseSettings.queueEnabled).toEqual(false);
+      expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(true);
+      expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(false);
+
+      // DISABLE ASYNC CENTRE AI ANSWERS
+      resp = await supertest({ userId: professor.id })
+        .patch(`/courses/${course.id}/features`)
+        .send({ value: false, feature: 'asyncCentreAIAnswers' });
+
+      expect(resp.status).toBe(200);
+
+      // Fetch the updated courseSettings from the database
+      updatedCourseSettings = await CourseSettingsModel.findOne({
+        where: { courseId: course.id },
+      });
+
+      expect(updatedCourseSettings.chatBotEnabled).toEqual(true);
+      expect(updatedCourseSettings.asyncQueueEnabled).toEqual(false);
+      expect(updatedCourseSettings.adsEnabled).toEqual(false);
+      expect(updatedCourseSettings.queueEnabled).toEqual(false);
+      expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(false);
+      expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(false);
+
+      // ENABLE SCHEDULE ON FRONT PAGE
+      resp = await supertest({ userId: professor.id })
+        .patch(`/courses/${course.id}/features`)
+        .send({ value: true, feature: 'scheduleOnFrontPage' });
+
+      expect(resp.status).toBe(200);
+
+      // Fetch the updated courseSettings from the database
+      updatedCourseSettings = await CourseSettingsModel.findOne({
+        where: { courseId: course.id },
+      });
+
+      expect(updatedCourseSettings.chatBotEnabled).toEqual(true);
+      expect(updatedCourseSettings.asyncQueueEnabled).toEqual(false);
+      expect(updatedCourseSettings.adsEnabled).toEqual(false);
+      expect(updatedCourseSettings.queueEnabled).toEqual(false);
+      expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(false);
+      expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(true);
     });
   });
 
@@ -1683,6 +1731,8 @@ describe('Course Integration', () => {
         asyncQueueEnabled: true,
         adsEnabled: true,
         queueEnabled: true,
+        asyncCentreAIAnswers: true,
+        scheduleOnFrontPage: false,
         settingsFound: false,
       });
     });
@@ -1699,6 +1749,8 @@ describe('Course Integration', () => {
         asyncQueueEnabled: false,
         adsEnabled: false,
         queueEnabled: false,
+        asyncCentreAIAnswers: false,
+        scheduleOnFrontPage: true,
       });
       const resp = await supertest({ userId: student.id }).get(
         `/courses/${course.id}/features`,
@@ -1711,6 +1763,8 @@ describe('Course Integration', () => {
         asyncQueueEnabled: false,
         adsEnabled: false,
         queueEnabled: false,
+        asyncCentreAIAnswers: false,
+        scheduleOnFrontPage: true,
         settingsFound: true,
       });
     });

@@ -5,6 +5,8 @@ import {
   AsyncQuestionParams,
   asyncQuestionStatus,
   UpdateAsyncQuestions,
+  OrganizationRole,
+  MailServiceType,
 } from '@koh/common';
 import {
   Body,
@@ -27,14 +29,20 @@ import { AsyncQuestionModel } from './asyncQuestion.entity';
 import { CourseModel } from '../course/course.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Response } from 'express';
+import { MailService } from 'mail/mail.service';
 import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { MailServiceModel } from 'mail/mail-services.entity';
+import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class asyncQuestionController {
-  constructor(private readonly redisQueueService: RedisQueueService) {}
+  constructor(
+    private readonly redisQueueService: RedisQueueService,
+    private mailService: MailService,
+  ) { }
 
   @Post(':qid/:vote')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
@@ -152,7 +160,113 @@ export class asyncQuestionController {
   }
 
   @Patch(':questionId')
-  async updateQuestion(
+  async updateStudentQuestion(
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @Body() body: UpdateAsyncQuestions,
+    @User() user: UserModel,
+  ): Promise<AsyncQuestionParams> {
+    const question = await AsyncQuestionModel.findOne({
+      where: { id: questionId },
+      relations: ['course', 'creator', 'votes'],
+    });
+
+    if (!question) {
+      throw new NotFoundException();
+    }
+
+    if (question.creatorId !== user.id) {
+      throw new HttpException(
+        'You can only update your own questions',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    // if you created the question (i.e. a student), you can't update the status to illegal ones
+    if (
+      body.status === asyncQuestionStatus.TADeleted ||
+      body.status === asyncQuestionStatus.HumanAnswered
+    ) {
+      throw new HttpException(
+        `You cannot update your own question's status to ${body.status}`,
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    if (body.status === asyncQuestionStatus.AIAnsweredNeedsAttention) {
+      const courseId = question.course.id;
+
+      // Step 1: Get all users in the course
+      const usersInCourse = await UserCourseModel.createQueryBuilder(
+        'userCourse',
+      )
+        .select('userCourse.userId')
+        .where('userCourse.courseId = :courseId', { courseId })
+        .getMany();
+
+      const userIds = usersInCourse.map((uc) => uc.userId);
+
+      // Step 2: Get subscriptions for these users
+      const subscriptions = await UserSubscriptionModel.createQueryBuilder(
+        'subscription',
+      )
+        .innerJoinAndSelect('subscription.user', 'user')
+        .innerJoinAndSelect('subscription.service', 'service')
+        .where('subscription.userId IN (:...userIds)', { userIds })
+        .andWhere('service.serviceType = :serviceType', {
+          serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
+        })
+        .andWhere('subscription.isSubscribed = true')
+        .getMany();
+
+      // Send emails in parallel
+      await Promise.all(
+        subscriptions.map((sub) =>
+          this.mailService.sendEmail({
+            receiver: sub.user.email,
+            type: MailServiceType.ASYNC_QUESTION_FLAGGED,
+            subject: 'HelpMe - New Question Marked as Needing Attention',
+            content: `<br> <b>A new question has been posted on the anytime question hub and has been marked as needing attention:</b> 
+            <br> <b>Question Abstract:</b> ${question.questionAbstract}
+            <br> <b>Question Types:</b> ${question.questionTypes.map((qt) => qt.name).join(', ')}
+            <br> <b>Question Text:</b> ${question.questionText}
+            <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
+          }),
+        ),
+      );
+    }
+
+    // Update allowed fields
+    Object.keys(body).forEach((key) => {
+      if (body[key] !== undefined && body[key] !== null) {
+        question[key] = body[key];
+      }
+    });
+
+    const updatedQuestion = await question.save();
+
+    // Update Redis queue
+    await this.redisQueueService.updateAsyncQuestion(
+      `c:${question.course.id}:aq`,
+      updatedQuestion,
+    );
+
+    if (body.status === asyncQuestionStatus.StudentDeleted) {
+      await this.redisQueueService.deleteAsyncQuestion(
+        `c:${question.course.id}:aq`,
+        updatedQuestion,
+      );
+    } else {
+      await this.redisQueueService.updateAsyncQuestion(
+        `c:${question.course.id}:aq`,
+        updatedQuestion,
+      );
+    }
+    delete question.taHelped;
+    delete question.votes;
+
+    return question;
+  }
+
+  @Patch('faculty/:questionId')
+  async updateTAQuestion(
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
     @User() user: UserModel,
@@ -162,56 +276,60 @@ export class asyncQuestionController {
       relations: ['course', 'creator', 'taHelped', 'votes'],
     });
 
-    if (question === undefined) {
+    if (!question) {
       throw new NotFoundException();
     }
 
     const courseId = question.course.id;
 
-    delete question.course;
+    // Verify if user is TA/PROF of the course
+    const requester = await UserCourseModel.findOne({
+      where: {
+        userId: user.id,
+        courseId: courseId,
+      },
+    });
 
-    // If not creator, check if user is TA/PROF of course of question
+    if (!requester || requester.role === Role.STUDENT) {
+      throw new HttpException(
+        'You must be a TA/PROF to update this question',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     Object.keys(body).forEach((key) => {
       if (body[key] !== undefined && body[key] !== null) {
         question[key] = body[key];
       }
     });
+
     if (
       body.status === asyncQuestionStatus.HumanAnswered ||
       body.status === asyncQuestionStatus.AIAnsweredResolved
     ) {
       question.closedAt = new Date();
-    }
-    if (body.status === asyncQuestionStatus.HumanAnswered) {
       question.taHelpedId = user.id;
-    }
-    // if creator, can update question anytime
-    // otherwise has to be TA/PROF of course
-    if (question.creatorId !== user.id) {
-      const requester = await UserCourseModel.findOne({
+      const subscription = await UserSubscriptionModel.findOne({
         where: {
-          userId: user.id,
-          courseId: courseId,
+          user: { id: question.creator.id },
+          service: { name: 'async_question_human_answered' },
         },
+        relations: ['service'],
       });
-      if (!requester || requester.role === Role.STUDENT) {
-        throw new HttpException(
-          'You must be staff in order to update questions other than your own',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-    } else {
-      // if you created the question (i.e. a student), you can't update the status to illegal ones
-      if (
-        body.status === asyncQuestionStatus.TADeleted ||
-        body.status === asyncQuestionStatus.HumanAnswered
-      ) {
-        throw new HttpException(
-          `You cannot update your own question's status to ${body.status}`,
-          HttpStatus.UNAUTHORIZED,
-        );
+
+      if (subscription) {
+        const service = subscription.service;
+        await this.mailService.sendEmail({
+          receiver: question.creator.email,
+          type: service.serviceType,
+          subject: 'HelpMe - Your Anytime Question Has Been Answered',
+          content: `<br> <b>Your question on the anytime question hub has been answered or verified by staff:</b> 
+          <br> ${question.answerText}
+          <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
+        });
       }
     }
+
     const updatedQuestion = await question.save();
 
     if (

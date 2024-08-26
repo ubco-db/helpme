@@ -53,8 +53,10 @@ import {
   StudentTaskProgressWithUser,
   AsyncQuestion,
   QuestionType,
-  OrganizationUser,
   OrganizationProfessor,
+  MailServiceWithSubscription,
+  UserMailSubscription,
+  CourseResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -279,6 +281,21 @@ class APIClient {
     getAllQuestionTypes: async (courseId: number): Promise<QuestionType[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
   }
+  emailNotification = {
+    get: async (): Promise<MailServiceWithSubscription[]> =>
+      this.req('GET', `/api/v1/mail-services`),
+    update: async (
+      mailServiceId: number,
+      isSubscribed: boolean,
+    ): Promise<UserMailSubscription> => {
+      return this.req(
+        'PATCH',
+        `/api/v1/mail-services/${mailServiceId}`,
+        undefined,
+        { isSubscribed },
+      )
+    },
+  }
   studentTaskProgress = {
     getAssignmentProgress: async (
       userId: number,
@@ -323,10 +340,17 @@ class APIClient {
         AsyncQuestionParams,
         body,
       ),
-    update: async (qid: number, body: UpdateAsyncQuestions) =>
+    studentUpdate: async (qid: number, body: UpdateAsyncQuestions) =>
       this.req(
         'PATCH',
-        `/api/v1/asyncQuestions/${qid}`,
+        `/api/v1/asyncQuestions/student/${qid}`,
+        AsyncQuestionParams,
+        body,
+      ),
+    facultyUpdate: async (qid: number, body: UpdateAsyncQuestions) =>
+      this.req(
+        'PATCH',
+        `/api/v1/asyncQuestions/faculty/${qid}`,
         AsyncQuestionParams,
         body,
       ),
@@ -620,7 +644,7 @@ class APIClient {
       organizationId: number,
       page: number,
       search?: string,
-    ): Promise<any> =>
+    ): Promise<CourseResponse[]> =>
       this.req(
         'GET',
         `/api/v1/organization/${organizationId}/get_courses/${page}${

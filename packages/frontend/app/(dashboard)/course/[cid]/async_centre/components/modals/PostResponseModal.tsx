@@ -8,7 +8,6 @@ import {
   Checkbox,
   Button,
   Popconfirm,
-  Tooltip,
 } from 'antd'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -55,7 +54,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
           : asyncQuestionStatus.HumanAnswered
         : asyncQuestionStatus.HumanAnswered
     await API.asyncQuestions
-      .update(question.id, {
+      .facultyUpdate(question.id, {
         answerText: values.answerText,
         visible: values.visible,
         status: newStatus,
