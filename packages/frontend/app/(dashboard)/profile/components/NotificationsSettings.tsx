@@ -40,7 +40,7 @@ const NotificationsSettings: React.FC = () => {
       )
     } catch (e) {
       const errorMessage = getErrorMessage(e)
-      message.error('Error updating notification settings:', errorMessage)
+      message.error('Error updating notification settings:' + errorMessage)
     }
   }
 

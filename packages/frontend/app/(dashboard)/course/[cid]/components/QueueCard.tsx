@@ -7,12 +7,11 @@ import {
 } from '@ant-design/icons'
 import { Button, Card, Divider, Input, message, Row, Tag, Tooltip } from 'antd'
 import Link from 'next/link'
-import React, { ReactElement, useState } from 'react'
+import { ReactElement, useState } from 'react'
 import UserAvatar from '@/app/components/UserAvatar'
 import { QueuePartial } from '@koh/common'
 import { useCourse } from '@/app/hooks/useCourse'
 import { API } from '@/app/api'
-import Linkify from '@/app/components/Linkify'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 
 interface QueueCardProps {

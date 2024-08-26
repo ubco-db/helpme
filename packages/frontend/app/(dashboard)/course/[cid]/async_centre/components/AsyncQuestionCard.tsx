@@ -71,7 +71,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
-        message.error('Failed to update question status:', errorMessage)
+        message.error('Failed to update question status:' + errorMessage)
       })
   }
 

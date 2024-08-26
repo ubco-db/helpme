@@ -34,14 +34,14 @@ const EditProfile: React.FC = () => {
           .patch(pick(newProfile, ['firstName', 'lastName', 'sid']))
           .catch((error) => {
             const errorMessage = getErrorMessage(error)
-            message.error('Error updating profile:', errorMessage)
+            message.error('Error updating profile:' + errorMessage)
           })
       } else {
         await API.profile
           .patch(pick(newProfile, ['firstName', 'lastName', 'email', 'sid']))
           .catch((error) => {
             const errorMessage = getErrorMessage(error)
-            message.error('Error updating profile:', errorMessage)
+            message.error('Error updating profile:' + errorMessage)
           })
       }
     } else {
@@ -58,7 +58,7 @@ const EditProfile: React.FC = () => {
         .patch(pick(newProfile, ['firstName', 'lastName', 'sid']))
         .catch((error) => {
           const errorMessage = getErrorMessage(error)
-          message.error('Error updating profile:', errorMessage)
+          message.error('Error updating profile:' + errorMessage)
         })
     }
 

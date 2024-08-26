@@ -6,7 +6,9 @@
   - [Technologies Guide](#technologies-guide)
     - [Frontend](#frontend)
       - [Next.js](#nextjs)
+        - ['use client' vs 'use server'](#whats-with-all-these-use-client--use-server-things)
       - [Tailwind and CSS](#tailwind-and-css)
+      - [JSX](#jsx)
     - [Backend](#backend)
 - [History](#history)
 - [TODO](#todo)
@@ -44,7 +46,7 @@ File structure is as follows:
 
 ## Technologies Guide
 
-`.env` - Rather than storing sensitive information (such as API keys, database passwords, etc.) in the codebase, we store them in a `.env` file. This file is not tracked by git, so it is not shared with anyone else. You will need to create multiple `.env` files for the project, one for the frontend and one for the backend. Follow the example `.env` files in the respective directories to see what you need to add. More details about what each variable does or how to get them can be found in `ENVIRONMENT_VARIABLES.md`. environment
+`.env` - Rather than storing sensitive information (such as API keys, database passwords, etc.) in the codebase, we store them in a `.env` file. This file is not tracked by git, so it is not shared with anyone else. You will need to create multiple `.env` files for the project, one for the frontend and one for the backend. Follow the example `.env` files in the respective directories to see what you need to add. More details about what each variable does or how to get them can be found in [ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md). environment
 
 ### Frontend
 
@@ -144,11 +146,10 @@ During the 2024 Summer, a massive undertaking was done to refactor and re-write 
 
 ## For the whole project
 
+- Maybe check out the "issues" page on github
 - Do a ctrl+shift+f for "TODO" and do all TODOs
 
 ## For this document
-- Add a list of TODOs
+- Add a list of TODOs 
 - Add more technologies
 - Merge stuff from DEVELOPING.md
-- move DEVELOPING.md, ENVIRONMENT_VARIABLES.md , and other .mds into docs, then make markdown links to the other documents.
-- make glossary actually work

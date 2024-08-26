@@ -38,7 +38,7 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
         })
         .catch((error) => {
           const errorMessage = getErrorMessage(error)
-          message.error('Failed to update invite code:', errorMessage)
+          message.error('Failed to update invite code:' + errorMessage)
         })
     },
     [courseData.course?.courseInviteCode],

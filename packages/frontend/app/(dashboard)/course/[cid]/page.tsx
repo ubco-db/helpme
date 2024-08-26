@@ -2,8 +2,7 @@
 
 import { Role } from '@koh/common'
 import { Col, Row, Button } from 'antd'
-import { ReactElement, useMemo, useState } from 'react'
-// import { ChatbotToday } from '../../../components/Today/ChatbotToday'
+import { ReactElement, useEffect, useMemo, useState } from 'react'
 import QueueCard from './components/QueueCard'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -17,6 +16,8 @@ import PopularTimes from './components/popularTimes/PopularTimes'
 import { arrayRotate, collapseHeatmap } from './utils/popularTimesFunctions'
 import moment from 'moment'
 import { sortQueues } from './utils/commonCourseFunctions'
+import { useChatbotContext } from './components/chatbot/ChatbotProvider'
+import Chatbot from './components/chatbot/Chatbot'
 
 type CoursePageProps = {
   params: { cid: string }
@@ -28,7 +29,6 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
   const role = getRoleInCourse(userInfo, cid)
   const { course } = useCourse(cid)
   const [createQueueModalOpen, setCreateQueueModalOpen] = useState(false)
-
   const courseFeatures = useCourseFeatures(cid)
   const onlyChatBotEnabled = useMemo(
     () =>
@@ -37,6 +37,24 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
       !courseFeatures?.asyncQueueEnabled,
     [courseFeatures],
   )
+  // chatbot
+  const {
+    setCid,
+    setRenderSmallChatbot,
+    preDeterminedQuestions,
+    setPreDeterminedQuestions,
+    questionsLeft,
+    setQuestionsLeft,
+    messages,
+    setMessages,
+  } = useChatbotContext()
+  useEffect(() => {
+    setCid(cid)
+  }, [cid, setCid])
+  useEffect(() => {
+    // TODO: replace this with the new courseFeature to show the schedule on the course page
+    setRenderSmallChatbot(false)
+  }, [setRenderSmallChatbot])
 
   const sortedQueues = useMemo(() => {
     if (!course?.queues) return []
@@ -147,14 +165,41 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                 }
               </Col>
               <Col className="mb-4 h-[100vh]" md={12} sm={24}>
-                {/* {courseFeatures.chatBotEnabled && <ChatbotToday />} */}
+                {/* <Chatbot cid={cid} variant='huge' /> */}
+                <Chatbot
+                  key={cid}
+                  cid={cid}
+                  variant="big"
+                  preDeterminedQuestions={preDeterminedQuestions}
+                  setPreDeterminedQuestions={setPreDeterminedQuestions}
+                  questionsLeft={questionsLeft}
+                  setQuestionsLeft={setQuestionsLeft}
+                  messages={messages}
+                  setMessages={setMessages}
+                  isOpen={true}
+                  /* eslint-disable-next-line @typescript-eslint/no-empty-function */
+                  setIsOpen={() => {}}
+                />
               </Col>
             </Row>
           </div>
         )) || (
           // only show if only the chatbot is enabled
           <div className="mt-3 flex h-[100vh] flex-col items-center justify-items-end">
-            {/* <ChatbotToday /> */}
+            <Chatbot
+              key={cid}
+              cid={cid}
+              variant="huge"
+              preDeterminedQuestions={preDeterminedQuestions}
+              setPreDeterminedQuestions={setPreDeterminedQuestions}
+              questionsLeft={questionsLeft}
+              setQuestionsLeft={setQuestionsLeft}
+              messages={messages}
+              setMessages={setMessages}
+              isOpen={true}
+              /* eslint-disable-next-line @typescript-eslint/no-empty-function */
+              setIsOpen={() => {}}
+            />
           </div>
         )}
       </>
