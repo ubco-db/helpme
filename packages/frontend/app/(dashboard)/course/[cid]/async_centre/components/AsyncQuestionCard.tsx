@@ -60,7 +60,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
       ? asyncQuestionStatus.AIAnsweredResolved
       : asyncQuestionStatus.AIAnsweredNeedsAttention
     await API.asyncQuestions
-      .update(question.id, { status: newstatus })
+      .studentUpdate(question.id, { status: newstatus })
       .then(() => {
         mutateAsyncQuestions()
         message.success(

@@ -7,7 +7,7 @@ import { SettingsOptions } from '@/app/typings/enum'
 import NotificationsSettings from './NotificationsSettings'
 import CoursePreference from './CoursePreference'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
-
+import EmailNotifications from './EmailNotifications'
 interface SettingsMenuProps {
   setCurrentSettings: (settings: SettingsOptions) => void
 }
@@ -29,7 +29,12 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ setCurrentSettings }) => {
         {
           key: SettingsOptions.NOTIFICATIONS,
           label: 'Notifications',
-          children: <NotificationsSettings />,
+          children: (
+            <div>
+              <NotificationsSettings />
+              <EmailNotifications />
+            </div>
+          ),
         },
         {
           key: SettingsOptions.PREFERENCES,

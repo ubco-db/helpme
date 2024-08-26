@@ -1,4 +1,9 @@
-import { OrganizationRole, QueueConfig, Role } from '@koh/common';
+import {
+  MailServiceType,
+  OrganizationRole,
+  QueueConfig,
+  Role,
+} from '@koh/common';
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AlertModel } from 'alerts/alerts.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
@@ -28,6 +33,8 @@ import {
   CourseSettingsFactory,
   QuestionTypeFactory,
   ChatTokenFactory,
+  mailServiceFactory,
+  userSubscriptionFactory,
 } from '../../test/util/factories';
 import { CourseModel } from '../course/course.entity';
 import { NonProductionGuard } from '../guards/non-production.guard';
@@ -41,6 +48,9 @@ import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { InteractionModel } from 'chatbot/interaction.entity';
 import { ChatbotQuestionModel } from 'chatbot/question.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
+import { MailServiceModel } from 'mail/mail-services.entity';
+import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
+import { UserTokenModel } from 'profile/user-token.entity';
 
 const exampleConfig = {
   fifo_queue_view_enabled: true,
@@ -126,6 +136,7 @@ export class SeedController {
     // Children tables should be removed as early as possible.
     await this.seedService.deleteAll(QuestionTypeModel);
     await this.seedService.deleteAll(OrganizationCourseModel);
+    await this.seedService.deleteAll(UserSubscriptionModel);
     await this.seedService.deleteAll(OrganizationUserModel);
     await this.seedService.deleteAll(LastRegistrationModel);
     await this.seedService.deleteAll(ProfSectionGroupsModel);
@@ -140,6 +151,7 @@ export class SeedController {
     await this.seedService.deleteAll(ChatbotQuestionModel);
     await this.seedService.deleteAll(InteractionModel);
     await this.seedService.deleteAll(ChatTokenModel);
+    await this.seedService.deleteAll(UserTokenModel);
     await this.seedService.deleteAll(UserModel);
     await this.seedService.deleteAll(CourseSectionMappingModel);
     await this.seedService.deleteAll(CourseModel);
@@ -147,6 +159,7 @@ export class SeedController {
     await this.seedService.deleteAll(OrganizationModel);
     await this.seedService.deleteAll(QuestionTypeModel);
     await this.seedService.deleteAll(CourseSettingsModel);
+    await this.seedService.deleteAll(MailServiceModel);
     const manager = getManager();
     manager.query('ALTER SEQUENCE user_model_id_seq RESTART WITH 1;');
     manager.query('ALTER SEQUENCE organization_model_id_seq RESTART WITH 1;');
@@ -169,6 +182,19 @@ export class SeedController {
 
     const tomorrow = new Date();
     tomorrow.setUTCHours(now.getUTCHours() + 19);
+
+    const facultyMailService = await mailServiceFactory.create({
+      mailType: OrganizationRole.PROFESSOR,
+      serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
+      name: 'Notify when a new anytime question is flagged as needing attention',
+      content: 'A student is requesting for help with an anytime question',
+    });
+    const studentMailService = await mailServiceFactory.create({
+      mailType: OrganizationRole.MEMBER,
+      serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
+      name: 'Notify when your anytime question has been answered by faculty',
+      content: 'Your anytime question has been answered by faculty',
+    });
 
     const courseExists = await CourseModel.findOne({
       where: { name: 'CS 304' },
@@ -229,6 +255,12 @@ export class SeedController {
         course: course,
       });
 
+      await userSubscriptionFactory.create({
+        isSubscribed: true,
+        user: user1,
+        service: studentMailService,
+      });
+
       // Student 2
       const user2 = await UserFactory.create({
         email: 'studentTwo@ubc.ca',
@@ -251,6 +283,11 @@ export class SeedController {
         course: course,
       });
 
+      await userSubscriptionFactory.create({
+        isSubscribed: true,
+        user: user2,
+        service: studentMailService,
+      });
       // TA 1
       const user3 = await UserFactory.create({
         email: 'TaOne@ubc.ca',
@@ -322,6 +359,11 @@ export class SeedController {
         course: course,
       });
 
+      await userSubscriptionFactory.create({
+        isSubscribed: true,
+        user: user5,
+        service: facultyMailService,
+      });
       const organization = await OrganizationFactory.create({
         name: 'UBCO',
         description: 'UBC Okanagan',

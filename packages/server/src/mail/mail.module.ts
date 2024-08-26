@@ -3,10 +3,11 @@ import { Global, Module } from '@nestjs/common';
 import { MailService } from './mail.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailController } from './mail.controller';
-import { sendEmailAsync } from '@koh/common';
+import { MailServicesController } from './mail-services.controller';
+import { UserModel } from 'profile/user.entity';
 @Global()
 @Module({
-  controllers: [MailController],
+  controllers: [MailController, MailServicesController],
   imports: [
     MailerModule.forRootAsync({
       imports: [ConfigModule],
@@ -27,8 +28,13 @@ import { sendEmailAsync } from '@koh/common';
 })
 export class MailModule {}
 
+export type sendEmailAsync = {
+  receiver: string;
+  subject: string;
+  type: any;
+};
 @Module({
-  controllers: [MailController],
+  controllers: [MailController, MailServicesController],
   providers: [
     {
       provide: MailService,
@@ -36,6 +42,7 @@ export class MailModule {}
       useValue: {
         sendUserVerificationCode: () => 'fake code',
         sendEmail: (_emailPost: sendEmailAsync) => 'fake email',
+        findAllSubscriptions: (user: UserModel) => ['fake subscription'],
       },
     },
   ],

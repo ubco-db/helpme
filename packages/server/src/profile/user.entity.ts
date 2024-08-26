@@ -6,6 +6,7 @@ import {
   Column,
   Entity,
   JoinColumn,
+  JoinTable,
   ManyToMany,
   OneToMany,
   OneToOne,
@@ -22,6 +23,7 @@ import { InteractionModel } from '../chatbot/interaction.entity';
 import { UserTokenModel } from './user-token.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
+import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -74,6 +76,13 @@ export class UserModel extends BaseEntity {
   @OneToMany((type) => DesktopNotifModel, (notif) => notif.user)
   @Exclude()
   desktopNotifs: DesktopNotifModel[];
+
+  @OneToMany(
+    (type) => UserSubscriptionModel,
+    (subscription) => subscription.user,
+  )
+  @Exclude()
+  subscriptions: UserSubscriptionModel[];
 
   @Exclude()
   @ManyToMany((type) => QueueModel, (queue) => queue.staffList)
