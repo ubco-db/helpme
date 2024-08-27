@@ -121,7 +121,9 @@ export default function LoginPage() {
   }
 
   async function loginWithInstitution() {
-    router.push(`/api/v1/auth/link/sso/${organization?.id}`)
+    if (organization) {
+      router.push(`/api/v1/auth/shibboleth/${organization.id}`)
+    }
   }
 
   async function onReCAPTCHAChange(captchaCode: string | null) {
