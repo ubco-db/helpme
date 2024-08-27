@@ -430,7 +430,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 onClick={() => {
                   notification.destroy()
                   setIsFirstQuestion(false)
-                  router.push(`/settings?cid=${cid}`)
+                  router.push(`/profile`)
                 }}
                 className="ml-2"
                 aria-describedby="enable-notifications-text"
