@@ -128,19 +128,8 @@ export class QueueService {
       const newLQR = new ListQuestionsResponse();
       Object.assign(newLQR, queueQuestions);
 
-      newLQR.questions = queueQuestions.questions.map((question) => {
-        const creator =
-          question.creator.id === userId
-            ? question.creator
-            : pick(question.creator, ['id']);
-        // classToClass transformer will apply the @Excludes
-        return classToClass<Question>(
-          QuestionModel.create({ ...question, creator }),
-        );
-      });
-
-      newLQR.questionsGettingHelp = queueQuestions.questionsGettingHelp.map(
-        (question) => {
+      if (queueQuestions.questions) {
+        newLQR.questions = queueQuestions.questions.map((question) => {
           const creator =
             question.creator.id === userId
               ? question.creator
@@ -149,8 +138,23 @@ export class QueueService {
           return classToClass<Question>(
             QuestionModel.create({ ...question, creator }),
           );
-        },
-      );
+        });
+      }
+
+      if (queueQuestions.questionsGettingHelp) {
+        newLQR.questionsGettingHelp = queueQuestions.questionsGettingHelp.map(
+          (question) => {
+            const creator =
+              question.creator.id === userId
+                ? question.creator
+                : pick(question.creator, ['id']);
+            // classToClass transformer will apply the @Excludes
+            return classToClass<Question>(
+              QuestionModel.create({ ...question, creator }),
+            );
+          },
+        );
+      }
 
       newLQR.yourQuestions = await QuestionModel.find({
         relations: ['creator', 'taHelped'],
