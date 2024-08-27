@@ -1,6 +1,6 @@
 import { GetCourseResponse } from '@koh/common'
 import { fetchAuthToken } from './cookieApi'
-
+const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
 /**
  * Course "API".
  * Note: our main "API" is in index.ts
@@ -9,22 +9,25 @@ import { fetchAuthToken } from './cookieApi'
 export const courseApi = {
   getCourseFeatures: async (courseId: number) => {
     const authToken = await fetchAuthToken()
-    const response = await fetch(`/api/v1/courses/${courseId}/features`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: authToken,
-        Cookie: authToken,
+    const response = await fetch(
+      `${baseUrl}/api/v1/courses/${courseId}/features`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: authToken,
+          Cookie: authToken,
+        },
+        credentials: 'include',
       },
-      credentials: 'include',
-    })
+    )
 
     return response.json()
   },
 
   getCourse: async (courseId: number): Promise<GetCourseResponse> => {
     const authToken = await fetchAuthToken()
-    const response = await fetch(`/api/v1/courses/${courseId}`, {
+    const response = await fetch(`${baseUrl}/api/v1/courses/${courseId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
