@@ -1,5 +1,5 @@
 import { fetchAuthToken } from './cookieApi'
-
+const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
 /**
  * Organization "API".
  * Note: our main "API" is in index.ts
@@ -7,7 +7,7 @@ import { fetchAuthToken } from './cookieApi'
  */
 export const organizationApi = {
   getOrganizations: async () => {
-    const response = await fetch(`http://localhost:3000/api/v1/organization`)
+    const response = await fetch(`${baseUrl}/api/v1/organization`)
     return response.json()
   },
 
@@ -15,7 +15,7 @@ export const organizationApi = {
     const authToken = await fetchAuthToken()
 
     const response = await fetch(
-      `http://localhost:3000/api/v1/organization/${organizationId}`,
+      `${baseUrl}/api/v1/organization/${organizationId}`,
       {
         method: 'GET',
         headers: {
@@ -31,7 +31,7 @@ export const organizationApi = {
 
   getOrganizationStats: async (organizationId: number) => {
     const response = await fetch(
-      `http://localhost:3000/api/v1/organization/${organizationId}/stats`,
+      `${baseUrl}/api/v1/organization/${organizationId}/stats`,
     )
     return response.json()
   },
