@@ -129,10 +129,7 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
         name="isOnline"
         layout="horizontal"
         valuePropName="checked"
-        tooltip="Online queues have the option for a zoom link"
-        rules={[
-          { required: true, message: 'Please select if this queue is online.' },
-        ]}
+        tooltip="Online queues have the option for a zoom/teams link"
       >
         <Switch />
       </Form.Item>
