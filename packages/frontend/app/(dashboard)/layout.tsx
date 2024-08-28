@@ -39,7 +39,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         It seems you do not have an organization! Please use a different account
         or contact an administrator.
       </p>
-      <Link href="api/v1/logout">Log Out</Link>
+      <p>
+        <Link className="text-blue-500" href="api/v1/logout">
+          Log Out
+        </Link>
+      </p>
     </main>
   ) : (
     <UserInfoProvider profile={profile}>
