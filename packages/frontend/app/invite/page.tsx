@@ -53,7 +53,7 @@ export default function CourseInvitePage(): ReactElement {
     if (cid) {
       fetchData()
     }
-  }, [cid, code, errorGettingUser])
+  }, [cid, code, errorGettingUser, router])
 
   const cardMetaTitle = `You have been invited to join '${course?.name}'`
   const cardMetaDescription = `This course is managed by ${course?.organizationCourse?.name}`
@@ -102,7 +102,7 @@ export default function CourseInvitePage(): ReactElement {
     return <CenteredSpinner tip="Loading Course..." />
   } else {
     return (
-      <Suspense>
+      <Suspense fallback={<CenteredSpinner tip="Loading.." />}>
         <title>{`HelpMe - Invitation to join '${course.name}'`}</title>
         <div className="mt-20 flex items-center justify-center">
           {profile.organization &&
