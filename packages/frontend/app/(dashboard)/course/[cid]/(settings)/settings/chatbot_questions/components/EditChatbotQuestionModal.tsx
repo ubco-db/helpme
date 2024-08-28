@@ -118,16 +118,19 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   }
 
   const onFinish = async (values: FormValues) => {
-    values.sourceDocuments.forEach((doc) => {
-      // Convert string to array of numbers, trimming spaces and ignoring empty entries
-      if (doc.pageNumbersString) {
-        doc.pageNumbers = doc.pageNumbersString
-          .split(',')
-          .map((page) => page.trim())
-          .filter((page) => page !== '')
-          .map((page) => parseInt(page, 10))
-      }
-    })
+    // currently, we don't allow the sourceDocuments to be added/removed in the modal since that seems really niche, but i'll leave the code here for it in case
+    if (values.sourceDocuments) {
+      values.sourceDocuments.forEach((doc) => {
+        // Convert string to array of numbers, trimming spaces and ignoring empty entries
+        if (doc.pageNumbersString) {
+          doc.pageNumbers = doc.pageNumbersString
+            .split(',')
+            .map((page) => page.trim())
+            .filter((page) => page !== '')
+            .map((page) => parseInt(page, 10))
+        }
+      })
+    }
     const valuesWithId = {
       ...values,
       id: editingRecord.id,
