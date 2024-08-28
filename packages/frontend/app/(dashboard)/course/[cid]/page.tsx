@@ -181,19 +181,21 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                     )}
                   </>
                 ) : (
-                  <Chatbot
-                    key={cid}
-                    cid={cid}
-                    variant="big"
-                    preDeterminedQuestions={preDeterminedQuestions}
-                    setPreDeterminedQuestions={setPreDeterminedQuestions}
-                    questionsLeft={questionsLeft}
-                    setQuestionsLeft={setQuestionsLeft}
-                    messages={messages}
-                    setMessages={setMessages}
-                    isOpen={true}
-                    setIsOpen={() => undefined}
-                  />
+                  courseFeatures.chatBotEnabled && (
+                    <Chatbot
+                      key={cid}
+                      cid={cid}
+                      variant="big"
+                      preDeterminedQuestions={preDeterminedQuestions}
+                      setPreDeterminedQuestions={setPreDeterminedQuestions}
+                      questionsLeft={questionsLeft}
+                      setQuestionsLeft={setQuestionsLeft}
+                      messages={messages}
+                      setMessages={setMessages}
+                      isOpen={true}
+                      setIsOpen={() => undefined}
+                    />
+                  )
                 )}
               </Col>
             </Row>

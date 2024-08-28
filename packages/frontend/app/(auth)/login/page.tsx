@@ -186,7 +186,6 @@ export default function LoginPage() {
                 <p className="text-left text-stone-400">
                   Select your organization.
                 </p>
-
                 <Select
                   className="mt-2 w-full text-left"
                   placeholder="Available Organizations"
