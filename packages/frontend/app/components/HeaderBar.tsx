@@ -57,11 +57,13 @@ const Link = ({
 }) => {
   const pathname = usePathname()
   const isActive = href === pathname
+  const isLogout = href === '/api/v1/logout'
 
   return (
     <NavigationMenuLink ref={ref} asChild active={isActive}>
       <NextLink
         href={href}
+        prefetch={isLogout ? false : undefined}
         className={
           (isSubMenuLink
             ? navigationMenuTriggerStyleForSubMenu()
