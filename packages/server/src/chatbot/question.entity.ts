@@ -16,6 +16,9 @@ export class ChatbotQuestionModel extends BaseEntity {
   @Column({ nullable: true })
   vectorStoreId: string;
 
+  @Column({ nullable: true })
+  interactionId: number;
+
   @ManyToOne(() => InteractionModel)
   @JoinColumn({ name: 'interaction' })
   interaction: InteractionModel;

@@ -3,14 +3,7 @@ import { InteractionModel } from './interaction.entity';
 import { ChatbotQuestionModel } from './question.entity';
 import { CourseModel } from '../course/course.entity';
 import { UserModel } from '../profile/user.entity';
-import {
-  ChatbotQuestion,
-  DocumentParams,
-  InteractionParams,
-} from '@koh/common';
-import { QuestionDocumentModel } from './questionDocument.entity';
-import { createQueryBuilder } from 'typeorm';
-import { ChatbotDocumentModel } from './chatbotDocument.entity';
+import { ChatbotQuestion, InteractionParams } from '@koh/common';
 
 export interface ChatbotResponse {
   answer: string;

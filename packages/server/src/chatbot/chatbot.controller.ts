@@ -5,7 +5,6 @@ import {
   UseGuards,
   Patch,
   Delete,
-  Param,
 } from '@nestjs/common';
 import { ChatbotService } from './chatbot.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
