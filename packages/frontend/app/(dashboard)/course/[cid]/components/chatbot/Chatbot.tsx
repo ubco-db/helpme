@@ -475,7 +475,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     Ask
                   </Button>
                 </Space.Compact>
-                {userInfo.chat_token && (
+                {userInfo.chat_token && questionsLeft < 100 && (
                   <Card.Meta
                     description={`You can ask the chatbot ${questionsLeft} more question${questionsLeft > 1 ? 's' : ''} today`}
                     className="mt-3"

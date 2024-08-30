@@ -65,7 +65,7 @@ import _, { isNumber } from 'lodash';
 export class OrganizationController {
   constructor(private organizationService: OrganizationService) {}
 
-  @Post(':oid/populate_chat_token_table')
+  @Post(':oid/reset_chat_token_limit')
   @UseGuards(
     JwtAuthGuard,
     OrganizationRolesGuard,
@@ -73,40 +73,17 @@ export class OrganizationController {
     EmailVerifiedGuard,
   )
   @Roles(OrganizationRole.ADMIN)
-  async populateChatTokenTable(
+  async resetChatTokenLimit(
     @Res() res: Response,
     @Param('oid') oid: number,
   ): Promise<Response<void>> {
-    const organizationUsers = await OrganizationUserModel.find({
-      where: {
-        organizationId: oid,
-      },
-      relations: ['organizationUser', 'organizationUser.chat_token'],
-    });
-
-    let chatTokenCount = 0;
-    organizationUsers.forEach(async (organizationUser) => {
-      const ou = organizationUser.organizationUser;
-
-      if (!ou.chat_token) {
-        await ChatTokenModel.create({
-          user: ou,
-          token: v4(),
-        }).save();
-      } else {
-        chatTokenCount += 1;
-      }
-    });
-
-    if (chatTokenCount === organizationUsers.length) {
-      return res.status(HttpStatus.OK).send({
-        message: 'Chat token table already populated',
-      });
-    }
-
-    return res.status(HttpStatus.OK).send({
-      message: 'Chat token table populated',
-    });
+    return ChatTokenModel.query(`
+      UPDATE public.chat_token_model
+      SET used = 0, max_uses = CASE
+        WHEN (SELECT user_course_model.role FROM user_course_model WHERE "userId" = public.chat_token_model.user) = 'professor' THEN 300
+        ELSE 30
+      END
+    `);
   }
 
   @Post(':oid/create_course')
