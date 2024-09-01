@@ -9,7 +9,7 @@ import Image from 'next/image'
 import ReCAPTCHA from 'react-google-recaptcha'
 import Link from 'next/link'
 import { userApi } from '@/app/api/userApi'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { LoginData } from '@/app/typings/user'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useOrganizationProviderForInvitedCourse } from './components/OrganizationProviderForInvitedCourse'
@@ -24,6 +24,9 @@ export default function LoginPage() {
   const [organization, setOrganization] = useState<Organization | null>(null)
   const recaptchaRef = React.createRef<ReCAPTCHA>()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const error = searchParams.get('error')
+
   const { organizationIdForInvitedCourse } =
     useOrganizationProviderForInvitedCourse()
 
@@ -154,6 +157,21 @@ export default function LoginPage() {
     return (
       <main>
         <title>HelpMe | Login</title>
+        {error && (
+          <div className="container mx-auto h-auto w-full pt-10 text-center md:w-1/2">
+            <Alert
+              message="Error"
+              description={
+                error === 'redirect'
+                  ? 'There was an error during a redirection. Please refresh the page or login again.'
+                  : error === 'sessionExpired'
+                    ? 'Your session has expired. Please login again.'
+                    : `An unknown error has occurred (${error}). Please try again.`
+              }
+              type="error"
+            />
+          </div>
+        )}
         <div className="container mx-auto h-auto w-full pt-20 text-center md:w-1/2">
           {loginMenu && (
             <Button type="link" className="mr-96" onClick={hideLoginMenu}>
@@ -168,7 +186,6 @@ export default function LoginPage() {
                 <p className="text-left text-stone-400">
                   Select your organization.
                 </p>
-
                 <Select
                   className="mt-2 w-full text-left"
                   placeholder="Available Organizations"

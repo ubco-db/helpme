@@ -183,7 +183,8 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                     )}
                   </>
                 ) : (
-                  <Chatbot
+                  courseFeatures.chatBotEnabled && (
+                    <Chatbot
                     key={cid}
                     cid={cid}
                     variant="big"
@@ -198,6 +199,7 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                     interactionId={interactionId}
                     setInteractionId={setInteractionId}
                   />
+                  )
                 )}
               </Col>
             </Row>

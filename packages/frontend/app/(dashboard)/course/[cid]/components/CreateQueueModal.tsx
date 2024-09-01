@@ -129,10 +129,7 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
         name="isOnline"
         layout="horizontal"
         valuePropName="checked"
-        tooltip="Online queues have the option for a zoom link"
-        rules={[
-          { required: true, message: 'Please select if this queue is online.' },
-        ]}
+        tooltip="Online queues have the option for a zoom/teams link"
       >
         <Switch />
       </Form.Item>
@@ -142,12 +139,6 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
         label="Configure Queue Permissions"
         name="allowTA"
         layout="horizontal"
-        rules={[
-          {
-            required: true,
-            message: 'Please select who can check in.',
-          },
-        ]}
       >
         <Radio.Group>
           <Radio value={true}>Allow TAs to check in</Radio>
