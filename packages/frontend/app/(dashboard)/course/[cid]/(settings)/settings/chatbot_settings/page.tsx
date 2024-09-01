@@ -281,6 +281,7 @@ export default function ChatbotSettings({
         message.error(`Failed to upload ${file.name}`)
       }
     }
+    getDocuments()
   }
 
   const handleDeleteDocument = async (record: any) => {
