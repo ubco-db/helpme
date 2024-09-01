@@ -24,7 +24,6 @@ import { Feedback } from './Feedback'
 import {
   PreDeterminedQuestion,
   Message,
-  SourceDocument,
   ChatbotAskResponse,
 } from '@/app/typings/chatbot'
 import { API } from '@/app/api'
@@ -46,6 +45,8 @@ interface ChatbotProps {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>
   interactionId?: number
   setInteractionId: React.Dispatch<React.SetStateAction<number | undefined>>
+  helpmeQuestionId: number | undefined
+  setHelpmeQuestionId: React.Dispatch<React.SetStateAction<number | undefined>>
 }
 
 const Chatbot: React.FC<ChatbotProps> = ({
@@ -61,13 +62,12 @@ const Chatbot: React.FC<ChatbotProps> = ({
   setIsOpen,
   interactionId,
   setInteractionId,
+  helpmeQuestionId,
+  setHelpmeQuestionId,
 }): ReactElement => {
   const [input, setInput] = useState('')
   const { userInfo, setUserInfo } = useUserInfo()
   const [isLoading, setIsLoading] = useState(false)
-  const [helpmeQuestionId, setHelpmeQuestionId] = useState<number | undefined>(
-    undefined,
-  )
   const courseFeatures = useCourseFeatures(cid)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
@@ -97,6 +97,11 @@ const Chatbot: React.FC<ChatbotProps> = ({
     }
     if (userInfo.chat_token) {
       setQuestionsLeft(userInfo.chat_token.max_uses - userInfo.chat_token.used)
+    }
+    return () => {
+      setHelpmeQuestionId(undefined)
+      setInteractionId(undefined)
+      setPreDeterminedQuestions([])
     }
   }, [
     userInfo,
@@ -252,6 +257,8 @@ const Chatbot: React.FC<ChatbotProps> = ({
         message.error('Failed to load suggested questions: ' + errorMessage)
       })
     setInteractionId(undefined)
+    setHelpmeQuestionId(undefined)
+    setInput('')
   }
   if (!cid || !courseFeatures?.chatBotEnabled) {
     return <></>
@@ -414,9 +421,11 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                   ),
                                 )}
                             </div>
-                            {helpmeQuestionId && index !== 0 && (
-                              <Feedback questionId={helpmeQuestionId} />
-                            )}
+                            {item.type === 'apiMessage' &&
+                              index === messages.length - 1 &&
+                              index !== 0 && (
+                                <Feedback questionId={helpmeQuestionId ?? 0} />
+                              )}
                           </div>
                         </div>
                       )}

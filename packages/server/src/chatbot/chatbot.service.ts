@@ -88,6 +88,7 @@ export class ChatbotService {
       questionText: data.questionText,
       responseText: data.responseText,
       suggested: data.suggested,
+      timestamp: new Date(),
       vectorStoreId: data.vectorStoreId,
       isPreviousQuestion: data.isPreviousQuestion,
     });

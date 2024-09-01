@@ -25,6 +25,8 @@ interface ChatbotContextType {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>
   interactionId: number | undefined
   setInteractionId: React.Dispatch<React.SetStateAction<number | undefined>>
+  helpmeQuestionId: number | undefined
+  setHelpmeQuestionId: React.Dispatch<React.SetStateAction<number | undefined>>
 }
 
 const chatbotContext = createContext<ChatbotContextType>({
@@ -46,6 +48,8 @@ const chatbotContext = createContext<ChatbotContextType>({
   setIsOpen: () => {},
   interactionId: undefined,
   setInteractionId: () => {},
+  helpmeQuestionId: undefined,
+  setHelpmeQuestionId: () => {},
 })
 export function useChatbotContext() {
   return useContext(chatbotContext)
@@ -82,7 +86,9 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
   const [interactionId, setInteractionId] = useState<number | undefined>(
     undefined,
   )
-
+  const [helpmeQuestionId, setHelpmeQuestionId] = useState<number | undefined>(
+    undefined,
+  )
   useEffect(() => {
     // reset chatbot states when course changes
     setPreDeterminedQuestions([])
@@ -110,6 +116,8 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
     setIsOpen,
     interactionId,
     setInteractionId,
+    helpmeQuestionId,
+    setHelpmeQuestionId,
   }
   return (
     <chatbotContext.Provider value={values}>
@@ -129,6 +137,8 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
           setIsOpen={setIsOpen}
           interactionId={interactionId}
           setInteractionId={setInteractionId}
+          helpmeQuestionId={helpmeQuestionId}
+          setHelpmeQuestionId={setHelpmeQuestionId}
         />
       )}
     </chatbotContext.Provider>

@@ -51,6 +51,8 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
     setMessages,
     interactionId,
     setInteractionId,
+    helpmeQuestionId,
+    setHelpmeQuestionId,
   } = useChatbotContext()
   useEffect(() => {
     setCid(cid)
@@ -185,20 +187,22 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                 ) : (
                   courseFeatures.chatBotEnabled && (
                     <Chatbot
-                    key={cid}
-                    cid={cid}
-                    variant="big"
-                    preDeterminedQuestions={preDeterminedQuestions}
-                    setPreDeterminedQuestions={setPreDeterminedQuestions}
-                    questionsLeft={questionsLeft}
-                    setQuestionsLeft={setQuestionsLeft}
-                    messages={messages}
-                    setMessages={setMessages}
-                    isOpen={true}
-                    setIsOpen={() => undefined}
-                    interactionId={interactionId}
-                    setInteractionId={setInteractionId}
-                  />
+                      key={cid}
+                      cid={cid}
+                      variant="big"
+                      preDeterminedQuestions={preDeterminedQuestions}
+                      setPreDeterminedQuestions={setPreDeterminedQuestions}
+                      questionsLeft={questionsLeft}
+                      setQuestionsLeft={setQuestionsLeft}
+                      messages={messages}
+                      setMessages={setMessages}
+                      isOpen={true}
+                      setIsOpen={() => undefined}
+                      interactionId={interactionId}
+                      setInteractionId={setInteractionId}
+                      setHelpmeQuestionId={setHelpmeQuestionId}
+                      helpmeQuestionId={helpmeQuestionId}
+                    />
                   )
                 )}
               </Col>
@@ -220,6 +224,8 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
               isOpen={true}
               interactionId={interactionId}
               setInteractionId={setInteractionId}
+              setHelpmeQuestionId={setHelpmeQuestionId}
+              helpmeQuestionId={helpmeQuestionId}
               /* eslint-disable-next-line @typescript-eslint/no-empty-function */
               setIsOpen={() => {}}
             />

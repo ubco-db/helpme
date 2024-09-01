@@ -230,10 +230,20 @@ export interface ChatbotQuestion {
   questionText?: string
   responseText?: string
   timestamp?: Date
-  userScore: number
+  userScore?: number
   suggested?: boolean
   isPreviousQuestion?: boolean
   vectorStoreId?: string
+}
+
+export interface ChatbotRequestParams {
+  interactionId: number
+  questionText: string
+  responseText: string
+  userScore?: number
+  suggested?: boolean
+  isPreviousQuestion?: boolean
+  vectorStoreId: string
 }
 
 export class Interaction {
