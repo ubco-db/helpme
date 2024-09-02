@@ -261,9 +261,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
           variant === 'small'
             ? 'fixed bottom-5 z-50 max-h-[90vh] w-screen md:right-5 md:max-w-[400px]'
             : variant === 'big'
-              ? 'flex h-[80vh] w-[90%] flex-col overflow-auto'
+              ? 'flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
               : variant === 'huge'
-                ? 'flex h-[90vh] w-[90%] flex-col overflow-auto'
+                ? 'flex h-[90vh] w-screen flex-col overflow-auto md:w-[90%]'
                 : '',
         )}
       >
