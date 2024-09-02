@@ -87,13 +87,14 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const queueConfig = queue?.config
   const configTasks = queueConfig?.tasks
   const isDemoQueue: boolean = !!configTasks && !!queueConfig.assignment_id
-  const studentAssignmentProgress = useStudentAssignmentProgress(
-    cid,
-    userInfo.id,
-    queueConfig?.assignment_id,
-    isDemoQueue,
-    isStaff,
-  )
+  const [studentAssignmentProgress, mutateStudentAssignmentProgress] =
+    useStudentAssignmentProgress(
+      cid,
+      userInfo.id,
+      queueConfig?.assignment_id,
+      isDemoQueue,
+      isStaff,
+    )
   const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree)
   const [isJoiningQuestion, setIsJoiningQuestion] = useState(
     queueQuestions &&
@@ -193,6 +194,13 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const studentQuestionStatus = studentQuestion?.status
   const studentDemoId = studentDemo?.id
   const studentDemoStatus = studentDemo?.status
+
+  // whenever the student's demo goes from defined to undefined, re-run mutateStudentTaskProgress so that the student gets their updated progress right away
+  useEffect(() => {
+    if (!isStaff && studentDemo === undefined) {
+      mutateStudentAssignmentProgress()
+    }
+  }, [isStaff, studentDemo, mutateStudentAssignmentProgress])
 
   const updateQuestionStatus = useCallback(
     async (id: number, status: QuestionStatus) => {
