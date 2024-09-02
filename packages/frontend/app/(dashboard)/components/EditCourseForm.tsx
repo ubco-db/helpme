@@ -144,146 +144,140 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
   }, [isAdmin, organization.id])
 
   return (
-    professors && (
-      <Form
-        form={formGeneral}
-        layout="vertical"
-        initialValues={{
-          courseName: courseData.course?.name,
-          coordinatorEmail: courseData.course?.coordinator_email,
-          sectionGroupName: courseData.course?.sectionGroupName,
-          zoomLink: courseData.course?.zoomLink,
-          courseTimezone: courseData.course?.timezone,
-          semesterName: `${courseData.course?.semester?.season},${courseData.course?.semester?.year}`,
-          professorsUserId: courseData.profIds,
-        }}
-        onFinish={() => updateGeneral()}
-      >
-        <div className="flex flex-col md:flex-row md:space-x-3">
-          <Form.Item
-            label="Course Name"
-            name="courseName"
-            tooltip="Name of the course"
-            className="flex-1"
-            rules={[{ required: true, message: 'Please input a course name' }]}
-          >
-            <Input allowClear={true} />
-          </Form.Item>
+    <Form
+      form={formGeneral}
+      layout="vertical"
+      initialValues={{
+        courseName: courseData.course?.name,
+        coordinatorEmail: courseData.course?.coordinator_email,
+        sectionGroupName: courseData.course?.sectionGroupName,
+        zoomLink: courseData.course?.zoomLink,
+        courseTimezone: courseData.course?.timezone,
+        semesterName: `${courseData.course?.semester?.season},${courseData.course?.semester?.year}`,
+        professorsUserId: courseData.profIds,
+      }}
+      onFinish={() => updateGeneral()}
+    >
+      <div className="flex flex-col md:flex-row md:space-x-3">
+        <Form.Item
+          label="Course Name"
+          name="courseName"
+          tooltip="Name of the course"
+          className="flex-1"
+          rules={[{ required: true, message: 'Please input a course name' }]}
+        >
+          <Input allowClear={true} />
+        </Form.Item>
 
-          <Form.Item
-            label="Coordinator Email"
-            name="coordinatorEmail"
-            tooltip="Email of the coordinator of the course"
-            className="flex-1"
-          >
-            <Input allowClear={true} />
-          </Form.Item>
-        </div>
+        <Form.Item
+          label="Coordinator Email"
+          name="coordinatorEmail"
+          tooltip="Email of the coordinator of the course"
+          className="flex-1"
+        >
+          <Input allowClear={true} />
+        </Form.Item>
+      </div>
 
-        <div className="flex flex-col md:flex-row md:space-x-3">
-          <Form.Item
-            label="Section Group Name"
-            name="sectionGroupName"
-            tooltip="Name of the section group (E.g. if you're in COSC 111 001, the section group is 001)"
-            className="flex-1"
-          >
-            <Input allowClear={true} />
-          </Form.Item>
+      <div className="flex flex-col md:flex-row md:space-x-3">
+        <Form.Item
+          label="Section Group Name"
+          name="sectionGroupName"
+          tooltip="Name of the section group (E.g. if you're in COSC 111 001, the section group is 001)"
+          className="flex-1"
+        >
+          <Input allowClear={true} />
+        </Form.Item>
 
-          <Form.Item
-            label="Zoom Link"
-            name="zoomLink"
-            tooltip="Link to the zoom meeting for queues. Currently, this is shared between all queues. When a student is helped, they will have the option to click this link."
-            className="flex-1"
-          >
-            <Input allowClear={true} />
-          </Form.Item>
-        </div>
+        <Form.Item
+          label="Zoom Link"
+          name="zoomLink"
+          tooltip="Link to the zoom meeting for queues. Currently, this is shared between all queues. When a student is helped, they will have the option to click this link."
+          className="flex-1"
+        >
+          <Input allowClear={true} />
+        </Form.Item>
+      </div>
 
-        <div className="flex flex-col md:flex-row md:space-x-3">
+      <div className="flex flex-col md:flex-row md:space-x-3">
+        <Form.Item
+          label="Course Timezone"
+          name="courseTimezone"
+          tooltip="Timezone of the course"
+          className="flex-1"
+          rules={[{ required: true, message: 'Please select a timezone' }]}
+        >
+          <Select>
+            {COURSE_TIMEZONES.map((timezone) => (
+              <Select.Option value={timezone} key={timezone}>
+                {timezone}
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          label="Semester"
+          name="semesterName"
+          tooltip="Semester of the course"
+          className="flex-1"
+          rules={[
+            { required: true, message: 'Semester is required' },
+            {
+              validator: (_, value) => {
+                if (value) {
+                  const parts = value.split(',')
+                  if (parts.length !== 2) {
+                    return Promise.reject(
+                      new Error(
+                        'Semester must be in the format "season,year". E.g. Fall,2021',
+                      ),
+                    )
+                  }
+                  if (!parts[1] || isNaN(Number(parts[1]))) {
+                    return Promise.reject(new Error('Year must be a number'))
+                  }
+                }
+                return Promise.resolve()
+              },
+            },
+          ]}
+        >
+          <Input allowClear={true} placeholder="season,year" />
+        </Form.Item>
+      </div>
+
+      <div className="flex flex-col md:flex-row md:space-x-3">
+        {user.organization?.organizationRole === OrganizationRole.ADMIN &&
+        professors ? (
           <Form.Item
-            label="Course Timezone"
-            name="courseTimezone"
-            tooltip="Timezone of the course"
+            label="Professors"
+            name="professorsUserId"
+            tooltip="Professors teaching the course"
             className="flex-1"
-            rules={[{ required: true, message: 'Please select a timezone' }]}
           >
-            <Select>
-              {COURSE_TIMEZONES.map((timezone) => (
-                <Select.Option value={timezone} key={timezone}>
-                  {timezone}
+            <Select mode="multiple" placeholder="Select professors">
+              {professors.map((prof: OrganizationProfessor) => (
+                <Select.Option
+                  value={prof.organizationUser.id}
+                  key={prof.organizationUser.id}
+                >
+                  {prof.organizationUser.name}
                 </Select.Option>
               ))}
             </Select>
           </Form.Item>
+        ) : (
+          <></>
+        )}
+      </div>
 
-          <Form.Item
-            label="Semester"
-            name="semesterName"
-            tooltip="Semester of the course"
-            className="flex-1"
-            rules={[
-              { required: true, message: 'Semester is required' },
-              {
-                validator: (_, value) => {
-                  if (value) {
-                    const parts = value.split(',')
-                    if (parts.length !== 2) {
-                      return Promise.reject(
-                        new Error(
-                          'Semester must be in the format "season,year". E.g. Fall,2021',
-                        ),
-                      )
-                    }
-                    if (!parts[1] || isNaN(Number(parts[1]))) {
-                      return Promise.reject(new Error('Year must be a number'))
-                    }
-                  }
-                  return Promise.resolve()
-                },
-              },
-            ]}
-          >
-            <Input allowClear={true} placeholder="season,year" />
-          </Form.Item>
-        </div>
-
-        <div className="flex flex-col md:flex-row md:space-x-3">
-          {user.organization?.organizationRole === OrganizationRole.ADMIN &&
-          professors ? (
-            <Form.Item
-              label="Professors"
-              name="professorsUserId"
-              tooltip="Professors teaching the course"
-              className="flex-1"
-            >
-              <Select mode="multiple" placeholder="Select professors">
-                {professors.map((prof: OrganizationProfessor) => (
-                  <Select.Option
-                    value={prof.organizationUser.id}
-                    key={prof.organizationUser.id}
-                  >
-                    {prof.organizationUser.name}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-          ) : (
-            <></>
-          )}
-        </div>
-
-        <Form.Item>
-          <Button
-            type="primary"
-            htmlType="submit"
-            className="h-auto w-full p-3"
-          >
-            Update
-          </Button>
-        </Form.Item>
-      </Form>
-    )
+      <Form.Item>
+        <Button type="primary" htmlType="submit" className="h-auto w-full p-3">
+          Update
+        </Button>
+      </Form.Item>
+    </Form>
   )
 }
 

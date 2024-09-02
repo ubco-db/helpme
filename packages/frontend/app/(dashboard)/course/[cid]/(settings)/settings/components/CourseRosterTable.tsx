@@ -1,8 +1,10 @@
 import { API } from '@/app/api'
+import UserAvatar from '@/app/components/UserAvatar'
 import { DownOutlined, SearchOutlined } from '@ant-design/icons'
 import { Role, UserPartial } from '@koh/common'
 import {
   Avatar,
+  Button,
   Dropdown,
   Input,
   List,
@@ -39,6 +41,9 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
   const [users, setUsers] = useState<any>([])
+  const [isSensitiveInfoHidden, setIsSensitiveInfoHidden] = useState(
+    hideSensitiveInformation,
+  )
 
   const handleInput = (event: any) => {
     event.preventDefault()
@@ -79,29 +84,23 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
     }
   }
 
-  const userAvatar = (photoUrl: string) => {
-    if (photoUrl && photoUrl.startsWith('http')) {
-      return <Avatar src={photoUrl} className="mt-3" />
-    } else if (photoUrl) {
-      return (
-        <Avatar
-          src={'/api/v1/profile/get_picture/' + photoUrl}
-          style={{ marginRight: 10 }}
-        />
-      )
-    } else {
-      return <Avatar style={{ marginRight: 10 }}>N/A</Avatar>
-    }
-  }
-
   if (!users) {
     return <Spin tip="Loading..." size="large" />
   } else {
     return (
       <>
         <div className="bg-white">
-          <div className="mb-2">
+          <div className="mb-2 flex">
             <h3 className="text-lg font-semibold">{listTitle}</h3>
+            {/* Only show this button if the table hides sensitive info */}
+            {hideSensitiveInformation && (
+              <Button
+                type="link"
+                onClick={() => setIsSensitiveInfoHidden(!isSensitiveInfoHidden)}
+              >
+                {isSensitiveInfoHidden ? 'Show' : 'Hide'} Student Emails
+              </Button>
+            )}
           </div>
           {displaySearchBar && (
             <Input
@@ -121,11 +120,16 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
                 className="flex items-center justify-between"
               >
                 <List.Item.Meta
-                  avatar={userAvatar(item.photoURL ?? '')}
+                  avatar={
+                    <UserAvatar
+                      photoURL={item.photoURL}
+                      username={item.name ?? ''}
+                    />
+                  }
                   title={<span className="mr-2">{item.name}</span>}
                   className="flex flex-grow items-center"
                 />
-                {hideSensitiveInformation ? (
+                {isSensitiveInfoHidden ? (
                   <span className="flex-grow">
                     {item.email
                       ?.substring(0, item.email?.indexOf('@'))
