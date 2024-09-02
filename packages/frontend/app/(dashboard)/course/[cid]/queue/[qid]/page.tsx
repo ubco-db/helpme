@@ -68,6 +68,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const [addStudentsModalOpen, setAddStudentsModalOpen] = useState(false)
   const [assignmentReportModalOpen, setAssignmentReportModalOpen] =
     useState(false)
+  const [staffListHidden, setStaffListHidden] = useState(false)
   const {
     studentQuestion,
     studentDemo,
@@ -484,11 +485,14 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     }
     return (
       <QueueInfoColumn
+        cid={cid}
         queueId={qid}
         isStaff={isStaff}
         tagGroupsEnabled={tagGroupsEnabled}
         setTagGroupsEnabled={setTagGroupsEnabled}
         hasDemos={isDemoQueue}
+        staffListHidden={staffListHidden}
+        setStaffListHidden={setStaffListHidden}
         buttons={
           isStaff ? (
             <>
