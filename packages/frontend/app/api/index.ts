@@ -33,7 +33,6 @@ import {
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
   ChatbotQuestion,
-  ChatBotQuestionParams,
   UpdateOrganizationCourseDetailsParams,
   Interaction,
   OrganizationResponse,
@@ -144,18 +143,11 @@ class APIClient {
         `/api/v1/chatbot/question?questionText=${questionText}&pageSize=${pageSize}&currentPage=${currentPage}&cid=${courseId}`,
         undefined,
       ),
-    createQuestion: async (
-      body: ChatBotQuestionParams,
-    ): Promise<ChatbotQuestion> =>
+    createQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> =>
       this.req('POST', `/api/v1/chatbot/question`, undefined, body),
-    editQuestion: async (body: {
-      data: ChatBotQuestionParams
-      questionId: number
-    }): Promise<ChatbotQuestion> =>
-      this.req('PATCH', `/api/v1/chatbot/question`, undefined, body),
-    deleteQuestion: async (
-      body: ChatBotQuestionParams,
-    ): Promise<ChatbotQuestion> =>
+    editQuestion: async (data: ChatbotQuestion): Promise<ChatbotQuestion> =>
+      this.req('PATCH', `/api/v1/chatbot/question`, undefined, data),
+    deleteQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> =>
       this.req('DELETE', `/api/v1/chatbot/question`, undefined, body),
     getDocuments: async (
       courseId: number,

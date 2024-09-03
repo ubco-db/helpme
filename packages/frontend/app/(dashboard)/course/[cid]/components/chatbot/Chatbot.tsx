@@ -20,38 +20,16 @@ import axios from 'axios'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
+import { Feedback } from './Feedback'
+import {
+  PreDeterminedQuestion,
+  Message,
+  ChatbotAskResponse,
+} from '@/app/typings/chatbot'
+import { API } from '@/app/api'
 
 const { TextArea } = Input
 
-export interface SourceDocument {
-  docName: string
-  sourceLink: string
-  pageNumbers: number[]
-  metadata?: { type?: string }
-  type?: string
-  content?: string
-}
-
-// TODO: Update this type so it's actually accurate.
-// It was previously just question: string, and answer: string. I added some new types, please fix it if it's incorrect
-export interface PreDeterminedQuestion {
-  question?: string
-  answer?: string
-  pageContent?: any
-  metadata?: {
-    verified: boolean
-    sourceDocuments: SourceDocument[]
-    answer: string
-  }
-}
-
-export interface Message {
-  type: 'apiMessage' | 'userMessage'
-  message: string | void
-  verified?: boolean
-  sourceDocuments?: SourceDocument[]
-  questionId?: number
-}
 interface ChatbotProps {
   cid: number
   variant?: 'small' | 'big' | 'huge'
@@ -65,6 +43,10 @@ interface ChatbotProps {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>
   isOpen: boolean
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>
+  interactionId?: number
+  setInteractionId: React.Dispatch<React.SetStateAction<number | undefined>>
+  helpmeQuestionId: number | undefined
+  setHelpmeQuestionId: React.Dispatch<React.SetStateAction<number | undefined>>
 }
 
 const Chatbot: React.FC<ChatbotProps> = ({
@@ -78,11 +60,14 @@ const Chatbot: React.FC<ChatbotProps> = ({
   setMessages,
   isOpen,
   setIsOpen,
+  interactionId,
+  setInteractionId,
+  helpmeQuestionId,
+  setHelpmeQuestionId,
 }): ReactElement => {
   const [input, setInput] = useState('')
   const { userInfo, setUserInfo } = useUserInfo()
   const [isLoading, setIsLoading] = useState(false)
-  const [_interactionId, setInteractionId] = useState<number | null>(null)
   const courseFeatures = useCourseFeatures(cid)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
@@ -96,17 +81,14 @@ const Chatbot: React.FC<ChatbotProps> = ({
         })
         .then((res) => {
           res.data.forEach((question: PreDeterminedQuestion) => {
-            setPreDeterminedQuestions((prev: PreDeterminedQuestion[]) => {
-              return [
-                ...prev,
-                {
-                  question: question.pageContent,
-                  answer: question.metadata?.answer,
-                  sourceDocuments: question.metadata?.sourceDocuments,
-                  verified: question.metadata?.verified,
-                },
-              ]
-            })
+            setPreDeterminedQuestions((prev: PreDeterminedQuestion[]) => [
+              ...prev,
+              {
+                id: question.id,
+                pageContent: question.pageContent,
+                metadata: question.metadata,
+              },
+            ])
           })
         })
         .catch((err) => {
@@ -117,7 +99,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
       setQuestionsLeft(userInfo.chat_token.max_uses - userInfo.chat_token.used)
     }
     return () => {
-      setInteractionId(null)
+      setHelpmeQuestionId(undefined)
+      setInteractionId(undefined)
+      setPreDeterminedQuestions([])
     }
   }, [
     userInfo,
@@ -167,24 +151,31 @@ const Chatbot: React.FC<ChatbotProps> = ({
       return null
     }
   }
+  const createNewInteraction = async () => {
+    const interaction = await API.chatbot.createInteraction({
+      courseId: cid,
+      userId: userInfo.id,
+    })
+    setInteractionId(interaction.id)
+    return interaction.id
+  }
 
   const handleAsk = async () => {
     if (!hasAskedQuestion.current) {
       hasAskedQuestion.current = true
       setPreDeterminedQuestions([]) // clear predetermined questions upon the first question
     }
+
+    let currentInteractionId = interactionId
+    if (!currentInteractionId) {
+      currentInteractionId = await createNewInteraction()
+    }
     setIsLoading(true)
 
-    const result = await query()
-
-    if (result && result.error) {
-      message.error(result.error)
-      return
-    }
+    const result: ChatbotAskResponse = await query()
 
     const answer = result ? result.answer : "Sorry, I couldn't find the answer"
     const sourceDocuments = result ? result.sourceDocuments : []
-
     setMessages((prevMessages: Message[]) => [
       ...prevMessages,
       { type: 'userMessage', message: input },
@@ -192,34 +183,51 @@ const Chatbot: React.FC<ChatbotProps> = ({
         type: 'apiMessage',
         message: answer,
         verified: result ? result.verified : true,
-        sourceDocuments: sourceDocuments,
-        questionId: result ? result.questionId : null,
+        sourceDocuments: sourceDocuments ? sourceDocuments : [],
+        questionId: result ? result.questionId : undefined,
       },
     ])
 
+    const helpmeQuestion = await API.chatbot.createQuestion({
+      vectorStoreId: result.questionId,
+      interactionId: currentInteractionId,
+      questionText: input,
+      responseText: answer,
+      userScore: 0,
+      isPreviousQuestion: result.isPreviousQuestion,
+    })
+    setHelpmeQuestionId(helpmeQuestion.id)
     setIsLoading(false)
     setInput('')
   }
 
-  const answerPreDeterminedQuestion = (question: string, answer: string) => {
+  const answerPreDeterminedQuestion = async (
+    question: PreDeterminedQuestion,
+  ) => {
     setMessages((prevMessages) => [
       ...prevMessages,
-      { type: 'userMessage', message: question },
+      { type: 'userMessage', message: question.pageContent },
       {
         type: 'apiMessage',
-        message: answer,
+        message: question.metadata.answer,
+        verified: question.metadata.verified,
+        sourceDocuments: question.metadata.sourceDocuments,
+        questionId: question.id,
       },
     ])
     setPreDeterminedQuestions([])
-  }
 
-  // This scroll to bottom would work better if we had a giant chat history. It's just annoying in its current state
-  // const scrollToBottom = () => {
-  //   messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  // }
-  // useEffect(() => {
-  //   scrollToBottom()
-  // }, [messages])
+    const currentInteractionId = await createNewInteraction()
+    const helpmeQuestion = await API.chatbot.createQuestion({
+      vectorStoreId: question.id,
+      interactionId: currentInteractionId,
+      questionText: question.pageContent,
+      responseText: question.metadata.answer,
+      userScore: 0,
+      isPreviousQuestion: true,
+    })
+    setHelpmeQuestionId(helpmeQuestion.id)
+  }
 
   const resetChat = () => {
     setMessages([
@@ -236,22 +244,22 @@ const Chatbot: React.FC<ChatbotProps> = ({
         headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
       })
       .then((res) => {
-        res.data.forEach((question: any) => {
-          setPreDeterminedQuestions((prev) => [
-            ...prev,
-            {
-              question: question.pageContent,
-              answer: question.metadata.answer,
-            },
-          ])
-        })
+        setPreDeterminedQuestions(
+          res.data.map((question: PreDeterminedQuestion) => ({
+            id: question.id,
+            pageContent: question.pageContent,
+            metadata: question.metadata,
+          })),
+        )
       })
       .catch((err) => {
         const errorMessage = getErrorMessage(err)
         message.error('Failed to load suggested questions: ' + errorMessage)
       })
+    setInteractionId(undefined)
+    setHelpmeQuestionId(undefined)
+    setInput('')
   }
-
   if (!cid || !courseFeatures?.chatBotEnabled) {
     return <></>
   } else {
@@ -413,6 +421,11 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                   ),
                                 )}
                             </div>
+                            {item.type === 'apiMessage' &&
+                              index === messages.length - 1 &&
+                              index !== 0 && (
+                                <Feedback questionId={helpmeQuestionId ?? 0} />
+                              )}
                           </div>
                         </div>
                       )}
@@ -424,18 +437,13 @@ const Chatbot: React.FC<ChatbotProps> = ({
                   preDeterminedQuestions.map((question) => (
                     <div
                       className="align-items-start m-1 mb-1 flex justify-end"
-                      key={question.question}
+                      key={question.id || question.pageContent}
                     >
                       <div
-                        onClick={() =>
-                          answerPreDeterminedQuestion(
-                            question.question ?? '',
-                            question.answer ?? '',
-                          )
-                        }
+                        onClick={() => answerPreDeterminedQuestion(question)}
                         className="mr-2 max-w-[300px] cursor-pointer rounded-xl border-2 border-blue-900 bg-transparent px-3 py-2 text-blue-900 transition hover:bg-blue-900 hover:text-white"
                       >
-                        {question.question}
+                        {question.pageContent}
                       </div>
                     </div>
                   ))}
@@ -477,7 +485,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 </Space.Compact>
                 {userInfo.chat_token && questionsLeft < 100 && (
                   <Card.Meta
-                    description={`You can ask the chatbot ${questionsLeft} more question${questionsLeft > 1 ? 's' : ''} today`}
+                    description={`You can ask the chatbot ${questionsLeft} more question${
+                      questionsLeft > 1 ? 's' : ''
+                    } today`}
                     className="mt-3"
                   />
                 )}

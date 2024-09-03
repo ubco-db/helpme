@@ -5,24 +5,18 @@ import {
   UseGuards,
   Patch,
   Delete,
-  Param,
-  Query,
-  Get,
-  ParseIntPipe,
 } from '@nestjs/common';
-import { ChatDocument, ChatQuestion, ChatbotService } from './chatbot.service';
+import { ChatbotService } from './chatbot.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { InteractionModel } from './interaction.entity';
 import { ChatbotQuestionModel } from './question.entity';
-import { InteractionParams } from '@koh/common';
-import { ChatbotDocumentModel } from './chatbotDocument.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { ChatbotQuestion, InteractionParams } from '@koh/common';
+import { InteractionModel } from './interaction.entity';
 
 @Controller('chatbot')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class ChatbotController {
   constructor(private readonly ChatbotService: ChatbotService) {}
-
   @Post('interaction')
   async addInteraction(
     @Body() body: InteractionParams,
@@ -30,24 +24,9 @@ export class ChatbotController {
     return await this.ChatbotService.createInteraction(body);
   }
 
-  @Get('question')
-  async getQuestions(
-    @Query('questionText') questionText: string,
-    @Query('pageSize') pageSize: number,
-    @Query('currentPage') currentPage: number,
-    @Query('cid') cid: number,
-  ): Promise<{ chatQuestions: ChatQuestion[]; total: number }> {
-    return await this.ChatbotService.getQuestions(
-      questionText,
-      pageSize,
-      currentPage,
-      cid,
-    );
-  }
-
   @Post('question')
   async addQuestion(
-    @Body() body: { userScore: number; suggested: boolean },
+    @Body() body: ChatbotQuestion,
   ): Promise<ChatbotQuestionModel> {
     return await this.ChatbotService.createQuestion(body);
   }
@@ -55,43 +34,13 @@ export class ChatbotController {
   @Patch('question')
   async editQuestion(
     @Body()
-    body: {
-      data: { userScore: number; suggested: boolean };
-      questionId: number;
-    },
+    body: ChatbotQuestion,
   ) {
-    return await this.ChatbotService.editQuestion(body.data, body.questionId);
+    return await this.ChatbotService.editQuestion(body);
   }
 
   @Delete('question')
   async deleteQuestion(@Body() body: { questionId: number }) {
     return await this.ChatbotService.deleteQuestion(body.questionId);
-  }
-
-  @Get(':courseId/document')
-  async getDocuments(
-    @Param('courseId', ParseIntPipe) courseId: number,
-    @Query('searchText') searchText: string,
-    @Query('pageSize', ParseIntPipe) pageSize: number,
-    @Query('currentPage', ParseIntPipe) currentPage: number,
-  ): Promise<{ chatDocuments: ChatDocument[]; total: number }> {
-    return await this.ChatbotService.getDocuments(
-      courseId,
-      searchText,
-      pageSize,
-      currentPage,
-    );
-  }
-
-  @Post('document')
-  async addDocument(
-    @Body() body: any, //ChatbotQuestionParams
-  ): Promise<ChatbotDocumentModel> {
-    return await this.ChatbotService.addDocument(body.data, body.courseId);
-  }
-
-  @Delete('document')
-  async deleteDocument(@Body() body: { documentId: number }) {
-    return await this.ChatbotService.deleteDocument(body.documentId);
   }
 }

@@ -17,7 +17,7 @@ import { UserCourseModel } from '../profile/user-course.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { SemesterModel } from '../semester/semester.entity';
 import { OrganizationCourseModel } from '../organization/organization-course.entity';
-import { ChatbotDocumentModel } from '../chatbot/chatbotDocument.entity';
+import { InteractionModel } from 'chatbot/interaction.entity';
 import { CourseSettingsModel } from './course_settings.entity';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
@@ -50,13 +50,13 @@ export class CourseModel extends BaseEntity {
   @Exclude()
   questionTimer: number;
 
-  @OneToMany((type) => ChatbotDocumentModel, (document) => document.course)
-  @JoinColumn({ name: 'course' })
-  chatbotDocuments: ChatbotDocumentModel[];
-
   @OneToMany((type) => UserCourseModel, (ucm) => ucm.course)
   @Exclude()
   userCourses: UserCourseModel[];
+
+  @OneToMany((type) => InteractionModel, (interaction) => interaction.course)
+  @Exclude()
+  interactions: InteractionModel[];
 
   @ManyToOne((type) => SemesterModel, (semester) => semester.courses)
   @JoinColumn({ name: 'semesterId' })

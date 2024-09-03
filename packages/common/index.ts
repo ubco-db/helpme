@@ -224,12 +224,26 @@ export enum AccountType {
 
 // chatbot questions and interactions
 
-export class ChatbotQuestion {
-  id!: number
-  interactionId!: number
-  questionText!: string
+export interface ChatbotQuestion {
+  id?: number
+  interactionId?: number
+  questionText?: string
   responseText?: string
-  timestamp!: Date
+  timestamp?: Date
+  userScore?: number
+  suggested?: boolean
+  isPreviousQuestion?: boolean
+  vectorStoreId?: string
+}
+
+export interface ChatbotRequestParams {
+  interactionId: number
+  questionText: string
+  responseText: string
+  userScore?: number
+  suggested?: boolean
+  isPreviousQuestion?: boolean
+  vectorStoreId: string
 }
 
 export class Interaction {
@@ -1019,33 +1033,6 @@ export class UpdateOrganizationCourseDetailsParams {
   @IsArray()
   @IsOptional()
   courseSettings?: Array<CourseSettingsRequestBody>
-}
-
-export class ChatBotQuestionParams {
-  @IsInt()
-  interactionId?: number
-
-  @IsString()
-  questionText?: string
-
-  @IsString()
-  responseText?: string
-
-  @IsBoolean()
-  suggested?: boolean
-
-  @IsInt()
-  userScore?: number
-
-  @IsString()
-  vectorStoreId?: string
-
-  @IsArray()
-  sourceDocuments?: {
-    name: string
-    type: string
-    parts: string[]
-  }[]
 }
 
 export class DocumentParams {

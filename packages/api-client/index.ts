@@ -11,7 +11,6 @@ import {
   GetInsightOutputResponse,
   GetProfileResponse,
   GetQueueResponse,
-  GroupQuestionsParams,
   ListInsightsResponse,
   ListQuestionsResponse,
   EditCourseInfoParams,
@@ -34,7 +33,6 @@ import {
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
   ChatbotQuestion,
-  ChatBotQuestionParams,
   UpdateOrganizationCourseDetailsParams,
   Interaction,
   OrganizationResponse,
@@ -148,20 +146,21 @@ class APIClient {
         undefined,
       ),
 
-    createQuestion: async (
-      body: ChatBotQuestionParams,
-    ): Promise<ChatbotQuestion> =>
+    createQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> =>
       this.req('POST', `/api/v1/chatbot/question`, undefined, body),
 
-    editQuestion: async (body: {
-      data: ChatBotQuestionParams
-      questionId: number
-    }): Promise<ChatbotQuestion> =>
-      this.req('PATCH', `/api/v1/chatbot/question`, undefined, body),
-
-    deleteQuestion: async (
-      body: ChatBotQuestionParams,
+    editQuestion: async (
+      body: ChatbotQuestion,
+      questionId: number,
     ): Promise<ChatbotQuestion> =>
+      this.req(
+        'PATCH',
+        `/api/v1/chatbot/question/${questionId}`,
+        undefined,
+        body,
+      ),
+
+    deleteQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> =>
       this.req('DELETE', `/api/v1/chatbot/question`, undefined, body),
 
     getDocuments: async (

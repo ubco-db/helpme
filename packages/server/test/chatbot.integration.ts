@@ -1,5 +1,5 @@
 import { ChatbotModule } from 'chatbot/chatbot.module';
-import { ChatBotQuestionParams } from '@koh/common';
+import { ChatbotQuestion } from '@koh/common';
 import {
   InteractionFactory,
   UserFactory,
@@ -38,25 +38,13 @@ describe('ChatbotController Integration', () => {
     });
     const interaction = await InteractionFactory.create({ user, course });
 
-    const questionData: ChatBotQuestionParams = {
+    const questionData: ChatbotQuestion = {
       interactionId: interaction.id,
       questionText: 'How does photosynthesis work?',
       responseText: 'Photosynthesis is the process by which plants...',
       suggested: true,
       userScore: 5,
       vectorStoreId: '1',
-      sourceDocuments: [
-        {
-          name: 'Botany Textbook',
-          type: 'book',
-          parts: ['Chapter 2', 'Section 3'],
-        },
-        {
-          name: 'Scientific Article',
-          type: 'article',
-          parts: ['Abstract', 'Introduction'],
-        },
-      ],
     };
 
     await supertest({ userId: 1 })
@@ -74,24 +62,12 @@ describe('ChatbotController Integration', () => {
     });
     const interaction = await InteractionFactory.create({ user, course });
 
-    const questionData: ChatBotQuestionParams = {
+    const questionData: ChatbotQuestion = {
       interactionId: interaction.id,
       questionText: 'How does photosynthesis work?',
       responseText: 'Photosynthesis is the process by which plants...',
       suggested: true,
       userScore: 5,
-      sourceDocuments: [
-        {
-          name: 'Botany Textbook',
-          type: 'book',
-          parts: ['Chapter 2', 'Section 3'],
-        },
-        {
-          name: 'Scientific Article',
-          type: 'article',
-          parts: ['Abstract', 'Introduction'],
-        },
-      ],
     };
     const createdQuestion =
       await ChatbotQuestionModel.create(questionData).save();

@@ -5,25 +5,23 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
-  OneToMany,
 } from 'typeorm';
 import { InteractionModel } from './interaction.entity';
-import { QuestionDocumentModel } from './questionDocument.entity';
 // each chatbot_question links to one interaction
 @Entity('chatbot_questions_model')
 export class ChatbotQuestionModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   public id: number;
 
-  @Column({ nullable: true }) // If vectorstore gets reset
+  @Column({ nullable: true })
   vectorStoreId: string;
+
+  @Column({ nullable: true })
+  interactionId: number;
 
   @ManyToOne(() => InteractionModel)
   @JoinColumn({ name: 'interaction' })
   interaction: InteractionModel;
-
-  @Column({ nullable: true })
-  interactionId: number;
 
   @Column()
   questionText: string;
@@ -38,9 +36,8 @@ export class ChatbotQuestionModel extends BaseEntity {
   userScore: number;
 
   @Column({ default: false })
-  suggested: boolean;
+  isPreviousQuestion: boolean;
 
-  @OneToMany((type) => QuestionDocumentModel, (document) => document.question)
-  @JoinColumn({ name: 'question' })
-  sourceDocuments: QuestionDocumentModel[];
+  @Column({ default: false })
+  suggested: boolean;
 }

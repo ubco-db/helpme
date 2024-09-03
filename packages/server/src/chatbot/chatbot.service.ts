@@ -3,14 +3,7 @@ import { InteractionModel } from './interaction.entity';
 import { ChatbotQuestionModel } from './question.entity';
 import { CourseModel } from '../course/course.entity';
 import { UserModel } from '../profile/user.entity';
-import {
-  ChatBotQuestionParams,
-  DocumentParams,
-  InteractionParams,
-} from '@koh/common';
-import { QuestionDocumentModel } from './questionDocument.entity';
-import { createQueryBuilder } from 'typeorm';
-import { ChatbotDocumentModel } from './chatbotDocument.entity';
+import { ChatbotQuestion, InteractionParams } from '@koh/common';
 
 export interface ChatbotResponse {
   answer: string;
@@ -74,61 +67,7 @@ export class ChatbotService {
     return await interaction.save();
   }
 
-  async getQuestions(
-    questionText: string,
-    pageSize: number,
-    currentPage: number,
-    cid: number,
-  ): Promise<{
-    chatQuestions: ChatQuestion[];
-    total: number;
-  }> {
-    const skip = pageSize * (currentPage - 1);
-    const limit = pageSize;
-
-    const questions = await createQueryBuilder('chatbot_questions_model', 'q')
-      .leftJoinAndSelect('q.sourceDocuments', 's')
-      .innerJoinAndSelect('q.interaction', 'i')
-      .innerJoinAndSelect('i.user', 'u')
-      .where('q.questionText like :questionText and i.course= :cid', {
-        questionText: `%${questionText}%`,
-        cid: `${cid}`,
-      })
-      .skip(skip)
-      .take(limit)
-      .orderBy('q.id', 'ASC')
-      .getMany();
-
-    const formattedQuestions: ChatQuestion[] = questions.map(
-      (question: any) => ({
-        id: question.id,
-        question: question.questionText,
-        answer: question.responseText,
-        user: `${question.interaction.user.firstName} ${question.interaction.user.lastName}`,
-        sourceDocuments: question.sourceDocuments.map((sourceDocument) => ({
-          name: sourceDocument.name,
-          type: sourceDocument.type,
-          parts: sourceDocument.parts,
-        })),
-        suggested: question.suggested,
-      }),
-    );
-
-    const total = await createQueryBuilder('chatbot_questions_model', 'q')
-      .where('q.questionText like :questionText', {
-        questionText: `%${questionText}%`,
-      })
-      .getCount();
-
-    return {
-      chatQuestions: formattedQuestions,
-      total: total,
-    };
-  }
-
-  async createQuestion(
-    data: ChatBotQuestionParams,
-  ): Promise<ChatbotQuestionModel> {
+  async createQuestion(data: ChatbotQuestion): Promise<ChatbotQuestionModel> {
     if (!data.questionText || !data.responseText || !data.vectorStoreId) {
       throw new HttpException(
         'Missing question properties.',
@@ -146,34 +85,21 @@ export class ChatbotService {
 
     const question = ChatbotQuestionModel.create({
       interaction,
-      interactionId: data.interactionId,
       questionText: data.questionText,
       responseText: data.responseText,
       suggested: data.suggested,
+      timestamp: new Date(),
       vectorStoreId: data.vectorStoreId,
+      isPreviousQuestion: data.isPreviousQuestion,
     });
 
     await question.save();
 
-    if (data.sourceDocuments) {
-      const questionDocuments = data.sourceDocuments.map((sourceDocument) => ({
-        ...sourceDocument,
-        question,
-        questionId: question.id,
-      }));
-
-      const documents = QuestionDocumentModel.create(questionDocuments);
-      await QuestionDocumentModel.save(documents);
-    }
-
     return question;
   }
 
-  async editQuestion(
-    data: { userScore: number; suggested: boolean },
-    questionId: number,
-  ) {
-    const question = await ChatbotQuestionModel.findOne(questionId);
+  async editQuestion(data: ChatbotQuestion): Promise<ChatbotQuestionModel> {
+    const question = await ChatbotQuestionModel.findOne(data.id);
     if (!question) {
       throw new HttpException(
         'Question not found based on the provided ID.',
@@ -196,85 +122,5 @@ export class ChatbotService {
     }
 
     return await chatQuestion.remove();
-  }
-
-  async getDocuments(
-    courseId: number,
-    searchText: string,
-    pageSize: number,
-    currentPage: number,
-  ): Promise<{
-    chatDocuments: ChatDocument[];
-    total: number;
-  }> {
-    const skip = pageSize * (currentPage - 1);
-    const limit = pageSize;
-    console.log(courseId);
-    const documents = await createQueryBuilder('chatbot_document_model', 'd')
-      .leftJoinAndSelect('d.course', 'c')
-      .where('d.name like :searchText AND d.course=:courseId', {
-        searchText: `%${searchText}%`,
-        courseId: courseId,
-      })
-      .skip(skip)
-      .take(limit)
-      .orderBy('d.id', 'ASC')
-      .getMany();
-
-    const formattedDocuments: ChatDocument[] = documents.map(
-      (document: any) => ({
-        id: document.id,
-        name: document.name,
-        type: document.type,
-        subDocumentIds: document.subDocumentIds,
-      }),
-    );
-
-    const total = await createQueryBuilder('chatbot_document_model', 'd')
-      .where('d.name like :searchText AND d.course=:courseId', {
-        searchText: `%${searchText}%`,
-        courseId: courseId,
-      })
-      .getCount();
-
-    return {
-      chatDocuments: formattedDocuments,
-      total: total,
-    };
-  }
-
-  async addDocument(
-    data: DocumentParams,
-    courseId: number,
-  ): Promise<ChatbotDocumentModel> {
-    if (!data.name || !data.type || !data.subDocumentIds) {
-      throw new HttpException(
-        'Missing question properties.',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    const course = await CourseModel.findOne(courseId);
-    if (!course) {
-      throw new HttpException(
-        'Course not found based on the provided ID.',
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    const document = ChatbotDocumentModel.create({
-      course,
-      name: data.name,
-      type: data.type,
-      subDocumentIds: data.subDocumentIds,
-    });
-
-    return await document.save();
-  }
-
-  async deleteDocument(documentId: number) {
-    const chatbotDocument = await ChatbotDocumentModel.findOne(documentId);
-
-    return await chatbotDocument.remove();
   }
 }

@@ -275,7 +275,16 @@ export default function ChatbotDocuments({
               <Form.Item label="Source" name="source">
                 <Input />
               </Form.Item>
-              <Form.Item label="Page Number" name="pageNumber">
+              <Form.Item
+                label="Page Number"
+                name="pageNumber"
+                rules={[
+                  {
+                    type: 'url',
+                    message: 'Please enter a valid URL',
+                  },
+                ]}
+              >
                 <Input />
               </Form.Item>
               <div className="mt-4 flex justify-end">
