@@ -78,14 +78,22 @@ export class OrganizationController {
     @Res() res: Response,
     @Param('oid') oid: number,
   ): Promise<Response<void>> {
-    return ChatTokenModel.query(`
+    await ChatTokenModel.query(`
       UPDATE public.chat_token_model
       SET used = 0, max_uses = CASE
-        WHEN (SELECT user_course_model.role FROM user_course_model WHERE "userId" = public.chat_token_model.user) = 'professor' THEN 300
+        WHEN EXISTS (
+          SELECT 1 
+          FROM user_course_model 
+          WHERE "userId" = public.chat_token_model.user 
+          AND role = 'professor'
+        ) THEN 300
         ELSE 30
       END
     `);
+
+    return res.sendStatus(200);
   }
+
   @Post(':oid/populate_subscription_table')
   @UseGuards(
     JwtAuthGuard,
