@@ -53,13 +53,14 @@ import Jimp from 'jimp';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SemesterModel } from 'semester/semester.entity';
-import { In } from 'typeorm';
+import { getManager, In } from 'typeorm';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import _, { isNumber } from 'lodash';
+import { MailServiceModel } from 'mail/mail-services.entity';
 
 @Controller('organization')
 export class OrganizationController {
@@ -84,6 +85,135 @@ export class OrganizationController {
         ELSE 30
       END
     `);
+  }
+  @Post(':oid/populate_subscription_table')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN)
+  async populateSubscriptionTable(
+    @Res() res: Response,
+    @Param('oid') oid: number,
+  ): Promise<Response<void>> {
+    try {
+      const entityManager = getManager();
+
+      // Get all users for the organization with their roles
+      const orgUsers = await entityManager.query(
+        `
+        SELECT  "userId", ou."role"
+        FROM organization_user_model ou
+        WHERE ou."organizationId" = $1
+      `,
+        [oid],
+      );
+
+      // Get all mail services
+      const mailServices = await entityManager.query(`
+        SELECT id, "mailType", "serviceType"
+        FROM mail_services
+      `);
+
+      // Prepare arrays for bulk insert
+      const subscriptionsToInsert = [];
+
+      for (const user of orgUsers) {
+        for (const service of mailServices) {
+          let shouldSubscribe = true;
+          let isEnabled = true;
+
+          if (user.role === 'member') {
+            // Members only subscribe to member services
+            shouldSubscribe = service.mailType === 'member';
+          } else {
+            // Non-members subscribe to all, but member services are disabled
+            isEnabled = service.mailType !== 'member';
+          }
+
+          if (shouldSubscribe) {
+            subscriptionsToInsert.push([user.userId, service.id, isEnabled]);
+          }
+        }
+      }
+
+      // Bulk insert subscriptions
+      if (subscriptionsToInsert.length > 0) {
+        await entityManager.query(
+          `
+          INSERT INTO user_subscriptions ("userId", "serviceId", "isSubscribed")
+          SELECT u, s, e
+          FROM unnest($1::int[], $2::int[], $3::boolean[]) AS t(u, s, e)
+          WHERE NOT EXISTS (
+            SELECT 1 
+            FROM user_subscriptions us
+            WHERE us."userId" = t.u AND us."serviceId" = t.s
+          )
+        `,
+          [
+            subscriptionsToInsert.map((s) => s[0]),
+            subscriptionsToInsert.map((s) => s[1]),
+            subscriptionsToInsert.map((s) => s[2]),
+          ],
+        );
+      }
+
+      return res.status(HttpStatus.OK).send({
+        message: 'Subscription table populated',
+      });
+    } catch (error) {
+      console.error('Error populating subscription table:', error);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        message: 'Error populating subscription table',
+        error: error.message,
+      });
+    }
+  }
+
+  @Post(':oid/populate_chat_token_table')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN)
+  async populateChatTokenTable(
+    @Res() res: Response,
+    @Param('oid') oid: number,
+  ): Promise<Response<void>> {
+    const organizationUsers = await OrganizationUserModel.find({
+      where: {
+        organizationId: oid,
+      },
+      relations: ['organizationUser', 'organizationUser.chat_token'],
+    });
+
+    let chatTokenCount = 0;
+    organizationUsers.forEach(async (organizationUser) => {
+      const ou = organizationUser.organizationUser;
+
+      if (!ou.chat_token) {
+        await ChatTokenModel.create({
+          user: ou,
+          token: v4(),
+        }).save();
+      } else {
+        chatTokenCount += 1;
+      }
+    });
+
+    if (chatTokenCount === organizationUsers.length) {
+      return res.status(HttpStatus.OK).send({
+        message: 'Chat token table already populated',
+      });
+    }
+
+    return res.status(HttpStatus.OK).send({
+      message: 'Chat token table populated',
+    });
   }
 
   @Post(':oid/create_course')
