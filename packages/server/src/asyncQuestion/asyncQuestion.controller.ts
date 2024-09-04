@@ -54,7 +54,7 @@ export class asyncQuestionController {
   ): Promise<Response> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
-      relations: ['course'],
+      relations: ['course', 'creator'],
     });
 
     if (!question) {
@@ -96,6 +96,33 @@ export class asyncQuestionController {
       `c:${question.course.id}:aq`,
       updatedQuestion,
     );
+
+    // Check if the question was upvoted and send email if subscribed
+    if (vote > 0 && user.id !== question.creator.id) {
+      const subscription = await UserSubscriptionModel.findOne({
+        where: {
+          userId: question.creator.id,
+          isSubscribed: true,
+          service: {
+            serviceType: MailServiceType.ASYNC_QUESTION_UPVOTED,
+          },
+        },
+        relations: ['service'],
+      });
+
+      if (subscription) {
+        const service = subscription.service;
+        await this.mailService.sendEmail({
+          receiver: question.creator.email,
+          type: service.serviceType,
+          subject: 'HelpMe - Your Anytime Question Has Been Upvoted',
+          content: `<br> <b>Your question on the anytime question hub has received an upvote:</b> 
+          <br> Question: ${question.questionText}
+          <br> Current votes: ${updatedQuestion.votesSum}
+          <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
+        });
+      }
+    }
 
     return res.status(HttpStatus.OK).send({
       questionSumVotes: updatedQuestion.votesSum,
@@ -303,16 +330,16 @@ export class asyncQuestionController {
       }
     });
 
-    if (
-      body.status === asyncQuestionStatus.HumanAnswered ||
-      body.status === asyncQuestionStatus.AIAnsweredResolved
-    ) {
+    if (body.status === asyncQuestionStatus.HumanAnswered) {
       question.closedAt = new Date();
       question.taHelpedId = user.id;
       const subscription = await UserSubscriptionModel.findOne({
         where: {
-          user: { id: question.creator.id },
-          service: { name: 'async_question_human_answered' },
+          userId: question.creator.id,
+          isSubscribed: true,
+          service: {
+            serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
+          },
         },
         relations: ['service'],
       });
@@ -328,8 +355,31 @@ export class asyncQuestionController {
           <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
         });
       }
-    }
+    } else {
+      //send generic your async question changed.
+      const statusChangeSubscription = await UserSubscriptionModel.findOne({
+        where: {
+          userId: question.creator.id,
+          isSubscribed: true,
+          service: {
+            serviceType: MailServiceType.ASYNC_QUESTION_STATUS_CHANGED,
+          },
+        },
+        relations: ['service'],
+      });
 
+      if (statusChangeSubscription) {
+        const service = statusChangeSubscription.service;
+        await this.mailService.sendEmail({
+          receiver: question.creator.email,
+          type: service.serviceType,
+          subject: 'HelpMe - Your Anytime Question Status Has Changed',
+          content: `<br> <b>The status of your question on the anytime question hub has been updated:</b> 
+          <br> New status: ${body.status}
+          <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
+        });
+      }
+    }
     const updatedQuestion = await question.save();
 
     if (

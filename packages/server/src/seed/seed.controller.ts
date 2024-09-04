@@ -196,6 +196,19 @@ export class SeedController {
       content: 'Your anytime question has been answered by faculty',
     });
 
+    const studentMailService2 = await mailServiceFactory.create({
+      mailType: OrganizationRole.MEMBER,
+      serviceType: MailServiceType.ASYNC_QUESTION_STATUS_CHANGED,
+      name: 'Notify when the status of your anytime question has changed',
+      content: 'The status of your anytime question has been updated',
+    });
+
+    const studentMailService3 = await mailServiceFactory.create({
+      mailType: OrganizationRole.MEMBER,
+      serviceType: MailServiceType.ASYNC_QUESTION_UPVOTED,
+      name: 'Notify when your anytime question has been upvoted',
+      content: 'Your anytime question has received an upvote',
+    });
     const courseExists = await CourseModel.findOne({
       where: { name: 'CS 304' },
     });
@@ -259,6 +272,18 @@ export class SeedController {
         isSubscribed: true,
         user: user1,
         service: studentMailService,
+      });
+
+      await userSubscriptionFactory.create({
+        isSubscribed: true,
+        user: user1,
+        service: studentMailService2,
+      });
+
+      await userSubscriptionFactory.create({
+        isSubscribed: true,
+        user: user1,
+        service: studentMailService3,
       });
 
       // Student 2

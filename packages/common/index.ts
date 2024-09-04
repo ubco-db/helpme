@@ -202,6 +202,8 @@ export const COURSE_TIMEZONES = [
 export enum MailServiceType {
   ASYNC_QUESTION_HUMAN_ANSWERED = 'async_question_human_answered',
   ASYNC_QUESTION_FLAGGED = 'async_question_flagged',
+  ASYNC_QUESTION_STATUS_CHANGED = 'async_question_status_changed',
+  ASYNC_QUESTION_UPVOTED = 'async_question_upvoted',
 }
 /**
  * Represents one of three possible user roles in a course.
