@@ -78,18 +78,29 @@ export class OrganizationController {
     @Res() res: Response,
     @Param('oid') oid: number,
   ): Promise<Response<void>> {
-    await ChatTokenModel.query(`
+    // Reset chat token limit for the organization
+    await ChatTokenModel.query(
+      `
       UPDATE public.chat_token_model
-      SET used = 0, max_uses = CASE
-        WHEN EXISTS (
-          SELECT 1 
-          FROM user_course_model 
-          WHERE "userId" = public.chat_token_model.user 
-          AND role = 'professor'
-        ) THEN 300
-        ELSE 30
-      END
-    `);
+      SET used = 0, 
+          max_uses = CASE
+            WHEN EXISTS (
+              SELECT 1 
+              FROM organization_user_model
+              WHERE organization_user_model."userId" = public.chat_token_model.user
+                AND organization_user_model.role != 'member'
+                AND organization_user_model."organizationId" = $1
+            ) THEN 300
+            ELSE 30
+          END 
+      WHERE public.chat_token_model.user IN (
+        SELECT "userId"
+        FROM organization_user_model
+        WHERE "organizationId" = $1
+      )
+    `,
+      [oid],
+    );
 
     return res.sendStatus(200);
   }
