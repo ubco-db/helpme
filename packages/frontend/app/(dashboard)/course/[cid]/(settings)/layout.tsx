@@ -12,27 +12,26 @@ export default async function Layout({
   children: React.ReactNode
 }) {
   const profile: User = await (await userApi.getUser()).json()
+  const cid = Number(params.cid)
 
   if (!profile) {
     redirect(`/course/${params.cid}`)
   }
 
-  const courseRole = profile.courses.find(
-    (e) => e.course.id === Number(params.cid),
-  )?.role
+  const courseRole = profile.courses.find((e) => e.course.id === cid)?.role
 
   if (courseRole !== Role.PROFESSOR && courseRole !== Role.TA) {
     redirect(`/course/${params.cid}`)
   }
 
-  const courseFeatures = await courseApi.getCourseFeatures(Number(params.cid))
+  const courseFeatures = await courseApi.getCourseFeatures(cid)
 
   return (
     <div className="mb-10 mt-2 flex flex-col space-y-3 md:flex-row md:space-x-3 md:space-y-0">
       <CourseSettingsMenu
         courseRole={courseRole}
         courseFeatures={courseFeatures}
-        courseId={Number(params.cid)}
+        courseId={cid}
       />
       <div className="flex-1">{children}</div>
     </div>

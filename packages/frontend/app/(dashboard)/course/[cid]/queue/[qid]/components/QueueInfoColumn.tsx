@@ -28,29 +28,30 @@ import TagGroupSwitch from './TagGroupSwitch'
 import StaffList from './StaffList'
 
 interface QueueInfoColumnProps {
+  cid: number
   queueId: number
   isStaff: boolean
   buttons: ReactNode
   hasDemos: boolean
   tagGroupsEnabled: boolean
   setTagGroupsEnabled: (tagGroupsEnabled: boolean) => void
+  staffListHidden: boolean
+  setStaffListHidden: (hidden: boolean) => void
 }
 
 const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
+  cid,
   queueId,
   isStaff,
   buttons,
   hasDemos,
   tagGroupsEnabled,
   setTagGroupsEnabled,
+  staffListHidden,
+  setStaffListHidden,
 }) => {
   const { queue } = useQueue(queueId)
-  const [staffListHidden, setStaffListHidden] = useState(false)
   const router = useRouter()
-  const pathname = usePathname()
-  const URLSegments = pathname.split('/')
-  const courseIdString =
-    URLSegments[1] === 'course' && URLSegments[2] ? URLSegments[2] : ''
 
   // const [away, setAway] = useState(false);
   // const checkAway = (checked: boolean) => {
@@ -150,12 +151,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
           </Popconfirm>
           <DisableQueueButton
             onClick={() =>
-              confirmDisable(
-                queueId,
-                queue,
-                router,
-                `/course/${courseIdString}`,
-              )
+              confirmDisable(queueId, queue, router, `/course/${cid}`)
             }
             disabled={queue?.isDisabled}
             icon={<DeleteOutlined />}

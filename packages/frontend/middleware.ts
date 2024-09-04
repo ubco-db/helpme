@@ -78,11 +78,12 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/verify', url))
       }
 
-      // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by organization admin
+      // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by organization admin (or professor)
       if (
         nextUrl.pathname.startsWith('/organization') &&
         userData.organization &&
-        userData.organization.organizationRole !== OrganizationRole.ADMIN
+        userData.organization.organizationRole !== OrganizationRole.ADMIN &&
+        userData.organization.organizationRole !== OrganizationRole.PROFESSOR
       ) {
         return NextResponse.redirect(new URL('/courses', url))
       }

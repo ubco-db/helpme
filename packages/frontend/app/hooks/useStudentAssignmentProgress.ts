@@ -10,12 +10,15 @@ export function useStudentAssignmentProgress(
   assignmentId: string | undefined,
   isDemoQueue: boolean,
   isStaff: boolean,
-): StudentAssignmentProgress | undefined {
+): [StudentAssignmentProgress | undefined, () => void] {
   const key =
     cid && userId && assignmentId
       ? `/api/studentTaskProgress/student/${userId}/${cid}/${assignmentId}`
       : null
-  const { data: studentAssignmentProgress } = useSWR(key, async () => {
+  const {
+    data: studentAssignmentProgress,
+    mutate: mutateStudentAssignmentProgress,
+  } = useSWR(key, async () => {
     if (isDemoQueue && assignmentId && !isStaff) {
       return await API.studentTaskProgress.getAssignmentProgress(
         userId,
@@ -26,5 +29,5 @@ export function useStudentAssignmentProgress(
       return undefined
     }
   })
-  return studentAssignmentProgress
+  return [studentAssignmentProgress, mutateStudentAssignmentProgress]
 }

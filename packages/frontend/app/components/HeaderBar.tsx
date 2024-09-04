@@ -258,7 +258,7 @@ const NavBar = ({
                   }
                 >
                   <Link
-                    href={`/course/${courseId}/settings${role === Role.TA ? '/export_data' : ''}`}
+                    href={`/course/${courseId}/settings${role === Role.TA ? '/edit_questions' : ''}`}
                   >
                     <Settings strokeWidth={1.5} className="mr-3" />
                     Course Settings

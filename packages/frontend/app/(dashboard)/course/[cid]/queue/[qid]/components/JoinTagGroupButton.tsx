@@ -113,7 +113,7 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
         // If leaving the tag group, remove the questionType (for tag) or remove off the task from the question text
         if (questionType) {
           if (!studentQuestion) {
-            console.error('Error: Student does not have a question to leave')
+            message.error('Error: Student does not have a question to leave')
             return
           }
           if (
@@ -139,7 +139,7 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
           }
         } else if (taskId) {
           if (!studentDemo) {
-            console.error('Error: Student does not have a task to leave')
+            message.error('Error: Student does not have a task to leave')
             return
           }
           if (studentDemo.text === `Mark "${taskId}"`) {
@@ -165,7 +165,8 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
       setIsJoined(!isJoined)
     } catch (e) {
       const errorMessage = getErrorMessage(e)
-      message.error('Error:' + errorMessage)
+      // The main errors that can be thrown are from createQuestion and updateQuestion, which already display an error message to the user.
+      console.error('Error:' + errorMessage)
     }
     setIsLoading(false)
   }

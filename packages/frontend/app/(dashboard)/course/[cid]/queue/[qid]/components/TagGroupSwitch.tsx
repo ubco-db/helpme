@@ -17,6 +17,7 @@ const TagGroupSwitch: React.FC<{
       )}
       size="small"
       defaultChecked={tagGroupsEnabled}
+      value={tagGroupsEnabled}
       onChange={() => {
         setTimeout(() => {
           // do a timeout to allow the animation to play

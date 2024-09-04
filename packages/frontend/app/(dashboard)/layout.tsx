@@ -63,7 +63,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               unoptimized
               src={`/api/v1/organization/${profile.organization.orgId}/get_banner/${profile.organization.organizationBannerUrl}`}
               alt="Organization Banner"
-              className="h-[20vh] w-full object-cover object-center"
+              className="h-[15vh] w-full object-cover object-center md:h-[20vh]"
               width={100}
               height={100}
             />

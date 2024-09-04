@@ -90,8 +90,12 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
         <title>{`HelpMe | ${course.name}`}</title>
         {(!onlyChatBotEnabled && (
           <div className="mt-8">
-            <Row gutter={64}>
-              <Col className="mb-4" md={12} xs={24}>
+            <Row gutter={64} className="!mx-0 md:!mx-2 lg:!mx-4 xl:!mx-8">
+              <Col
+                className="mb-4 !px-0 md:!px-2 lg:!px-4 xl:!px-8"
+                md={12}
+                xs={24}
+              >
                 <Row justify="space-between">
                   <h1 className="overflow-hidden whitespace-nowrap text-2xl font-semibold text-[#212934] md:text-3xl">
                     {course?.name} Help Centre
@@ -173,7 +177,11 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                   )
                 }
               </Col>
-              <Col className="mb-4 h-[100vh]" md={12} sm={24}>
+              <Col
+                className="mb-4 h-[100vh] !px-0 md:!px-2 lg:!px-4 xl:!px-8"
+                md={12}
+                sm={24}
+              >
                 {courseFeatures.queueEnabled &&
                 (!courseFeatures.chatBotEnabled ||
                   courseFeatures.scheduleOnFrontPage) ? (

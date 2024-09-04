@@ -17,10 +17,10 @@ export default function CoursesPage(): ReactElement {
       <OrganizationCard>
         <Image
           src={`/api/v1/organization/${userInfo?.organization?.orgId}/get_logo/${userInfo?.organization?.organizationLogoUrl}`}
-          className="h-15 object-contain object-center p-1"
+          className="mr-2 max-h-20 object-contain object-center p-1 md:max-h-80"
           alt="Organization Logo"
-          width={100}
-          height={100}
+          width={80}
+          height={80}
           unoptimized //needed otherwise next.js won't retrieve the url properly
         />
         <div>

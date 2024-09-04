@@ -112,8 +112,8 @@ export function getRoleInCourse(userInfo: User, courseId: number): Role {
  */
 export function getErrorMessage(e: any): any {
   return (
-    e.response?.data?.error ??
     e.response?.data?.message ??
+    e.response?.data?.error ??
     e.body?.message ??
     e.message ??
     e.statusText ?? // response.statusText from fetch
