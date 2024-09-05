@@ -144,43 +144,45 @@ export default function ChatbotQuestions({
       key: 'sourceDocuments',
       render: (sourceDocuments: SourceDocument[]) => {
         return (
-          <div className="flex flex-col gap-1">
-            {sourceDocuments.map((doc, index) => (
-              <div
-                className="flex w-fit max-w-[280px] flex-col overflow-hidden rounded-xl bg-slate-100 p-2"
-                key={index}
-              >
-                <div className="truncate font-semibold">
-                  {doc.sourceLink ? (
-                    <a
-                      href={doc.sourceLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {doc.docName}
-                    </a>
-                  ) : (
-                    <span>{doc.docName}</span>
-                  )}
+          <ExpandableText maxRows={3}>
+            <div className="flex flex-col gap-1">
+              {sourceDocuments.map((doc, index) => (
+                <div
+                  className="flex w-fit max-w-[280px] flex-col overflow-hidden rounded-xl bg-slate-100 p-2"
+                  key={index}
+                >
+                  <div className="truncate font-semibold">
+                    {doc.sourceLink ? (
+                      <a
+                        href={doc.sourceLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {doc.docName}
+                      </a>
+                    ) : (
+                      <span>{doc.docName}</span>
+                    )}
+                  </div>
+                  <div className="mt-1 flex  gap-1 text-xs">
+                    {doc.pageNumber ? (
+                      <div
+                        key={`${doc.docName}-${doc.pageNumber}`}
+                        className="whitespace-nowrap"
+                      >
+                        p.{doc.pageNumber}
+                      </div>
+                    ) : (
+                      <></>
+                    )}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-1 text-xs">
+                    {doc.type ? <></> : <span>{doc.content}</span>}
+                  </div>
                 </div>
-                <div className="mt-1 flex  gap-1 text-xs">
-                  {doc.pageNumber ? (
-                    <div
-                      key={`${doc.docName}-${doc.pageNumber}`}
-                      className="whitespace-nowrap"
-                    >
-                      p.{doc.pageNumber}
-                    </div>
-                  ) : (
-                    <></>
-                  )}
-                </div>
-                <div className="mt-1 flex flex-wrap gap-1 text-xs">
-                  {doc.type ? <></> : <span>{doc.content}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </ExpandableText>
         )
       },
     },
