@@ -1047,7 +1047,7 @@ export class CourseController {
     const query = `
     SELECT "queue_model".room AS room, "queue_invite_model".*
     FROM "queue_model"
-    RIGHT JOIN "queue_invite_model" ON ("queue_model".id = "queue_invite_model".queueId)
+    RIGHT JOIN "queue_invite_model" ON ("queue_model".id = "queue_invite_model"."queueId")
     WHERE "queue_model"."courseId" = $1
     ORDER BY room;
   `;

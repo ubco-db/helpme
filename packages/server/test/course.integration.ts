@@ -1973,18 +1973,20 @@ describe('Course Integration', () => {
       );
 
       expect(resp.status).toBe(200);
-      expect(resp.body).toContainEqual([
-        {
-          queueId: queue1.id,
-          room: queue1.room,
-          inviteCode: queueInvite1.inviteCode,
-        },
-        {
-          queueId: queue2.id,
-          room: queue2.room,
-          inviteCode: queueInvite2.inviteCode,
-        },
-      ]);
+      expect(resp.body).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            queueId: queue1.id,
+            room: queue1.room,
+            inviteCode: queueInvite1.inviteCode,
+          }),
+          expect.objectContaining({
+            queueId: queue2.id,
+            room: queue2.room,
+            inviteCode: queueInvite2.inviteCode,
+          }),
+        ]),
+      );
     });
   });
 });
