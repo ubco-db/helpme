@@ -380,7 +380,8 @@ export class QueueService {
       },
     });
 
-    if (!queueInvite) {
+    if (!queueInvite || queueInvite.inviteCode === '') {
+      // also don't let anyone in if the inviteCode is still the default
       throw new NotFoundException(); // while technically you should return a 400 if the inviteCode is wrong, instead returning a 404 is more sneaky since the user needs both the id AND invite
     }
 
