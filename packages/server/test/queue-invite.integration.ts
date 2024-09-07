@@ -2,6 +2,8 @@ import { QueueInviteParams } from '@koh/common';
 import { QueueModule } from '../src/queue/queue.module';
 import {
   CourseFactory,
+  OrganizationCourseFactory,
+  OrganizationFactory,
   QueueFactory,
   QueueInviteFactory,
   StudentCourseFactory,
@@ -233,6 +235,45 @@ describe('Queue Invite Integration', () => {
         .patch(`/queueInvites/${queue.id}`)
         .send(invalidInvite2)
         .expect(400);
+    });
+  });
+  describe('GET /queueInvites/:id', () => {
+    it('returns 200 when the invite exists and works publicly', async () => {
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        organization,
+        course,
+      });
+      const publicUser = await UserFactory.create();
+      const queue = await QueueFactory.create({ course });
+      const invite = await QueueInviteFactory.create({ queue: queue });
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/${queue.id}/invite-code`)
+        .expect(200);
+    });
+    it('returns 404 when the queue does not exist', async () => {
+      const publicUser = await UserFactory.create();
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/999/invite-code`)
+        .expect(404);
+    });
+    it('returns 404 when the invite is incorrect', async () => {
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        organization,
+        course,
+      });
+      const publicUser = await UserFactory.create();
+      const queue = await QueueFactory.create({ course });
+      const invite = await QueueInviteFactory.create({ queue: queue });
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/${queue.id}/incorrect-invite-code`)
+        .expect(404);
     });
   });
 });

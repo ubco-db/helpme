@@ -1,6 +1,7 @@
 import {
   ListQuestionsResponse,
   OpenQuestionStatus,
+  PublicQueueInvite,
   Question,
   QueueConfig,
   QueueInviteParams,
@@ -360,5 +361,53 @@ export class QueueService {
       );
     }
     return;
+  }
+
+  /**
+   * Gets the queue invite for the given queue.
+   * Accepts a parameter `inviteCode` which is the invite code for the queue.
+   * If isQuestionsVisible is true, the questions will be added.
+   * If willInviteToCourse is true, the course's invite code will be returned as well.
+   */
+  async getQueueInvite(
+    queueId: number,
+    inviteCode: string,
+  ): Promise<PublicQueueInvite> {
+    const queueInvite = await QueueInviteModel.findOne({
+      where: {
+        queueId,
+        inviteCode,
+      },
+    });
+
+    if (!queueInvite) {
+      throw new NotFoundException(); // while technically you should return a 400 if the inviteCode is wrong, instead returning a 404 is more sneaky since the user needs both the id AND invite
+    }
+
+    const queue = await QueueModel.findOne(queueId, {
+      relations: ['course', 'course.organizationCourse'],
+    });
+
+    if (!queue) {
+      throw new NotFoundException('Queue not found');
+    }
+
+    // Create a new PublicQueueInvite object
+    const queueInviteResponse: PublicQueueInvite = {
+      ...queueInvite,
+      orgId: queue.course.organizationCourse.organizationId,
+      courseId: queue.course.id,
+      room: queue.room,
+      queueSize: queue.queueSize,
+    };
+
+    // get course invite code
+    if (queueInvite.willInviteToCourse) {
+      queueInviteResponse.courseInviteCode = queue.course.courseInviteCode;
+    }
+
+    // TODO: add on the questions
+
+    return queueInviteResponse;
   }
 }

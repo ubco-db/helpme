@@ -337,6 +337,9 @@ export class QueuePartial {
   config?: QueueConfig
 }
 
+/**
+ * Used when editing QueueInvites
+ */
 export class QueueInviteParams {
   @IsInt()
   queueId!: number
@@ -352,6 +355,9 @@ export class QueueInviteParams {
   QRCodeErrorLevel!: 'L' | 'M'
 }
 
+/**
+ * Returned from getQueueInvites (for displaying all of them in courseSettings)
+ */
 export type QueueInvite = {
   queueId: number
   room: string
@@ -360,6 +366,24 @@ export type QueueInvite = {
   willInviteToCourse: boolean
   inviteCode: string
   QRCodeErrorLevel: 'L' | 'M'
+}
+
+/**
+ * This is the queue data that is publicly available for a queue invite page IF they give the right queue invite code
+ */
+export type PublicQueueInvite = {
+  orgId: number
+  courseId: number
+  queueId: number
+  room: string
+  QRCodeEnabled: boolean
+  isQuestionsVisible: boolean
+  willInviteToCourse: boolean
+  inviteCode: string // queue invite code
+  QRCodeErrorLevel: 'L' | 'M'
+  courseInviteCode?: string // course invite code only given if willInviteToCourse is true
+  queueAndQuestions?: SSEQueueResponse // only given if isQuestionsVisible is true
+  queueSize: number
 }
 
 // Represents a list of office hours wait times of each hour of the week.

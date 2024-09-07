@@ -1,9 +1,10 @@
-import { QueueInviteParams, Role } from '@koh/common';
+import { PublicQueueInvite, QueueInviteParams, Role } from '@koh/common';
 import {
   Body,
   ClassSerializerInterceptor,
   Controller,
   Delete,
+  Get,
   HttpStatus,
   Param,
   ParseIntPipe,
@@ -79,9 +80,34 @@ export class QueueInviteController {
     @Body() body: QueueInviteParams,
     @Res() res: Response,
   ): Promise<Response<void>> {
+    1;
     try {
       await this.queueService.editQueueInvite(queueId, body);
       res.status(HttpStatus.OK).send();
+      return;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  /**
+   * Gets the queue invite for the given queue. This is a public endpoint.
+   * Accepts a parameter `inviteCode` which is the invite code for the queue.
+   * If isQuestionsVisible is true, the questions will be added.
+   * If willInviteToCourse is true, the course's invite code will be returned as well.
+   */
+  @Get(':queueId/:inviteCode')
+  async getQueueInvite(
+    @Param('queueId', ParseIntPipe) queueId: number,
+    @Param('inviteCode') inviteCode: string,
+    @Res() res: Response,
+  ): Promise<Response<PublicQueueInvite>> {
+    try {
+      const invite = await this.queueService.getQueueInvite(
+        queueId,
+        inviteCode,
+      );
+      res.status(HttpStatus.OK).send(invite);
       return;
     } catch (err) {
       throw err;
