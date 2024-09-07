@@ -9,6 +9,7 @@ import {
   List,
   Modal,
   Pagination,
+  Popconfirm,
   Progress,
   Select,
   Table,
@@ -17,10 +18,10 @@ import {
 } from 'antd'
 import { ReactElement, useCallback, useEffect, useState } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { QueueInvite } from '@koh/common'
+import { QueueInvite, QueuePartial } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
-import { QuestionCircleOutlined } from '@ant-design/icons'
+import { DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import Link from 'next/link'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useCourse } from '@/app/hooks/useCourse'
@@ -37,6 +38,9 @@ export default function QueueInvitesPage({
   const [queueInvites, setQueueInvites] = useState<QueueInvite[]>([])
   const [isQueueInvitesLoading, setIsQueueInvitesLoading] = useState(true)
   const [selectedQueueId, setSelectedQueueId] = useState<string>('')
+  const [selectableQueues, setSelectableQueues] = useState<QueuePartial[]>([])
+  const isHttps = window.location.protocol === 'https:'
+  const baseURL = `${isHttps ? 'https' : 'http'}://${window.location.host}`
 
   const fetchQueueInvites = useCallback(async () => {
     try {
@@ -52,7 +56,7 @@ export default function QueueInvitesPage({
 
   useEffect(() => {
     fetchQueueInvites()
-  })
+  }, [fetchQueueInvites])
 
   const createQueueInvite = useCallback(async () => {
     const queueId = selectedQueueId
@@ -69,8 +73,28 @@ export default function QueueInvitesPage({
     }
   }, [fetchQueueInvites, selectedQueueId])
 
-  const isHttps = window.location.protocol === 'https:'
-  const baseURL = `${isHttps ? 'https' : 'http'}://${window.location.host}`
+  useEffect(() => {
+    // selectableQueues is all course queues minus the ones that already have invites
+    if (course && course.queues) {
+      const newSelectableQueues = course.queues.filter(
+        (queue) =>
+          !queueInvites.some((queueInvite) => queueInvite.queueId === queue.id),
+      )
+      setSelectableQueues(newSelectableQueues)
+      if (newSelectableQueues.length === 0) {
+        setSelectedQueueId('')
+      }
+      // if selectedQueueId is not in the new queueInvites, set it to the first newSelectableQueue
+      if (
+        newSelectableQueues.length > 0 &&
+        !newSelectableQueues.some(
+          (queue) => queue.id.toString() === selectedQueueId,
+        )
+      ) {
+        setSelectedQueueId(newSelectableQueues[0].id.toString())
+      }
+    }
+  }, [course, queueInvites, selectedQueueId])
 
   const handleQueueSelectChange = (value: string) => {
     console.log(`selected ${value}`)
@@ -89,10 +113,17 @@ export default function QueueInvitesPage({
               <Select
                 //defaultValue={}
                 placeholder="Select a queue"
-                value={selectedQueueId !== '' ? selectedQueueId : undefined}
+                value={
+                  selectableQueues.length === 0
+                    ? 'All queues have invites'
+                    : selectedQueueId !== ''
+                      ? selectedQueueId
+                      : undefined
+                }
+                disabled={selectableQueues.length === 0}
                 className="w-80"
                 onChange={handleQueueSelectChange}
-                options={course.queues.map((queue) => ({
+                options={selectableQueues.map((queue) => ({
                   value: queue.id.toString(),
                   label: queue.room,
                 }))}
@@ -154,7 +185,26 @@ export default function QueueInvitesPage({
                       )
                     }
                   />
-                  Item Content!
+                  <div className="flex justify-between">
+                    <Popconfirm
+                      title="Are you sure you want to delete this queue invite?"
+                      onConfirm={async () => {
+                        try {
+                          await API.queueInvites.delete(queueInvite.queueId)
+                          fetchQueueInvites()
+                        } catch (error) {
+                          const errorMessage = getErrorMessage(error)
+                          message.error(
+                            'Failed to delete queue invite: ' + errorMessage,
+                          )
+                        }
+                      }}
+                      okText="Yes"
+                      cancelText="No"
+                    >
+                      <Button danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                  </div>
                 </List.Item>
               )}
             />
