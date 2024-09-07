@@ -351,6 +351,16 @@ export class QueueService {
       throw new BadRequestException('Queue does not have a queue invite');
     }
 
+    // make sure the invite code is either empty or at least 8 characters long
+    if (
+      newQueueInvite.inviteCode !== '' &&
+      newQueueInvite.inviteCode.length < 8
+    ) {
+      throw new BadRequestException(
+        'Invite code must be at least 8 characters long',
+      );
+    }
+
     try {
       await QueueInviteModel.update(queueId, newQueueInvite);
     } catch (err) {

@@ -18,13 +18,14 @@ import {
 } from 'antd'
 import { ReactElement, useCallback, useEffect, useState } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { QueueInvite, QueuePartial } from '@koh/common'
+import type { QueueInvite, QueuePartial } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
 import { DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import Link from 'next/link'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useCourse } from '@/app/hooks/useCourse'
+import QueueInviteListItem from './components/QueueInvite'
 
 interface QueueInvitesPageProps {
   params: { cid: string }
@@ -106,6 +107,7 @@ export default function QueueInvitesPage({
   } else {
     return (
       <div className="md:mt-3">
+        <title>{`HelpMe | Editing ${course.name} Queue Invites`}</title>
         <div className="flex flex-col items-center justify-between md:flex-row">
           <h1>Queue Invites</h1>
           <div className="flex flex-col items-center justify-center gap-2 rounded bg-white p-3 shadow-sm md:flex-row">
@@ -161,51 +163,11 @@ export default function QueueInvitesPage({
               dataSource={queueInvites}
               loading={isQueueInvitesLoading}
               renderItem={(queueInvite) => (
-                <List.Item
-                  key={queueInvite.queueId}
-                  // actions={[
-                  //     <IconText icon={StarOutlined} text="156" key="list-vertical-star-o" />,
-                  //     <IconText icon={LikeOutlined} text="156" key="list-vertical-like-o" />,
-                  //     <IconText icon={MessageOutlined} text="2" key="list-vertical-message" />,
-                  // ]}
-                >
-                  <List.Item.Meta
-                    title={queueInvite.room}
-                    // TODO: copy button
-                    description={
-                      queueInvite.inviteCode === '' ? (
-                        'No invite code set. No students can join this yet'
-                      ) : (
-                        <Link
-                          href={`/invite/queue/${queueInvite.queueId}?code=${encodeURIComponent(queueInvite.inviteCode)}`}
-                        >
-                          {baseURL}/invite/queue/{queueInvite.queueId}?code=
-                          {encodeURIComponent(queueInvite.inviteCode)}
-                        </Link>
-                      )
-                    }
-                  />
-                  <div className="flex justify-between">
-                    <Popconfirm
-                      title="Are you sure you want to delete this queue invite?"
-                      onConfirm={async () => {
-                        try {
-                          await API.queueInvites.delete(queueInvite.queueId)
-                          fetchQueueInvites()
-                        } catch (error) {
-                          const errorMessage = getErrorMessage(error)
-                          message.error(
-                            'Failed to delete queue invite: ' + errorMessage,
-                          )
-                        }
-                      }}
-                      okText="Yes"
-                      cancelText="No"
-                    >
-                      <Button danger icon={<DeleteOutlined />} />
-                    </Popconfirm>
-                  </div>
-                </List.Item>
+                <QueueInviteListItem
+                  queueInvite={queueInvite}
+                  fetchQueueInvites={fetchQueueInvites}
+                  baseURL={baseURL}
+                />
               )}
             />
           </ConfigProvider>
