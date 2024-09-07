@@ -33,7 +33,7 @@ import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { v4 } from 'uuid';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 import { CalendarModel } from 'calendar/calendar.entity';
-import { QueueInviteModel } from 'queue/queue_invite.entity';
+import { QueueInviteModel } from 'queue/queue-invite.entity';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)

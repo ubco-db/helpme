@@ -15,7 +15,7 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 import { QueueModel } from '../src/queue/queue.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
-import { QueueInviteModel } from 'queue/queue_invite.entity';
+import { QueueInviteModel } from 'queue/queue-invite.entity';
 
 async function delay(ms) {
   // return await for better async stack trace support in case of errors.

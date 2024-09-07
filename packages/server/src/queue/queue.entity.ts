@@ -18,7 +18,7 @@ import { QuestionModel } from '../question/question.entity';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ERROR_MESSAGES, QueueConfig } from '@koh/common';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
-import { QueueInviteModel } from './queue_invite.entity';
+import { QueueInviteModel } from './queue-invite.entity';
 
 @Entity('queue_model')
 export class QueueModel extends BaseEntity {

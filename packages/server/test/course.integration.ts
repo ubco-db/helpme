@@ -4,7 +4,6 @@ import {
   Role,
   TACheckinTimesResponse,
 } from '@koh/common';
-import { CourseModel } from '../src/course/course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
