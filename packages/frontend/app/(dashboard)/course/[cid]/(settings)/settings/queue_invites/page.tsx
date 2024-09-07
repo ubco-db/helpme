@@ -4,25 +4,16 @@ import {
   Button,
   ConfigProvider,
   Divider,
-  Form,
-  Input,
   List,
-  Modal,
-  Pagination,
-  Popconfirm,
-  Progress,
   Select,
-  Table,
   Tooltip,
   message,
 } from 'antd'
 import { ReactElement, useCallback, useEffect, useState } from 'react'
-import { useUserInfo } from '@/app/contexts/userContext'
 import type { QueueInvite, QueuePartial } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
-import { DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons'
-import Link from 'next/link'
+import { QuestionCircleOutlined } from '@ant-design/icons'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useCourse } from '@/app/hooks/useCourse'
 import QueueInviteListItem from './components/QueueInvite'
@@ -34,7 +25,6 @@ export default function QueueInvitesPage({
   params,
 }: QueueInvitesPageProps): ReactElement {
   const courseId = Number(params.cid)
-  const { userInfo } = useUserInfo()
   const { course } = useCourse(courseId)
   const [queueInvites, setQueueInvites] = useState<QueueInvite[]>([])
   const [isQueueInvitesLoading, setIsQueueInvitesLoading] = useState(true)
@@ -138,7 +128,7 @@ export default function QueueInvitesPage({
             >
               Create Queue Invite
             </Button>
-            <Tooltip title="A queue invite is like a course invite except will take them to the queue page instead of course page. The page for this queue invite will also have a QR code that you can choose to print or display.">
+            <Tooltip title="A queue invite is like a course invite except will take them to the queue page instead of course page. The page for this queue invite will also have a QR code that you can choose to print or display, as well as some other features.">
               Help <QuestionCircleOutlined />
             </Tooltip>
           </div>

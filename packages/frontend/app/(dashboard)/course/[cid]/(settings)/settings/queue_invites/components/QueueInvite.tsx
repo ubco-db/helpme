@@ -8,7 +8,6 @@ import {
   List,
   Popconfirm,
   Select,
-  Tooltip,
   message,
 } from 'antd'
 import type { QueueInvite, QueueInviteParams } from '@koh/common'
@@ -33,7 +32,7 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
   const [copyLinkText, setCopyLinkText] = useState('Copy Link')
   const [hasValuesChanged, setHasValuesChanged] = useState(false)
   const [isSaveLoading, setIsSaveLoading] = useState(false)
-  const inviteURL = `${baseURL}/invite/queue/${queueInvite.queueId}?code=${encodeURIComponent(queueInvite.inviteCode)}`
+  const inviteURL = `${baseURL}/qi/${queueInvite.queueId}?c=${encodeURIComponent(queueInvite.inviteCode)}`
   const handleCopy = () => {
     navigator.clipboard.writeText(inviteURL).then(() => {
       setCopyLinkText('Copied!')
@@ -47,6 +46,7 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
   useEffect(() => {
     form.setFieldsValue(queueInvite)
     setHasValuesChanged(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, queueInvite.queueId])
 
   const onFinish = (values: QueueInviteParams) => {
@@ -71,14 +71,13 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
     <List.Item key={queueInvite.queueId}>
       <List.Item.Meta
         title={<span className="text-lg font-bold">{queueInvite.room}</span>}
-        // TODO: copy button
         description={
           queueInvite.inviteCode === '' ? (
             'No invite code set. No students can join this yet'
           ) : (
             <div className="flex items-center gap-2">
               <Link
-                href={`/invite/queue/${queueInvite.queueId}?code=${encodeURIComponent(queueInvite.inviteCode)}`}
+                href={`/qi/${queueInvite.queueId}?c=${encodeURIComponent(queueInvite.inviteCode)}`}
               >
                 {inviteURL}
               </Link>

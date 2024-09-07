@@ -464,8 +464,8 @@ class APIClient {
       this.req('DELETE', `/api/v1/queueInvites/${queueId}`),
     update: async (queueId: number, body: QueueInviteParams): Promise<void> =>
       this.req('PATCH', `/api/v1/queueInvites/${queueId}`, undefined, body),
-    get: async (queueId: number): Promise<PublicQueueInvite> =>
-      this.req('GET', `/api/v1/queueInvites/${queueId}`),
+    get: async (queueId: number, code: string): Promise<PublicQueueInvite> =>
+      this.req('GET', `/api/v1/queueInvites/${queueId}/${code}`),
   }
 
   notif = {
