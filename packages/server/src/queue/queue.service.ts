@@ -396,12 +396,14 @@ export class QueueService {
     }
 
     const queue = await QueueModel.findOne(queueId, {
-      relations: ['course', 'course.organizationCourse'],
+      relations: ['course', 'course.organizationCourse', 'staffList'],
     });
 
     if (!queue) {
       throw new NotFoundException('Queue not found');
     }
+
+    await queue.addQueueSize();
 
     // Create a new PublicQueueInvite object
     const queueInviteResponse: PublicQueueInvite = {
@@ -410,6 +412,7 @@ export class QueueService {
       courseId: queue.course.id,
       room: queue.room,
       queueSize: queue.queueSize,
+      staffList: queue.staffList,
     };
 
     // get course invite code

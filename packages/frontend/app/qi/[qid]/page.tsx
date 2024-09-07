@@ -1,16 +1,10 @@
 'use client'
 
-import { Button, message, Result } from 'antd'
+import { Button, message, QRCode, Result, Switch } from 'antd'
 import { ReactElement, Suspense, useCallback, useEffect, useState } from 'react'
-import {
-  GetLimitedCourseResponse,
-  PublicQueueInvite,
-  UBCOuserParam,
-  User,
-} from '@koh/common'
+import { PublicQueueInvite } from '@koh/common'
 import { API } from '@/app/api'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Image from 'next/image'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import Link from 'next/link'
@@ -30,10 +24,21 @@ export default function QueueInvitePage({
   const searchParams = useSearchParams()
   const router = useRouter()
   const code = decodeURIComponent(searchParams.get('c') ?? '')
+  const [projectorModeEnabled, setProjectorModeEnabled] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
   const [hasFetchErrorOccurred, setHasFetchErrorOccurred] = useState(false)
   const [queueInviteInfo, setQueueInviteInfo] =
     useState<PublicQueueInvite | null>(null)
+
+  const isHttps =
+    (typeof window !== 'undefined' && window.location.protocol) === 'https:'
+  const baseURL =
+    typeof window !== 'undefined'
+      ? `${isHttps ? 'https' : 'http'}://${window.location.host}`
+      : ''
+  const inviteURL = queueInviteInfo
+    ? `${baseURL}/qi/${queueInviteInfo.queueId}?c=${encodeURIComponent(queueInviteInfo.inviteCode)}`
+    : ''
 
   const fetchPublicQueueInviteInfo = useCallback(async () => {
     try {
@@ -69,11 +74,33 @@ export default function QueueInvitePage({
     return <CenteredSpinner tip="Queue invite loading..." />
   } else {
     return (
-      <div className="flex items-center justify-center">
-        <h1>Queue Invite Page</h1>
+      <div className="mt-2 flex flex-col items-center justify-center gap-y-2 md:mt-5">
+        <h1>{queueInviteInfo.room}</h1>
+        {queueInviteInfo.queueSize === 0 ? (
+          <p>The queue is empty!</p>
+        ) : (
+          <p>
+            There are currently {queueInviteInfo.queueSize} students in the
+            queue.
+          </p>
+        )}
         <p>Queue ID: {qid}</p>
         <p>Code: {code}</p>
         <p>Public queue invite details: {JSON.stringify(queueInviteInfo)}</p>
+        {projectorModeEnabled ? (
+          <QRCode
+            errorLevel={queueInviteInfo.QRCodeErrorLevel}
+            value={inviteURL}
+            icon="/helpme_logo_small.png"
+          />
+        ) : (
+          <Button type="primary">Join Queue</Button>
+        )}
+        <Switch
+          checkedChildren=""
+          unCheckedChildren="Toggle Projector Mode"
+          onChange={(checked) => setProjectorModeEnabled(checked)}
+        />
       </div>
     )
   }

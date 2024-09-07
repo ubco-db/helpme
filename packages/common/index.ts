@@ -384,6 +384,7 @@ export type PublicQueueInvite = {
   courseInviteCode?: string // course invite code only given if willInviteToCourse is true
   queueAndQuestions?: SSEQueueResponse // only given if isQuestionsVisible is true
   queueSize: number
+  staffList: UserPartial[]
 }
 
 // Represents a list of office hours wait times of each hour of the week.
