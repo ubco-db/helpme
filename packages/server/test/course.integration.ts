@@ -25,6 +25,7 @@ import {
   UserFactory,
   CourseSettingsFactory,
   QuestionFactory,
+  QueueInviteFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -1902,6 +1903,87 @@ describe('Course Integration', () => {
         {
           id: student3.id,
           name: student3.firstName + ' ' + student3.lastName,
+        },
+      ]);
+    });
+  });
+  describe('GET /courses/:id/queue_invites', () => {
+    it('should return 401 if user is not authorized', async () => {
+      await supertest().get(`/courses/1/queue_invites`).expect(401);
+    });
+    it('should not allow students to access the endpoint', async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: student,
+        role: Role.STUDENT,
+        course: course,
+      });
+
+      await supertest({ userId: student.id })
+        .get(`/courses/${course.id}/queue_invites`)
+        .expect(403);
+    });
+    it('should return 404 if course is not found', async () => {
+      const professor = await UserFactory.create();
+      await supertest({ userId: professor.id })
+        .get(`/courses/1/queue_invites`)
+        .expect(404);
+    });
+    it('should return 200 and an empty array if no queue invites are found', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course,
+      });
+
+      const resp = await supertest({ userId: professor.id }).get(
+        `/courses/${course.id}/queue_invites`,
+      );
+
+      expect(resp.status).toBe(200);
+      expect(resp.body).toEqual([]);
+    });
+    it('should return 200 and all queue invites', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course,
+      });
+      const queue1 = await QueueFactory.create({
+        course: course,
+        courseId: course.id,
+      });
+      const queue2 = await QueueFactory.create({
+        course: course,
+        courseId: course.id,
+      });
+      const queueInvite1 = await QueueInviteFactory.create({
+        queue: queue1,
+      });
+      const queueInvite2 = await QueueInviteFactory.create({
+        queue: queue2,
+      });
+
+      const resp = await supertest({ userId: professor.id }).get(
+        `/courses/${course.id}/queue_invites`,
+      );
+
+      expect(resp.status).toBe(200);
+      expect(resp.body).toContainEqual([
+        {
+          queueId: queue1.id,
+          room: queue1.room,
+          inviteCode: queueInvite1.inviteCode,
+        },
+        {
+          queueId: queue2.id,
+          room: queue2.room,
+          inviteCode: queueInvite2.inviteCode,
         },
       ]);
     });

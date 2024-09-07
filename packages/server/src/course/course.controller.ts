@@ -9,6 +9,7 @@ import {
   GetLimitedCourseResponse,
   QuestionStatusKeys,
   QueueConfig,
+  QueueInvite,
   QueuePartial,
   Role,
   TACheckinTimesResponse,
@@ -1031,5 +1032,29 @@ export class CourseController {
     @Param('id', ParseIntPipe) courseId: number,
   ): Promise<QuestionTypeModel[]> {
     return QuestionTypeModel.find({ where: { cid: courseId } });
+  }
+
+  /**
+   * Gets all queue's QueueInvites for the given course (+ the queue name)
+   */
+  @Get(':id/queue_invites')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async getQueueInvites(
+    @Param('id', ParseIntPipe) courseId: number,
+    @Res() res: Response,
+  ): Promise<Response<QueueInvite>> {
+    const query = `
+    SELECT "queue_model".room AS room, "queue_invite_model".*
+    FROM "queue_model"
+    RIGHT JOIN "queue_invite_model" ON ("queue_model".id = "queue_invite_model".queueId)
+    WHERE "queue_model"."courseId" = $1
+    ORDER BY room;
+  `;
+
+    const queueInvites = await QueueModel.query(query, [courseId]);
+
+    res.status(200).send(queueInvites);
+    return;
   }
 }

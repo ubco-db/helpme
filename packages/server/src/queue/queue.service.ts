@@ -3,12 +3,18 @@ import {
   OpenQuestionStatus,
   Question,
   QueueConfig,
+  QueueInviteParams,
   Role,
   StatusInPriorityQueue,
   StatusInQueue,
   StatusSentToCreator,
 } from '@koh/common';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { classToClass } from 'class-transformer';
 import { pick } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
@@ -17,6 +23,7 @@ import { QueueModel } from './queue.entity';
 import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { QueueInviteModel } from './queue_invite.entity';
 
 /**
  * Get data in service of the queue controller and SSE
@@ -276,5 +283,82 @@ export class QueueService {
     });
 
     return questionTypeMessages;
+  }
+
+  /**
+   * Creates a new queue invite for the given queue
+   */
+  async createQueueInvite(queueId: number): Promise<void> {
+    const queueInvite = await QueueInviteModel.findOne(queueId);
+
+    // make sure queue does not already have a queue invite
+    if (queueInvite) {
+      throw new BadRequestException('Queue already has a queue invite');
+    }
+
+    // if (!queueInvite) {
+    //   throw new NotFoundException();
+    // }
+
+    try {
+      const invite = QueueInviteModel.create({ queueId });
+      await invite.save();
+    } catch (err) {
+      console.error('Error while creating queue invite:');
+      console.error(err);
+      throw new InternalServerErrorException(
+        'Error while creating queue invite',
+      );
+    }
+    return;
+  }
+
+  /**
+   * Deletes a queue invite for the given queue
+   */
+  async deleteQueueInvite(queueId: number): Promise<void> {
+    const queueInvite = await QueueInviteModel.findOne(queueId);
+
+    // make sure queue has a queue invite
+    if (!queueInvite) {
+      throw new BadRequestException('Queue does not have a queue invite');
+    }
+
+    try {
+      await queueInvite.remove();
+    } catch (err) {
+      console.error('Error while deleting queue invite:');
+      console.error(err);
+      throw new InternalServerErrorException(
+        'Error while deleting queue invite',
+      );
+    }
+    return;
+  }
+
+  /**
+   * Edits a queue invite for the given queue
+   */
+  async editQueueInvite(
+    queueId: number,
+    newQueueInvite: QueueInviteParams,
+  ): Promise<void> {
+    const queueInvite = await QueueInviteModel.findOne(queueId);
+
+    // make sure queue has a queue invite
+    if (!queueInvite) {
+      throw new BadRequestException('Queue does not have a queue invite');
+    }
+
+    try {
+      await QueueInviteModel.update(queueId, newQueueInvite);
+    } catch (err) {
+      console.error('Error while editing queue invite:');
+      console.error(err);
+      throw new InternalServerErrorException(
+        'Error while editing queue invite',
+      );
+    }
+    return;
   }
 }

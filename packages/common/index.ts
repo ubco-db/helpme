@@ -337,6 +337,31 @@ export class QueuePartial {
   config?: QueueConfig
 }
 
+export class QueueInviteParams {
+  @IsInt()
+  queueId!: number
+  @IsBoolean()
+  QRCodeEnabled!: boolean
+  @IsBoolean()
+  isQuestionsVisible!: boolean
+  @IsBoolean()
+  willInviteToCourse!: boolean
+  @IsString()
+  inviteCode!: string
+  @IsIn(['L', 'M'])
+  QRCodeErrorLevel!: 'L' | 'M'
+}
+
+export type QueueInvite = {
+  queueId: number
+  room: string
+  QRCodeEnabled: boolean
+  isQuestionsVisible: boolean
+  willInviteToCourse: boolean
+  inviteCode: string
+  QRCodeErrorLevel: 'L' | 'M'
+}
+
 // Represents a list of office hours wait times of each hour of the week.
 // The first element of the array is the wait time for the first hour of Sunday, UTC.
 //   Users of the heatmap should rotate it according to their timezone.
