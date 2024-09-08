@@ -23,7 +23,6 @@
   },
   "workspaces": {
     "packages": [
-      "packages/api-client",
       "packages/frontend",
       "packages/common",
       "packages/server"
