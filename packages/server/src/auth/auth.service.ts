@@ -100,7 +100,15 @@ export class AuthService {
         throw new BadRequestException('Email not verified');
       }
 
-      const user = await UserModel.findOne({ email: payload.email });
+      const user = await UserModel.findOne({
+        where: {
+          email: payload.email,
+          organizationUser: {
+            organizationId: organizationId,
+          },
+        },
+        relations: ['organizationUser'],
+      });
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -114,7 +122,7 @@ export class AuthService {
         );
       }
 
-      if (user) {
+      if (user && user.organizationUser.organizationId === organizationId) {
         return user.id;
       }
 
