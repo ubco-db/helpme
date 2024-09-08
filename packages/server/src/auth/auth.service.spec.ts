@@ -3,7 +3,10 @@ import { AuthService } from './auth.service';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { UserModel } from 'profile/user.entity';
 import { Connection } from 'typeorm';
-import { OrganizationFactory } from '../../test/util/factories';
+import {
+  OrganizationFactory,
+  OrganizationUserFactory,
+} from '../../test/util/factories';
 import { AccountType } from '@koh/common';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { MailService } from 'mail/mail.service';
@@ -171,38 +174,56 @@ describe('AuthService', () => {
     });
 
     it('should throw an error when user already exists with password', async () => {
-      await UserModel.create({
+      const organization = await OrganizationFactory.create();
+      const user = await UserModel.create({
         email: 'mocked_email@example.com',
         password: 'test_password',
       }).save();
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: organization,
+      });
 
       await expect(
-        service.loginWithGoogle('valid_code', 1),
+        service.loginWithGoogle('valid_code', organization.id),
       ).rejects.toThrowError(
         'User collisions with legacy account are not allowed',
       );
     });
 
     it('should throw an error when user already exists with other account type', async () => {
-      await UserModel.create({
+      const organization = await OrganizationFactory.create();
+      const user = await UserModel.create({
         email: 'mocked_email@example.com',
         accountType: AccountType.SHIBBOLETH,
       }).save();
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: organization,
+      });
 
       await expect(
-        service.loginWithGoogle('valid_code', 1),
+        service.loginWithGoogle('valid_code', organization.id),
       ).rejects.toThrowError(
         'User collisions with other account types are not allowed',
       );
     });
 
     it('should return user id when user already exists without password', async () => {
+      const organization = await OrganizationFactory.create();
       const user = await UserModel.create({
         email: 'mocked_email@example.com',
         accountType: AccountType.GOOGLE,
       }).save();
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: organization,
+      });
 
-      const userId = await service.loginWithGoogle('valid_code', 1);
+      const userId = await service.loginWithGoogle(
+        'valid_code',
+        organization.id,
+      );
       expect(userId).toEqual(user.id);
     });
 

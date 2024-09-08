@@ -122,7 +122,7 @@ export class AuthService {
         );
       }
 
-      if (user && user.organizationUser.organizationId === organizationId) {
+      if (user) {
         return user.id;
       }
 
