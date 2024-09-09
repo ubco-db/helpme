@@ -9,10 +9,11 @@ import CoursePreference from './CoursePreference'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 import EmailNotifications from './EmailNotifications'
 interface SettingsMenuProps {
+  currentSettings: SettingsOptions;
   setCurrentSettings: (settings: SettingsOptions) => void
 }
 
-const SettingsMenu: React.FC<SettingsMenuProps> = ({ setCurrentSettings }) => {
+const SettingsMenu: React.FC<SettingsMenuProps> = ({ currentSettings, setCurrentSettings }) => {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   return isMobile ? (
@@ -46,7 +47,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ setCurrentSettings }) => {
   ) : (
     <Menu
       className="mt-5 bg-transparent text-left"
-      defaultSelectedKeys={[SettingsOptions.PROFILE]}
+      defaultSelectedKeys={[currentSettings]}
       onClick={(e) => setCurrentSettings(e.key as SettingsOptions)}
       items={[
         {
