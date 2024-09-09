@@ -12,8 +12,9 @@ import { userApi } from '@/app/api/userApi'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { LoginData } from '@/app/typings/user'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { useOrganizationProviderForInvitedCourse } from './components/OrganizationProviderForInvitedCourse'
+import { useLoginRedirectInfoProvider } from './components/LoginRedirectInfoProvider'
 import { isProd } from '@koh/common'
+import { cn } from '@/app/utils/generalUtils'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -27,8 +28,12 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
 
-  const { organizationIdForInvitedCourse } =
-    useOrganizationProviderForInvitedCourse()
+  const {
+    invitedOrgId,
+    invitedCourseId,
+    invitedQueueId,
+    invitedCourseInviteCode,
+  } = useLoginRedirectInfoProvider()
 
   useEffect(() => {
     async function getOrganizations() {
@@ -140,12 +145,12 @@ export default function LoginPage() {
         showLoginMenu(organizations[0].id)
       }
       // get courseId from SECURE_REDIRECT (from invite code) and get the course's organization, and then set the organization to that
-      if (organizationIdForInvitedCourse) {
-        showLoginMenu(organizationIdForInvitedCourse)
+      if (invitedOrgId) {
+        showLoginMenu(invitedOrgId)
       }
     }
     smartlySetOrganization()
-  }, [organizationIdForInvitedCourse, organizations, showLoginMenu])
+  }, [invitedOrgId, organizations, showLoginMenu])
 
   if (organizations.length === 0) {
     return (
@@ -157,6 +162,16 @@ export default function LoginPage() {
     return (
       <main>
         <title>HelpMe | Login</title>
+        {invitedQueueId && (
+          <div className="container mx-auto h-auto w-full max-w-lg pt-10 text-center">
+            <Alert
+              message={
+                'You have been invited to join a queue! Please login to continue.'
+              }
+              type="success"
+            />
+          </div>
+        )}
         {error && (
           <div className="container mx-auto h-auto w-full pt-10 text-center md:w-1/2">
             <Alert
@@ -172,7 +187,12 @@ export default function LoginPage() {
             />
           </div>
         )}
-        <div className="container mx-auto h-auto w-full pt-20 text-center md:w-1/2">
+        <div
+          className={cn(
+            'container mx-auto h-auto w-full text-center md:w-1/2',
+            invitedQueueId || error ? 'pt-5' : 'pt-20',
+          )}
+        >
           {loginMenu && (
             <Button type="link" className="mr-96" onClick={hideLoginMenu}>
               &lt; Back

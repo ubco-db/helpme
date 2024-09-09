@@ -677,29 +677,11 @@ export class UBCOuserParam {
   @IsString()
   email!: string
 
-  @IsString()
-  first_name!: string
-
-  @IsString()
-  password!: string
-
-  @IsString()
-  last_name!: string
-
   @IsInt()
   selected_course!: number
 
-  @IsOptional()
   @IsInt()
-  sid?: number
-
-  @IsOptional()
-  @IsString()
-  photo_url?: string
-
-  @IsOptional()
-  @IsDefined() // TODO: use ValidateNested instead, for some reason it's crunked
-  courses?: KhouryCourse[] | KhouryProfCourse[]
+  organizationId!: number
 }
 export class KhouryDataParams {
   @IsString()

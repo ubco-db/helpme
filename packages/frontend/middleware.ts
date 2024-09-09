@@ -11,6 +11,7 @@ const publicPages = [
   '/password*',
   '/',
   '/invite*',
+  '/qi/*', // queue invite page
 ]
 
 const isPublicPage = (url: string) => {
@@ -53,7 +54,18 @@ export async function middleware(request: NextRequest) {
         )
         response.cookies.delete('auth_token')
         return response
+      } else if (data.status >= 400) {
+        // this really is not meant to happen
+        const response = NextResponse.redirect(
+          new URL(
+            `/login?error=errorCode${data.status}${encodeURIComponent(data.statusText)}`,
+            url,
+          ),
+        )
+        response.cookies.delete('auth_token')
+        return response
       } else if (!data.ok && data.status !== 304) {
+        // do be warned that if it gets to this stage, infinite redirects will happen until the browser stops it TODO: pls fix
         throw new Error(data.status + ': ' + data.statusText)
       }
 

@@ -77,6 +77,7 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
           ) : (
             <div className="flex items-center gap-2">
               <Link
+                target="_blank" // open in new tab
                 href={`/qi/${queueInvite.queueId}?c=${encodeURIComponent(queueInvite.inviteCode)}`}
               >
                 {inviteURL}
@@ -186,6 +187,10 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
                       Generally, you may want this enabled until all of your
                       students are in the course or if you just want anyone to
                       be able to join your course.
+                    </p>
+                    <p>
+                      Also, be sure to set a course invite code in General
+                      Settings otherwise this will not work!
                     </p>
                   </div>
                 ),

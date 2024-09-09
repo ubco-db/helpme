@@ -139,9 +139,9 @@ export default function QueueInvitesPage({
           <ConfigProvider
             renderEmpty={() => (
               <div
-                className={`mt-10 text-lg text-gray-500 ${course.queues ? 'hidden' : ''}`}
+                className={`mt-10 text-lg text-gray-500 ${!course.queues || course.queues.length === 0 ? '' : 'hidden'}`}
               >
-                {!course.queues
+                {!course.queues || course.queues.length === 0
                   ? 'There are no queues in this course'
                   : 'No Queue Invites Made Yet'}
               </div>
