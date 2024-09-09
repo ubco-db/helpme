@@ -44,6 +44,13 @@ export class QueueService {
     await queue.checkIsOpen();
     await queue.addQueueSize();
 
+    queue.staffList.forEach((user) => {
+      delete user.sid;
+      delete user.email;
+      delete user.password;
+      delete user.insights;
+    });
+
     return queue;
   }
 
@@ -404,6 +411,14 @@ export class QueueService {
     }
 
     await queue.addQueueSize();
+
+    // delete the sid, email, and password from all staffList users
+    queue.staffList.forEach((user) => {
+      delete user.sid;
+      delete user.email;
+      delete user.password;
+      delete user.insights;
+    });
 
     // Create a new PublicQueueInvite object
     const queueInviteResponse: PublicQueueInvite = {
