@@ -109,7 +109,8 @@ export async function middleware(request: NextRequest) {
   if (
     isPublicPageRequested &&
     cookies.has('auth_token') &&
-    !nextUrl.pathname.startsWith('/invite')
+    !nextUrl.pathname.startsWith('/invite') &&
+    !nextUrl.pathname.startsWith('/qi/')
   ) {
     return NextResponse.redirect(new URL('/courses', url))
   }

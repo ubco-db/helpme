@@ -92,6 +92,19 @@ export default function QueueInvitePage({
       router.push(
         `/course/${queueInviteInfo.courseId}/queue/${queueInviteInfo.queueId}`,
       )
+    } else if (
+      profile &&
+      profile.organization?.orgId !== queueInviteInfo.orgId
+    ) {
+      // if the user is not a part of this organization, log them out
+      await setQueueInviteCookie(
+        queueInviteInfo.queueId,
+        queueInviteInfo.courseId,
+        queueInviteInfo.orgId,
+        queueInviteInfo.courseInviteCode,
+      ).then(() => {
+        router.push('/api/v1/logout')
+      })
     } else if (profile && queueInviteInfo.willInviteToCourse) {
       // if the user is already logged in but not in the course (and willInviteToCourse is enabled), enroll them in the course
       setIsJoinButtonLoading(true)
@@ -176,8 +189,8 @@ export default function QueueInvitePage({
         ) : (
           <Button
             type="primary"
-            loading={hasGettingUserBeenResolved || isJoinButtonLoading}
-            disabled={hasGettingUserBeenResolved}
+            loading={!hasGettingUserBeenResolved || isJoinButtonLoading}
+            disabled={!hasGettingUserBeenResolved}
             onClick={JoinQueueButtonClick}
           >
             Join Queue
