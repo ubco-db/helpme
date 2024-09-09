@@ -1143,10 +1143,8 @@ describe('Course Integration', () => {
         .post(`/courses/enroll_by_invite_code/123`)
         .send({
           email: user.email,
-          first_name: user.firstName,
-          last_name: user.lastName,
-          password: 'random_password',
           selected_course: 1,
+          organizationId: organization.id,
         });
 
       expect(resp.status).toBe(404);
@@ -1176,10 +1174,8 @@ describe('Course Integration', () => {
         .post(`/courses/enroll_by_invite_code/invalid_course_code`)
         .send({
           email: user.email,
-          first_name: user.firstName,
-          last_name: user.lastName,
-          password: 'random_password',
           selected_course: course.id,
+          organizationId: organization.id,
         });
 
       expect(resp.status).toBe(400);
@@ -1215,10 +1211,8 @@ describe('Course Integration', () => {
         .post(`/courses/enroll_by_invite_code/${course.courseInviteCode}`)
         .send({
           email: user.email,
-          first_name: user.firstName,
-          last_name: user.lastName,
-          password: 'random_password',
           selected_course: course.id,
+          organizationId: organization.id,
         });
 
       expect(resp.status).toBe(200);
@@ -1247,10 +1241,8 @@ describe('Course Integration', () => {
         .post(`/courses/enroll_by_invite_code/${course.courseInviteCode}`)
         .send({
           email: user.email,
-          first_name: user.firstName,
-          last_name: user.lastName,
-          password: 'random_password',
           selected_course: course.id,
+          organizationId: organization.id,
         });
 
       expect(resp.status).toBe(200);
