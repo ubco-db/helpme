@@ -114,7 +114,7 @@ export function getErrorMessage(e: any): any {
   return (
     e.response?.data?.message ?? // e.response.data is from axios
     e.response?.data?.error ??
-    e.response?.data ??
+    e.response?.data ?? // needed for error messages for creating/deleting question tags
     e.body?.message ??
     e.message ??
     e.statusText ?? // response.statusText from fetch
