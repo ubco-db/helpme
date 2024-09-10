@@ -31,5 +31,5 @@ Provide instructions so we can reproduce.
 - [ ] My changes generate no new warnings
 - [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] New and existing unit tests pass locally with my changes
-- [ ] Any dependent changes have been merged and published in downstream modules
+- [ ] Any work that this PR is dependent on has been merged into the main branch
 - [ ] Any UI changes have been checked to work on desktop, tablet, and mobile
