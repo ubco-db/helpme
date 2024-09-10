@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, message, QRCode, Result, Switch } from 'antd'
-import { ReactElement, Suspense, useCallback, useEffect, useState } from 'react'
+import { ReactElement, useCallback, useEffect, useState } from 'react'
 import { PublicQueueInvite, UBCOuserParam, User } from '@koh/common'
 import { API } from '@/app/api'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -10,8 +10,8 @@ import CenteredSpinner from '@/app/components/CenteredSpinner'
 import Link from 'next/link'
 import { userApi } from '@/app/api/userApi'
 import StandardPageContainer from '@/app/components/standardPageContainer'
-import { cookies } from 'next/headers'
 import { setQueueInviteCookie } from '@/app/api/cookieApi'
+import { StatusCard } from '@/app/(dashboard)/course/[cid]/queue/[qid]/components/StaffList'
 
 type QueueInvitePageProps = {
   params: { qid: string }
@@ -42,9 +42,7 @@ export default function QueueInvitePage({
     const fetchUserDetails = async () => {
       const userDetails = await userApi.getUser()
       const response = await userDetails.json()
-      if (response.statusCode === 401) {
-        return
-      } else {
+      if (response.statusCode < 400) {
         setProfile(response)
       }
       setHasGettingUserBeenResolved(true)
@@ -161,19 +159,18 @@ export default function QueueInvitePage({
     return <CenteredSpinner tip="Queue invite loading..." />
   } else {
     return (
-      <StandardPageContainer className="items-center gap-y-2">
+      <StandardPageContainer className="h-full items-center gap-y-2">
         <title>{`HelpMe - Invitation to join '${queueInviteInfo.room}'`}</title>
         <h1>{queueInviteInfo.room}</h1>
         {queueInviteInfo.queueSize === 0 ? (
           <p>The queue is empty!</p>
         ) : (
           <p>
-            There are currently {queueInviteInfo.queueSize} students in the
-            queue.
+            There are currently{' '}
+            <span className="font-bold">{queueInviteInfo.queueSize}</span>{' '}
+            students in the queue.
           </p>
         )}
-        <p>Queue ID: {qid}</p>
-        <p>Code: {code}</p>
         <pre className="max-w-7xl text-wrap">
           Public queue invite details: {JSON.stringify(queueInviteInfo)}
         </pre>
@@ -189,6 +186,7 @@ export default function QueueInvitePage({
         ) : (
           <Button
             type="primary"
+            className="w-full md:w-40"
             loading={!hasGettingUserBeenResolved || isJoinButtonLoading}
             disabled={!hasGettingUserBeenResolved}
             onClick={JoinQueueButtonClick}
@@ -196,7 +194,29 @@ export default function QueueInvitePage({
             Join Queue
           </Button>
         )}
+        <h2 className="text-lg">Staff</h2>
+        {queueInviteInfo.staffList.length === 0 ? (
+          <p>There are no staff members in this queue.</p>
+        ) : (
+          <div className="text-sm">
+            {queueInviteInfo.staffList.map((ta) => (
+              <StatusCard
+                key={ta.id}
+                taName={ta.name}
+                taPhotoURL={ta.photoURL}
+                //studentName={'a student'}
+                helpedAt={ta.questionHelpedAt}
+                //grouped={false}
+                // grouped={groups.some((g) => g.creator.id === ta.id)}
+              />
+            ))}
+          </div>
+        )}
+        {queueInviteInfo.isQuestionsVisible && (
+          <p>(pretend questions are visible)</p>
+        )}
         <Switch
+          className="mb-0 mt-auto"
           checkedChildren=""
           unCheckedChildren="Toggle Projector Mode"
           onChange={(checked) => setProjectorModeEnabled(checked)}

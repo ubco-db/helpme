@@ -6,6 +6,7 @@ import {
   QueueConfig,
   QueueInviteParams,
   Role,
+  StaffForStaffList,
   StatusInPriorityQueue,
   StatusInQueue,
   StatusSentToCreator,
@@ -412,13 +413,42 @@ export class QueueService {
 
     await queue.addQueueSize();
 
-    // delete the sid, email, and password from all staffList users
-    queue.staffList.forEach((user) => {
-      delete user.sid;
-      delete user.email;
-      delete user.password;
-      delete user.insights;
+    // query the questions helped questions for this queue (select helpedAt and taHelpedId)
+    const helpedQuestions = await QuestionModel.find({
+      select: ['helpedAt', 'taHelpedId'],
+      where: {
+        queueId,
+        status: OpenQuestionStatus.Helping,
+      },
     });
+
+    // create a new StaffList with only the necessary fields
+    const staffList: StaffForStaffList[] = queue.staffList.map((user) => {
+      let helpedAt = null;
+      helpedQuestions.forEach((question) => {
+        if (question.taHelpedId === user.id) {
+          helpedAt = question.helpedAt;
+        }
+      });
+
+      return {
+        id: user.id,
+        name: user.name,
+        photoURL: user.photoURL,
+        questionHelpedAt: helpedAt,
+      };
+    });
+    // queue.staffList.forEach((user) => {
+    //   delete user.sid;
+    //   delete user.email;
+    //   delete user.password;
+    //   delete user.insights;
+    //   helpedQuestions.forEach((question) => {
+    //     if (question.taHelpedId === user.id) {
+    //       user.questionHelpedAt = question.helpedAt;
+    //     }
+    //   });
+    // });
 
     // Create a new PublicQueueInvite object
     const queueInviteResponse: PublicQueueInvite = {
@@ -427,7 +457,7 @@ export class QueueService {
       courseId: queue.course.id,
       room: queue.room,
       queueSize: queue.queueSize,
-      staffList: queue.staffList,
+      staffList: staffList,
     };
 
     // get course invite code
