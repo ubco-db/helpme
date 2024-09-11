@@ -27,6 +27,7 @@ import {
   ChatbotAskResponse,
 } from '@/app/typings/chatbot'
 import { API } from '@/app/api'
+import Markdown from 'react-markdown'
 
 const { TextArea } = Input
 
@@ -327,13 +328,13 @@ const Chatbot: React.FC<ChatbotProps> = ({
                         <div className="align-items-start m-1 mb-3 flex justify-end">
                           <div
                             className={cn(
-                              'mr-2 rounded-xl bg-blue-900 px-3 py-2 text-white',
+                              'childrenMarkdownFormatted mr-2 rounded-xl bg-blue-900 px-3 py-2 text-white',
                               variant === 'small'
                                 ? 'max-w-[300px]'
                                 : 'max-w-[90%]',
                             )}
                           >
-                            {item.message ?? ''}
+                            <Markdown>{item.message ?? ''}</Markdown>
                           </div>
                           <Avatar
                             size="small"
@@ -352,7 +353,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                             <div className="flex items-start gap-2">
                               <div
                                 className={cn(
-                                  'rounded-xl px-3 py-2',
+                                  'childrenMarkdownFormatted rounded-xl px-3 py-2',
                                   item.verified
                                     ? 'bg-green-100'
                                     : 'bg-slate-100',
@@ -361,7 +362,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                     : 'max-w-[90%]',
                                 )}
                               >
-                                {item.message ?? ''}
+                                <Markdown>{item.message ?? ''}</Markdown>
                                 {item.verified && (
                                   <Tooltip title="A similar question has been asked before, and the answer has been verified by a faculty member">
                                     <CheckCircleOutlined

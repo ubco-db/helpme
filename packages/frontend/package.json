@@ -36,6 +36,7 @@
     "react-google-recaptcha": "^3.1.0",
     "react-highlight-words": "^0.20.0",
     "react-linkify-it": "^1.0.8",
+    "react-markdown": "^9.0.1",
     "reconnecting-eventsource": "^1.6.2",
     "swr": "^2.2.5",
     "tailwind-merge": "^2.4.0",

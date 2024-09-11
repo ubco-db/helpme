@@ -16,6 +16,7 @@ import TAAsyncQuestionCardButtons from './TAAsyncQuestionCardButtons'
 import StudentAsyncQuestionCardButtons from './StudentAsyncQuestionCardButtons'
 import { ArrowBigDown, ArrowBigUp } from 'lucide-react'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
+import Markdown from 'react-markdown'
 
 const statusDisplayMap = {
   // if the question has no answer text, it will say "awaiting answer"
@@ -256,19 +257,19 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
               {/* When not expanded, show only 1 line of the questionText */}
               <div
                 className={cn(
-                  'expandable-text',
+                  'childrenMarkdownFormatted expandable-text',
                   isExpanded ? 'expanded' : '',
                   truncateText ? 'line-clamp-1' : '',
                 )}
               >
-                {question.questionText}
+                {<Markdown>{question.questionText}</Markdown>}
                 {question.answerText && (
                   <>
                     <br />
                     <br />
                     <strong>Answer:</strong>
                     <br />
-                    {question.answerText}
+                    {<Markdown>{question.answerText}</Markdown>}
                   </>
                 )}
               </div>
