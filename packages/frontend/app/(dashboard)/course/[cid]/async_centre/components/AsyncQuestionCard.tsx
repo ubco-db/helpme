@@ -15,8 +15,10 @@ import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
 import TAAsyncQuestionCardButtons from './TAAsyncQuestionCardButtons'
 import StudentAsyncQuestionCardButtons from './StudentAsyncQuestionCardButtons'
 import { ArrowBigDown, ArrowBigUp } from 'lucide-react'
-import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import Markdown from 'react-markdown'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import MarkdownCustom from '@/app/components/Markdown'
 
 const statusDisplayMap = {
   // if the question has no answer text, it will say "awaiting answer"
@@ -262,14 +264,14 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   truncateText ? 'line-clamp-1' : '',
                 )}
               >
-                {<Markdown>{question.questionText}</Markdown>}
+                {<MarkdownCustom>{question.questionText ?? ''}</MarkdownCustom>}
                 {question.answerText && (
                   <>
                     <br />
                     <br />
                     <strong>Answer:</strong>
                     <br />
-                    {<Markdown>{question.answerText}</Markdown>}
+                    {<MarkdownCustom>{question.answerText}</MarkdownCustom>}
                   </>
                 )}
               </div>

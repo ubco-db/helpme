@@ -28,6 +28,7 @@ import {
 } from '@/app/typings/chatbot'
 import { API } from '@/app/api'
 import Markdown from 'react-markdown'
+import MarkdownCustom from '@/app/components/Markdown'
 
 const { TextArea } = Input
 
@@ -334,7 +335,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                 : 'max-w-[90%]',
                             )}
                           >
-                            <Markdown>{item.message ?? ''}</Markdown>
+                            <MarkdownCustom variant="blue">
+                              {item.message ?? ''}
+                            </MarkdownCustom>
                           </div>
                           <Avatar
                             size="small"
@@ -362,7 +365,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                     : 'max-w-[90%]',
                                 )}
                               >
-                                <Markdown>{item.message ?? ''}</Markdown>
+                                <MarkdownCustom variant="lightblue">
+                                  {item.message ?? ''}
+                                </MarkdownCustom>
                                 {item.verified && (
                                   <Tooltip title="A similar question has been asked before, and the answer has been verified by a faculty member">
                                     <CheckCircleOutlined
