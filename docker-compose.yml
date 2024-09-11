@@ -24,7 +24,7 @@ services:
       - api
   frontend:
     container_name: helpme_frontend
-    command: yarn workspace @koh/app dev
+    command: yarn workspace @koh/frontend dev
     depends_on:
       - backend
     build:
