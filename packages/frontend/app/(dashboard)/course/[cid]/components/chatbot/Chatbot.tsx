@@ -80,16 +80,13 @@ const Chatbot: React.FC<ChatbotProps> = ({
           headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
         })
         .then((res) => {
-          res.data.forEach((question: PreDeterminedQuestion) => {
-            setPreDeterminedQuestions((prev: PreDeterminedQuestion[]) => [
-              ...prev,
-              {
-                id: question.id,
-                pageContent: question.pageContent,
-                metadata: question.metadata,
-              },
-            ])
-          })
+          setPreDeterminedQuestions(
+            res.data.map((question: PreDeterminedQuestion) => ({
+              id: question.id,
+              pageContent: question.pageContent,
+              metadata: question.metadata,
+            })),
+          )
         })
         .catch((err) => {
           console.error(err)
