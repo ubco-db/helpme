@@ -37,7 +37,6 @@ export class CalendarController {
         HttpStatus.NOT_FOUND,
       );
     }
-    console.log(body);
     try {
       const event = await CalendarModel.create({
         title: body.title,
@@ -116,7 +115,6 @@ export class CalendarController {
     const events = await CalendarModel.find({
       where: { course: cid },
     });
-    console.log('all events', events);
     // Filter to get events occurring on the target date
     const filteredEvents = events.filter((event) => {
       if (!event.daysOfWeek) {
@@ -133,7 +131,6 @@ export class CalendarController {
         );
       }
     });
-    console.log(filteredEvents);
     return filteredEvents;
   }
 

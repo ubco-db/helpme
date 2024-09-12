@@ -96,7 +96,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           `,
         ).then(async (aiAnswer) => {
           await API.asyncQuestions
-            .facultyUpdate(question.id, {
+            .studentUpdate(question.id, {
               questionTypes: newQuestionTypeInput,
               questionText: values.questionText,
               questionAbstract: values.QuestionAbstract,
@@ -116,7 +116,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
         })
       } else {
         await API.asyncQuestions
-          .facultyUpdate(question.id, {
+          .studentUpdate(question.id, {
             questionTypes: newQuestionTypeInput,
             questionText: values.questionText,
             questionAbstract: values.QuestionAbstract,

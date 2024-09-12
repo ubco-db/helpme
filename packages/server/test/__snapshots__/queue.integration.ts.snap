@@ -26,6 +26,7 @@ exports[`Queue Integration GET /queues/:id/questions returns questions in the qu
         {
           "cid": 1,
           "color": "#000000",
+          "deletedAt": null,
           "id": 1,
           "name": "Question Type",
           "queueId": 1,

@@ -1,6 +1,7 @@
 import {
   BaseEntity,
   Column,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToMany,
@@ -48,4 +49,7 @@ export class QuestionTypeModel extends BaseEntity {
 
   @Column({ nullable: true }) // when null, it's for async question centre
   queueId: number | null;
+
+  @DeleteDateColumn()
+  deletedAt: Date;
 }

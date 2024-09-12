@@ -1,12 +1,13 @@
 # Glossary
 
+- [Glossary](#glossary)
 - [Preface](#preface)
 - [INTRO TO THE CODEBASE AND TECHSTACK](#intro-to-the-codebase-and-techstack)
   - [Codebase](#codebase)
   - [Technologies Guide](#technologies-guide)
     - [Frontend](#frontend)
       - [Next.js](#nextjs)
-        - ['use client' vs 'use server'](#whats-with-all-these-use-client--use-server-things)
+        - [What's with all these `'use client'` \& `'use server'` things?](#whats-with-all-these-use-client--use-server-things)
       - [Tailwind and CSS](#tailwind-and-css)
       - [JSX](#jsx)
     - [Backend](#backend)
@@ -91,6 +92,13 @@ More info here https://nextjs.org/learn/react-foundations/server-and-client-comp
 #### Tailwind and CSS
 
 `Tailwind` basically creates a className for every single css property (and culls unused ones). Helps keep styling close to where the code was written (LoC) and prevents worrying about changing a css file and breaking something else. While it covers about 99.9% of cases, there are still some scenarios where you will need to create custom css (such as animations). You can either add said custom css inside `globals.css` or you can modify the `tailwind.config.js` file to add custom css classes.
+
+Some things to note about tailwind:
+- each number corresponds to 0.25rem (or 4px). So doing `mt-5` is the equivalent of doing `margin-top: 1.25 rem` (or 20px)
+- All colors/numbers/etc can be replaced with a custom value with square brackets (e.g. `py-[0.125rem]` will give vertical padding of 0.125rem)
+- media-queries are *min-width* and not *max-width*. So, doing `md:flex` will give flex for medium (~768px) screens and up. So, if you want something to have less width on mobile, you do `classname="w-10 md:w-20"`
+- Chatgpt will often times mess up all of these things above
+- We use the `md:` breakpoint to designate mobile and desktop breakpoints. If you use `sm:`, you will get a weird scenario where some UI components are displaying their mobile version while other's their desktop version
 
 #### JSX
 

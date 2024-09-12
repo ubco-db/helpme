@@ -17,7 +17,7 @@ import { UserCourseModel } from '../profile/user-course.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { SemesterModel } from '../semester/semester.entity';
 import { OrganizationCourseModel } from '../organization/organization-course.entity';
-import { InteractionModel } from 'chatbot/interaction.entity';
+import { InteractionModel } from '../chatbot/interaction.entity';
 import { CourseSettingsModel } from './course_settings.entity';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
