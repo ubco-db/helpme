@@ -1005,16 +1005,15 @@ describe('Question Integration', () => {
       expect(updatedQuestion.text).toBe('Help please');
       expect(updatedQuestion.isTaskQuestion).toBe(false);
       expect(updatedQuestion.queueId).toBe(q.queueId);
-      expect(updatedQuestion.questionTypes).toContainEqual([
-        {
-          cid: qt.cid,
-          color: qt.color,
-          deletedAt: null,
-          id: qt.id,
-          name: qt.name,
-          queueId: qt.queueId,
-        },
-      ]);
+      expect(updatedQuestion.questionTypes.length).toBe(1);
+      expect(updatedQuestion.questionTypes[0]).toContainEqual({
+        cid: qt.cid,
+        color: qt.color,
+        deletedAt: null,
+        id: qt.id,
+        name: qt.name,
+        queueId: qt.queueId,
+      });
     });
     it('PATCH invalid state transition not allowed', async () => {
       const q = await QuestionFactory.create({ text: 'Help pls' });
