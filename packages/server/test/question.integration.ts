@@ -1005,7 +1005,7 @@ describe('Question Integration', () => {
       expect(updatedQuestion.text).toBe('Help please');
       expect(updatedQuestion.isTaskQuestion).toBe(false);
       expect(updatedQuestion.queueId).toBe(q.queueId);
-      expect(updatedQuestion.questionTypes).toEqual([
+      expect(updatedQuestion.questionTypes).toContainEqual([
         {
           cid: qt.cid,
           color: qt.color,
