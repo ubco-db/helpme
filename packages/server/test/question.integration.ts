@@ -1009,6 +1009,7 @@ describe('Question Integration', () => {
         {
           cid: qt.cid,
           color: qt.color,
+          deletedAt: null,
           id: qt.id,
           name: qt.name,
           queueId: qt.queueId,
