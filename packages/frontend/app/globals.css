@@ -244,3 +244,52 @@ background: rgb(47, 76, 128) !important;
 .asyncCentreCard:hover .ant-card-head, a:focus .asyncCentreCard .ant-card-head {
   background: rgb(70, 76, 121) !important;
 }
+
+/*
+These childrenMarkdownFormatted styles are to format all children of this component in a particular way.
+It is used for displaying markdown nicely inside any <Markdown> components
+*/
+.childrenMarkdownFormatted ol {
+  list-style-type: disc;
+  margin-left: 1.5em;
+}
+.childrenMarkdownFormatted ul {
+  list-style-type: decimal;
+  margin-left: 1.5em;
+}
+
+.childrenMarkdownFormatted h1 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: inherit;
+  margin-bottom: inherit;
+}
+
+.childrenMarkdownFormatted h2 {
+  font-size: 1.25em;
+  font-weight: bold;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: inherit;
+  margin-bottom: inherit;
+}
+
+.childrenMarkdownFormatted h3 {
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: inherit;
+  margin-bottom: inherit;
+}
+
+.childrenMarkdownFormatted h4, .childrenMarkdownFormatted h5, .childrenMarkdownFormatted h6 {
+  font-size: 1em;
+  font-weight: bold;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: inherit;
+  margin-bottom: inherit;
+}
