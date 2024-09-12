@@ -1006,7 +1006,7 @@ describe('Question Integration', () => {
       expect(updatedQuestion.isTaskQuestion).toBe(false);
       expect(updatedQuestion.queueId).toBe(q.queueId);
       expect(updatedQuestion.questionTypes.length).toBe(1);
-      expect(updatedQuestion.questionTypes[0]).toContainEqual({
+      expect(updatedQuestion.questionTypes[0]).toEqual({
         cid: qt.cid,
         color: qt.color,
         deletedAt: null,
