@@ -145,6 +145,7 @@ export default function QueueInvitesPage({
                     label: queue.room,
                   }))}
                 />
+                {/* The presets are not just there to help quickly set up queue invites, it's actually there more to give profs IDEAS on how they are expected to use this feature */}
                 <Select
                   placeholder="Preset"
                   value={selectedPreset}

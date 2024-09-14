@@ -385,6 +385,7 @@ export type PublicQueueInvite = {
   queueAndQuestions?: SSEQueueResponse // only given if isQuestionsVisible is true
   queueSize: number
   staffList: StaffForStaffList[]
+  courseName: string
 }
 
 export type StaffForStaffList = {

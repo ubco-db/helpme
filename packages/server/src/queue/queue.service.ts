@@ -438,17 +438,6 @@ export class QueueService {
         questionHelpedAt: helpedAt,
       };
     });
-    // queue.staffList.forEach((user) => {
-    //   delete user.sid;
-    //   delete user.email;
-    //   delete user.password;
-    //   delete user.insights;
-    //   helpedQuestions.forEach((question) => {
-    //     if (question.taHelpedId === user.id) {
-    //       user.questionHelpedAt = question.helpedAt;
-    //     }
-    //   });
-    // });
 
     // Create a new PublicQueueInvite object
     const queueInviteResponse: PublicQueueInvite = {
@@ -458,6 +447,7 @@ export class QueueService {
       room: queue.room,
       queueSize: queue.queueSize,
       staffList: staffList,
+      courseName: queue.course.name,
     };
 
     // get course invite code
@@ -468,5 +458,27 @@ export class QueueService {
     // TODO: add on the questions
 
     return queueInviteResponse;
+  }
+
+  async verifyQueueInviteCodeAndCheckIfQuestionsVisible(
+    queueId: number,
+    inviteCode: string,
+  ): Promise<boolean> {
+    const queueInvite = await QueueInviteModel.findOne({
+      where: {
+        queueId,
+        inviteCode,
+      },
+    });
+
+    if (!queueInvite || queueInvite.inviteCode === '') {
+      return false;
+    }
+
+    if (queueInvite.isQuestionsVisible) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }

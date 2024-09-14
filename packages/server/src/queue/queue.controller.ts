@@ -54,6 +54,10 @@ export class QueueController {
     private redisQueueService: RedisQueueService,
   ) {}
 
+  /*
+  Gets all queue info.
+  Note there is a method that is very similar to this in queue-invite.controller.ts
+  */
   @Get(':queueId')
   @Roles(Role.TA, Role.PROFESSOR, Role.STUDENT)
   async getQueue(
@@ -70,6 +74,10 @@ export class QueueController {
     }
   }
 
+  /*
+  Gets all questions in a queue and personalizes them.
+  Note there is a method that is very similar to this in queue-invite.controller.ts
+  */
   @Get(':queueId/questions')
   @Roles(Role.TA, Role.PROFESSOR, Role.STUDENT)
   async getQuestions(

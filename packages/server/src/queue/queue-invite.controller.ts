@@ -1,11 +1,20 @@
-import { PublicQueueInvite, QueueInviteParams, Role } from '@koh/common';
+import {
+  ERROR_MESSAGES,
+  GetQueueResponse,
+  ListQuestionsResponse,
+  PublicQueueInvite,
+  QueueInviteParams,
+  Role,
+} from '@koh/common';
 import {
   Body,
   ClassSerializerInterceptor,
   Controller,
   Delete,
   Get,
+  HttpException,
   HttpStatus,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Patch,
@@ -20,6 +29,7 @@ import { Roles } from '../decorators/roles.decorator';
 import { QueueRolesGuard } from '../guards/queue-role.guard';
 import { QueueService } from './queue.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { RedisQueueService } from 'redisQueue/redis-queue.service';
 
 /**
  * This is a separate controller from queues because the GET endpoint for queue invite is public
@@ -29,6 +39,7 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 export class QueueInviteController {
   constructor(
     private queueService: QueueService, //note: this throws errors, be sure to catch them
+    private redisQueueService: RedisQueueService,
   ) {}
 
   /**
@@ -111,6 +122,71 @@ export class QueueInviteController {
       return;
     } catch (err) {
       throw err;
+    }
+  }
+
+  /*
+Works functionally the same as getQueue in queue.controller.ts but is publicly accessible if they have the correct queue invite code
+*/
+  @Get(':queueId/:queueInviteCode/queue')
+  async getQueueWithQueueInviteCode(
+    @Param('queueId', ParseIntPipe) queueId: number,
+    @Param('inviteCode') queueInviteCode: string,
+  ): Promise<GetQueueResponse> {
+    try {
+      if (!queueInviteCode) {
+        throw new NotFoundException();
+      }
+      const shouldQuestionsBeShown =
+        await this.queueService.verifyQueueInviteCodeAndCheckIfQuestionsVisible(
+          queueId,
+          queueInviteCode,
+        );
+      if (!shouldQuestionsBeShown) {
+        throw new NotFoundException();
+      }
+      return this.queueService.getQueue(queueId);
+    } catch (err) {
+      console.error(err);
+      throw new HttpException(
+        ERROR_MESSAGES.queueController.getQueue,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+  }
+
+  /*
+Works functionally the same as getQuestions in queue.controller.ts but is publicly accessible if they have the correct queue invite code
+*/
+  @Get(':queueId/:queueInviteCode/questions')
+  async getQuestions(
+    @Param('queueId') queueId: number,
+  ): Promise<ListQuestionsResponse> {
+    try {
+      const queueKeys = await this.redisQueueService.getKey(`q:${queueId}`);
+      let queueQuestions: any;
+
+      if (Object.keys(queueKeys).length === 0) {
+        console.log('Fetching from database');
+
+        queueQuestions = await this.queueService.getQuestions(queueId);
+        if (queueQuestions)
+          await this.redisQueueService.setQuestions(
+            `q:${queueId}`,
+            queueQuestions,
+          );
+      } else {
+        console.log('Fetching from Redis');
+        queueQuestions = queueKeys.questions;
+      }
+
+      return queueQuestions;
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        ERROR_MESSAGES.queueController.getQuestions,
+        HttpStatus.NOT_FOUND,
+      );
     }
   }
 }
