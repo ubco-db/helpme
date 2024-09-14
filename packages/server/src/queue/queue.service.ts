@@ -26,11 +26,8 @@ import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
-type FilteredUser = {
-  id: number;
-  name: string;
-  photoURL: string;
-};
+import { UserModel } from 'profile/user.entity';
+
 /**
  * Get data in service of the queue controller and SSE
  * WHY? To ensure data returned by endpoints is *exactly* equal to data sent by SSE
@@ -49,11 +46,12 @@ export class QueueService {
     await queue.checkIsOpen();
     await queue.addQueueSize();
 
-    queue.staffList.forEach((user) => {
-      delete user.sid;
-      delete user.email;
-      delete user.password;
-      delete user.insights;
+    queue.staffList = queue.staffList.map((user) => {
+      return {
+        id: user.id,
+        name: user.name,
+        photoURL: user.photoURL,
+      } as UserModel;
     });
 
     return queue;

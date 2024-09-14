@@ -133,7 +133,7 @@ Works functionally the same as getQueue in queue.controller.ts but is publicly a
   @Get(':queueId/:queueInviteCode/queue')
   async getQueueWithQueueInviteCode(
     @Param('queueId', ParseIntPipe) queueId: number,
-    @Param('inviteCode') queueInviteCode: string,
+    @Param('queueInviteCode') queueInviteCode: string,
   ): Promise<GetQueueResponse> {
     if (!queueInviteCode) {
       throw new NotFoundException();

@@ -13,17 +13,22 @@ interface UseQuestionReturn {
   mutateQuestions: questionsResponse['mutate']
 }
 
+/**
+ * Note: This is functionally the same as useQuestions, but it calls different endpoints and has a check if Questions are visible (if not, then no endpoints are called)
+ */
 export function useQuestionsWithQueueInvite(
   qid: number,
   queueInviteCode: string,
-  isQuestionsVisible: boolean | undefined,
+  isQuestionsVisible?: boolean,
 ): UseQuestionReturn {
   const key = isQuestionsVisible
     ? `/api/v1/queueInvites/${qid}/${queueInviteCode}/questions`
     : null
   // Subscribe to sse
   const isLive = useEventSource(
-    isQuestionsVisible ? `/api/v1/queues/${qid}/sse` : null,
+    isQuestionsVisible
+      ? `/api/v1/queueInvites/${qid}/${queueInviteCode}/sse`
+      : null,
     'question',
     useCallback(
       (data: SSEQueueResponse) => {

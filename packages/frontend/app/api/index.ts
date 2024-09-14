@@ -471,6 +471,11 @@ class APIClient {
       code: string,
     ): Promise<ListQuestionsResponse> =>
       this.req('GET', `/api/v1/queueInvites/${queueId}/${code}/questions`),
+    getQueue: async (
+      queueId: number,
+      code: string,
+    ): Promise<GetQueueResponse> =>
+      this.req('GET', `/api/v1/queueInvites/${queueId}/${code}/queue`),
   }
 
   notif = {

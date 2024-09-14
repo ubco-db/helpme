@@ -276,4 +276,106 @@ describe('Queue Invite Integration', () => {
         .expect(404);
     });
   });
+  describe('GET /queueInvites/:queueId/:queueInviteCode/questions', () => {
+    it('returns 200 when the invite exists and works publicly', async () => {
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        organization,
+        course,
+      });
+      const publicUser = await UserFactory.create();
+      const queue = await QueueFactory.create({ course });
+      const invite = await QueueInviteFactory.create({ queue: queue });
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/${queue.id}/${invite.inviteCode}/questions`)
+        .expect(200);
+    });
+    it('returns 404 when the queue does not exist', async () => {
+      const publicUser = await UserFactory.create();
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/999/invite-code/questions`)
+        .expect(404);
+    });
+    it('returns 404 when the invite is incorrect', async () => {
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        organization,
+        course,
+      });
+      const publicUser = await UserFactory.create();
+      const queue = await QueueFactory.create({ course });
+      const invite = await QueueInviteFactory.create({ queue: queue });
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/${queue.id}/incorrect-invite-code/questions`)
+        .expect(404);
+    });
+  });
+  describe('GET /queueInvites/:queueId/:queueInviteCode/queue', () => {
+    it('returns 200 when the invite exists and works publicly', async () => {
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        organization,
+        course,
+      });
+      const publicUser = await UserFactory.create();
+      const queue = await QueueFactory.create({ course });
+      const invite = await QueueInviteFactory.create({ queue: queue });
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/${queue.id}/${invite.inviteCode}/queue`)
+        .expect(200);
+    });
+    it('returns 404 when the queue does not exist', async () => {
+      const publicUser = await UserFactory.create();
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/999/invite-code/queue`)
+        .expect(404);
+    });
+    it('returns 404 when the invite is incorrect', async () => {
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        organization,
+        course,
+      });
+      const publicUser = await UserFactory.create();
+      const queue = await QueueFactory.create({ course });
+      const invite = await QueueInviteFactory.create({ queue: queue });
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/${queue.id}/incorrect-invite-code/queue`)
+        .expect(404);
+    });
+  });
+  describe('GET /queueInvites/:queueId/:queueInviteCode/sse', () => {
+    it('returns 404 when the queue does not exist', async () => {
+      const publicUser = await UserFactory.create();
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/999/invite-code/sse`)
+        .expect(404);
+    });
+    it('returns 404 when the invite is incorrect', async () => {
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        organization,
+        course,
+      });
+      const publicUser = await UserFactory.create();
+      const queue = await QueueFactory.create({ course });
+      const invite = await QueueInviteFactory.create({ queue: queue });
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/${queue.id}/incorrect-invite-code/sse`)
+        .expect(404);
+    });
+  });
 });
