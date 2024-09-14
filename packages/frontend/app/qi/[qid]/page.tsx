@@ -255,10 +255,7 @@ export default function QueueInvitePage({
                 key={ta.id}
                 taName={ta.name}
                 taPhotoURL={ta.photoURL}
-                //studentName={'a student'}
                 helpedAt={ta.questionHelpedAt}
-                //grouped={false}
-                // grouped={groups.some((g) => g.creator.id === ta.id)}
               />
             ))}
           </div>
@@ -269,7 +266,11 @@ export default function QueueInvitePage({
         <Switch
           className="mb-0 mt-auto"
           checkedChildren=""
-          unCheckedChildren="Toggle Projector Mode"
+          unCheckedChildren={
+            queueInviteInfo.QRCodeEnabled
+              ? 'Show QR Code'
+              : 'Toggle Projector Mode'
+          }
           onChange={(checked) => setProjectorModeEnabled(checked)}
         />
       </StandardPageContainer>

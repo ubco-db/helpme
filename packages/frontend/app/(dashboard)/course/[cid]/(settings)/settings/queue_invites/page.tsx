@@ -10,7 +10,7 @@ import {
   message,
 } from 'antd'
 import { ReactElement, useCallback, useEffect, useState } from 'react'
-import type { QueueInvite, QueuePartial } from '@koh/common'
+import type { QueueInvite, QueueInviteParams, QueuePartial } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
 import { QuestionCircleOutlined } from '@ant-design/icons'
@@ -28,6 +28,9 @@ export default function QueueInvitesPage({
   const { course } = useCourse(courseId)
   const [queueInvites, setQueueInvites] = useState<QueueInvite[]>([])
   const [isQueueInvitesLoading, setIsQueueInvitesLoading] = useState(true)
+  const [selectedPreset, setSelectedPreset] = useState<
+    'Default' | 'For Printing' | 'Projector' | 'Help Desk Print'
+  >()
   const [selectedQueueId, setSelectedQueueId] = useState<string>('')
   const [selectableQueues, setSelectableQueues] = useState<QueuePartial[]>([])
   const isHttps = window.location.protocol === 'https:'
@@ -56,13 +59,39 @@ export default function QueueInvitesPage({
       return
     }
     try {
-      await API.queueInvites.create(Number(queueId))
-      fetchQueueInvites()
+      await API.queueInvites.create(Number(queueId)).then(() => {
+        if (
+          selectedPreset === 'For Printing' ||
+          selectedPreset === 'Projector' ||
+          selectedPreset === 'Help Desk Print'
+        ) {
+          const queueInvitePreset: QueueInviteParams = {
+            queueId: Number(queueId),
+            QRCodeEnabled: true,
+            isQuestionsVisible: selectedPreset === 'Projector' ? true : false,
+            willInviteToCourse:
+              selectedPreset === 'Help Desk Print' ? true : false,
+            inviteCode: '',
+            QRCodeErrorLevel:
+              selectedPreset === 'For Printing' ||
+              selectedPreset === 'Help Desk Print'
+                ? 'M'
+                : 'L',
+          }
+          API.queueInvites
+            .update(Number(queueId), queueInvitePreset)
+            .then(() => {
+              fetchQueueInvites()
+            })
+        } else {
+          fetchQueueInvites()
+        }
+      })
     } catch (error) {
       const errorMessage = getErrorMessage(error)
       message.error('Failed to create queue invite: ' + errorMessage)
     }
-  }, [fetchQueueInvites, selectedQueueId])
+  }, [fetchQueueInvites, selectedPreset, selectedQueueId])
 
   useEffect(() => {
     // selectableQueues is all course queues minus the ones that already have invites
@@ -87,11 +116,6 @@ export default function QueueInvitesPage({
     }
   }, [course, queueInvites, selectedQueueId])
 
-  const handleQueueSelectChange = (value: string) => {
-    console.log(`selected ${value}`)
-    setSelectedQueueId(value)
-  }
-
   if (!course) {
     return <CenteredSpinner tip="Loading course..." />
   } else {
@@ -102,24 +126,38 @@ export default function QueueInvitesPage({
           <h1>Queue Invites</h1>
           <div className="flex flex-col items-center justify-center gap-2 rounded bg-white p-3 shadow-sm md:flex-row">
             {course.queues && course.queues.length > 0 && (
-              <Select
-                //defaultValue={}
-                placeholder="Select a queue"
-                value={
-                  selectableQueues.length === 0
-                    ? 'All queues have invites'
-                    : selectedQueueId !== ''
-                      ? selectedQueueId
-                      : undefined
-                }
-                disabled={selectableQueues.length === 0}
-                className="w-80"
-                onChange={handleQueueSelectChange}
-                options={selectableQueues.map((queue) => ({
-                  value: queue.id.toString(),
-                  label: queue.room,
-                }))}
-              />
+              <>
+                <Select
+                  //defaultValue={}
+                  placeholder="Select a queue"
+                  value={
+                    selectableQueues.length === 0
+                      ? 'All queues have invites'
+                      : selectedQueueId !== ''
+                        ? selectedQueueId
+                        : undefined
+                  }
+                  disabled={selectableQueues.length === 0}
+                  className="w-80"
+                  onChange={(value) => setSelectedQueueId(value)}
+                  options={selectableQueues.map((queue) => ({
+                    value: queue.id.toString(),
+                    label: queue.room,
+                  }))}
+                />
+                <Select
+                  placeholder="Preset"
+                  value={selectedPreset}
+                  className="w-36"
+                  onChange={(value) => setSelectedPreset(value)}
+                  options={[
+                    { value: 'Default', label: 'Default Preset' },
+                    { value: 'For Printing', label: 'For Printing' },
+                    { value: 'Projector', label: 'Projector' },
+                    { value: 'Help Desk Print', label: 'Help Desk Print' },
+                  ]}
+                />
+              </>
             )}
             <Button
               type="primary"
@@ -128,7 +166,32 @@ export default function QueueInvitesPage({
             >
               Create Queue Invite
             </Button>
-            <Tooltip title="A queue invite is like a course invite except will take them to the queue page instead of course page. The page for this queue invite will also have a QR code that you can choose to print or display, as well as some other features.">
+            <Tooltip
+              title={
+                <div className="flex flex-col gap-y-2">
+                  <p>
+                    A queue invite is like a course invite except will take them
+                    to the queue page instead of course page. The page for this
+                    queue invite will also have a QR code that you can choose to
+                    print or display, as well as some other features.
+                  </p>
+                  <p>
+                    Anyone will be able to join the queue if they have the
+                    invite code/link/QRCode.
+                  </p>
+                  <p>
+                    NOTE: When someone first accesses the page, the QR code and
+                    some other details are hidden. You must toggle the switch on
+                    the bottom of the page to show the QR code (this is because
+                    when someone clicks the link or scans the QR code, the first
+                    thing they would see is the QR code they just scanned, which
+                    is confusing to students)
+                  </p>
+                  <p>You can also click on the QR code to print it.</p>
+                </div>
+              }
+              overlayStyle={{ maxWidth: '25rem' }}
+            >
               Help <QuestionCircleOutlined />
             </Tooltip>
           </div>
