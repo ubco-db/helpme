@@ -13,6 +13,7 @@ import StandardPageContainer from '@/app/components/standardPageContainer'
 import { setQueueInviteCookie } from '@/app/api/cookieApi'
 import { StatusCard } from '@/app/(dashboard)/course/[cid]/queue/[qid]/components/StaffList'
 import { createRoot } from 'react-dom/client'
+import { useQuestionsWithQueueInvite } from '@/app/hooks/useQuestionsWithQueueInvite'
 
 type QueueInvitePageProps = {
   params: { qid: string }
@@ -38,6 +39,11 @@ export default function QueueInvitePage({
   const [hasGettingUserBeenResolved, setHasGettingUserBeenResolved] =
     useState(false) // don't let the users hit the join button before we find out if they're logged in or not
   const [isJoinButtonLoading, setIsJoinButtonLoading] = useState(false)
+  const { queueQuestions } = useQuestionsWithQueueInvite(
+    qid,
+    code,
+    queueInviteInfo?.isQuestionsVisible,
+  )
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -261,7 +267,9 @@ export default function QueueInvitePage({
           </div>
         )}
         {queueInviteInfo.isQuestionsVisible && (
-          <p>(pretend questions are visible)</p>
+          <pre className="max-w-7xl text-wrap">
+            Question Details: {JSON.stringify(queueQuestions)}
+          </pre>
         )}
         <Switch
           className="mb-0 mt-auto"

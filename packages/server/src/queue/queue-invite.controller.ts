@@ -30,6 +30,7 @@ import { QueueRolesGuard } from '../guards/queue-role.guard';
 import { QueueService } from './queue.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
+import { QueueSSEService } from './queue-sse.service';
 
 /**
  * This is a separate controller from queues because the GET endpoint for queue invite is public
@@ -40,6 +41,7 @@ export class QueueInviteController {
   constructor(
     private queueService: QueueService, //note: this throws errors, be sure to catch them
     private redisQueueService: RedisQueueService,
+    private queueSSEService: QueueSSEService,
   ) {}
 
   /**
@@ -133,18 +135,18 @@ Works functionally the same as getQueue in queue.controller.ts but is publicly a
     @Param('queueId', ParseIntPipe) queueId: number,
     @Param('inviteCode') queueInviteCode: string,
   ): Promise<GetQueueResponse> {
+    if (!queueInviteCode) {
+      throw new NotFoundException();
+    }
+    const shouldQuestionsBeShown =
+      await this.queueService.verifyQueueInviteCodeAndCheckIfQuestionsVisible(
+        queueId,
+        queueInviteCode,
+      );
+    if (!shouldQuestionsBeShown) {
+      throw new NotFoundException();
+    }
     try {
-      if (!queueInviteCode) {
-        throw new NotFoundException();
-      }
-      const shouldQuestionsBeShown =
-        await this.queueService.verifyQueueInviteCodeAndCheckIfQuestionsVisible(
-          queueId,
-          queueInviteCode,
-        );
-      if (!shouldQuestionsBeShown) {
-        throw new NotFoundException();
-      }
       return this.queueService.getQueue(queueId);
     } catch (err) {
       console.error(err);
@@ -161,7 +163,19 @@ Works functionally the same as getQuestions in queue.controller.ts but is public
   @Get(':queueId/:queueInviteCode/questions')
   async getQuestions(
     @Param('queueId') queueId: number,
+    @Param('queueInviteCode') queueInviteCode: string,
   ): Promise<ListQuestionsResponse> {
+    if (!queueInviteCode) {
+      throw new NotFoundException();
+    }
+    const shouldQuestionsBeShown =
+      await this.queueService.verifyQueueInviteCodeAndCheckIfQuestionsVisible(
+        queueId,
+        queueInviteCode,
+      );
+    if (!shouldQuestionsBeShown) {
+      throw new NotFoundException();
+    }
     try {
       const queueKeys = await this.redisQueueService.getKey(`q:${queueId}`);
       let queueQuestions: any;
@@ -180,13 +194,59 @@ Works functionally the same as getQuestions in queue.controller.ts but is public
         queueQuestions = queueKeys.questions;
       }
 
-      return queueQuestions;
+      // I choose Role.STUDENT to remove sensitive data, and no user has a userId of 0
+      const personalizedQuestions =
+        await this.queueService.personalizeQuestions(
+          queueId,
+          queueQuestions,
+          0,
+          Role.STUDENT,
+        );
+      return personalizedQuestions;
     } catch (err) {
       console.log(err);
       throw new HttpException(
         ERROR_MESSAGES.queueController.getQuestions,
         HttpStatus.NOT_FOUND,
       );
+    }
+  }
+
+  /**
+   * Note this works functionally the same as the one in queue.controller.ts
+   */
+  @Get(':queueId/:queueInviteCode/sse')
+  async sendEvent(
+    @Param('queueId', ParseIntPipe) queueId: number,
+    @Param('queueInviteCode') queueInviteCode: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    if (!queueInviteCode) {
+      throw new NotFoundException();
+    }
+    const shouldQuestionsBeShown =
+      await this.queueService.verifyQueueInviteCodeAndCheckIfQuestionsVisible(
+        queueId,
+        queueInviteCode,
+      );
+    if (!shouldQuestionsBeShown) {
+      throw new NotFoundException();
+    }
+    res.set({
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'X-Accel-Buffering': 'no',
+      Connection: 'keep-alive',
+    });
+
+    try {
+      // I choose Role.STUDENT to remove sensitive data, and no user has a userId of 0
+      this.queueSSEService.subscribeClient(queueId, res, {
+        role: Role.STUDENT,
+        userId: 0,
+      });
+    } catch (err) {
+      console.error(err);
     }
   }
 }

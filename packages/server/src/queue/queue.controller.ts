@@ -163,7 +163,10 @@ export class QueueController {
     }
   }
 
-  // Endpoint to send frontend receive server-sent events when queue changes
+  /**
+   * Endpoint to tell frontend when the queue changes
+   * Note there is a similar method in queue-invite.controller.ts
+   *  */
   @Get(':queueId/sse')
   sendEvent(
     @Param('queueId', ParseIntPipe) queueId: number,

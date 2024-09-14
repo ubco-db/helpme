@@ -26,7 +26,11 @@ import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
-
+type FilteredUser = {
+  id: number;
+  name: string;
+  photoURL: string;
+};
 /**
  * Get data in service of the queue controller and SSE
  * WHY? To ensure data returned by endpoints is *exactly* equal to data sent by SSE
@@ -89,6 +93,19 @@ export class QueueService {
       (question) =>
         question.status === OpenQuestionStatus.Helping && !question.groupId,
     );
+
+    // Also remove sensitive data from taHelped inside questionsGettingHelp
+    queueQuestions.questionsGettingHelp =
+      queueQuestions.questionsGettingHelp.map((question) => {
+        question.taHelped = question.taHelped
+          ? {
+              id: question.taHelped.id,
+              name: question.taHelped.name,
+              photoURL: question.taHelped.photoURL,
+            }
+          : null;
+        return question;
+      });
 
     queueQuestions.priorityQueue = questionsFromDb.filter((question) =>
       StatusInPriorityQueue.includes(question.status as OpenQuestionStatus),

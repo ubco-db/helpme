@@ -153,7 +153,7 @@ export default function QueueInvitesPage({
                   onChange={(value) => setSelectedPreset(value)}
                   options={[
                     { value: 'Default', label: 'Default Preset' },
-                    { value: 'For Printing', label: 'For Printing' },
+                    { value: 'For Printing', label: 'Office Hours Print' },
                     { value: 'Projector', label: 'Projector' },
                     { value: 'Help Desk Print', label: 'Help Desk Print' },
                   ]}
