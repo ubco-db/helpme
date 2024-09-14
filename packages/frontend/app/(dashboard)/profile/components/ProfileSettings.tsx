@@ -9,10 +9,22 @@ import EditProfile from './EditProfile'
 import NotificationsSettings from './NotificationsSettings'
 import CoursePreference from './CoursePreference'
 import EmailNotifications from './EmailNotifications'
+import { useSearchParams } from 'next/navigation';
 
 const ProfileSettings: React.FC = () => {
+  const params = useSearchParams()
+
   const [currentSettings, setCurrentSettings] = useState(
-    SettingsOptions.PROFILE,
+    () => {
+      switch(params.get("page")) {
+        case "notifications":
+          return SettingsOptions.NOTIFICATIONS
+        case "preferences":
+          return SettingsOptions.PREFERENCES
+        default:
+          return SettingsOptions.PROFILE
+      }
+    }
   )
 
   return (
@@ -22,7 +34,7 @@ const ProfileSettings: React.FC = () => {
         className="mx-auto mt-2 h-fit w-full max-w-max text-center md:mx-0 md:mt-0"
       >
         <AvatarSettings />
-        <SettingsMenu setCurrentSettings={setCurrentSettings} />
+        <SettingsMenu currentSettings={currentSettings} setCurrentSettings={setCurrentSettings} />
       </Col>
       <div className="mr-8 hidden border-r border-gray-300 md:mr-8 md:block md:border-r md:border-gray-300" />
       <Space

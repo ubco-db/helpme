@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { QuestionType } from '@koh/common'
 import { getBrightness } from '@/app/utils/generalUtils'
 
@@ -190,9 +190,13 @@ const QuestionTagSelector: React.FC<QuestionTagSelectorProps> = ({
     }
   }
 
+  const sortedQuestionTags = useMemo(() => {
+    return [...questionTags].sort((a, b) => a.name.localeCompare(b.name))
+  }, [questionTags])
+
   return (
     <div className={className} role="group" {...props}>
-      {questionTags.map((tag) =>
+      {sortedQuestionTags.map((tag) =>
         tag.name ? ( // don't display question tags with no name (e.g. glitched ones)
           <CheckableQuestionTag
             key={tag.id}
@@ -242,9 +246,13 @@ const QuestionTagDeleteSelector: React.FC<QuestionTagDeleteSelectorProps> = ({
     }
   }
 
+  const sortedQuestionTags = useMemo(() => {
+    return [...currentTags].sort((a, b) => a.name.localeCompare(b.name))
+  }, [currentTags])
+
   return (
     <div className={className} role="group" {...props}>
-      {currentTags.map((tag) => (
+      {sortedQuestionTags.map((tag) => (
         <CheckableQuestionTag
           key={tag.id}
           tagName={tag.name}
