@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, message, QRCode, Result, Switch } from 'antd'
+import { Button, message, QRCode, Result, Switch, Tooltip } from 'antd'
 import { ReactElement, useCallback, useEffect, useState } from 'react'
 import { PublicQueueInvite, UBCOuserParam, User } from '@koh/common'
 import { API } from '@/app/api'
@@ -12,6 +12,7 @@ import { userApi } from '@/app/api/userApi'
 import StandardPageContainer from '@/app/components/standardPageContainer'
 import { setQueueInviteCookie } from '@/app/api/cookieApi'
 import { StatusCard } from '@/app/(dashboard)/course/[cid]/queue/[qid]/components/StaffList'
+import { createRoot } from 'react-dom/client'
 
 type QueueInvitePageProps = {
   params: { qid: string }
@@ -140,6 +141,51 @@ export default function QueueInvitePage({
     }
   }, [code, queueInviteInfo, router, profile])
 
+  const handlePrintQRCode = useCallback(() => {
+    if (!queueInviteInfo) {
+      message.error('Queue invite info not loaded. Please try again')
+      return
+    }
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>HelpMe | ${queueInviteInfo.room} QR Code (${queueInviteInfo.courseName})</title>
+            <style>
+              body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;  }
+              h1 { text-align: center; }
+              .qrcode { display: flex; justify-content: center; flex-direction: column; align-items: center; }
+            </style>
+          </head>
+          <body>
+            <div class="qrcode">
+              <h1>Scan to join ${queueInviteInfo.room} for ${queueInviteInfo.courseName}</h1>
+              <div id="qrcode"></div>
+            </div>
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
+
+      const qrCodeContainer = printWindow.document.getElementById('qrcode')
+      if (qrCodeContainer) {
+        const qrCodeElement = (
+          <QRCode
+            errorLevel={queueInviteInfo.QRCodeErrorLevel}
+            value={inviteURL}
+            icon="/helpme_logo_small.png"
+            size={400}
+          />
+        )
+        const root = createRoot(qrCodeContainer)
+        root.render(qrCodeElement)
+      }
+
+      printWindow.print()
+    }
+  }, [queueInviteInfo, inviteURL])
+
   if (pageLoading) {
     return <CenteredSpinner tip="Loading..." />
   } else if (hasFetchErrorOccurred) {
@@ -160,8 +206,10 @@ export default function QueueInvitePage({
   } else {
     return (
       <StandardPageContainer className="h-full items-center gap-y-2">
-        <title>{`HelpMe - Invitation to join '${queueInviteInfo.room}'`}</title>
-        <h1>{queueInviteInfo.room}</h1>
+        <title>{`HelpMe - Invitation to join ${queueInviteInfo.room} for ${queueInviteInfo.courseName}`}</title>
+        <h1>
+          {queueInviteInfo.room} | {queueInviteInfo.courseName}
+        </h1>
         {queueInviteInfo.queueSize === 0 ? (
           <p>The queue is empty!</p>
         ) : (
@@ -177,11 +225,14 @@ export default function QueueInvitePage({
         {projectorModeEnabled ? (
           <div className="flex flex-col items-center justify-center gap-y-1">
             <div className="font-bold">Scan to join queue:</div>
-            <QRCode
-              errorLevel={queueInviteInfo.QRCodeErrorLevel}
-              value={inviteURL}
-              icon="/helpme_logo_small.png"
-            />
+            <Tooltip title="Click this to print it">
+              <QRCode
+                errorLevel={queueInviteInfo.QRCodeErrorLevel}
+                value={inviteURL}
+                icon="/helpme_logo_small.png"
+                onClick={handlePrintQRCode}
+              />
+            </Tooltip>
           </div>
         ) : (
           <Button
