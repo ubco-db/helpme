@@ -9,12 +9,14 @@ import { QuestionTagElement } from '@/app/(dashboard)/course/[cid]/components/Qu
 
 interface QuestionCardSimpleProps {
   question: Question
+  isBeingHelped?: boolean
   configTasks?: ConfigTasks
   className?: string // used to highlight questions or add other classes
 }
 
 const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
   question,
+  isBeingHelped,
   configTasks,
   className,
 }) => {
@@ -97,6 +99,11 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
         <Col flex="0 0 3rem">
           <div className="text-sm text-gray-600">{getWaitTime(question)}</div>
         </Col>
+        <div className="absolute">
+          {isBeingHelped && (
+            <div className="text-sm text-green-600">Being helped</div>
+          )}
+        </div>
       </Row>
     </Card>
   )

@@ -318,7 +318,9 @@ export class CourseService {
     const courseId = splitCookie[0];
     const queueId = splitCookie[1];
     const orgId = splitCookie[2];
-    const courseInviteCode = splitCookie[3];
+    const courseInviteCode = Buffer.from(splitCookie[3], 'base64').toString(
+      'utf-8',
+    );
     // check if the queueInvite exists and if it will invite to course
     const queueInvite = await QueueInviteModel.findOne({
       where: { queueId },

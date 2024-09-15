@@ -41,7 +41,7 @@ export async function setQueueInviteCookie(
     const cookieStore = cookies()
     cookieStore.set(
       'queueInviteInfo',
-      `${courseId},${queueId},${orgId},${courseInviteCode ?? ''}`,
+      `${courseId},${queueId},${orgId},${courseInviteCode ? Buffer.from(courseInviteCode).toString('base64') : ''}`,
       {
         httpOnly: true,
         secure: true,

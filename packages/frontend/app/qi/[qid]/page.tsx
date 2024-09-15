@@ -102,13 +102,13 @@ export default function QueueInvitePage({
     const fetchUserDetails = async () => {
       const userDetails = await userApi.getUser()
       const response = await userDetails.json()
-      if (response.statusCode < 400) {
+      if (!(response.statusCode >= 400)) {
         setProfile(response)
       }
       setHasGettingUserBeenResolved(true)
     }
     fetchUserDetails()
-  }, [])
+  }, [setProfile, setHasGettingUserBeenResolved])
 
   const isHttps =
     (typeof window !== 'undefined' && window.location.protocol) === 'https:'
@@ -275,219 +275,256 @@ export default function QueueInvitePage({
     return <CenteredSpinner tip="Queue invite loading..." />
   } else {
     return (
-      <StandardPageContainer className="h-full items-center gap-y-2">
+      <StandardPageContainer className="min-h-full items-center gap-y-2">
         <title>{`HelpMe - Invitation to join ${queueInviteInfo.room} for ${queueInviteInfo.courseName}`}</title>
-        <h1>
-          {queueInviteInfo.room} | {queueInviteInfo.courseName}
-        </h1>
-        {queueInviteInfo.queueSize === 0 ? (
-          <p>The queue is empty!</p>
-        ) : (
-          <p>
-            There are currently{' '}
-            <span className="font-bold">{queueInviteInfo.queueSize}</span>{' '}
-            students in the queue.
-          </p>
-        )}
-        {/* <pre className="max-w-7xl text-wrap">
-          Public queue invite details: {JSON.stringify(queueInviteInfo)}
-        </pre> */}
-        {projectorModeEnabled ? (
-          <div className="flex flex-col items-center justify-center gap-y-1">
-            <div className="font-bold">Scan to join queue:</div>
-            <Tooltip title="Click this to print it">
-              <QRCode
-                errorLevel={queueInviteInfo.QRCodeErrorLevel}
-                value={inviteURL}
-                icon="/helpme_logo_small.png"
-                onClick={handlePrintQRCode}
-              />
-            </Tooltip>
-          </div>
-        ) : (
-          <Button
-            type="primary"
-            className="w-full md:w-40"
-            loading={!hasGettingUserBeenResolved || isJoinButtonLoading}
-            disabled={!hasGettingUserBeenResolved}
-            onClick={JoinQueueButtonClick}
-          >
-            Join Queue
-          </Button>
-        )}
-        <h2 className="text-lg">Staff</h2>
-        {queueInviteInfo.staffList.length === 0 ? (
-          <p>There are no staff members in this queue.</p>
-        ) : (
-          <div className="text-sm">
-            {queueInviteInfo.staffList.map((ta) => (
-              <StatusCard
-                key={ta.id}
-                taName={ta.name}
-                taPhotoURL={ta.photoURL}
-                helpedAt={ta.questionHelpedAt}
-              />
-            ))}
-          </div>
-        )}
-        {queueInviteInfo.isQuestionsVisible && (
-          <div className="w-full md:w-1/2">
-            <div className="flex items-center justify-between">
-              <h2 className="mr-2 text-lg">Questions</h2>
-              {!(
-                queueConfig?.fifo_queue_view_enabled === false ||
-                queueConfig?.tag_groups_queue_view_enabled === false
-              ) && (
-                <TagGroupSwitch
-                  tagGroupsEnabled={tagGroupsEnabled}
-                  setTagGroupsEnabled={setTagGroupsEnabled}
-                  mobile={false}
-                />
-              )}
-            </div>
-            <Divider />
-            <div className="flex flex-col items-center justify-between">
-              {!queueQuestions ? (
-                <div className="text-md font-medium text-gray-700">
-                  There was an error getting questions
-                </div>
-              ) : !queueQuestions.questions ||
-                queueQuestions.questions?.length === 0 ? (
-                <div className="text-md font-medium text-gray-600">
-                  The queue is empty!
-                </div>
-              ) : tagGroupsEnabled ? (
-                <Collapse
-                  className="border-none"
-                  defaultActiveKey={Object.keys(taskTree)} // open all task groups by default
+        <div className="flex min-h-full w-full flex-col md:flex-row md:gap-x-4">
+          <div className="flex min-h-screen w-full flex-col gap-y-4 border-r-2 border-[#cfd6de] pr-4 md:w-[30rem] md:pt-5">
+            <h1>
+              {queueInviteInfo.room} | {queueInviteInfo.courseName}
+            </h1>
+            {queueInviteInfo.queueSize === 0 ? (
+              <p>The queue is empty!</p>
+            ) : (
+              <p>
+                There are currently{' '}
+                <span className="font-bold">{queueInviteInfo.queueSize}</span>{' '}
+                students in the queue.
+              </p>
+            )}
+            {projectorModeEnabled ? (
+              <div className="flex flex-col items-center justify-center gap-y-1">
+                <div className="font-bold">Scan to join queue:</div>
+                <Tooltip title="Click this to print it">
+                  <QRCode
+                    errorLevel={queueInviteInfo.QRCodeErrorLevel}
+                    value={inviteURL}
+                    icon="/helpme_logo_small.png"
+                    onClick={handlePrintQRCode}
+                  />
+                </Tooltip>
+              </div>
+            ) : (
+              <Button
+                type="primary"
+                className="w-full"
+                size="large"
+                loading={!hasGettingUserBeenResolved || isJoinButtonLoading}
+                disabled={!hasGettingUserBeenResolved}
+                onClick={JoinQueueButtonClick}
+              >
+                Join Queue
+              </Button>
+            )}
+            <div>
+              <h2 className="">Staff</h2>
+              {queueInviteInfo.staffList.length === 0 ? (
+                <div
+                  role="alert"
+                  className="border-l-4 border-orange-500 bg-orange-100 p-4 text-orange-700"
                 >
-                  {/* tasks (for demos/TaskQuestions) */}
-                  {taskTree &&
-                    Object.entries(taskTree).map(([taskKey, task]) => {
-                      const filteredQuestions = queueQuestions.questions.filter(
-                        (question: Question) => {
-                          const tasks = question.isTaskQuestion
-                            ? parseTaskIdsFromQuestionText(question.text)
-                            : []
-                          return (
-                            question.isTaskQuestion && tasks.includes(taskKey)
-                          )
-                        },
-                      )
-                      return (
-                        filteredQuestions && (
-                          <Panel
-                            className="tag-group mb-3 rounded bg-white shadow-lg"
-                            key={taskKey}
-                            header={
-                              <div className="flex justify-between">
-                                <div>
-                                  <QuestionTagElement
-                                    tagName={task.display_name}
-                                    tagColor={task.color_hex}
-                                  />
-                                  <span className=" ml-2 text-gray-700">
-                                    {filteredQuestions.length > 1
-                                      ? `${filteredQuestions.length} Students`
-                                      : filteredQuestions.length == 1
-                                        ? `${filteredQuestions.length} Student`
-                                        : ''}
-                                  </span>
-                                </div>
-                                <div className="row flex">
-                                  {task.blocking && (
-                                    <span className="mr-2 text-gray-400">
-                                      blocking
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            }
-                          >
-                            {filteredQuestions.map((question: Question) => {
-                              return (
-                                <QuestionCardSimple
-                                  key={question.id}
-                                  question={question}
-                                  configTasks={configTasks}
-                                />
-                              )
-                            })}
-                          </Panel>
-                        )
-                      )
-                    })}
-                  {isDemoQueue && (
-                    <Divider
-                      className="-mx-4 my-2 w-[calc(100%+2rem)] border-[#cfd6de]"
-                      key="DIVIDER"
-                    />
-                  )}
-                  {/* questionTypes/tags (for regular questions) */}
-                  {queueConfig &&
-                    queueConfig.tags &&
-                    Object.entries(queueConfig.tags).map(([tagId, tag]) => {
-                      // naming this "tags" to make some code slightly easier to follow
-                      const filteredQuestions = queueQuestions.questions.filter(
-                        (question: Question) =>
-                          question.questionTypes?.some(
-                            (questionType) =>
-                              questionType.name === tag.display_name,
-                          ),
-                      )
-                      return (
-                        filteredQuestions && (
-                          <Panel
-                            className="tag-group mb-3 rounded bg-white shadow-lg"
-                            key={tag.display_name}
-                            header={
-                              <div className="flex justify-between">
-                                <div>
-                                  <QuestionTagElement
-                                    tagName={tag.display_name}
-                                    tagColor={tag.color_hex}
-                                  />
-                                  <span className=" ml-2 text-gray-700">
-                                    {filteredQuestions.length > 1
-                                      ? `${filteredQuestions.length} Students`
-                                      : filteredQuestions.length == 1
-                                        ? `${filteredQuestions.length} Student`
-                                        : ''}
-                                  </span>
-                                </div>
-                              </div>
-                            }
-                          >
-                            {filteredQuestions.map((question: Question) => {
-                              return (
-                                <QuestionCardSimple
-                                  key={question.id}
-                                  question={question}
-                                  configTasks={configTasks}
-                                />
-                              )
-                            })}
-                          </Panel>
-                        )
-                      )
-                    })}
-                </Collapse>
+                  <p> No staff checked in</p>
+                </div>
               ) : (
-                queueQuestions.questions.map((question: Question) => {
-                  return (
-                    <QuestionCardSimple
-                      key={question.id}
-                      question={question}
-                      configTasks={configTasks}
+                <div className="text-sm">
+                  {queueInviteInfo.staffList.map((ta) => (
+                    <StatusCard
+                      key={ta.id}
+                      taName={ta.name}
+                      taPhotoURL={ta.photoURL}
+                      helpedAt={ta.questionHelpedAt}
                     />
-                  )
-                })
+                  ))}
+                </div>
               )}
             </div>
+            <Switch
+              className="mb-0 ml-auto mr-auto mt-auto hidden max-w-40 md:block" // only show on desktop
+              checkedChildren=""
+              unCheckedChildren={
+                queueInviteInfo.QRCodeEnabled
+                  ? 'Show QR Code'
+                  : 'Toggle Projector Mode'
+              }
+              onChange={(checked) => setProjectorModeEnabled(checked)}
+            />
           </div>
-        )}
+          {queueInviteInfo.isQuestionsVisible && (
+            <div className="w-full md:flex md:flex-grow md:flex-col md:pt-5">
+              <div className="flex items-center justify-between">
+                <h2 className="mr-2">Questions</h2>
+                {!(
+                  queueConfig?.fifo_queue_view_enabled === false ||
+                  queueConfig?.tag_groups_queue_view_enabled === false
+                ) && (
+                  <TagGroupSwitch
+                    tagGroupsEnabled={tagGroupsEnabled}
+                    setTagGroupsEnabled={setTagGroupsEnabled}
+                    mobile={false}
+                  />
+                )}
+              </div>
+              <Divider className="-mx-2 my-2 w-[calc(100%+1rem)] border-[#cfd6de]" />
+              <div className="flex flex-col items-center justify-between">
+                {!queueQuestions ? (
+                  <div className="text-md font-medium text-gray-700">
+                    There was an error getting questions
+                  </div>
+                ) : !queueQuestions.questions ||
+                  queueQuestions.questions?.length === 0 ? (
+                  <div className="text-md font-medium text-gray-600">
+                    The queue is empty!
+                  </div>
+                ) : tagGroupsEnabled ? (
+                  <Collapse
+                    className="w-full border-none"
+                    defaultActiveKey={Object.keys(taskTree)} // open all task groups by default
+                  >
+                    {/* tasks (for demos/TaskQuestions) */}
+                    {taskTree &&
+                      Object.entries(taskTree).map(([taskKey, task]) => {
+                        const filteredQuestions =
+                          queueQuestions.questions.filter(
+                            (question: Question) => {
+                              const tasks = question.isTaskQuestion
+                                ? parseTaskIdsFromQuestionText(question.text)
+                                : []
+                              return (
+                                question.isTaskQuestion &&
+                                tasks.includes(taskKey)
+                              )
+                            },
+                          )
+                        return (
+                          filteredQuestions && (
+                            <Panel
+                              className="tag-group mb-3 rounded bg-white shadow-lg"
+                              key={taskKey}
+                              header={
+                                <div className="flex justify-between">
+                                  <div>
+                                    <QuestionTagElement
+                                      tagName={task.display_name}
+                                      tagColor={task.color_hex}
+                                    />
+                                    <span className=" ml-2 text-gray-700">
+                                      {filteredQuestions.length > 1
+                                        ? `${filteredQuestions.length} Students`
+                                        : filteredQuestions.length == 1
+                                          ? `${filteredQuestions.length} Student`
+                                          : ''}
+                                    </span>
+                                  </div>
+                                  <div className="row flex">
+                                    {task.blocking && (
+                                      <span className="mr-2 text-gray-400">
+                                        blocking
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              }
+                            >
+                              {filteredQuestions.map((question: Question) => {
+                                return (
+                                  <QuestionCardSimple
+                                    key={question.id}
+                                    question={question}
+                                    configTasks={configTasks}
+                                  />
+                                )
+                              })}
+                            </Panel>
+                          )
+                        )
+                      })}
+                    {isDemoQueue && (
+                      <Divider
+                        className="-mx-2 my-2 w-[calc(100%+1rem)] border-[#cfd6de]"
+                        key="DIVIDER"
+                      />
+                    )}
+                    {/* questionTypes/tags (for regular questions) */}
+                    {queueConfig &&
+                      queueConfig.tags &&
+                      Object.entries(queueConfig.tags).map(([tagId, tag]) => {
+                        // naming this "tags" to make some code slightly easier to follow
+                        const filteredQuestions =
+                          queueQuestions.questions.filter(
+                            (question: Question) =>
+                              question.questionTypes?.some(
+                                (questionType) =>
+                                  questionType.name === tag.display_name,
+                              ),
+                          )
+                        return (
+                          filteredQuestions && (
+                            <Panel
+                              className="tag-group mb-3 rounded bg-white shadow-lg"
+                              key={tag.display_name}
+                              header={
+                                <div className="flex justify-between">
+                                  <div>
+                                    <QuestionTagElement
+                                      tagName={tag.display_name}
+                                      tagColor={tag.color_hex}
+                                    />
+                                    <span className=" ml-2 text-gray-700">
+                                      {filteredQuestions.length > 1
+                                        ? `${filteredQuestions.length} Students`
+                                        : filteredQuestions.length == 1
+                                          ? `${filteredQuestions.length} Student`
+                                          : ''}
+                                    </span>
+                                  </div>
+                                </div>
+                              }
+                            >
+                              {filteredQuestions.map((question: Question) => {
+                                return (
+                                  <QuestionCardSimple
+                                    key={question.id}
+                                    question={question}
+                                    configTasks={configTasks}
+                                  />
+                                )
+                              })}
+                            </Panel>
+                          )
+                        )
+                      })}
+                  </Collapse>
+                ) : (
+                  <>
+                    {queueQuestions.questionsGettingHelp.map(
+                      (question: Question) => {
+                        return (
+                          <QuestionCardSimple
+                            key={question.id}
+                            question={question}
+                            configTasks={configTasks}
+                            isBeingHelped={true}
+                          />
+                        )
+                      },
+                    )}
+                    {queueQuestions.questions.map((question: Question) => {
+                      return (
+                        <QuestionCardSimple
+                          key={question.id}
+                          question={question}
+                          configTasks={configTasks}
+                        />
+                      )
+                    })}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         <Switch
-          className="mb-0 mt-auto"
+          className="mb-0 mt-auto md:hidden" // only show on mobile
           checkedChildren=""
           unCheckedChildren={
             queueInviteInfo.QRCodeEnabled

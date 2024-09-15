@@ -19,6 +19,8 @@ export default async function Layout({
     const queueId = cookieParts[1]
     const orgId = cookieParts[2]
     const courseInviteCode = cookieParts[3]
+      ? Buffer.from(cookieParts[3], 'base64').toString('utf-8')
+      : null
     if (Number(orgId)) {
       invitedOrgId = Number(orgId)
     }
