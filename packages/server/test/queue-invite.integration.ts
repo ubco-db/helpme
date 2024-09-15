@@ -250,7 +250,7 @@ describe('Queue Invite Integration', () => {
       const invite = await QueueInviteFactory.create({ queue: queue });
 
       await supertest({ userId: publicUser.id })
-        .get(`/queueInvites/${queue.id}/invite-code`)
+        .get(`/queueInvites/${queue.id}/${invite.inviteCode}`)
         .expect(200);
     });
     it('returns 404 when the queue does not exist', async () => {
@@ -286,7 +286,10 @@ describe('Queue Invite Integration', () => {
       });
       const publicUser = await UserFactory.create();
       const queue = await QueueFactory.create({ course });
-      const invite = await QueueInviteFactory.create({ queue: queue });
+      const invite = await QueueInviteFactory.create({
+        queue: queue,
+        isQuestionsVisible: true,
+      });
 
       await supertest({ userId: publicUser.id })
         .get(`/queueInvites/${queue.id}/${invite.inviteCode}/questions`)
@@ -308,10 +311,31 @@ describe('Queue Invite Integration', () => {
       });
       const publicUser = await UserFactory.create();
       const queue = await QueueFactory.create({ course });
-      const invite = await QueueInviteFactory.create({ queue: queue });
+      const invite = await QueueInviteFactory.create({
+        queue: queue,
+        isQuestionsVisible: true,
+      });
 
       await supertest({ userId: publicUser.id })
         .get(`/queueInvites/${queue.id}/incorrect-invite-code/questions`)
+        .expect(404);
+    });
+    it('returns 404 when the invite does not have questions visible', async () => {
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        organization,
+        course,
+      });
+      const publicUser = await UserFactory.create();
+      const queue = await QueueFactory.create({ course });
+      const invite = await QueueInviteFactory.create({
+        queue: queue,
+        isQuestionsVisible: false,
+      });
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/${queue.id}/${invite.inviteCode}/questions`)
         .expect(404);
     });
   });
@@ -325,7 +349,10 @@ describe('Queue Invite Integration', () => {
       });
       const publicUser = await UserFactory.create();
       const queue = await QueueFactory.create({ course });
-      const invite = await QueueInviteFactory.create({ queue: queue });
+      const invite = await QueueInviteFactory.create({
+        queue: queue,
+        isQuestionsVisible: true,
+      });
 
       await supertest({ userId: publicUser.id })
         .get(`/queueInvites/${queue.id}/${invite.inviteCode}/queue`)
@@ -347,10 +374,31 @@ describe('Queue Invite Integration', () => {
       });
       const publicUser = await UserFactory.create();
       const queue = await QueueFactory.create({ course });
-      const invite = await QueueInviteFactory.create({ queue: queue });
+      const invite = await QueueInviteFactory.create({
+        queue: queue,
+        isQuestionsVisible: true,
+      });
 
       await supertest({ userId: publicUser.id })
         .get(`/queueInvites/${queue.id}/incorrect-invite-code/queue`)
+        .expect(404);
+    });
+    it('returns 404 when the invite does not have questions visible', async () => {
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        organization,
+        course,
+      });
+      const publicUser = await UserFactory.create();
+      const queue = await QueueFactory.create({ course });
+      const invite = await QueueInviteFactory.create({
+        queue: queue,
+        isQuestionsVisible: false,
+      });
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/${queue.id}/${invite.inviteCode}/queue`)
         .expect(404);
     });
   });
@@ -371,10 +419,31 @@ describe('Queue Invite Integration', () => {
       });
       const publicUser = await UserFactory.create();
       const queue = await QueueFactory.create({ course });
-      const invite = await QueueInviteFactory.create({ queue: queue });
+      const invite = await QueueInviteFactory.create({
+        queue: queue,
+        isQuestionsVisible: true,
+      });
 
       await supertest({ userId: publicUser.id })
         .get(`/queueInvites/${queue.id}/incorrect-invite-code/sse`)
+        .expect(404);
+    });
+    it('returns 404 when the invite does not have questions visible', async () => {
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        organization,
+        course,
+      });
+      const publicUser = await UserFactory.create();
+      const queue = await QueueFactory.create({ course });
+      const invite = await QueueInviteFactory.create({
+        queue: queue,
+        isQuestionsVisible: false,
+      });
+
+      await supertest({ userId: publicUser.id })
+        .get(`/queueInvites/${queue.id}/${invite.inviteCode}/sse`)
         .expect(404);
     });
   });
