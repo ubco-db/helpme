@@ -15,6 +15,7 @@ import {
   parseTaskIdsFromQuestionText,
   PublicQueueInvite,
   Question,
+  Role,
   TaskTree,
   transformIntoTaskTree,
   UBCOuserParam,
@@ -22,7 +23,7 @@ import {
 } from '@koh/common'
 import { API } from '@/app/api'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import Link from 'next/link'
 import { userApi } from '@/app/api/userApi'
@@ -135,6 +136,24 @@ export default function QueueInvitePage({
     fetchPublicQueueInviteInfo()
   }, [fetchPublicQueueInviteInfo])
 
+  // if the user is already logged in, is a student, and is in the course, redirect them to the queue page
+  // The reason why it's only students is so that professors can easily show this page (to show the QR code)
+  useEffect(() => {
+    if (
+      queueInviteInfo &&
+      profile &&
+      profile.courses.some(
+        (course) =>
+          course.course.id === queueInviteInfo.courseId &&
+          course.role === Role.STUDENT,
+      )
+    ) {
+      router.push(
+        `/course/${queueInviteInfo.courseId}/queue/${queueInviteInfo.queueId}`,
+      )
+    }
+  }, [profile, queueInviteInfo, router])
+
   const JoinQueueButtonClick = useCallback(async () => {
     if (!queueInviteInfo) {
       message.error('Queue invite info not loaded. Please try again')
@@ -246,12 +265,11 @@ export default function QueueInvitePage({
   }, [queueInviteInfo, inviteURL])
 
   useEffect(() => {
-    // only re-calculate the taskTree and everything if tagGroups is enabled and the user is a student
+    // only re-calculate the taskTree and everything if tagGroups is enabled
     if (tagGroupsEnabled) {
       const configTasksCopy = {
         ...configTasks,
       } // Create a copy of configTasks (since the function will mutate it)
-
       setTaskTree(transformIntoTaskTree(configTasksCopy)) // transformIntoTaskTree changes each precondition to carry a reference to the actual task object instead of just a string
     }
   }, [tagGroupsEnabled, configTasks])
@@ -291,19 +309,7 @@ export default function QueueInvitePage({
                 students in the queue.
               </p>
             )}
-            {projectorModeEnabled ? (
-              <div className="flex flex-col items-center justify-center gap-y-1">
-                <div className="font-bold">Scan to join queue:</div>
-                <Tooltip title="Click this to print it">
-                  <QRCode
-                    errorLevel={queueInviteInfo.QRCodeErrorLevel}
-                    value={inviteURL}
-                    icon="/helpme_logo_small.png"
-                    onClick={handlePrintQRCode}
-                  />
-                </Tooltip>
-              </div>
-            ) : (
+            {!projectorModeEnabled && (
               <Button
                 type="primary"
                 className="w-full"
@@ -337,16 +343,43 @@ export default function QueueInvitePage({
                 </div>
               )}
             </div>
-            <Switch
-              className="mb-0 ml-auto mr-auto mt-auto hidden max-w-40 md:block" // only show on desktop
-              checkedChildren=""
-              unCheckedChildren={
-                queueInviteInfo.QRCodeEnabled
-                  ? 'Show QR Code'
-                  : 'Toggle Projector Mode'
-              }
-              onChange={(checked) => setProjectorModeEnabled(checked)}
-            />
+            {projectorModeEnabled && (
+              <div className="mb-4 mt-40 flex flex-col items-center justify-center gap-y-1">
+                <div className="font-bold">Scan to join queue:</div>
+                <Tooltip title="Click this to print it">
+                  <QRCode
+                    errorLevel={queueInviteInfo.QRCodeErrorLevel}
+                    value={inviteURL}
+                    icon="/helpme_logo_small.png"
+                    onClick={handlePrintQRCode}
+                    size={300}
+                  />
+                </Tooltip>
+              </div>
+            )}
+            {/* only show this switch on desktop */}
+            <div className="group relative mb-0 ml-auto mr-auto mt-auto hidden md:block">
+              <Switch
+                style={{
+                  backgroundColor: projectorModeEnabled
+                    ? 'rgba(0, 0, 0, 0.20)'
+                    : 'rgb(54 132 196)',
+                }}
+                className={cn(
+                  'max-w-40',
+                  projectorModeEnabled
+                    ? ' opacity-0 transition-opacity duration-300 group-hover:opacity-100'
+                    : '', // make it fade out when not hovered once projector mode is enabled
+                )}
+                checkedChildren=""
+                unCheckedChildren={
+                  queueInviteInfo.QRCodeEnabled
+                    ? 'Show QR Code'
+                    : 'Toggle Projector Mode'
+                }
+                onChange={(checked) => setProjectorModeEnabled(checked)}
+              />
+            </div>
           </div>
           {queueInviteInfo.isQuestionsVisible && (
             <div className="w-full md:flex md:flex-grow md:flex-col md:pt-5">
@@ -377,7 +410,10 @@ export default function QueueInvitePage({
                 ) : tagGroupsEnabled ? (
                   <Collapse
                     className="w-full border-none"
-                    defaultActiveKey={Object.keys(taskTree)} // open all task groups by default
+                    defaultActiveKey={[
+                      ...Object.keys(queueConfig?.tags || {}),
+                      ...Object.keys(taskTree),
+                    ]} // open all task groups by default
                   >
                     {/* tasks (for demos/TaskQuestions) */}
                     {taskTree &&
@@ -460,7 +496,7 @@ export default function QueueInvitePage({
                           filteredQuestions && (
                             <Panel
                               className="tag-group mb-3 rounded bg-white shadow-lg"
-                              key={tag.display_name}
+                              key={tagId}
                               header={
                                 <div className="flex justify-between">
                                   <div>
