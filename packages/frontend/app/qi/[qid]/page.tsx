@@ -296,7 +296,13 @@ export default function QueueInvitePage({
       <StandardPageContainer className="min-h-full items-center gap-y-2">
         <title>{`HelpMe - Invitation to join ${queueInviteInfo.room} for ${queueInviteInfo.courseName}`}</title>
         <div className="flex min-h-full w-full flex-col px-1 md:flex-row md:gap-x-4 md:px-0">
-          <div className="flex w-full flex-col items-center gap-y-4 md:min-h-screen md:w-[30rem] md:items-start md:border-r-2 md:border-[#cfd6de] md:pr-4 md:pt-5">
+          <div
+            className={cn(
+              'flex w-full flex-col items-center gap-y-4 md:min-h-screen',
+              queueInviteInfo.isQuestionsVisible &&
+                'md:w-[30rem] md:items-start md:border-r-2 md:border-[#cfd6de] md:pr-4 md:pt-5',
+            )}
+          >
             <h1>
               {queueInviteInfo.room} | {queueInviteInfo.courseName}
             </h1>
@@ -312,7 +318,7 @@ export default function QueueInvitePage({
             {!projectorModeEnabled && (
               <Button
                 type="primary"
-                className="w-full"
+                className="w-full md:max-w-[30rem]"
                 size="large"
                 loading={!hasGettingUserBeenResolved || isJoinButtonLoading}
                 disabled={!hasGettingUserBeenResolved}
@@ -321,7 +327,7 @@ export default function QueueInvitePage({
                 Join Queue
               </Button>
             )}
-            <div className="w-full">
+            <div className="w-full md:max-w-[30rem]">
               <h2 className="">Staff</h2>
               {queueInviteInfo.staffList.length === 0 ? (
                 <div
@@ -343,7 +349,7 @@ export default function QueueInvitePage({
                 </div>
               )}
             </div>
-            {projectorModeEnabled && (
+            {projectorModeEnabled && queueInviteInfo.QRCodeEnabled && (
               <div className="mb-4 flex flex-col items-center justify-center gap-y-1 md:mt-40">
                 <div className="font-bold">Scan to join queue:</div>
                 <Tooltip title="Click this to print it">
@@ -557,17 +563,15 @@ export default function QueueInvitePage({
             </div>
           )}
         </div>
-
-        <Switch
-          className="mb-0 mt-auto md:hidden" // only show on mobile
-          checkedChildren="Hide QR Code"
-          unCheckedChildren={
-            queueInviteInfo.QRCodeEnabled
-              ? 'Show QR Code'
-              : 'Toggle Projector Mode'
-          }
-          onChange={(checked) => setProjectorModeEnabled(checked)}
-        />
+        {/* Keeping this is a bit of an edge use case, since it would be rare that you would want to show the QR code via mobile, but maybe there's a case for it */}
+        {queueInviteInfo.QRCodeEnabled && (
+          <Switch
+            className="mb-0 mt-auto md:hidden" // only show on mobile
+            checkedChildren="Hide QR Code"
+            unCheckedChildren="Show QR Code"
+            onChange={(checked) => setProjectorModeEnabled(checked)}
+          />
+        )}
       </StandardPageContainer>
     )
   }
