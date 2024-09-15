@@ -295,8 +295,8 @@ export default function QueueInvitePage({
     return (
       <StandardPageContainer className="min-h-full items-center gap-y-2">
         <title>{`HelpMe - Invitation to join ${queueInviteInfo.room} for ${queueInviteInfo.courseName}`}</title>
-        <div className="flex min-h-full w-full flex-col md:flex-row md:gap-x-4">
-          <div className="flex min-h-screen w-full flex-col gap-y-4 border-r-2 border-[#cfd6de] pr-4 md:w-[30rem] md:pt-5">
+        <div className="flex min-h-full w-full flex-col px-1 md:flex-row md:gap-x-4 md:px-0">
+          <div className="flex w-full flex-col items-center gap-y-4 md:min-h-screen md:w-[30rem] md:items-start md:border-r-2 md:border-[#cfd6de] md:pr-4 md:pt-5">
             <h1>
               {queueInviteInfo.room} | {queueInviteInfo.courseName}
             </h1>
@@ -321,7 +321,7 @@ export default function QueueInvitePage({
                 Join Queue
               </Button>
             )}
-            <div>
+            <div className="w-full">
               <h2 className="">Staff</h2>
               {queueInviteInfo.staffList.length === 0 ? (
                 <div
@@ -344,7 +344,7 @@ export default function QueueInvitePage({
               )}
             </div>
             {projectorModeEnabled && (
-              <div className="mb-4 mt-40 flex flex-col items-center justify-center gap-y-1">
+              <div className="mb-4 flex flex-col items-center justify-center gap-y-1 md:mt-40">
                 <div className="font-bold">Scan to join queue:</div>
                 <Tooltip title="Click this to print it">
                   <QRCode
@@ -392,11 +392,10 @@ export default function QueueInvitePage({
                   <TagGroupSwitch
                     tagGroupsEnabled={tagGroupsEnabled}
                     setTagGroupsEnabled={setTagGroupsEnabled}
-                    mobile={false}
                   />
                 )}
               </div>
-              <Divider className="-mx-2 my-2 w-[calc(100%+1rem)] border-[#cfd6de]" />
+              <Divider className="-mx-2 my-2 hidden w-[calc(100%+1rem)] border-[#cfd6de] md:block" />
               <div className="flex flex-col items-center justify-between">
                 {!queueQuestions ? (
                   <div className="text-md font-medium text-gray-700">
@@ -475,7 +474,7 @@ export default function QueueInvitePage({
                       })}
                     {isDemoQueue && (
                       <Divider
-                        className="-mx-2 my-2 w-[calc(100%+1rem)] border-[#cfd6de]"
+                        className="my-2 border-[#cfd6de] md:-mx-2 md:w-[calc(100%+1rem)]"
                         key="DIVIDER"
                       />
                     )}
@@ -561,7 +560,7 @@ export default function QueueInvitePage({
 
         <Switch
           className="mb-0 mt-auto md:hidden" // only show on mobile
-          checkedChildren=""
+          checkedChildren="Hide QR Code"
           unCheckedChildren={
             queueInviteInfo.QRCodeEnabled
               ? 'Show QR Code'

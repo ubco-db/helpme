@@ -5,13 +5,13 @@ import { Segmented } from 'antd'
 const TagGroupSwitch: React.FC<{
   tagGroupsEnabled: boolean
   setTagGroupsEnabled: (tagGroupsEnabled: boolean) => void
-  mobile: boolean
+  mobile?: boolean
   className?: string
 }> = ({ tagGroupsEnabled, setTagGroupsEnabled, mobile, className }) => {
   return (
     <Segmented
       className={cn(
-        mobile ? 'md:hidden ' : 'hidden md:block',
+        mobile === undefined ? '' : mobile ? 'md:hidden ' : 'hidden md:block',
         'border border-gray-200',
         className,
       )}
