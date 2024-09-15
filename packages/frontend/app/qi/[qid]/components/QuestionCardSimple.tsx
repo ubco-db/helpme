@@ -4,8 +4,10 @@ import {
   Question,
 } from '@koh/common'
 import { Card, Col, Row, Tooltip } from 'antd'
-import { getWaitTime } from '@/app/utils/timeFormatUtils'
+import { getServedTime, getWaitTime } from '@/app/utils/timeFormatUtils'
 import { QuestionTagElement } from '@/app/(dashboard)/course/[cid]/components/QuestionTagElement'
+import { useState, useEffect } from 'react'
+import { cn } from '@/app/utils/generalUtils'
 
 interface QuestionCardSimpleProps {
   question: Question
@@ -24,9 +26,24 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
     ? parseTaskIdsFromQuestionText(question.text)
     : [] // gives an array of "part1","part2",etc.
 
+  const [servedTime, setServedTime] = useState(getServedTime(question))
+
+  useEffect(() => {
+    if (isBeingHelped && question.helpedAt) {
+      const interval = setInterval(() => {
+        setServedTime(getServedTime(question))
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [isBeingHelped, question])
+
   return (
     <Card
-      className={`mb-2 w-full rounded-md bg-white px-2 text-gray-600 shadow-md ${className}`}
+      className={cn(
+        'my-1 w-full rounded-md bg-white px-2 text-gray-600 shadow-md',
+        isBeingHelped ? 'border border-green-300' : '',
+        className,
+      )}
       classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
     >
       <Row className="items-center">
@@ -96,12 +113,21 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
             />
           ))}
         </Col>
+        {isBeingHelped && question.helpedAt && (
+          <Col flex="0 0 3rem">
+            <div className="text-sm font-medium text-green-700">
+              {servedTime}
+            </div>
+          </Col>
+        )}
         <Col flex="0 0 3rem">
           <div className="text-sm text-gray-600">{getWaitTime(question)}</div>
         </Col>
-        <div className="absolute">
+        <div
+          className={`absolute left-auto right-1 ${question.text && question.questionTypes && question.questionTypes.length > 0 ? '-mt-16' : '-mt-12'}`}
+        >
           {isBeingHelped && (
-            <div className="text-sm text-green-600">Being helped</div>
+            <div className="text-sm text-green-700">Currently Being Served</div>
           )}
         </div>
       </Row>
