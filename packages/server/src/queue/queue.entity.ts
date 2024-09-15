@@ -16,7 +16,12 @@ import { CourseModel } from '../course/course.entity';
 import { UserModel } from '../profile/user.entity';
 import { QuestionModel } from '../question/question.entity';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { ERROR_MESSAGES, QueueConfig } from '@koh/common';
+import {
+  ERROR_MESSAGES,
+  OpenQuestionStatus,
+  QueueConfig,
+  StatusInQueue,
+} from '@koh/common';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
 
@@ -84,7 +89,10 @@ export class QueueModel extends BaseEntity {
   queueSize: number;
 
   async addQueueSize(): Promise<void> {
-    this.queueSize = await QuestionModel.waitingInQueue(this.id).getCount();
+    this.queueSize = await QuestionModel.inQueueWithStatus(this.id, [
+      ...StatusInQueue,
+      OpenQuestionStatus.Helping,
+    ]).getCount();
   }
 
   @Column('json', { nullable: true })
