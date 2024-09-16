@@ -120,13 +120,21 @@ export class OrganizationController {
     try {
       const entityManager = getManager();
 
-      // Get all users for the organization with their roles
+      // Get all users for the organization with their highest role
       const orgUsers = await entityManager.query(
         `
-        SELECT  "userId", ou."role"
-        FROM organization_user_model ou
-        WHERE ou."organizationId" = $1
-      `,
+  SELECT ou."userId",
+         CASE
+           WHEN EXISTS (
+             SELECT 1 
+             FROM user_course_model uc 
+             WHERE uc."userId" = ou."userId" AND uc.role != 'student'
+           ) THEN 'professor'
+           ELSE ou.role
+         END AS role
+  FROM organization_user_model ou
+  WHERE ou."organizationId" = $1
+  `,
         [oid],
       );
 
@@ -144,11 +152,14 @@ export class OrganizationController {
           let shouldSubscribe = true;
           let isEnabled = true;
 
-          if (user.role === 'member') {
-            // Members only subscribe to member services
+          if (
+            user.role === 'member' &&
+            !['ta', 'professor'].includes(user.role)
+          ) {
+            // Members who are not TAs or professors only subscribe to member services
             shouldSubscribe = service.mailType === 'member';
           } else {
-            // Non-members subscribe to all, but member services are disabled
+            // Admins, TAs, and professors subscribe to all, but member services are disabled
             isEnabled = service.mailType !== 'member';
           }
 
