@@ -112,7 +112,6 @@ export async function middleware(request: NextRequest) {
     !nextUrl.pathname.startsWith('/invite') &&
     !nextUrl.pathname.startsWith('/qi/')
   ) {
-    console.log('nexturl', nextUrl.pathname)
     return NextResponse.redirect(new URL('/courses', url))
   }
 

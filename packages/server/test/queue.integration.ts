@@ -1,4 +1,4 @@
-import { OpenQuestionStatus, QueueInviteParams, Role } from '@koh/common';
+import { OpenQuestionStatus, Role } from '@koh/common';
 import { QuestionModel } from 'question/question.entity';
 import { QueueModule } from '../src/queue/queue.module';
 import {
@@ -6,7 +6,6 @@ import {
   QuestionFactory,
   QuestionTypeFactory,
   QueueFactory,
-  QueueInviteFactory,
   StudentCourseFactory,
   TACourseFactory,
   UserCourseFactory,
@@ -15,7 +14,6 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 import { QueueModel } from '../src/queue/queue.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
-import { QueueInviteModel } from 'queue/queue-invite.entity';
 
 async function delay(ms) {
   // return await for better async stack trace support in case of errors.

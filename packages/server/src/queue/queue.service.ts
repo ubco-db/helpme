@@ -320,10 +320,6 @@ export class QueueService {
       throw new BadRequestException('Queue already has a queue invite');
     }
 
-    // if (!queueInvite) {
-    //   throw new NotFoundException();
-    // }
-
     try {
       const invite = QueueInviteModel.create({ queueId });
       await invite.save();
@@ -469,8 +465,6 @@ export class QueueService {
     if (queueInvite.willInviteToCourse) {
       queueInviteResponse.courseInviteCode = queue.course.courseInviteCode;
     }
-
-    // TODO: add on the questions
 
     return queueInviteResponse;
   }

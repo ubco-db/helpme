@@ -16,6 +16,9 @@ interface QuestionCardSimpleProps {
   className?: string // used to highlight questions or add other classes
 }
 
+/**
+ * This is very similar to the question card used in the queue, except with less functionality (no buttons, will never show avatars, etc.)
+ */
 const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
   question,
   isBeingHelped,
@@ -98,11 +101,6 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
               </div>
             </Tooltip>
           )}
-          {/* {isStaff && (
-                        <div className="mr-1 mt-0.5 inline-block min-w-[120px] text-sm italic text-gray-600">
-                            {question.creator.name}
-                        </div>
-                    )} */}
           {question.questionTypes?.map((questionType, index) => (
             <QuestionTagElement
               key={index}
