@@ -37,13 +37,21 @@ const printQRCode = (
           value={inviteURL}
           icon="/helpme_logo_small.png"
           size={400}
+          onLoad={() => {
+            // Dispatch custom event when QR code is fully rendered
+            const event = new Event('qrcodeRendered')
+            printWindow.dispatchEvent(event)
+          }}
         />
       )
       const root = createRoot(qrCodeContainer)
       root.render(qrCodeElement)
-    }
 
-    printWindow.print()
+      // Listen for the custom event to trigger the print
+      printWindow.addEventListener('qrcodeRendered', () => {
+        printWindow.print()
+      })
+    }
   }
 }
 
