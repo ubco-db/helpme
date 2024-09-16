@@ -62,6 +62,7 @@ export default function QueueInvitePage({
   const [hasGettingUserBeenResolved, setHasGettingUserBeenResolved] =
     useState(false) // don't let the users hit the join button before we find out if they're logged in or not
   const [isJoinButtonLoading, setIsJoinButtonLoading] = useState(false)
+  const [queueSize, setQueueSize] = useState<number | null>(null)
   // NOTE: queueQuestions and queue are ONLY set if the queue invite code is correct and if the questions are visible
   const { queueQuestions } = useQuestionsWithQueueInvite(
     qid,
@@ -110,6 +111,17 @@ export default function QueueInvitePage({
     }
     fetchUserDetails()
   }, [setProfile, setHasGettingUserBeenResolved])
+
+  // if questions are enabled, dynamically set the queue size, otherwise set it to queueInvite.queueSize
+  useEffect(() => {
+    if (queueInviteInfo) {
+      if (queueInviteInfo.isQuestionsVisible && queue) {
+        setQueueSize(queue.queueSize)
+      } else {
+        setQueueSize(queueInviteInfo.queueSize)
+      }
+    }
+  }, [queue, queueInviteInfo])
 
   const isHttps =
     (typeof window !== 'undefined' && window.location.protocol) === 'https:'
@@ -306,13 +318,15 @@ export default function QueueInvitePage({
             <h1>
               {queueInviteInfo.room} | {queueInviteInfo.courseName}
             </h1>
-            {queueInviteInfo.queueSize === 0 ? (
+            {queueSize === null ? (
+              <p>Loading...</p>
+            ) : queueSize === 0 ? (
               <p>The queue is empty!</p>
             ) : (
               <p>
-                There are currently{' '}
-                <span className="font-bold">{queueInviteInfo.queueSize}</span>{' '}
-                students in the queue.
+                There {queueSize === 1 ? 'is' : 'are'} currently{' '}
+                <span className="font-bold">{queueSize}</span>{' '}
+                {queueSize === 1 ? 'student' : 'students'} in queue
               </p>
             )}
             {!projectorModeEnabled && (
@@ -389,7 +403,7 @@ export default function QueueInvitePage({
           </div>
           {queueInviteInfo.isQuestionsVisible && (
             <div className="w-full md:flex md:flex-grow md:flex-col md:pt-5">
-              <div className="flex items-center justify-between">
+              <div className="mb-1 flex items-center justify-between md:mb-0">
                 <h2 className="mr-2">Questions</h2>
                 {!(
                   queueConfig?.fifo_queue_view_enabled === false ||
@@ -407,8 +421,10 @@ export default function QueueInvitePage({
                   <div className="text-md font-medium text-gray-700">
                     There was an error getting questions
                   </div>
-                ) : !queueQuestions.questions ||
-                  queueQuestions.questions?.length === 0 ? (
+                ) : (!queueQuestions.questions &&
+                    !queueQuestions.questionsGettingHelp) ||
+                  (queueQuestions.questions.length === 0 &&
+                    queueQuestions.questionsGettingHelp.length === 0) ? (
                   <div className="text-md font-medium text-gray-600">
                     The queue is empty!
                   </div>

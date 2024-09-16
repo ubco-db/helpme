@@ -1,15 +1,18 @@
 'use client'
 
 import { ReactElement } from 'react'
-import { Button, Empty } from 'antd'
+import { Alert, Button, Empty } from 'antd'
 import { OrganizationRole } from '@/app/typings/user'
 import { useUserInfo } from '@/app/contexts/userContext'
 import CoursesSection from '../components/coursesSection'
 import OrganizationCard from '../components/organizationCard'
 import Image from 'next/image'
+import { useSearchParams } from 'next/navigation'
 
 export default function CoursesPage(): ReactElement {
   const { userInfo } = useUserInfo()
+  const searchParams = useSearchParams()
+  const error = searchParams.get('err')
 
   return (
     <>
@@ -30,6 +33,27 @@ export default function CoursesPage(): ReactElement {
           </p>
         </div>
       </OrganizationCard>
+      {error && (
+        <Alert
+          description
+          className="my-2"
+          message={
+            'Error Joining Queue: ' +
+            (error === 'notInCourse'
+              ? 'You must be a member of that course to join that queue'
+              : error === 'inviteNotFound'
+                ? 'That queue invite has been deleted or does not exist. If you believe this is an error, please contact your professor.'
+                : error === 'courseNotFound'
+                  ? 'That course has been deleted or does not exist'
+                  : error === 'badCourseInviteCode'
+                    ? 'Unable to enroll in course as the course does not have a course invite code set. If you believe this is an error, please contact your professor.'
+                    : `An unexpected error occurred: ${error}`)
+          }
+          type="warning"
+          showIcon
+          closable
+        />
+      )}
       <div className="mt-5 flex items-center justify-between align-middle">
         <h1 className="mt-0">My Courses</h1>
         {(userInfo?.organization?.organizationRole ===

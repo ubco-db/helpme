@@ -41,7 +41,7 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
     <Card
       className={cn(
         'my-1 w-full rounded-md bg-white px-2 text-gray-600 shadow-md',
-        isBeingHelped ? 'border border-green-300' : '',
+        isBeingHelped ? 'border border-green-600/40' : '',
         className,
       )}
       classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
@@ -58,8 +58,6 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
           question.isTaskQuestion && tasks && configTasks ? (
             <div>
               {
-                // if the task is being helped, display it as a TaskMarkingSelector (to allow professors to choose which parts are good)
-
                 // for every task defined in the config, display it but only highlight the ones that are in the question text
                 Object.entries(configTasks).map(
                   ([taskKey, taskValue], index) => (

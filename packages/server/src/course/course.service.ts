@@ -340,8 +340,9 @@ export class CourseService {
       // if they're already in the course, just redirect them to the queue
       if (courseId && queueId) {
         return `/course/${courseId}/queue/${queueId}`;
-      } else if (courseId) return `/course/${courseId}`;
-      else {
+      } else if (courseId) {
+        return `/course/${courseId}`;
+      } else {
         return '/courses';
       }
     } else if (!queueInvite) {
