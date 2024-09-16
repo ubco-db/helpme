@@ -13,20 +13,23 @@ import {
 import type { QueueInvite, QueueInviteParams } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
-import { CopyOutlined, DeleteOutlined } from '@ant-design/icons'
+import { CopyOutlined, DeleteOutlined, QrcodeOutlined } from '@ant-design/icons'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import _ from 'lodash'
+import printQRCode from '@/app/utils/QRCodePrintUtils'
 
 interface QueueInviteProps {
   queueInvite: QueueInvite
   fetchQueueInvites: () => void
   baseURL: string
+  courseName: string
 }
 const QueueInviteListItem: React.FC<QueueInviteProps> = ({
   queueInvite,
   fetchQueueInvites,
   baseURL,
+  courseName,
 }) => {
   const [form] = Form.useForm()
   const [copyLinkText, setCopyLinkText] = useState('Copy Link')
@@ -89,6 +92,22 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
               >
                 {copyLinkText}
               </Button>
+              {queueInvite.QRCodeEnabled && (
+                <Button
+                  type="default"
+                  icon={<QrcodeOutlined />}
+                  onClick={() =>
+                    printQRCode(
+                      courseName,
+                      inviteURL,
+                      queueInvite.QRCodeErrorLevel,
+                      queueInvite.room,
+                    )
+                  }
+                >
+                  Print QR Code
+                </Button>
+              )}
             </div>
           )
         }

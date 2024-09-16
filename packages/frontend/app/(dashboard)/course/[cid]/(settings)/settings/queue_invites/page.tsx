@@ -221,6 +221,7 @@ export default function QueueInvitesPage({
                   queueInvite={queueInvite}
                   fetchQueueInvites={fetchQueueInvites}
                   baseURL={baseURL}
+                  courseName={course.name}
                 />
               )}
             />

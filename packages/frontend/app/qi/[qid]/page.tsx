@@ -36,6 +36,7 @@ import { useQueueWithQueueInvite } from '@/app/hooks/useQueueWithQueueInvite'
 import QuestionCardSimple from './components/QuestionCardSimple'
 import TagGroupSwitch from '@/app/(dashboard)/course/[cid]/queue/[qid]/components/TagGroupSwitch'
 import { QuestionTagElement } from '@/app/(dashboard)/course/[cid]/components/QuestionTagElement'
+import printQRCode from '@/app/utils/QRCodePrintUtils'
 
 const Panel = Collapse.Panel
 
@@ -231,51 +232,6 @@ export default function QueueInvitePage({
     }
   }, [code, queueInviteInfo, router, profile])
 
-  const handlePrintQRCode = useCallback(() => {
-    if (!queueInviteInfo) {
-      message.error('Queue invite info not loaded. Please try again')
-      return
-    }
-    const printWindow = window.open('', '_blank')
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>HelpMe | ${queueInviteInfo.room} QR Code (${queueInviteInfo.courseName})</title>
-            <style>
-              body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;  }
-              h1 { text-align: center; }
-              .qrcode { display: flex; justify-content: center; flex-direction: column; align-items: center; }
-            </style>
-          </head>
-          <body>
-            <div class="qrcode">
-              <h1>Scan to join ${queueInviteInfo.room} for ${queueInviteInfo.courseName}</h1>
-              <div id="qrcode"></div>
-            </div>
-          </body>
-        </html>
-      `)
-      printWindow.document.close()
-
-      const qrCodeContainer = printWindow.document.getElementById('qrcode')
-      if (qrCodeContainer) {
-        const qrCodeElement = (
-          <QRCode
-            errorLevel={queueInviteInfo.QRCodeErrorLevel}
-            value={inviteURL}
-            icon="/helpme_logo_small.png"
-            size={400}
-          />
-        )
-        const root = createRoot(qrCodeContainer)
-        root.render(qrCodeElement)
-      }
-
-      printWindow.print()
-    }
-  }, [queueInviteInfo, inviteURL])
-
   useEffect(() => {
     // only re-calculate the taskTree and everything if tagGroups is enabled
     if (tagGroupsEnabled) {
@@ -371,7 +327,14 @@ export default function QueueInvitePage({
                     errorLevel={queueInviteInfo.QRCodeErrorLevel}
                     value={inviteURL}
                     icon="/helpme_logo_small.png"
-                    onClick={handlePrintQRCode}
+                    onClick={() =>
+                      printQRCode(
+                        queueInviteInfo.courseName,
+                        inviteURL,
+                        queueInviteInfo.QRCodeErrorLevel,
+                        queueInviteInfo.room,
+                      )
+                    }
                     size={300}
                   />
                 </Tooltip>
