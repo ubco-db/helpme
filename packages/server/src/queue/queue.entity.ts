@@ -9,14 +9,21 @@ import {
   ManyToMany,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { CourseModel } from '../course/course.entity';
 import { UserModel } from '../profile/user.entity';
 import { QuestionModel } from '../question/question.entity';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { ERROR_MESSAGES, QueueConfig } from '@koh/common';
+import {
+  ERROR_MESSAGES,
+  OpenQuestionStatus,
+  QueueConfig,
+  StatusInQueue,
+} from '@koh/common';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
+import { QueueInviteModel } from './queue-invite.entity';
 
 @Entity('queue_model')
 export class QueueModel extends BaseEntity {
@@ -82,11 +89,18 @@ export class QueueModel extends BaseEntity {
   queueSize: number;
 
   async addQueueSize(): Promise<void> {
-    this.queueSize = await QuestionModel.waitingInQueue(this.id).getCount();
+    this.queueSize = await QuestionModel.inQueueWithStatus(this.id, [
+      ...StatusInQueue,
+      OpenQuestionStatus.Helping,
+    ]).getCount();
   }
 
   @Column('json', { nullable: true })
   config: QueueConfig;
 
-  // TODO: eventually figure out how staff get sent to FE as well
+  @OneToOne((type) => QueueInviteModel, (queueInvite) => queueInvite.queue, {
+    cascade: true,
+  })
+  @Exclude()
+  queueInvite: QueueInviteModel;
 }

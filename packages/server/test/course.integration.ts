@@ -4,7 +4,6 @@ import {
   Role,
   TACheckinTimesResponse,
 } from '@koh/common';
-import { CourseModel } from '../src/course/course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -25,6 +24,7 @@ import {
   UserFactory,
   CourseSettingsFactory,
   QuestionFactory,
+  QueueInviteFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -1143,10 +1143,8 @@ describe('Course Integration', () => {
         .post(`/courses/enroll_by_invite_code/123`)
         .send({
           email: user.email,
-          first_name: user.firstName,
-          last_name: user.lastName,
-          password: 'random_password',
           selected_course: 1,
+          organizationId: organization.id,
         });
 
       expect(resp.status).toBe(404);
@@ -1176,10 +1174,8 @@ describe('Course Integration', () => {
         .post(`/courses/enroll_by_invite_code/invalid_course_code`)
         .send({
           email: user.email,
-          first_name: user.firstName,
-          last_name: user.lastName,
-          password: 'random_password',
           selected_course: course.id,
+          organizationId: organization.id,
         });
 
       expect(resp.status).toBe(400);
@@ -1215,10 +1211,8 @@ describe('Course Integration', () => {
         .post(`/courses/enroll_by_invite_code/${course.courseInviteCode}`)
         .send({
           email: user.email,
-          first_name: user.firstName,
-          last_name: user.lastName,
-          password: 'random_password',
           selected_course: course.id,
+          organizationId: organization.id,
         });
 
       expect(resp.status).toBe(200);
@@ -1247,10 +1241,8 @@ describe('Course Integration', () => {
         .post(`/courses/enroll_by_invite_code/${course.courseInviteCode}`)
         .send({
           email: user.email,
-          first_name: user.firstName,
-          last_name: user.lastName,
-          password: 'random_password',
           selected_course: course.id,
+          organizationId: organization.id,
         });
 
       expect(resp.status).toBe(200);
@@ -1904,6 +1896,89 @@ describe('Course Integration', () => {
           name: student3.firstName + ' ' + student3.lastName,
         },
       ]);
+    });
+  });
+  describe('GET /courses/:id/queue_invites', () => {
+    it('should return 401 if user is not authorized', async () => {
+      await supertest().get(`/courses/1/queue_invites`).expect(401);
+    });
+    it('should not allow students to access the endpoint', async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: student,
+        role: Role.STUDENT,
+        course: course,
+      });
+
+      await supertest({ userId: student.id })
+        .get(`/courses/${course.id}/queue_invites`)
+        .expect(403);
+    });
+    it('should return 404 if course is not found', async () => {
+      const professor = await UserFactory.create();
+      await supertest({ userId: professor.id })
+        .get(`/courses/1/queue_invites`)
+        .expect(404);
+    });
+    it('should return 200 and an empty array if no queue invites are found', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course,
+      });
+
+      const resp = await supertest({ userId: professor.id }).get(
+        `/courses/${course.id}/queue_invites`,
+      );
+
+      expect(resp.status).toBe(200);
+      expect(resp.body).toEqual([]);
+    });
+    it('should return 200 and all queue invites', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course,
+      });
+      const queue1 = await QueueFactory.create({
+        course: course,
+        courseId: course.id,
+      });
+      const queue2 = await QueueFactory.create({
+        course: course,
+        courseId: course.id,
+      });
+      const queueInvite1 = await QueueInviteFactory.create({
+        queue: queue1,
+      });
+      const queueInvite2 = await QueueInviteFactory.create({
+        queue: queue2,
+      });
+
+      const resp = await supertest({ userId: professor.id }).get(
+        `/courses/${course.id}/queue_invites`,
+      );
+
+      expect(resp.status).toBe(200);
+      expect(resp.body).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            queueId: queue1.id,
+            room: queue1.room,
+            inviteCode: queueInvite1.inviteCode,
+          }),
+          expect.objectContaining({
+            queueId: queue2.id,
+            room: queue2.room,
+            inviteCode: queueInvite2.inviteCode,
+          }),
+        ]),
+      );
     });
   });
 });

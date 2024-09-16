@@ -26,7 +26,31 @@ export async function fetchAuthToken(): Promise<string> {
 
     return result
   } catch (error) {
-    console.error('Failed to fetch auth token', error)
+    console.error('Failed to fetch auth token: ' + error)
     return ''
+  }
+}
+
+export async function setQueueInviteCookie(
+  queueId: number,
+  courseId: number,
+  orgId: number,
+  courseInviteCode?: string,
+): Promise<void> {
+  try {
+    const cookieStore = cookies()
+    cookieStore.set(
+      'queueInviteInfo',
+      `${courseId},${queueId},${orgId},${courseInviteCode ? Buffer.from(courseInviteCode).toString('base64') : ''}`,
+      {
+        httpOnly: true,
+        secure: true,
+        maxAge: 3600, // 1 hour
+        path: '/',
+        sameSite: 'strict', // Helps mitigate CSRF attacks
+      },
+    )
+  } catch (error) {
+    console.error('Failed to set queue invite cookie: ' + error)
   }
 }

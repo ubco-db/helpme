@@ -93,6 +93,7 @@ export class QuestionModel extends BaseEntity {
     inverseJoinColumn: { name: 'questionTypeId', referencedColumnName: 'id' },
   })
   questionTypes: QuestionTypeModel[];
+  question: { id: number; name: string; photoURL: string };
 
   /**
    * Change the status of the question as the given role

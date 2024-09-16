@@ -22,7 +22,7 @@ const EVENTSOURCES: Record<string, SourceAndCount> = {}
  * @param onmessage callback when messages are received
  */
 export const useEventSource = (
-  url: string,
+  url: string | null,
   listenerKey: string,
   onmessage: (d: any) => void,
 ): boolean => {

@@ -337,6 +337,64 @@ export class QueuePartial {
   config?: QueueConfig
 }
 
+/**
+ * Used when editing QueueInvites
+ */
+export class QueueInviteParams {
+  @IsInt()
+  queueId!: number
+  @IsBoolean()
+  QRCodeEnabled!: boolean
+  @IsBoolean()
+  isQuestionsVisible!: boolean
+  @IsBoolean()
+  willInviteToCourse!: boolean
+  @IsString()
+  inviteCode!: string
+  @IsIn(['L', 'M'])
+  QRCodeErrorLevel!: 'L' | 'M'
+}
+
+/**
+ * Returned from getQueueInvites (for displaying all of them in courseSettings)
+ */
+export type QueueInvite = {
+  queueId: number
+  room: string
+  QRCodeEnabled: boolean
+  isQuestionsVisible: boolean
+  willInviteToCourse: boolean
+  inviteCode: string
+  QRCodeErrorLevel: 'L' | 'M'
+}
+
+/**
+ * This is the queue data that is publicly available for a queue invite page IF they give the right queue invite code
+ */
+export type PublicQueueInvite = {
+  orgId: number
+  courseId: number
+  queueId: number
+  room: string
+  QRCodeEnabled: boolean
+  isQuestionsVisible: boolean
+  willInviteToCourse: boolean
+  inviteCode: string // queue invite code
+  QRCodeErrorLevel: 'L' | 'M'
+  courseInviteCode?: string // course invite code only given if willInviteToCourse is true
+  queueAndQuestions?: SSEQueueResponse // only given if isQuestionsVisible is true
+  queueSize: number
+  staffList: StaffForStaffList[]
+  courseName: string
+}
+
+export type StaffForStaffList = {
+  id: number
+  name: string
+  photoURL?: string
+  questionHelpedAt?: Date
+}
+
 // Represents a list of office hours wait times of each hour of the week.
 // The first element of the array is the wait time for the first hour of Sunday, UTC.
 //   Users of the heatmap should rotate it according to their timezone.
@@ -627,29 +685,11 @@ export class UBCOuserParam {
   @IsString()
   email!: string
 
-  @IsString()
-  first_name!: string
-
-  @IsString()
-  password!: string
-
-  @IsString()
-  last_name!: string
-
   @IsInt()
   selected_course!: number
 
-  @IsOptional()
   @IsInt()
-  sid?: number
-
-  @IsOptional()
-  @IsString()
-  photo_url?: string
-
-  @IsOptional()
-  @IsDefined() // TODO: use ValidateNested instead, for some reason it's crunked
-  courses?: KhouryCourse[] | KhouryProfCourse[]
+  organizationId!: number
 }
 export class KhouryDataParams {
   @IsString()

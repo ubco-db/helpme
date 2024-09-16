@@ -122,4 +122,5 @@ const HelpingFor: React.FC<HelpingForProps> = ({ studentName, helpedAt }) => {
   )
 }
 
+export { StaffList, StatusCard, HelpingFor }
 export default StaffList

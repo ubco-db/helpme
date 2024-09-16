@@ -20,6 +20,7 @@ import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { CourseModel } from './course.entity';
 import { UserModel } from 'profile/user.entity';
+import { QueueInviteModel } from 'queue/queue-invite.entity';
 
 @Injectable()
 export class CourseService {
@@ -300,6 +301,75 @@ export class CourseService {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * There isn't really a good reason why this method is in course.service.ts other than it is close to addStudentToCourse. It would probably be better fitted in its own queue-invite.service.ts file but that is more effort than its worth
+    This method return a redirect URL based on things.
+    It will also enroll the user in the course if the queueInvite has willInviteToCourse set to true
+  */
+  async getQueueInviteRedirectURLandInviteToCourse(
+    queueInviteCookie: string,
+    userId: number,
+  ): Promise<string> {
+    const decodedCookie = decodeURIComponent(queueInviteCookie);
+    const splitCookie = decodedCookie.split(',');
+    const courseId = splitCookie[0];
+    const queueId = splitCookie[1];
+    const orgId = splitCookie[2];
+    const courseInviteCode = Buffer.from(splitCookie[3], 'base64').toString(
+      'utf-8',
+    );
+    // check if the queueInvite exists and if it will invite to course
+    const queueInvite = await QueueInviteModel.findOne({
+      where: { queueId },
+    });
+    // get the user to see if they are in the course
+    const user = await UserModel.findOne({
+      where: { id: userId },
+      relations: ['courses'],
+    });
+    if (!user) {
+      return '/login?error=notSuccessfullyLoggedIn';
+    }
+    const isUserInCourse = user.courses.some(
+      (course) => course.courseId === Number(courseId),
+    );
+    if (isUserInCourse) {
+      // if they're already in the course, just redirect them to the queue
+      if (courseId && queueId) {
+        return `/course/${courseId}/queue/${queueId}`;
+      } else if (courseId) {
+        return `/course/${courseId}`;
+      } else {
+        return '/courses';
+      }
+    } else if (!queueInvite) {
+      // if the queueInvite doesn't exist
+      return '/courses?err=inviteNotFound';
+    } else if (queueInvite.willInviteToCourse && courseInviteCode) {
+      // get course
+      const course = await CourseModel.findOne({
+        where: { id: courseId },
+      });
+      if (!course) {
+        return '/courses?err=courseNotFound';
+      }
+      if (course.courseInviteCode !== courseInviteCode) {
+        return '/courses?err=badCourseInviteCode';
+      }
+      await this.addStudentToCourse(course, user).catch((err) => {
+        throw new BadRequestException(err.message);
+      });
+      if (courseId && queueId) {
+        return `/course/${courseId}/queue/${queueId}`;
+      } else if (courseId) return `/course/${courseId}`;
+      else {
+        return '/courses';
+      }
+    } else {
+      return `/courses?err=notInCourse`;
     }
   }
 }

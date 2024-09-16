@@ -8,7 +8,6 @@ import {
   parseTaskIdsFromQuestionText,
   Question,
   QuestionType,
-  Queue,
   QueueConfig,
   StudentAssignmentProgress,
   Task,

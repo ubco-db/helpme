@@ -105,8 +105,16 @@ export default function CourseInvitePage(): ReactElement {
       <Suspense fallback={<CenteredSpinner tip="Loading.." />}>
         <title>{`HelpMe - Invitation to join '${course.name}'`}</title>
         <div className="mt-20 flex items-center justify-center">
-          {profile.organization &&
-          profile.organization.orgId !== course.organizationCourse?.id ? (
+          {!profile.organization ? (
+            <InviteCard
+              // edge case
+              title="You somehow do not have an organization and you need one to join a course"
+              buttonLabel="Back to login"
+              buttonAction={() => {
+                router.push('/login')
+              }}
+            />
+          ) : profile.organization.orgId !== course.organizationCourse?.id ? (
             <InviteCard
               // this is an edge case
               title="You cannot join a course that is not in your organization"
@@ -129,18 +137,15 @@ export default function CourseInvitePage(): ReactElement {
               description={{ title: cardMetaTitle, text: cardMetaDescription }}
               buttonLabel="Accept Invitation"
               buttonAction={async () => {
-                if (!profile) {
+                if (!profile || !profile.organization) {
+                  // this check shouldn't be necessary but typescript throws errors otherwise
                   message.error('User not found')
                   return
                 }
                 const userData: UBCOuserParam = {
                   email: profile.email,
-                  first_name: profile.firstName ?? '',
-                  password: '',
-                  last_name: profile.lastName ?? '',
                   selected_course: course.id,
-                  sid: profile.sid,
-                  photo_url: profile.photoURL,
+                  organizationId: profile.organization.orgId,
                 }
                 await addStudent(userData)
               }}

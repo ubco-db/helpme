@@ -24,7 +24,7 @@ describe('queue entity', () => {
     await conn.synchronize(true);
   });
 
-  it('handles queueSize correctly', async () => {
+  it('queueSize is handled properly and is equal to them sum of Queued, Drafting, and Helping questions', async () => {
     const queueFactory = await QueueFactory.create();
 
     await QuestionFactory.create({
@@ -55,6 +55,6 @@ describe('queue entity', () => {
     const queue = await QueueModel.findOne(queueFactory.id);
     await queue.addQueueSize();
 
-    expect(queue.queueSize).toBe(2);
+    expect(queue.queueSize).toBe(3);
   });
 });

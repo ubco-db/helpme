@@ -3,12 +3,13 @@
 import {
   BellOutlined,
   DownloadOutlined,
+  QrcodeOutlined,
   RobotOutlined,
   ScheduleOutlined,
   SettingOutlined,
   TableOutlined,
 } from '@ant-design/icons'
-import { Role } from '@koh/common'
+import { CourseSettingsResponse, Role } from '@koh/common'
 import { Menu, MenuProps } from 'antd'
 import { usePathname, useRouter } from 'next/navigation'
 
@@ -17,8 +18,8 @@ type MenuItem = Required<MenuProps>['items'][number]
 enum CourseAdminOptions {
   CHECK_IN = 'CHECK_IN',
   ROSTER = 'ROSTER',
-  ADD = 'ADD',
   EXPORT_DATA = 'EXPORT_DATA',
+  QUEUE_INVITES = 'QUEUE_INVITES',
   EDIT_QUESTIONS = 'EDIT_QUESTIONS',
   SETTINGS = 'SETTINGS',
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
@@ -28,7 +29,7 @@ enum CourseAdminOptions {
 
 type CourseSettingsManyProps = {
   courseRole: Role
-  courseFeatures: any
+  courseFeatures?: CourseSettingsResponse
   courseId: number
 }
 
@@ -51,6 +52,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
         break
       case CourseAdminOptions.ROSTER:
         router.push(`${basePath}/roster`)
+        break
+      case CourseAdminOptions.QUEUE_INVITES:
+        router.push(`${basePath}/queue_invites`)
         break
       case CourseAdminOptions.EXPORT_DATA:
         router.push(`${basePath}/export_data`)
@@ -79,6 +83,11 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
   }
 
   const baseMenuItems: MenuItem[] = [
+    {
+      key: CourseAdminOptions.QUEUE_INVITES,
+      icon: <QrcodeOutlined />,
+      label: 'Queue Invites',
+    },
     {
       key: CourseAdminOptions.EDIT_QUESTIONS,
       icon: <TableOutlined />,

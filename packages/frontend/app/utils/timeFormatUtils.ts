@@ -44,6 +44,31 @@ export function formatWaitTime(minutes: number): string {
   }
 }
 
+export function getServedTime(question: Question): string {
+  if (!question.helpedAt || !question.createdAt) {
+    return ''
+  }
+  const now = new Date()
+  // A dirty fix until we can get the serializer working properly again (i renamed `questions` in SSEQueueResponse to `queueQuestions` and renamed `queue` in ListQuestionsResponse to `questions` and stuff broke for some reason)
+  if (typeof question.helpedAt === 'string') {
+    const tempDate = new Date(Date.parse(question.helpedAt))
+    const difference = now.getTime() - tempDate.getTime()
+    return formatServeTime(difference / 1000)
+  }
+  const difference = now.getTime() - question.helpedAt.getTime()
+  return formatServeTime(difference / 1000)
+}
+
+/**
+ * Formats time as 0:11 (minutes:seconds)
+ */
+export function formatServeTime(time: number): string {
+  const minutes = Math.floor(time / 60)
+  const seconds = Math.floor(time % 60)
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
+// Note: this doesn't seem to be used anywhere
 export function formatQueueTime(queue: QueuePartial): string {
   if (!queue.startTime || !queue.endTime) {
     return ''

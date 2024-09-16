@@ -35,6 +35,7 @@ import {
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import * as bcrypt from 'bcrypt';
 import { getCookie } from '../common/helpers';
+import { CourseService } from 'course/course.service';
 
 interface RequestUser {
   userId: string;
@@ -49,6 +50,7 @@ export class AuthController {
     private configService: ConfigService,
     private mailService: MailService,
     private authService: AuthService,
+    private courseService: CourseService,
   ) {}
 
   @Get('shibboleth/:oid')
@@ -126,13 +128,14 @@ export class AuthController {
     @Body() registrationTokenDetails: RegistrationTokenDetails,
   ): Promise<Response<void>> {
     const { token } = registrationTokenDetails;
+    const userId = Number((req.user as RequestUser).userId);
 
     const emailToken = await UserTokenModel.findOne({
       where: {
         token,
         token_type: TokenType.EMAIL_VERIFICATION,
         token_action: TokenAction.ACTION_PENDING,
-        user: { id: Number((req.user as RequestUser).userId) },
+        user: userId,
       },
       relations: ['user'],
     });
@@ -154,8 +157,18 @@ export class AuthController {
     await emailToken.user.save();
     await emailToken.save();
     const cookie = getCookie(req, '__SECURE_REDIRECT');
+    const queueInviteCookie = getCookie(req, 'queueInviteInfo');
 
-    if (cookie) {
+    if (queueInviteCookie) {
+      await this.courseService
+        .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)
+        .then((url) => {
+          res.clearCookie('queueInviteInfo');
+          return res.status(HttpStatus.TEMPORARY_REDIRECT).send({
+            redirectUri: url,
+          });
+        });
+    } else if (cookie) {
       const decodedCookie = decodeURIComponent(cookie);
       return res.status(HttpStatus.TEMPORARY_REDIRECT).send({
         redirectUri: `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`,
@@ -473,10 +486,18 @@ export class AuthController {
         .send({ message: ERROR_MESSAGES.loginController.invalidTempJWTToken });
     }
 
-    const cookie = getCookie(req, '__SECURE_REDIRECT');
     let redirectUrl: string;
+    const cookie = getCookie(req, '__SECURE_REDIRECT');
+    const queueInviteCookie = getCookie(req, 'queueInviteInfo');
 
-    if (cookie) {
+    if (queueInviteCookie) {
+      await this.courseService
+        .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)
+        .then((url) => {
+          redirectUrl = url;
+          res.clearCookie('queueInviteInfo');
+        });
+    } else if (cookie) {
       const decodedCookie = decodeURIComponent(cookie);
       redirectUrl = `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`;
     } else {

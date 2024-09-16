@@ -18,12 +18,14 @@ import * as bcrypt from 'bcrypt';
 import { UserModel } from 'profile/user.entity';
 import * as request from 'superagent';
 import { getCookie } from 'common/helpers';
+import { CourseService } from 'course/course.service';
 
 @Controller()
 export class LoginController {
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
+    private courseService: CourseService,
   ) {}
 
   @Post('/ubc_login')
@@ -141,10 +143,18 @@ export class LoginController {
       );
     }
 
-    const cookie = getCookie(req, '__SECURE_REDIRECT');
     let redirectUrl: string;
+    const cookie = getCookie(req, '__SECURE_REDIRECT');
+    const queueInviteCookie = getCookie(req, 'queueInviteInfo');
 
-    if (cookie) {
+    if (queueInviteCookie) {
+      await this.courseService
+        .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)
+        .then((url) => {
+          redirectUrl = url;
+          res.clearCookie('queueInviteInfo');
+        });
+    } else if (cookie) {
       const decodedCookie = decodeURIComponent(cookie);
       redirectUrl = `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`;
     } else {
