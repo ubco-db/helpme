@@ -9,7 +9,7 @@ import {
 } from './util/factories';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
-import { MailServiceType, OrganizationRole, UserRole } from '@koh/common';
+import { MailServiceType, OrganizationRole, Role, UserRole } from '@koh/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -1266,6 +1266,95 @@ describe('Organization Integration', () => {
   });
 
   describe('POST /organization/:oid/populate_subscription_table', () => {
+    it('should populate subscription table correctly for member who is TA in a course', async () => {
+      try {
+        const admin = await UserFactory.create();
+        const organization = await OrganizationFactory.create();
+        const memberTA = await UserFactory.create();
+        const course = await CourseFactory.create();
+
+        // Set up admin
+        await OrganizationUserModel.create({
+          userId: admin.id,
+          organizationId: organization.id,
+          role: OrganizationRole.ADMIN,
+        }).save();
+
+        // Set up member who is also a TA
+        await OrganizationUserModel.create({
+          userId: memberTA.id,
+          organizationId: organization.id,
+          role: OrganizationRole.MEMBER,
+        }).save();
+
+        // Add memberTA as TA to the course
+        await UserCourseModel.create({
+          userId: memberTA.id,
+          courseId: course.id,
+          role: Role.TA,
+        }).save();
+
+        // Create mail services
+        const memberService = await mailServiceFactory.create({
+          mailType: OrganizationRole.MEMBER,
+          serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
+        });
+
+        const profService = await mailServiceFactory.create({
+          mailType: OrganizationRole.PROFESSOR,
+          serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
+        });
+
+        await UserSubscriptionModel.delete({});
+
+        const res = await supertest({ userId: admin.id }).post(
+          `/organization/${organization.id}/populate_subscription_table`,
+        );
+
+        expect(res.status).toBe(200);
+        expect(res.body.message).toBe('Subscription table populated');
+
+        // Verify subscriptions for memberTA
+        const memberTASubscriptions = await UserSubscriptionModel.find({
+          where: { userId: memberTA.id },
+        });
+
+        expect(memberTASubscriptions.length).toBe(2); // Should have all 2 subscriptions
+
+        // Check each subscription
+        const memberServiceSub = memberTASubscriptions.find(
+          (s) => s.serviceId === memberService.id,
+        );
+        const profServiceSub = memberTASubscriptions.find(
+          (s) => s.serviceId === profService.id,
+        );
+
+        expect(memberServiceSub).toBeDefined();
+        expect(memberServiceSub?.isSubscribed).toBe(false); // Member service should be disabled
+
+        expect(profServiceSub).toBeDefined();
+        expect(profServiceSub?.isSubscribed).toBe(true);
+
+        // Verify admin subscriptions (should remain unchanged)
+        const adminSubscriptions = await UserSubscriptionModel.find({
+          where: { userId: admin.id },
+        });
+
+        expect(adminSubscriptions.length).toBe(2);
+        expect(
+          adminSubscriptions.find((s) => s.serviceId === memberService.id)
+            ?.isSubscribed,
+        ).toBe(false);
+        expect(
+          adminSubscriptions.find((s) => s.serviceId === profService.id)
+            ?.isSubscribed,
+        ).toBe(true);
+      } catch (error) {
+        console.error('Test error:', error);
+        throw error;
+      }
+    });
+
     it('should return 401 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();
       const response = await supertest().post(
@@ -1358,6 +1447,93 @@ describe('Organization Integration', () => {
         ).toBe(true);
         expect(memberSubscriptions[0].isSubscribed).toBe(true);
         expect(memberSubscriptions[0].serviceId).toBe(memberService.id);
+      } catch (error) {
+        console.error('Test error:', error);
+        throw error;
+      }
+    });
+
+    it('should populate subscription table correctly for regular member without TA role', async () => {
+      try {
+        const admin = await UserFactory.create();
+        const organization = await OrganizationFactory.create();
+        const regularMember = await UserFactory.create();
+        const course = await CourseFactory.create();
+
+        // Set up admin
+        await OrganizationUserModel.create({
+          userId: admin.id,
+          organizationId: organization.id,
+          role: OrganizationRole.ADMIN,
+        }).save();
+
+        // Set up regular member
+        await OrganizationUserModel.create({
+          userId: regularMember.id,
+          organizationId: organization.id,
+          role: OrganizationRole.MEMBER,
+        }).save();
+
+        // Add regularMember as student to the course
+        await UserCourseModel.create({
+          userId: regularMember.id,
+          courseId: course.id,
+          role: Role.STUDENT,
+        }).save();
+
+        // Create mail services
+        const memberService = await mailServiceFactory.create({
+          mailType: OrganizationRole.MEMBER,
+          serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
+        });
+
+        const profService = await mailServiceFactory.create({
+          mailType: OrganizationRole.PROFESSOR,
+          serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
+        });
+
+        await UserSubscriptionModel.delete({});
+
+        const res = await supertest({ userId: admin.id }).post(
+          `/organization/${organization.id}/populate_subscription_table`,
+        );
+
+        expect(res.status).toBe(200);
+        expect(res.body.message).toBe('Subscription table populated');
+
+        // Verify subscriptions for regularMember
+        const regularMemberSubscriptions = await UserSubscriptionModel.find({
+          where: { userId: regularMember.id },
+        });
+
+        expect(regularMemberSubscriptions.length).toBe(1); // Should have only 1 subscription
+
+        // Check the subscription
+        const memberServiceSub = regularMemberSubscriptions[0];
+
+        expect(memberServiceSub.serviceId).toBe(memberService.id);
+        expect(memberServiceSub.isSubscribed).toBe(true); // Member service should be enabled
+
+        // Verify that there's no professor subscription for regular member
+        const profServiceSub = regularMemberSubscriptions.find(
+          (s) => s.serviceId === profService.id,
+        );
+        expect(profServiceSub).toBeUndefined();
+
+        // Verify admin subscriptions (should remain unchanged)
+        const adminSubscriptions = await UserSubscriptionModel.find({
+          where: { userId: admin.id },
+        });
+
+        expect(adminSubscriptions.length).toBe(2);
+        expect(
+          adminSubscriptions.find((s) => s.serviceId === memberService.id)
+            ?.isSubscribed,
+        ).toBe(false);
+        expect(
+          adminSubscriptions.find((s) => s.serviceId === profService.id)
+            ?.isSubscribed,
+        ).toBe(true);
       } catch (error) {
         console.error('Test error:', error);
         throw error;
