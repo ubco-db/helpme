@@ -222,6 +222,7 @@ export default function QueueInvitesPage({
                   fetchQueueInvites={fetchQueueInvites}
                   baseURL={baseURL}
                   courseName={course.name}
+                  isCourseInviteCodeSet={course.courseInviteCode !== null}
                 />
               )}
             />

@@ -8,6 +8,7 @@ import {
   List,
   Popconfirm,
   Select,
+  Tooltip,
   message,
 } from 'antd'
 import type { QueueInvite, QueueInviteParams } from '@koh/common'
@@ -24,12 +25,14 @@ interface QueueInviteProps {
   fetchQueueInvites: () => void
   baseURL: string
   courseName: string
+  isCourseInviteCodeSet: boolean
 }
 const QueueInviteListItem: React.FC<QueueInviteProps> = ({
   queueInvite,
   fetchQueueInvites,
   baseURL,
   courseName,
+  isCourseInviteCodeSet,
 }) => {
   const [form] = Form.useForm()
   const [copyLinkText, setCopyLinkText] = useState('Copy Link')
@@ -191,35 +194,47 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
             >
               <Checkbox />
             </Form.Item>
-            <Form.Item
-              label="Will Invite to Course"
-              tooltip={{
-                title: (
-                  <div className="flex flex-col gap-y-2">
-                    <p>
-                      Enabling this will allow users who are <i>not</i> in your
-                      course to use this link (normally they can still click on
-                      the link, but they can&apos;t use it to join the
-                      course/queue unless they are already in the course).{' '}
-                    </p>
-                    <p>
-                      Generally, you may want this enabled until all of your
-                      students are in the course or if you just want anyone to
-                      be able to join your course.
-                    </p>
-                    <p>
-                      Also, be sure to set a course invite code in General
-                      Settings otherwise this will not work!
-                    </p>
-                  </div>
-                ),
-                overlayStyle: { maxWidth: '22rem' },
-              }}
-              name="willInviteToCourse"
-              valuePropName="checked"
+            <Tooltip
+              title={
+                isCourseInviteCodeSet
+                  ? ''
+                  : 'You must set a course invite code in General Settings before you can use this feature'
+              }
             >
-              <Checkbox />
-            </Form.Item>
+              <Form.Item
+                label="Will Invite to Course"
+                tooltip={{
+                  title: (
+                    <div className="flex flex-col gap-y-2">
+                      <p>
+                        Enabling this will allow users who are <i>not</i> in
+                        your course to use this link (normally they can still
+                        click on the link, but they can&apos;t use it to join
+                        the course/queue unless they are already in the course).{' '}
+                      </p>
+                      <p>
+                        Generally, you may want this enabled until all of your
+                        students are in the course or if you just want anyone to
+                        be able to join your course.
+                      </p>
+                      <p>
+                        Also, be sure to set a course invite code in General
+                        Settings otherwise this will not work!
+                      </p>
+                    </div>
+                  ),
+                  overlayStyle: { maxWidth: '22rem' },
+                }}
+                name="willInviteToCourse"
+                valuePropName="checked"
+              >
+                <Checkbox
+                  disabled={
+                    !isCourseInviteCodeSet && !queueInvite.willInviteToCourse
+                  }
+                />
+              </Form.Item>
+            </Tooltip>
             <Form.Item>
               <Button
                 type="primary"
