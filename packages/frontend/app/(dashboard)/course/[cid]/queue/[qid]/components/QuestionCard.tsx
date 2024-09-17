@@ -6,11 +6,11 @@ import {
   StudentAssignmentProgress,
 } from '@koh/common'
 import { Card, Col, Row, Tooltip } from 'antd'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import UserAvatar from '@/app/components/UserAvatar'
 import TaskMarkingSelector from './TaskMarkingSelector'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
-import { getWaitTime } from '@/app/utils/timeFormatUtils'
+import { getServedTime, getWaitTime } from '@/app/utils/timeFormatUtils'
 import TAQuestionCardButtons from './TAQuestionCardButtons'
 import { cn } from '@/app/utils/generalUtils'
 
@@ -47,6 +47,16 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   const onMarkingTaskChange = (selectedTaskIds: string[]) => {
     setTasksSelectedForMarking(selectedTaskIds)
   }
+
+  const [servedTime, setServedTime] = useState(getServedTime(question))
+  useEffect(() => {
+    if (isBeingHelped && question.helpedAt) {
+      const interval = setInterval(() => {
+        setServedTime(getServedTime(question))
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [isBeingHelped, question])
 
   return (
     <Card
@@ -148,6 +158,13 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             />
           ))}
         </Col>
+        {isBeingHelped && question.helpedAt && (
+          <Col flex="0 0 3rem">
+            <div className="text-sm font-medium text-green-700">
+              {servedTime}
+            </div>
+          </Col>
+        )}
         <Col flex="0 0 3rem">
           <div className="text-sm text-gray-600">{getWaitTime(question)}</div>
         </Col>
