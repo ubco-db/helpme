@@ -11,7 +11,7 @@ export const NotifMsgs = {
       "The TA could't reach you, please be ready and confirm you are back!",
     THIRD_PLACE: `You're 3rd in the queue. Be ready for a TA to call you soon!`,
     TA_HIT_HELPED: (taName: string): string =>
-      `${taName} is coming to help you!`,
+      `${taName} is ready for you now!`,
     REMOVED: `You've been removed from the queue. Please return to the app for more information.`,
   },
   ta: {

@@ -56,7 +56,7 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
       case 'Helping':
         return `Your Questions - ${
           studentQuestion?.taHelped?.name ?? 'A TA'
-        } is coming to help you`
+        } is ready for you now`
       case 'ReQueueing':
         return 'Your Questions - Are you ready to re-join the queue?'
       case 'PriorityQueued':

@@ -115,7 +115,7 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
       {helping && (
         <Alert
           className="mb-4"
-          message={`A TA is coming to help you`}
+          message={`A TA is ready for you now`}
           description="Please click 'Save Changes' to submit what you've filled out"
           type="info"
           showIcon
