@@ -2076,6 +2076,11 @@ export function transformIntoTaskTree(
   return taskTree
 }
 
+/**
+ * Rather than using encodeURIComponent and decodeURIComponent,
+ * we can encode/decode to/from base 64, which also doesn't need to be encoded/decoded
+ * from to/from URI component
+ */
 export function encodeBase64(str: string) {
   return Buffer.from(str, 'utf-8').toString('base64')
 }

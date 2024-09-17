@@ -2,7 +2,12 @@
 
 import { message } from 'antd'
 import { ReactElement, Suspense, useEffect, useState } from 'react'
-import { GetLimitedCourseResponse, UBCOuserParam, User } from '@koh/common'
+import {
+  decodeBase64,
+  GetLimitedCourseResponse,
+  UBCOuserParam,
+  User,
+} from '@koh/common'
 import { API } from '@/app/api'
 import { userApi } from '../api/userApi'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -15,7 +20,8 @@ export default function CourseInvitePage(): ReactElement {
   const searchParams = useSearchParams()
   const router = useRouter()
   const cid = Number(searchParams.get('cid'))
-  const code = decodeURIComponent(searchParams.get('code') ?? '')
+  const encodedCode = searchParams.get('code') ?? ''
+  const code = decodeBase64(encodedCode)
   const [errorGettingCourse, setErrorGettingCourse] = useState(false)
   const [errorGettingUser, setErrorGettingUser] = useState(false)
 
@@ -37,7 +43,7 @@ export default function CourseInvitePage(): ReactElement {
   useEffect(() => {
     const fetchData = async () => {
       await API.course
-        .getLimitedCourseResponse(cid, code)
+        .getLimitedCourseResponse(cid, encodedCode)
         .then((res) => {
           setCourse(res)
           // if the user is not found, redirect to login
@@ -53,14 +59,14 @@ export default function CourseInvitePage(): ReactElement {
     if (cid) {
       fetchData()
     }
-  }, [cid, code, errorGettingUser, router])
+  }, [cid, encodedCode, errorGettingUser, router])
 
   const cardMetaTitle = `You have been invited to join '${course?.name}'`
   const cardMetaDescription = `This course is managed by ${course?.organizationCourse?.name}`
 
   const addStudent = async (userData: UBCOuserParam) => {
     await API.course
-      .enrollByInviteCode(userData, code)
+      .enrollByInviteCode(userData, encodedCode)
       .then(() => {
         router.push(`/course/${cid}`)
       })
