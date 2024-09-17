@@ -387,6 +387,10 @@ const HeaderBar: React.FC = () => {
   const isProfilePage = URLSegments[1] === 'profile'
   const { course } = useCourse(courseId)
 
+  const queueRoom = queueId
+    ? course?.queues?.find((queue) => queue.id === queueId)?.room
+    : ''
+
   // DESKTOP HEADER
   return isDesktop ? (
     <NavBar
@@ -408,14 +412,46 @@ const HeaderBar: React.FC = () => {
         unoptimized
       />
       <div className="flex h-14 grow flex-col items-center justify-center">
-        <h1 className="leading-none">
+        <h1
+          className={cn(
+            'leading-none',
+            !course?.name
+              ? ''
+              : course.name.length > 35
+                ? 'text-xs'
+                : course.name.length > 30
+                  ? 'text-sm'
+                  : course.name.length > 25
+                    ? 'text-base'
+                    : course.name.length > 20
+                      ? 'text-lg'
+                      : course.name.length > 15
+                        ? 'text-xl'
+                        : '',
+          )}
+        >
           {isProfilePage ? 'Profile' : course?.name}
         </h1>
-        <h2 className="text-base leading-none text-slate-500">
-          {queueId
-            ? course?.queues?.find((queue) => queue.id === queueId)?.room
-            : ''}
-        </h2>
+        {queueRoom && (
+          <h2
+            className={cn(
+              'text-base leading-none text-slate-500',
+              queueRoom.length > 35
+                ? 'text-xs'
+                : queueRoom.length > 30
+                  ? 'text-sm'
+                  : queueRoom.length > 25
+                    ? 'text-base'
+                    : queueRoom.length > 20
+                      ? 'text-lg'
+                      : queueRoom.length > 15
+                        ? 'text-xl'
+                        : '',
+            )}
+          >
+            {queueRoom}
+          </h2>
+        )}
       </div>
       <Drawer direction="left">
         <DrawerTrigger>
