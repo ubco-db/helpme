@@ -1,4 +1,5 @@
 import {
+  decodeBase64,
   ListQuestionsResponse,
   OpenQuestionStatus,
   PublicQueueInvite,
@@ -471,8 +472,16 @@ export class QueueService {
 
   async verifyQueueInviteCodeAndCheckIfQuestionsVisible(
     queueId: number,
-    inviteCode: string,
+    encodedInviteCode: string,
   ): Promise<boolean> {
+    let inviteCode = '';
+    try {
+      inviteCode = decodeBase64(encodedInviteCode);
+    } catch (err) {
+      console.error('Error while decoding invite code:');
+      console.error(err);
+      throw new BadRequestException('Invalid invite code');
+    }
     const queueInvite = await QueueInviteModel.findOne({
       where: {
         queueId,

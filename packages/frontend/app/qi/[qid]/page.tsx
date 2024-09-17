@@ -12,6 +12,8 @@ import {
 } from 'antd'
 import { ReactElement, useCallback, useEffect, useRef, useState } from 'react'
 import {
+  decodeBase64,
+  encodeBase64,
   parseTaskIdsFromQuestionText,
   PublicQueueInvite,
   Question,
@@ -30,7 +32,6 @@ import { userApi } from '@/app/api/userApi'
 import StandardPageContainer from '@/app/components/standardPageContainer'
 import { setQueueInviteCookie } from '@/app/api/cookieApi'
 import { StatusCard } from '@/app/(dashboard)/course/[cid]/queue/[qid]/components/StaffList'
-import { createRoot } from 'react-dom/client'
 import { useQuestionsWithQueueInvite } from '@/app/hooks/useQuestionsWithQueueInvite'
 import { useQueueWithQueueInvite } from '@/app/hooks/useQueueWithQueueInvite'
 import QuestionCardSimple from './components/QuestionCardSimple'
@@ -53,7 +54,8 @@ export default function QueueInvitePage({
   const qid = Number(params.qid)
   const searchParams = useSearchParams()
   const router = useRouter()
-  const code = decodeURIComponent(searchParams.get('c') ?? '')
+  const encodedCode = searchParams.get('c') ?? ''
+  const code = decodeBase64(encodedCode)
   const [projectorModeEnabled, setProjectorModeEnabled] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
   const [hasFetchErrorOccurred, setHasFetchErrorOccurred] = useState(false)
@@ -67,12 +69,12 @@ export default function QueueInvitePage({
   // NOTE: queueQuestions and queue are ONLY set if the queue invite code is correct and if the questions are visible
   const { queueQuestions } = useQuestionsWithQueueInvite(
     qid,
-    code,
+    encodedCode,
     queueInviteInfo?.isQuestionsVisible,
   )
   const { queue } = useQueueWithQueueInvite(
     qid,
-    code,
+    encodedCode,
     queueInviteInfo?.isQuestionsVisible,
   )
   const queueConfig = queue?.config
@@ -131,19 +133,19 @@ export default function QueueInvitePage({
       ? `${isHttps ? 'https' : 'http'}://${window.location.host}`
       : ''
   const inviteURL = queueInviteInfo
-    ? `${baseURL}/qi/${queueInviteInfo.queueId}?c=${encodeURIComponent(queueInviteInfo.inviteCode)}`
+    ? `${baseURL}/qi/${queueInviteInfo.queueId}?c=${encodeBase64(queueInviteInfo.inviteCode)}`
     : ''
 
   const fetchPublicQueueInviteInfo = useCallback(async () => {
     try {
-      const queueInviteInfo = await API.queueInvites.get(qid, code)
+      const queueInviteInfo = await API.queueInvites.get(qid, encodedCode)
       setQueueInviteInfo(queueInviteInfo)
     } catch (error) {
       setHasFetchErrorOccurred(true)
     } finally {
       setPageLoading(false)
     }
-  }, [qid, code])
+  }, [qid, encodedCode])
 
   useEffect(() => {
     fetchPublicQueueInviteInfo()
@@ -195,7 +197,11 @@ export default function QueueInvitePage({
       ).then(() => {
         router.push('/api/v1/logout')
       })
-    } else if (profile && queueInviteInfo.willInviteToCourse) {
+    } else if (
+      profile &&
+      queueInviteInfo.willInviteToCourse &&
+      queueInviteInfo.courseInviteCode
+    ) {
       // if the user is already logged in but not in the course (and willInviteToCourse is enabled), enroll them in the course
       setIsJoinButtonLoading(true)
       const userData: UBCOuserParam = {
@@ -204,7 +210,7 @@ export default function QueueInvitePage({
         organizationId: queueInviteInfo.orgId,
       }
       await API.course
-        .enrollByInviteCode(userData, code)
+        .enrollByInviteCode(userData, queueInviteInfo.courseInviteCode)
         .then(() => {
           router.push(
             `/course/${queueInviteInfo.courseId}/queue/${queueInviteInfo.queueId}`,
@@ -230,7 +236,7 @@ export default function QueueInvitePage({
         router.push('/login')
       })
     }
-  }, [code, queueInviteInfo, router, profile])
+  }, [queueInviteInfo, router, profile])
 
   useEffect(() => {
     // only re-calculate the taskTree and everything if tagGroups is enabled
