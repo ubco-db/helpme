@@ -435,18 +435,12 @@ const HeaderBar: React.FC = () => {
         {queueRoom && (
           <h2
             className={cn(
-              'text-base leading-none text-slate-500',
+              'leading-none text-slate-500',
               queueRoom.length > 35
                 ? 'text-xs'
                 : queueRoom.length > 30
                   ? 'text-sm'
-                  : queueRoom.length > 25
-                    ? 'text-base'
-                    : queueRoom.length > 20
-                      ? 'text-lg'
-                      : queueRoom.length > 15
-                        ? 'text-xl'
-                        : '',
+                  : 'text-base',
             )}
           >
             {queueRoom}
