@@ -681,6 +681,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                     configTasks={configTasks}
                     studentAssignmentProgress={studentAssignmentProgress}
                     isStaff={isStaff}
+                    isBeingHelped={true}
                   />
                 )
               })}

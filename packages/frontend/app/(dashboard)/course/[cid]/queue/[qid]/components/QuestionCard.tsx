@@ -158,7 +158,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             />
           ))}
         </Col>
-        {isBeingHelped && question.helpedAt && (
+        {isBeingHelped && !isStaff && question.helpedAt && (
           <Col flex="0 0 3rem">
             <div className="text-sm font-medium text-green-700">
               {servedTime}
@@ -167,6 +167,11 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
         )}
         <Col flex="0 0 3rem">
           <div className="text-sm text-gray-600">{getWaitTime(question)}</div>
+          {isStaff && isBeingHelped && (
+            <div className="text-sm font-medium text-green-700">
+              {servedTime}
+            </div>
+          )}
         </Col>
         {isStaff && (
           <Col className="w-full sm:w-auto">
@@ -183,7 +188,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
         <div
           className={`absolute left-auto right-1 ${question.text && question.questionTypes && question.questionTypes.length > 0 ? '-mt-[4.4rem]' : '-mt-12 md:-mt-[3.2rem]'}`}
         >
-          {isBeingHelped && (
+          {isBeingHelped && !isStaff && (
             <div className="text-sm text-green-700">Currently Being Served</div>
           )}
         </div>
