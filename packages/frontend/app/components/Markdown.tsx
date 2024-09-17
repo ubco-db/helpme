@@ -23,7 +23,7 @@ const MarkdownCustom: React.FC<MarkdownCustomProps> = ({
   return (
     <Markdown
       components={{
-        code({ node, inline, className, children, ...props }) {
+        code({ node, inline, className, children, ...props }: any) {
           const match = /language-(\w+)/.exec(className || '')
           return !inline && match ? (
             <SyntaxHighlighter
