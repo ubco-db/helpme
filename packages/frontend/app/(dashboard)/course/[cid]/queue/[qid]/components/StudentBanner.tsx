@@ -192,7 +192,7 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
   return (
     <div
       className={cn(
-        'm-2 flex min-h-[63px] rounded border-4 border-dashed bg-[#599cd6] p-[0.4rem] text-white md:mx-[0.4rem] md:p-2',
+        'flex min-h-[63px] rounded border-4 border-dashed bg-[#599cd6] p-[0.4rem] text-white md:m-2 md:mx-[0.4rem] md:p-2',
         getStatusBorderColor(question.status),
       )}
     >

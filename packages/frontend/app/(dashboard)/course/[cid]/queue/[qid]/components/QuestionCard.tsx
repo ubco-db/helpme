@@ -6,12 +6,13 @@ import {
   StudentAssignmentProgress,
 } from '@koh/common'
 import { Card, Col, Row, Tooltip } from 'antd'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import UserAvatar from '@/app/components/UserAvatar'
 import TaskMarkingSelector from './TaskMarkingSelector'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
-import { getWaitTime } from '@/app/utils/timeFormatUtils'
+import { getServedTime, getWaitTime } from '@/app/utils/timeFormatUtils'
 import TAQuestionCardButtons from './TAQuestionCardButtons'
+import { cn } from '@/app/utils/generalUtils'
 
 interface QuestionCardProps {
   question: Question
@@ -21,6 +22,7 @@ interface QuestionCardProps {
   studentAssignmentProgress?: StudentAssignmentProgress
   configTasks?: ConfigTasks
   isMyQuestion?: boolean
+  isBeingHelped?: boolean
   className?: string // used to highlight questions or add other classes
 }
 
@@ -32,6 +34,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   studentAssignmentProgress,
   configTasks,
   isMyQuestion,
+  isBeingHelped,
   className,
 }) => {
   const tasks = question.isTaskQuestion
@@ -45,9 +48,23 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     setTasksSelectedForMarking(selectedTaskIds)
   }
 
+  const [servedTime, setServedTime] = useState(getServedTime(question))
+  useEffect(() => {
+    if (isBeingHelped && question.helpedAt) {
+      const interval = setInterval(() => {
+        setServedTime(getServedTime(question))
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [isBeingHelped, question])
+
   return (
     <Card
-      className={`mb-2 rounded-md px-2 text-gray-600 shadow-md ${className}`}
+      className={cn(
+        'mb-2 rounded-md px-2 text-gray-600 shadow-md ',
+        isBeingHelped ? 'mt-3 border border-green-600/40 md:mt-2' : '',
+        className,
+      )}
       classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
     >
       <Row className="items-center">
@@ -141,8 +158,20 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             />
           ))}
         </Col>
+        {isBeingHelped && !isStaff && question.helpedAt && (
+          <Col flex="0 0 3rem">
+            <div className="text-sm font-medium text-green-700">
+              {servedTime}
+            </div>
+          </Col>
+        )}
         <Col flex="0 0 3rem">
           <div className="text-sm text-gray-600">{getWaitTime(question)}</div>
+          {isStaff && isBeingHelped && (
+            <div className="text-sm font-medium text-green-700">
+              {servedTime}
+            </div>
+          )}
         </Col>
         {isStaff && (
           <Col className="w-full sm:w-auto">
@@ -156,6 +185,13 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             />
           </Col>
         )}
+        <div
+          className={`absolute left-auto right-1 ${question.text && question.questionTypes && question.questionTypes.length > 0 ? '-mt-[4.4rem]' : '-mt-12 md:-mt-[3.2rem]'}`}
+        >
+          {isBeingHelped && !isStaff && (
+            <div className="text-sm text-green-700">Currently Being Served</div>
+          )}
+        </div>
       </Row>
     </Card>
   )
