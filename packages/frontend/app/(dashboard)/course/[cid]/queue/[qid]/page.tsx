@@ -699,6 +699,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           ) : null}
           <QueueQuestions
             questions={queueQuestions.questions}
+            questionsGettingHelp={queueQuestions.questionsGettingHelp}
             cid={cid}
             qid={qid}
             isStaff={isStaff}

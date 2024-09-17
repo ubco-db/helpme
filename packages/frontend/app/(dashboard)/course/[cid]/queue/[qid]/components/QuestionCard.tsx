@@ -12,6 +12,7 @@ import TaskMarkingSelector from './TaskMarkingSelector'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
 import { getWaitTime } from '@/app/utils/timeFormatUtils'
 import TAQuestionCardButtons from './TAQuestionCardButtons'
+import { cn } from '@/app/utils/generalUtils'
 
 interface QuestionCardProps {
   question: Question
@@ -21,6 +22,7 @@ interface QuestionCardProps {
   studentAssignmentProgress?: StudentAssignmentProgress
   configTasks?: ConfigTasks
   isMyQuestion?: boolean
+  isBeingHelped?: boolean
   className?: string // used to highlight questions or add other classes
 }
 
@@ -32,6 +34,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   studentAssignmentProgress,
   configTasks,
   isMyQuestion,
+  isBeingHelped,
   className,
 }) => {
   const tasks = question.isTaskQuestion
@@ -47,7 +50,11 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
 
   return (
     <Card
-      className={`mb-2 rounded-md px-2 text-gray-600 shadow-md ${className}`}
+      className={cn(
+        'mb-2 rounded-md px-2 text-gray-600 shadow-md ',
+        isBeingHelped ? 'mt-3 border border-green-600/40 md:mt-2' : '',
+        className,
+      )}
       classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
     >
       <Row className="items-center">
@@ -156,6 +163,13 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             />
           </Col>
         )}
+        <div
+          className={`absolute left-auto right-1 ${question.text && question.questionTypes && question.questionTypes.length > 0 ? '-mt-[4.4rem]' : '-mt-12 md:-mt-[3.2rem]'}`}
+        >
+          {isBeingHelped && (
+            <div className="text-sm text-green-700">Currently Being Served</div>
+          )}
+        </div>
       </Row>
     </Card>
   )
