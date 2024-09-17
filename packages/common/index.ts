@@ -2076,6 +2076,14 @@ export function transformIntoTaskTree(
   return taskTree
 }
 
+export function encodeBase64(str: string) {
+  return Buffer.from(str, 'utf-8').toString('base64')
+}
+
+export function decodeBase64(str: string) {
+  return Buffer.from(str, 'base64').toString('utf-8')
+}
+
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
