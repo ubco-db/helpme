@@ -74,7 +74,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           URLSegments[4] === 'chatbot_questions' ? (
             <div className="p-1">{children}</div>
           ) : (
-            <StandardPageContainer className="">
+            <StandardPageContainer>
               {children}
             </StandardPageContainer>
           )}
