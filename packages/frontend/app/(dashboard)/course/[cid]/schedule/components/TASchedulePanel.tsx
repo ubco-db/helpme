@@ -134,7 +134,23 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
             headerToolbar={{
               start: 'title',
               center: `dayGridMonth timeGridWeek ${isMobile ? 'timeGridDay ' : ''}listWeek`, // only show timeGridDay on mobile since it's kinda unnecessary on desktop
-              end: 'today prev,next',
+              end: 'addEventButton today prev,next',
+            }}
+            customButtons={{
+              addEventButton: {
+                text: 'Add Event',
+                click: () => {
+                  const now = new Date()
+                  // Round to nearest 5 minutes
+                  now.setMinutes(Math.round(now.getMinutes() / 5) * 5, 0, 0)
+                  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000)
+                  setCreateEvent({
+                    start: now,
+                    end: oneHourLater,
+                  })
+                  setCreateModalVisible(true)
+                },
+              },
             }}
             loading={(loading) => {
               if (spinnerRef.current)
