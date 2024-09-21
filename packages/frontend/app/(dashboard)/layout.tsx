@@ -56,7 +56,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <HeaderBar />
         </StandardPageContainer>
       </header>
-      {/* the main content of the page takes up 100% - (the height of the header bar and footer bar). This is needed so that the scroll bar doesn't show up on every page */}
+      {/* This flex flex-grow is needed so that the scroll bar doesn't show up on every page */}
       <main className="flex flex-grow flex-col">
         <ChatbotContextProvider>
           {pathname === '/courses' && (
