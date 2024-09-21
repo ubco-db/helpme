@@ -110,7 +110,7 @@ export class QuestionService {
       );
     }
     const tasks = parseTaskIdsFromQuestionText(question.text);
-    if (tasks.length === 0) {
+    if (question.text && tasks.length === 0) {
       throw new BadRequestException(
         ERROR_MESSAGES.questionController.studentTaskProgress.taskParseError,
       );
@@ -229,7 +229,8 @@ export class QuestionService {
       question.isTaskQuestion &&
       question.status !== ClosedQuestionStatus.ConfirmedDeleted &&
       question.status !== ClosedQuestionStatus.DeletedDraft &&
-      question.status !== ClosedQuestionStatus.Stale
+      question.status !== ClosedQuestionStatus.Stale &&
+      question.text
     ) {
       const tasks = parseTaskIdsFromQuestionText(question.text);
       if (tasks.length === 0) {
