@@ -11,7 +11,7 @@ import { format } from 'date-fns'
 import EditEventModal from './EditEventModal'
 import CreateEventModal from './CreateEventModal'
 import { Calendar } from '@koh/common'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { getBrightness, getErrorMessage } from '@/app/utils/generalUtils'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 
 type ScheduleProps = {
@@ -67,6 +67,12 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
       locationType: event.locationType,
       locationInPerson: event.locationInPerson || null,
       locationOnline: event.locationOnline || null,
+      backgroundColor: event.color ?? '#3788d8', //hex
+      textColor: event.color
+        ? getBrightness(event.color) < 128
+          ? 'white'
+          : 'black'
+        : 'white',
     }
     if (event.endDate) {
       returnEvent['startRecur'] = event.startDate

@@ -14,6 +14,7 @@ import { calendarEventLocationType } from '@koh/common'
 import { dayToIntMapping } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import dayjs from 'dayjs'
+import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 type CreateEventModalProps = {
   visible: boolean
   onClose: () => void
@@ -57,6 +58,10 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         ...values,
         cid: courseId,
         title: values.title,
+        color:
+          typeof values.color === 'string'
+            ? values.color
+            : values.color.toHexString(),
         end: dayjs(event?.end).toISOString(),
         start: dayjs(event?.start).toISOString(),
       }
@@ -148,6 +153,22 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         rules={[{ required: true, message: 'Please input the title!' }]}
       >
         <Input />
+      </Form.Item>
+
+      <Form.Item
+        label="Color"
+        layout="horizontal"
+        valuePropName="color"
+        name="color"
+        rules={[{ required: true, message: 'Missing color' }]}
+        initialValue="#3788d8"
+      >
+        <ColorPickerWithPresets
+          defaultValue="#3788d8"
+          format="hex"
+          defaultFormat="hex"
+          disabledAlpha
+        />
       </Form.Item>
 
       <Form.Item label="Start Time">

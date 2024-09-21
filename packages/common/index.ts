@@ -802,6 +802,10 @@ export class Calendar {
   @IsBoolean()
   @IsOptional()
   allDay?: boolean
+
+  @IsString()
+  @IsOptional()
+  color?: string
 }
 
 export class questions {
