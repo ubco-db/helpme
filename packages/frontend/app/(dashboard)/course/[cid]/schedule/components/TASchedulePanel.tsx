@@ -124,6 +124,8 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
               })
               setCreateModalVisible(true)
             }}
+            eventResizableFromStart={false} // prevents you from being able to click and drag to change the start time of the event (that would require extra logic to implement properly)
+            eventDurationEditable={false} // prevents you from being able to click and drag to change the duration (end time) of the event (that would require extra logic to implement properly)
             events={events}
             scrollTime="10:00:00"
             nowIndicator={true}

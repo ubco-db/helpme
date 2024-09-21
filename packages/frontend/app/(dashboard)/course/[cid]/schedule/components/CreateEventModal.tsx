@@ -190,6 +190,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           // Don't show seconds, also show minutes in intervals of 5
           minuteStep={5}
           format="HH:mm"
+          className="w-36"
         />
       </Form.Item>
       <Form.Item>
