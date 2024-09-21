@@ -13,6 +13,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
 } from 'class-validator'
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
@@ -805,6 +806,7 @@ export class Calendar {
 
   @IsString()
   @IsOptional()
+  @MaxLength(7)
   color?: string
 }
 
