@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { QuestionType } from '@koh/common'
 import { getBrightness } from '@/app/utils/generalUtils'
+import tinycolor from 'tinycolor2'
 
 interface QuestionTagElementProps {
   tagName: string
@@ -35,6 +36,7 @@ const QuestionTagElement: React.FC<QuestionTagElementProps> = ({
         margin: '2px',
         display: 'inline-block',
         cursor: onClick ? 'pointer' : '',
+        border: `1px solid ${tinycolor(tagColor).darken(10).toString()}`,
       }}
       onClick={onClick}
       className={className}
@@ -129,8 +131,10 @@ const CheckableQuestionTag: React.FC<CheckableQuestionTagProps> = ({
         margin: '2px',
         display: 'inline-block',
         cursor: 'pointer',
-        border: `1px solid ${tagColor}`,
-        boxShadow: isHovered ? `0 0 0 2px ${tagColor}` : undefined,
+        border: `1px solid ${tinycolor(tagColor).darken(10).toString()}`,
+        boxShadow: isHovered
+          ? `0 0 0 2px ${tinycolor(tagColor).darken(10).toString()}`
+          : undefined,
       }}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
