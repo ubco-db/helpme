@@ -216,7 +216,13 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           layout="vertical"
           form={form}
           name="form_in_modal"
-          initialValues={{ locationType: 0, color: event.backgroundColor }}
+          initialValues={{
+            locationType: 0,
+            color:
+              event && event.backgroundColor
+                ? event.backgroundColor
+                : '#3788d8',
+          }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
         >
@@ -240,7 +246,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         rules={[{ required: true, message: 'Missing color' }]}
       >
         <ColorPickerWithPresets
-          defaultValue={event.backgroundColor}
+          defaultValue={
+            event && event.backgroundColor ? event.backgroundColor : '#3788d8'
+          }
           format="hex"
           defaultFormat="hex"
           disabledAlpha
