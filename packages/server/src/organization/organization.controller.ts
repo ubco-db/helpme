@@ -1192,7 +1192,10 @@ export class OrganizationController {
     }
 
     // If the user is just an OrganizationRole.PROFESSOR, they can only remove users from their own courses
-    if (user.organizationUser.role === OrganizationRole.PROFESSOR) {
+    if (
+      user.organizationUser &&
+      user.organizationUser.role === OrganizationRole.PROFESSOR
+    ) {
       const userCoursesForUser = await UserCourseModel.find({
         where: {
           userId: user.id,
