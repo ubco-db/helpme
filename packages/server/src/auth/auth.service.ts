@@ -10,8 +10,10 @@ import { UserModel } from 'profile/user.entity';
 import * as bcrypt from 'bcrypt';
 import { TokenType, UserTokenModel } from 'profile/user-token.entity';
 import { MailService } from 'mail/mail.service';
+import { MailServiceModel } from 'mail/mail-services.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
+import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 
 @Injectable()
 export class AuthService {
@@ -23,6 +25,22 @@ export class AuthService {
       process.env.GOOGLE_CLIENT_SECRET,
       process.env.GOOGLE_REDIRECT_URI,
     );
+  }
+
+  async createStudentSubscriptions(userId: number): Promise<void> {
+    const memberMailServices = await MailServiceModel.find({
+      where: { mailType: 'member' },
+    });
+
+    const subscriptions = memberMailServices.map((service) => {
+      const subscription = new UserSubscriptionModel();
+      subscription.userId = userId;
+      subscription.serviceId = service.id;
+      subscription.isSubscribed = true;
+      return subscription;
+    });
+
+    await UserSubscriptionModel.save(subscriptions);
   }
 
   async loginWithShibboleth(

@@ -417,6 +417,8 @@ export class AuthController {
         sid ? sid : -1,
         organizationId,
       );
+      // create student subscriptions
+      await this.authService.createStudentSubscriptions(userId);
 
       const authToken = await this.createAuthToken(userId);
 

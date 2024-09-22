@@ -54,10 +54,12 @@ export class MailService {
       from: '"HelpMe Support"',
       subject: emailPost.subject,
       html:
-        emailPost.content ??
-        mail.content +
-          `<br> <a href="${process.env.DOMAIN}/courses">View Your Courses</a>` +
-          `<br> Do you not want to receive these emails? <a href="${process.env.DOMAIN}/profile">Unsubscribe</a>`,
+        emailPost.content ||
+        `
+        ${mail.content}
+        <br><a href="${process.env.DOMAIN}/courses">View Your Courses</a>
+        <br>Do you not want to receive these emails? <a href="${process.env.DOMAIN}/profile">Unsubscribe</a>
+      `,
     });
   }
   async findAllSubscriptions(
