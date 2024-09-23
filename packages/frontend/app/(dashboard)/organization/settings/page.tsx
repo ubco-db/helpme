@@ -122,14 +122,14 @@ export default function SettingsPage(): ReactElement {
       return
     }
 
-    const isLT2MB = file.size / 1024 / 1024 < 2
+    const isLT5MB = file.size / 1024 / 1024 < 5
 
-    if (!isLT2MB) {
-      message.error('Image must be smaller than 2MB!')
+    if (!isLT5MB) {
+      message.error('Image must be smaller than 5MB!')
       return
     }
 
-    return isJpgOrPng && isLT2MB
+    return isJpgOrPng && isLT5MB
   }
 
   const updateGeneral = async () => {

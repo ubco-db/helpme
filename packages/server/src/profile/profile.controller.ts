@@ -29,7 +29,7 @@ import * as fs from 'fs';
 import { pick } from 'lodash';
 import { memoryStorage } from 'multer';
 import * as path from 'path';
-import sharp from 'sharp';
+import * as sharp from 'sharp';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from './user.entity';
