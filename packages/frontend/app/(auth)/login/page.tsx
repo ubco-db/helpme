@@ -353,6 +353,13 @@ export default function LoginPage() {
             )}
           </Card>
         </div>
+        <Button
+          onClick={() => {
+            router.push('/api/v1/course/debug-sentry')
+          }}
+        >
+          fagfdagdf
+        </Button>
       </main>
     )
   }

@@ -1058,4 +1058,9 @@ export class CourseController {
     res.status(200).send(queueInvites);
     return;
   }
+
+  @Get('/debug-sentry')
+  getError() {
+    throw new Error('My first Sentry error!');
+  }
 }

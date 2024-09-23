@@ -30,10 +30,14 @@ import { QuestionTypeModule } from './questionType/questionType.module';
 import { StudentTaskProgressModule } from './studentTaskProgress/studentTaskProgress.module';
 import { RedisQueueModule } from 'redisQueue/redis-queue.module';
 import { ApplicationConfigModule } from 'config/application_config.module';
+import { SentryModule } from '@sentry/nestjs/setup';
+import { APP_FILTER } from '@nestjs/core';
+import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot(typeormConfig),
+    SentryModule.forRoot(),
     // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store
     RedisModule.register([
       { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
@@ -73,6 +77,12 @@ import { ApplicationConfigModule } from 'config/application_config.module';
     QuestionTypeModule,
     StudentTaskProgressModule,
     RedisQueueModule,
+  ],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
   ],
 })
 export class AppModule {}
