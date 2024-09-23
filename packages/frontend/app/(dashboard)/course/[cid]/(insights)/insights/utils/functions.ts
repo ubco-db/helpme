@@ -1,0 +1,82 @@
+import { ChartConfig } from '@/app/components/ui/chart'
+import { ChartDataType } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
+
+const hsvToHex = (h: number, s: number, v: number) => {
+  const a = s * Math.min(v, 1 - v)
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12
+    const color = v - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+    return Math.round(255 * color)
+      .toString(16)
+      .padStart(2, '0')
+  }
+  return `#${f(0)}${f(8)}${f(4)}`
+}
+
+const generateUniqueColor = (index: number, amount: number) => {
+  return hsvToHex((360 / amount) * index, 0.75, 0.5)
+}
+
+export const processChartData = (
+  chartData: { [key: string]: any }[],
+  labelKey: string,
+  valueKeys: string[],
+  uniquePerLabel?: boolean,
+): {
+  data: ChartDataType[]
+  keys: string[]
+  fills: { [key: string]: string }
+} => {
+  const fills: { [key: string]: string } = {}
+  const keys: string[] = valueKeys.map((item) => item.replace(/\s/g, '_'))
+
+  if (!uniquePerLabel) {
+    keys.forEach((item, index) => {
+      fills[item] = generateUniqueColor(index, keys.length)
+    })
+  }
+
+  const data = chartData.map((item, index) => {
+    const mappedData: ChartDataType = {
+      key: item[labelKey].replace(/\s/g, '_'),
+    }
+    if (uniquePerLabel) {
+      mappedData['fill'] = generateUniqueColor(index, chartData.length)
+    }
+    valueKeys.forEach((key) => {
+      mappedData[key] = item[key]
+    })
+    return mappedData
+  })
+
+  return { data, keys, fills }
+}
+
+export const constructChartConfig = (
+  processedChartData: ChartDataType[],
+  valueKeys?: string[],
+  fills?: { [key: string]: string },
+): ChartConfig => {
+  const chartConfig = {} as { [key: string]: any }
+
+  processedChartData.forEach((item) => {
+    if (valueKeys != undefined) {
+      valueKeys.forEach((key) => {
+        chartConfig[key] = {
+          label: (key.charAt(0).toUpperCase() + key.slice(1)).replace('_', ' '),
+          color: fills ? fills[key] : item.fill,
+        }
+      })
+    } else {
+      chartConfig[item.key] = {
+        label: (item.key.charAt(0).toUpperCase() + item.key.slice(1)).replace(
+          '_',
+          ' ',
+        ),
+        color: item.fill,
+      }
+    }
+  })
+
+  return chartConfig satisfies ChartConfig
+}

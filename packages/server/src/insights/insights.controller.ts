@@ -101,6 +101,12 @@ export class InsightsController {
       insight = { ...(insight as SimpleTableOutputType), dataSource };
     }
 
+    // TODO: Restructure Insight Outputs
+    if (insight instanceof Object) {
+      insight['title'] = INSIGHTS_MAP[insightName].displayName;
+      insight['description'] = INSIGHTS_MAP[insightName].description;
+    }
+
     return insight;
   }
 

@@ -1440,6 +1440,13 @@ export enum InsightComponent {
   SimpleTable = 'SimpleTable',
 }
 
+export interface InsightOutput {
+  title: string
+  description: string
+  outputType: InsightComponent
+  output: PossibleOutputTypes
+}
+
 export type PossibleOutputTypes =
   | SimpleDisplayOutputType
   | BarChartOutputType

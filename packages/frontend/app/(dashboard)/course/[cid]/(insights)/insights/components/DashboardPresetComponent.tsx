@@ -33,7 +33,7 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
   }
 
   return (
-    <div className="float-end flex flex-row">
+    <div className="absolute right-1 flex flex-row">
       <button
         className={`${isOpen ? 'bg-zinc-300' : 'bg-helpmeblue'} ${isOpen ? 'rounded-l-lg' : 'rounded-lg'} p-2 shadow-lg ${isOpen ? 'md:hover:bg-zinc-200' : 'md:hover:bg-helpmeblue-light'} md:hover:shadow-2xl`}
         onClick={() => setIsOpen(!isOpen)}
