@@ -61,7 +61,7 @@ import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import _, { isNumber } from 'lodash';
 import { MailServiceModel } from 'mail/mail-services.entity';
-import { User } from 'decorators/user.decorator';
+import { User, UserId } from 'decorators/user.decorator';
 
 @Controller('organization')
 export class OrganizationController {
@@ -1183,7 +1183,7 @@ export class OrganizationController {
     @Res() res: Response,
     @Param('uid', ParseIntPipe) uid: number,
     @Body() userCourses: number[],
-    @User() user: UserModel,
+    @UserId() userId: number,
   ): Promise<Response<void>> {
     if (userCourses.length < 1) {
       return res.status(HttpStatus.BAD_REQUEST).send({
@@ -1191,14 +1191,17 @@ export class OrganizationController {
       });
     }
 
+    const userOrg = await OrganizationUserModel.findOne({
+      where: {
+        userId,
+      },
+    });
+
     // If the user is just an OrganizationRole.PROFESSOR, they can only remove users from their own courses
-    if (
-      user.organizationUser &&
-      user.organizationUser.role === OrganizationRole.PROFESSOR
-    ) {
+    if (userOrg.role === OrganizationRole.PROFESSOR) {
       const userCoursesForUser = await UserCourseModel.find({
         where: {
-          userId: user.id,
+          userId: userId,
           courseId: In(userCourses),
         },
       });
