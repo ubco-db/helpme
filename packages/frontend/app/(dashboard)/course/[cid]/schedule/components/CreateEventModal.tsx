@@ -5,8 +5,8 @@ import {
   DatePicker,
   Checkbox,
   Radio,
-  Tooltip,
   message,
+  TimePicker,
 } from 'antd'
 import { useEffect, useState } from 'react'
 import { API } from '@/app/api'
@@ -14,6 +14,9 @@ import { calendarEventLocationType } from '@koh/common'
 import { dayToIntMapping } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import dayjs from 'dayjs'
+
+const { RangePicker } = TimePicker
+
 type CreateEventModalProps = {
   visible: boolean
   onClose: () => void
@@ -53,12 +56,25 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   }
   const onFinish = async (values: any) => {
     try {
+      // Remove the `time` and `date` attribute from `values`
+      const { date, time, ...restValues } = values
+
+      // Combine date with start time
+      const startDateTime = dayjs(date)
+        .set('hour', time[0].hour())
+        .set('minute', time[0].minute())
+
+      // Combine date with end time
+      const endDateTime = dayjs(date)
+        .set('hour', time[1].hour())
+        .set('minute', time[1].minute())
+
       const eventObject = {
-        ...values,
+        ...restValues,
         cid: courseId,
         title: values.title,
-        end: dayjs(event?.end).toISOString(),
-        start: dayjs(event?.start).toISOString(),
+        start: startDateTime.toISOString(),
+        end: endDateTime.toISOString(),
       }
       // Set the location type based on the value of locationType
       switch (locationType) {
@@ -134,7 +150,11 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           layout="vertical"
           form={form}
           name="form_in_modal"
-          initialValues={{ locationType: 0 }}
+          initialValues={{
+            locationType: 0,
+            date: dayjs(event?.start),
+            time: [dayjs(event?.start), dayjs(event?.end)],
+          }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
         >
@@ -150,15 +170,28 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         <Input />
       </Form.Item>
 
-      <Form.Item label="Start Time">
-        <Tooltip title="To change the time, exit this modal and reselect by dragging over a new area.">
-          <span>{dayjs(event?.start).format('YYYY-MM-DD HH:mm')}</span>
-        </Tooltip>
+      <Form.Item
+        label="Date"
+        name="date"
+        rules={[
+          { required: true, message: 'Please select the date of the event' },
+        ]}
+      >
+        <DatePicker />
       </Form.Item>
-      <Form.Item label="End Time">
-        <Tooltip title="To change the time, exit this modal and reselect by dragging over a new area.">
-          <span>{dayjs(event?.end).format('YYYY-MM-DD HH:mm')}</span>
-        </Tooltip>
+      <Form.Item
+        label="Time"
+        name="time"
+        rules={[
+          { required: true, message: 'Please select the times of the event' },
+        ]}
+      >
+        <RangePicker
+          // Don't show seconds, also show minutes in intervals of 5
+          minuteStep={5}
+          format="HH:mm"
+          className="w-36"
+        />
       </Form.Item>
       <Form.Item>
         <Checkbox
@@ -169,7 +202,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         </Checkbox>
       </Form.Item>
 
-      {isRepeating ? (
+      {isRepeating && (
         <>
           <Form.Item label="Start Date" name="startDate">
             <DatePicker picker="date" />
@@ -191,10 +224,6 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
             </Checkbox.Group>
           </Form.Item>
         </>
-      ) : (
-        <Form.Item label="Event Day">
-          <span>{dayjs(event?.start).format('dddd')}</span>
-        </Form.Item>
       )}
 
       <Form.Item
