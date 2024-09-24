@@ -228,6 +228,8 @@ export class ProfileController {
         Math.random().toString(36).substring(2, 15) +
         Math.random().toString(36).substring(2, 15) +
         '.webp';
+
+      // Create the upload location if it doesn't exist
       if (!fs.existsSync(process.env.UPLOAD_LOCATION)) {
         fs.mkdirSync(process.env.UPLOAD_LOCATION, { recursive: true });
       }
