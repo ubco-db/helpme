@@ -28,9 +28,8 @@ import { getHelpingQuestions } from '../utils/commonQueueFunctions'
 import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
 
-// i don't think this currently places them at the top of the queue, TODO: fix this
 const PRORITY_QUEUED_MESSAGE_TEXT =
-  'This student has been temporarily removed from the queue. They must select to rejoin the queue and will then be placed at the top of the queue'
+  'This student has been temporarily removed from the queue. They must select to rejoin the queue and will then be placed where they were before'
 
 interface TAQuestionCardButtonsProps {
   courseId: number
@@ -57,9 +56,14 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
   const isUserCheckedIn = isCheckedIn(staffList, userInfo.id)
   const { queueQuestions } = useQuestions(queueId)
   const { isHelping } = getHelpingQuestions(queueQuestions, userInfo.id, role)
+  // loading states for buttons
   const [helpButtonLoading, setHelpButtonLoading] = useState(false)
   const [rephraseButtonLoading, setRephraseButtonLoading] = useState(false)
   const [deleteButtonLoading, setDeleteButtonLoading] = useState(false)
+  const [finishHelpingButtonLoading, setFinishHelpingButtonLoading] =
+    useState(false)
+  const [cantFindButtonLoading, setCantFindButtonLoading] = useState(false)
+  const [requeueButtonLoading, setRequeueButtonLoading] = useState(false)
 
   // let timerCheckout=useRef(null);
   const changeStatus = useCallback(
@@ -226,12 +230,19 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           okText="Yes"
           cancelText="No"
           onConfirm={async () => {
-            message.success(PRORITY_QUEUED_MESSAGE_TEXT, 2)
-            await changeStatus(LimboQuestionStatus.ReQueueing)
+            setRequeueButtonLoading(true)
+            await changeStatus(LimboQuestionStatus.ReQueueing).then(() => {
+              message.success(PRORITY_QUEUED_MESSAGE_TEXT, 3)
+              setRequeueButtonLoading(false)
+            })
           }}
         >
           <Tooltip title="Requeue Student">
-            <CircleButton icon={<UndoOutlined />} />
+            <CircleButton
+              icon={<UndoOutlined />}
+              loading={requeueButtonLoading}
+              disabled={cantFindButtonLoading || finishHelpingButtonLoading}
+            />
           </Tooltip>
         </Popconfirm>
         <Popconfirm
@@ -239,13 +250,21 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           okText="Yes"
           cancelText="No"
           onConfirm={async () => {
-            message.success(PRORITY_QUEUED_MESSAGE_TEXT, 2)
-            await changeStatus(LimboQuestionStatus.CantFind)
-            await API.questions.notify(question.id)
+            setCantFindButtonLoading(true)
+            await changeStatus(LimboQuestionStatus.CantFind).then(async () => {
+              message.success(PRORITY_QUEUED_MESSAGE_TEXT, 3)
+              setCantFindButtonLoading(false)
+              await API.questions.notify(question.id)
+            })
           }}
         >
           <Tooltip title="Can't Find">
-            <CircleButton variant="red" icon={<CloseOutlined />} />
+            <CircleButton
+              variant="red"
+              icon={<CloseOutlined />}
+              loading={cantFindButtonLoading}
+              disabled={requeueButtonLoading || finishHelpingButtonLoading}
+            />
           </Tooltip>
         </Popconfirm>
         <Tooltip
@@ -263,15 +282,22 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
             onMouseLeave={() => setIsFinishHelpingTooltipVisible(false)}
             variant="green"
             icon={<CheckOutlined />}
+            loading={finishHelpingButtonLoading}
+            disabled={cantFindButtonLoading || requeueButtonLoading}
             onClick={() => {
               // setCheckOutTimer()
+              setFinishHelpingButtonLoading(true)
               if (
                 question.isTaskQuestion &&
                 tasksSelectedForMarking.length > 0
               ) {
-                markSelected()
+                markSelected().then(() => {
+                  setFinishHelpingButtonLoading(false)
+                })
               } else {
-                changeStatus(ClosedQuestionStatus.Resolved)
+                changeStatus(ClosedQuestionStatus.Resolved).then(() => {
+                  setFinishHelpingButtonLoading(false)
+                })
               }
             }}
           />
