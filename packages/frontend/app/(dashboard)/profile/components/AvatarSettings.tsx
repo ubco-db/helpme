@@ -1,7 +1,8 @@
 'use client'
 
 import { DeleteOutlined, UploadOutlined } from '@ant-design/icons'
-import { Col, message, Popconfirm, Row, Skeleton, Upload } from 'antd'
+import { Avatar, Col, message, Popconfirm, Row, Skeleton, Upload } from 'antd'
+import AvatarCropperModal from './AvatarCropperModal'
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import { API } from '@/app/api'
@@ -15,6 +16,7 @@ const AvatarSettings: React.FC = () => {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [avatarSize, setAvatarSize] = useState(windowWidth / 2)
   const [uploading, setUploading] = useState(false)
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const { userInfo, setUserInfo } = useUserInfo()
 
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
@@ -25,48 +27,6 @@ const AvatarSettings: React.FC = () => {
     const widthDivider = isMobile ? 3 : 10
     setAvatarSize(windowWidth / widthDivider)
   }, [windowWidth, isMobile])
-
-  const beforeUpload = (file: any) => {
-    const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
-
-    if (!isJpgOrPng) {
-      message.error('You can only upload JPGs or PNGs!')
-    }
-
-    const isLt1M = file.size / 1024 / 1024 < 1
-    if (!isLt1M) {
-      message.error('Image must smaller than 1MB!')
-    }
-
-    return isJpgOrPng && isLt1M
-  }
-
-  const handleUpload = async (file: any) => {
-    try {
-      setUploading(true) // Start the upload state
-      const formData = new FormData()
-      formData.append('file', file)
-      const response = await fetch('api/v1/profile/upload_picture', {
-        method: 'POST',
-        body: formData,
-      })
-      const data = await response.json()
-      if (response.ok) {
-        message.success(`${file.name} file uploaded successfully`)
-        const newUser = await mutate() //update the context
-        setUserInfo({
-          ...userInfo,
-          photoURL: newUser ? newUser.photoURL : userInfo.photoURL,
-        })
-      } else {
-        message.error(`${file.name} file upload failed: ${data.message}`)
-      }
-    } catch (error) {
-      message.error(`Error uploading ${file.name}. Please try again.`)
-    } finally {
-      setUploading(false) // Reset the upload state regardless of success or error
-    }
-  }
 
   return (
     <Col>
@@ -97,29 +57,28 @@ const AvatarSettings: React.FC = () => {
                 {profile.firstName} {profile.lastName ?? ''}
               </h2>
             )}
-            <Upload
-              customRequest={async ({ file }) => await handleUpload(file)} // Use customRequest to handle the upload logic ourselves
-              beforeUpload={beforeUpload}
-              showUploadList={false}
-              onChange={() => {
-                mutate()
-              }}
-              maxCount={1}
+            <AvatarCropperModal
+              isOpen={isUploadModalOpen}
+              uploading={uploading}
+              setUploading={setUploading}
+              onCancel={() => setIsUploadModalOpen(false)}
+            />
+            <button
+              onClick={() => setIsUploadModalOpen(true)}
+              className="mt-4 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2"
             >
-              <button className="mt-4 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2">
-                <UploadOutlined />
-                <span>Edit photo</span>
-              </button>
-            </Upload>
+              <UploadOutlined />
+              <span>Edit Avatar</span>
+            </button>
             {profile?.photoURL && (
               <Popconfirm
-                title="Are you sure you want to delete your profile picture?"
+                title="Are you sure you want to delete your profile avatar?"
                 onConfirm={async () => {
                   await API.profile
                     .deleteProfilePicture()
                     .then(() => {
                       message.success(
-                        "You've successfully deleted your profile picture",
+                        "You've successfully deleted your profile avatar",
                       )
                       mutate()
                       setUserInfo({ ...userInfo, photoURL: '' })
@@ -127,7 +86,7 @@ const AvatarSettings: React.FC = () => {
                     .catch((e) => {
                       const errorMessage = getErrorMessage(e)
                       message.error(
-                        'Failed to delete profile picture:',
+                        'Failed to delete profile avatar:',
                         errorMessage,
                       )
                     })
@@ -137,7 +96,7 @@ const AvatarSettings: React.FC = () => {
               >
                 <button className="mt-2 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2">
                   <DeleteOutlined />
-                  <span>Delete Profile Picture</span>
+                  <span>Delete Avatar</span>
                 </button>
               </Popconfirm>
             )}
