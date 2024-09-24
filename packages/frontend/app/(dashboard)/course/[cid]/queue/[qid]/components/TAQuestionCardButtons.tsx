@@ -8,6 +8,7 @@ import {
 import {
   AlertType,
   ClosedQuestionStatus,
+  ERROR_MESSAGES,
   LimboQuestionStatus,
   OpenQuestionStatus,
   parseTaskIdsFromQuestionText,
@@ -56,6 +57,10 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
   const isUserCheckedIn = isCheckedIn(staffList, userInfo.id)
   const { queueQuestions } = useQuestions(queueId)
   const { isHelping } = getHelpingQuestions(queueQuestions, userInfo.id, role)
+  const [helpButtonLoading, setHelpButtonLoading] = useState(false)
+  const [rephraseButtonLoading, setRephraseButtonLoading] = useState(false)
+  const [deleteButtonLoading, setDeleteButtonLoading] = useState(false)
+
   // let timerCheckout=useRef(null);
   const changeStatus = useCallback(
     async (status: QuestionStatus) => {
@@ -134,6 +139,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
   // }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sendRephraseAlert = async () => {
+    setRephraseButtonLoading(true)
     const payload: RephraseQuestionPayload = {
       queueId,
       questionId: question.id,
@@ -148,13 +154,25 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
       })
       await mutateQuestions()
       message.success('Successfully asked student to rephrase their question.')
-    } catch (e) {
-      //If the ta creates an alert that already exists the error is caught and nothing happens
+    } catch (e: any) {
+      if (
+        e.response?.data?.message ===
+        ERROR_MESSAGES.alertController.duplicateAlert
+      ) {
+        message.error(
+          'This student has already been asked to rephrase their question',
+        )
+      }
+    } finally {
+      setRephraseButtonLoading(false)
     }
   }
 
   const helpStudent = () => {
-    changeStatus(OpenQuestionStatus.Helping)
+    setHelpButtonLoading(true)
+    changeStatus(OpenQuestionStatus.Helping).then(() => {
+      setHelpButtonLoading(false)
+    })
     //delete inactive timer
     // editing: shouldn't log students out after 15 minutes
     // reset timer if help another student
@@ -170,11 +188,14 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
     }
   }
   const deleteQuestion = async () => {
+    setDeleteButtonLoading(true)
     await changeStatus(
       question.status === OpenQuestionStatus.Drafting
         ? ClosedQuestionStatus.DeletedDraft
         : LimboQuestionStatus.TADeleted,
-    )
+    ).then(() => {
+      setDeleteButtonLoading(false)
+    })
     await API.questions.notify(question.id)
   }
 
@@ -313,7 +334,12 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                 <CircleButton
                   variant="red"
                   icon={<DeleteOutlined />}
-                  disabled={!isUserCheckedIn}
+                  disabled={
+                    !isUserCheckedIn ||
+                    helpButtonLoading ||
+                    rephraseButtonLoading
+                  }
+                  loading={deleteButtonLoading}
                 />
               </span>
             </Tooltip>
@@ -329,7 +355,10 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                   variant="orange"
                   icon={<QuestionOutlined />}
                   onClick={sendRephraseAlert}
-                  disabled={!canRephrase}
+                  disabled={
+                    !canRephrase || helpButtonLoading || deleteButtonLoading
+                  }
+                  loading={rephraseButtonLoading}
                 />
               </span>
             </Tooltip>
@@ -347,8 +376,11 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                   // clearTimeout(timerCheckout.current);
                   helpStudent()
                 }}
-                disabled={!canHelp}
+                disabled={
+                  !canHelp || rephraseButtonLoading || deleteButtonLoading
+                }
                 className="flex items-center justify-center"
+                loading={helpButtonLoading}
               />
             </span>
           </Tooltip>
