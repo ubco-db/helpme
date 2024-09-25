@@ -72,7 +72,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                   ?.match(/"(.*?)"/g)
                   ?.map((task) => task.slice(1, -1)) || []
               if (tasksMarkedDone.length == 0) {
-                message.error('No tasks marked done')
+                message.warning('No tasks marked done')
               } else {
                 message.success(
                   'Marked ' + tasksMarkedDone.join(', ') + ' as done',
@@ -111,7 +111,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
         responseQuestion.text,
       )
       if (tasksMarkedDone.length == 0) {
-        message.error('No tasks marked done')
+        message.warning('No tasks marked done')
       } else {
         message.success(
           'Marked ' + tasksSelectedForMarking.join(', ') + ' as done',
