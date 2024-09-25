@@ -60,7 +60,7 @@ import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import _, { isNumber } from 'lodash';
 import { MailServiceModel } from 'mail/mail-services.entity';
-import sharp from 'sharp';
+import * as sharp from 'sharp';
 
 @Controller('organization')
 export class OrganizationController {

@@ -1,6 +1,6 @@
 'use client'
 
-import { InboxOutlined } from '@ant-design/icons'
+import { InboxOutlined, UploadOutlined } from '@ant-design/icons'
 import {
   Button,
   Card,
@@ -20,10 +20,19 @@ import { Organization } from '@/app/typings/organization'
 import { organizationApi } from '@/app/api/organizationApi'
 import { API } from '@/app/api'
 import Image from 'next/image'
+import ImageCropperModal from '@/app/(dashboard)/components/ImageCropperModal'
 
 export default function SettingsPage(): ReactElement {
   const [formGeneral] = Form.useForm()
 
+  const [isCropperModalOpen, setIsCropperModalOpen] = useState<{
+    logo: boolean
+    banner: boolean
+  }>({ logo: false, banner: false })
+  const [isUploadingImg, setUploadingImg] = useState<{
+    logo: boolean
+    banner: boolean
+  }>({ logo: false, banner: false })
   const { userInfo } = useUserInfo()
   const [organization, setOrganization] = useState<Organization>()
   const [organizationName, setOrganizationName] = useState(organization?.name)
@@ -258,23 +267,31 @@ export default function SettingsPage(): ReactElement {
                 className="items-center"
               >
                 <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <Upload.Dragger
-                    beforeUpload={beforeUpload}
-                    customRequest={({ file }) => handleLogoUpload(file)}
-                    showUploadList={true}
-                    name="organizationLogoFile"
-                    maxCount={1}
+                  <ImageCropperModal
+                    isOpen={isCropperModalOpen.logo}
+                    circular={false}
+                    aspect={1}
+                    imgName="Organization Logo"
+                    postURL={`/api/v1/organization/${organization?.id}/upload_logo`}
+                    setUploading={(uploading: boolean) => {
+                      setUploadingImg((prev) => ({ ...prev, logo: uploading }))
+                    }}
+                    onCancel={() =>
+                      setIsCropperModalOpen((prev) => ({
+                        ...prev,
+                        logo: false,
+                      }))
+                    }
+                  />
+                  <button
+                    onClick={() =>
+                      setIsCropperModalOpen((prev) => ({ ...prev, logo: true }))
+                    }
+                    className="mt-4 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2"
                   >
-                    <p className="ant-upload-drag-icon">
-                      <InboxOutlined />
-                    </p>
-                    <p className="ant-upload-text">
-                      Click or drag file to this area to upload
-                    </p>
-                    <p className="ant-upload-hint">
-                      Support for a single or bulk upload.
-                    </p>
-                  </Upload.Dragger>
+                    <UploadOutlined />
+                    <span>Edit Logo</span>
+                  </button>
                 </Col>
                 <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                   <Image
@@ -296,23 +313,37 @@ export default function SettingsPage(): ReactElement {
                 style={{ alignItems: 'center' }}
               >
                 <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <Upload.Dragger
-                    beforeUpload={beforeUpload}
-                    customRequest={({ file }) => handleBannerUpload(file)}
-                    showUploadList={true}
-                    name="organizationBannerFile"
-                    maxCount={1}
+                  <ImageCropperModal
+                    isOpen={isCropperModalOpen.banner}
+                    circular={false}
+                    aspect={1920 / 1080}
+                    imgName="Organization Banner"
+                    postURL={`/api/v1/organization/${organization?.id}/upload_banner`}
+                    setUploading={(uploading: boolean) => {
+                      setUploadingImg((prev) => ({
+                        ...prev,
+                        banner: uploading,
+                      }))
+                    }}
+                    onCancel={() =>
+                      setIsCropperModalOpen((prev) => ({
+                        ...prev,
+                        banner: false,
+                      }))
+                    }
+                  />
+                  <button
+                    onClick={() =>
+                      setIsCropperModalOpen((prev) => ({
+                        ...prev,
+                        banner: true,
+                      }))
+                    }
+                    className="mt-4 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2"
                   >
-                    <p className="ant-upload-drag-icon">
-                      <InboxOutlined />
-                    </p>
-                    <p className="ant-upload-text">
-                      Click or drag file to this area to upload
-                    </p>
-                    <p className="ant-upload-hint">
-                      Support for a single or bulk upload.
-                    </p>
-                  </Upload.Dragger>
+                    <UploadOutlined />
+                    <span>Edit Banner</span>
+                  </button>
                 </Col>
                 <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                   <Image

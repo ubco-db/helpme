@@ -9,9 +9,12 @@ import useSWR from 'swr'
 import { API } from '@/app/api'
 import { getCroppedImg } from '@/app/utils/generalUtils'
 
-interface AvatarCropperModalProps {
+interface ImageCropperModalProps {
   isOpen: boolean
-  uploading: boolean
+  circular: boolean
+  aspect: number // Fraction to represent the aspect ratio of crop
+  imgName: string // Don't confuse with file names, this referring to the type of image in the app (e.g. Avatar, Banner, etc.)
+  postURL: string // API URL to post the cropped image to
   setUploading: (uploading: boolean) => void
   onCancel: () => void
 }
@@ -30,9 +33,12 @@ type CroppedAreaPixels = {
   height: number
 }
 
-const AvatarCropperModal: React.FC<AvatarCropperModalProps> = ({
+const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   isOpen,
-  uploading,
+  circular,
+  aspect,
+  imgName,
+  postURL,
   setUploading,
   onCancel,
 }) => {
@@ -105,7 +111,7 @@ const AvatarCropperModal: React.FC<AvatarCropperModalProps> = ({
       )
       const formData = new FormData()
       formData.append('file', croppedImage)
-      const response = await fetch('api/v1/profile/upload_picture', {
+      const response = await fetch(postURL, {
         method: 'POST',
         body: formData,
       })
@@ -130,7 +136,7 @@ const AvatarCropperModal: React.FC<AvatarCropperModalProps> = ({
 
   return (
     <Modal
-      title="Crop Avatar"
+      title={`Crop ${imgName}`}
       open={isOpen}
       onOk={handleCropComplete}
       onCancel={() => onCancel()}
@@ -151,7 +157,7 @@ const AvatarCropperModal: React.FC<AvatarCropperModalProps> = ({
       >
         <button className="min-w-[500px] rounded-lg border-2 bg-white p-2">
           <UploadOutlined />
-          <span className="ml-2">Upload Avatar</span>
+          <span className="ml-2">{`Upload ${imgName}`}</span>
         </button>
       </Upload>
       <div className="relative mt-2 h-[300px] w-full">
@@ -159,11 +165,11 @@ const AvatarCropperModal: React.FC<AvatarCropperModalProps> = ({
           image={imageSrc ?? ''}
           crop={crop}
           zoom={zoom}
-          aspect={1}
+          aspect={aspect}
           onCropChange={setCrop}
           onZoomChange={setZoom}
           onCropComplete={onCropCompleteCallback}
-          cropShape="round"
+          cropShape={circular ? 'round' : 'rect'}
           showGrid={false}
         />
       </div>
@@ -171,4 +177,4 @@ const AvatarCropperModal: React.FC<AvatarCropperModalProps> = ({
   )
 }
 
-export default AvatarCropperModal
+export default ImageCropperModal

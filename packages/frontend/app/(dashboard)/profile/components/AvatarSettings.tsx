@@ -1,8 +1,8 @@
 'use client'
 
 import { DeleteOutlined, UploadOutlined } from '@ant-design/icons'
-import { Avatar, Col, message, Popconfirm, Row, Skeleton, Upload } from 'antd'
-import AvatarCropperModal from './AvatarCropperModal'
+import { Col, message, Popconfirm, Row, Skeleton } from 'antd'
+import ImageCropperModal from '../../components/ImageCropperModal'
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import { API } from '@/app/api'
@@ -57,9 +57,12 @@ const AvatarSettings: React.FC = () => {
                 {profile.firstName} {profile.lastName ?? ''}
               </h2>
             )}
-            <AvatarCropperModal
+            <ImageCropperModal
               isOpen={isUploadModalOpen}
-              uploading={uploading}
+              circular={true}
+              aspect={1}
+              imgName="Avatar"
+              postURL="api/v1/profile/upload_picture"
               setUploading={setUploading}
               onCancel={() => setIsUploadModalOpen(false)}
             />
