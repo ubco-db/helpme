@@ -260,7 +260,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         name="startTime"
         rules={[{ required: true, message: 'Please select the start time!' }]}
       >
-        <TimePicker format="HH:mm" />
+        <TimePicker format="HH:mm" minuteStep={5} />
       </Form.Item>
 
       <Form.Item
@@ -268,7 +268,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         name="endTime"
         rules={[{ required: true, message: 'Please select the end time!' }]}
       >
-        <TimePicker format="HH:mm" />
+        <TimePicker format="HH:mm" minuteStep={5} />
       </Form.Item>
 
       <Form.Item>
