@@ -808,12 +808,7 @@ export class OrganizationController {
       });
     }
 
-    const fileName =
-      organization.id +
-      '-' +
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15) +
-      '.webp';
+    const fileName = organization.id + '-' + Date.now().toString() + '.webp';
 
     // Create the upload location if it doesn't exist
     if (!fs.existsSync(process.env.UPLOAD_LOCATION)) {
@@ -897,12 +892,7 @@ export class OrganizationController {
       });
     }
 
-    const fileName =
-      organization.id +
-      '-' +
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15) +
-      '.webp';
+    const fileName = organization.id + '-' + Date.now().toString() + '.webp';
 
     // Create the upload location if it doesn't exist
     if (!fs.existsSync(process.env.UPLOAD_LOCATION)) {

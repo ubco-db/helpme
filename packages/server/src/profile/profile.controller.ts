@@ -222,12 +222,7 @@ export class ProfileController {
           ERROR_MESSAGES.profileController.noDiskSpace,
         );
       }
-      const fileName =
-        user.id +
-        '-' +
-        Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15) +
-        '.webp';
+      const fileName = user.id + '-' + Date.now().toString() + '.webp';
 
       // Create the upload location if it doesn't exist
       if (!fs.existsSync(process.env.UPLOAD_LOCATION)) {
