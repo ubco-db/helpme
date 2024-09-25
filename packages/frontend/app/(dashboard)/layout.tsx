@@ -12,6 +12,7 @@ import { LayoutProps } from '@/app/typings/types'
 import StandardPageContainer from '../components/standardPageContainer'
 import Image from 'next/image'
 import ChatbotContextProvider from './course/[cid]/components/chatbot/ChatbotProvider'
+import FooterBar from './components/FooterBar'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [profile, setProfile] = useState<User>()
@@ -55,8 +56,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <HeaderBar />
         </StandardPageContainer>
       </header>
-      {/* the main content of the page takes up 100% - (the height of the header bar). This is needed so that the scroll bar doesn't show up on every page */}
-      <main className="h-[calc(100%-3.7rem)] min-h-[calc(100%-3.7rem)]">
+      {/* This flex flex-grow is needed so that the scroll bar doesn't show up on every page */}
+      <main className="flex flex-grow flex-col">
         <ChatbotContextProvider>
           {pathname === '/courses' && (
             <Image
@@ -73,12 +74,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           URLSegments[4] === 'chatbot_questions' ? (
             <div className="p-1">{children}</div>
           ) : (
-            <StandardPageContainer className="min-h-full">
+            <StandardPageContainer>
               {children}
             </StandardPageContainer>
           )}
         </ChatbotContextProvider>
       </main>
+      <FooterBar />
     </UserInfoProvider>
   )
 }
