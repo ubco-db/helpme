@@ -14,6 +14,7 @@ import { calendarEventLocationType } from '@koh/common'
 import { dayToIntMapping } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import dayjs from 'dayjs'
+import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 
 const { RangePicker } = TimePicker
 
@@ -73,6 +74,10 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         ...restValues,
         cid: courseId,
         title: values.title,
+        color:
+          typeof values.color === 'string'
+            ? values.color
+            : values.color.toHexString(),
         start: startDateTime.toISOString(),
         end: endDateTime.toISOString(),
       }
@@ -171,6 +176,22 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
       </Form.Item>
 
       <Form.Item
+        label="Color"
+        layout="horizontal"
+        valuePropName="color"
+        name="color"
+        rules={[{ required: true, message: 'Missing color' }]}
+        initialValue="#3788d8"
+      >
+        <ColorPickerWithPresets
+          defaultValue="#3788d8"
+          format="hex"
+          defaultFormat="hex"
+          disabledAlpha
+        />
+      </Form.Item>
+
+      <Form.Item>
         label="Date"
         name="date"
         rules={[
