@@ -15,6 +15,7 @@ interface ImageCropperModalProps {
   aspect: number // Fraction to represent the aspect ratio of crop
   imgName: string // Don't confuse with file names, this referring to the type of image in the app (e.g. Avatar, Banner, etc.)
   postURL: string // API URL to post the cropped image to
+  onUploadComplete: () => void
   setUploading: (uploading: boolean) => void
   onCancel: () => void
 }
@@ -39,6 +40,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   aspect,
   imgName,
   postURL,
+  onUploadComplete,
   setUploading,
   onCancel,
 }) => {
@@ -48,7 +50,6 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
     useState<CroppedAreaPixels | null>(null)
   const [imageType, setImageType] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
-  const { userInfo, setUserInfo } = useUserInfo()
   const [imageSrc, setImageSrc] = useState<string | null>(null)
 
   const onCropCompleteCallback = useCallback(
@@ -68,10 +69,6 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
     'image/svg+xml',
     'image/tiff',
   ]
-
-  const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
-    API.profile.index(),
-  )
 
   const beforeUpload = (file: any): boolean => {
     const isValidMimeType = viableFileTypes.includes(file.type)
@@ -118,11 +115,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       const data = await response.json()
       if (response.ok) {
         message.success(`${fileName} file uploaded successfully`)
-        const newUser = await mutate() //update the context
-        setUserInfo({
-          ...userInfo,
-          photoURL: newUser ? newUser.photoURL : userInfo.photoURL,
-        })
+        onUploadComplete()
       } else {
         message.error(`${fileName} file upload failed: ${data.message}`)
       }
@@ -150,9 +143,6 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
         beforeUpload={beforeUpload}
         className="mb-2"
         showUploadList={false}
-        onChange={() => {
-          mutate()
-        }}
         maxCount={1}
       >
         <button className="min-w-[500px] rounded-lg border-2 bg-white p-2">

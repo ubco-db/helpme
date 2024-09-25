@@ -67,80 +67,6 @@ export default function SettingsPage(): ReactElement {
     }
   }
 
-  const handleBannerUpload = async (file: any) => {
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const response = await fetch(
-        `/api/v1/organization/${organization?.id}/upload_banner`,
-        {
-          method: 'POST',
-          body: formData,
-        },
-      )
-
-      const data = await response.json()
-
-      if (response.ok) {
-        message.success(`${file.name} file uploaded successfully`).then(() => {
-          setTimeout(() => {
-            window.location.reload()
-          }, 1750)
-        })
-      } else {
-        message.error(`${file.name} file upload failed: ${data.message}`)
-      }
-    } catch (error) {
-      message.error(`Error uploading ${file.name}. Please try again.`)
-    }
-  }
-
-  const handleLogoUpload = async (file: any) => {
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const response = await fetch(
-        `/api/v1/organization/${organization?.id}/upload_logo`,
-        {
-          method: 'POST',
-          body: formData,
-        },
-      )
-
-      const data = await response.json()
-
-      if (response.ok) {
-        message.success(`${file.name} file uploaded successfully`).then(() => {
-          setTimeout(() => {
-            window.location.reload()
-          }, 1750)
-        })
-      } else {
-        message.error(`${file.name} file upload failed: ${data.message}`)
-      }
-    } catch (error) {
-      message.error(`Error uploading ${file.name}. Please try again.`)
-    }
-  }
-
-  const beforeUpload = (file: any) => {
-    const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
-
-    if (!isJpgOrPng) {
-      message.error('You can only upload JPG/PNG file!')
-      return
-    }
-
-    const isLT5MB = file.size / 1024 / 1024 < 5
-
-    if (!isLT5MB) {
-      message.error('Image must be smaller than 5MB!')
-      return
-    }
-
-    return isJpgOrPng && isLT5MB
-  }
-
   const updateGeneral = async () => {
     const formValues = await formGeneral.validateFields()
     const organizationNameField = formValues.organizationName
@@ -273,6 +199,11 @@ export default function SettingsPage(): ReactElement {
                     aspect={1}
                     imgName="Organization Logo"
                     postURL={`/api/v1/organization/${organization?.id}/upload_logo`}
+                    onUploadComplete={() => {
+                      setTimeout(() => {
+                        window.location.reload()
+                      }, 1750)
+                    }}
                     setUploading={(uploading: boolean) => {
                       setUploadingImg((prev) => ({ ...prev, logo: uploading }))
                     }}
@@ -319,6 +250,11 @@ export default function SettingsPage(): ReactElement {
                     aspect={1920 / 1080}
                     imgName="Organization Banner"
                     postURL={`/api/v1/organization/${organization?.id}/upload_banner`}
+                    onUploadComplete={() => {
+                      setTimeout(() => {
+                        window.location.reload()
+                      }, 1750)
+                    }}
                     setUploading={(uploading: boolean) => {
                       setUploadingImg((prev) => ({
                         ...prev,

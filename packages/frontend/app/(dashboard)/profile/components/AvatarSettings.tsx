@@ -63,6 +63,15 @@ const AvatarSettings: React.FC = () => {
               aspect={1}
               imgName="Avatar"
               postURL="api/v1/profile/upload_picture"
+              onUploadComplete={() => {
+                mutate().then((newUser) => {
+                  // Update the context
+                  setUserInfo({
+                    ...userInfo,
+                    photoURL: newUser ? newUser.photoURL : userInfo.photoURL,
+                  })
+                })
+              }}
               setUploading={setUploading}
               onCancel={() => setIsUploadModalOpen(false)}
             />
