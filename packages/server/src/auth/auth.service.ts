@@ -31,7 +31,9 @@ export class AuthService {
     const memberMailServices = await MailServiceModel.find({
       where: { mailType: 'member' },
     });
-
+if (!memberMailServices) {
+  return
+}
     const subscriptions = memberMailServices.map((service) => {
       const subscription = new UserSubscriptionModel();
       subscription.userId = userId;
