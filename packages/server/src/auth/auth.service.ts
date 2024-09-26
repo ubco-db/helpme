@@ -28,21 +28,25 @@ export class AuthService {
   }
 
   async createStudentSubscriptions(userId: number): Promise<void> {
-    const memberMailServices = await MailServiceModel.find({
-      where: { mailType: 'member' },
-    });
-if (!memberMailServices) {
-  return
-}
-    const subscriptions = memberMailServices.map((service) => {
-      const subscription = new UserSubscriptionModel();
-      subscription.userId = userId;
-      subscription.serviceId = service.id;
-      subscription.isSubscribed = true;
-      return subscription;
-    });
+    try {
+      const memberMailServices = await MailServiceModel.find({
+        where: { mailType: 'member' },
+      });
+      if (!memberMailServices) {
+        return;
+      }
+      const subscriptions = memberMailServices.map((service) => {
+        const subscription = new UserSubscriptionModel();
+        subscription.userId = userId;
+        subscription.serviceId = service.id;
+        subscription.isSubscribed = true;
+        return subscription;
+      });
 
-    await UserSubscriptionModel.save(subscriptions);
+      await UserSubscriptionModel.save(subscriptions);
+    } catch (err) {
+      console.log(err);
+    }
   }
 
   async loginWithShibboleth(
@@ -93,6 +97,7 @@ if (!memberMailServices) {
           token: v4(),
         }).save();
 
+        await this.createStudentSubscriptions(userId);
         return userId;
       }
 
@@ -168,6 +173,7 @@ if (!memberMailServices) {
           token: v4(),
         }).save();
 
+        await this.createStudentSubscriptions(userId);
         return userId;
       }
 
