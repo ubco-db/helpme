@@ -1,6 +1,8 @@
 import { AccountType, OrganizationRole } from '@koh/common';
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -45,7 +47,10 @@ export class AuthService {
 
       await UserSubscriptionModel.save(subscriptions);
     } catch (err) {
-      console.log(err);
+      throw new HttpException(
+        'There was a error saving user mail subscriptions',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
