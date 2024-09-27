@@ -238,7 +238,9 @@ export class ProfileController {
         console.error('Error processing image:', err);
       }
       await user.save();
-      response.status(200).send({ message: 'Image uploaded successfully' });
+      response
+        .status(200)
+        .send({ message: 'Image uploaded successfully', fileName });
     } catch (error) {
       response
         .status(500)

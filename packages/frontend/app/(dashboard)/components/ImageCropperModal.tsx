@@ -15,7 +15,7 @@ interface ImageCropperModalProps {
   aspect: number // Fraction to represent the aspect ratio of crop
   imgName: string // Don't confuse with file names, this referring to the type of image in the app (e.g. Avatar, Banner, etc.)
   postURL: string // API URL to post the cropped image to
-  onUploadComplete: () => void
+  onUpdateComplete: (photoURL: string) => void
   setUploading: (uploading: boolean) => void
   onCancel: () => void
 }
@@ -40,7 +40,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   aspect,
   imgName,
   postURL,
-  onUploadComplete,
+  onUpdateComplete,
   setUploading,
   onCancel,
 }) => {
@@ -115,7 +115,9 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       const data = await response.json()
       if (response.ok) {
         message.success(`${fileName} file uploaded successfully`)
-        onUploadComplete()
+        response.json().then((data) => {
+          onUpdateComplete(data.fileName)
+        })
       } else {
         message.error(`${fileName} file upload failed: ${data.message}`)
       }

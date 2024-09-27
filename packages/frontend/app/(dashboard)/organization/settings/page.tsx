@@ -199,7 +199,7 @@ export default function SettingsPage(): ReactElement {
                     aspect={1}
                     imgName="Organization Logo"
                     postURL={`/api/v1/organization/${organization?.id}/upload_logo`}
-                    onUploadComplete={() => {
+                    onUpdateComplete={() => {
                       setTimeout(() => {
                         window.location.reload()
                       }, 1750)
@@ -250,7 +250,7 @@ export default function SettingsPage(): ReactElement {
                     aspect={1920 / 1080}
                     imgName="Organization Banner"
                     postURL={`/api/v1/organization/${organization?.id}/upload_banner`}
-                    onUploadComplete={() => {
+                    onUpdateComplete={() => {
                       setTimeout(() => {
                         window.location.reload()
                       }, 1750)

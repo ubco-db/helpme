@@ -19,9 +19,9 @@ const AvatarSettings: React.FC = () => {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const { userInfo, setUserInfo } = useUserInfo()
 
-  const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
-    API.profile.index(),
-  )
+  // const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
+  //   API.profile.index(),
+  // )
 
   useEffect(() => {
     const widthDivider = isMobile ? 3 : 10
@@ -46,15 +46,15 @@ const AvatarSettings: React.FC = () => {
             />
           ) : (
             <UserAvatar
-              photoURL={profile?.photoURL}
-              username={profile?.name}
+              photoURL={userInfo?.photoURL}
+              username={userInfo?.name}
               size={avatarSize}
             />
           )}
           <Col>
-            {profile && (
+            {userInfo && (
               <h2>
-                {profile.firstName} {profile.lastName ?? ''}
+                {userInfo.firstName} {userInfo.lastName ?? ''}
               </h2>
             )}
             <ImageCropperModal
@@ -63,13 +63,11 @@ const AvatarSettings: React.FC = () => {
               aspect={1}
               imgName="Avatar"
               postURL="api/v1/profile/upload_picture"
-              onUploadComplete={() => {
-                mutate().then((newUser) => {
-                  // Update the context
-                  setUserInfo({
-                    ...userInfo,
-                    photoURL: newUser ? newUser.photoURL : userInfo.photoURL,
-                  })
+              onUpdateComplete={(photoURL) => {
+                // Update the context
+                setUserInfo({
+                  ...userInfo,
+                  photoURL: photoURL ? photoURL : userInfo.photoURL,
                 })
               }}
               setUploading={setUploading}
@@ -82,7 +80,7 @@ const AvatarSettings: React.FC = () => {
               <UploadOutlined />
               <span>Edit Avatar</span>
             </button>
-            {profile?.photoURL && (
+            {userInfo?.photoURL && (
               <Popconfirm
                 title="Are you sure you want to delete your profile avatar?"
                 onConfirm={async () => {
@@ -92,7 +90,6 @@ const AvatarSettings: React.FC = () => {
                       message.success(
                         "You've successfully deleted your profile avatar",
                       )
-                      mutate()
                       setUserInfo({ ...userInfo, photoURL: '' })
                     })
                     .catch((e) => {
