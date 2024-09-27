@@ -8,6 +8,7 @@ import {
 import {
   AlertType,
   ClosedQuestionStatus,
+  ERROR_MESSAGES,
   LimboQuestionStatus,
   OpenQuestionStatus,
   parseTaskIdsFromQuestionText,
@@ -27,9 +28,8 @@ import { getHelpingQuestions } from '../utils/commonQueueFunctions'
 import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
 
-// i don't think this currently places them at the top of the queue, TODO: fix this
 const PRORITY_QUEUED_MESSAGE_TEXT =
-  'This student has been temporarily removed from the queue. They must select to rejoin the queue and will then be placed at the top of the queue'
+  'This student has been temporarily removed from the queue. They must select to rejoin the queue and will then be placed where they were before'
 
 interface TAQuestionCardButtonsProps {
   courseId: number
@@ -56,6 +56,15 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
   const isUserCheckedIn = isCheckedIn(staffList, userInfo.id)
   const { queueQuestions } = useQuestions(queueId)
   const { isHelping } = getHelpingQuestions(queueQuestions, userInfo.id, role)
+  // loading states for buttons
+  const [helpButtonLoading, setHelpButtonLoading] = useState(false)
+  const [rephraseButtonLoading, setRephraseButtonLoading] = useState(false)
+  const [deleteButtonLoading, setDeleteButtonLoading] = useState(false)
+  const [finishHelpingButtonLoading, setFinishHelpingButtonLoading] =
+    useState(false)
+  const [cantFindButtonLoading, setCantFindButtonLoading] = useState(false)
+  const [requeueButtonLoading, setRequeueButtonLoading] = useState(false)
+
   // let timerCheckout=useRef(null);
   const changeStatus = useCallback(
     async (status: QuestionStatus) => {
@@ -72,7 +81,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                   ?.match(/"(.*?)"/g)
                   ?.map((task) => task.slice(1, -1)) || []
               if (tasksMarkedDone.length == 0) {
-                message.error('No tasks marked done')
+                message.warning('No tasks marked done')
               } else {
                 message.success(
                   'Marked ' + tasksMarkedDone.join(', ') + ' as done',
@@ -111,7 +120,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
         responseQuestion.text,
       )
       if (tasksMarkedDone.length == 0) {
-        message.error('No tasks marked done')
+        message.warning('No tasks marked done')
       } else {
         message.success(
           'Marked ' + tasksSelectedForMarking.join(', ') + ' as done',
@@ -134,6 +143,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
   // }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sendRephraseAlert = async () => {
+    setRephraseButtonLoading(true)
     const payload: RephraseQuestionPayload = {
       queueId,
       questionId: question.id,
@@ -148,13 +158,25 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
       })
       await mutateQuestions()
       message.success('Successfully asked student to rephrase their question.')
-    } catch (e) {
-      //If the ta creates an alert that already exists the error is caught and nothing happens
+    } catch (e: any) {
+      if (
+        e.response?.data?.message ===
+        ERROR_MESSAGES.alertController.duplicateAlert
+      ) {
+        message.error(
+          'This student has already been asked to rephrase their question',
+        )
+      }
+    } finally {
+      setRephraseButtonLoading(false)
     }
   }
 
   const helpStudent = () => {
-    changeStatus(OpenQuestionStatus.Helping)
+    setHelpButtonLoading(true)
+    changeStatus(OpenQuestionStatus.Helping).then(() => {
+      setHelpButtonLoading(false)
+    })
     //delete inactive timer
     // editing: shouldn't log students out after 15 minutes
     // reset timer if help another student
@@ -170,11 +192,14 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
     }
   }
   const deleteQuestion = async () => {
+    setDeleteButtonLoading(true)
     await changeStatus(
       question.status === OpenQuestionStatus.Drafting
         ? ClosedQuestionStatus.DeletedDraft
         : LimboQuestionStatus.TADeleted,
-    )
+    ).then(() => {
+      setDeleteButtonLoading(false)
+    })
     await API.questions.notify(question.id)
   }
 
@@ -205,12 +230,19 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           okText="Yes"
           cancelText="No"
           onConfirm={async () => {
-            message.success(PRORITY_QUEUED_MESSAGE_TEXT, 2)
-            await changeStatus(LimboQuestionStatus.ReQueueing)
+            setRequeueButtonLoading(true)
+            await changeStatus(LimboQuestionStatus.ReQueueing).then(() => {
+              message.success(PRORITY_QUEUED_MESSAGE_TEXT, 3)
+              setRequeueButtonLoading(false)
+            })
           }}
         >
           <Tooltip title="Requeue Student">
-            <CircleButton icon={<UndoOutlined />} />
+            <CircleButton
+              icon={<UndoOutlined />}
+              loading={requeueButtonLoading}
+              disabled={cantFindButtonLoading || finishHelpingButtonLoading}
+            />
           </Tooltip>
         </Popconfirm>
         <Popconfirm
@@ -218,13 +250,21 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           okText="Yes"
           cancelText="No"
           onConfirm={async () => {
-            message.success(PRORITY_QUEUED_MESSAGE_TEXT, 2)
-            await changeStatus(LimboQuestionStatus.CantFind)
-            await API.questions.notify(question.id)
+            setCantFindButtonLoading(true)
+            await changeStatus(LimboQuestionStatus.CantFind).then(async () => {
+              message.success(PRORITY_QUEUED_MESSAGE_TEXT, 3)
+              setCantFindButtonLoading(false)
+              await API.questions.notify(question.id)
+            })
           }}
         >
           <Tooltip title="Can't Find">
-            <CircleButton variant="red" icon={<CloseOutlined />} />
+            <CircleButton
+              variant="red"
+              icon={<CloseOutlined />}
+              loading={cantFindButtonLoading}
+              disabled={requeueButtonLoading || finishHelpingButtonLoading}
+            />
           </Tooltip>
         </Popconfirm>
         <Tooltip
@@ -242,15 +282,22 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
             onMouseLeave={() => setIsFinishHelpingTooltipVisible(false)}
             variant="green"
             icon={<CheckOutlined />}
+            loading={finishHelpingButtonLoading}
+            disabled={cantFindButtonLoading || requeueButtonLoading}
             onClick={() => {
               // setCheckOutTimer()
+              setFinishHelpingButtonLoading(true)
               if (
                 question.isTaskQuestion &&
                 tasksSelectedForMarking.length > 0
               ) {
-                markSelected()
+                markSelected().then(() => {
+                  setFinishHelpingButtonLoading(false)
+                })
               } else {
-                changeStatus(ClosedQuestionStatus.Resolved)
+                changeStatus(ClosedQuestionStatus.Resolved).then(() => {
+                  setFinishHelpingButtonLoading(false)
+                })
               }
             }}
           />
@@ -313,7 +360,12 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                 <CircleButton
                   variant="red"
                   icon={<DeleteOutlined />}
-                  disabled={!isUserCheckedIn}
+                  disabled={
+                    !isUserCheckedIn ||
+                    helpButtonLoading ||
+                    rephraseButtonLoading
+                  }
+                  loading={deleteButtonLoading}
                 />
               </span>
             </Tooltip>
@@ -329,7 +381,10 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                   variant="orange"
                   icon={<QuestionOutlined />}
                   onClick={sendRephraseAlert}
-                  disabled={!canRephrase}
+                  disabled={
+                    !canRephrase || helpButtonLoading || deleteButtonLoading
+                  }
+                  loading={rephraseButtonLoading}
                 />
               </span>
             </Tooltip>
@@ -347,8 +402,11 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                   // clearTimeout(timerCheckout.current);
                   helpStudent()
                 }}
-                disabled={!canHelp}
+                disabled={
+                  !canHelp || rephraseButtonLoading || deleteButtonLoading
+                }
                 className="flex items-center justify-center"
+                loading={helpButtonLoading}
               />
             </span>
           </Tooltip>

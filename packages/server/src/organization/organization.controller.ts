@@ -61,6 +61,7 @@ import { v4 } from 'uuid';
 import _, { isNumber } from 'lodash';
 import { MailServiceModel } from 'mail/mail-services.entity';
 import * as sharp from 'sharp';
+import { User, UserId } from 'decorators/user.decorator';
 
 @Controller('organization')
 export class OrganizationController {
@@ -1183,16 +1184,50 @@ export class OrganizationController {
     OrganizationGuard,
     EmailVerifiedGuard,
   )
-  @Roles(OrganizationRole.ADMIN)
+  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async deleteUserCourses(
     @Res() res: Response,
     @Param('uid', ParseIntPipe) uid: number,
     @Body() userCourses: number[],
+    @UserId() userId: number,
   ): Promise<Response<void>> {
     if (userCourses.length < 1) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: ERROR_MESSAGES.profileController.noCoursesToDelete,
       });
+    }
+
+    const userOrg = await OrganizationUserModel.findOne({
+      where: {
+        userId,
+      },
+    });
+
+    // If the user is just an OrganizationRole.PROFESSOR, they can only remove users from their own courses
+    if (userOrg.role === OrganizationRole.PROFESSOR) {
+      const userCoursesForUser = await UserCourseModel.find({
+        where: {
+          userId: userId,
+          courseId: In(userCourses),
+        },
+      });
+      // all courses must be found, otherwise the user is trying to remove a course they are not in
+      if (userCoursesForUser.length !== userCourses.length) {
+        return res.status(HttpStatus.UNAUTHORIZED).send({
+          message: ERROR_MESSAGES.roleGuard.notAuthorized,
+        });
+      }
+      // Check if the user is trying to remove a course they are not in
+      const userCoursesForUserIds = userCoursesForUser.map((uc) => uc.courseId);
+      if (
+        !userCoursesForUserIds.every((courseId) =>
+          userCourses.includes(courseId),
+        )
+      ) {
+        return res.status(HttpStatus.UNAUTHORIZED).send({
+          message: ERROR_MESSAGES.roleGuard.notAuthorized,
+        });
+      }
     }
 
     const userInfo = await OrganizationUserModel.findOne({

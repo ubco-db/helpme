@@ -263,10 +263,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       >
         <QuestionTagDeleteSelector currentTags={questionTypes ?? []} />
       </Form.Item>
-      <Form.List
-        name="questionTypesForCreation"
-        // initialValue={[{name: 'test', color: '#' + Math.floor(Math.random() * 16777215).toString(16) }]}
-      >
+      <Form.List name="questionTypesForCreation">
         {(fields, { add, remove }) => (
           <>
             {fields.map(({ key, name, ...restField }) => {

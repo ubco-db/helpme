@@ -11,8 +11,9 @@ import { format } from 'date-fns'
 import EditEventModal from './EditEventModal'
 import CreateEventModal from './CreateEventModal'
 import { Calendar } from '@koh/common'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { getBrightness, getErrorMessage } from '@/app/utils/generalUtils'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
+import tinycolor from 'tinycolor2'
 
 type ScheduleProps = {
   courseId: number
@@ -58,6 +59,14 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
   const parseEvent = (event: Calendar) => {
     const startTime = new Date(event.start)
     const endTime = new Date(event.end)
+    const textColor = event.color
+      ? tinycolor(event.color).isDark()
+        ? '#fff'
+        : '#000'
+      : '#fff'
+    const borderColor = event.color
+      ? tinycolor(event.color).darken(10).toString()
+      : '#3788d8'
     const returnEvent: Event = {
       id: event.id,
       title: event.title,
@@ -67,6 +76,9 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
       locationType: event.locationType,
       locationInPerson: event.locationInPerson || null,
       locationOnline: event.locationOnline || null,
+      backgroundColor: event.color ?? '#3788d8',
+      borderColor: borderColor,
+      textColor: textColor,
     }
     if (event.endDate) {
       returnEvent['startRecur'] = event.startDate
@@ -124,6 +136,8 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
               })
               setCreateModalVisible(true)
             }}
+            eventResizableFromStart={false} // prevents you from being able to click and drag to change the start time of the event (that would require extra logic to implement properly)
+            eventDurationEditable={false} // prevents you from being able to click and drag to change the duration (end time) of the event (that would require extra logic to implement properly)
             events={events}
             scrollTime="10:00:00"
             nowIndicator={true}
@@ -134,7 +148,23 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
             headerToolbar={{
               start: 'title',
               center: `dayGridMonth timeGridWeek ${isMobile ? 'timeGridDay ' : ''}listWeek`, // only show timeGridDay on mobile since it's kinda unnecessary on desktop
-              end: 'today prev,next',
+              end: 'addEventButton today prev,next',
+            }}
+            customButtons={{
+              addEventButton: {
+                text: 'Add Event',
+                click: () => {
+                  const now = new Date()
+                  // Round to nearest 5 minutes
+                  now.setMinutes(Math.round(now.getMinutes() / 5) * 5, 0, 0)
+                  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000)
+                  setCreateEvent({
+                    start: now,
+                    end: oneHourLater,
+                  })
+                  setCreateModalVisible(true)
+                },
+              },
             }}
             loading={(loading) => {
               if (spinnerRef.current)

@@ -61,10 +61,19 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({ courses }) => {
               </div>
             }
           >
-            <div className="flex items-center justify-between align-middle">
+            <div className="flex flex-wrap items-center justify-between align-middle">
               {/* TODO: add the course section to the name since out of all the places to put the section, it should probably show up here. */}
               <Meta title={course.course.name} />
-              <Tag color="success" className="text-base capitalize">
+              <Tag
+                color={
+                  course.role === Role.STUDENT
+                    ? 'success'
+                    : course.role === Role.TA
+                      ? 'gold'
+                      : 'blue'
+                }
+                className="text-base capitalize"
+              >
                 {course.role}
               </Tag>
             </div>

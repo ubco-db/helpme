@@ -47,7 +47,7 @@ export async function setQueueInviteCookie(
         secure: true,
         maxAge: 3600, // 1 hour
         path: '/',
-        sameSite: 'strict', // Helps mitigate CSRF attacks
+        sameSite: 'none', // setting it to Strict helps mitigate CSRF attacks, but we need it as none to allow for third-party authentication (login with google)
       },
     )
   } catch (error) {

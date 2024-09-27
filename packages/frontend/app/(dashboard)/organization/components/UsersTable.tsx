@@ -9,7 +9,7 @@ import {
   User,
   UserRole,
 } from '@koh/common'
-import { Avatar, Button, Input, List, Pagination, Select, Spin } from 'antd'
+import { Button, Input, List, Pagination, Select, Spin } from 'antd'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import useSWR, { mutate } from 'swr'

@@ -62,15 +62,15 @@
 
 ###### GOOGLE_CLIENT_ID
 
-**Purpose:** used for "Log in with Google" feature.
+**Purpose:** used for "Log in with Google" feature. Not needed if you don't plan on using it.
 
-**How to get:** Can get it from https://console.developers.google.com/apis/credentials probably. Not needed if you're just testing. 
+**How to get:** Can get it from https://developers.google.com/identity/sign-in/web/sign-in 
 
 ###### GOOGLE_REDIRECT_URI
 
 **Purpose:** same as GOOGLE_CLIENT_ID
 
-**How to get:** same as GOOGLE_CLIENT_ID
+**How to get:** `domain` + `/api/v1/auth/callback/google` (e.g. `http://localhost:3000/api/v1/auth/callback/google`)
 
 ###### GOOGLE_CLIENT_SECRET
 

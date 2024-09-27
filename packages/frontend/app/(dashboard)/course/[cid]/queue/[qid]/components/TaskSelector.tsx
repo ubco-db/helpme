@@ -9,6 +9,7 @@ import {
   transformIntoTaskTree,
 } from '@koh/common'
 import { getBrightness } from '@/app/utils/generalUtils'
+import tinycolor from 'tinycolor2'
 
 interface CheckableTaskProps {
   task: Task
@@ -83,8 +84,10 @@ const CheckableTask: React.FC<CheckableTaskProps> = ({
         margin: '4px',
         display: 'inline-block',
         cursor: disabled ? 'default' : 'pointer',
-        border: `1px solid ${task.isDone ? 'lightgray' : taskColor}`,
-        boxShadow: isHovered ? `0 0 0 2px ${taskColor}` : undefined,
+        border: `1px solid ${task.isDone ? 'lightgray' : tinycolor(taskColor).darken(10).toString()}`,
+        boxShadow: isHovered
+          ? `0 0 0 2px ${tinycolor(taskColor).darken(10).toString()}`
+          : undefined,
       }}
       onClick={handleClick}
       onKeyDown={handleKeyDown}

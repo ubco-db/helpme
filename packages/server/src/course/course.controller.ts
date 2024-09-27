@@ -776,6 +776,7 @@ export class CourseController {
     const user = await UserModel.findOne({
       where: {
         email: body.email,
+        organizationUser: { organizationId: body.organizationId },
       },
       relations: ['organizationUser', 'courses'],
     });

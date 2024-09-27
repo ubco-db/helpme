@@ -50,6 +50,7 @@ export class CalendarController {
         allDay: body.allDay || false,
         daysOfWeek: body.daysOfWeek || [],
         course: course,
+        color: body.color || '#3788d8',
       }).save();
       return event;
     } catch (err) {

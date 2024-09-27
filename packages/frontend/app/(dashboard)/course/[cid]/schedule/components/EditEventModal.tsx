@@ -18,6 +18,7 @@ import { Calendar, calendarEventLocationType } from '@koh/common'
 import { dayToIntMapping } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { DeleteOutlined } from '@ant-design/icons'
+import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 
 interface FormValues {
   title: string
@@ -94,6 +95,10 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         start: values.startTime.toDate(),
         end: values.endTime.toDate(),
         locationType: values.locationType,
+        color:
+          typeof values.color === 'string'
+            ? values.color
+            : values.color.toHexString(),
       }
 
       switch (values.locationType) {
@@ -211,7 +216,13 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           layout="vertical"
           form={form}
           name="form_in_modal"
-          initialValues={{ locationType: 0 }}
+          initialValues={{
+            locationType: 0,
+            color:
+              event && event.backgroundColor
+                ? event.backgroundColor
+                : '#3788d8',
+          }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
         >
@@ -228,11 +239,28 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       </Form.Item>
 
       <Form.Item
+        label="Color"
+        layout="horizontal"
+        valuePropName="color"
+        name="color"
+        rules={[{ required: true, message: 'Missing color' }]}
+      >
+        <ColorPickerWithPresets
+          defaultValue={
+            event && event.backgroundColor ? event.backgroundColor : '#3788d8'
+          }
+          format="hex"
+          defaultFormat="hex"
+          disabledAlpha
+        />
+      </Form.Item>
+
+      <Form.Item
         label="Start Time"
         name="startTime"
         rules={[{ required: true, message: 'Please select the start time!' }]}
       >
-        <TimePicker format="HH:mm" />
+        <TimePicker format="HH:mm" minuteStep={5} />
       </Form.Item>
 
       <Form.Item
@@ -240,7 +268,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         name="endTime"
         rules={[{ required: true, message: 'Please select the end time!' }]}
       >
-        <TimePicker format="HH:mm" />
+        <TimePicker format="HH:mm" minuteStep={5} />
       </Form.Item>
 
       <Form.Item>

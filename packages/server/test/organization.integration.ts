@@ -2161,6 +2161,88 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('User courses deleted');
     });
+
+    it('Should allow organization professors to drop students from their courses', async () => {
+      const professor = await UserFactory.create();
+      const student = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: professor.id,
+        organizationId: organization.id,
+        role: OrganizationRole.PROFESSOR,
+      }).save();
+      await OrganizationUserModel.create({
+        userId: student.id,
+        organizationId: organization.id,
+      }).save();
+
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+
+      await UserCourseModel.create({
+        userId: professor.id,
+        courseId: course.id,
+      }).save();
+      await UserCourseModel.create({
+        userId: student.id,
+        courseId: course.id,
+      }).save();
+
+      const res = await supertest({ userId: professor.id })
+        .delete(
+          `/organization/${organization.id}/drop_user_courses/${student.id}`,
+        )
+        .send([course.id]);
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('User courses deleted');
+    });
+    it('Should return 401 when a professor tries to drop a student from a course they are not teaching', async () => {
+      const professor = await UserFactory.create();
+      const student = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      const course2 = await CourseFactory.create();
+
+      const profOrgUser = await OrganizationUserModel.create({
+        userId: professor.id,
+        organizationId: organization.id,
+        role: OrganizationRole.PROFESSOR,
+      }).save();
+
+      professor.organizationUser = profOrgUser;
+
+      await OrganizationUserModel.create({
+        userId: student.id,
+        organizationId: organization.id,
+      }).save();
+
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+
+      await UserCourseModel.create({
+        userId: professor.id,
+        courseId: course2.id,
+      }).save();
+      await UserCourseModel.create({
+        userId: student.id,
+        courseId: course.id,
+      }).save();
+
+      const res = await supertest({ userId: professor.id })
+        .delete(
+          `/organization/${organization.id}/drop_user_courses/${student.id}`,
+        )
+        .send([course.id]);
+
+      expect(res.status).toBe(401);
+    });
   });
 
   describe('DELETE /organization/:oid/delete_profile_picture/:uid', () => {
