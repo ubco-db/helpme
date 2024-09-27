@@ -115,9 +115,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       const data = await response.json()
       if (response.ok) {
         message.success(`${fileName} file uploaded successfully`)
-        response.json().then((data) => {
-          onUpdateComplete(data.fileName)
-        })
+        onUpdateComplete(data.fileName)
       } else {
         message.error(`${fileName} file upload failed: ${data.message}`)
       }
