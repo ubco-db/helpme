@@ -457,7 +457,6 @@ export class QuestionController {
         }
       }
       if (body.status) {
-        await this.questionService.validateNotHelpingOther(body.status, userId);
         await this.questionService.changeStatus(body.status, question, userId);
       }
       // if it's a task question, update the studentTaskProgress for the student
