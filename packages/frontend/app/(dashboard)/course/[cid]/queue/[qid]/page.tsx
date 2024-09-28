@@ -676,38 +676,54 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   visibleOnDesktopOrMobile="both"
                 />
                 {helpingQuestions.length >= 2 && (
-                  <Tooltip title="Finish helping all questions">
-                    <CircleButton
-                      className="mr-[1.2rem]"
-                      variant="green"
-                      icon={<CheckCheck size={22} className="shrink-0 pl-1" />}
-                      loading={isFinishAllHelpingButtonLoading}
-                      onClick={() => {
-                        setIsFinishAllHelpingButtonLoading(true)
-                        const promises = helpingQuestions.map(
-                          async (question) => {
-                            return API.questions
-                              .update(question.id, {
-                                status: ClosedQuestionStatus.Resolved,
-                              })
-                              .catch((e) => {
-                                const errorMessage = getErrorMessage(e)
-                                message.error(errorMessage)
-                                throw e
-                              })
-                          },
-                        )
-                        Promise.all(promises)
-                          .catch((e) => {
-                            message.error(
-                              'One or more status updates failed:' + e,
-                            )
-                          })
-                          .finally(() => {
-                            setIsFinishAllHelpingButtonLoading(false)
-                          })
-                      }}
-                    />
+                  <Tooltip
+                    title={
+                      helpingQuestions.some(
+                        (question) => question.isTaskQuestion,
+                      )
+                        ? 'You cannot finish helping all while checking demos (for your safety)'
+                        : 'Finish helping all questions'
+                    }
+                  >
+                    <span>
+                      <CircleButton
+                        className="mr-[1.2rem]"
+                        variant="green"
+                        icon={
+                          <CheckCheck size={22} className="shrink-0 pl-1" />
+                        }
+                        loading={isFinishAllHelpingButtonLoading}
+                        // disable this button if any of the questions isTaskQuestion (since it is rare that you would want to click this in that case)
+                        disabled={helpingQuestions.some(
+                          (question) => question.isTaskQuestion,
+                        )}
+                        onClick={() => {
+                          setIsFinishAllHelpingButtonLoading(true)
+                          const promises = helpingQuestions.map(
+                            async (question) => {
+                              return API.questions
+                                .update(question.id, {
+                                  status: ClosedQuestionStatus.Resolved,
+                                })
+                                .catch((e) => {
+                                  const errorMessage = getErrorMessage(e)
+                                  message.error(errorMessage)
+                                  throw e
+                                })
+                            },
+                          )
+                          Promise.all(promises)
+                            .catch((e) => {
+                              message.error(
+                                'One or more status updates failed:' + e,
+                              )
+                            })
+                            .finally(() => {
+                              setIsFinishAllHelpingButtonLoading(false)
+                            })
+                        }}
+                      />
+                    </span>
                   </Tooltip>
                 )}
               </div>
