@@ -24,7 +24,6 @@ import { useCourse } from '@/app/hooks/useCourse'
 import { useQuestions } from '@/app/hooks/useQuestions'
 import { isCheckedIn } from '../../../utils/commonCourseFunctions'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { getHelpingQuestions } from '../utils/commonQueueFunctions'
 import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
 
@@ -51,11 +50,8 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
   const { course } = useCourse(courseId)
   const { mutateQuestions } = useQuestions(queueId)
   const { userInfo } = useUserInfo()
-  const role = getRoleInCourse(userInfo, courseId)
   const staffList = course?.queues?.find((q) => q.id === queueId)?.staffList
   const isUserCheckedIn = isCheckedIn(staffList, userInfo.id)
-  const { queueQuestions } = useQuestions(queueId)
-  const { isHelping } = getHelpingQuestions(queueQuestions, userInfo.id, role)
   // loading states for buttons
   const [helpButtonLoading, setHelpButtonLoading] = useState(false)
   const [rephraseButtonLoading, setRephraseButtonLoading] = useState(false)
