@@ -244,7 +244,6 @@ export class asyncQuestionController {
           serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
         })
         .andWhere('subscription.isSubscribed = true')
-        .groupBy('user.id') // Add this line to group by user
         .getMany();
 
       // Send emails in parallel
