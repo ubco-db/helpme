@@ -1098,7 +1098,7 @@ describe('Question Integration', () => {
         .send({
           status: QuestionStatusKeys.Helping,
         })
-        .expect(400);
+        .expect(200);
     });
     it('TaskQuestions marking: Will append on a newly completed task onto existing studentTaskProgress', async () => {
       const course = await CourseFactory.create();

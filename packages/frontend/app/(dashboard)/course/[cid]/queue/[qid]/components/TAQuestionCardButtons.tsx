@@ -304,8 +304,6 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
     const [canHelp, helpTooltip] = ((): [boolean, string] => {
       if (!isUserCheckedIn) {
         return [false, 'You must check in to help students!']
-        // } else if (isHelping) {
-        //   return [false, 'You are already helping a student']
       } else {
         return [true, 'Help Student']
       }
