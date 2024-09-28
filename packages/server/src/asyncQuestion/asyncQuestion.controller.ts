@@ -217,7 +217,10 @@ export class asyncQuestionController {
         HttpStatus.UNAUTHORIZED,
       );
     }
-    if (body.status === asyncQuestionStatus.AIAnsweredNeedsAttention) {
+    if (
+      body.status === asyncQuestionStatus.AIAnsweredNeedsAttention &&
+      question.status != asyncQuestionStatus.AIAnsweredNeedsAttention
+    ) {
       const courseId = question.course.id;
 
       // Step 1: Get all users in the course
