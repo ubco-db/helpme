@@ -1,6 +1,6 @@
 'use client'
 
-import { InboxOutlined, UploadOutlined } from '@ant-design/icons'
+import { EditOutlined } from '@ant-design/icons'
 import {
   Button,
   Card,
@@ -186,113 +186,118 @@ export default function SettingsPage(): ReactElement {
 
       <Card title="Logo & Banner" bordered={true} className="mt-3">
         <Form layout="vertical">
-          <Form.Item label="Logo">
-            <Form.Item name="organizationLogo" noStyle>
-              <Row
-                gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}
-                className="items-center"
+          <Row className="flex justify-around">
+            <Form.Item label="Logo">
+              <Form.Item
+                name="organizationLogo"
+                className="flex justify-center"
               >
-                <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <ImageCropperModal
-                    isOpen={isCropperModalOpen.logo}
-                    circular={false}
-                    aspect={1}
-                    imgName="Organization Logo"
-                    postURL={`/api/v1/organization/${organization?.id}/upload_logo`}
-                    onUpdateComplete={() => {
-                      setTimeout(() => {
-                        window.location.reload()
-                      }, 1750)
-                    }}
-                    setUploading={(uploading: boolean) => {
-                      setUploadingImg((prev) => ({ ...prev, logo: uploading }))
-                    }}
-                    onCancel={() =>
-                      setIsCropperModalOpen((prev) => ({
-                        ...prev,
-                        logo: false,
-                      }))
-                    }
-                  />
-                  <button
-                    onClick={() =>
-                      setIsCropperModalOpen((prev) => ({ ...prev, logo: true }))
-                    }
-                    className="mt-4 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2"
-                  >
-                    <UploadOutlined />
-                    <span>Edit Logo</span>
-                  </button>
+                <Col className="flex flex-col items-center justify-center">
+                  <Row className="min-h-[300px]">
+                    <Image
+                      unoptimized
+                      width={300}
+                      height={300}
+                      alt="Organization Logo"
+                      src={`/api/v1/organization/${organization?.id}/get_logo/${organization?.logoUrl}`}
+                    />
+                  </Row>
+                  <Row>
+                    <ImageCropperModal
+                      isOpen={isCropperModalOpen.logo}
+                      circular={false}
+                      aspect={1}
+                      imgName="Organization Logo"
+                      postURL={`/api/v1/organization/${organization?.id}/upload_logo`}
+                      onUpdateComplete={() => {
+                        setTimeout(() => {
+                          window.location.reload()
+                        }, 1750)
+                      }}
+                      setUploading={(uploading: boolean) => {
+                        setUploadingImg((prev) => ({
+                          ...prev,
+                          logo: uploading,
+                        }))
+                      }}
+                      onCancel={() =>
+                        setIsCropperModalOpen((prev) => ({
+                          ...prev,
+                          logo: false,
+                        }))
+                      }
+                    />
+                    <button
+                      onClick={() =>
+                        setIsCropperModalOpen((prev) => ({
+                          ...prev,
+                          logo: true,
+                        }))
+                      }
+                      className="mt-4 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2"
+                    >
+                      <EditOutlined />
+                      <span>Edit Logo</span>
+                    </button>
+                  </Row>
                 </Col>
-                <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <Image
-                    unoptimized
-                    width={100}
-                    height={100}
-                    alt="Organization Logo"
-                    src={`/api/v1/organization/${organization?.id}/get_logo/${organization?.logoUrl}`}
-                  />
-                </Col>
-              </Row>
+              </Form.Item>
             </Form.Item>
-          </Form.Item>
 
-          <Form.Item label="Banner">
-            <Form.Item name="organizationBanner" noStyle>
-              <Row
-                gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}
-                style={{ alignItems: 'center' }}
-              >
-                <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <ImageCropperModal
-                    isOpen={isCropperModalOpen.banner}
-                    circular={false}
-                    aspect={1920 / 1080}
-                    imgName="Organization Banner"
-                    postURL={`/api/v1/organization/${organization?.id}/upload_banner`}
-                    onUpdateComplete={() => {
-                      setTimeout(() => {
-                        window.location.reload()
-                      }, 1750)
-                    }}
-                    setUploading={(uploading: boolean) => {
-                      setUploadingImg((prev) => ({
-                        ...prev,
-                        banner: uploading,
-                      }))
-                    }}
-                    onCancel={() =>
-                      setIsCropperModalOpen((prev) => ({
-                        ...prev,
-                        banner: false,
-                      }))
-                    }
-                  />
-                  <button
-                    onClick={() =>
-                      setIsCropperModalOpen((prev) => ({
-                        ...prev,
-                        banner: true,
-                      }))
-                    }
-                    className="mt-4 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2"
-                  >
-                    <UploadOutlined />
-                    <span>Edit Banner</span>
-                  </button>
+            <Form.Item label="Banner">
+              <Form.Item name="organizationBanner" noStyle>
+                <Col className="flex flex-col items-center justify-center">
+                  <Row className="flex min-h-[300px] items-center">
+                    <Image
+                      unoptimized
+                      width={300}
+                      height={300}
+                      alt="Organization Banner"
+                      src={`/api/v1/organization/${organization?.id}/get_banner/${organization?.bannerUrl}`}
+                    />
+                  </Row>
+                  <Row>
+                    <ImageCropperModal
+                      isOpen={isCropperModalOpen.banner}
+                      circular={false}
+                      aspect={1920 / 1080}
+                      imgName="Organization Banner"
+                      postURL={`/api/v1/organization/${organization?.id}/upload_banner`}
+                      onUpdateComplete={() => {
+                        setTimeout(() => {
+                          window.location.reload()
+                        }, 1750)
+                      }}
+                      setUploading={(uploading: boolean) => {
+                        setUploadingImg((prev) => ({
+                          ...prev,
+                          banner: uploading,
+                        }))
+                      }}
+                      onCancel={() =>
+                        setIsCropperModalOpen((prev) => ({
+                          ...prev,
+                          banner: false,
+                        }))
+                      }
+                    />
+                    <button
+                      onClick={() =>
+                        setIsCropperModalOpen((prev) => ({
+                          ...prev,
+                          banner: true,
+                        }))
+                      }
+                      className="mt-4 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2"
+                    >
+                      <EditOutlined />
+                      <span>Edit Banner</span>
+                    </button>
+                  </Row>
                 </Col>
-                <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <Image
-                    unoptimized
-                    width={100}
-                    height={100}
-                    alt="Organization Banner"
-                    src={`/api/v1/organization/${organization?.id}/get_banner/${organization?.bannerUrl}`}
-                  />
-                </Col>
-              </Row>
+              </Form.Item>
             </Form.Item>
-          </Form.Item>
+          </Row>
         </Form>
       </Card>
 

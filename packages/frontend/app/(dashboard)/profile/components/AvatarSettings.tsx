@@ -1,6 +1,6 @@
 'use client'
 
-import { DeleteOutlined, UploadOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import { Col, message, Popconfirm, Row, Skeleton } from 'antd'
 import ImageCropperModal from '../../components/ImageCropperModal'
 import { useEffect, useState } from 'react'
@@ -77,7 +77,7 @@ const AvatarSettings: React.FC = () => {
               onClick={() => setIsUploadModalOpen(true)}
               className="mt-4 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2"
             >
-              <UploadOutlined />
+              <EditOutlined />
               <span>Edit Avatar</span>
             </button>
             {userInfo?.photoURL && (

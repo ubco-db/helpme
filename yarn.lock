@@ -2040,15 +2040,6 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@koh/common@file:packages/common":
-  version "0.1.0"
-  dependencies:
-    "@koh/common" "file:../../../../../../AppData/Local/Yarn/Cache/v6/npm-@koh-common-0.1.0-3aeb1108-3771-4371-99b4-d84dcc86bf93-1727297238986/node_modules/@koh/common"
-    class-transformer "0.3.1"
-    class-validator "^0.14.1"
-    reflect-metadata "^0.1.13"
-    typescript "^4.0.0"
-
 "@mapbox/node-pre-gyp@^1.0.11":
   version "1.0.11"
   resolved "https://registry.yarnpkg.com/@mapbox/node-pre-gyp/-/node-pre-gyp-1.0.11.tgz#417db42b7f5323d79e93b34a6d7a2a12c0df43fa"
