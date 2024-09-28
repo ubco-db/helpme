@@ -191,7 +191,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         />
       </Form.Item>
 
-      <Form.Item>
+      <Form.Item
         label="Date"
         name="date"
         rules={[
