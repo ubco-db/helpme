@@ -12,19 +12,20 @@ import {
   parseTaskIdsFromQuestionText,
   Question,
 } from '@koh/common'
-import { Col, Popconfirm, Row, Tooltip } from 'antd'
+import { Col, message, Popconfirm, Row, Tooltip } from 'antd'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
-import { cn, toOrdinal } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage, toOrdinal } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
 import { useStudentQuestion } from '@/app/hooks/useStudentQuestion'
 import CircleButton from './CircleButton'
+import { useState } from 'react'
 
 interface StudentBannerProps {
   queueId: number
   editQuestion: () => void
   editDemo: () => void
-  leaveQueueQuestion: () => void
-  leaveQueueDemo: () => void
+  leaveQueueQuestion: () => Promise<void>
+  leaveQueueDemo: () => Promise<void>
   configTasks: ConfigTasks | undefined
   zoomLink: string | undefined
   isQueueOnline: boolean | undefined
@@ -133,16 +134,25 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
   )
 }
 
-function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => void }) {
+function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => Promise<void> }) {
+  const [isLeavingLoading, setIsLeavingLoading] = useState(false)
   return (
     <Popconfirm
       title={`Are you sure you want to leave the queue?`}
       okText="Yes"
       cancelText="No"
-      onConfirm={leaveQueue}
+      okButtonProps={{ loading: isLeavingLoading }}
+      onConfirm={() => {
+        setIsLeavingLoading(true)
+        leaveQueue().finally(() => setIsLeavingLoading(false))
+      }}
     >
       <Tooltip title="Leave Queue">
-        <CircleButton variant="red" icon={<DeleteRowOutlined />} />
+        <CircleButton
+          variant="red"
+          icon={<DeleteRowOutlined />}
+          loading={isLeavingLoading}
+        />
       </Tooltip>
     </Popconfirm>
   )
@@ -154,7 +164,7 @@ interface QuestionDetailCardProps {
   spot: number | undefined
   isQueueOnline: boolean
   zoomLink: string | undefined
-  leaveQueue: () => void
+  leaveQueue: () => Promise<void>
   edit: () => void
 }
 
@@ -167,6 +177,8 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
   leaveQueue,
   edit,
 }) => {
+  const [isRejoinLoading, setIsRejoinLoading] = useState(false)
+  const [isDeleteDraftLoading, setIsDeleteDraftLoading] = useState(false)
   if (!question) {
     return <></>
   }
@@ -312,10 +324,18 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
                     <CircleButton
                       variant="primary"
                       icon={<UndoOutlined />}
+                      loading={isRejoinLoading}
                       onClick={async () => {
-                        await API.questions.update(question.id, {
-                          status: OpenQuestionStatus.Queued,
-                        })
+                        setIsRejoinLoading(true)
+                        await API.questions
+                          .update(question.id, {
+                            status: OpenQuestionStatus.Queued,
+                          })
+                          .catch((e) => {
+                            const errorMessage = getErrorMessage(e)
+                            message.error(errorMessage)
+                          })
+                          .finally(() => setIsRejoinLoading(false))
                       }}
                     />
                   </Tooltip>
@@ -333,7 +353,14 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
 
           {question.status === 'Drafting' ? (
             <Tooltip title="Delete Draft">
-              <CircleButton icon={<DeleteRowOutlined />} onClick={leaveQueue} />
+              <CircleButton
+                icon={<DeleteRowOutlined />}
+                loading={isDeleteDraftLoading}
+                onClick={() => {
+                  setIsDeleteDraftLoading(true)
+                  leaveQueue().finally(() => setIsDeleteDraftLoading(false))
+                }}
+              />
             </Tooltip>
           ) : (
             <LeaveQueueButton leaveQueue={leaveQueue} />
