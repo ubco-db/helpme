@@ -131,8 +131,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       onOk={handleCropComplete}
       onCancel={() => onCancel()}
       destroyOnClose={true}
-      width={500}
-      height={700}
+      width="auto"
       className="flex flex-col items-center justify-center"
     >
       <Upload
@@ -142,7 +141,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
         showUploadList={false}
         maxCount={1}
       >
-        <button className="min-w-[500px] rounded-lg border-2 bg-white p-2">
+        <button className="min-w-[85vw] rounded-lg border-2 bg-white p-2 lg:min-w-[30vw]">
           <UploadOutlined />
           <span className="ml-2">{`Upload ${imgName}`}</span>
         </button>
