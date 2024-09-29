@@ -4,9 +4,6 @@ import { Modal, Upload, message } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
 import React, { useCallback, useState } from 'react'
 import Cropper from 'react-easy-crop'
-import { useUserInfo } from '@/app/contexts/userContext'
-import useSWR from 'swr'
-import { API } from '@/app/api'
 import { getCroppedImg } from '@/app/utils/generalUtils'
 
 interface ImageCropperModalProps {

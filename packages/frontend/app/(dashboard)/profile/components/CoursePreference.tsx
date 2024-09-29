@@ -11,9 +11,6 @@ import useSWR from 'swr'
 const { confirm } = Modal
 
 const CoursePreference: React.FC = () => {
-  const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
-    API.profile.index(),
-  )
   const { userInfo, setUserInfo } = useUserInfo()
   const isMobile = useMediaQuery('(max-width: 768px)')
 
@@ -22,10 +19,11 @@ const CoursePreference: React.FC = () => {
       .withdrawCourse(course.course.id)
       .then(async (res) => {
         message.success('Successfully withdrew from ' + course.course.name)
-        const newUser = await mutate() //update the context
         setUserInfo({
           ...userInfo,
-          courses: newUser ? newUser.courses : userInfo.courses,
+          courses: userInfo.courses.filter(
+            (c) => c.course.id !== course.course.id,
+          ),
         })
       })
       .catch((e) => {
@@ -37,7 +35,7 @@ const CoursePreference: React.FC = () => {
   }
 
   function showConfirm(courseId: number) {
-    const course = profile?.courses.find((c) => c.course.id === courseId)
+    const course = userInfo?.courses.find((c) => c.course.id === courseId)
     if (!course) {
       return
     }
@@ -103,7 +101,7 @@ const CoursePreference: React.FC = () => {
   ]
 
   function createCourseDataSource() {
-    return profile?.courses.map((c) => ({
+    return userInfo?.courses.map((c) => ({
       key: c.course.id,
       name: c.course.name,
       role: formattedRoles[c.role],
@@ -119,7 +117,7 @@ const CoursePreference: React.FC = () => {
   }
 
   return (
-    profile && (
+    userInfo && (
       <div>
         <Table
           columns={columns}

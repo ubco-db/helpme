@@ -4,7 +4,6 @@ import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import { Col, message, Popconfirm, Row, Skeleton } from 'antd'
 import ImageCropperModal from '../../components/ImageCropperModal'
 import { useEffect, useState } from 'react'
-import useSWR from 'swr'
 import { API } from '@/app/api'
 import UserAvatar from '@/app/components/UserAvatar'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
@@ -18,10 +17,6 @@ const AvatarSettings: React.FC = () => {
   const [uploading, setUploading] = useState(false)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const { userInfo, setUserInfo } = useUserInfo()
-
-  // const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
-  //   API.profile.index(),
-  // )
 
   useEffect(() => {
     const widthDivider = isMobile ? 3 : 10
