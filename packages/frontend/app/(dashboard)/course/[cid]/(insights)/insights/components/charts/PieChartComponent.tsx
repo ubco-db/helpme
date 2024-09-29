@@ -8,27 +8,28 @@ import {
 import { LabelList, Pie, PieChart } from 'recharts'
 import React, { useMemo } from 'react'
 import {
-  DefaultChartProps,
+  RadialChartProps,
   RadialChartClasses,
+  ChartComponentProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
 
-interface PieChartProps extends DefaultChartProps {
-  innerRadius?: number
-  showLabel?: boolean
-}
+const PieChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
+  const {
+    valueKeys,
+    chartConfig,
+    chartData,
+    size,
+    labelFormatter,
+    valueFormatter,
+  } = props
 
-const PieChartComponent: React.FC<PieChartProps> = ({
-  valueKeys,
-  chartConfig,
-  chartData,
-  size,
-  includeLegend,
-  includeTooltip,
-  innerRadius,
-  showLabel,
-}) => {
+  const { showLabels } = props as RadialChartProps
+
+  let { includeLegend, includeTooltip, innerRadius } = props as RadialChartProps
+
   includeLegend ??= true
   includeTooltip ??= true
+  innerRadius ??= 0
 
   const className = useMemo(() => {
     return size != undefined && RadialChartClasses[size] != undefined
@@ -41,6 +42,8 @@ const PieChartComponent: React.FC<PieChartProps> = ({
       <PieChart accessibilityLayer>
         {includeTooltip && (
           <ChartTooltip
+            formatter={valueFormatter}
+            labelFormatter={labelFormatter}
             cursor={false}
             content={<ChartTooltipContent nameKey={'key'} />}
           />
@@ -56,7 +59,7 @@ const PieChartComponent: React.FC<PieChartProps> = ({
               dataKey={key}
               innerRadius={innerRadius ?? 0}
             >
-              {showLabel && (
+              {showLabels && (
                 <LabelList
                   dataKey={'key'}
                   className={'fill-background'}

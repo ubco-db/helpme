@@ -1,5 +1,6 @@
 import { ChartConfig } from '@/app/components/ui/chart'
 import { ChartDataType } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
+import { Payload } from 'recharts/types/component/DefaultTooltipContent'
 
 const hsvToHex = (h: number, s: number, v: number) => {
   const a = s * Math.min(v, 1 - v)
@@ -54,23 +55,34 @@ export const processChartData = (
 
 export const constructChartConfig = (
   processedChartData: ChartDataType[],
+  labelKey: string,
   valueKeys?: string[],
   fills?: { [key: string]: string },
 ): ChartConfig => {
-  const chartConfig = {} as { [key: string]: any }
+  const chartConfig: { [key: string]: any } = {
+    [labelKey]: {
+      label: (labelKey.charAt(0).toUpperCase() + labelKey.slice(1)).replace(
+        /_/g,
+        ' ',
+      ),
+    },
+  }
 
   processedChartData.forEach((item) => {
     if (valueKeys != undefined) {
       valueKeys.forEach((key) => {
         chartConfig[key] = {
-          label: (key.charAt(0).toUpperCase() + key.slice(1)).replace('_', ' '),
+          label: (key.charAt(0).toUpperCase() + key.slice(1)).replace(
+            /_/g,
+            ' ',
+          ),
           color: fills ? fills[key] : item.fill,
         }
       })
     } else {
       chartConfig[item.key] = {
         label: (item.key.charAt(0).toUpperCase() + item.key.slice(1)).replace(
-          '_',
+          /_/g,
           ' ',
         ),
         color: item.fill,

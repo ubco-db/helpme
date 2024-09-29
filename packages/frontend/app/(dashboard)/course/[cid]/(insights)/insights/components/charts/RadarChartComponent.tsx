@@ -8,24 +8,24 @@ import {
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from 'recharts'
 import React, { useMemo } from 'react'
 import {
-  DefaultChartProps,
+  ChartComponentProps,
+  PointChartProps,
   RadialChartClasses,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
 
-interface RadarChartProps extends DefaultChartProps {
-  showPoints?: boolean
-}
+const RadarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
+  const {
+    chartConfig,
+    chartData,
+    size,
+    valueKeys,
+    valueFills,
+    labelFormatter,
+    valueFormatter,
+  } = props
 
-const RadarChartComponent: React.FC<RadarChartProps> = ({
-  chartConfig,
-  chartData,
-  size,
-  includeLegend,
-  includeTooltip,
-  valueKeys,
-  valueFills,
-  showPoints,
-}) => {
+  let { includeLegend, includeTooltip, showPoints } = props as PointChartProps
+
   showPoints ??= false
   includeLegend ??= true
   includeTooltip ??= true
@@ -42,9 +42,16 @@ const RadarChartComponent: React.FC<RadarChartProps> = ({
         <PolarAngleAxis dataKey={'key'} />
         <PolarGrid />
         {includeTooltip && (
-          <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+          <ChartTooltip
+            formatter={valueFormatter}
+            labelFormatter={labelFormatter}
+            cursor={false}
+            content={<ChartTooltipContent />}
+          />
         )}
-        {includeLegend && <ChartLegend content={<ChartLegendContent />} />}
+        {includeLegend && (
+          <ChartLegend content={<ChartLegendContent nameKey={'key'} />} />
+        )}
         {valueKeys &&
           valueFills &&
           valueKeys.map((key) => (

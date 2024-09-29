@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import DashboardPresetComponent from '../insights/components/DashboardPresetComponent'
 import { useInsight } from '@/app/hooks/useInsight'
 import { useParams } from 'next/navigation'
@@ -8,46 +8,109 @@ import ChartDemoComponent from '@/app/(dashboard)/course/[cid]/(insights)/insigh
 import InsightsPageContainer from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/InsightsPageContainer'
 import TableCard from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/TableCard'
 import GlanceCard from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/GlanceCard'
-import { SimpleTableOutputType } from '@koh/common'
-import QuestionTypesChart from '@/app/(dashboard)/course/[cid]/(insights)/insights/questions/components/QuestionTypesChart'
+import {
+  ChartOutputType,
+  InsightOutput,
+  InsightType,
+  TableOutputType,
+} from '@koh/common'
+import InsightCard from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/InsightCard'
+import InsightChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/InsightChartComponent'
 
 export default function InsightsPage() {
   const { cid } = useParams<{ cid: string }>()
 
   const courseId = parseInt(cid)
-  const insights = {
-    totalStudents: useInsight(courseId, 'TotalStudents', {
+  const insights: { [key: string]: InsightOutput | undefined } = {
+    TotalStudents: useInsight(courseId, 'TotalStudents', {
       start: new Date(0),
       end: new Date(),
     }),
-    totalQuestionsAsked: useInsight(courseId, 'TotalQuestionsAsked', {
+    TotalQuestionsAsked: useInsight(courseId, 'TotalQuestionsAsked', {
       start: new Date(0),
       end: new Date(),
     }),
-    medianWaitTime: useInsight(parseInt(cid), 'MedianWaitTime', {
+    MedianWaitTime: useInsight(parseInt(cid), 'MedianWaitTime', {
       start: new Date(0),
       end: new Date(),
     }),
-    questionTypes: useInsight(parseInt(cid), 'QuestionTypeBreakdown', {
+    QuestionTypeBreakdown: useInsight(parseInt(cid), 'QuestionTypeBreakdown', {
       start: new Date(0),
       end: new Date(),
     }),
-    mostActiveStudents: useInsight(parseInt(cid), 'MostActiveStudents', {
+    MostActiveStudents: useInsight(parseInt(cid), 'MostActiveStudents', {
       start: new Date(0),
       end: new Date(),
     }),
-    questionToStudentRatio: useInsight(
+    QuestionToStudentRatio: useInsight(
       parseInt(cid),
       'QuestionToStudentRatio',
       { start: new Date(0), end: new Date() },
     ),
-    medianHelpingTime: useInsight(parseInt(cid), 'MedianHelpingTime', {
+    MedianHelpingTime: useInsight(parseInt(cid), 'MedianHelpingTime', {
+      start: new Date(0),
+      end: new Date(),
+    }),
+    AverageWaitTimeByWeekDay: useInsight(
+      parseInt(cid),
+      'AverageWaitTimeByWeekDay',
+      {
+        start: new Date(0),
+        end: new Date(),
+      },
+    ),
+    HelpSeekingOverTime: useInsight(parseInt(cid), 'HelpSeekingOverTime', {
+      start: new Date(0),
+      end: new Date(),
+    }),
+    HumanVsChatbot: useInsight(parseInt(cid), 'HumanVsChatbot', {
       start: new Date(0),
       end: new Date(),
     }),
   }
 
-  console.log(insights)
+  const insightComponents = () => {
+    return Object.keys(insights).map((key) => {
+      const insight = insights[key]
+      if (insight != undefined) {
+        switch (insight.outputType) {
+          case InsightType.Value:
+            return (
+              <GlanceCard
+                key={key}
+                title={insight.title}
+                description={insight.description}
+              >
+                {insight.output as string}
+              </GlanceCard>
+            )
+          case InsightType.Table:
+            return (
+              <TableCard
+                key={key}
+                title={insight.title}
+                description={insight.description}
+                tableData={insight.output as TableOutputType}
+              />
+            )
+          case InsightType.Chart:
+            return (
+              <InsightCard
+                key={key}
+                title={insight.title}
+                description={insight.description}
+              >
+                <InsightChartComponent
+                  key={'chart-' + key}
+                  insightName={key}
+                  chartOutput={insight.output as ChartOutputType}
+                />
+              </InsightCard>
+            )
+        }
+      }
+    })
+  }
 
   return (
     <div>
@@ -68,43 +131,8 @@ export default function InsightsPage() {
       </div>
       <DashboardPresetComponent />
       <InsightsPageContainer>
-        <GlanceCard
-          title={'Total Students'}
-          description={insights.totalStudents as string}
-        />
-        <GlanceCard
-          title={'Question to Student Ratio'}
-          description={insights.questionToStudentRatio as string}
-        />
-        <GlanceCard
-          title={'Total Questions Asked'}
-          description={insights.totalQuestionsAsked as string}
-        />
-        <GlanceCard
-          title={'Median Wait Time'}
-          description={insights.medianWaitTime as string}
-        />
-        <GlanceCard
-          title={'Median Helping Time'}
-          description={insights.medianHelpingTime as string}
-        />
-        {insights.mostActiveStudents != undefined && (
-          <TableCard
-            title={'Most Active Students'}
-            description={''}
-            tableData={(
-              insights.mostActiveStudents as SimpleTableOutputType
-            ).dataSource.map((data) => {
-              return {
-                Student: `${data.name} (${data.email})`,
-                'Student ID': data.studentId,
-                'Questions Asked': data.questionsAsked,
-              }
-            })}
-          />
-        )}
-        <QuestionTypesChart courseId={parseInt(cid)} size={'xs'} />
         <ChartDemoComponent />
+        {insightComponents()}
       </InsightsPageContainer>
     </div>
   )

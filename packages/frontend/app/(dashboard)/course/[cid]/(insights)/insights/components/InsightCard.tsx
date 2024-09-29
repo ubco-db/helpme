@@ -3,21 +3,21 @@ import React from 'react'
 type InsightCardProps = {
   children: React.ReactNode
   title: string
-  subtitle?: string
+  description?: string
   filterContent?: React.ReactNode
 }
 
 const InsightCard: React.FC<InsightCardProps> = ({
   children,
   title,
-  subtitle,
+  description,
   filterContent,
 }) => {
   return (
-    <div className="border-b-helpmeblue-light hover:border-b-helpmeblue rounded-lg border-b-2 bg-gray-50 p-8 drop-shadow-md transition-all">
+    <div className="border-b-helpmeblue-light hover:border-b-helpmeblue flex-[1_1_auto] rounded-lg border-b-2 bg-gray-50 p-8 drop-shadow-md transition-all">
       <h1>{title}</h1>
-      <p>{subtitle}</p>
-      <div className={'p-4'}>{children}</div>
+      <p>{description}</p>
+      <div className={'mt-4 p-4'}>{children}</div>
       {filterContent}
     </div>
   )

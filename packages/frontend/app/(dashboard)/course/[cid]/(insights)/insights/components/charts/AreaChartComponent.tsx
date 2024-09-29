@@ -9,24 +9,32 @@ import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import React, { useMemo } from 'react'
 import {
   AxisChartClasses,
+  ChartComponentProps,
   LinearChartProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
 
-const AreaChartComponent: React.FC<LinearChartProps> = ({
-  chartConfig,
-  chartData,
-  size,
-  includeLegend,
-  includeTooltip,
-  curveType,
-  showPoints,
-  valueKeys,
-  valueFills,
-  verticalAxis,
-  tickLine,
-  tickMargin,
-  axisLine,
-}) => {
+const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
+  const {
+    chartConfig,
+    chartData,
+    size,
+    valueKeys,
+    valueFills,
+    labelFormatter,
+    valueFormatter,
+  } = props
+
+  let {
+    includeLegend,
+    includeTooltip,
+    curveType,
+    showPoints,
+    verticalAxis,
+    tickLine,
+    tickMargin,
+    axisLine,
+  } = props as LinearChartProps
+
   curveType ??= 'monotone'
   showPoints ??= false
   includeLegend ??= true
@@ -61,7 +69,12 @@ const AreaChartComponent: React.FC<LinearChartProps> = ({
           />
         )}
         {includeTooltip && (
-          <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+          <ChartTooltip
+            formatter={valueFormatter}
+            labelFormatter={labelFormatter}
+            cursor={false}
+            content={<ChartTooltipContent />}
+          />
         )}
         {includeLegend && <ChartLegend content={<ChartLegendContent />} />}
         <defs>

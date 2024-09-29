@@ -19,7 +19,9 @@ import {
   ERROR_MESSAGES,
   ListInsightsResponse,
   Role,
-  SimpleTableOutputType,
+  TableOutputType,
+  InsightType,
+  InsightOutput,
 } from '@koh/common';
 import { User } from '../decorators/user.decorator';
 import { INSIGHTS_MAP } from './insight-objects';
@@ -53,8 +55,10 @@ export class InsightsController {
         ERROR_MESSAGES.insightsController.insightNameNotFound,
       );
     }
+
+    const targetInsight = INSIGHTS_MAP[insightName];
     // Check that the current user's role has access to the given insight
-    if (!INSIGHTS_MAP[insightName].roles.includes(role)) {
+    if (!targetInsight.roles.includes(role)) {
       throw new BadRequestException(
         ERROR_MESSAGES.insightsController.insightUnathorized,
       );
@@ -86,28 +90,27 @@ export class InsightsController {
     }
 
     let insight = await this.insightsService.computeOutput({
-      insight: INSIGHTS_MAP[insightName],
+      insight: targetInsight,
       filters,
     });
 
-    if (insightName === 'MostActiveStudents') {
-      let dataSource = (insight as SimpleTableOutputType).dataSource;
+    if (targetInsight.component == InsightType.Table) {
+      let data = (insight as TableOutputType).data;
       if (offset) {
-        dataSource = dataSource.slice(offset, dataSource.length);
+        data = data.slice(offset, data.length);
       }
       if (limit) {
-        dataSource = dataSource.slice(0, limit);
+        data = data.slice(0, limit);
       }
-      insight = { ...(insight as SimpleTableOutputType), dataSource };
+      insight = { ...(insight as TableOutputType), data };
     }
 
-    // TODO: Restructure Insight Outputs
-    if (insight instanceof Object) {
-      insight['title'] = INSIGHTS_MAP[insightName].displayName;
-      insight['description'] = INSIGHTS_MAP[insightName].description;
-    }
-
-    return insight;
+    return {
+      title: targetInsight.displayName,
+      description: targetInsight.description,
+      outputType: targetInsight.insightType,
+      output: insight,
+    } as InsightOutput;
   }
 
   @Get('list')

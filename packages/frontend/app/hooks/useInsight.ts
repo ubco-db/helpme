@@ -4,7 +4,7 @@ import { API } from '@/app/api'
 export function useInsight(
   courseId: number,
   insightName: string,
-  dates: { start: Date; end: Date },
+  dates?: { start?: Date; end?: Date },
   limit?: number,
   offset?: number,
 ) {
@@ -15,8 +15,8 @@ export function useInsight(
       return undefined
     }
     return await API.insights.get(courseId, insightName, {
-      start: dates.start.toDateString(),
-      end: dates.end.toDateString(),
+      start: dates?.start?.toDateString() ?? '',
+      end: dates?.end?.toDateString() ?? '',
       limit: limit ?? 100,
       offset: offset ?? 0,
     })

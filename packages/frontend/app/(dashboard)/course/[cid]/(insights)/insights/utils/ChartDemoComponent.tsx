@@ -135,8 +135,8 @@ const ChartDemoComponent: React.FC = () => {
   const chartConfig = useMemo(
     () =>
       chartType == 'Radial Chart' || chartType == 'Pie Chart'
-        ? constructChartConfig(data)
-        : constructChartConfig(data, keys, fills),
+        ? constructChartConfig(data, 'month')
+        : constructChartConfig(data, 'month', keys, fills),
     [chartType, data, keys, fills],
   )
 
@@ -145,80 +145,94 @@ const ChartDemoComponent: React.FC = () => {
       case 'Area Chart':
         return (
           <AreaChartComponent
-            showPoints={showPoints}
-            curveType={lineType}
-            chartConfig={chartConfig}
-            chartData={data}
-            valueKeys={keys}
-            valueFills={fills}
-            size={size as ChartSize}
+            props={{
+              showPoints,
+              curveType: lineType,
+              chartConfig,
+              chartData: data,
+              valueKeys: keys,
+              valueFills: fills,
+              size: size as ChartSize,
+            }}
           />
         )
       case 'Bar Chart':
         return (
           <BarChartComponent
-            stackData={stackData}
-            chartConfig={chartConfig}
-            chartData={data}
-            valueKeys={keys}
-            valueFills={fills}
-            size={size as ChartSize}
+            props={{
+              stackData,
+              chartConfig,
+              chartData: data,
+              valueKeys: keys,
+              valueFills: fills,
+              size: size as ChartSize,
+            }}
           />
         )
       case 'Line Chart':
         return (
           <LineChartComponent
-            showPoints={showPoints}
-            curveType={lineType}
-            chartConfig={chartConfig}
-            chartData={data}
-            valueKeys={keys}
-            valueFills={fills}
-            size={size as ChartSize}
+            props={{
+              showPoints,
+              curveType: lineType,
+              chartConfig,
+              chartData: data,
+              valueKeys: keys,
+              valueFills: fills,
+              size: size as ChartSize,
+            }}
           />
         )
       case 'Pie Chart':
         return (
           <PieChartComponent
-            showLabel={showLabels}
-            chartConfig={chartConfig}
-            chartData={data}
-            valueKeys={keys}
-            valueFills={fills}
-            size={size as ChartSize}
+            props={{
+              showLabels,
+              chartConfig,
+              chartData: data,
+              valueKeys: keys,
+              valueFills: fills,
+              size: size as ChartSize,
+            }}
           />
         )
       case 'Radar Chart':
         return (
           <RadarChartComponent
-            showPoints={showPoints}
-            chartConfig={chartConfig}
-            chartData={data}
-            valueKeys={keys}
-            valueFills={fills}
-            size={size as ChartSize}
+            props={{
+              showPoints,
+              chartConfig,
+              chartData: data,
+              valueKeys: keys,
+              valueFills: fills,
+              size: size as ChartSize,
+            }}
           />
         )
       case 'Radial Chart':
         return (
           <RadialChartComponent
-            stackData={stackData}
-            showLabels={showLabels}
-            chartConfig={chartConfig}
-            chartData={data}
-            valueKeys={keys}
-            valueFills={fills}
-            size={size as ChartSize}
+            props={{
+              stackData,
+              showLabels,
+              chartConfig,
+              chartData: data,
+              valueKeys: keys,
+              valueFills: fills,
+              size: size as ChartSize,
+            }}
           />
         )
       case 'Scatter Chart':
         return (
           <ScatterChartComponent
-            chartConfig={chartConfig}
-            chartData={data}
-            valueKeys={keys}
-            valueFills={fills}
-            size={size as ChartSize}
+            props={{
+              chartConfig,
+              chartData: data,
+              valueKeys: keys,
+              valueFills: fills,
+              size: size as ChartSize,
+            }}
           />
         )
     }
@@ -238,7 +252,7 @@ const ChartDemoComponent: React.FC = () => {
   return (
     <InsightCard
       title={`${chartType} Demo`}
-      subtitle={`This is a demonstration of a ${chartType}.`}
+      description={`This is a demonstration of a ${chartType}.`}
     >
       {chartRender}
       <div className={'flex flex-row justify-center gap-8 p-4'}>

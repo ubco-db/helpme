@@ -8,26 +8,26 @@ import {
 import { LabelList, RadialBar, RadialBarChart } from 'recharts'
 import React, { useMemo } from 'react'
 import {
-  DefaultChartProps,
+  RadialChartProps,
   RadialChartClasses,
+  ChartComponentProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
 
-interface RadialChartProps extends DefaultChartProps {
-  showLabels?: boolean
-  stackData?: boolean
-}
+const RadialChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
+  const {
+    chartConfig,
+    chartData,
+    size,
+    valueKeys,
+    valueFills,
+    labelFormatter,
+    valueFormatter,
+  } = props
 
-const RadialChartComponent: React.FC<RadialChartProps> = ({
-  chartConfig,
-  chartData,
-  size,
-  includeLegend,
-  includeTooltip,
-  valueKeys,
-  valueFills,
-  showLabels,
-  stackData,
-}) => {
+  const { stackData } = props as RadialChartProps
+
+  let { includeLegend, includeTooltip, showLabels } = props as RadialChartProps
+
   includeLegend ??= true
   includeTooltip ??= true
   showLabels ??= true
@@ -48,8 +48,10 @@ const RadialChartComponent: React.FC<RadialChartProps> = ({
       >
         {includeTooltip && (
           <ChartTooltip
+            formatter={valueFormatter}
+            labelFormatter={labelFormatter}
             cursor={false}
-            content={<ChartTooltipContent nameKey={'key'} />}
+            content={<ChartTooltipContent />}
           />
         )}
         {includeLegend && (

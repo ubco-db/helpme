@@ -9,28 +9,32 @@ import { Scatter, ScatterChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import React, { useMemo } from 'react'
 import {
   AxisChartClasses,
-  AxisChartProps,
+  ChartComponentProps,
+  PointChartProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
 
-interface ScatterChartProps extends AxisChartProps {
-  fullFill?: boolean
-}
+const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
+  const {
+    chartConfig,
+    chartData,
+    size,
+    valueKeys,
+    valueFills,
+    labelFormatter,
+    valueFormatter,
+  } = props
 
-const ScatterChartComponent: React.FC<ScatterChartProps> = ({
-  chartConfig,
-  chartData,
-  size,
-  includeLegend,
-  includeTooltip,
-  valueKeys,
-  valueFills,
-  verticalAxis,
-  tickLine,
-  tickMargin,
-  axisLine,
-  fullFill,
-}) => {
-  fullFill ??= true
+  let {
+    includeLegend,
+    includeTooltip,
+    verticalAxis,
+    tickLine,
+    tickMargin,
+    axisLine,
+    fullPointFill,
+  } = props as PointChartProps
+
+  fullPointFill ??= true
   includeLegend ??= true
   includeTooltip ??= true
   verticalAxis ??= true
@@ -63,7 +67,12 @@ const ScatterChartComponent: React.FC<ScatterChartProps> = ({
           />
         )}
         {includeTooltip && (
-          <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+          <ChartTooltip
+            formatter={valueFormatter}
+            labelFormatter={labelFormatter}
+            cursor={false}
+            content={<ChartTooltipContent />}
+          />
         )}
         {includeLegend && <ChartLegend content={<ChartLegendContent />} />}
         {valueKeys &&
@@ -71,8 +80,8 @@ const ScatterChartComponent: React.FC<ScatterChartProps> = ({
           valueKeys.map((key) => (
             <Scatter
               key={key}
-              stroke={!fullFill ? valueFills[key] : 'transparent'}
-              fill={fullFill ? valueFills[key] : 'transparent'}
+              stroke={!fullPointFill ? valueFills[key] : 'transparent'}
+              fill={fullPointFill ? valueFills[key] : 'transparent'}
               dataKey={key}
             />
           ))}

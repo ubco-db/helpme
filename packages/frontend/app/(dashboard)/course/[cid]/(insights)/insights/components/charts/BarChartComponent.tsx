@@ -5,31 +5,30 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/app/components/ui/chart'
-import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import React, { useMemo } from 'react'
 import {
   AxisChartClasses,
-  AxisChartProps,
+  BarChartProps,
+  ChartComponentProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
 
-interface BarChartProps extends AxisChartProps {
-  stackData?: boolean
-}
+const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
+  const {
+    chartConfig,
+    chartData,
+    size,
+    valueKeys,
+    valueFills,
+    labelFormatter,
+    valueFormatter,
+  } = props
 
-const BarChartComponent: React.FC<BarChartProps> = ({
-  chartConfig,
-  chartData,
-  size,
-  includeLegend,
-  includeTooltip,
-  valueKeys,
-  valueFills,
-  verticalAxis,
-  tickLine,
-  tickMargin,
-  axisLine,
-  stackData,
-}) => {
+  const { verticalAxis, stackData } = props as BarChartProps
+
+  let { includeLegend, includeTooltip, tickLine, tickMargin, axisLine } =
+    props as BarChartProps
+
   includeLegend ??= true
   includeTooltip ??= true
   tickLine ??= true
@@ -53,7 +52,12 @@ const BarChartComponent: React.FC<BarChartProps> = ({
           axisLine={axisLine}
         />
         {includeTooltip && (
-          <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+          <ChartTooltip
+            formatter={valueFormatter}
+            labelFormatter={labelFormatter}
+            cursor={false}
+            content={<ChartTooltipContent />}
+          />
         )}
         {includeLegend && <ChartLegend content={<ChartLegendContent />} />}
         {valueKeys &&

@@ -1,10 +1,11 @@
 import {
-  BarChartOutputType,
-  InsightComponent,
+  ChartOutputType,
   InsightObject,
+  InsightType,
   Role,
-  SimpleDisplayOutputType,
-  SimpleTableOutputType,
+  StringMap,
+  TableOutputType,
+  ValueOutputType,
 } from '@koh/common';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { UserModel } from '../profile/user.entity';
@@ -12,6 +13,8 @@ import { QuestionModel } from '../question/question.entity';
 import { createQueryBuilder, SelectQueryBuilder } from 'typeorm';
 import { Cache } from 'cache-manager';
 import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
+import { InteractionModel } from '../chatbot/interaction.entity';
+import { AsyncQuestionVotesModel } from '../asyncQuestion/asyncQuestionVotes.entity';
 
 export type Filter = {
   type: string;
@@ -59,6 +62,11 @@ const APPLY_FILTER_MAP = {
         end: filter.end,
       });
     },
+    students: ({ query, filter }: ApplyFilterParams) => {
+      query.andWhere('creatorId IN :studentIds', {
+        studentIds: filter.studentIds,
+      });
+    },
   },
   AsyncQuestionModel: {
     courseId: ({ query, filter }: ApplyFilterParams) => {
@@ -72,6 +80,29 @@ const APPLY_FILTER_MAP = {
         end: filter.end,
       });
     },
+    students: ({ query, filter }: ApplyFilterParams) => {
+      query.andWhere('creatorId IN :studentIds', {
+        studentIds: filter.studentIds,
+      });
+    },
+  },
+  InteractionModel: {
+    courseId: ({ query, filter }: ApplyFilterParams) => {
+      query.andWhere('"course" = :courseId', {
+        course: filter.courseId,
+      });
+    },
+    timeframe: ({ query, filter }: ApplyFilterParams) => {
+      query.andWhere('InteractionModel.timestamp BETWEEN :start AND :end', {
+        start: filter.start,
+        end: filter.end,
+      });
+    },
+    students: ({ query, filter }: ApplyFilterParams) => {
+      query.andWhere('user IN :studentIds', {
+        studentIds: filter.studentIds,
+      });
+    },
   },
   UserCourseModel: {
     courseId: ({ query, filter }: ApplyFilterParams) => {
@@ -82,14 +113,36 @@ const APPLY_FILTER_MAP = {
   },
 };
 
+const numToWeekday = (num: number) => {
+  num = parseInt(num as unknown as string);
+  switch (num) {
+    case 0:
+      return 'Sunday';
+    case 1:
+      return 'Monday';
+    case 2:
+      return 'Tuesday';
+    case 3:
+      return 'Wednesday';
+    case 4:
+      return 'Thursday';
+    case 5:
+      return 'Friday';
+    case 6:
+      return 'Saturday';
+    default:
+      return 'N/A';
+  }
+};
+
 export const TotalStudents: InsightObject = {
   displayName: 'Total Students',
   description:
     'What is the total number of students that are enrolled in the course?',
   roles: [Role.PROFESSOR],
-  component: InsightComponent.SimpleDisplay,
+  insightType: InsightType.Value,
   size: 'small' as const,
-  async compute(filters): Promise<SimpleDisplayOutputType> {
+  async compute(filters): Promise<ValueOutputType> {
     return await addFilters({
       query: createQueryBuilder(UserCourseModel).where("role = 'student'"),
       modelName: UserCourseModel.name,
@@ -103,9 +156,9 @@ export const TotalQuestionsAsked: InsightObject = {
   displayName: 'Total Questions',
   description: 'How many questions have been asked in total?',
   roles: [Role.PROFESSOR],
-  component: InsightComponent.SimpleDisplay,
+  insightType: InsightType.Value,
   size: 'small' as const,
-  async compute(filters): Promise<SimpleDisplayOutputType> {
+  async compute(filters): Promise<ValueOutputType> {
     return await addFilters({
       query: createQueryBuilder(QuestionModel).select(),
       modelName: QuestionModel.name,
@@ -120,31 +173,26 @@ export const MostActiveStudents: InsightObject = {
   description:
     'Who are the students who have asked the most questions in Office Hours?',
   roles: [Role.PROFESSOR],
-  component: InsightComponent.SimpleTable,
+  insightType: InsightType.Table,
   size: 'default' as const,
-  async compute(filters, cacheManager: Cache): Promise<SimpleTableOutputType> {
+  async compute(filters, cacheManager: Cache): Promise<TableOutputType> {
     const dataSource = await getCachedActiveStudents(cacheManager, filters);
-    const totalStudents: number = await addFilters({
+    await addFilters({
       query: createQueryBuilder(UserCourseModel).where("role = 'student'"),
       modelName: UserCourseModel.name,
       allowedFilters: ['courseId', 'role'],
       filters,
     }).getCount();
+
     return {
-      columns: [
-        {
-          title: 'Name',
-          dataIndex: 'name',
-          key: 'name',
-        },
-        {
-          title: 'Questions Asked',
-          dataIndex: 'questionsAsked',
-          key: 'questionsAsked',
-        },
-      ],
-      dataSource,
-      totalStudents,
+      headerRow: ['Student Name', 'Email', 'Questions Asked'],
+      data: dataSource.map((item) => {
+        return {
+          studentName: `${item.name} (${item.studentId})`,
+          email: item.email,
+          questionsAsked: item.questionsAsked,
+        };
+      }),
     };
   },
 };
@@ -211,9 +259,9 @@ export const QuestionTypeBreakdown: InsightObject = {
   description:
     'What is the distribution of student-selected question-types on the question form?',
   roles: [Role.PROFESSOR],
-  component: InsightComponent.BarChart,
+  insightType: InsightType.Chart,
   size: 'default' as const,
-  async compute(filters): Promise<BarChartOutputType> {
+  async compute(filters): Promise<ChartOutputType> {
     const questionInfo = await addFilters({
       query: createQueryBuilder(QuestionModel)
         .leftJoinAndSelect('QuestionModel.questionTypes', 'questionType')
@@ -242,35 +290,40 @@ export const QuestionTypeBreakdown: InsightObject = {
       .having('questionType.name IS NOT NULL')
       .getRawMany();
 
-    const combinedInfo = questionInfo.concat(asyncQuestionInfo);
+    const keys: string[] = [];
 
-    const info = combinedInfo.reduce((accumulator, current) => {
-      if (accumulator[current['questionTypeName']]) {
-        accumulator[current['questionTypeName']]['totalQuestions'] +=
-          Number.parseInt(current['totalQuestions']);
-      } else {
-        accumulator[current['questionTypeName']] = current;
-        accumulator[current['questionTypeName']]['totalQuestions'] =
-          Number.parseInt(current['totalQuestions']);
+    const keyGrabber = (value: any) => {
+      if (
+        value['questionTypeName'] != undefined &&
+        !keys.includes(value['questionTypeName'])
+      ) {
+        keys.push(value['questionTypeName']);
       }
-      return accumulator;
-    }, {});
-
-    const insightObj = {
-      data: combinedInfo.sort((a, b) =>
-        a.questionTypeName === b.questionTypeName
-          ? 0
-          : a.questionTypeName > b.questionTypeName
-            ? 1
-            : -1,
-      ),
-      xField: 'totalQuestions',
-      yField: 'questionTypeName',
-      seriesField: 'questionTypeName',
-      xAxisName: 'totalQuestions',
-      yAxisName: 'questionType',
     };
-    return insightObj;
+    questionInfo.forEach(keyGrabber);
+    asyncQuestionInfo.forEach(keyGrabber);
+    const data: StringMap<any>[] = keys.map((key) => {
+      let qNum = questionInfo.find(
+          (v) => v['questionTypeName'] == key,
+        )?.totalQuestions,
+        aNum = asyncQuestionInfo.find(
+          (v) => v['questionTypeName'] == key,
+        )?.totalQuestions;
+      qNum = !isNaN(parseInt(qNum)) ? parseInt(qNum) : 0;
+      aNum = !isNaN(parseInt(aNum)) ? parseInt(aNum) : 0;
+
+      return {
+        questionTypeName: key,
+        totalQuestions: aNum + qNum,
+      };
+    });
+
+    return {
+      data,
+      xKey: 'questionTypeName',
+      yKeys: ['totalQuestions'],
+      label: 'Total Questions',
+    };
   },
 };
 
@@ -279,9 +332,9 @@ export const MedianWaitTime: InsightObject = {
   description:
     'What is the median wait time for a student to get help in the queue?',
   roles: [Role.PROFESSOR],
-  component: InsightComponent.SimpleDisplay,
+  insightType: InsightType.Value,
   size: 'small' as const,
-  async compute(filters): Promise<SimpleDisplayOutputType> {
+  async compute(filters): Promise<ValueOutputType> {
     const questions = await addFilters({
       query: createQueryBuilder(QuestionModel)
         .select()
@@ -307,15 +360,58 @@ export const MedianWaitTime: InsightObject = {
   },
 };
 
+export const AverageWaitTimeByWeekDay: InsightObject = {
+  displayName: 'Average Wait Time By Day',
+  description:
+    'The average wait time for synchronous help requests grouped by week day.',
+  roles: [Role.PROFESSOR],
+  insightType: InsightType.Chart,
+  size: 'default' as const,
+
+  async compute(filters): Promise<ChartOutputType> {
+    type WaitTimesByDay = {
+      avgHelpTime: number;
+      weekday: number;
+    };
+
+    const questions = await addFilters({
+      query: createQueryBuilder(QuestionModel)
+        .select(
+          'AVG(COALESCE(EXTRACT(EPOCH FROM QuestionModel.firstHelpedAt), EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM QuestionModel.createdAt)))',
+          'avgHelpTime',
+        )
+        .addSelect('EXTRACT(DOW FROM QuestionModel.createdAt)', 'weekday')
+        .groupBy('weekday'),
+      modelName: QuestionModel.name,
+      allowedFilters: ['courseId', 'timeframe'],
+      filters,
+    }).getRawMany<WaitTimesByDay>();
+
+    const data: StringMap<any>[] = questions.map((value) => {
+      return {
+        weekday: numToWeekday(value.weekday),
+        Average_Wait_Time: (value.avgHelpTime / 60).toFixed(2),
+      };
+    });
+
+    return {
+      data,
+      xKey: 'weekday',
+      yKeys: ['Average_Wait_Time'],
+      label: 'Weekday',
+    };
+  },
+};
+
 export const MedianHelpingTime: InsightObject = {
   displayName: 'Median Helping Time',
   description:
     'What is the median duration that a TA helps a student on a call?',
   roles: [Role.PROFESSOR],
-  component: InsightComponent.SimpleDisplay,
+  insightType: InsightType.Value,
   size: 'small' as const,
 
-  async compute(filters): Promise<SimpleDisplayOutputType> {
+  async compute(filters): Promise<ValueOutputType> {
     const questions = await addFilters({
       query: createQueryBuilder(QuestionModel)
         .select()
@@ -357,14 +453,201 @@ export const QuestionToStudentRatio: InsightObject = {
   displayName: 'Questions per Student',
   description: 'How many questions were asked per student?',
   roles: [Role.PROFESSOR],
-  component: InsightComponent.SimpleDisplay,
+  insightType: InsightType.Value,
   size: 'small' as const,
-  async compute(filters): Promise<SimpleDisplayOutputType> {
+  async compute(filters): Promise<ValueOutputType> {
     const totalQuestions = await TotalQuestionsAsked.compute(filters);
     const totalStudents = await TotalStudents.compute(filters);
     return totalStudents !== 0
       ? ((totalQuestions as number) / (totalStudents as number)).toFixed(2)
       : '0 students';
+  },
+};
+
+export const HelpSeekingOverTime: InsightObject = {
+  displayName: 'Student Interactions Over Time',
+  description: 'What help services have students been utilizing over time?',
+  roles: [Role.PROFESSOR],
+  insightType: InsightType.Chart,
+  size: 'default' as const,
+  async compute(filters): Promise<ChartOutputType> {
+    type HelpSeekingDates = {
+      totalQuestions: string;
+      totalAsyncQuestions: string;
+      totalChatbotInteractions: string;
+      date: Date;
+    };
+
+    let extendedTimeframe = false;
+    if (filters['timeframe']) {
+      const start = Date.parse(filters['timeframe'].start),
+        end = Date.parse(filters['timeframe'].end);
+      if (start && end) {
+        extendedTimeframe = (end - start) / 2629746000 > 3;
+      }
+    }
+
+    const dateConverter = (model: string, attr: string) => {
+      return extendedTimeframe
+        ? `TO_CHAR("${model}"."${attr}", 'YYYY-MM')`
+        : `"${model}"."${attr}"::DATE`;
+    };
+
+    const questionModelDate = dateConverter('QuestionModel', 'createdAt'),
+      asyncQuestionModelDate = dateConverter('AsyncQuestionModel', 'createdAt'),
+      interactionModelDate = dateConverter('InteractionModel', 'timestamp');
+
+    const rawData = await addFilters({
+      query: createQueryBuilder(QuestionModel)
+        .select('COUNT(DISTINCT(QuestionModel.id))', 'totalQuestions')
+        .addSelect(
+          'COUNT(DISTINCT(AsyncQuestionModel.id))',
+          'totalAsyncQuestions',
+        )
+        .addSelect(
+          'COUNT(DISTINCT(InteractionModel.id))',
+          'totalChatbotInteractions',
+        )
+        .addSelect(questionModelDate, 'date')
+        .leftJoin(
+          AsyncQuestionModel,
+          'AsyncQuestionModel',
+          questionModelDate + ' = ' + asyncQuestionModelDate,
+        )
+        .leftJoin(
+          InteractionModel,
+          'InteractionModel',
+          questionModelDate + ' = ' + interactionModelDate,
+        )
+        .orderBy(questionModelDate, 'ASC')
+        .groupBy(questionModelDate),
+      modelName: QuestionModel.name,
+      allowedFilters: ['courseId', 'timeframe'],
+      filters,
+    }).getRawMany<HelpSeekingDates>();
+
+    const data: StringMap<any>[] = rawData.map((value) => {
+      return {
+        date: extendedTimeframe
+          ? value.date.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+            })
+          : value.date.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            }),
+        Questions: parseInt(value.totalQuestions),
+        Async_Questions: parseInt(value.totalAsyncQuestions),
+        Chatbot_Interactions: parseInt(value.totalChatbotInteractions),
+      };
+    });
+
+    return {
+      data,
+      xKey: 'date',
+      yKeys: ['Questions', 'Async_Questions', 'Chatbot_Interactions'],
+      label: 'Date',
+    };
+  },
+};
+
+export const HumanVsChatbot: InsightObject = {
+  displayName: 'Human vs. Chatbot Answers',
+  description:
+    'How many questions have a verified human answer, and how helpful are these answers?',
+  roles: [Role.PROFESSOR],
+  insightType: InsightType.Chart,
+  size: 'default' as const,
+  async compute(filters): Promise<ChartOutputType> {
+    type HumanVsChatbotData = {
+      answered: string;
+      verified: string;
+      totalScore: string;
+      totalVotes: string;
+    };
+
+    const getVotesQuery = (qb: SelectQueryBuilder<any>) =>
+      qb
+        .from(AsyncQuestionVotesModel, 'asyncVotes')
+        .select('SUM("asyncVotes"."vote")', 'score')
+        .addSelect('COUNT("asyncVotes"."id")', 'votes')
+        .addSelect('asyncVotes.questionId', 'id')
+        .groupBy('asyncVotes.questionId');
+
+    const humanData = await addFilters({
+      query: createQueryBuilder(AsyncQuestionModel)
+        .select('COUNT(AsyncQuestionModel.id)', 'answered')
+        .addSelect(
+          'COALESCE(SUM(CASE WHEN AsyncQuestionModel.verified = TRUE THEN 1 ELSE 0 END), 0)',
+          'verified',
+        )
+        .leftJoin(
+          getVotesQuery,
+          'AsyncQuestionVotesModel',
+          '"AsyncQuestionVotesModel"."id" = "AsyncQuestionModel"."id"',
+        )
+        .addSelect(
+          'COALESCE(SUM("AsyncQuestionVotesModel"."score"), 0)',
+          'totalScore',
+        )
+        .addSelect(
+          'COALESCE(SUM("AsyncQuestionVotesModel"."votes"), 0)',
+          'totalVotes',
+        )
+        .where('AsyncQuestionModel.answerText IS NOT NULL'),
+      modelName: AsyncQuestionModel.name,
+      allowedFilters: ['courseId', 'timeframe'],
+      filters,
+    }).getRawMany<HumanVsChatbotData>();
+
+    const aiData = await addFilters({
+      query: createQueryBuilder(AsyncQuestionModel)
+        .select('COUNT(AsyncQuestionModel.id)', 'answered')
+        .addSelect(
+          'COALESCE(SUM(CASE WHEN AsyncQuestionModel.verified = TRUE THEN 1 ELSE 0 END), 0)',
+          'verified',
+        )
+        .leftJoin(
+          getVotesQuery,
+          'AsyncQuestionVotesModel',
+          '"AsyncQuestionVotesModel"."id" = "AsyncQuestionModel"."id"',
+        )
+        .addSelect(
+          'COALESCE(SUM("AsyncQuestionVotesModel"."score"), 0)',
+          'totalScore',
+        )
+        .addSelect(
+          'COALESCE(SUM("AsyncQuestionVotesModel"."votes"), 0)',
+          'totalVotes',
+        )
+        .where('AsyncQuestionModel.answerText IS NULL')
+        .andWhere('AsyncQuestionModel.aiAnswerText IS NOT NULL'),
+      modelName: AsyncQuestionModel.name,
+      allowedFilters: ['courseId', 'timeframe'],
+      filters,
+    }).getRawMany<HumanVsChatbotData>();
+
+    const mapData = (value: HumanVsChatbotData, type: string) => {
+      return {
+        type,
+        Answered: value.answered,
+        Verified: value.verified,
+        Total_Score: value.totalScore,
+        Total_Votes: value.totalVotes,
+      };
+    };
+    const data = humanData
+      .map((value) => mapData(value, 'Human'))
+      .concat(aiData.map((value) => mapData(value, 'Chatbot')));
+
+    return {
+      data,
+      xKey: 'type',
+      yKeys: ['Answered', 'Verified'],
+      label: 'Type',
+    };
   },
 };
 
@@ -376,4 +659,7 @@ export const INSIGHTS_MAP = {
   MostActiveStudents,
   QuestionToStudentRatio,
   MedianHelpingTime,
+  AverageWaitTimeByWeekDay,
+  HelpSeekingOverTime,
+  HumanVsChatbot,
 };

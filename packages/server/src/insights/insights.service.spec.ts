@@ -12,8 +12,8 @@ import {
   QuestionTypeFactory,
 } from '../../test/util/factories';
 import { INSIGHTS_MAP } from './insight-objects';
-import { BarChartOutputType, SimpleTableOutputType } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
+import { ChartOutputType, TableOutputType } from '@koh/common';
 
 describe('InsightsService', () => {
   let service: InsightsService;
@@ -210,7 +210,7 @@ describe('InsightsService', () => {
       ],
     });
 
-    const output = res as BarChartOutputType;
+    const output = res as ChartOutputType;
 
     const expectedQuestionTypes = [
       { questionTypeName: 'Bug', totalQuestions: 8 },
@@ -274,9 +274,9 @@ describe('InsightsService', () => {
       ],
     });
 
-    const output = res as SimpleTableOutputType;
+    const output = res as TableOutputType;
 
-    expect(output.dataSource).toEqual([
+    expect(output.data).toEqual([
       {
         studentId: 4,
         name: 'Jean Valjean',

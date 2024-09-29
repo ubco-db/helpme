@@ -1411,14 +1411,14 @@ export class SSEQueueResponse {
   queueQuestions?: ListQuestionsResponse
 }
 
-export type GetInsightOutputResponse = PossibleOutputTypes
+export type GetInsightOutputResponse = InsightOutput
 
 export type ListInsightsResponse = Record<string, InsightDisplayInfo>
 
 export type InsightDisplayInfo = {
   displayName: string
   description: string
-  component: InsightComponent
+  component: InsightType
   size: 'small' | 'default'
 }
 
@@ -1426,7 +1426,7 @@ export interface InsightObject {
   displayName: string
   description: string
   roles: Role[]
-  component: InsightComponent
+  insightType: InsightType
   size: 'default' | 'small'
   compute: (
     insightFilters: any,
@@ -1434,39 +1434,45 @@ export interface InsightObject {
   ) => Promise<PossibleOutputTypes>
 }
 
-export enum InsightComponent {
-  SimpleDisplay = 'SimpleDisplay',
-  BarChart = 'BarChart',
-  SimpleTable = 'SimpleTable',
+export enum InsightType {
+  Value = 'Value',
+  Chart = 'Chart',
+  Table = 'Table',
 }
 
 export interface InsightOutput {
   title: string
   description: string
-  outputType: InsightComponent
+  outputType: InsightType
   output: PossibleOutputTypes
 }
 
 export type PossibleOutputTypes =
-  | SimpleDisplayOutputType
-  | BarChartOutputType
-  | SimpleTableOutputType
+  | ValueOutputType
+  | ChartOutputType
+  | TableOutputType
 
-export type SimpleDisplayOutputType = number | string
+export type ChartType =
+  | 'Area'
+  | 'Bar'
+  | 'Line'
+  | 'Pie'
+  | 'Radar'
+  | 'Radial'
+  | 'Scatter'
 
-export type BarChartOutputType = {
-  data: StringMap<number>[]
-  xField: string
-  yField: string
-  seriesField: string
-  xAxisName?: string
-  yAxisName?: string
+export type ChartOutputType = {
+  data: StringMap<any>[]
+  xKey: string
+  yKeys: string[]
+  label: string
 }
 
-export type SimpleTableOutputType = {
-  dataSource: StringMap<string>[]
-  columns: StringMap<string>[]
-  totalStudents: number
+export type ValueOutputType = number | string
+
+export type TableOutputType = {
+  data: StringMap<string>[]
+  headerRow: string[]
 }
 
 export type StringMap<T> = {
