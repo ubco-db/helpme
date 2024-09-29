@@ -254,22 +254,4 @@ export class QuestionService {
       }
     }
   }
-
-  async validateNotHelpingOther(
-    newStatus: QuestionStatus,
-    userId: number,
-  ): Promise<void> {
-    const isAlreadyHelpingOne =
-      (await QuestionModel.count({
-        where: {
-          taHelpedId: userId,
-          status: OpenQuestionStatus.Helping,
-        },
-      })) === 1;
-    if (isAlreadyHelpingOne && newStatus === OpenQuestionStatus.Helping) {
-      throw new BadRequestException(
-        ERROR_MESSAGES.questionController.updateQuestion.taHelpingOther,
-      );
-    }
-  }
 }

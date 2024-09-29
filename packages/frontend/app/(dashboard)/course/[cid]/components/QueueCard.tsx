@@ -90,7 +90,7 @@ const QueueCard: React.FC<QueueCardProps> = ({
                   </Tag>
                 )}
                 {queue.isOpen && !queue.allowQuestions && (
-                  <Tooltip title="This queue is no longer accepting questions">
+                  <Tooltip title="This queue is not accepting questions right now">
                     <Tag
                       icon={<StopOutlined />}
                       color="#591e40"
