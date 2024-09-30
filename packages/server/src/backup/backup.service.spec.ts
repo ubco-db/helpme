@@ -73,7 +73,7 @@ describe('BackupService', () => {
 
       expect(execMock).toHaveBeenCalledWith(
         expect.stringContaining(
-          `pg_dumpall | gzip > /backups/daily/backup-${todayFormatted}.sql.gz`,
+          `pg_dumpall | gzip > backups/daily/backup-${todayFormatted}.sql.gz`,
         ),
         expect.any(Function), // Mock function
       );
@@ -122,12 +122,14 @@ describe('BackupService', () => {
 
       expect(execMock).toHaveBeenCalledWith(
         expect.stringContaining(
-          `pg_dumpall | gzip > /backups/semi-hourly/semi-hourly-backup-${todayFormatted}-${hour}.sql.gz`,
+          `pg_dumpall | gzip > backups/semi-hourly/semi-hourly-backup-${todayFormatted}-${hour}.sql.gz`,
         ),
         expect.any(Function), // Mock function
       );
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining(`Semi-hourly backup saved: ${backupFile}`),
+        expect.stringContaining(
+          `Semi-hourly backup saved: semi-hourly-backup-${todayFormatted}-${hour}.sql.gz`,
+        ),
       );
     });
 
@@ -139,6 +141,23 @@ describe('BackupService', () => {
       expect(execMock).not.toHaveBeenCalled(); // Backup shouldn't run
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Insufficient disk space for backup.'),
+      );
+    });
+
+    it('should delete old backups older than 5 days', async () => {
+      jest.spyOn(service, 'checkDiskSpace').mockResolvedValue(true);
+      execMock.mockImplementation((command, callback) => {
+        callback(null, { stdout: 'success' });
+      });
+
+      await service.handleSemiHourlyBackup();
+
+      expect(fs.unlink).toHaveBeenCalledWith(
+        expect.stringContaining('backup-old.sql.gz'),
+        expect.any(Function),
+      );
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Deleted old backup: backup-old.sql.gz'),
       );
     });
   });
@@ -154,7 +173,7 @@ describe('BackupService', () => {
 
       expect(execMock).toHaveBeenCalledWith(
         expect.stringContaining(
-          `pg_dumpall | gzip > /backups/monthly/monthly-backup-${todayFormatted}.sql.gz`,
+          `pg_dumpall | gzip > backups/monthly/monthly-backup-${todayFormatted}.sql.gz`,
         ),
         expect.any(Function), // Mock function
       );
@@ -183,10 +202,10 @@ describe('BackupService', () => {
         callback(null, { stdout: '2000' }); // Simulate 2000 MB free space
       });
 
-      const hasSpace = await service.checkDiskSpace('/backups/daily');
+      const hasSpace = await service.checkDiskSpace('backups/daily');
       expect(hasSpace).toBe(true);
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Free space in /backups/daily: 2000 MB'),
+        expect.stringContaining('Free space in backups/daily: 2000 MB'),
       );
     });
 
@@ -195,10 +214,10 @@ describe('BackupService', () => {
         callback(null, { stdout: '500' }); // Simulate 500 MB free space
       });
 
-      const hasSpace = await service.checkDiskSpace('/backups/daily');
+      const hasSpace = await service.checkDiskSpace('backups/daily');
       expect(hasSpace).toBe(false);
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Free space in /backups/daily: 500 MB'),
+        expect.stringContaining('Free space in backups/daily: 500 MB'),
       );
     });
   });
