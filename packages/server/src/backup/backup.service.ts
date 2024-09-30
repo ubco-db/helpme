@@ -15,7 +15,6 @@ export class BackupService {
   private readonly MINIMUM_FREE_SPACE_MB = 1000; // Minimum space (in MB) required for backup
 
   // Daily Backup Task - Keeps rolling backups for 30 days
-  //   @Cron(CronExpression.EVERY_MINUTE)
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleDailyBackup() {
     const date = new Date().toISOString().split('T')[0];

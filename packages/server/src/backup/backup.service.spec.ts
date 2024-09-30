@@ -73,7 +73,7 @@ describe('BackupService', () => {
 
       expect(execMock).toHaveBeenCalledWith(
         expect.stringContaining(
-          `${baseBackupCommand} backups/daily/backup-${todayFormatted}.sql.gz`,
+          `${baseBackupCommand} ../../backups/daily/backup-${todayFormatted}.sql.gz`,
         ),
         expect.any(Function), // Mock function
       );
@@ -122,7 +122,7 @@ describe('BackupService', () => {
 
       expect(execMock).toHaveBeenCalledWith(
         expect.stringContaining(
-          `${baseBackupCommand} backups/semi-hourly/backup-${todayFormatted}-${hour}.sql.gz`,
+          `${baseBackupCommand} ../../backups/semi-hourly/backup-${todayFormatted}-${hour}.sql.gz`,
         ),
         expect.any(Function), // Mock function
       );
@@ -173,7 +173,7 @@ describe('BackupService', () => {
 
       expect(execMock).toHaveBeenCalledWith(
         expect.stringContaining(
-          `${baseBackupCommand} backups/monthly/backup-${todayFormatted}.sql.gz`,
+          `${baseBackupCommand} ../../backups/monthly/backup-${todayFormatted}.sql.gz`,
         ),
         expect.any(Function), // Mock function
       );
