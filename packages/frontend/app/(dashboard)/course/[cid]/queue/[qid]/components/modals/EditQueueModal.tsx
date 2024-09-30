@@ -100,6 +100,10 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
   const [isValidConfig, setIsValidConfig] = useState(true)
   const [configHasChanges, setConfigHasChanges] = useState(false)
 
+  const [assignmentIdEmpty, setAssignmentIdEmpty] = useState(
+    lastSavedQueueConfig.current?.assignment_id === undefined,
+  )
+
   const resetQueueConfig = useCallback(() => {
     if (open && queue && queue.config) {
       const currentConfigString = JSON.stringify(queue.config, null, 2)
@@ -233,7 +237,13 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             notes: queue?.notes,
             allowQuestions: queue?.allowQuestions,
             questionTypesForDeletion: [],
+            assignmentId: lastSavedQueueConfig.current?.assignment_id,
             zoomLink: course?.zoomLink,
+          }}
+          onValuesChange={(changedValues, allValues) => {
+            if (changedValues.assignmentId !== undefined) {
+              setAssignmentIdEmpty(!changedValues.assignmentId)
+            }
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
@@ -338,89 +348,96 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         label="Assignment Id"
         name="assignmentId"
         layout="horizontal"
-        tooltip={`The assignment ID for the queue (e.g. "lab1", "lab2", "assignment1", etc.). This is used to track the assignment progress for students. Needed only if tasks are specified.`}
+        tooltip={`The assignment ID for the queue (e.g. "lab1", "lab2", "assignment1", etc.). This is used to track the assignment progress for students. Only set if you want to define tasks to keep track of.`}
       >
         <Input allowClear={true} placeholder="[No Assignment Id set]" />
       </Form.Item>
-      <Form.Item
-        label="Tasks (Click to be marked for deletion)"
-        tooltip={`The tasks for the queue. A task is similar to a tag except it is 'check-able'. For example, a lab may have many parts or questions that require a TA to look at before the end of the lab.`}
-        name="tasksForDeletion"
-      >
-        <TaskDeleteSelector
-          configTasks={lastSavedQueueConfig.current?.tasks || {}}
-        />
-      </Form.Item>
-      <Form.List name="tasksForCreation">
-        {(fields, { add, remove }) => (
-          <>
-            {fields.map(({ key, name, ...restField }) => {
-              const defaultColor =
-                '#' + Math.floor(Math.random() * 16777215).toString(16)
-              return (
-                <Space key={key} className="flex" align="center">
-                  <Form.Item
-                    {...restField}
-                    name={[name, 'name']}
-                    rules={[
-                      { required: true, message: 'Please input a tag name' },
-                      {
-                        max: 20,
-                        message: 'Tag name must be less than 20 characters',
-                      },
-                      {
-                        validator: (_, value) => {
-                          // make sure no other tags have the same name
-                          if (
-                            questionTypes?.find((tag) => tag.name === value)
-                          ) {
-                            return Promise.reject('Duplicate tag name')
-                          }
-                          return Promise.resolve()
-                        },
-                      },
-                    ]}
+      {!assignmentIdEmpty && (
+        <>
+          <Form.Item
+            label="Tasks (Click to be marked for deletion)"
+            tooltip={`The tasks for the queue. A task is similar to a tag except it is 'check-able'. For example, a lab may have many parts or questions that require a TA to look at before the end of the lab. Students will then be able to Create a Demo which you can then help and select which parts to mark correct.`}
+            name="tasksForDeletion"
+          >
+            <TaskDeleteSelector
+              configTasks={lastSavedQueueConfig.current?.tasks || {}}
+            />
+          </Form.Item>
+          <Form.List name="tasksForCreation">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name, ...restField }) => {
+                  const defaultColor =
+                    '#' + Math.floor(Math.random() * 16777215).toString(16)
+                  return (
+                    <Space key={key} className="flex" align="center">
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'name']}
+                        rules={[
+                          {
+                            required: true,
+                            message: 'Please input a tag name',
+                          },
+                          {
+                            max: 20,
+                            message: 'Tag name must be less than 20 characters',
+                          },
+                          {
+                            validator: (_, value) => {
+                              // make sure no other tags have the same name
+                              if (
+                                questionTypes?.find((tag) => tag.name === value)
+                              ) {
+                                return Promise.reject('Duplicate tag name')
+                              }
+                              return Promise.resolve()
+                            },
+                          },
+                        ]}
+                      >
+                        <Input
+                          allowClear={true}
+                          placeholder="Tag Name"
+                          maxLength={20}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        valuePropName="color"
+                        name={[name, 'color']}
+                        rules={[{ required: true, message: 'Missing color' }]}
+                        initialValue={defaultColor}
+                      >
+                        <ColorPickerWithPresets
+                          defaultValue={defaultColor}
+                          format="hex"
+                          defaultFormat="hex"
+                          disabledAlpha
+                        />
+                      </Form.Item>
+                      <CloseOutlined
+                        className="text-md mb-[1.5rem] text-gray-600"
+                        onClick={() => remove(name)}
+                      />
+                    </Space>
+                  )
+                })}
+                <Form.Item>
+                  <Button
+                    type="dashed"
+                    onClick={() => add()}
+                    block
+                    icon={<PlusOutlined />}
                   >
-                    <Input
-                      allowClear={true}
-                      placeholder="Tag Name"
-                      maxLength={20}
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    {...restField}
-                    valuePropName="color"
-                    name={[name, 'color']}
-                    rules={[{ required: true, message: 'Missing color' }]}
-                    initialValue={defaultColor}
-                  >
-                    <ColorPickerWithPresets
-                      defaultValue={defaultColor}
-                      format="hex"
-                      defaultFormat="hex"
-                      disabledAlpha
-                    />
-                  </Form.Item>
-                  <CloseOutlined
-                    className="text-md mb-[1.5rem] text-gray-600"
-                    onClick={() => remove(name)}
-                  />
-                </Space>
-              )
-            })}
-            <Form.Item>
-              <Button
-                type="dashed"
-                onClick={() => add()}
-                block
-                icon={<PlusOutlined />}
-              >
-                Add Task
-              </Button>
-            </Form.Item>
-          </>
-        )}
-      </Form.List>
+                    Add Task
+                  </Button>
+                </Form.Item>
+              </>
+            )}
+          </Form.List>
+        </>
+      )}
       <Form.Item label="Zoom/Teams Link" name="zoomLink">
         <Input
           allowClear={true}
@@ -452,7 +469,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
           </ClearQueueButton>
         </Popconfirm>
       </div>
-      {/* TODO: update this to the new collapse api */}
       <Collapse
         bordered={false}
         items={[
