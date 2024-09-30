@@ -22,6 +22,7 @@ const RadialChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     valueFills,
     labelFormatter,
     valueFormatter,
+    legendFormatter,
   } = props
 
   const { stackData } = props as RadialChartProps
@@ -55,7 +56,10 @@ const RadialChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           />
         )}
         {includeLegend && (
-          <ChartLegend content={<ChartLegendContent nameKey={'key'} />} />
+          <ChartLegend
+            formatter={legendFormatter}
+            content={<ChartLegendContent nameKey={'key'} />}
+          />
         )}
         {valueKeys &&
           valueFills &&

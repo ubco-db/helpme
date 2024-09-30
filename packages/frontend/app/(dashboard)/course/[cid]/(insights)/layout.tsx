@@ -3,6 +3,7 @@ import InsightsPageMenu from '@/app/(dashboard)/course/[cid]/(insights)/componen
 import { Role, User } from '@koh/common'
 import { userApi } from '@/app/api/userApi'
 import { redirect } from 'next/navigation'
+import { InsightContextProvider } from '@/app/(dashboard)/course/[cid]/(insights)/insights/context/InsightsContext'
 
 export default async function Layout({
   params,
@@ -30,7 +31,9 @@ export default async function Layout({
       <h1 className="mb-2 hidden md:block">Course Insights</h1>
       <div className="flex flex-1 flex-row">
         <InsightsPageMenu courseId={cid} />
-        <div className="flex-1 p-5">{children}</div>
+        <InsightContextProvider courseId={cid}>
+          <div className="flex-1 p-5">{children}</div>
+        </InsightContextProvider>
       </div>
     </div>
   )

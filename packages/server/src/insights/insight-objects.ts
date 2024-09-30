@@ -1,5 +1,6 @@
 import {
   ChartOutputType,
+  InsightFilterOption,
   InsightObject,
   InsightType,
   Role,
@@ -63,7 +64,7 @@ const APPLY_FILTER_MAP = {
       });
     },
     students: ({ query, filter }: ApplyFilterParams) => {
-      query.andWhere('creatorId IN :studentIds', {
+      query.andWhere('QuestionModel.creatorId IN (:...studentIds)', {
         studentIds: filter.studentIds,
       });
     },
@@ -81,7 +82,7 @@ const APPLY_FILTER_MAP = {
       });
     },
     students: ({ query, filter }: ApplyFilterParams) => {
-      query.andWhere('creatorId IN :studentIds', {
+      query.andWhere('AsyncQuestionModel.creatorId IN (:...studentIds)', {
         studentIds: filter.studentIds,
       });
     },
@@ -99,7 +100,7 @@ const APPLY_FILTER_MAP = {
       });
     },
     students: ({ query, filter }: ApplyFilterParams) => {
-      query.andWhere('user IN :studentIds', {
+      query.andWhere('InteractionModel.user IN (:...studentIds)', {
         studentIds: filter.studentIds,
       });
     },
@@ -108,6 +109,11 @@ const APPLY_FILTER_MAP = {
     courseId: ({ query, filter }: ApplyFilterParams) => {
       query.andWhere('"courseId" = :courseId', {
         courseId: filter.courseId,
+      });
+    },
+    students: ({ query, filter }: ApplyFilterParams) => {
+      query.andWhere('"userId" IN (:...studentIds)', {
+        studentIds: filter.studentIds,
       });
     },
   },
@@ -141,12 +147,12 @@ export const TotalStudents: InsightObject = {
     'What is the total number of students that are enrolled in the course?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Value,
-  size: 'small' as const,
+  allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ValueOutputType> {
     return await addFilters({
       query: createQueryBuilder(UserCourseModel).where("role = 'student'"),
       modelName: UserCourseModel.name,
-      allowedFilters: ['courseId', 'role'],
+      allowedFilters: this.allowedFilters,
       filters,
     }).getCount();
   },
@@ -157,12 +163,12 @@ export const TotalQuestionsAsked: InsightObject = {
   description: 'How many questions have been asked in total?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Value,
-  size: 'small' as const,
+  allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ValueOutputType> {
     return await addFilters({
       query: createQueryBuilder(QuestionModel).select(),
       modelName: QuestionModel.name,
-      allowedFilters: ['courseId', 'timeframe'],
+      allowedFilters: this.allowedFilters,
       filters,
     }).getCount();
   },
@@ -174,13 +180,17 @@ export const MostActiveStudents: InsightObject = {
     'Who are the students who have asked the most questions in Office Hours?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Table,
-  size: 'default' as const,
+  allowedFilters: ['courseId', 'timeframe'],
   async compute(filters, cacheManager: Cache): Promise<TableOutputType> {
-    const dataSource = await getCachedActiveStudents(cacheManager, filters);
+    const dataSource = await getCachedActiveStudents(
+      cacheManager,
+      filters,
+      this.allowedFilters,
+    );
     await addFilters({
       query: createQueryBuilder(UserCourseModel).where("role = 'student'"),
       modelName: UserCourseModel.name,
-      allowedFilters: ['courseId', 'role'],
+      allowedFilters: this.allowedFilters,
       filters,
     }).getCount();
 
@@ -200,6 +210,7 @@ export const MostActiveStudents: InsightObject = {
 const getCachedActiveStudents = async (
   cacheManager: Cache,
   filters: Filter[],
+  allowedFilters?: InsightFilterOption[],
 ): Promise<any[]> => {
   const courseId = filters.find((filter: Filter) => filter.type === 'courseId')[
     'courseId'
@@ -221,13 +232,16 @@ const getCachedActiveStudents = async (
   const cacheLengthInSeconds = 3600;
   return cacheManager.wrap(
     `questions/${courseId}/${getStartString}:${getEndString}`,
-    () => getActiveStudents(filters),
+    () => getActiveStudents(filters, allowedFilters),
     { ttl: cacheLengthInSeconds },
   );
 };
 
-const getActiveStudents = async (filters: Filter[]): Promise<any[]> => {
-  const activeStudents = await addFilters({
+const getActiveStudents = async (
+  filters: Filter[],
+  allowedFilters?: InsightFilterOption[],
+): Promise<any[]> => {
+  return await addFilters({
     query: createQueryBuilder()
       .select('"QuestionModel"."creatorId"', 'studentId')
       .addSelect(
@@ -238,7 +252,7 @@ const getActiveStudents = async (filters: Filter[]): Promise<any[]> => {
       .addSelect('COUNT(*)', 'questionsAsked')
       .from(QuestionModel, 'QuestionModel'),
     modelName: QuestionModel.name,
-    allowedFilters: ['courseId', 'timeframe'],
+    allowedFilters: allowedFilters,
     filters,
   })
     .innerJoin(
@@ -250,8 +264,8 @@ const getActiveStudents = async (filters: Filter[]): Promise<any[]> => {
     .addGroupBy('name')
     .addGroupBy('"UserModel".email')
     .orderBy('4', 'DESC')
+    .limit(5)
     .getRawMany();
-  return activeStudents;
 };
 
 export const QuestionTypeBreakdown: InsightObject = {
@@ -260,7 +274,7 @@ export const QuestionTypeBreakdown: InsightObject = {
     'What is the distribution of student-selected question-types on the question form?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
-  size: 'default' as const,
+  allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ChartOutputType> {
     const questionInfo = await addFilters({
       query: createQueryBuilder(QuestionModel)
@@ -269,7 +283,7 @@ export const QuestionTypeBreakdown: InsightObject = {
         .addSelect('COUNT(QuestionModel.id)', 'totalQuestions')
         .andWhere('questionType.name IS NOT NULL'),
       modelName: QuestionModel.name,
-      allowedFilters: ['courseId', 'timeframe'],
+      allowedFilters: this.allowedFilters,
       filters,
     })
       .groupBy('questionType.name')
@@ -283,7 +297,7 @@ export const QuestionTypeBreakdown: InsightObject = {
         .addSelect('COUNT(AsyncQuestionModel.id)', 'totalQuestions')
         .andWhere('questionType.name IS NOT NULL'),
       modelName: AsyncQuestionModel.name,
-      allowedFilters: ['courseId', 'timeframe'],
+      allowedFilters: this.allowedFilters,
       filters,
     })
       .groupBy('questionType.name')
@@ -333,14 +347,14 @@ export const MedianWaitTime: InsightObject = {
     'What is the median wait time for a student to get help in the queue?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Value,
-  size: 'small' as const,
+  allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ValueOutputType> {
     const questions = await addFilters({
       query: createQueryBuilder(QuestionModel)
         .select()
         .where('QuestionModel.firstHelpedAt IS NOT NULL'),
       modelName: QuestionModel.name,
-      allowedFilters: ['courseId', 'timeframe'],
+      allowedFilters: this.allowedFilters,
       filters,
     }).getMany();
 
@@ -366,8 +380,7 @@ export const AverageWaitTimeByWeekDay: InsightObject = {
     'The average wait time for synchronous help requests grouped by week day.',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
-  size: 'default' as const,
-
+  allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ChartOutputType> {
     type WaitTimesByDay = {
       avgHelpTime: number;
@@ -383,7 +396,7 @@ export const AverageWaitTimeByWeekDay: InsightObject = {
         .addSelect('EXTRACT(DOW FROM QuestionModel.createdAt)', 'weekday')
         .groupBy('weekday'),
       modelName: QuestionModel.name,
-      allowedFilters: ['courseId', 'timeframe'],
+      allowedFilters: this.allowedFilters,
       filters,
     }).getRawMany<WaitTimesByDay>();
 
@@ -409,8 +422,7 @@ export const MedianHelpingTime: InsightObject = {
     'What is the median duration that a TA helps a student on a call?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Value,
-  size: 'small' as const,
-
+  allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ValueOutputType> {
     const questions = await addFilters({
       query: createQueryBuilder(QuestionModel)
@@ -419,7 +431,7 @@ export const MedianHelpingTime: InsightObject = {
           'QuestionModel.helpedAt IS NOT NULL AND QuestionModel.closedAt IS NOT NULL',
         ),
       modelName: QuestionModel.name,
-      allowedFilters: ['courseId', 'timeframe'],
+      allowedFilters: this.allowedFilters,
       filters,
     }).getMany();
 
@@ -454,7 +466,6 @@ export const QuestionToStudentRatio: InsightObject = {
   description: 'How many questions were asked per student?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Value,
-  size: 'small' as const,
   async compute(filters): Promise<ValueOutputType> {
     const totalQuestions = await TotalQuestionsAsked.compute(filters);
     const totalStudents = await TotalStudents.compute(filters);
@@ -469,7 +480,7 @@ export const HelpSeekingOverTime: InsightObject = {
   description: 'What help services have students been utilizing over time?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
-  size: 'default' as const,
+  allowedFilters: ['courseId', 'timeframe', 'students'],
   async compute(filters): Promise<ChartOutputType> {
     type HelpSeekingDates = {
       totalQuestions: string;
@@ -522,7 +533,7 @@ export const HelpSeekingOverTime: InsightObject = {
         .orderBy(questionModelDate, 'ASC')
         .groupBy(questionModelDate),
       modelName: QuestionModel.name,
-      allowedFilters: ['courseId', 'timeframe'],
+      allowedFilters: this.allowedFilters,
       filters,
     }).getRawMany<HelpSeekingDates>();
 
@@ -559,7 +570,7 @@ export const HumanVsChatbot: InsightObject = {
     'How many questions have a verified human answer, and how helpful are these answers?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
-  size: 'default' as const,
+  allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ChartOutputType> {
     type HumanVsChatbotData = {
       answered: string;
@@ -598,7 +609,7 @@ export const HumanVsChatbot: InsightObject = {
         )
         .where('AsyncQuestionModel.answerText IS NOT NULL'),
       modelName: AsyncQuestionModel.name,
-      allowedFilters: ['courseId', 'timeframe'],
+      allowedFilters: this.allowedFilters,
       filters,
     }).getRawMany<HumanVsChatbotData>();
 
@@ -625,7 +636,7 @@ export const HumanVsChatbot: InsightObject = {
         .where('AsyncQuestionModel.answerText IS NULL')
         .andWhere('AsyncQuestionModel.aiAnswerText IS NOT NULL'),
       modelName: AsyncQuestionModel.name,
-      allowedFilters: ['courseId', 'timeframe'],
+      allowedFilters: this.allowedFilters,
       filters,
     }).getRawMany<HumanVsChatbotData>();
 

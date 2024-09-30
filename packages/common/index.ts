@@ -17,6 +17,7 @@ import {
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
 import { Ajv } from 'ajv'
+
 export const PROD_URL = 'https://coursehelp.ubc.ca'
 
 // Get domain. works on node and browser
@@ -1415,11 +1416,18 @@ export type GetInsightOutputResponse = InsightOutput
 
 export type ListInsightsResponse = Record<string, InsightDisplayInfo>
 
+export const InsightFilterOptions = [
+  'courseId',
+  'timeframe',
+  'students',
+] as const
+export type InsightFilterOption = (typeof InsightFilterOptions)[number]
+
 export type InsightDisplayInfo = {
   displayName: string
   description: string
-  component: InsightType
-  size: 'small' | 'default'
+  insightType: InsightType
+  allowedFilters?: InsightFilterOption[]
 }
 
 export interface InsightObject {
@@ -1427,7 +1435,7 @@ export interface InsightObject {
   description: string
   roles: Role[]
   insightType: InsightType
-  size: 'default' | 'small'
+  allowedFilters?: InsightFilterOption[]
   compute: (
     insightFilters: any,
     cacheManager?: Cache,
@@ -1443,6 +1451,7 @@ export enum InsightType {
 export interface InsightOutput {
   title: string
   description: string
+  allowedFilters?: string[]
   outputType: InsightType
   output: PossibleOutputTypes
 }
@@ -1485,10 +1494,11 @@ export type DateRangeType = {
 }
 
 export type InsightParamsType = {
-  start: string
-  end: string
-  limit: number
-  offset: number
+  start?: string
+  end?: string
+  limit?: number
+  offset?: number
+  students?: string
 }
 
 export type sendEmailParams = {
@@ -1935,14 +1945,13 @@ export function validateQueueConfigInput(obj: any): string {
     additionalProperties: false,
   }
   const validate = ajv.compile(schema)
-  const obj2 = obj
-  const valid = validate(obj2)
+  const valid = validate(obj)
   if (!valid) {
-    const errorMessages =
+    return (
       validate.errors
         ?.map((e) => `${e.instancePath} ${e.message}`)
         .join(', ') || 'Unknown error'
-    return errorMessages
+    )
   }
   return ''
 }
@@ -2014,6 +2023,8 @@ export type ConfigTasksWithAssignmentProgress = {
  *   }
  * }
  * ```
+ * @param taskTree
+ * @param precondition
  */
 export function transformIntoTaskTree(
   remainingTasks: ConfigTasksWithAssignmentProgress,
@@ -2188,6 +2199,8 @@ export const ERROR_MESSAGES = {
     insightNameNotFound: 'The insight requested was not found',
     insightsDisabled: 'Insights are currently unavailable, sorry :(',
     invalidDateRange: 'Invalid date range. Start and End must be valid dates',
+    invalidStudentID:
+      'Invalid student ID provided. Student IDs must be numeric',
   },
   roleGuard: {
     notLoggedIn: 'Must be logged in',

@@ -12,6 +12,7 @@ import {
   ChartComponentProps,
   PointChartProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
+import { generateYAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
 
 const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -22,6 +23,7 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     valueFills,
     labelFormatter,
     valueFormatter,
+    legendFormatter,
   } = props
 
   let {
@@ -32,6 +34,7 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     tickMargin,
     axisLine,
     fullPointFill,
+    tickFormatter,
   } = props as PointChartProps
 
   fullPointFill ??= true
@@ -41,6 +44,7 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   tickLine ??= true
   tickMargin ??= 8
   axisLine ??= true
+  tickFormatter ??= (value) => (value as string).substring(0, 3)
 
   const className = useMemo(() => {
     return size != undefined && AxisChartClasses[size] != undefined
@@ -57,15 +61,16 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           tickLine={tickLine}
           tickMargin={tickMargin}
           axisLine={axisLine}
-          tickFormatter={(value) => (value as string).substring(0, 3)}
+          tickFormatter={tickFormatter}
         />
-        {verticalAxis && (
-          <YAxis
-            tickLine={tickLine}
-            tickMargin={tickMargin}
-            axisLine={axisLine}
-          />
-        )}
+        <YAxis
+          type="number"
+          domain={generateYAxisRange(chartData, valueKeys)}
+          tickLine={tickLine}
+          tickMargin={tickMargin}
+          axisLine={axisLine}
+          hide={!verticalAxis}
+        />
         {includeTooltip && (
           <ChartTooltip
             formatter={valueFormatter}
@@ -74,7 +79,12 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
             content={<ChartTooltipContent />}
           />
         )}
-        {includeLegend && <ChartLegend content={<ChartLegendContent />} />}
+        {includeLegend && (
+          <ChartLegend
+            formatter={legendFormatter}
+            content={<ChartLegendContent />}
+          />
+        )}
         {valueKeys &&
           valueFills &&
           valueKeys.map((key) => (

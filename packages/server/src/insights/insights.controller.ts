@@ -12,6 +12,7 @@ import {
   Delete,
   Patch,
   ParseIntPipe,
+  ParseArrayPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import {
@@ -22,6 +23,7 @@ import {
   TableOutputType,
   InsightType,
   InsightOutput,
+  InsightObject,
 } from '@koh/common';
 import { User } from '../decorators/user.decorator';
 import { INSIGHTS_MAP } from './insight-objects';
@@ -42,10 +44,12 @@ export class InsightsController {
     @CourseRole() role: Role,
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('insightName') insightName: string,
-    @Query('start') start: string,
-    @Query('end') end: string,
-    @Query('limit', ParseIntPipe) limit: number,
-    @Query('offset', ParseIntPipe) offset: number,
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+    @Query('limit', ParseIntPipe) limit?: number,
+    @Query('offset', ParseIntPipe) offset?: number,
+    @Query('students', new ParseArrayPipe({ optional: true }))
+    students?: number[],
   ): Promise<GetInsightOutputResponse> {
     // Temporarily disabling insights until we finish refactoring QueueModel
     // Check that the insight name is valid
@@ -56,7 +60,7 @@ export class InsightsController {
       );
     }
 
-    const targetInsight = INSIGHTS_MAP[insightName];
+    const targetInsight: InsightObject = INSIGHTS_MAP[insightName];
     // Check that the current user's role has access to the given insight
     if (!targetInsight.roles.includes(role)) {
       throw new BadRequestException(
@@ -89,12 +93,27 @@ export class InsightsController {
       });
     }
 
+    if (students) {
+      students.forEach((n) => {
+        if (isNaN(n)) {
+          throw new BadRequestException(
+            ERROR_MESSAGES.insightsController.invalidStudentID,
+          );
+        }
+      });
+
+      filters.push({
+        type: 'students',
+        studentIds: students,
+      });
+    }
+
     let insight = await this.insightsService.computeOutput({
       insight: targetInsight,
       filters,
     });
 
-    if (targetInsight.component == InsightType.Table) {
+    if (targetInsight.insightType == InsightType.Table) {
       let data = (insight as TableOutputType).data;
       if (offset) {
         data = data.slice(offset, data.length);
@@ -108,6 +127,7 @@ export class InsightsController {
     return {
       title: targetInsight.displayName,
       description: targetInsight.description,
+      allowedFilters: targetInsight.allowedFilters,
       outputType: targetInsight.insightType,
       output: insight,
     } as InsightOutput;

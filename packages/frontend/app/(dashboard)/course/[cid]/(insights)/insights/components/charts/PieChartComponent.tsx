@@ -21,6 +21,7 @@ const PieChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     size,
     labelFormatter,
     valueFormatter,
+    legendFormatter,
   } = props
 
   const { showLabels } = props as RadialChartProps
@@ -49,7 +50,10 @@ const PieChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           />
         )}
         {includeLegend && (
-          <ChartLegend content={<ChartLegendContent nameKey={'key'} />} />
+          <ChartLegend
+            formatter={legendFormatter}
+            content={<ChartLegendContent nameKey={'key'} />}
+          />
         )}
         {valueKeys &&
           valueKeys.map((key) => (

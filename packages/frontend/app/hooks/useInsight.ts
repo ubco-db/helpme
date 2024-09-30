@@ -1,26 +1,26 @@
-import useSWR from 'swr'
 import { API } from '@/app/api'
+import { InsightOutput, InsightParamsType } from '@koh/common'
+import { useMemo } from 'react'
 
-export function useInsight(
+export async function useInsight(
   courseId: number,
   insightName: string,
-  dates?: { start?: Date; end?: Date },
-  limit?: number,
-  offset?: number,
-) {
-  const key = `api/v1/insights/${courseId}/${insightName}`
-
-  const { data: insightData } = useSWR(key, async () => {
-    if (isNaN(courseId)) {
-      return undefined
-    }
-    return await API.insights.get(courseId, insightName, {
-      start: dates?.start?.toDateString() ?? '',
-      end: dates?.end?.toDateString() ?? '',
-      limit: limit ?? 100,
-      offset: offset ?? 0,
+  params?: InsightParamsType,
+): Promise<InsightOutput> {
+  return useMemo(() => {
+    return API.insights.get(courseId, insightName, {
+      start: params?.start ?? '',
+      end: params?.end ?? '',
+      offset: params?.offset ?? 0,
+      limit: params?.offset ?? 50,
+      students: params?.students,
     })
-  })
-
-  return insightData
+  }, [
+    courseId,
+    insightName,
+    params?.end,
+    params?.offset,
+    params?.start,
+    params?.students,
+  ])
 }

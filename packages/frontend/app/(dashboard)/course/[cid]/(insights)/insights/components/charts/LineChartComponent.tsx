@@ -12,6 +12,7 @@ import {
   ChartComponentProps,
   LinearChartProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
+import { generateYAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
 
 const LineChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -22,6 +23,7 @@ const LineChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     valueFills,
     labelFormatter,
     valueFormatter,
+    legendFormatter,
   } = props
 
   let {
@@ -63,13 +65,14 @@ const LineChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           axisLine={axisLine}
           tickFormatter={tickFormatter}
         />
-        {verticalAxis && (
-          <YAxis
-            tickLine={tickLine}
-            tickMargin={tickMargin}
-            axisLine={axisLine}
-          />
-        )}
+        <YAxis
+          type="number"
+          domain={generateYAxisRange(chartData, valueKeys)}
+          tickLine={tickLine}
+          tickMargin={tickMargin}
+          axisLine={axisLine}
+          hide={!verticalAxis}
+        />
         {includeTooltip && (
           <ChartTooltip
             formatter={valueFormatter}
@@ -78,7 +81,12 @@ const LineChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
             content={<ChartTooltipContent />}
           />
         )}
-        {includeLegend && <ChartLegend content={<ChartLegendContent />} />}
+        {includeLegend && (
+          <ChartLegend
+            formatter={legendFormatter}
+            content={<ChartLegendContent />}
+          />
+        )}
         {valueKeys &&
           valueFills &&
           valueKeys.map((key) => (

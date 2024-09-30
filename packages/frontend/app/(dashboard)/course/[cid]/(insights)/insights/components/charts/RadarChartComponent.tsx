@@ -22,6 +22,7 @@ const RadarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     valueFills,
     labelFormatter,
     valueFormatter,
+    legendFormatter,
   } = props
 
   let { includeLegend, includeTooltip, showPoints } = props as PointChartProps
@@ -50,7 +51,10 @@ const RadarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           />
         )}
         {includeLegend && (
-          <ChartLegend content={<ChartLegendContent nameKey={'key'} />} />
+          <ChartLegend
+            formatter={legendFormatter}
+            content={<ChartLegendContent nameKey={'key'} />}
+          />
         )}
         {valueKeys &&
           valueFills &&

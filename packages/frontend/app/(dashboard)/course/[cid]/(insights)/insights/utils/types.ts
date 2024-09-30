@@ -1,5 +1,6 @@
 import { ChartConfig } from '@/app/components/ui/chart'
 import { CurveType } from 'recharts/types/shape/Curve'
+import { ChartType } from '@koh/common'
 
 export type ChartSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl'
 
@@ -46,6 +47,7 @@ export interface DefaultChartProps {
   size?: ChartSize
   labelFormatter?: (label: string) => string
   valueFormatter?: (label: string) => string
+  legendFormatter?: (label: string) => string
 }
 
 export interface StackChartProps extends DefaultChartProps {
@@ -77,3 +79,70 @@ export interface LinearChartProps extends PointChartProps {
 }
 
 export type ChartDataType = { key: string; fill?: string; [key: string]: any }
+
+export type ChartComponent = {
+  chartType: ChartType
+  categoryKeys?: boolean
+  props:
+    | Partial<DefaultChartProps>
+    | Partial<RadialChartProps>
+    | Partial<AxisChartProps>
+    | Partial<PointChartProps>
+    | Partial<LinearChartProps>
+    | Partial<BarChartProps>
+}
+
+export const charts: {
+  [key: string]: ChartComponent
+} = {
+  QuestionTypeBreakdown: {
+    chartType: 'Pie',
+    categoryKeys: true,
+    props: {
+      includeLegend: true,
+      includeTooltip: true,
+      innerRadius: 0,
+      showLabels: false,
+      size: 'sm',
+    },
+  },
+  AverageWaitTimeByWeekDay: {
+    chartType: 'Bar',
+    categoryKeys: true,
+    props: {
+      includeLegend: true,
+      includeTooltip: true,
+      size: 'lg',
+      valueFormatter: (label) => label + ' minutes',
+    },
+  },
+  HelpSeekingOverTime: {
+    chartType: 'Line',
+    props: {
+      includeLegend: true,
+      includeTooltip: true,
+      showPoints: true,
+      size: '2xl',
+      tickFormatter: (label) =>
+        new Date(Date.parse(label.replace(/_/g, ' '))).toLocaleString('en-US', {
+          year: '2-digit',
+          month: 'short',
+          day: 'numeric',
+        }),
+      labelFormatter: (label) => label.replace(/_/g, ' '),
+    },
+  },
+  HumanVsChatbot: {
+    chartType: 'Bar',
+    props: {
+      includeLegend: true,
+      includeTooltip: true,
+      size: 'lg',
+      valueFormatter: (label) =>
+        parseInt(label) > 1 || parseInt(label) == 0
+          ? label + ' answers'
+          : label + ' answer',
+      tickFormatter: (label) => label,
+    },
+  },
+}

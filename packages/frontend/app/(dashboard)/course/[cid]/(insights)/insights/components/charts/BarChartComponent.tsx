@@ -12,6 +12,7 @@ import {
   BarChartProps,
   ChartComponentProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
+import { generateYAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
 
 const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -22,18 +23,26 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     valueFills,
     labelFormatter,
     valueFormatter,
+    legendFormatter,
   } = props
 
   const { verticalAxis, stackData } = props as BarChartProps
 
-  let { includeLegend, includeTooltip, tickLine, tickMargin, axisLine } =
-    props as BarChartProps
+  let {
+    includeLegend,
+    includeTooltip,
+    tickLine,
+    tickMargin,
+    axisLine,
+    tickFormatter,
+  } = props as BarChartProps
 
   includeLegend ??= true
   includeTooltip ??= true
   tickLine ??= true
   tickMargin ??= 8
   axisLine ??= true
+  tickFormatter ??= (value) => (value as string).substring(0, 3)
 
   const className = useMemo(() => {
     return size != undefined && AxisChartClasses[size] != undefined
@@ -50,6 +59,15 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           tickLine={tickLine}
           tickMargin={tickMargin}
           axisLine={axisLine}
+          tickFormatter={tickFormatter}
+        />
+        <YAxis
+          type="number"
+          domain={generateYAxisRange(chartData, valueKeys)}
+          tickLine={tickLine}
+          tickMargin={tickMargin}
+          axisLine={axisLine}
+          hide={!verticalAxis}
         />
         {includeTooltip && (
           <ChartTooltip
@@ -59,7 +77,12 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
             content={<ChartTooltipContent />}
           />
         )}
-        {includeLegend && <ChartLegend content={<ChartLegendContent />} />}
+        {includeLegend && (
+          <ChartLegend
+            formatter={legendFormatter}
+            content={<ChartLegendContent />}
+          />
+        )}
         {valueKeys &&
           valueFills &&
           valueKeys.map((key) => (

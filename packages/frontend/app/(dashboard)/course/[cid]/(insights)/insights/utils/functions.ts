@@ -1,6 +1,5 @@
 import { ChartConfig } from '@/app/components/ui/chart'
 import { ChartDataType } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
-import { Payload } from 'recharts/types/component/DefaultTooltipContent'
 
 const hsvToHex = (h: number, s: number, v: number) => {
   const a = s * Math.min(v, 1 - v)
@@ -91,4 +90,20 @@ export const constructChartConfig = (
   })
 
   return chartConfig satisfies ChartConfig
+}
+
+export const generateYAxisRange = (
+  processedChartData: ChartDataType[],
+  valueKeys: string[],
+) => {
+  const allValues = processedChartData
+    .map((data) => {
+      return valueKeys.map((key) => data[key] as number)
+    })
+    .reduce((prev, curr) => [...prev, ...curr], [])
+
+  return [
+    Math.ceil(Math.min(...allValues, 0) / 10) * 10,
+    Math.ceil(Math.max(...allValues) / 10) * 10,
+  ]
 }

@@ -12,6 +12,7 @@ import {
   ChartComponentProps,
   LinearChartProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
+import { generateYAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
 
 const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -22,6 +23,7 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     valueFills,
     labelFormatter,
     valueFormatter,
+    legendFormatter,
   } = props
 
   let {
@@ -33,6 +35,7 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     tickLine,
     tickMargin,
     axisLine,
+    tickFormatter,
   } = props as LinearChartProps
 
   curveType ??= 'monotone'
@@ -43,6 +46,7 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   tickLine ??= true
   tickMargin ??= 8
   axisLine ??= true
+  tickFormatter ??= (value) => (value as string).substring(0, 3)
 
   const className = useMemo(() => {
     return size != undefined && AxisChartClasses[size] != undefined
@@ -59,15 +63,16 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           tickLine={tickLine}
           tickMargin={tickMargin}
           axisLine={axisLine}
-          tickFormatter={(value) => (value as string).substring(0, 3)}
+          tickFormatter={tickFormatter}
         />
-        {verticalAxis && (
-          <YAxis
-            tickLine={tickLine}
-            tickMargin={tickMargin}
-            axisLine={axisLine}
-          />
-        )}
+        <YAxis
+          type="number"
+          domain={generateYAxisRange(chartData, valueKeys)}
+          tickLine={tickLine}
+          tickMargin={tickMargin}
+          axisLine={axisLine}
+          hide={!verticalAxis}
+        />
         {includeTooltip && (
           <ChartTooltip
             formatter={valueFormatter}
@@ -76,7 +81,12 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
             content={<ChartTooltipContent />}
           />
         )}
-        {includeLegend && <ChartLegend content={<ChartLegendContent />} />}
+        {includeLegend && (
+          <ChartLegend
+            formatter={legendFormatter}
+            content={<ChartLegendContent />}
+          />
+        )}
         <defs>
           {valueKeys &&
             valueFills &&
