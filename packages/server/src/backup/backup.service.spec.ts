@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { Test, TestingModule } from '@nestjs/testing';
-import { BackupService } from './backup.service';
+import { BackupService, baseBackupCommand } from './backup.service';
 import * as fs from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -73,7 +73,7 @@ describe('BackupService', () => {
 
       expect(execMock).toHaveBeenCalledWith(
         expect.stringContaining(
-          `pg_dumpall | gzip > backups/daily/backup-${todayFormatted}.sql.gz`,
+          `${baseBackupCommand} backups/daily/backup-${todayFormatted}.sql.gz`,
         ),
         expect.any(Function), // Mock function
       );
@@ -122,13 +122,13 @@ describe('BackupService', () => {
 
       expect(execMock).toHaveBeenCalledWith(
         expect.stringContaining(
-          `pg_dumpall | gzip > backups/semi-hourly/semi-hourly-backup-${todayFormatted}-${hour}.sql.gz`,
+          `${baseBackupCommand} backups/semi-hourly/backup-${todayFormatted}-${hour}.sql.gz`,
         ),
         expect.any(Function), // Mock function
       );
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining(
-          `Semi-hourly backup saved: semi-hourly-backup-${todayFormatted}-${hour}.sql.gz`,
+          `Semi-hourly backup saved: backup-${todayFormatted}-${hour}.sql.gz`,
         ),
       );
     });
@@ -173,13 +173,13 @@ describe('BackupService', () => {
 
       expect(execMock).toHaveBeenCalledWith(
         expect.stringContaining(
-          `pg_dumpall | gzip > backups/monthly/monthly-backup-${todayFormatted}.sql.gz`,
+          `${baseBackupCommand} backups/monthly/backup-${todayFormatted}.sql.gz`,
         ),
         expect.any(Function), // Mock function
       );
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining(
-          `Monthly backup saved: monthly-backup-${todayFormatted}.sql.gz`,
+          `Monthly backup saved: backup-${todayFormatted}.sql.gz`,
         ),
       );
     });

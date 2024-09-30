@@ -7,23 +7,26 @@ import { promisify } from 'util';
 
 const execPromise = promisify(exec);
 
+export const baseBackupCommand =
+  'docker exec -u postgres helpme-postgresql-1 pg_dumpall -U postgres | gzip >';
+
 @Injectable()
 export class BackupService {
   private readonly MINIMUM_FREE_SPACE_MB = 1000; // Minimum space (in MB) required for backup
 
   // Daily Backup Task - Keeps rolling backups for 30 days
-  // @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  @Cron(CronExpression.EVERY_MINUTE)
+  //   @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleDailyBackup() {
     const date = new Date().toISOString().split('T')[0];
     const backupFile = `backup-${date}.sql.gz`;
-    const backupDir = '/backups/daily';
+    const backupDir = '../../backups/daily/';
 
     const hasSpace = await this.checkDiskSpace(backupDir);
 
     if (hasSpace) {
       exec(
-        `pg_dumpall | gzip > ${backupDir}/${backupFile}`,
+        `${baseBackupCommand} ${backupDir}/${backupFile}`,
         (error, stdout, stderr) => {
           if (error) {
             console.error(`Backup failed: ${stderr}`);
@@ -44,14 +47,14 @@ export class BackupService {
     const now = new Date();
     const date = now.toISOString().split('T')[0];
     const hour = String(now.getHours()).padStart(2, '0');
-    const backupFile = `semi-hourly-backup-${date}-${hour}.sql.gz`;
-    const backupDir = '/backups/semi-hourly';
+    const backupFile = `backup-${date}-${hour}.sql.gz`;
+    const backupDir = '../../backups/semi-hourly';
 
     const hasSpace = await this.checkDiskSpace(backupDir);
 
     if (hasSpace) {
       exec(
-        `pg_dumpall | gzip > ${backupDir}/${backupFile}`,
+        `${baseBackupCommand} ${backupDir}/${backupFile}`,
         (error, stdout, stderr) => {
           if (error) {
             console.error(`Semi-hourly backup failed: ${stderr}`);
@@ -70,14 +73,14 @@ export class BackupService {
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
   async handleMonthlyBackup() {
     const date = new Date().toISOString().split('T')[0];
-    const backupFile = `monthly-backup-${date}.sql.gz`;
-    const backupDir = '/backups/monthly';
+    const backupFile = `backup-${date}.sql.gz`;
+    const backupDir = '../../backups/monthly';
 
     const hasSpace = await this.checkDiskSpace(backupDir);
 
     if (hasSpace) {
       exec(
-        `pg_dumpall | gzip > ${backupDir}/${backupFile}`,
+        `${baseBackupCommand} ${backupDir}/${backupFile}`,
         (error, stdout, stderr) => {
           if (error) {
             console.error(`Monthly backup failed: ${stderr}`);
