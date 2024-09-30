@@ -19,7 +19,7 @@ export class BackupService {
   async handleDailyBackup() {
     const date = new Date().toISOString().split('T')[0];
     const backupFile = `backup-${date}.sql.gz`;
-    const backupDir = '../../backups/daily/';
+    const backupDir = '../../backups/daily';
 
     const hasSpace = await this.checkDiskSpace(backupDir);
 
