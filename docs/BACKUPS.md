@@ -13,8 +13,9 @@ We are using `pg_dumpall` which back ups both our `prod` as well as our `chatbot
 
 ## Restoring a backup
 
-To restore a backup, you must first delete all the data in the database. You can do this by running the following command (make sure to change it to the database you want to drop):
+NOTE: my database container name is `helpme-postgresql-1`, you may need to change that in the commands.
 
+To restore a backup, you must first delete all the data in the database. You can do this by running the following command (make sure to change it to the database you want to drop):
 `docker exec -i helpme-postgresql-1 psql -U postgres -c "DROP DATABASE IF EXISTS dev/prod/chatbot/etc.;"`
 
 To restore a backup, you can navigate to backups/[daily/semi-hourly/monthly] and use the following command (change the backup file name to the one you want to restore):
