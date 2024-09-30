@@ -50,6 +50,7 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 import exampleConfig from '@/public/exampleQueueConfig.json'
 import exampleLabConfig from '@/public/exampleQueueLabConfig.json'
+import TaskDeleteSelector from '../TaskDeletionSelector'
 
 const { TextArea } = Input
 type Color = GetProp<ColorPickerProps, 'value'>
@@ -328,6 +329,93 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                 icon={<PlusOutlined />}
               >
                 Add Question Type
+              </Button>
+            </Form.Item>
+          </>
+        )}
+      </Form.List>
+      <Form.Item
+        label="Assignment Id"
+        name="assignmentId"
+        layout="horizontal"
+        tooltip={`The assignment ID for the queue (e.g. "lab1", "lab2", "assignment1", etc.). This is used to track the assignment progress for students. Needed only if tasks are specified.`}
+      >
+        <Input allowClear={true} placeholder="[No Assignment Id set]" />
+      </Form.Item>
+      <Form.Item
+        label="Tasks (Click to be marked for deletion)"
+        tooltip={`The tasks for the queue. A task is similar to a tag except it is 'check-able'. For example, a lab may have many parts or questions that require a TA to look at before the end of the lab.`}
+        name="tasksForDeletion"
+      >
+        <TaskDeleteSelector
+          configTasks={lastSavedQueueConfig.current?.tasks || {}}
+        />
+      </Form.Item>
+      <Form.List name="tasksForCreation">
+        {(fields, { add, remove }) => (
+          <>
+            {fields.map(({ key, name, ...restField }) => {
+              const defaultColor =
+                '#' + Math.floor(Math.random() * 16777215).toString(16)
+              return (
+                <Space key={key} className="flex" align="center">
+                  <Form.Item
+                    {...restField}
+                    name={[name, 'name']}
+                    rules={[
+                      { required: true, message: 'Please input a tag name' },
+                      {
+                        max: 20,
+                        message: 'Tag name must be less than 20 characters',
+                      },
+                      {
+                        validator: (_, value) => {
+                          // make sure no other tags have the same name
+                          if (
+                            questionTypes?.find((tag) => tag.name === value)
+                          ) {
+                            return Promise.reject('Duplicate tag name')
+                          }
+                          return Promise.resolve()
+                        },
+                      },
+                    ]}
+                  >
+                    <Input
+                      allowClear={true}
+                      placeholder="Tag Name"
+                      maxLength={20}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    {...restField}
+                    valuePropName="color"
+                    name={[name, 'color']}
+                    rules={[{ required: true, message: 'Missing color' }]}
+                    initialValue={defaultColor}
+                  >
+                    <ColorPickerWithPresets
+                      defaultValue={defaultColor}
+                      format="hex"
+                      defaultFormat="hex"
+                      disabledAlpha
+                    />
+                  </Form.Item>
+                  <CloseOutlined
+                    className="text-md mb-[1.5rem] text-gray-600"
+                    onClick={() => remove(name)}
+                  />
+                </Space>
+              )
+            })}
+            <Form.Item>
+              <Button
+                type="dashed"
+                onClick={() => add()}
+                block
+                icon={<PlusOutlined />}
+              >
+                Add Task
               </Button>
             </Form.Item>
           </>

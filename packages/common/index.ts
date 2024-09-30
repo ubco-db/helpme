@@ -1981,7 +1981,7 @@ export function validateQueueConfigInput(obj: any): string {
 }
 
 /**
- * note: this "Task" is only for frontend components (TaskSelector and in Queue)
+ * note: this "Task" is only for frontend components (TaskSelector, TaskDeletionSelector, and in Queue)
  */
 export interface Task {
   taskId: string
