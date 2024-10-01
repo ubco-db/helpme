@@ -9,28 +9,43 @@ import { Button, Card, Divider, Input, message, Row, Tag, Tooltip } from 'antd'
 import Link from 'next/link'
 import { ReactElement, useState } from 'react'
 import UserAvatar from '@/app/components/UserAvatar'
-import { QueuePartial } from '@koh/common'
+import { QueuePartial, QueueTypes } from '@koh/common'
 import { useCourse } from '@/app/hooks/useCourse'
 import { API } from '@/app/api'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 
 interface QueueCardProps {
   cid: number
+  type: QueueTypes
   queue: QueuePartial
-  isTA: boolean
+  isStaff: boolean
   linkId: string
 }
 
 const QueueCard: React.FC<QueueCardProps> = ({
   cid,
+  type,
   queue,
-  isTA,
+  isStaff,
   linkId,
 }): ReactElement => {
   const { mutateCourse } = useCourse(cid)
   const [editingNotes, setEditingNotes] = useState(false)
   const [updatedNotes, setUpdatedNotes] = useState(queue.notes)
   const [isLinkEnabled, setIsLinkEnabled] = useState(true) // for enabling/disabling the link to the queue when editing notes
+
+  const getQueueTypeLabel = (type: QueueTypes) => {
+    switch (type) {
+      case 'online':
+        return 'Online'
+      case 'hybrid':
+        return 'Hybrid'
+      case 'inPerson':
+        return 'In-Person'
+      default:
+        return 'Invalid Queue Type'
+    }
+  }
 
   const handleSaveQueueNotes = async (e: { preventDefault: () => void }) => {
     e.preventDefault()
@@ -81,6 +96,14 @@ const QueueCard: React.FC<QueueCardProps> = ({
             <div>
               {queue.room}
               <div className="flex">
+                {queue?.type && (
+                  <Tag
+                    color="#2a9187"
+                    className="m-0 mr-1 leading-4 text-gray-200"
+                  >
+                    {getQueueTypeLabel(queue.type)}
+                  </Tag>
+                )}
                 {queue?.isProfessorQueue && (
                   <Tag
                     color="#337589"
@@ -149,7 +172,7 @@ const QueueCard: React.FC<QueueCardProps> = ({
             <div className="whitespace-pre-wrap break-words text-[rgb(125,125,125)]">
               <NotificationOutlined /> <i>{queue.notes}</i>
             </div>
-          ) : isTA ? (
+          ) : isStaff ? (
             <i className="font-light text-gray-400"> no notes provided </i>
           ) : null}
           <div className="flex">
@@ -164,7 +187,7 @@ const QueueCard: React.FC<QueueCardProps> = ({
             )}
             {!editingNotes && (
               <Row className="pt-2.5">
-                {isTA && (
+                {isStaff && (
                   <Button
                     className="rounded-md border px-4 py-2 text-base font-medium"
                     onClick={(e) => {

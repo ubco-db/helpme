@@ -20,6 +20,7 @@ import {
   ERROR_MESSAGES,
   OpenQuestionStatus,
   QueueConfig,
+  QueueTypes,
   StatusInQueue,
 } from '@koh/common';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
@@ -58,6 +59,9 @@ export class QueueModel extends BaseEntity {
 
   @Column({ default: false })
   allowQuestions: boolean;
+
+  @Column({ default: 'hybrid' })
+  type: QueueTypes;
 
   @Column({ default: false })
   isProfessorQueue: boolean;

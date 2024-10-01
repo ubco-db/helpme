@@ -312,6 +312,8 @@ export interface Queue {
  * @param isOpen - A queue is open if it has staff and is not disabled.
  * @param config - A JSON object that contains the configuration for the queue. Contains stuff like tags, tasks, etc.
  */
+export type QueueTypes = 'online' | 'hybrid' | 'inPerson'
+
 export class QueuePartial {
   id!: number
   room!: string
@@ -332,6 +334,8 @@ export class QueuePartial {
   endTime?: Date
 
   allowQuestions!: boolean
+
+  type?: QueueTypes
 
   isProfessorQueue!: boolean
 

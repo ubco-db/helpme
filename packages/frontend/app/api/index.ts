@@ -22,6 +22,7 @@ import {
   UpdateQuestionParams,
   UpdateQuestionResponse,
   UpdateQueueParams,
+  QueueTypes,
   QueuePartial,
   Role,
   GetCourseUserInfoResponse,
@@ -445,6 +446,7 @@ class APIClient {
     createQueue: async (
       courseId: number,
       room: string,
+      type: QueueTypes,
       isProfessorQueue: boolean,
       notes: string,
       config: QueueConfig,
@@ -453,7 +455,7 @@ class APIClient {
         'POST',
         `/api/v1/courses/${courseId}/create_queue/${room}`,
         QueuePartial,
-        { notes, isProfessorQueue, config },
+        { notes, type, isProfessorQueue, config },
       ),
   }
 
