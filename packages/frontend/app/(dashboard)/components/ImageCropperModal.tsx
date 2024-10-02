@@ -99,9 +99,9 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
     try {
       setUploading(true) // Start the upload state
       const croppedImage = await getCroppedImg(
-        imageSrc!,
-        croppedAreaPixels!,
-        imageType!,
+        imageSrc,
+        croppedAreaPixels,
+        imageType,
       )
       const formData = new FormData()
       formData.append('file', croppedImage)
@@ -130,6 +130,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       open={isOpen}
       onOk={handleCropComplete}
       onCancel={() => onCancel()}
+      okButtonProps={{ disabled: !imageSrc }}
       destroyOnClose={true}
       width="auto"
       className="flex flex-col items-center justify-center"
