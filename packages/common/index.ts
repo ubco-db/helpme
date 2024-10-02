@@ -1217,6 +1217,10 @@ export class TACheckoutResponse {
 export class UpdateQueueParams {
   @IsString()
   @IsOptional()
+  type?: QueueTypes
+
+  @IsString()
+  @IsOptional()
   notes?: string
 
   @IsBoolean()

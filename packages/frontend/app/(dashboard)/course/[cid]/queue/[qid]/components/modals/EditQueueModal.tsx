@@ -15,6 +15,7 @@ import {
   ColorPickerProps,
   GetProp,
   Dropdown,
+  Segmented,
 } from 'antd'
 import {
   QuestionTypeParams,
@@ -123,6 +124,13 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
     }
   }, [open, queue?.config, resetQueueConfig])
 
+  // Values and labels for Segmented component for queue types
+  const queueTypeOptions = [
+    { label: 'Online', value: 'online' },
+    { label: 'Hybrid', value: 'hybrid' },
+    { label: 'In-Person', value: 'inPerson' },
+  ]
+
   const onFinish = async (values: FormValues) => {
     let errorsHaveOccurred = false
     const deletePromises =
@@ -178,10 +186,12 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             })
         : Promise.resolve()
     const updateQueueParams: UpdateQueueParams = pick(values, [
+      'type',
       'notes',
       'allowQuestions',
     ])
     const updateQueuePromise =
+      updateQueueParams.type !== queue?.type ||
       updateQueueParams.notes !== queue?.notes ||
       updateQueueParams.allowQuestions !== queue?.allowQuestions
         ? API.queues
@@ -241,6 +251,10 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         </Form>
       )}
     >
+      <Form.Item label="Queue Type" name="type">
+        <Segmented options={queueTypeOptions} />
+      </Form.Item>
+
       <Form.Item label="Queue Notes" name="notes">
         <TextArea
           className="rounded-md border border-gray-400 font-normal"
