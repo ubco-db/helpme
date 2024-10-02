@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { ReactElement, useState } from 'react'
 import UserAvatar from '@/app/components/UserAvatar'
 import { QueuePartial, QueueTypes } from '@koh/common'
+import { getQueueTypeLabel } from '../queue/[qid]/utils/commonQueueFunctions'
 import { useCourse } from '@/app/hooks/useCourse'
 import { API } from '@/app/api'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
@@ -33,19 +34,6 @@ const QueueCard: React.FC<QueueCardProps> = ({
   const [editingNotes, setEditingNotes] = useState(false)
   const [updatedNotes, setUpdatedNotes] = useState(queue.notes)
   const [isLinkEnabled, setIsLinkEnabled] = useState(true) // for enabling/disabling the link to the queue when editing notes
-
-  const getQueueTypeLabel = (type: QueueTypes) => {
-    switch (type) {
-      case 'online':
-        return 'Online'
-      case 'hybrid':
-        return 'Hybrid'
-      case 'inPerson':
-        return 'In-Person'
-      default:
-        return 'Invalid Queue Type'
-    }
-  }
 
   const handleSaveQueueNotes = async (e: { preventDefault: () => void }) => {
     e.preventDefault()

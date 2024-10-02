@@ -8,6 +8,7 @@ import {
   NotificationOutlined,
   StopOutlined,
   UpOutlined,
+  EnvironmentOutlined,
 } from '@ant-design/icons'
 import { Button, Popconfirm, Row, Switch, Tooltip } from 'antd'
 import moment from 'moment'
@@ -26,6 +27,7 @@ import {
 import RenderEvery from '@/app/components/RenderEvery'
 import TagGroupSwitch from './TagGroupSwitch'
 import StaffList from './StaffList'
+import { getQueueTypeLabel } from '../utils/commonQueueFunctions'
 
 interface QueueInfoColumnProps {
   cid: number
@@ -87,6 +89,15 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
                 {queue.notes}
               </div>
             </Linkify>
+          </div>
+        </div>
+      )}
+
+      {queue?.type && (
+        <div className="mb-0 flex flex-row items-center text-xl text-[#5f6b79] md:mb-5">
+          <EnvironmentOutlined />
+          <div className="ml-3 min-w-0 whitespace-pre-wrap break-words text-sm italic md:text-base">
+            {getQueueTypeLabel(queue.type)}
           </div>
         </div>
       )}
