@@ -10,7 +10,7 @@ import {
 import { Alert, Form, Modal } from 'antd'
 import TaskSelector from '../TaskSelector'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface FormValues {
   taskIds: string[]
@@ -30,6 +30,7 @@ interface CreateDemoModalProps {
   ) => void
   onCancel: () => void
   question: Question | undefined
+  setIsCreateDemoModalLoading: (loading: boolean) => void
   position?: number
 }
 
@@ -41,6 +42,7 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
   finishDemo,
   onCancel,
   question,
+  setIsCreateDemoModalLoading,
   position,
 }) => {
   const drafting = question?.status === OpenQuestionStatus.Drafting
@@ -61,6 +63,13 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
       false, //groupable
     )
   }
+
+  useEffect(() => {
+    if (open) {
+      // Need to put this loading toggle inside the modal so that the Create Demo button stops loading once the modal is rendered
+      setIsCreateDemoModalLoading(false)
+    }
+  }, [setIsCreateDemoModalLoading, open])
 
   return (
     <Modal

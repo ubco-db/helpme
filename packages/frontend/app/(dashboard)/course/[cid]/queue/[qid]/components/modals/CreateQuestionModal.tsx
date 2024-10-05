@@ -6,7 +6,7 @@ import { QuestionTagSelector } from '../../../../components/QuestionTagElement'
 import { toOrdinal } from '@/app/utils/generalUtils'
 import TextArea from 'antd/es/input/TextArea'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface CreateQuestionModalProps {
   queueId: number
@@ -22,6 +22,7 @@ interface CreateQuestionModalProps {
   ) => void
   onCancel: () => void
   question: Question | undefined
+  setIsJoinQueueModalLoading: (loading: boolean) => void
   position?: number
 }
 
@@ -39,6 +40,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
   finishQuestion,
   onCancel,
   question,
+  setIsJoinQueueModalLoading,
   position,
 }) => {
   const drafting = question?.status === OpenQuestionStatus.Drafting
@@ -70,6 +72,13 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
     )
     deleteStoredDraftQuestion()
   }
+
+  useEffect(() => {
+    if (open) {
+      // Need to put this loading toggle inside the modal so that the Join Queue button stops loading once the modal is rendered
+      setIsJoinQueueModalLoading(false)
+    }
+  }, [setIsJoinQueueModalLoading, open])
 
   return (
     <Modal
