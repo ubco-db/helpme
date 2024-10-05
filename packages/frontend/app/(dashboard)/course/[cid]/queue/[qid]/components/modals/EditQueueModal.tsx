@@ -22,7 +22,7 @@ import {
   UpdateQueueParams,
   validateQueueConfigInput,
 } from '@koh/common'
-import { min, pick } from 'lodash'
+import { pick } from 'lodash'
 import {
   ClearOutlined,
   CloseOutlined,
