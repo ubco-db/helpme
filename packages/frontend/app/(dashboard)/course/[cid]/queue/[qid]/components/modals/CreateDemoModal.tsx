@@ -10,6 +10,7 @@ import {
 import { Alert, Form, Modal } from 'antd'
 import TaskSelector from '../TaskSelector'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
+import { useState } from 'react'
 
 interface FormValues {
   taskIds: string[]
@@ -19,7 +20,7 @@ interface CreateDemoModalProps {
   configTasks: ConfigTasks
   studentAssignmentProgress: StudentAssignmentProgress | undefined
   open: boolean
-  leaveQueue: () => void
+  leaveQueue: () => Promise<void>
   finishDemo: (
     text: string,
     questionType: QuestionTypeParams[],
@@ -45,6 +46,7 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
   const drafting = question?.status === OpenQuestionStatus.Drafting
   const helping = question?.status === OpenQuestionStatus.Helping
   const [form] = Form.useForm()
+  const [isLeaveButtonLoading, setIsLeaveButtonLoading] = useState(false)
 
   const onFinish = (values: FormValues) => {
     const newQuestionText = `Mark ${values.taskIds
@@ -69,9 +71,12 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
       okButtonProps={{ autoFocus: true, htmlType: 'submit' }}
       cancelButtonProps={{
         danger: drafting,
-        onClick: () => {
+        loading: isLeaveButtonLoading,
+        onClick: async () => {
           if (drafting) {
-            leaveQueue()
+            setIsLeaveButtonLoading(true)
+            await leaveQueue()
+            setIsLeaveButtonLoading(false)
           } else {
             onCancel()
           }

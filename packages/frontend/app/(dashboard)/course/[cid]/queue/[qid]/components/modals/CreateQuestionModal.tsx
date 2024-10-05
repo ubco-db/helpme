@@ -6,12 +6,13 @@ import { QuestionTagSelector } from '../../../../components/QuestionTagElement'
 import { toOrdinal } from '@/app/utils/generalUtils'
 import TextArea from 'antd/es/input/TextArea'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
+import { useState } from 'react'
 
 interface CreateQuestionModalProps {
   queueId: number
   courseId: number
   open: boolean
-  leaveQueue: () => void
+  leaveQueue: () => Promise<void>
   finishQuestion: (
     text: string,
     questionTypes: QuestionTypeParams[] | undefined,
@@ -43,6 +44,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
   const drafting = question?.status === OpenQuestionStatus.Drafting
   const helping = question?.status === OpenQuestionStatus.Helping
   const [questionTypes] = useQuestionTypes(courseId, queueId)
+  const [isLeaveButtonLoading, setIsLeaveButtonLoading] = useState(false)
 
   const [
     storedDraftQuestion,
@@ -78,10 +80,13 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
       okButtonProps={{ autoFocus: true, htmlType: 'submit' }}
       cancelButtonProps={{
         danger: drafting,
-        onClick: () => {
+        loading: isLeaveButtonLoading,
+        onClick: async () => {
           if (drafting) {
+            setIsLeaveButtonLoading(true)
             deleteStoredDraftQuestion()
-            leaveQueue()
+            await leaveQueue()
+            setIsLeaveButtonLoading(false)
           } else {
             onCancel()
           }
