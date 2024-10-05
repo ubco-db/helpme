@@ -843,6 +843,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   : studentQuestionIndex + 1
               }
               onCancel={() => closeEditQuestionDemoModal(false)}
+              minTags={queueConfig?.minimum_tags}
             />
             <StudentRemovedFromQueueModal
               question={studentQuestion}
