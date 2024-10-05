@@ -49,7 +49,6 @@ import {
 import { OrganizationGuard } from 'guards/organization.guard';
 import * as checkDiskSpace from 'check-disk-space';
 import * as path from 'path';
-import Jimp from 'jimp';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SemesterModel } from 'semester/semester.entity';
@@ -61,6 +60,7 @@ import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import _, { isNumber } from 'lodash';
 import { MailServiceModel } from 'mail/mail-services.entity';
+import * as sharp from 'sharp';
 import { User, UserId } from 'decorators/user.decorator';
 
 @Controller('organization')
@@ -699,7 +699,7 @@ export class OrganizationController {
       path.join(process.env.UPLOAD_LOCATION, photoUrl),
       async (err, stats) => {
         if (stats) {
-          res.set('Content-Type', 'image/jpeg');
+          res.set('Content-Type', 'image/webp');
           res.sendFile(photoUrl, {
             root: process.env.UPLOAD_LOCATION,
           });
@@ -731,6 +731,7 @@ export class OrganizationController {
       path.join(process.env.UPLOAD_LOCATION, photoUrl),
       async (err, stats) => {
         if (stats) {
+          res.set('Content-Type', 'image/webp');
           res.sendFile(photoUrl, {
             root: process.env.UPLOAD_LOCATION,
           });
@@ -785,6 +786,7 @@ export class OrganizationController {
       });
     }
 
+    // If an old banner is still saved, delete it before saving the new one
     if (organization.bannerUrl) {
       fs.unlink(
         process.env.UPLOAD_LOCATION + '/' + organization.bannerUrl,
@@ -808,18 +810,21 @@ export class OrganizationController {
       });
     }
 
-    const fileName =
-      organization.id +
-      '-' +
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15);
+    const fileName = organization.id + '-' + Date.now().toString() + '.webp';
 
-    const image = await Jimp.read(file.buffer);
-    image.resize(1920, 1080);
-    await image.writeAsync(
-      path.join(process.env.UPLOAD_LOCATION as string, fileName),
-    );
-    organization.bannerUrl = fileName;
+    // Create the upload location if it doesn't exist
+    if (!fs.existsSync(process.env.UPLOAD_LOCATION)) {
+      fs.mkdirSync(process.env.UPLOAD_LOCATION, { recursive: true });
+    }
+
+    const targetPath = path.join(process.env.UPLOAD_LOCATION, fileName);
+
+    try {
+      await sharp(file.buffer).resize(1920, 300).webp().toFile(targetPath);
+      organization.bannerUrl = fileName;
+    } catch (err) {
+      console.error('Error processing image:', err);
+    }
 
     await organization
       .save()
@@ -889,19 +894,21 @@ export class OrganizationController {
       });
     }
 
-    const fileName =
-      organization.id +
-      '-' +
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15);
+    const fileName = organization.id + '-' + Date.now().toString() + '.webp';
 
-    const image = await Jimp.read(file.buffer); // Load the image
-    image.resize(256, Jimp.AUTO); // Resize the image to 256 pixels (width, maintaining aspect ratio)
-    await image.writeAsync(
-      path.join(process.env.UPLOAD_LOCATION as string, fileName),
-    ); //same old
+    // Create the upload location if it doesn't exist
+    if (!fs.existsSync(process.env.UPLOAD_LOCATION)) {
+      fs.mkdirSync(process.env.UPLOAD_LOCATION, { recursive: true });
+    }
 
-    organization.logoUrl = fileName;
+    const targetPath = path.join(process.env.UPLOAD_LOCATION, fileName);
+
+    try {
+      await sharp(file.buffer).resize(100).webp().toFile(targetPath);
+      organization.logoUrl = fileName;
+    } catch (err) {
+      console.error('Error processing image:', err);
+    }
 
     await organization
       .save()
