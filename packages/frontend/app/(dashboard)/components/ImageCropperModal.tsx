@@ -143,6 +143,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
         className="mb-2"
         showUploadList={false}
         maxCount={1}
+        accept=".jpg,.jpeg,.png,.webp,.avif,.gif,.svg,.tiff"
       >
         <button className="min-w-[85vw] rounded-lg border-2 bg-white p-2 lg:min-w-[30vw]">
           <UploadOutlined />
