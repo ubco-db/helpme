@@ -260,7 +260,7 @@ export default function SettingsPage(): ReactElement {
                     <ImageCropperModal
                       isOpen={isCropperModalOpen.banner}
                       circular={false}
-                      aspect={1920 / 1080}
+                      aspect={1920 / 300}
                       imgName="Organization Banner"
                       postURL={`/api/v1/organization/${organization?.id}/upload_banner`}
                       onUpdateComplete={() => {

@@ -699,7 +699,7 @@ export class OrganizationController {
       path.join(process.env.UPLOAD_LOCATION, photoUrl),
       async (err, stats) => {
         if (stats) {
-          res.set('Content-Type', 'image/jpeg');
+          res.set('Content-Type', 'image/webp');
           res.sendFile(photoUrl, {
             root: process.env.UPLOAD_LOCATION,
           });
@@ -731,6 +731,7 @@ export class OrganizationController {
       path.join(process.env.UPLOAD_LOCATION, photoUrl),
       async (err, stats) => {
         if (stats) {
+          res.set('Content-Type', 'image/webp');
           res.sendFile(photoUrl, {
             root: process.env.UPLOAD_LOCATION,
           });
@@ -819,7 +820,7 @@ export class OrganizationController {
     const targetPath = path.join(process.env.UPLOAD_LOCATION, fileName);
 
     try {
-      await sharp(file.buffer).resize(1920, 1080).webp().toFile(targetPath);
+      await sharp(file.buffer).resize(1920, 300).webp().toFile(targetPath);
       organization.bannerUrl = fileName;
     } catch (err) {
       console.error('Error processing image:', err);
@@ -903,7 +904,7 @@ export class OrganizationController {
     const targetPath = path.join(process.env.UPLOAD_LOCATION, fileName);
 
     try {
-      await sharp(file.buffer).resize(256).webp().toFile(targetPath);
+      await sharp(file.buffer).resize(100).webp().toFile(targetPath);
       organization.logoUrl = fileName;
     } catch (err) {
       console.error('Error processing image:', err);

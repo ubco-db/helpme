@@ -52,6 +52,7 @@ const EditProfile: React.FC = () => {
         },
       }
       newProfile.sid = parseInt(`${newProfile.sid}`, 10)
+      setUserInfo(newProfile)
       await API.profile
         .patch(pick(newProfile, ['firstName', 'lastName', 'sid']))
         .catch((error) => {

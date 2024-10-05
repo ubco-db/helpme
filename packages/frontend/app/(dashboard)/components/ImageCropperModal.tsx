@@ -71,7 +71,9 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
     const isValidMimeType = viableFileTypes.includes(file.type)
 
     if (!isValidMimeType) {
-      message.error('You can only upload JPGs or PNGs!')
+      message.error(
+        'Only the following image formats are supported: JPEG/JPG, PNG, WEBP, AVIF, GIF, SVG, and TIFF.',
+      )
     }
 
     const isLt5M = file.size / 1024 / 1024 < 5
@@ -147,7 +149,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
           <span className="ml-2">{`Upload ${imgName}`}</span>
         </button>
       </Upload>
-      <div className="relative mt-2 h-[300px] w-full">
+      <div className="relative mt-2 min-h-80 w-full">
         <Cropper
           image={imageSrc ?? ''}
           crop={crop}

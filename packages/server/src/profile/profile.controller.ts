@@ -263,7 +263,18 @@ export class ProfileController {
             .send({ message: 'File not found' });
         }
         if (stats) {
-          res.sendFile(photoURL, { root: process.env.UPLOAD_LOCATION });
+          res.set('Content-Type', 'image/webp');
+          res.sendFile(
+            photoURL,
+            { root: process.env.UPLOAD_LOCATION },
+            (sendFileError) => {
+              if (sendFileError) {
+                return res
+                  .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                  .send({ message: 'Error serving the image.' });
+              }
+            },
+          );
         }
       },
     );
