@@ -77,6 +77,7 @@ interface FormValues {
   tasks: TaskParams[]
   zoomLink: string
   queue_config: string
+  minTags: string
 }
 
 interface EditQueueModalProps {
@@ -193,6 +194,24 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               message.error(`Failed to change zoom link: ${errorMessage}`)
             })
         : Promise.resolve()
+    // this promise is only for minTags for now
+    const newQueueConfig: QueueConfig = {
+      ...lastSavedQueueConfig.current,
+      minimum_tags: Number(values.minTags),
+    }
+    const queueConfigPromise =
+      lastSavedQueueConfig.current?.minimum_tags !== Number(values.minTags)
+        ? API.queues
+            .updateConfig(queueId, newQueueConfig)
+            .then(() => {
+              message.success('Minimum Tags updated to ' + values.minTags)
+            })
+            .catch((e) => {
+              errorsHaveOccurred = true
+              const errorMessage = getErrorMessage(e)
+              message.error(`Failed to save minimum tags: ${errorMessage}`)
+            })
+        : Promise.resolve()
     const updateQueueParams: UpdateQueueParams = pick(values, [
       'notes',
       'allowQuestions',
@@ -215,6 +234,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       ...deletePromises,
       ...createPromises,
       zoomLinkPromise,
+      queueConfigPromise,
       updateQueuePromise,
     ])
     mutateQuestionTypes()
@@ -250,6 +270,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             questionTypesForDeletion: [],
             assignmentId: lastSavedQueueConfig.current?.assignment_id,
             zoomLink: course?.zoomLink,
+            minTags: queue?.config?.minimum_tags ?? 0,
             tasks: Object.entries(
               lastSavedQueueConfig.current?.tasks || {},
             ).map(([taskID, task]) => ({
@@ -365,6 +386,14 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
           </>
         )}
       </Form.List>
+      <Form.Item
+        label="Minimum Question Tags"
+        name="minTags"
+        layout="horizontal"
+        tooltip="This allows you to force your students to select a number of question tags when creating a question. Setting to 0 will make selecting a question tag optional"
+      >
+        <Input type="number" min={0} max={20} />
+      </Form.Item>
       <Form.Item
         label="Assignment Id"
         name="assignmentId"
