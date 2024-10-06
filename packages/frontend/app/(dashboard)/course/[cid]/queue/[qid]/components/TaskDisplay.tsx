@@ -6,56 +6,13 @@ import { getBrightness } from '@/app/utils/generalUtils'
 import tinycolor from 'tinycolor2'
 import { ArrowRightOutlined } from '@ant-design/icons'
 
-interface DeletableTaskProps {
+interface DisplayTaskProps {
   taskName: string
   taskColor: string
-  taskID?: string
-  onChangeWithID?: (taskID: string, checked: boolean) => void
-  checked: boolean
 }
 
-const DeletableTask: React.FC<DeletableTaskProps> = ({
-  taskName,
-  taskColor,
-  taskID,
-  onChangeWithID,
-  checked,
-}) => {
-  const textColor = checked
-    ? getBrightness(taskColor) < 128
-      ? 'lightcoral'
-      : 'darkred'
-    : getBrightness(taskColor) < 128
-      ? 'white'
-      : 'black'
-
-  const handleClick = () => {
-    if (onChangeWithID && taskID) {
-      onChangeWithID(taskID, !checked)
-    }
-  }
-
-  // for making it so you can press enter to toggle it
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter') {
-      handleClick()
-    }
-  }
-
-  // for applying hover and focus styles
-  const [isHovered, setIsHovered] = useState(false)
-  const handleMouseEnter = () => {
-    setIsHovered(true)
-  }
-  const handleMouseLeave = () => {
-    setIsHovered(false)
-  }
-  const handleFocus = () => {
-    setIsHovered(true)
-  }
-  const handleBlur = () => {
-    setIsHovered(false)
-  }
+const DisplayTask: React.FC<DisplayTaskProps> = ({ taskName, taskColor }) => {
+  const textColor = getBrightness(taskColor) < 128 ? 'white' : 'black'
 
   return (
     <div
@@ -65,50 +22,29 @@ const DeletableTask: React.FC<DeletableTaskProps> = ({
         padding: '4px 9px',
         margin: '2px',
         display: 'inline-block',
-        cursor: 'pointer',
         border: `1px solid ${tinycolor(taskColor).darken(10).toString()}`,
-        boxShadow: isHovered
-          ? `0 0 0 2px ${tinycolor(taskColor).darken(10).toString()}`
-          : undefined,
       }}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
       tabIndex={0}
       role="checkbox"
-      aria-checked={checked}
     >
-      <div style={{ fontSize: 'smaller', color: textColor }}>
-        {checked ? (
-          <s
-            style={{
-              display: checked ? 'inline' : 'none',
-            }}
-          >
-            {taskName}
-          </s>
-        ) : (
-          taskName
-        )}
-      </div>
+      <div style={{ fontSize: 'smaller', color: textColor }}>{taskName}</div>
     </div>
   )
 }
 
-interface TaskDeleteSelectorProps {
+interface TaskDisplayProps {
   configTasks: ConfigTasks
-  onChange?: (newSelectedTasks: string[]) => void
   value?: string[]
   className?: string
   [key: string]: any
 }
 
-const TaskDeleteSelector: React.FC<TaskDeleteSelectorProps> = ({
+/**
+ * This displays a little display of all the tasks and their dependencies.
+ * Helps give a visual of what's going on in EditQueueModal when editing tasks.
+ */
+const TaskDisplay: React.FC<TaskDisplayProps> = ({
   configTasks,
-  onChange,
   value,
   className,
   ...props
@@ -133,11 +69,8 @@ const TaskDeleteSelector: React.FC<TaskDeleteSelectorProps> = ({
         : selectedTasks.filter((id) => id !== taskID)
 
       setSelectedTasks(newSelectedTasks)
-      if (onChange) {
-        onChange(newSelectedTasks)
-      }
     },
-    [selectedTasks, onChange],
+    [selectedTasks],
   )
 
   const printDependents = useCallback(
@@ -153,12 +86,9 @@ const TaskDeleteSelector: React.FC<TaskDeleteSelectorProps> = ({
       accumulatedTasks.push(
         <div key={taskID} className="flex items-center">
           {task.precondition && <ArrowRightOutlined />}
-          <DeletableTask
+          <DisplayTask
             taskName={task.display_name}
             taskColor={task.color_hex}
-            taskID={taskID}
-            checked={selectedTasks.includes(taskID)}
-            onChangeWithID={handleCurrentTaskClick}
           />
         </div>,
       )
@@ -201,4 +131,4 @@ const TaskDeleteSelector: React.FC<TaskDeleteSelectorProps> = ({
   )
 }
 
-export default TaskDeleteSelector
+export default TaskDisplay
