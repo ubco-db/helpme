@@ -56,6 +56,9 @@ import {
   MailServiceWithSubscription,
   UserMailSubscription,
   CourseResponse,
+  QueueInviteParams,
+  PublicQueueInvite,
+  QueueInvite,
   InsightDashboardPartial,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
@@ -273,6 +276,8 @@ class APIClient {
       ),
     getAllQuestionTypes: async (courseId: number): Promise<QuestionType[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
+    getAllQueueInvites: async (courseId: number): Promise<QueueInvite[]> =>
+      this.req('GET', `/api/v1/courses/${courseId}/queue_invites`),
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>
@@ -452,6 +457,28 @@ class APIClient {
         { notes, isProfessorQueue, config },
       ),
   }
+
+  queueInvites = {
+    create: async (queueId: number): Promise<void> =>
+      this.req('POST', `/api/v1/queueInvites/${queueId}`),
+    delete: async (queueId: number): Promise<void> =>
+      this.req('DELETE', `/api/v1/queueInvites/${queueId}`),
+    update: async (queueId: number, body: QueueInviteParams): Promise<void> =>
+      this.req('PATCH', `/api/v1/queueInvites/${queueId}`, undefined, body),
+    get: async (queueId: number, code: string): Promise<PublicQueueInvite> =>
+      this.req('GET', `/api/v1/queueInvites/${queueId}/${code}`),
+    getQuestions: async (
+      queueId: number,
+      code: string,
+    ): Promise<ListQuestionsResponse> =>
+      this.req('GET', `/api/v1/queueInvites/${queueId}/${code}/questions`),
+    getQueue: async (
+      queueId: number,
+      code: string,
+    ): Promise<GetQueueResponse> =>
+      this.req('GET', `/api/v1/queueInvites/${queueId}/${code}/queue`),
+  }
+
   notif = {
     desktop: {
       credentials: async (): Promise<string> =>
