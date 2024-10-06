@@ -1,14 +1,23 @@
 import {
+  decodeBase64,
   ListQuestionsResponse,
   OpenQuestionStatus,
+  PublicQueueInvite,
   Question,
   QueueConfig,
+  QueueInviteParams,
   Role,
+  StaffForStaffList,
   StatusInPriorityQueue,
   StatusInQueue,
   StatusSentToCreator,
 } from '@koh/common';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { classToClass } from 'class-transformer';
 import { pick } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
@@ -17,6 +26,8 @@ import { QueueModel } from './queue.entity';
 import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { QueueInviteModel } from './queue-invite.entity';
+import { UserModel } from 'profile/user.entity';
 
 /**
  * Get data in service of the queue controller and SSE
@@ -35,6 +46,14 @@ export class QueueService {
     });
     await queue.checkIsOpen();
     await queue.addQueueSize();
+
+    queue.staffList = queue.staffList.map((user) => {
+      return {
+        id: user.id,
+        name: user.name,
+        photoURL: user.photoURL,
+      } as UserModel;
+    });
 
     return queue;
   }
@@ -73,6 +92,19 @@ export class QueueService {
       (question) =>
         question.status === OpenQuestionStatus.Helping && !question.groupId,
     );
+
+    // Also remove sensitive data from taHelped inside questionsGettingHelp
+    queueQuestions.questionsGettingHelp =
+      queueQuestions.questionsGettingHelp.map((question) => {
+        question.taHelped = question.taHelped
+          ? {
+              id: question.taHelped.id,
+              name: question.taHelped.name,
+              photoURL: question.taHelped.photoURL,
+            }
+          : null;
+        return question;
+      });
 
     queueQuestions.priorityQueue = questionsFromDb.filter((question) =>
       StatusInPriorityQueue.includes(question.status as OpenQuestionStatus),
@@ -276,5 +308,195 @@ export class QueueService {
     });
 
     return questionTypeMessages;
+  }
+
+  /**
+   * Creates a new queue invite for the given queue
+   */
+  async createQueueInvite(queueId: number): Promise<void> {
+    const queueInvite = await QueueInviteModel.findOne(queueId);
+
+    // make sure queue does not already have a queue invite
+    if (queueInvite) {
+      throw new BadRequestException('Queue already has a queue invite');
+    }
+
+    try {
+      const invite = QueueInviteModel.create({ queueId });
+      await invite.save();
+    } catch (err) {
+      console.error('Error while creating queue invite:');
+      console.error(err);
+      throw new InternalServerErrorException(
+        'Error while creating queue invite',
+      );
+    }
+    return;
+  }
+
+  /**
+   * Deletes a queue invite for the given queue
+   */
+  async deleteQueueInvite(queueId: number): Promise<void> {
+    const queueInvite = await QueueInviteModel.findOne(queueId);
+
+    // make sure queue has a queue invite
+    if (!queueInvite) {
+      throw new BadRequestException('Queue does not have a queue invite');
+    }
+
+    try {
+      await queueInvite.remove();
+    } catch (err) {
+      console.error('Error while deleting queue invite:');
+      console.error(err);
+      throw new InternalServerErrorException(
+        'Error while deleting queue invite',
+      );
+    }
+    return;
+  }
+
+  /**
+   * Edits a queue invite for the given queue
+   */
+  async editQueueInvite(
+    queueId: number,
+    newQueueInvite: QueueInviteParams,
+  ): Promise<void> {
+    const queueInvite = await QueueInviteModel.findOne(queueId);
+
+    // make sure queue has a queue invite
+    if (!queueInvite) {
+      throw new BadRequestException('Queue does not have a queue invite');
+    }
+
+    // make sure the invite code is either empty or at least 8 characters long
+    if (
+      newQueueInvite.inviteCode !== '' &&
+      newQueueInvite.inviteCode.length < 8
+    ) {
+      throw new BadRequestException(
+        'Invite code must be at least 8 characters long',
+      );
+    }
+
+    try {
+      await QueueInviteModel.update(queueId, newQueueInvite);
+    } catch (err) {
+      console.error('Error while editing queue invite:');
+      console.error(err);
+      throw new InternalServerErrorException(
+        'Error while editing queue invite',
+      );
+    }
+    return;
+  }
+
+  /**
+   * Gets the queue invite for the given queue.
+   * Accepts a parameter `inviteCode` which is the invite code for the queue.
+   * If isQuestionsVisible is true, the questions will be added.
+   * If willInviteToCourse is true, the course's invite code will be returned as well.
+   */
+  async getQueueInvite(
+    queueId: number,
+    inviteCode: string,
+  ): Promise<PublicQueueInvite> {
+    const queueInvite = await QueueInviteModel.findOne({
+      where: {
+        queueId,
+        inviteCode,
+      },
+    });
+
+    if (!queueInvite || queueInvite.inviteCode === '') {
+      // also don't let anyone in if the inviteCode is still the default
+      throw new NotFoundException(); // while technically you should return a 400 if the inviteCode is wrong, instead returning a 404 is more sneaky since the user needs both the id AND invite
+    }
+
+    const queue = await QueueModel.findOne(queueId, {
+      relations: ['course', 'course.organizationCourse', 'staffList'],
+    });
+
+    if (!queue) {
+      throw new NotFoundException('Queue not found');
+    }
+
+    await queue.addQueueSize();
+
+    // query the questions helped questions for this queue (select helpedAt and taHelpedId)
+    const helpedQuestions = await QuestionModel.find({
+      select: ['helpedAt', 'taHelpedId'],
+      where: {
+        queueId,
+        status: OpenQuestionStatus.Helping,
+      },
+    });
+
+    // create a new StaffList with only the necessary fields
+    const staffList: StaffForStaffList[] = queue.staffList.map((user) => {
+      let helpedAt = null;
+      helpedQuestions.forEach((question) => {
+        if (question.taHelpedId === user.id) {
+          helpedAt = question.helpedAt;
+        }
+      });
+
+      return {
+        id: user.id,
+        name: user.name,
+        photoURL: user.photoURL,
+        questionHelpedAt: helpedAt,
+      };
+    });
+
+    // Create a new PublicQueueInvite object
+    const queueInviteResponse: PublicQueueInvite = {
+      ...queueInvite,
+      orgId: queue.course.organizationCourse.organizationId,
+      courseId: queue.course.id,
+      room: queue.room,
+      queueSize: queue.queueSize,
+      staffList: staffList,
+      courseName: queue.course.name,
+    };
+
+    // get course invite code
+    if (queueInvite.willInviteToCourse) {
+      queueInviteResponse.courseInviteCode = queue.course.courseInviteCode;
+    }
+
+    return queueInviteResponse;
+  }
+
+  async verifyQueueInviteCodeAndCheckIfQuestionsVisible(
+    queueId: number,
+    encodedInviteCode: string,
+  ): Promise<boolean> {
+    let inviteCode = '';
+    try {
+      inviteCode = decodeBase64(encodedInviteCode);
+    } catch (err) {
+      console.error('Error while decoding invite code:');
+      console.error(err);
+      throw new BadRequestException('Invalid invite code');
+    }
+    const queueInvite = await QueueInviteModel.findOne({
+      where: {
+        queueId,
+        inviteCode,
+      },
+    });
+
+    if (!queueInvite || queueInvite.inviteCode === '') {
+      return false;
+    }
+
+    if (queueInvite.isQuestionsVisible) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }

@@ -6,6 +6,7 @@ import {
   ListQuestionsResponse,
   OpenQuestionStatus,
   QueueConfig,
+  QueueInviteParams,
   Role,
   UpdateQueueParams,
   setQueueConfigResponse,
@@ -53,6 +54,10 @@ export class QueueController {
     private redisQueueService: RedisQueueService,
   ) {}
 
+  /*
+  Gets all queue info.
+  Note there is a method that is very similar to this in queue-invite.controller.ts
+  */
   @Get(':queueId')
   @Roles(Role.TA, Role.PROFESSOR, Role.STUDENT)
   async getQueue(
@@ -69,6 +74,10 @@ export class QueueController {
     }
   }
 
+  /*
+  Gets all questions in a queue and personalizes them.
+  Note there is a method that is very similar to this in queue-invite.controller.ts
+  */
   @Get(':queueId/questions')
   @Roles(Role.TA, Role.PROFESSOR, Role.STUDENT)
   async getQuestions(
@@ -154,7 +163,10 @@ export class QueueController {
     }
   }
 
-  // Endpoint to send frontend receive server-sent events when queue changes
+  /**
+   * Endpoint to tell frontend when the queue changes
+   * Note there is a similar method in queue-invite.controller.ts
+   *  */
   @Get(':queueId/sse')
   sendEvent(
     @Param('queueId', ParseIntPipe) queueId: number,

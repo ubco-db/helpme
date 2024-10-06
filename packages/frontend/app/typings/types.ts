@@ -19,6 +19,9 @@ export interface Event {
   daysOfWeek?: string[] | null
   startTime?: string | null
   endTime?: string | null
+  backgroundColor?: string
+  borderColor?: string
+  textColor?: string
 }
 
 /**

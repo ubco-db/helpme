@@ -8,7 +8,6 @@ import {
   parseTaskIdsFromQuestionText,
   Question,
   QuestionType,
-  Queue,
   QueueConfig,
   StudentAssignmentProgress,
   Task,
@@ -24,6 +23,7 @@ const Panel = Collapse.Panel
 
 interface QueueQuestionsProps {
   questions: Question[]
+  questionsGettingHelp: Question[]
   cid: number
   qid: number
   isStaff: boolean
@@ -64,6 +64,7 @@ interface QueueQuestionsProps {
  */
 const QueueQuestions: React.FC<QueueQuestionsProps> = ({
   questions,
+  questionsGettingHelp,
   cid,
   qid,
   isStaff,
@@ -317,24 +318,51 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
           })}
         </Collapse>
       ) : (
-        questions?.map((question: Question) => {
-          const isMyQuestion =
-            question.id === studentQuestionId || question.id === studentDemoId
-          const background_color = isMyQuestion ? 'bg-teal-200/25' : 'bg-white'
-          return (
-            <QuestionCard
-              key={question.id}
-              question={question}
-              cid={cid}
-              qid={qid}
-              isStaff={isStaff}
-              configTasks={configTasks}
-              studentAssignmentProgress={studentAssignmentProgress}
-              isMyQuestion={isMyQuestion}
-              className={background_color}
-            />
-          )
-        })
+        <>
+          {!isStaff &&
+            questionsGettingHelp.map((question: Question) => {
+              const isMyQuestion =
+                question.id === studentQuestionId ||
+                question.id === studentDemoId
+              const background_color = isMyQuestion
+                ? 'bg-teal-200/25'
+                : 'bg-white'
+              return (
+                <QuestionCard
+                  key={question.id}
+                  question={question}
+                  cid={cid}
+                  qid={qid}
+                  isStaff={isStaff}
+                  configTasks={configTasks}
+                  studentAssignmentProgress={studentAssignmentProgress}
+                  isMyQuestion={isMyQuestion}
+                  className={background_color}
+                  isBeingHelped={true}
+                />
+              )
+            })}
+          {questions.map((question: Question) => {
+            const isMyQuestion =
+              question.id === studentQuestionId || question.id === studentDemoId
+            const background_color = isMyQuestion
+              ? 'bg-teal-200/25'
+              : 'bg-white'
+            return (
+              <QuestionCard
+                key={question.id}
+                question={question}
+                cid={cid}
+                qid={qid}
+                isStaff={isStaff}
+                configTasks={configTasks}
+                studentAssignmentProgress={studentAssignmentProgress}
+                isMyQuestion={isMyQuestion}
+                className={background_color}
+              />
+            )
+          })}
+        </>
       )}
     </div>
   )

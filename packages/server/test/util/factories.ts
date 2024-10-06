@@ -33,6 +33,7 @@ import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { v4 } from 'uuid';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 import { CalendarModel } from 'calendar/calendar.entity';
+import { QueueInviteModel } from 'queue/queue-invite.entity';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)
@@ -91,6 +92,14 @@ export const QueueFactory = new Factory(QueueModel)
   .attr('isProfessorQueue', false)
   .attr('isDisabled', false)
   .attr('config', {});
+
+export const QueueInviteFactory = new Factory(QueueInviteModel)
+  .assocOne('queue', QueueFactory)
+  .attr('QRCodeEnabled', true)
+  .attr('isQuestionsVisible', false)
+  .attr('willInviteToCourse', false)
+  .attr('inviteCode', 'invite-code')
+  .attr('QRCodeErrorLevel', 'L');
 
 export const QuestionTypeFactory = new Factory(QuestionTypeModel)
   .attr('cid', 1)

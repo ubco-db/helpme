@@ -9,9 +9,10 @@ import { AlertsService } from '../alerts/alerts.service';
 import { AlertsModule } from '../alerts/alerts.module';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { ApplicationConfigService } from '../config/application_config.service';
+import { QueueInviteController } from './queue-invite.controller';
 
 @Module({
-  controllers: [QueueController],
+  controllers: [QueueController, QueueInviteController],
   providers: [
     QueueCleanService,
     QueueService,

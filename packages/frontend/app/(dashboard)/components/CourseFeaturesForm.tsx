@@ -69,14 +69,14 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
           courseId={courseId}
         />
 
-        <CourseFeatureSwitch
+        {/* <CourseFeatureSwitch
           featureName="adsEnabled"
           defaultChecked={courseFeatures.adsEnabled}
           disabled={true}
           title="Advertisements (Not currently implemented)"
           description="Displays non-intrusive advertisements to help keep the servers running"
           courseId={courseId}
-        />
+        /> */}
       </Form>
     )
   )

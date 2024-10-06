@@ -18,6 +18,7 @@ ListQuestionsResponse {
         QuestionTypeModel {
           "cid": 1,
           "color": "#000000",
+          "deletedAt": null,
           "id": 1,
           "name": "Question Type",
           "queueId": 2,
@@ -40,6 +41,7 @@ ListQuestionsResponse {
         QuestionTypeModel {
           "cid": 1,
           "color": "#000000",
+          "deletedAt": null,
           "id": 2,
           "name": "Question Type",
           "queueId": 3,
@@ -72,6 +74,7 @@ ListQuestionsResponse {
         QuestionTypeModel {
           "cid": 1,
           "color": "#000000",
+          "deletedAt": null,
           "id": 1,
           "name": "Question Type",
           "queueId": 2,

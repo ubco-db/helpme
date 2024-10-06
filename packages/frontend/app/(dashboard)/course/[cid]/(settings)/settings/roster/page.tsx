@@ -7,7 +7,12 @@ export default async function CourseRoster({
   params: { cid: string }
 }) {
   return (
-    <Card title="Course Roster">
+    <Card
+      title="Course Roster"
+      classNames={{
+        body: 'p-1 md:p-8',
+      }}
+    >
       <CourseRosterTables courseId={Number(params.cid)} />
     </Card>
   )

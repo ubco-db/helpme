@@ -2,7 +2,8 @@
 
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { CopyOutlined } from '@ant-design/icons'
+import printQRCode from '@/app/utils/QRCodePrintUtils'
+import { CopyOutlined, QrcodeOutlined } from '@ant-design/icons'
 import { OrganizationCourseResponse } from '@koh/common'
 import { Button, Form, Input, message } from 'antd'
 import { useCallback, useState } from 'react'
@@ -96,6 +97,16 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
             icon={<CopyOutlined />}
           >
             {copyLinkText}
+          </Button>
+          <Button
+            onClick={() =>
+              printQRCode(courseData.course?.name ?? '', inviteURL)
+            }
+            type="default"
+            disabled={courseCode === null}
+            icon={<QrcodeOutlined />}
+          >
+            Print QR Code
           </Button>
         </div>
         <div className="flex w-full items-center justify-end space-x-4">

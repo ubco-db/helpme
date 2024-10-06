@@ -49,15 +49,17 @@ export class MailService {
       throw new HttpException('Mail type/name not found', HttpStatus.NOT_FOUND);
     }
 
+    const baseContent = emailPost.content || mail.content;
+    const fullContent = `
+    ${baseContent}
+    <br><br><a href="${process.env.DOMAIN}/courses">View Your Courses</a>
+    <br>Do you not want to receive these emails? <a href="${process.env.DOMAIN}/profile">Unsubscribe</a>
+  `;
     await this.mailerService.sendMail({
       to: emailPost.receiver,
       from: '"HelpMe Support"',
       subject: emailPost.subject,
-      html:
-        emailPost.content ??
-        mail.content +
-          `<br> <a href="${process.env.DOMAIN}/courses">View Your Courses</a>` +
-          `<br> Do you not want to receive these emails? <a href="${process.env.DOMAIN}/profile">Unsubscribe</a>`,
+      html: fullContent,
     });
   }
   async findAllSubscriptions(

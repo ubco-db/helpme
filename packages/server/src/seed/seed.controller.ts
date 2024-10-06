@@ -395,8 +395,6 @@ export class SeedController {
         name: 'UBCO',
         description: 'UBC Okanagan',
         legacyAuthEnabled: true,
-        logoUrl:
-          'https://ires.ubc.ca/files/2020/11/cropped-UBC-Okanagan-1-logo.jpg',
       });
 
       await OrganizationUserFactory.create({

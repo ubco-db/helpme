@@ -106,10 +106,9 @@ export class QuestionTypeController {
     res.status(HttpStatus.OK).send(questionTypes);
   }
 
-  // TODO: make it so that this "soft" deletes a questionType so that it can still be used for statistics using
-  //@DeleteDateColumn in question-type.entity as well as using softDelete instead of delete. Custom queries on
-  // questionType may need to have checks for this, but just using .find will already cover it. Use .withDeleted()
-  // to also get the deleted question types for the insights page.
+  /**
+   * Soft deletes a question type
+   */
   @Delete(':courseId/:questionTypeId')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
@@ -129,7 +128,7 @@ export class QuestionTypeController {
     }
     try {
       await getManager().transaction(async (transactionalEntityManager) => {
-        await transactionalEntityManager.delete(QuestionTypeModel, {
+        await transactionalEntityManager.softDelete(QuestionTypeModel, {
           id: questionTypeId,
           cid: courseId,
         });

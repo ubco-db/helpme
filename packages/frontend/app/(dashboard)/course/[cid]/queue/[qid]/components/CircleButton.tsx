@@ -22,7 +22,7 @@ const CircleButton: React.FC<CircleButtonProps> = ({
       'ml-2 mt-[0.35rem] md:ml-3 md:mt-0',
       disabled && 'pointer-events-none bg-opacity-40',
       variant === 'default' &&
-        'border bg-white text-black hover:bg-gray-100 focus:bg-gray-100',
+        'border bg-white text-black hover:bg-gray-100 focus:bg-gray-100 disabled:text-gray-400',
       variant === 'primary' &&
         'bg-helpmeblue hover:bg-helpmeblue-light focus:bg-helpmeblue-light text-white',
       variant === 'red' &&

@@ -36,6 +36,7 @@ export class UserModel extends BaseEntity {
   email: string;
 
   @Column('text', { nullable: true })
+  @Exclude()
   password: string | null;
 
   @Column('text', { nullable: true })

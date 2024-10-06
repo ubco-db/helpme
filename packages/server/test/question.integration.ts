@@ -1005,15 +1005,15 @@ describe('Question Integration', () => {
       expect(updatedQuestion.text).toBe('Help please');
       expect(updatedQuestion.isTaskQuestion).toBe(false);
       expect(updatedQuestion.queueId).toBe(q.queueId);
-      expect(updatedQuestion.questionTypes).toEqual([
-        {
-          cid: qt.cid,
-          color: qt.color,
-          id: qt.id,
-          name: qt.name,
-          queueId: qt.queueId,
-        },
-      ]);
+      expect(updatedQuestion.questionTypes.length).toBe(1);
+      expect(updatedQuestion.questionTypes[0]).toEqual({
+        cid: qt.cid,
+        color: qt.color,
+        deletedAt: null,
+        id: qt.id,
+        name: qt.name,
+        queueId: qt.queueId,
+      });
     });
     it('PATCH invalid state transition not allowed', async () => {
       const q = await QuestionFactory.create({ text: 'Help pls' });
@@ -1098,7 +1098,7 @@ describe('Question Integration', () => {
         .send({
           status: QuestionStatusKeys.Helping,
         })
-        .expect(400);
+        .expect(200);
     });
     it('TaskQuestions marking: Will append on a newly completed task onto existing studentTaskProgress', async () => {
       const course = await CourseFactory.create();

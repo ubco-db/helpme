@@ -10,6 +10,7 @@ import { Calendar } from '@koh/common'
 import { Event } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
+import tinycolor from 'tinycolor2'
 
 type ScheduleProps = {
   courseId: number
@@ -48,6 +49,14 @@ const StudentSchedulePanel: React.FC<ScheduleProps> = ({
   const parseEvent = (event: Calendar) => {
     const startTime = new Date(event.start)
     const endTime = new Date(event.end)
+    const textColor = event.color
+      ? tinycolor(event.color).isDark()
+        ? '#fff'
+        : '#000'
+      : '#fff'
+    const borderColor = event.color
+      ? tinycolor(event.color).darken(10).toString()
+      : '#3788d8'
     const returnEvent: Event = {
       id: event.id,
       title: event.title,
@@ -57,6 +66,9 @@ const StudentSchedulePanel: React.FC<ScheduleProps> = ({
       locationType: event.locationType,
       locationInPerson: event.locationInPerson || null,
       locationOnline: event.locationOnline || null,
+      backgroundColor: event.color ?? '#3788d8',
+      borderColor: borderColor,
+      textColor: textColor,
     }
     if (event.endDate) {
       returnEvent['endRecur'] = event.endDate

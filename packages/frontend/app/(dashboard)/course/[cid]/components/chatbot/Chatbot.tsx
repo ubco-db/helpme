@@ -27,6 +27,8 @@ import {
   ChatbotAskResponse,
 } from '@/app/typings/chatbot'
 import { API } from '@/app/api'
+import Markdown from 'react-markdown'
+import MarkdownCustom from '@/app/components/Markdown'
 
 const { TextArea } = Input
 
@@ -80,16 +82,13 @@ const Chatbot: React.FC<ChatbotProps> = ({
           headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
         })
         .then((res) => {
-          res.data.forEach((question: PreDeterminedQuestion) => {
-            setPreDeterminedQuestions((prev: PreDeterminedQuestion[]) => [
-              ...prev,
-              {
-                id: question.id,
-                pageContent: question.pageContent,
-                metadata: question.metadata,
-              },
-            ])
-          })
+          setPreDeterminedQuestions(
+            res.data.map((question: PreDeterminedQuestion) => ({
+              id: question.id,
+              pageContent: question.pageContent,
+              metadata: question.metadata,
+            })),
+          )
         })
         .catch((err) => {
           console.error(err)
@@ -327,13 +326,15 @@ const Chatbot: React.FC<ChatbotProps> = ({
                         <div className="align-items-start m-1 mb-3 flex justify-end">
                           <div
                             className={cn(
-                              'mr-2 rounded-xl bg-blue-900 px-3 py-2 text-white',
+                              'childrenMarkdownFormatted mr-2 rounded-xl bg-blue-900 px-3 py-2 text-white',
                               variant === 'small'
                                 ? 'max-w-[300px]'
                                 : 'max-w-[90%]',
                             )}
                           >
-                            {item.message ?? ''}
+                            <MarkdownCustom variant="blue">
+                              {item.message ?? ''}
+                            </MarkdownCustom>
                           </div>
                           <Avatar
                             size="small"
@@ -352,7 +353,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                             <div className="flex items-start gap-2">
                               <div
                                 className={cn(
-                                  'rounded-xl px-3 py-2',
+                                  'childrenMarkdownFormatted rounded-xl px-3 py-2',
                                   item.verified
                                     ? 'bg-green-100'
                                     : 'bg-slate-100',
@@ -361,7 +362,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                     : 'max-w-[90%]',
                                 )}
                               >
-                                {item.message ?? ''}
+                                <MarkdownCustom variant="lightblue">
+                                  {item.message ?? ''}
+                                </MarkdownCustom>
                                 {item.verified && (
                                   <Tooltip title="A similar question has been asked before, and the answer has been verified by a faculty member">
                                     <CheckCircleOutlined

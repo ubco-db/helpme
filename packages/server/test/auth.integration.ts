@@ -46,6 +46,10 @@ const mockAuthService = {
     }
   },
 
+  createStudentSubscriptions: async (userId: number) => {
+    return;
+  },
+
   loginWithShibboleth: async (
     mail: string,
     _role: string,

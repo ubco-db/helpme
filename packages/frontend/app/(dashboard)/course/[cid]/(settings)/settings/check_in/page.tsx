@@ -125,11 +125,6 @@ export default function TACheckInCheckOutTimes({
             }}
             height="54em"
             timeZone="local"
-            eventClick={(clickInfo) => {
-              message.info(
-                `${clickInfo.event.title} helped ${clickInfo.event.extendedProps.studentsHelped} students in their office hours`,
-              )
-            }}
           />
         </div>
         {tasWhoAreBusy.length ? (

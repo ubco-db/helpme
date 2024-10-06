@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { QuestionType } from '@koh/common'
 import { getBrightness } from '@/app/utils/generalUtils'
+import tinycolor from 'tinycolor2'
 
 interface QuestionTagElementProps {
   tagName: string
@@ -35,6 +36,7 @@ const QuestionTagElement: React.FC<QuestionTagElementProps> = ({
         margin: '2px',
         display: 'inline-block',
         cursor: onClick ? 'pointer' : '',
+        border: `1px solid ${tinycolor(tagColor).darken(10).toString()}`,
       }}
       onClick={onClick}
       className={className}
@@ -129,8 +131,10 @@ const CheckableQuestionTag: React.FC<CheckableQuestionTagProps> = ({
         margin: '2px',
         display: 'inline-block',
         cursor: 'pointer',
-        border: `1px solid ${tagColor}`,
-        boxShadow: isHovered ? `0 0 0 2px ${tagColor}` : undefined,
+        border: `1px solid ${tinycolor(tagColor).darken(10).toString()}`,
+        boxShadow: isHovered
+          ? `0 0 0 2px ${tinycolor(tagColor).darken(10).toString()}`
+          : undefined,
       }}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
@@ -190,9 +194,13 @@ const QuestionTagSelector: React.FC<QuestionTagSelectorProps> = ({
     }
   }
 
+  const sortedQuestionTags = useMemo(() => {
+    return [...questionTags].sort((a, b) => a.name.localeCompare(b.name))
+  }, [questionTags])
+
   return (
     <div className={className} role="group" {...props}>
-      {questionTags.map((tag) =>
+      {sortedQuestionTags.map((tag) =>
         tag.name ? ( // don't display question tags with no name (e.g. glitched ones)
           <CheckableQuestionTag
             key={tag.id}
@@ -242,9 +250,13 @@ const QuestionTagDeleteSelector: React.FC<QuestionTagDeleteSelectorProps> = ({
     }
   }
 
+  const sortedQuestionTags = useMemo(() => {
+    return [...currentTags].sort((a, b) => a.name.localeCompare(b.name))
+  }, [currentTags])
+
   return (
     <div className={className} role="group" {...props}>
-      {currentTags.map((tag) => (
+      {sortedQuestionTags.map((tag) => (
         <CheckableQuestionTag
           key={tag.id}
           tagName={tag.name}

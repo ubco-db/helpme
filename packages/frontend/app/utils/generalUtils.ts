@@ -112,8 +112,9 @@ export function getRoleInCourse(userInfo: User, courseId: number): Role {
  */
 export function getErrorMessage(e: any): any {
   return (
-    e.response?.data?.message ??
+    e.response?.data?.message ?? // e.response.data is from axios
     e.response?.data?.error ??
+    e.response?.data ?? // needed for error messages for creating/deleting question tags
     e.body?.message ??
     e.message ??
     e.statusText ?? // response.statusText from fetch
@@ -133,4 +134,100 @@ export function getBrightness(color: string): number {
   const g = (rgb >> 8) & 0xff
   const b = (rgb >> 0) & 0xff
   return (r * 299 + g * 587 + b * 114) / 1000
+}
+
+/**
+ * @name getCroppedImg
+ * @description Crops an image to the specified dimensions and returns a File object
+ * @param imageSrc
+ * @param crop
+ * @param originalFileType
+ * @returns a Promise that resolves to a File object of the cropped image
+ */
+export function getCroppedImg(
+  imageSrc: string,
+  crop: { width: number; height: number; x: number; y: number },
+  originalFileType: string, // Pass the original file type
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.src = imageSrc
+
+    image.onload = () => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+
+      if (!ctx) {
+        reject(new Error('Failed to get canvas context'))
+        return
+      }
+
+      const { width, height, x, y } = crop
+
+      // Set canvas width and height to match the cropped area
+      canvas.width = width
+      canvas.height = height
+
+      // Draw the cropped area onto the canvas
+      ctx.drawImage(
+        image,
+        x,
+        y,
+        width,
+        height, // Source coordinates and dimensions
+        0,
+        0,
+        width,
+        height, // Destination coordinates and dimensions
+      )
+
+      // Choose the correct file extension and mime type based on the original file
+      let fileExtension = 'png' // default to png
+      let mimeType = 'image/png' // default to png
+
+      if (
+        originalFileType.includes('jpeg') ||
+        originalFileType.includes('jpg')
+      ) {
+        fileExtension = 'jpg'
+        mimeType = 'image/jpeg'
+      } else if (originalFileType.includes('png')) {
+        fileExtension = 'png'
+        mimeType = 'image/png'
+      } else if (originalFileType.includes('webp')) {
+        fileExtension = 'webp'
+        mimeType = 'image/webp'
+      } else if (originalFileType.includes('avif')) {
+        fileExtension = 'avif'
+        mimeType = 'image/avif'
+      } else if (originalFileType.includes('gif')) {
+        fileExtension = 'gif'
+        mimeType = 'image/gif'
+      } else if (originalFileType.includes('tiff')) {
+        fileExtension = 'tiff'
+        mimeType = 'image/tiff'
+      } else if (originalFileType.includes('svg')) {
+        fileExtension = 'svg'
+        mimeType = 'image/svg+xml'
+      }
+
+      // Convert the canvas content to a Blob and then to a File
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error('Canvas is empty'))
+          return
+        }
+
+        // Convert Blob to File, dynamically setting name and mime type
+        const file = new File([blob], `cropped-image.${fileExtension}`, {
+          type: mimeType,
+        })
+        resolve(file)
+      }, mimeType) // Pass the appropriate mimeType here
+    }
+
+    image.onerror = () => {
+      reject(new Error('Failed to load image'))
+    }
+  })
 }

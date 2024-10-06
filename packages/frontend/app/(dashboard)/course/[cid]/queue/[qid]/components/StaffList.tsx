@@ -20,13 +20,17 @@ const StaffList: React.FC<StaffListProps> = ({ queueId }) => {
     return null
   }
 
-  const taToQuestion: Record<number, Question> = {}
+  const taToQuestions: Record<number, Question[]> = {}
   const taIds = staffList.map((t) => t.id)
   const helpingQuestions = queueQuestions.questionsGettingHelp
   const groups = queueQuestions.groups
+  // for each TA, give them an array of questions that they are helping
   for (const question of helpingQuestions) {
     if (question.taHelped && taIds.includes(question.taHelped.id)) {
-      taToQuestion[question.taHelped.id] = question
+      if (!taToQuestions[question.taHelped.id]) {
+        taToQuestions[question.taHelped.id] = []
+      }
+      taToQuestions[question.taHelped.id].push(question)
     }
   }
 
@@ -37,8 +41,12 @@ const StaffList: React.FC<StaffListProps> = ({ queueId }) => {
           <StatusCard
             taName={ta.name}
             taPhotoURL={ta.photoURL}
-            studentName={taToQuestion[ta.id]?.creator?.name}
-            helpedAt={taToQuestion[ta.id]?.helpedAt}
+            studentName={
+              taToQuestions[ta.id]?.length > 1
+                ? `${taToQuestions[ta.id].length} students`
+                : taToQuestions[ta.id]?.[0]?.creator?.name
+            }
+            helpedAt={taToQuestions[ta.id]?.[0]?.helpedAt}
             grouped={groups.some((g) => g.creator.id === ta.id)}
           />
         </Col>
@@ -122,4 +130,5 @@ const HelpingFor: React.FC<HelpingForProps> = ({ studentName, helpedAt }) => {
   )
 }
 
+export { StaffList, StatusCard, HelpingFor }
 export default StaffList

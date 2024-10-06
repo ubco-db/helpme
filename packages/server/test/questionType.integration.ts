@@ -660,5 +660,35 @@ describe('QuestionType Integration', () => {
         tags: {},
       });
     });
+
+    it('soft deletes the question type', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const questionType = await QuestionTypeFactory.create({
+        cid: course.id,
+        name: 'Existing Question Type',
+        color: '#FFFFFF',
+      });
+
+      const resp = await supertest({ userId: ta.id }).delete(
+        `/questionType/${course.id}/${questionType.id}`,
+      );
+
+      expect(resp.status).toBe(200);
+      expect(resp.text).toBe(`Successfully deleted ${questionType.name}`);
+
+      const deletedQuestionType = await QuestionTypeModel.findOne({
+        where: {
+          id: questionType.id,
+          cid: course.id,
+        },
+        withDeleted: true,
+      });
+      expect(deletedQuestionType).not.toBeUndefined();
+      expect(deletedQuestionType.deletedAt).not.toBeUndefined();
+    });
   });
 });

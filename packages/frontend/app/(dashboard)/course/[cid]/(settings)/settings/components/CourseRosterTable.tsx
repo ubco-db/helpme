@@ -1,6 +1,11 @@
 import { API } from '@/app/api'
 import UserAvatar from '@/app/components/UserAvatar'
-import { DownOutlined, SearchOutlined } from '@ant-design/icons'
+import { useUserInfo } from '@/app/contexts/userContext'
+import {
+  DownOutlined,
+  SearchOutlined,
+  UserDeleteOutlined,
+} from '@ant-design/icons'
 import { Role, UserPartial } from '@koh/common'
 import {
   Button,
@@ -44,6 +49,7 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
   const [isSensitiveInfoHidden, setIsSensitiveInfoHidden] = useState(
     hideSensitiveInformation,
   )
+  const { userInfo } = useUserInfo()
 
   const handleInput = (event: any) => {
     event.preventDefault()
@@ -115,6 +121,7 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
           )}
           <List
             dataSource={users}
+            size="small"
             renderItem={(item: UserPartial) => (
               <List.Item
                 key={item.id}
@@ -197,6 +204,54 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
                     Change Role <DownOutlined />
                   </a>
                 </Dropdown>
+                {userInfo.id !== item.id && (
+                  <Button
+                    icon={<UserDeleteOutlined />}
+                    danger
+                    className="ml-2"
+                    onClick={() => {
+                      Modal.confirm({
+                        title: (
+                          <div className="font-bold text-red-600">Warning</div>
+                        ),
+                        content: (
+                          <div>
+                            You are about to{' '}
+                            <span className="text-red-600">remove</span>{' '}
+                            <span className="font-bold">{item.name}</span> from
+                            the course.
+                            <br />
+                            <br />
+                            Are you sure you want to proceed?
+                          </div>
+                        ),
+                        okText: 'Yes',
+                        okType: 'danger',
+                        cancelText: 'No',
+
+                        onOk() {
+                          API.organizations
+                            .dropUserCourses(
+                              userInfo.organization?.orgId ?? -1,
+                              item.id,
+                              [courseId],
+                            )
+                            .then(() => {
+                              message.success(
+                                `${item.name} successfully removed from the course`,
+                              )
+                              onRoleChange()
+                            })
+                            .catch(() => {
+                              message.error(
+                                `Failed to remove ${item.name} from the course`,
+                              )
+                            })
+                        },
+                      })
+                    }}
+                  />
+                )}
               </List.Item>
             )}
             bordered

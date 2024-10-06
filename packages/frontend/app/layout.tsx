@@ -30,7 +30,7 @@ export default function RootLayout({
     <html lang="en" id="html">
       <body
         className={cn(
-          'bg-background min-h-screen font-sans antialiased',
+          'bg-background flex flex-grow flex-col font-sans antialiased',
           interFontSans.variable,
         )}
       >
