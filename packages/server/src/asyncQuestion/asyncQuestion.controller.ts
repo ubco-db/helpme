@@ -217,7 +217,10 @@ export class asyncQuestionController {
         HttpStatus.UNAUTHORIZED,
       );
     }
-    if (body.status === asyncQuestionStatus.AIAnsweredNeedsAttention) {
+    if (
+      body.status === asyncQuestionStatus.AIAnsweredNeedsAttention &&
+      question.status != asyncQuestionStatus.AIAnsweredNeedsAttention
+    ) {
       const courseId = question.course.id;
 
       // Step 1: Get all users in the course
@@ -268,12 +271,6 @@ export class asyncQuestionController {
     });
 
     const updatedQuestion = await question.save();
-
-    // Update Redis queue
-    await this.redisQueueService.updateAsyncQuestion(
-      `c:${question.course.id}:aq`,
-      updatedQuestion,
-    );
 
     if (body.status === asyncQuestionStatus.StudentDeleted) {
       await this.redisQueueService.deleteAsyncQuestion(

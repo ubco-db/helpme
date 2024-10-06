@@ -49,4 +49,7 @@ export class CalendarModel extends BaseEntity {
   @JoinColumn({ name: 'course' })
   @Exclude()
   course: CourseModel;
+
+  @Column({ length: 7, nullable: true, default: '#3788d8' })
+  color: string;
 }
