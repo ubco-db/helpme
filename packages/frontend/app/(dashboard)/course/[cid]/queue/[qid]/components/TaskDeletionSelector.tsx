@@ -194,9 +194,8 @@ const TaskDeleteSelector: React.FC<TaskDeleteSelectorProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskTree])
 
-  // TODO: add a tooltip that shows all the info
   return (
-    <div className={className} role="group" {...props}>
+    <div className={`flex gap-x-1 ${className}`} role="group" {...props}>
       {printTasks}
     </div>
   )

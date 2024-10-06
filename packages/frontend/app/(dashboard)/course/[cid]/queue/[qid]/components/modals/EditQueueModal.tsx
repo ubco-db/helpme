@@ -57,6 +57,14 @@ import TaskDeleteSelector from '../TaskDeletionSelector'
 const { TextArea } = Input
 type Color = GetProp<ColorPickerProps, 'value'>
 
+type TaskParams = {
+  id: string
+  display_name: string
+  short_display_name: string
+  blocking: boolean
+  color_hex: string
+  precondition?: string
+}
 type QuestionTypeForCreation = {
   name: string
   color: string | Color
@@ -66,6 +74,7 @@ interface FormValues {
   allowQuestions: boolean
   questionTypesForDeletion: number[]
   questionTypesForCreation: QuestionTypeForCreation[]
+  tasks: TaskParams[]
   zoomLink: string
   queue_config: string
 }
@@ -241,6 +250,16 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             questionTypesForDeletion: [],
             assignmentId: lastSavedQueueConfig.current?.assignment_id,
             zoomLink: course?.zoomLink,
+            tasks: Object.entries(
+              lastSavedQueueConfig.current?.tasks || {},
+            ).map(([taskID, task]) => ({
+              id: taskID,
+              display_name: task.display_name,
+              short_display_name: task.short_display_name,
+              blocking: task.blocking,
+              color_hex: task.color_hex,
+              precondition: task.precondition,
+            })),
           }}
           onValuesChange={(changedValues, allValues) => {
             if (changedValues.assignmentId !== undefined) {
@@ -357,7 +376,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       {!assignmentIdEmpty && (
         <>
           <Form.Item
-            label="Tasks (Click to be marked for deletion)"
+            label="Tasks"
             tooltip={`The tasks for the queue. A task is similar to a tag except it is 'check-able'. For example, a lab may have many parts or questions that require a TA to look at before the end of the lab. Students will then be able to Create a Demo which you can then help and select which parts to mark correct.`}
             name="tasksForDeletion"
           >
@@ -365,11 +384,12 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               configTasks={lastSavedQueueConfig.current?.tasks || {}}
             />
           </Form.Item>
-          <Form.List name="tasksForCreation">
+          <Form.List name="tasks">
             {(fields, { add, remove }) => (
               <>
                 {fields.map(({ key, name, ...restField }, index) => {
                   const defaultColor =
+                    form.getFieldValue(['tasks', name, 'color_hex']) ||
                     '#' + Math.floor(Math.random() * 16777215).toString(16)
                   return (
                     <Space key={key} className="flex flex-wrap" align="center">
@@ -451,7 +471,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                       >
                         <Input
                           className="ml-7 w-12"
-                          allowClear={true}
                           placeholder="1"
                           maxLength={3}
                         />
@@ -471,7 +490,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                         valuePropName="color"
                         label={index === 0 ? 'Color' : ''}
                         className="min-w-16"
-                        name={[name, 'color']}
+                        name={[name, 'color_hex']}
                         rules={[{ required: true, message: 'Missing color' }]}
                         initialValue={defaultColor}
                       >
@@ -568,7 +587,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                 <span className="mr-1">Queue Config JSON</span>
                 <Tooltip
                   title={
-                    'Here you can specify a JSON config to automatically set up question tags, tasks, and other settings for the queue. For example, you can use this to set up a chemistry lab that requires certain tasks to be checked off (e.g. have the TA look at the experiment before continuing). You can also easily externally save this config and copy/paste this config to other queues and courses.'
+                    'Here is a JavaScript Object Notation version of all the configurations above. You can easily externally save this config and copy/paste this config to other queues and courses, or share it with other professors!'
                   }
                 >
                   <QuestionCircleOutlined style={{ color: 'gray' }} />
