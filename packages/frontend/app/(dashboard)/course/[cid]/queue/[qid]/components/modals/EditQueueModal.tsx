@@ -25,7 +25,7 @@ import {
   UpdateQueueParams,
   validateQueueConfigInput,
 } from '@koh/common'
-import { pick } from 'lodash'
+import { debounce, pick } from 'lodash'
 import {
   ClearOutlined,
   CloseOutlined,
@@ -53,7 +53,7 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 import exampleConfig from '@/public/exampleQueueConfig.json'
 import exampleLabConfig from '@/public/exampleQueueLabConfig.json'
-import TaskDeleteSelector from '../TaskDeletionSelector'
+import TaskDeleteSelector from '../TaskDisplay'
 import _ from 'lodash'
 
 const { TextArea } = Input
@@ -116,6 +116,11 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
 
   const [assignmentIdEmpty, setAssignmentIdEmpty] = useState(
     lastSavedQueueConfig.current?.assignment_id === undefined,
+  )
+  const [localTaskIds, setLocalTaskIds] = useState<string[]>(
+    lastSavedQueueConfig.current?.tasks
+      ? Object.keys(lastSavedQueueConfig.current.tasks)
+      : [],
   )
 
   const resetQueueConfig = useCallback(() => {
@@ -268,6 +273,26 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
     }
   }
 
+  // Debounce the form values change to prevent too many updates (e.g. when typing)
+  const handleValuesChange = debounce(
+    (changedValues: any, allValues: FormValues) => {
+      if (changedValues.assignmentId !== undefined) {
+        setAssignmentIdEmpty(!changedValues.assignmentId)
+      }
+      // if any of the tasks preconditions change, update the display
+      // TODO
+      // Whenever one of the taskIds changes, update localTaskIds to reflect the new taskIds
+      // This will be used to check for duplicate taskIds
+      const taskWithId = changedValues.tasks?.find(
+        (task: any) => task?.id !== undefined,
+      )
+      if (taskWithId) {
+        setLocalTaskIds(allValues.tasks.map((task) => task?.id))
+      }
+    },
+    300,
+  ) // Adjust the debounce delay as needed
+
   return (
     <Modal
       open={open}
@@ -306,11 +331,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               precondition: task.precondition,
             })),
           }}
-          onValuesChange={(changedValues, allValues) => {
-            if (changedValues.assignmentId !== undefined) {
-              setAssignmentIdEmpty(!changedValues.assignmentId)
-            }
-          }}
+          onValuesChange={handleValuesChange}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
         >
@@ -453,6 +474,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                         tooltip={
                           'The unique task ID for this task (e.g. task1).'
                         }
+                        validateTrigger="onBlur"
                         rules={[
                           {
                             required: true,
@@ -464,11 +486,12 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                           },
                           {
                             validator: (_, value) => {
-                              // make sure no other tasks have the same ID
-                              // TODO: do this
-                              if (
-                                questionTypes?.find((tag) => tag.name === value)
-                              ) {
+                              // make sure there are no duplicate task IDs
+                              // The reason we check for 2 is because it includes the current task ID
+                              const duplicateCount = localTaskIds.filter(
+                                (id) => id === value,
+                              ).length
+                              if (duplicateCount >= 2) {
                                 return Promise.reject('Duplicate Task ID')
                               }
                               return Promise.resolve()
@@ -545,9 +568,11 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                         className="min-w-16"
                         name={[name, 'color_hex']}
                         rules={[{ required: true, message: 'Missing color' }]}
+                        // This will give an antd warning in the console but won't work otherwise
                         initialValue={defaultColor}
                       >
                         <ColorPickerWithPresets
+                          // This will give an antd warning in the console but won't work otherwise
                           defaultValue={defaultColor}
                           format="hex"
                           className="ml-3"
@@ -559,7 +584,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                         {...restField}
                         label={index === 0 ? 'Precondition' : ''}
                         name={[name, 'precondition']}
-                        tooltip={`The key of the task (e.g. "task1") that must be completed before this task can be completed. This allows you to define the order in which tasks are completed. The first task should be null (as it has no precondition). Default = null`}
+                        tooltip={`The key of the task (e.g. "task1") that must be completed before this task can be completed. This allows you to define the order in which tasks are completed. It is recommended to keep this empty if your students can do tasks out of order.`}
                       >
                         <Select
                           allowClear
@@ -805,7 +830,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             ),
           },
         ]}
-      ></Collapse>
+      />
     </Modal>
   )
 }
