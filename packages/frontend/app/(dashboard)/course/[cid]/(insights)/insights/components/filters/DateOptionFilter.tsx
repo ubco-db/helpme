@@ -8,7 +8,6 @@ const { RangePicker } = DatePicker
 const { Option } = Select
 
 export type DateFilterOptionType =
-  | 'Past_Day'
   | 'Past_Week'
   | 'Past_Month'
   | 'Past_3_Months'
@@ -19,7 +18,6 @@ export type DateFilterOptionType =
 type DateSelectType = 'date' | 'week' | 'month' | 'year'
 
 const DateFilterOptions: { [key in DateFilterOptionType]: string } = {
-  Past_Day: 'Past Day',
   Past_Week: 'Past Week',
   Past_Month: 'Past Month',
   Past_3_Months: 'Past 3 Months',
@@ -40,8 +38,6 @@ type DateOptionFilterProps = {
   setRange: (value: DateRangeType) => void
 }
 
-const dateFormat = 'YYYY-MM-DD'
-
 const DateOptionFilter: React.FC<DateOptionFilterProps> = ({ setRange }) => {
   const [selectedOption, setSelectedOption] =
     useState<DateFilterOptionType>('All_Time')
@@ -60,9 +56,6 @@ const DateOptionFilter: React.FC<DateOptionFilterProps> = ({ setRange }) => {
     }
 
     switch (option) {
-      case 'Past_Day':
-        dateRange.start = new Date(currentMillis - 86400000).toString()
-        break
       case 'Past_Week':
         dateRange.start = new Date(currentMillis - 7 * 86400000).toString()
         break
@@ -124,7 +117,7 @@ const DateOptionFilter: React.FC<DateOptionFilterProps> = ({ setRange }) => {
             </Select>
             <RangePicker
               picker={selectedType}
-              maxDate={dayjs(new Date(Date.now()).toString(), dateFormat)}
+              maxDate={dayjs(new Date().toString())}
               onChange={onRangeChange}
             />
           </div>

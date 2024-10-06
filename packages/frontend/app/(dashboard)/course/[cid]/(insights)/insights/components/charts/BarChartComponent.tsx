@@ -12,7 +12,7 @@ import {
   BarChartProps,
   ChartComponentProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
-import { generateYAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
+import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
 
 const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -63,7 +63,7 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
         />
         <YAxis
           type="number"
-          domain={generateYAxisRange(chartData, valueKeys)}
+          domain={generateAxisRange(chartData, valueKeys)}
           tickLine={tickLine}
           tickMargin={tickMargin}
           axisLine={axisLine}

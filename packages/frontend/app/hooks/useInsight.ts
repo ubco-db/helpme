@@ -14,6 +14,7 @@ export async function useInsight(
       offset: params?.offset ?? 0,
       limit: params?.offset ?? 50,
       students: params?.students,
+      queues: params?.queues,
     })
   }, [
     courseId,
@@ -22,5 +23,6 @@ export async function useInsight(
     params?.offset,
     params?.start,
     params?.students,
+    params?.queues,
   ])
 }

@@ -12,7 +12,7 @@ import {
   ChartComponentProps,
   LinearChartProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
-import { generateYAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
+import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
 
 const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -24,6 +24,7 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     labelFormatter,
     valueFormatter,
     legendFormatter,
+    xType,
   } = props
 
   let {
@@ -35,6 +36,7 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     tickLine,
     tickMargin,
     axisLine,
+    axisRatio,
     tickFormatter,
   } = props as LinearChartProps
 
@@ -46,6 +48,7 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   tickLine ??= true
   tickMargin ??= 8
   axisLine ??= true
+  axisRatio ??= 2
   tickFormatter ??= (value) => (value as string).substring(0, 3)
 
   const className = useMemo(() => {
@@ -55,19 +58,35 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   }, [size])
 
   return (
-    <ChartContainer config={chartConfig} className={className}>
+    <ChartContainer
+      config={chartConfig}
+      className={className}
+      style={{ aspectRatio: axisRatio }}
+    >
       <AreaChart data={chartData} accessibilityLayer>
         <CartesianGrid vertical={verticalAxis} />
-        <XAxis
-          dataKey="key"
-          tickLine={tickLine}
-          tickMargin={tickMargin}
-          axisLine={axisLine}
-          tickFormatter={tickFormatter}
-        />
+        {(xType == 'numeric' && (
+          <XAxis
+            type={'number'}
+            dataKey={'key'}
+            tickLine={tickLine}
+            tickMargin={tickMargin}
+            axisLine={axisLine}
+            tickFormatter={tickFormatter}
+            domain={generateAxisRange(chartData, ['key'])}
+          />
+        )) || (
+          <XAxis
+            dataKey="key"
+            tickLine={tickLine}
+            tickMargin={tickMargin}
+            axisLine={axisLine}
+            tickFormatter={tickFormatter}
+          />
+        )}
         <YAxis
           type="number"
-          domain={generateYAxisRange(chartData, valueKeys)}
+          domain={generateAxisRange(chartData, valueKeys)}
           tickLine={tickLine}
           tickMargin={tickMargin}
           axisLine={axisLine}
@@ -101,7 +120,7 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
                   <stop
                     offset={'95%'}
                     stopColor={valueFills[key]}
-                    stopOpacity={0.1}
+                    stopOpacity={0.0}
                   />
                 </linearGradient>
               </>
@@ -113,7 +132,7 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
             <Area
               key={key}
               stroke={valueFills[key]}
-              strokeWidth={3}
+              strokeWidth={2}
               fill={`url(#fill${key})`}
               dataKey={key}
               dot={showPoints}

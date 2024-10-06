@@ -13,6 +13,7 @@ import {
   Patch,
   ParseIntPipe,
   ParseArrayPipe,
+  Post,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import {
@@ -24,6 +25,8 @@ import {
   InsightType,
   InsightOutput,
   InsightObject,
+  InsightDetail,
+  InsightDashboardPartial,
 } from '@koh/common';
 import { User } from '../decorators/user.decorator';
 import { INSIGHTS_MAP } from './insight-objects';
@@ -50,6 +53,7 @@ export class InsightsController {
     @Query('offset', ParseIntPipe) offset?: number,
     @Query('students', new ParseArrayPipe({ optional: true }))
     students?: number[],
+    @Query('queues', new ParseArrayPipe({ optional: true })) queues?: number[],
   ): Promise<GetInsightOutputResponse> {
     // Temporarily disabling insights until we finish refactoring QueueModel
     // Check that the insight name is valid
@@ -108,6 +112,21 @@ export class InsightsController {
       });
     }
 
+    if (queues) {
+      queues.forEach((n) => {
+        if (isNaN(n)) {
+          throw new BadRequestException(
+            ERROR_MESSAGES.insightsController.invalidQueueID,
+          );
+        }
+      });
+
+      filters.push({
+        type: 'queues',
+        queueIds: queues,
+      });
+    }
+
     let insight = await this.insightsService.computeOutput({
       insight: targetInsight,
       filters,
@@ -138,6 +157,48 @@ export class InsightsController {
   async getAllInsights(): Promise<ListInsightsResponse> {
     return this.insightsService.convertToInsightsListResponse(
       Object.keys(INSIGHTS_MAP),
+    );
+  }
+
+  @Get(':courseId/dashboard')
+  @Roles(Role.PROFESSOR)
+  async retrieveDashboardPresets(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @User() user: UserModel,
+  ): Promise<InsightDashboardPartial[]> {
+    return await this.insightsService.getDashboardPresets(user, courseId);
+  }
+
+  @Post(':courseId/dashboard/create')
+  @Roles(Role.PROFESSOR)
+  async upsertDashboardPreset(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @User() user: UserModel,
+    @Body()
+    body: {
+      insights: InsightDetail;
+      name?: string;
+    },
+  ): Promise<InsightDashboardPartial[]> {
+    return await this.insightsService.upsertDashboardPreset(
+      user,
+      courseId,
+      body.insights,
+      body.name,
+    );
+  }
+
+  @Delete(':courseId/dashboard/remove/:name')
+  @Roles(Role.PROFESSOR)
+  async removeDashboardPreset(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('name') name: string,
+    @User() user: UserModel,
+  ): Promise<InsightDashboardPartial[]> {
+    return await this.insightsService.removeDashboardPreset(
+      user,
+      courseId,
+      name,
     );
   }
 

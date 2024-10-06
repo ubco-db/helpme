@@ -12,7 +12,7 @@ import {
   ChartComponentProps,
   PointChartProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
-import { generateYAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
+import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
 
 const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -24,6 +24,7 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     labelFormatter,
     valueFormatter,
     legendFormatter,
+    xType,
   } = props
 
   let {
@@ -33,6 +34,7 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     tickLine,
     tickMargin,
     axisLine,
+    axisRatio,
     fullPointFill,
     tickFormatter,
   } = props as PointChartProps
@@ -44,6 +46,7 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   tickLine ??= true
   tickMargin ??= 8
   axisLine ??= true
+  axisRatio ??= 2
   tickFormatter ??= (value) => (value as string).substring(0, 3)
 
   const className = useMemo(() => {
@@ -53,19 +56,34 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   }, [size])
 
   return (
-    <ChartContainer config={chartConfig} className={className}>
+    <ChartContainer
+      config={chartConfig}
+      className={className}
+      style={{ aspectRatio: axisRatio }}
+    >
       <ScatterChart data={chartData}>
         <CartesianGrid vertical={verticalAxis} />
-        <XAxis
-          dataKey="key"
-          tickLine={tickLine}
-          tickMargin={tickMargin}
-          axisLine={axisLine}
-          tickFormatter={tickFormatter}
-        />
+        {(xType == 'numeric' && (
+          <XAxis
+            type={'number'}
+            tickLine={tickLine}
+            tickMargin={tickMargin}
+            axisLine={axisLine}
+            tickFormatter={tickFormatter}
+            domain={generateAxisRange(chartData, ['key'])}
+          />
+        )) || (
+          <XAxis
+            dataKey="key"
+            tickLine={tickLine}
+            tickMargin={tickMargin}
+            axisLine={axisLine}
+            tickFormatter={tickFormatter}
+          />
+        )}
         <YAxis
           type="number"
-          domain={generateYAxisRange(chartData, valueKeys)}
+          domain={generateAxisRange(chartData, valueKeys)}
           tickLine={tickLine}
           tickMargin={tickMargin}
           axisLine={axisLine}

@@ -52,6 +52,7 @@ const InsightChartComponent: React.FC<
         chartConfig,
         valueKeys: keys,
         valueFills: fills,
+        xType: chartOutput.xType,
         ...matchingChart.props,
       }
       switch (matchingChart.chartType) {
@@ -77,6 +78,7 @@ const InsightChartComponent: React.FC<
     chartData,
     chartOutput.label,
     chartOutput.xKey,
+    chartOutput.xType,
     chartOutput.yKeys,
     matchingChart,
     selectedDataSets,

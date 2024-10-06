@@ -38,7 +38,9 @@ export const processChartData = (
 
   const data = chartData.map((item, index) => {
     const mappedData: ChartDataType = {
-      key: item[labelKey].replace(/\s/g, '_'),
+      key: isNaN(item[labelKey])
+        ? item[labelKey].replace(/\s/g, '_')
+        : item[labelKey],
     }
     if (uniquePerLabel) {
       mappedData['fill'] = generateUniqueColor(index, chartData.length)
@@ -60,10 +62,10 @@ export const constructChartConfig = (
 ): ChartConfig => {
   const chartConfig: { [key: string]: any } = {
     [labelKey]: {
-      label: (labelKey.charAt(0).toUpperCase() + labelKey.slice(1)).replace(
-        /_/g,
-        ' ',
-      ),
+      label: (
+        (labelKey as string).charAt(0).toUpperCase() +
+        (labelKey as string).slice(1)
+      ).replace(/_/g, ' '),
     },
   }
 
@@ -92,7 +94,7 @@ export const constructChartConfig = (
   return chartConfig satisfies ChartConfig
 }
 
-export const generateYAxisRange = (
+export const generateAxisRange = (
   processedChartData: ChartDataType[],
   valueKeys: string[],
 ) => {
@@ -102,8 +104,13 @@ export const generateYAxisRange = (
     })
     .reduce((prev, curr) => [...prev, ...curr], [])
 
-  return [
-    Math.ceil(Math.min(...allValues, 0) / 10) * 10,
-    Math.ceil(Math.max(...allValues) / 10) * 10,
-  ]
+  let min = Math.min(...allValues)
+  const max = Math.max(...allValues)
+  if (min < 10) {
+    min = 0
+  } else {
+    min = Math.ceil(min / 10) * 10
+  }
+
+  return [min, Math.ceil(max / 10) * 10]
 }

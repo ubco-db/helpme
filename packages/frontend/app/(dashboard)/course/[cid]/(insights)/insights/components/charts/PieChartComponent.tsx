@@ -72,7 +72,9 @@ const PieChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
                   position={'outside'}
                   fontSize={12}
                   formatter={(value: keyof typeof chartConfig) =>
-                    (chartConfig[value]?.label + '').substring(0, 3)
+                    labelFormatter
+                      ? labelFormatter(chartConfig[value]?.label + '')
+                      : chartConfig[value]?.label + ''
                   }
                 />
               )}

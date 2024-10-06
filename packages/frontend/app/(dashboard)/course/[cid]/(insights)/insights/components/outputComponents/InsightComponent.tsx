@@ -14,6 +14,7 @@ import DateOptionFilter from '@/app/(dashboard)/course/[cid]/(insights)/insights
 import StudentFilter from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/filters/StudentFilter'
 import DataFilter from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/filters/DataFilter'
 import { charts } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
+import QueueFilter from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/filters/QueueFilter'
 
 interface InsightComponentProps {
   courseId: number
@@ -38,14 +39,16 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
   )
   const [selectedData, setSelectedData] = useState<string[]>([])
   const [students, setStudents] = useState<number[]>([])
+  const [queues, setQueues] = useState<number[]>([])
 
   const insightParams = useMemo(() => {
     return {
       start: dateRange?.start,
       end: dateRange?.end,
       students: students.length != 0 ? students : undefined,
+      queues: queues.length != 0 ? queues : undefined,
     } as InsightParamsType
-  }, [dateRange?.end, dateRange?.start, students])
+  }, [dateRange?.end, dateRange?.start, students, queues])
 
   useInsight(courseId, insightName, insightParams).then((result) =>
     setInsightOutput(result),
@@ -70,6 +73,13 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
                   setSelectedStudents={setStudents}
                 />
               )
+            case 'queues':
+              return (
+                <QueueFilter
+                  selectedQueues={queues}
+                  setSelectedQueues={setQueues}
+                />
+              )
             default:
               return <></>
           }
@@ -88,7 +98,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
             }
           })
         } else {
-          keys.push(...output.yKeys)
+          keys.push(...(output.yKeys ?? []))
         }
 
         filterOptions.push(
@@ -108,9 +118,9 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
         </div>
       )
     )
-  }, [insightOutput, insightName, students, selectedData])
+  }, [insightOutput, insightName, students, queues, selectedData])
 
-  const renderInsight = useMemo(() => {
+  return useMemo(() => {
     if (insightOutput == undefined) {
       return
     }
@@ -143,8 +153,6 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
         )
     }
   }, [insightName, insightOutput, renderFilterOptions, selectedData])
-
-  return renderInsight
 }
 
 export default InsightComponent

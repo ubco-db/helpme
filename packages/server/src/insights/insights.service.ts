@@ -5,9 +5,14 @@ import {
   PossibleOutputTypes,
   InsightObject,
   ListInsightsResponse,
+  InsightDetail,
+  Role,
+  InsightDashboardPartial,
 } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
 import { Cache } from 'cache-manager';
+import { UserCourseModel } from '../profile/user-course.entity';
+import { InsightDashboardModel } from './dashboard.entity';
 
 type ComputeOutputParams = {
   insight: InsightObject;
@@ -48,15 +53,14 @@ export class InsightsService {
 
   convertToInsightsListResponse(insightNames: string[]): ListInsightsResponse {
     return insightNames.reduce((obj, insightName) => {
-      const { displayName, description, component, size } =
+      const { displayName, description, insightType } =
         INSIGHTS_MAP[insightName];
       return {
         ...obj,
         [insightName]: {
           displayName,
           description,
-          component,
-          size,
+          insightType,
         },
       };
     }, {});
@@ -80,5 +84,91 @@ export class InsightsService {
     user.hideInsights = [insightName, ...user.hideInsights];
     await user.save();
     return;
+  }
+
+  mapDashboardPartial(insightDashboard: InsightDashboardModel) {
+    return {
+      name: insightDashboard.name,
+      insights: insightDashboard.insights,
+    };
+  }
+
+  async getDashboardPresets(
+    user: UserModel,
+    courseId: number,
+    userCourse?: UserCourseModel,
+  ): Promise<InsightDashboardPartial[]> {
+    if (!userCourse) {
+      userCourse = await UserCourseModel.findOne({
+        where: { user, courseId },
+      });
+
+      if (!userCourse || userCourse.role != Role.PROFESSOR) {
+        return [];
+      }
+    }
+
+    const allPresets = await InsightDashboardModel.find({
+      where: { userCourse },
+    });
+
+    return allPresets.map(this.mapDashboardPartial);
+  }
+
+  async upsertDashboardPreset(
+    user: UserModel,
+    courseId: number,
+    insights: InsightDetail,
+    name?: string,
+  ): Promise<InsightDashboardPartial[]> {
+    const userCourse = await UserCourseModel.findOne({
+      where: { user, courseId },
+    });
+
+    if (!userCourse || userCourse.role != Role.PROFESSOR) {
+      return [];
+    }
+
+    const [_, count] = await InsightDashboardModel.findAndCount({
+      where: { userCourse },
+    });
+
+    name ??= `Preset #${count + 1}`;
+    await InsightDashboardModel.upsert(
+      {
+        userCourse,
+        name,
+        insights,
+      },
+      ['userCourseId', 'name'],
+    );
+
+    return await this.getDashboardPresets(user, courseId, userCourse);
+  }
+
+  async removeDashboardPreset(
+    user: UserModel,
+    courseId: number,
+    name: string,
+  ): Promise<InsightDashboardPartial[]> {
+    const userCourse = await UserCourseModel.findOne({
+      where: { user, courseId },
+    });
+
+    if (!userCourse) {
+      return [];
+    }
+
+    const dashboard = await InsightDashboardModel.findOne({
+      where: { userCourse, name },
+    });
+
+    if (!dashboard) {
+      return await this.getDashboardPresets(user, courseId, userCourse);
+    }
+
+    await InsightDashboardModel.remove(dashboard);
+
+    return await this.getDashboardPresets(user, courseId, userCourse);
   }
 }

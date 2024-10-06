@@ -1412,6 +1412,57 @@ export class SSEQueueResponse {
   queueQuestions?: ListQuestionsResponse
 }
 
+export const InsightCategories = [
+  'Dashboard',
+  'Tool_Usage_Statistics',
+  'Questions',
+  'Queues',
+  'Chatbot',
+]
+
+export const InsightNames = [
+  'TotalStudents',
+  'TotalQuestionsAsked',
+  'MedianWaitTime',
+  'QuestionTypeBreakdown',
+  'MostActiveStudents',
+  'QuestionToStudentRatio',
+  'MedianHelpingTime',
+  'AverageTimesByWeekDay',
+  'HelpSeekingOverTime',
+  'HumanVsChatbot',
+  'HumanVsChatbotVotes',
+]
+
+export type InsightCategory = (typeof InsightCategories)[number]
+export type InsightName = (typeof InsightNames)[number]
+
+export type InsightSerial = {
+  active?: boolean
+  category: InsightCategory
+}
+
+export type InsightDetail = { [key in InsightName]: InsightSerial }
+
+export type InsightDashboardPartial = {
+  name: string
+  insights: InsightDetail
+}
+
+export const InsightDirectory: InsightDetail = {
+  HelpSeekingOverTime: { category: 'Tool_Usage_Statistics' },
+  MostActiveStudents: { category: 'Tool_Usage_Statistics' },
+  TotalStudents: { category: 'Tool_Usage_Statistics' },
+  QuestionToStudentRatio: { category: 'Tool_Usage_Statistics' },
+  MedianWaitTime: { category: 'Tool_Usage_Statistics' },
+  TotalQuestionsAsked: { category: 'Questions' },
+  QuestionTypeBreakdown: { category: 'Questions' },
+  MedianHelpingTime: { category: 'Queues' },
+  AverageTimesByWeekDay: { category: 'Queues' },
+  HumanVsChatbot: { category: 'Chatbot' },
+  HumanVsChatbotVotes: { category: 'Chatbot' },
+}
+
 export type GetInsightOutputResponse = InsightOutput
 
 export type ListInsightsResponse = Record<string, InsightDisplayInfo>
@@ -1420,6 +1471,7 @@ export const InsightFilterOptions = [
   'courseId',
   'timeframe',
   'students',
+  'queues',
 ] as const
 export type InsightFilterOption = (typeof InsightFilterOptions)[number]
 
@@ -1475,6 +1527,7 @@ export type ChartOutputType = {
   xKey: string
   yKeys: string[]
   label: string
+  xType?: 'numeric' | 'category'
 }
 
 export type ValueOutputType = number | string
@@ -1499,6 +1552,7 @@ export type InsightParamsType = {
   limit?: number
   offset?: number
   students?: string
+  queues?: string
 }
 
 export type sendEmailParams = {
@@ -2201,6 +2255,7 @@ export const ERROR_MESSAGES = {
     invalidDateRange: 'Invalid date range. Start and End must be valid dates',
     invalidStudentID:
       'Invalid student ID provided. Student IDs must be numeric',
+    invalidQueueID: 'Invalid queue ID provided. Queue IDs must be numeric.',
   },
   roleGuard: {
     notLoggedIn: 'Must be logged in',

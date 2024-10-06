@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { API } from '@/app/api'
-import { UserPartial, Role } from '@koh/common'
+import { UserPartial, Role, QueuePartial } from '@koh/common'
+import { useCourse } from '@/app/hooks/useCourse'
 
 type InsightContextType = {
   studentDetails?: {
@@ -13,6 +14,7 @@ type InsightContextType = {
     search: string
     setSearch: (s: string) => void
   }
+  queueDetails?: QueuePartial[]
 }
 
 const InsightContext = createContext<InsightContextType>({})
@@ -31,25 +33,24 @@ const InsightContextProvider: React.FC<{
   courseId: number
   children: React.ReactNode
 }> = ({ courseId, children }) => {
+  const { course } = useCourse(courseId)
   const [students, setStudents] = useState<UserPartial[]>([])
   const [totalStudents, setTotalStudents] = useState<number>(0)
   const [page, setPage] = useState<number>(1)
   const [search, setSearch] = useState<string>('')
 
   useEffect(() => {
-    fetchUsers().then()
+    ;(async () => {
+      const data = await API.course.getUserInfo(
+        courseId,
+        page,
+        Role.STUDENT,
+        search,
+      )
+      setStudents(data.users)
+      setTotalStudents(data.total)
+    })()
   }, [courseId, page, search])
-
-  const fetchUsers = async () => {
-    const data = await API.course.getUserInfo(
-      courseId,
-      page,
-      Role.STUDENT,
-      search,
-    )
-    setStudents(data.users)
-    setTotalStudents(data.total)
-  }
 
   return (
     <InsightContext.Provider
@@ -68,6 +69,7 @@ const InsightContextProvider: React.FC<{
             }
           },
         },
+        queueDetails: course?.queues ?? [],
       }}
     >
       {children}
