@@ -19,6 +19,7 @@ import {
   Select,
 } from 'antd'
 import {
+  ConfigTasks,
   QuestionTypeParams,
   QueueConfig,
   UpdateQueueParams,
@@ -53,6 +54,7 @@ import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 import exampleConfig from '@/public/exampleQueueConfig.json'
 import exampleLabConfig from '@/public/exampleQueueLabConfig.json'
 import TaskDeleteSelector from '../TaskDeletionSelector'
+import _ from 'lodash'
 
 const { TextArea } = Input
 type Color = GetProp<ColorPickerProps, 'value'>
@@ -194,22 +196,44 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               message.error(`Failed to change zoom link: ${errorMessage}`)
             })
         : Promise.resolve()
-    // this promise is only for minTags for now
     const newQueueConfig: QueueConfig = {
       ...lastSavedQueueConfig.current,
       minimum_tags: Number(values.minTags),
+      // iterate over each task and accumulate them into an object
+      tasks: values.tasks.reduce((acc, task) => {
+        acc[task.id] = {
+          display_name: task.display_name,
+          short_display_name: task.short_display_name,
+          blocking: task.blocking,
+          color_hex: task.color_hex,
+          precondition: task.precondition ?? null,
+        }
+        return acc
+      }, {} as ConfigTasks),
     }
-    const queueConfigPromise =
+
+    const tasksChanged =
+      JSON.stringify(newQueueConfig.tasks) !==
+      JSON.stringify(lastSavedQueueConfig.current?.tasks || {})
+    const minimumTagsChanged =
       lastSavedQueueConfig.current?.minimum_tags !== Number(values.minTags)
+
+    const queueConfigPromise =
+      tasksChanged || minimumTagsChanged
         ? API.queues
             .updateConfig(queueId, newQueueConfig)
             .then(() => {
-              message.success('Minimum Tags updated to ' + values.minTags)
+              if (minimumTagsChanged) {
+                message.success('Minimum Tags updated to ' + values.minTags)
+              }
+              if (tasksChanged) {
+                message.success('Tasks updated successfully')
+              }
             })
             .catch((e) => {
               errorsHaveOccurred = true
               const errorMessage = getErrorMessage(e)
-              message.error(`Failed to save minimum tags: ${errorMessage}`)
+              message.error(`Update failed: ${errorMessage}`)
             })
         : Promise.resolve()
     const updateQueueParams: UpdateQueueParams = pick(values, [
