@@ -99,6 +99,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
 }) => {
   const { queue, mutateQueue } = useQueue(queueId)
   const [form] = Form.useForm()
+  const [saveChangesLoading, setSaveChangesLoading] = useState(false)
   const { course, mutateCourse } = useCourse(courseId)
   const [questionTypes, mutateQuestionTypes] = useQuestionTypes(
     courseId,
@@ -122,6 +123,17 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       ? Object.keys(lastSavedQueueConfig.current.tasks)
       : [],
   )
+
+  // reset localTaskIds back to normal when re-opening modal
+  useEffect(() => {
+    if (open) {
+      setLocalTaskIds(
+        lastSavedQueueConfig.current?.tasks
+          ? Object.keys(lastSavedQueueConfig.current.tasks)
+          : [],
+      )
+    }
+  }, [open])
 
   const resetQueueConfig = useCallback(() => {
     if (open && queue && queue.config) {
@@ -148,6 +160,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
   }, [open, queue?.config, resetQueueConfig])
 
   const onFinish = async (values: FormValues) => {
+    setSaveChangesLoading(true)
     let errorsHaveOccurred = false
     const deletePromises =
       values.questionTypesForDeletion?.map((tagID) =>
@@ -237,7 +250,9 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             })
             .catch((e) => {
               errorsHaveOccurred = true
+              console.log(JSON.stringify(e))
               const errorMessage = getErrorMessage(e)
+              console.log(JSON.stringify(errorMessage))
               message.error(`Update failed: ${errorMessage}`)
             })
         : Promise.resolve()
@@ -271,6 +286,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
     if (!errorsHaveOccurred) {
       onEditSuccess()
     }
+    setSaveChangesLoading(false)
   }
 
   // Debounce the form values change to prevent too many updates (e.g. when typing)
@@ -279,8 +295,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       if (changedValues.assignmentId !== undefined) {
         setAssignmentIdEmpty(!changedValues.assignmentId)
       }
-      // if any of the tasks preconditions change, update the display
-      // TODO
       // Whenever one of the taskIds changes, update localTaskIds to reflect the new taskIds
       // This will be used to check for duplicate taskIds
       const taskWithId = changedValues.tasks?.find(
@@ -303,9 +317,11 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         autoFocus: true,
         htmlType: 'submit',
         disabled: configHasChanges,
+        loading: saveChangesLoading,
       }}
       width={800}
       onCancel={onCancel}
+      loading={!queue || !course}
       destroyOnClose
       modalRender={(dom) => (
         <Form
@@ -589,13 +605,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                         <Select
                           allowClear
                           placeholder="None"
-                          // options={fields.map((field) => ({
-                          //   label: field.id,
-                          //   value: field.id,
-                          // }))}
-                          options={Object.keys(
-                            lastSavedQueueConfig.current?.tasks || {},
-                          ).map((taskID) => ({
+                          options={localTaskIds.map((taskID) => ({
                             label: taskID,
                             value: taskID,
                           }))}
