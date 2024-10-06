@@ -15,6 +15,8 @@ import {
   ColorPickerProps,
   GetProp,
   Dropdown,
+  Checkbox,
+  Select,
 } from 'antd'
 import {
   QuestionTypeParams,
@@ -366,45 +368,109 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
           <Form.List name="tasksForCreation">
             {(fields, { add, remove }) => (
               <>
-                {fields.map(({ key, name, ...restField }) => {
+                {fields.map(({ key, name, ...restField }, index) => {
                   const defaultColor =
                     '#' + Math.floor(Math.random() * 16777215).toString(16)
                   return (
-                    <Space key={key} className="flex" align="center">
+                    <Space key={key} className="flex flex-wrap" align="center">
                       <Form.Item
                         {...restField}
-                        name={[name, 'name']}
+                        name={[name, 'id']}
+                        label={index === 0 ? 'Task ID' : ''}
+                        tooltip={
+                          'The unique task ID for this task (e.g. task1).'
+                        }
                         rules={[
                           {
                             required: true,
-                            message: 'Please input a tag name',
+                            message: 'Task ID required',
                           },
                           {
-                            max: 20,
-                            message: 'Tag name must be less than 20 characters',
+                            max: 50,
+                            message: 'Task IDs must be less than 50 characters',
                           },
                           {
                             validator: (_, value) => {
-                              // make sure no other tags have the same name
+                              // make sure no other tasks have the same ID
+                              // TODO: do this
                               if (
                                 questionTypes?.find((tag) => tag.name === value)
                               ) {
-                                return Promise.reject('Duplicate tag name')
+                                return Promise.reject('Duplicate Task ID')
                               }
                               return Promise.resolve()
                             },
                           },
                         ]}
+                        className="w-32"
                       >
                         <Input
                           allowClear={true}
-                          placeholder="Tag Name"
+                          placeholder="task1"
+                          maxLength={50}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'display_name']}
+                        label={index === 0 ? 'Display Name' : ''}
+                        tooltip={`The name of the task (e.g. "Task 1", "Task 2", etc.)`}
+                        rules={[
+                          { required: true, message: 'Name required' },
+                          {
+                            max: 20,
+                            message:
+                              'Task names must be less than 20 characters',
+                          },
+                        ]}
+                        className="w-[8.5rem]"
+                      >
+                        <Input
+                          allowClear={true}
+                          placeholder="Task 1"
                           maxLength={20}
                         />
                       </Form.Item>
                       <Form.Item
                         {...restField}
+                        name={[name, 'short_display_name']}
+                        label={index === 0 ? 'Short Name' : ''}
+                        className="min-w-[7.5rem]"
+                        tooltip={`The short display name of the task (e.g. "1", "2", etc.) used in certain parts of the UI. Try to keep this no more than 1 or 2 characters.`}
+                        rules={[
+                          {
+                            max: 3,
+                            message:
+                              'Short task names must be less than 3 characters',
+                          },
+                          {
+                            required: true,
+                            message: 'Short Required',
+                          },
+                        ]}
+                      >
+                        <Input
+                          className="ml-7 w-12"
+                          allowClear={true}
+                          placeholder="1"
+                          maxLength={3}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        label={index === 0 ? 'Blocking?' : ''}
+                        name={[name, 'blocking']}
+                        valuePropName="checked"
+                        className="min-w-24"
+                        tooltip={`Whether the task is blocking (i.e. the student cannot complete the next task until this task is completed). For example, a blocking task could be a potentially dangerous chemistry experiment or circuit that requires the TA to look over before the students can continue with the lab. A non-blocking task could be a part of the lab that is just some calculations or coding, where the student can still progress forward with the lab even though they haven't had their work checked yet. A list of tasks where none are blocking essentially allows students to wait until the end of the lab to have every one of their tasks checked off. Default = false`}
+                      >
+                        <Checkbox className="ml-5" />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
                         valuePropName="color"
+                        label={index === 0 ? 'Color' : ''}
+                        className="min-w-16"
                         name={[name, 'color']}
                         rules={[{ required: true, message: 'Missing color' }]}
                         initialValue={defaultColor}
@@ -412,12 +478,35 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                         <ColorPickerWithPresets
                           defaultValue={defaultColor}
                           format="hex"
+                          className="ml-3"
                           defaultFormat="hex"
                           disabledAlpha
                         />
                       </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        label={index === 0 ? 'Precondition' : ''}
+                        name={[name, 'precondition']}
+                        tooltip={`The key of the task (e.g. "task1") that must be completed before this task can be completed. This allows you to define the order in which tasks are completed. The first task should be null (as it has no precondition). Default = null`}
+                      >
+                        <Select
+                          allowClear
+                          placeholder="None"
+                          // options={fields.map((field) => ({
+                          //   label: field.id,
+                          //   value: field.id,
+                          // }))}
+                          options={Object.keys(
+                            lastSavedQueueConfig.current?.tasks || {},
+                          ).map((taskID) => ({
+                            label: taskID,
+                            value: taskID,
+                          }))}
+                          className="w-28"
+                        />
+                      </Form.Item>
                       <CloseOutlined
-                        className="text-md mb-[1.5rem] text-gray-600"
+                        className={`text-md mb-[1.5rem] ml-6 text-gray-600 ${index === 0 ? 'mt-7' : ''}`}
                         onClick={() => remove(name)}
                       />
                     </Space>
@@ -476,7 +565,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             key: '1',
             label: (
               <label className="mt-2 font-medium" htmlFor="queue_config">
-                <span className="mr-1">Queue Config</span>
+                <span className="mr-1">Queue Config JSON</span>
                 <Tooltip
                   title={
                     'Here you can specify a JSON config to automatically set up question tags, tasks, and other settings for the queue. For example, you can use this to set up a chemistry lab that requires certain tasks to be checked off (e.g. have the TA look at the experiment before continuing). You can also easily externally save this config and copy/paste this config to other queues and courses.'
