@@ -13,7 +13,7 @@ const hsvToHex = (h: number, s: number, v: number) => {
   return `#${f(0)}${f(8)}${f(4)}`
 }
 
-const generateUniqueColor = (index: number, amount: number) => {
+export const generateUniqueColor = (index: number, amount: number) => {
   return hsvToHex((360 / amount) * index, 0.75, 0.5)
 }
 
@@ -97,7 +97,9 @@ export const constructChartConfig = (
 export const generateAxisRange = (
   processedChartData: ChartDataType[],
   valueKeys: string[],
+  cap?: number,
 ) => {
+  cap ??= 10
   const allValues = processedChartData
     .map((data) => {
       return valueKeys.map((key) => data[key] as number)
@@ -106,11 +108,22 @@ export const generateAxisRange = (
 
   let min = Math.min(...allValues)
   const max = Math.max(...allValues)
-  if (min < 10) {
+  if (min < cap) {
     min = 0
   } else {
-    min = Math.ceil(min / 10) * 10
+    min = Math.ceil(min / cap) * cap
   }
 
-  return [min, Math.ceil(max / 10) * 10]
+  return [min, Math.ceil(max / cap) * cap]
+}
+
+export const generateTickRange = (domain: number[], numberOfTicks: number) => {
+  const interval = domain[1] - domain[0]
+  const inc = Math.round(interval / numberOfTicks)
+  const range: number[] = []
+  for (let i = domain[0]; i < domain[1] - numberOfTicks; i += inc) {
+    range.push(i)
+  }
+  range.push(domain[1])
+  return range
 }

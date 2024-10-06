@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from 'react'
 import DashboardPresetComponent from '../insights/components/DashboardPresetComponent'
 import { useParams } from 'next/navigation'
 import ChartDemoComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/ChartDemoComponent'
-import InsightsPageContainer from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/InsightsPageContainer'
 import InsightComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/outputComponents/InsightComponent'
 import InsightsPageMenu from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/InsightsPageMenu'
 import { InsightContextProvider } from '@/app/(dashboard)/course/[cid]/(insights)/insights/context/InsightsContext'
@@ -49,7 +48,7 @@ export default function InsightsPage() {
               setSelectedDashboard={setSelectedDashboard}
             />
           )}
-          <InsightsPageContainer>
+          <div className={'flex flex-row flex-wrap gap-4'}>
             {category == 'Dashboard' ? (
               <>
                 <div className={'my-8'}>
@@ -90,7 +89,7 @@ export default function InsightsPage() {
                   />
                 ))
             )}
-          </InsightsPageContainer>
+          </div>
         </div>
       </InsightContextProvider>
     </>

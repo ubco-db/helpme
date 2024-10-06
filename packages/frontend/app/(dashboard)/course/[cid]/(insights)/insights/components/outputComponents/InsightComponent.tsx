@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useInsight } from '@/app/hooks/useInsight'
 import {
   ChartOutputType,
@@ -54,6 +54,31 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
     setInsightOutput(result),
   )
 
+  const chartKeys = useMemo(() => {
+    const matchingChart = charts[insightName]
+    if (matchingChart != undefined && insightOutput != undefined) {
+      const keys: string[] = []
+      const output = insightOutput.output as ChartOutputType
+      if (matchingChart.categoryKeys) {
+        output.data.forEach((datum) => {
+          const key = datum[output.xKey]
+          if (!keys.includes(key)) {
+            keys.push(key)
+          }
+        })
+      } else {
+        keys.push(...(output.yKeys ?? []))
+      }
+      return keys
+    }
+  }, [insightOutput])
+
+  useEffect(() => {
+    if (chartKeys != undefined && insightName == 'MostActiveTimes') {
+      setSelectedData(chartKeys)
+    }
+  }, [chartKeys])
+
   const renderFilterOptions = useMemo(() => {
     const filterOptions: React.ReactNode[] = []
 
@@ -85,25 +110,10 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
           }
         }),
       )
-
-      const matchingChart = charts[insightName]
-      if (matchingChart != undefined) {
-        const keys: string[] = []
-        const output = insightOutput.output as ChartOutputType
-        if (matchingChart.categoryKeys) {
-          output.data.forEach((datum) => {
-            const key = datum[output.xKey]
-            if (!keys.includes(key)) {
-              keys.push(key)
-            }
-          })
-        } else {
-          keys.push(...(output.yKeys ?? []))
-        }
-
+      if (insightName != 'MostActiveTimes' && chartKeys != undefined) {
         filterOptions.push(
           <DataFilter
-            dataKeys={keys}
+            dataKeys={chartKeys}
             selectedData={selectedData}
             setSelectedData={setSelectedData}
           />,
@@ -118,7 +128,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
         </div>
       )
     )
-  }, [insightOutput, insightName, students, queues, selectedData])
+  }, [insightOutput, insightName, students, queues, chartKeys, selectedData])
 
   return useMemo(() => {
     if (insightOutput == undefined) {

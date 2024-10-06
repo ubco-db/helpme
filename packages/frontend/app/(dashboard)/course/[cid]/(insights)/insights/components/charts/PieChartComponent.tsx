@@ -56,9 +56,9 @@ const PieChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           />
         )}
         {valueKeys &&
-          valueKeys.map((key) => (
+          valueKeys.map((key, index) => (
             <Pie
-              key={key}
+              key={index}
               data={chartData}
               dataKey={key}
               innerRadius={innerRadius ?? 0}
@@ -73,7 +73,7 @@ const PieChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
                   fontSize={12}
                   formatter={(value: keyof typeof chartConfig) =>
                     labelFormatter
-                      ? labelFormatter(chartConfig[value]?.label + '')
+                      ? labelFormatter(chartConfig[value]?.label + '', [])
                       : chartConfig[value]?.label + ''
                   }
                 />

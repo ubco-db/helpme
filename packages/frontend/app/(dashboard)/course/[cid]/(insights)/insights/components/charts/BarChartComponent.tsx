@@ -85,9 +85,9 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
         )}
         {valueKeys &&
           valueFills &&
-          valueKeys.map((key) => (
+          valueKeys.map((key, index) => (
             <Bar
-              key={key}
+              key={index}
               stackId={stackData ? '0' : undefined}
               fill={valueFills[key]}
               dataKey={key}

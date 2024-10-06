@@ -63,9 +63,9 @@ const RadialChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
         )}
         {valueKeys &&
           valueFills &&
-          valueKeys.map((key) => (
+          valueKeys.map((key, index) => (
             <RadialBar
-              key={key}
+              key={index}
               stackId={stackData ? 'radial-stack' : undefined}
               fill={valueFills[key]}
               dataKey={key}

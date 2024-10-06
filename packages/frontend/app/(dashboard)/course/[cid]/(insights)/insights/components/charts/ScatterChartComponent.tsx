@@ -13,6 +13,10 @@ import {
   PointChartProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
 import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
+import {
+  getAxisComponents,
+  getLegendAndTooltipComponents,
+} from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/ChartFunctions'
 
 const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -25,6 +29,7 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     valueFormatter,
     legendFormatter,
     xType,
+    yType,
   } = props
 
   let {
@@ -63,51 +68,29 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     >
       <ScatterChart data={chartData}>
         <CartesianGrid vertical={verticalAxis} />
-        {(xType == 'numeric' && (
-          <XAxis
-            type={'number'}
-            tickLine={tickLine}
-            tickMargin={tickMargin}
-            axisLine={axisLine}
-            tickFormatter={tickFormatter}
-            domain={generateAxisRange(chartData, ['key'])}
-          />
-        )) || (
-          <XAxis
-            dataKey="key"
-            tickLine={tickLine}
-            tickMargin={tickMargin}
-            axisLine={axisLine}
-            tickFormatter={tickFormatter}
-          />
+        {getAxisComponents(
+          chartData,
+          valueKeys,
+          tickMargin,
+          verticalAxis,
+          tickLine,
+          axisLine,
+          tickFormatter,
+          xType,
+          yType,
         )}
-        <YAxis
-          type="number"
-          domain={generateAxisRange(chartData, valueKeys)}
-          tickLine={tickLine}
-          tickMargin={tickMargin}
-          axisLine={axisLine}
-          hide={!verticalAxis}
-        />
-        {includeTooltip && (
-          <ChartTooltip
-            formatter={valueFormatter}
-            labelFormatter={labelFormatter}
-            cursor={false}
-            content={<ChartTooltipContent />}
-          />
-        )}
-        {includeLegend && (
-          <ChartLegend
-            formatter={legendFormatter}
-            content={<ChartLegendContent />}
-          />
+        {getLegendAndTooltipComponents(
+          includeLegend,
+          includeTooltip,
+          labelFormatter,
+          valueFormatter,
+          legendFormatter,
         )}
         {valueKeys &&
           valueFills &&
-          valueKeys.map((key) => (
+          valueKeys.map((key, index) => (
             <Scatter
-              key={key}
+              key={index}
               stroke={!fullPointFill ? valueFills[key] : 'transparent'}
               fill={fullPointFill ? valueFills[key] : 'transparent'}
               dataKey={key}

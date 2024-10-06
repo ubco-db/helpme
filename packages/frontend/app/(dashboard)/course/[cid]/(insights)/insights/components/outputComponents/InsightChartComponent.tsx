@@ -15,6 +15,7 @@ import { charts } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils
 import InsightCard from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/InsightCard'
 import { GenericInsightComponentProps } from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/outputComponents/InsightComponent'
 import { Empty } from 'antd'
+import WeekdayTimeChart from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/WeekdayTimeChart'
 
 const InsightChartComponent: React.FC<
   GenericInsightComponentProps & { selectedDataSets: string[] }
@@ -70,6 +71,8 @@ const InsightChartComponent: React.FC<
           return <RadialChartComponent props={props} />
         case 'Scatter':
           return <ScatterChartComponent props={props} />
+        case 'WeekdayTime':
+          return <WeekdayTimeChart props={props} />
         default:
           return <></>
       }

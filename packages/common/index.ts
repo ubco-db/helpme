@@ -1478,6 +1478,7 @@ export const InsightNames = [
   'HelpSeekingOverTime',
   'HumanVsChatbot',
   'HumanVsChatbotVotes',
+  'MostActiveTimes',
 ]
 
 export type InsightCategory = (typeof InsightCategories)[number]
@@ -1505,6 +1506,7 @@ export const InsightDirectory: InsightDetail = {
   QuestionTypeBreakdown: { category: 'Questions' },
   MedianHelpingTime: { category: 'Queues' },
   AverageTimesByWeekDay: { category: 'Queues' },
+  MostActiveTimes: { category: 'Queues' },
   HumanVsChatbot: { category: 'Chatbot' },
   HumanVsChatbotVotes: { category: 'Chatbot' },
 }
@@ -1554,19 +1556,32 @@ export interface InsightOutput {
   output: PossibleOutputTypes
 }
 
+export function numToWeekday(num: number) {
+  num = parseInt(num as unknown as string)
+  switch (num) {
+    case 0:
+      return 'Sunday'
+    case 1:
+      return 'Monday'
+    case 2:
+      return 'Tuesday'
+    case 3:
+      return 'Wednesday'
+    case 4:
+      return 'Thursday'
+    case 5:
+      return 'Friday'
+    case 6:
+      return 'Saturday'
+    default:
+      return 'N/A'
+  }
+}
+
 export type PossibleOutputTypes =
   | ValueOutputType
   | ChartOutputType
   | TableOutputType
-
-export type ChartType =
-  | 'Area'
-  | 'Bar'
-  | 'Line'
-  | 'Pie'
-  | 'Radar'
-  | 'Radial'
-  | 'Scatter'
 
 export type ChartOutputType = {
   data: StringMap<any>[]
@@ -1574,6 +1589,7 @@ export type ChartOutputType = {
   yKeys: string[]
   label: string
   xType?: 'numeric' | 'category'
+  yType?: 'numeric' | 'category'
 }
 
 export type ValueOutputType = number | string

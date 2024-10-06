@@ -58,9 +58,9 @@ const RadarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
         )}
         {valueKeys &&
           valueFills &&
-          valueKeys.map((key) => (
+          valueKeys.map((key, index) => (
             <Radar
-              key={key}
+              key={index}
               fill={valueFills[key]}
               fillOpacity={0.5}
               dataKey={key}

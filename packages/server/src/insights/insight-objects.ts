@@ -3,6 +3,7 @@ import {
   InsightFilterOption,
   InsightObject,
   InsightType,
+  numToWeekday,
   Role,
   StringMap,
   TableOutputType,
@@ -122,28 +123,6 @@ const APPLY_FILTER_MAP = {
       });
     },
   },
-};
-
-const numToWeekday = (num: number) => {
-  num = parseInt(num as unknown as string);
-  switch (num) {
-    case 0:
-      return 'Sunday';
-    case 1:
-      return 'Monday';
-    case 2:
-      return 'Tuesday';
-    case 3:
-      return 'Wednesday';
-    case 4:
-      return 'Thursday';
-    case 5:
-      return 'Friday';
-    case 6:
-      return 'Saturday';
-    default:
-      return 'N/A';
-  }
 };
 
 export const TotalStudents: InsightObject = {
@@ -425,6 +404,58 @@ export const AverageTimesByWeekDay: InsightObject = {
       yKeys: ['Average_Wait_Time', 'Average_Help_Time'],
       label: 'Weekday',
       xType: 'category',
+    };
+  },
+};
+
+export const MostActiveTimes: InsightObject = {
+  displayName: 'Most Active Times',
+  description:
+    'The most in-demand queue times during the calendar week, based on the number of queued questions throughout the day.',
+  roles: [Role.PROFESSOR],
+  insightType: InsightType.Chart,
+  allowedFilters: ['courseId', 'timeframe', 'queues'],
+  async compute(filters): Promise<ChartOutputType> {
+    type ActiveTimes = {
+      quarterTime: number;
+      amount: number;
+      weekday: number;
+    };
+
+    const extractMinutesIntoDay = `ROUND((EXTRACT(EPOCH FROM "QuestionModel"."createdAt") - EXTRACT(EPOCH FROM "QuestionModel"."createdAt"::DATE))/60)`;
+    const getQuarterTimeString = `CEIL(${extractMinutesIntoDay}/15)*15`;
+
+    const questions = await addFilters({
+      query: createQueryBuilder(QuestionModel)
+        .select(getQuarterTimeString, 'quarterTime')
+        .addSelect('COUNT(QuestionModel.id)', 'amount')
+        .addSelect('EXTRACT(DOW FROM QuestionModel.createdAt)', 'weekday')
+        .andWhere('QuestionModel.createdAt IS NOT NULL')
+        .groupBy(getQuarterTimeString)
+        .addGroupBy('EXTRACT(DOW FROM QuestionModel.createdAt)')
+        .orderBy(getQuarterTimeString, 'ASC')
+        .addOrderBy('weekday', 'ASC'),
+      modelName: QuestionModel.name,
+      allowedFilters: this.allowedFilters,
+      filters,
+    }).getRawMany<ActiveTimes>();
+
+    const data: StringMap<any>[] = questions
+      .map((value) => {
+        return {
+          Weekday: value.weekday,
+          Amount: value.amount,
+          quarterTime: value.quarterTime,
+        };
+      })
+      .sort((a, b) => a.Weekday - b.Weekday);
+
+    return {
+      data,
+      xKey: 'quarterTime',
+      yKeys: ['Weekday', 'Amount'],
+      label: 'Weekday',
+      xType: 'numeric',
     };
   },
 };
@@ -803,4 +834,5 @@ export const INSIGHTS_MAP = {
   HelpSeekingOverTime,
   HumanVsChatbot,
   HumanVsChatbotVotes,
+  MostActiveTimes,
 };

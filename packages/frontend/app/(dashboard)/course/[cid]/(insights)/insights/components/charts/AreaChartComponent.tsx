@@ -13,6 +13,10 @@ import {
   LinearChartProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
 import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
+import {
+  getAxisComponents,
+  getLegendAndTooltipComponents,
+} from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/ChartFunctions'
 
 const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -25,6 +29,7 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     valueFormatter,
     legendFormatter,
     xType,
+    yType,
   } = props
 
   let {
@@ -65,46 +70,23 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     >
       <AreaChart data={chartData} accessibilityLayer>
         <CartesianGrid vertical={verticalAxis} />
-        {(xType == 'numeric' && (
-          <XAxis
-            type={'number'}
-            dataKey={'key'}
-            tickLine={tickLine}
-            tickMargin={tickMargin}
-            axisLine={axisLine}
-            tickFormatter={tickFormatter}
-            domain={generateAxisRange(chartData, ['key'])}
-          />
-        )) || (
-          <XAxis
-            dataKey="key"
-            tickLine={tickLine}
-            tickMargin={tickMargin}
-            axisLine={axisLine}
-            tickFormatter={tickFormatter}
-          />
+        {getAxisComponents(
+          chartData,
+          valueKeys,
+          tickMargin,
+          verticalAxis,
+          tickLine,
+          axisLine,
+          tickFormatter,
+          xType,
+          yType,
         )}
-        <YAxis
-          type="number"
-          domain={generateAxisRange(chartData, valueKeys)}
-          tickLine={tickLine}
-          tickMargin={tickMargin}
-          axisLine={axisLine}
-          hide={!verticalAxis}
-        />
-        {includeTooltip && (
-          <ChartTooltip
-            formatter={valueFormatter}
-            labelFormatter={labelFormatter}
-            cursor={false}
-            content={<ChartTooltipContent />}
-          />
-        )}
-        {includeLegend && (
-          <ChartLegend
-            formatter={legendFormatter}
-            content={<ChartLegendContent />}
-          />
+        {getLegendAndTooltipComponents(
+          includeLegend,
+          includeTooltip,
+          labelFormatter,
+          valueFormatter,
+          legendFormatter,
         )}
         <defs>
           {valueKeys &&
@@ -128,9 +110,9 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
         </defs>
         {valueKeys &&
           valueFills &&
-          valueKeys.map((key) => (
+          valueKeys.map((key, index) => (
             <Area
-              key={key}
+              key={index}
               stroke={valueFills[key]}
               strokeWidth={2}
               fill={`url(#fill${key})`}

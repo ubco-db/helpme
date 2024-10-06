@@ -1,9 +1,9 @@
 import { ChartConfig } from '@/app/components/ui/chart'
 import { CurveType } from 'recharts/types/shape/Curve'
-import { ChartType } from '@koh/common'
 import {
   NameType,
   Payload as TooltipPayload,
+  Formatter as TooltipFormatter,
 } from 'recharts/types/component/DefaultTooltipContent'
 import { Formatter } from 'recharts/types/component/DefaultLegendContent'
 export type ChartSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl'
@@ -51,12 +51,13 @@ export interface DefaultChartProps {
   includeTooltip?: boolean
   valueFills?: { [key: string]: string }
   xType?: 'numeric' | 'category'
+  yType?: 'numeric' | 'category'
   size?: ChartSize
   labelFormatter?: (
     label: any,
     payload: TooltipPayload<string, NameType>[],
   ) => React.ReactNode
-  valueFormatter?: (label: string) => string
+  valueFormatter?: TooltipFormatter<any, NameType>
   legendFormatter?: Formatter
 }
 
@@ -91,6 +92,16 @@ export interface LinearChartProps extends PointChartProps {
 
 export type ChartDataType = { key: string; fill?: string; [key: string]: any }
 
+export type ChartType =
+  | 'Area'
+  | 'Bar'
+  | 'Line'
+  | 'Pie'
+  | 'Radar'
+  | 'Radial'
+  | 'Scatter'
+  | 'WeekdayTime'
+
 export type ChartComponent = {
   chartType: ChartType
   categoryKeys?: boolean
@@ -124,7 +135,7 @@ export const charts: {
       includeLegend: true,
       includeTooltip: true,
       size: 'lg',
-      valueFormatter: (label) => label + ' minutes',
+      valueFormatter: (label: any) => label + ' minutes',
     },
   },
   HelpSeekingOverTime: {
@@ -162,7 +173,7 @@ export const charts: {
       includeLegend: true,
       includeTooltip: true,
       size: 'lg',
-      valueFormatter: (label) =>
+      valueFormatter: (label: any) =>
         parseInt(label) > 1 || parseInt(label) == 0
           ? label + ' answers'
           : label + ' answer',
@@ -175,11 +186,19 @@ export const charts: {
       includeLegend: true,
       includeTooltip: true,
       size: 'lg',
-      valueFormatter: (label) =>
+      valueFormatter: (label: any) =>
         parseInt(label) > 1 || parseInt(label) == 0
           ? label + ' votes'
           : label + ' vote',
       tickFormatter: (label) => label,
+    },
+  },
+  MostActiveTimes: {
+    chartType: 'WeekdayTime',
+    props: {
+      includeLegend: true,
+      includeTooltip: true,
+      size: '4xl',
     },
   },
 }
