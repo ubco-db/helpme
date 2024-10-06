@@ -85,6 +85,7 @@
     "res": "^0.4.0",
     "rimraf": "^3.0.2",
     "rxjs": "^6.5.4",
+    "sharp": "^0.33.5",
     "source-map-support": "^0.5.19",
     "superagent": "^8.1.2",
     "typeorm": "^0.2.25",
