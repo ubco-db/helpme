@@ -494,7 +494,11 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                     form.getFieldValue(['tasks', name, 'color_hex']) ||
                     '#' + Math.floor(Math.random() * 16777215).toString(16)
                   return (
-                    <Space key={key} className="flex flex-wrap" align="center">
+                    <Space
+                      key={key}
+                      className="mb-2 flex flex-wrap border-b border-gray-300 md:mb-0 md:border-none"
+                      align="center"
+                    >
                       <Form.Item
                         {...restField}
                         name={[name, 'id']}
@@ -526,13 +530,9 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                             },
                           },
                         ]}
-                        className="w-32"
+                        className="w-16 md:w-32"
                       >
-                        <Input
-                          allowClear={true}
-                          placeholder="task1"
-                          maxLength={50}
-                        />
+                        <Input placeholder="task1" maxLength={50} />
                       </Form.Item>
                       <Form.Item
                         {...restField}
@@ -547,19 +547,15 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                               'Task names must be less than 20 characters',
                           },
                         ]}
-                        className="w-[8.5rem]"
+                        className="w-16 md:w-[8.5rem]"
                       >
-                        <Input
-                          allowClear={true}
-                          placeholder="Task 1"
-                          maxLength={20}
-                        />
+                        <Input placeholder="Task 1" maxLength={20} />
                       </Form.Item>
                       <Form.Item
                         {...restField}
                         name={[name, 'short_display_name']}
                         label={index === 0 ? 'Short Name' : ''}
-                        className="min-w-[7.5rem]"
+                        className="w-12 md:min-w-[7.5rem]"
                         tooltip={`The short display name of the task (e.g. "1", "2", etc.) used in certain parts of the UI. Try to keep this no more than 1 or 2 characters.`}
                         rules={[
                           {
@@ -574,7 +570,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                         ]}
                       >
                         <Input
-                          className="ml-7 w-12"
+                          className="md:ml-7 md:w-12"
                           placeholder="1"
                           maxLength={3}
                         />
@@ -584,16 +580,16 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                         label={index === 0 ? 'Blocking?' : ''}
                         name={[name, 'blocking']}
                         valuePropName="checked"
-                        className="min-w-24"
+                        className="w-20 md:min-w-24"
                         tooltip={`Whether the task is blocking (i.e. the student cannot complete the next task until this task is completed). For example, a blocking task could be a potentially dangerous chemistry experiment or circuit that requires the TA to look over before the students can continue with the lab. A non-blocking task could be a part of the lab that is just some calculations or coding, where the student can still progress forward with the lab even though they haven't had their work checked yet. A list of tasks where none are blocking essentially allows students to wait until the end of the lab to have every one of their tasks checked off. Default = false`}
                       >
-                        <Checkbox className="ml-5" />
+                        <Checkbox className="ml-9 md:ml-5" />
                       </Form.Item>
                       <Form.Item
                         {...restField}
                         valuePropName="color"
                         label={index === 0 ? 'Color' : ''}
-                        className="min-w-16"
+                        className="w-12 md:min-w-16"
                         name={[name, 'color_hex']}
                         rules={[{ required: true, message: 'Missing color' }]}
                         // This will give an antd warning in the console but won't work otherwise
@@ -613,6 +609,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                         label={index === 0 ? 'Precondition' : ''}
                         name={[name, 'precondition']}
                         tooltip={`The key of the task (e.g. "task1") that must be completed before this task can be completed. This allows you to define the order in which tasks are completed. It is recommended to keep this empty if your students can do tasks out of order.`}
+                        className="w-20 md:w-28"
                       >
                         <Select
                           allowClear
@@ -628,7 +625,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                               label: taskID,
                               value: taskID,
                             }))}
-                          className="w-28"
+                          className="w-20 md:w-28"
                         />
                       </Form.Item>
                       <CloseOutlined

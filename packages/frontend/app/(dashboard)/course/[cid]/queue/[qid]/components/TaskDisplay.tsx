@@ -24,8 +24,6 @@ const DisplayTask: React.FC<DisplayTaskProps> = ({ taskName, taskColor }) => {
         display: 'inline-block',
         border: `1px solid ${tinycolor(taskColor).darken(10).toString()}`,
       }}
-      tabIndex={0}
-      role="checkbox"
     >
       <div style={{ fontSize: 'smaller', color: textColor }}>{taskName}</div>
     </div>
@@ -51,27 +49,13 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({
 }) => {
   const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree)
 
-  const [selectedTasks, setSelectedTasks] = useState<string[]>(value || [])
-
   useEffect(() => {
     const configTasksCopy = {
       ...configTasks,
     } // Create a copy of configTasks (since the function will mutate it)
 
     setTaskTree(transformIntoTaskTree(configTasksCopy))
-    setSelectedTasks(value || [])
   }, [configTasks, value])
-
-  const handleCurrentTaskClick = useCallback(
-    (taskID: string, checked: boolean) => {
-      const newSelectedTasks = checked
-        ? [...selectedTasks, taskID]
-        : selectedTasks.filter((id) => id !== taskID)
-
-      setSelectedTasks(newSelectedTasks)
-    },
-    [selectedTasks],
-  )
 
   const printDependents = useCallback(
     (taskID: string, accumulatedTasks: JSX.Element[] = []) => {
@@ -106,7 +90,7 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({
 
       return accumulatedTasks
     },
-    [taskTree, selectedTasks, handleCurrentTaskClick],
+    [taskTree],
   )
 
   const printTasks = useMemo(() => {
@@ -125,7 +109,11 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({
   }, [taskTree])
 
   return (
-    <div className={`flex gap-x-1 ${className}`} role="group" {...props}>
+    <div
+      className={`flex flex-wrap gap-x-1 ${className}`}
+      role="group"
+      {...props}
+    >
       {printTasks}
     </div>
   )
