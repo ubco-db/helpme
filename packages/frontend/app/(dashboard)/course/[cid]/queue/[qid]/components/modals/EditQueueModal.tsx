@@ -76,10 +76,11 @@ interface FormValues {
   allowQuestions: boolean
   questionTypesForDeletion: number[]
   questionTypesForCreation: QuestionTypeForCreation[]
-  tasks: TaskParams[]
+  minTags: string
+  assignmentId?: string
+  tasks?: TaskParams[]
   zoomLink: string
   queue_config: string
-  minTags: string
 }
 
 interface EditQueueModalProps {
@@ -116,7 +117,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
   const [configHasChanges, setConfigHasChanges] = useState(false)
 
   const [assignmentIdEmpty, setAssignmentIdEmpty] = useState(
-    lastSavedQueueConfig.current?.assignment_id === undefined,
+    !lastSavedQueueConfig.current?.assignment_id,
   )
   const [localTaskIds, setLocalTaskIds] = useState<string[]>(
     lastSavedQueueConfig.current?.tasks
@@ -161,6 +162,13 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
 
   const onFinish = async (values: FormValues) => {
     setSaveChangesLoading(true)
+    // set a timeout that if it's still loading after 5 seconds, stop loading
+    setTimeout(() => {
+      if (saveChangesLoading) {
+        setSaveChangesLoading(false)
+        message.error('Failed to save changes. Please try again.')
+      }
+    }, 5000)
     let errorsHaveOccurred = false
     const deletePromises =
       values.questionTypesForDeletion?.map((tagID) =>
@@ -217,17 +225,20 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
     const newQueueConfig: QueueConfig = {
       ...lastSavedQueueConfig.current,
       minimum_tags: Number(values.minTags),
+      assignment_id: values.assignmentId,
       // iterate over each task and accumulate them into an object
-      tasks: values.tasks.reduce((acc, task) => {
-        acc[task.id] = {
-          display_name: task.display_name,
-          short_display_name: task.short_display_name,
-          blocking: task.blocking,
-          color_hex: task.color_hex,
-          precondition: task.precondition ?? null,
-        }
-        return acc
-      }, {} as ConfigTasks),
+      tasks: values.assignmentId
+        ? values.tasks?.reduce((acc, task) => {
+            acc[task.id] = {
+              display_name: task.display_name,
+              short_display_name: task.short_display_name,
+              blocking: task.blocking,
+              color_hex: task.color_hex,
+              precondition: task.precondition ?? null,
+            }
+            return acc
+          }, {} as ConfigTasks)
+        : {},
     }
 
     const tasksChanged =
@@ -235,6 +246,8 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       JSON.stringify(lastSavedQueueConfig.current?.tasks || {})
     const minimumTagsChanged =
       lastSavedQueueConfig.current?.minimum_tags !== Number(values.minTags)
+    const assignmentIdChanged =
+      lastSavedQueueConfig.current?.assignment_id !== values.assignmentId
 
     // if the tasks changed, make sure there's no cycle in the new tasks
     if (
@@ -249,7 +262,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       return
     }
     const queueConfigPromise =
-      tasksChanged || minimumTagsChanged
+      tasksChanged || minimumTagsChanged || assignmentIdChanged
         ? API.queues
             .updateConfig(queueId, newQueueConfig)
             .then(() => {
@@ -258,6 +271,14 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               }
               if (tasksChanged) {
                 message.success('Tasks updated successfully')
+              }
+              if (assignmentIdChanged) {
+                message.success(
+                  'Assignment ID updated from ' +
+                    lastSavedQueueConfig.current?.assignment_id +
+                    ' to ' +
+                    values.assignmentId,
+                )
               }
             })
             .catch((e) => {
