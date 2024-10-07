@@ -617,10 +617,17 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                         <Select
                           allowClear
                           placeholder="None"
-                          options={localTaskIds.map((taskID) => ({
-                            label: taskID,
-                            value: taskID,
-                          }))}
+                          // exclude the current task from the list of tasks
+                          options={localTaskIds
+                            .filter(
+                              (taskID) =>
+                                taskID !==
+                                form.getFieldValue(['tasks', name, 'id']),
+                            )
+                            .map((taskID) => ({
+                              label: taskID,
+                              value: taskID,
+                            }))}
                           className="w-28"
                         />
                       </Form.Item>
