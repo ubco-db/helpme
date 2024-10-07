@@ -334,11 +334,13 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         (task: any) => task?.id !== undefined,
       )
       if (taskWithId) {
-        setLocalTaskIds(allValues.tasks.map((task) => task?.id))
+        setLocalTaskIds(
+          allValues.tasks ? allValues.tasks.map((task) => task?.id) : [],
+        )
       }
     },
     300,
-  ) // Adjust the debounce delay as needed
+  )
 
   return (
     <Modal
