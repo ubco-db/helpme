@@ -71,13 +71,19 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
       }
       return keys
     }
-  }, [insightOutput])
+  }, [insightOutput, insightName])
 
   useEffect(() => {
-    if (chartKeys != undefined && insightName == 'MostActiveTimes') {
+    if (
+      chartKeys != undefined &&
+      insightOutput &&
+      insightOutput.outputType == InsightType.Chart &&
+      charts[insightName] != undefined &&
+      !charts[insightName].allowDataFiltering
+    ) {
       setSelectedData(chartKeys)
     }
-  }, [chartKeys])
+  }, [chartKeys, insightName, insightOutput])
 
   const renderFilterOptions = useMemo(() => {
     const filterOptions: React.ReactNode[] = []
@@ -110,7 +116,11 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
           }
         }),
       )
-      if (insightName != 'MostActiveTimes' && chartKeys != undefined) {
+      if (
+        insightOutput.outputType == InsightType.Chart &&
+        insightName != 'MostActiveTimes' &&
+        chartKeys != undefined
+      ) {
         filterOptions.push(
           <DataFilter
             dataKeys={chartKeys}

@@ -105,6 +105,7 @@ export type ChartType =
 export type ChartComponent = {
   chartType: ChartType
   categoryKeys?: boolean
+  allowDataFiltering?: boolean
   props:
     | Partial<DefaultChartProps>
     | Partial<RadialChartProps>
@@ -195,6 +196,7 @@ export const charts: {
   },
   MostActiveTimes: {
     chartType: 'WeekdayTime',
+    allowDataFiltering: false,
     props: {
       includeLegend: true,
       includeTooltip: true,

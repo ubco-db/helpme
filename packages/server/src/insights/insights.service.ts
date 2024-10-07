@@ -2,12 +2,12 @@ import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 import { Connection } from 'typeorm';
 import { Filter, INSIGHTS_MAP } from './insight-objects';
 import {
-  PossibleOutputTypes,
+  InsightDashboardPartial,
+  InsightDetail,
   InsightObject,
   ListInsightsResponse,
-  InsightDetail,
+  PossibleOutputTypes,
   Role,
-  InsightDashboardPartial,
 } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
 import { Cache } from 'cache-manager';
@@ -36,8 +36,7 @@ export class InsightsService {
     insight,
     filters,
   }: ComputeOutputParams): Promise<PossibleOutputTypes> {
-    const output = await insight.compute(filters, this.cacheManager);
-    return output;
+    return await insight.compute(filters, this.cacheManager);
   }
 
   async generateAllInsights({

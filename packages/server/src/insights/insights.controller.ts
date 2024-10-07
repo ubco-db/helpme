@@ -42,6 +42,48 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 export class InsightsController {
   constructor(private insightsService: InsightsService) {}
 
+  @Delete(':courseId/dashboard/remove')
+  @Roles(Role.PROFESSOR)
+  async removeDashboardPreset(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() body: { name: string },
+    @User() user: UserModel,
+  ): Promise<InsightDashboardPartial[]> {
+    return await this.insightsService.removeDashboardPreset(
+      user,
+      courseId,
+      body.name,
+    );
+  }
+
+  @Post(':courseId/dashboard/create')
+  @Roles(Role.PROFESSOR)
+  async upsertDashboardPreset(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @User() user: UserModel,
+    @Body()
+    body: {
+      insights: InsightDetail;
+      name?: string;
+    },
+  ): Promise<InsightDashboardPartial[]> {
+    return await this.insightsService.upsertDashboardPreset(
+      user,
+      courseId,
+      body.insights,
+      body.name,
+    );
+  }
+
+  @Get(':courseId/dashboard')
+  @Roles(Role.PROFESSOR)
+  async retrieveDashboardPresets(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @User() user: UserModel,
+  ): Promise<InsightDashboardPartial[]> {
+    return await this.insightsService.getDashboardPresets(user, courseId);
+  }
+
   @Get(':courseId/:insightName')
   async get(
     @CourseRole() role: Role,
@@ -157,48 +199,6 @@ export class InsightsController {
   async getAllInsights(): Promise<ListInsightsResponse> {
     return this.insightsService.convertToInsightsListResponse(
       Object.keys(INSIGHTS_MAP),
-    );
-  }
-
-  @Get(':courseId/dashboard')
-  @Roles(Role.PROFESSOR)
-  async retrieveDashboardPresets(
-    @Param('courseId', ParseIntPipe) courseId: number,
-    @User() user: UserModel,
-  ): Promise<InsightDashboardPartial[]> {
-    return await this.insightsService.getDashboardPresets(user, courseId);
-  }
-
-  @Post(':courseId/dashboard/create')
-  @Roles(Role.PROFESSOR)
-  async upsertDashboardPreset(
-    @Param('courseId', ParseIntPipe) courseId: number,
-    @User() user: UserModel,
-    @Body()
-    body: {
-      insights: InsightDetail;
-      name?: string;
-    },
-  ): Promise<InsightDashboardPartial[]> {
-    return await this.insightsService.upsertDashboardPreset(
-      user,
-      courseId,
-      body.insights,
-      body.name,
-    );
-  }
-
-  @Delete(':courseId/dashboard/remove/:name')
-  @Roles(Role.PROFESSOR)
-  async removeDashboardPreset(
-    @Param('courseId', ParseIntPipe) courseId: number,
-    @Param('name') name: string,
-    @User() user: UserModel,
-  ): Promise<InsightDashboardPartial[]> {
-    return await this.insightsService.removeDashboardPreset(
-      user,
-      courseId,
-      name,
     );
   }
 

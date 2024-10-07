@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import DashboardPresetComponent from '../insights/components/DashboardPresetComponent'
 import { useParams } from 'next/navigation'
-import ChartDemoComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/ChartDemoComponent'
 import InsightComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/outputComponents/InsightComponent'
 import InsightsPageMenu from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/InsightsPageMenu'
 import { InsightContextProvider } from '@/app/(dashboard)/course/[cid]/(insights)/insights/context/InsightsContext'
@@ -23,10 +22,16 @@ export default function InsightsPage() {
   const [selectedDashboard, setSelectedDashboard] = useState<
     string | undefined
   >(undefined)
+
   useEffect(() => {
     API.insights
       .getPresets(courseId)
-      .then((result: InsightDashboardPartial[]) => setAllPresets(result ?? []))
+      .then((result: InsightDashboardPartial[]) => {
+        setAllPresets(result ?? [])
+        if (result?.length > 0) {
+          setSelectedDashboard(result[0].name)
+        }
+      })
   }, [courseId])
 
   const dashboardInsights = useMemo(
@@ -51,32 +56,25 @@ export default function InsightsPage() {
           <div className={'flex flex-row flex-wrap gap-4'}>
             {category == 'Dashboard' ? (
               <>
-                <div className={'my-8'}>
-                  <pre>
-                    {`         __
-     _(\\    |@@|
-    (__/\\__ \\--/ __
-       \\___|----|  |   __
-           \\ }{ /\\ )_ / _\\
-           /\\__/\\ \\__O (__
-          (--/\\--)    \\__/
-          _)(  )(_
-         \`---''---\` 
-         
-          Page work ahead? I SURE HOPE IT DOES!`}
-                  </pre>
-                  <ChartDemoComponent />
-                  {dashboardInsights != undefined &&
-                    Object.keys(dashboardInsights.insights).map((key, index) =>
-                      dashboardInsights.insights[key].active ? (
-                        <InsightComponent
-                          key={index}
-                          courseId={courseId}
-                          insightName={key}
-                        />
-                      ) : undefined,
-                    )}
-                </div>
+                {(dashboardInsights != undefined &&
+                  Object.keys(dashboardInsights.insights).length > 0 &&
+                  Object.keys(dashboardInsights.insights).map((key, index) =>
+                    dashboardInsights.insights[key].active ? (
+                      <InsightComponent
+                        key={index}
+                        courseId={courseId}
+                        insightName={key}
+                      />
+                    ) : undefined,
+                  )) || (
+                  <div className={'h-full w-full text-center'}>
+                    <h2>No insights to show!</h2>
+                    <p>
+                      Create an insight dashboard preset to view available
+                      analytics.
+                    </p>
+                  </div>
+                )}
               </>
             ) : (
               Object.keys(InsightDirectory)

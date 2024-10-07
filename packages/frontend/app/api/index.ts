@@ -60,6 +60,7 @@ import {
   PublicQueueInvite,
   QueueInvite,
   InsightDashboardPartial,
+  InsightDetail,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -532,19 +533,20 @@ class APIClient {
     getPresets: async (courseId: number): Promise<InsightDashboardPartial[]> =>
       this.req(
         'GET',
-        `/api/v1/insights/${courseId}/dashboard/`,
+        `/api/v1/insights/${courseId}/dashboard`,
         undefined,
         undefined,
       ),
     createOrUpdatePreset: async (
       courseId: number,
+      insights: InsightDetail,
       name?: string,
     ): Promise<InsightDashboardPartial[]> =>
       this.req(
         'POST',
         `/api/v1/insights/${courseId}/dashboard/create`,
         undefined,
-        { name },
+        { name, insights },
       ),
     removePreset: async (
       courseId: number,
@@ -552,9 +554,11 @@ class APIClient {
     ): Promise<InsightDashboardPartial[]> =>
       this.req(
         'DELETE',
-        `/api/v1/insights/${courseId}/dashboard/remove/${name}`,
+        `/api/v1/insights/${courseId}/dashboard/remove`,
         undefined,
-        undefined,
+        {
+          name,
+        },
       ),
   }
 

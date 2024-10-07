@@ -1,8 +1,20 @@
-import React, { useEffect, useState } from 'react'
-import { PlusCircleOutlined } from '@ant-design/icons'
-import { SettingsIcon } from 'lucide-react'
-import { CloseIcon } from 'next/dist/client/components/react-dev-overlay/internal/icons/CloseIcon'
-import { Checkbox, Input, List, Modal, Select } from 'antd'
+import React, { useEffect, useMemo, useState } from 'react'
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusCircleOutlined,
+} from '@ant-design/icons'
+import { FolderOpenIcon } from 'lucide-react'
+import {
+  Button,
+  Checkbox,
+  Divider,
+  Input,
+  List,
+  Modal,
+  Select,
+  Space,
+} from 'antd'
 import {
   InsightDashboardPartial,
   InsightDetail,
@@ -17,10 +29,11 @@ import {
   ChartSize,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
 import { API } from '@/app/api'
+import { CloseIcon } from 'next/dist/client/components/react-dev-overlay/internal/icons/CloseIcon'
 
 type DashboardPresetComponentProps = {
   selectedDashboard?: string
-  setSelectedDashboard: (name: string) => void
+  setSelectedDashboard: (name?: string) => void
   allPresets: InsightDashboardPartial[]
   setAllPresets: (items: InsightDashboardPartial[]) => void
   courseId: number
@@ -43,9 +56,9 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
       .then((result: ListInsightsResponse) => setInsightsList(result))
   }, [])
 
-  const [isOpen, setIsOpen] = useState<boolean>(false)
+  const [isOpen, setIsOpen] = useState<boolean>(true)
   const [isCreationModalOpen, setIsCreationModalOpen] = useState<boolean>(false)
-
+  const [presetDropdownOpen, setPresetDropdownOpen] = useState<boolean>(false)
   const [selectedInsights, setSelectedInsights] = useState<InsightName[]>([])
 
   const toggleInsight = (name: InsightName) => {
@@ -83,7 +96,11 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
     })
 
     API.insights
-      .createOrUpdatePreset(courseId, nameValue != '' ? nameValue : undefined)
+      .createOrUpdatePreset(
+        courseId,
+        preset,
+        nameValue != '' ? nameValue : undefined,
+      )
       .then((result: InsightDashboardPartial[]) => {
         setAllPresets(result)
         if (selectedDashboard == undefined && result.length > 0) {
@@ -94,13 +111,22 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
     onModalClose()
   }
 
+  const preset = useMemo(
+    () => allPresets?.find((p) => p.name == selectedDashboard),
+    [allPresets, selectedDashboard],
+  )
+
   const onModalClose = () => {
+    setSelectedInsights([])
     setIsCreationModalOpen(false)
   }
 
+  const isOpenClass =
+    'flex flex-col gap-4 rounded-lg border-2 border-zinc-300 border-opacity-50 bg-white p-4 shadow-lg'
   const pillContainerClass = 'flex flex-row flex-wrap gap-2 justify-end'
   const pillLabelClass =
     'rounded-md p-2 border-2 border-blue-400 bg-blue-100 text-center flex justify-center items-center'
+  const disableButton = 'bg-zinc-300 hover:bg-zinc-400'
 
   return (
     <>
@@ -109,19 +135,27 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
           title={'Create New Dashboard Preset'}
           width={'48rem'}
           open={isCreationModalOpen}
-          okText={'Create Preset'}
+          okText={
+            selectedInsights.length > 0
+              ? 'Create Preset'
+              : 'At least one insight must be selected'
+          }
+          okButtonProps={{
+            className: selectedInsights.length <= 0 ? disableButton : undefined,
+          }}
           onOk={onCreatePreset}
           onCancel={onModalClose}
         >
           <Input
             type={'text'}
+            placeholder={'Enter preset name (Optional)'}
             value={nameValue}
             onChange={(event) => setNameValue(event.target.value)}
             maxLength={20}
           />
           {allPresets != undefined &&
             allPresets.map((p) => p.name).includes(nameValue) && (
-              <p>
+              <p className={'my-4 text-center'}>
                 A preset with the specified name exists, and will be
                 overwritten.
               </p>
@@ -187,40 +221,110 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
           />
         </Modal>
       )}
-      <div className="absolute right-1 flex flex-row">
-        <button
-          className={`${isOpen ? 'bg-zinc-300' : 'bg-helpmeblue'} ${isOpen ? 'rounded-l-lg' : 'rounded-lg'} p-2 shadow-lg ${isOpen ? 'md:hover:bg-zinc-200' : 'md:hover:bg-helpmeblue-light'} md:hover:shadow-2xl`}
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          {isOpen ? <CloseIcon /> : <SettingsIcon className="text-white" />}
-        </button>
-        <div
-          className={`${isOpen ? '' : 'hidden'} flex flex-col gap-4 rounded-r-lg border-2 border-y-zinc-300 border-r-zinc-300 border-opacity-50 bg-white p-4 shadow-lg`}
-        >
-          <span>
-            <b>Dashboard Presets</b>
-          </span>
-          {allPresets != undefined && allPresets.length > 0 ? (
-            <Select
-              value={selectedDashboard}
-              onChange={(value) => setSelectedDashboard(value)}
-            >
-              {allPresets.map((value, index) => (
-                <Select.Option key={index} value={value.name}>
-                  {value.name}
-                </Select.Option>
-              ))}
-            </Select>
-          ) : (
-            <div>No presets</div>
-          )}
-          <button
-            className="bg-helpmeblue md:hover:bg-helpmeblue-light rounded-lg p-2 text-white transition-all"
-            onClick={() => setIsCreationModalOpen(true)}
-          >
-            <PlusCircleOutlined />
-            <span className="pl-1">Create New Preset</span>
-          </button>
+      <div className={'sticky top-10 z-10 float-right h-0 overflow-visible'}>
+        <div className="relative top-[-100%] flex flex-row">
+          <div className={isOpen ? isOpenClass : ''}>
+            <div className={'flex flex-row justify-between gap-3'}>
+              {isOpen && (
+                <span>
+                  <b>Dashboard Presets</b>
+                </span>
+              )}
+              <Button
+                className={
+                  'text-helpmeblue border-helpmeblue hover:bg-helpmeblue aspect-square h-min w-min border-0 p-1 hover:border-white hover:text-white'
+                }
+                onClick={() => setIsOpen(!isOpen)}
+              >
+                {isOpen ? <CloseIcon /> : <FolderOpenIcon />}
+              </Button>
+            </div>
+            {isOpen ? (
+              <div className={'flex w-full flex-auto flex-col gap-2'}>
+                <Select
+                  showSearch
+                  open={presetDropdownOpen}
+                  value={selectedDashboard}
+                  onChange={(v) => {
+                    setSelectedDashboard(v)
+                    setPresetDropdownOpen(false)
+                  }}
+                  filterOption={(input, option) =>
+                    (option?.label ?? '').toLowerCase().includes(input)
+                  }
+                  onClick={() => setPresetDropdownOpen(!presetDropdownOpen)}
+                  options={
+                    allPresets?.map((preset) => {
+                      return {
+                        value: preset.name,
+                        label: preset.name,
+                      }
+                    }) ?? []
+                  }
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      <Divider className={'my-2'} />
+                      <Space className={'flex flex-col'}>
+                        <Button
+                          className="border-green-500 text-green-500 transition-all hover:border-green-50 hover:bg-green-500 hover:text-green-50"
+                          onClick={() => setIsCreationModalOpen(true)}
+                        >
+                          <PlusCircleOutlined />
+                          <span className="pl-1">New Preset</span>
+                        </Button>
+                      </Space>
+                    </>
+                  )}
+                />
+                {selectedDashboard != undefined && preset != undefined && (
+                  <div className={'flex flex-row gap-2'}>
+                    <Button
+                      className={
+                        'text-helpmeblue border-helpmeblue hover:bg-helpmeblue transition-all hover:border-white hover:text-white'
+                      }
+                      onClick={() => {
+                        setSelectedInsights(
+                          Object.keys(preset.insights).filter(
+                            (key) => preset.insights[key].active,
+                          ),
+                        )
+                        setNameValue(preset?.name)
+                        setIsCreationModalOpen(true)
+                      }}
+                    >
+                      <EditOutlined />
+                      Edit
+                    </Button>
+                    <Button
+                      className={
+                        'border-red-500 text-red-500 transition-all hover:border-red-50 hover:bg-red-500 hover:text-red-50'
+                      }
+                      onClick={() => {
+                        API.insights
+                          .removePreset(courseId, preset.name)
+                          .then((dashboard) => {
+                            if (
+                              !dashboard.find(
+                                (p) => p.name == selectedDashboard,
+                              )
+                            ) {
+                              setSelectedDashboard(undefined)
+                            }
+                            setAllPresets(dashboard)
+                          })
+                      }}
+                    >
+                      <DeleteOutlined />
+                      Delete
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
         </div>
       </div>
     </>

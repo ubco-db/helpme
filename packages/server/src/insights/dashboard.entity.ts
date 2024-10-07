@@ -16,7 +16,7 @@ export class InsightDashboardModel extends BaseEntity {
   @PrimaryColumn()
   userCourseId: number;
 
-  @Column({ type: 'text' })
+  @PrimaryColumn({ type: 'text' })
   name: string;
 
   @ManyToOne(
