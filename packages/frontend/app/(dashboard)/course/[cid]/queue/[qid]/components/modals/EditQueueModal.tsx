@@ -20,6 +20,7 @@ import {
 } from 'antd'
 import {
   ConfigTasks,
+  isCycleInTasks,
   QuestionTypeParams,
   QueueConfig,
   UpdateQueueParams,
@@ -54,7 +55,6 @@ import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 import exampleConfig from '@/public/exampleQueueConfig.json'
 import exampleLabConfig from '@/public/exampleQueueLabConfig.json'
 import TaskDeleteSelector from '../TaskDisplay'
-import _ from 'lodash'
 
 const { TextArea } = Input
 type Color = GetProp<ColorPickerProps, 'value'>
@@ -231,11 +231,23 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
     }
 
     const tasksChanged =
-      JSON.stringify(newQueueConfig.tasks) !==
+      JSON.stringify(newQueueConfig.tasks || {}) !==
       JSON.stringify(lastSavedQueueConfig.current?.tasks || {})
     const minimumTagsChanged =
       lastSavedQueueConfig.current?.minimum_tags !== Number(values.minTags)
 
+    // if the tasks changed, make sure there's no cycle in the new tasks
+    if (
+      tasksChanged &&
+      newQueueConfig.tasks &&
+      isCycleInTasks(newQueueConfig.tasks)
+    ) {
+      message.error(
+        'Error: Cycle detected in task preconditions. Please fix this before saving.',
+      )
+      setSaveChangesLoading(false)
+      return
+    }
     const queueConfigPromise =
       tasksChanged || minimumTagsChanged
         ? API.queues
@@ -741,6 +753,15 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                             validateQueueConfigInput(parsedConfig)
                           if (configError) {
                             message.error(configError)
+                            return
+                          }
+                          if (
+                            parsedConfig.tasks &&
+                            isCycleInTasks(parsedConfig.tasks)
+                          ) {
+                            message.error(
+                              'Error: Cycle detected in task preconditions. Please fix this before saving.',
+                            )
                             return
                           }
                           try {
