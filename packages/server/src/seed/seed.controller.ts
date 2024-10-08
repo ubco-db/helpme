@@ -51,6 +51,7 @@ import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { MailServiceModel } from 'mail/mail-services.entity';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { UserTokenModel } from 'profile/user-token.entity';
+import { InsightDashboardModel } from '../insights/dashboard.entity';
 
 const exampleConfig = {
   fifo_queue_view_enabled: true,
@@ -160,6 +161,7 @@ export class SeedController {
     await this.seedService.deleteAll(QuestionTypeModel);
     await this.seedService.deleteAll(CourseSettingsModel);
     await this.seedService.deleteAll(MailServiceModel);
+    await this.seedService.deleteAll(InsightDashboardModel);
     const manager = getManager();
     manager.query('ALTER SEQUENCE user_model_id_seq RESTART WITH 1;');
     manager.query('ALTER SEQUENCE organization_model_id_seq RESTART WITH 1;');
