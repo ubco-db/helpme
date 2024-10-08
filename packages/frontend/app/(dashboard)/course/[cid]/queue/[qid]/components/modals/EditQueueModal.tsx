@@ -64,7 +64,7 @@ type TaskParams = {
   display_name: string
   short_display_name: string
   blocking: boolean
-  color_hex: string
+  color_hex: string | Color
   precondition?: string
 }
 type QuestionTypeForCreation = {
@@ -233,7 +233,10 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               display_name: task.display_name,
               short_display_name: task.short_display_name,
               blocking: task.blocking,
-              color_hex: task.color_hex,
+              color_hex:
+                typeof task.color_hex === 'string'
+                  ? task.color_hex
+                  : task.color_hex.toHexString(),
               precondition: task.precondition ?? null,
             }
             return acc
