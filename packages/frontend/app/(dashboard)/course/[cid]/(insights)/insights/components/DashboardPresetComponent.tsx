@@ -125,7 +125,7 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
     'flex flex-col gap-4 rounded-lg border-2 border-zinc-300 border-opacity-50 bg-white p-4 shadow-lg'
   const pillContainerClass = 'flex flex-row flex-wrap gap-2 justify-end'
   const pillLabelClass =
-    'rounded-md p-2 border-2 border-blue-400 bg-blue-100 text-center flex justify-center items-center'
+    'rounded-md py-1 px-2 border-2 border-blue-400 bg-blue-50 text-center flex justify-center items-center'
   const disableButton = 'bg-zinc-300 hover:bg-zinc-400'
 
   return (
@@ -160,6 +160,16 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
                 overwritten.
               </p>
             )}
+          <div className={'flex flex-row items-center justify-center gap-2'}>
+            <Button
+              onClick={() => setSelectedInsights(Object.keys(insightsList))}
+            >
+              Select All
+            </Button>
+            <Button onClick={() => setSelectedInsights([])}>
+              Deselect All
+            </Button>
+          </div>
           <List
             className="my-2 max-h-96 overflow-y-auto"
             dataSource={Object.keys(insightsList).map((key) => {
@@ -221,7 +231,7 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
           />
         </Modal>
       )}
-      <div className={'sticky top-10 z-10 float-right h-0 overflow-visible'}>
+      <div className={'sticky top-2 z-10 float-right h-0 overflow-visible'}>
         <div className="relative top-[-100%] flex flex-row">
           <div className={isOpen ? isOpenClass : ''}>
             <div className={'flex flex-row justify-between gap-3'}>

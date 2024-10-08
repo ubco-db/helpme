@@ -63,8 +63,7 @@ export const constructChartConfig = (
   const chartConfig: { [key: string]: any } = {
     [labelKey]: {
       label: (
-        (labelKey as string).charAt(0).toUpperCase() +
-        (labelKey as string).slice(1)
+        (labelKey + '').charAt(0).toUpperCase() + (labelKey + '').slice(1)
       ).replace(/_/g, ' '),
     },
   }
@@ -81,11 +80,9 @@ export const constructChartConfig = (
         }
       })
     } else {
+      const key = item.key + '' ?? ''
       chartConfig[item.key] = {
-        label: (item.key.charAt(0).toUpperCase() + item.key.slice(1)).replace(
-          /_/g,
-          ' ',
-        ),
+        label: (key.charAt(0).toUpperCase() + key.slice(1)).replace(/_/g, ' '),
         color: item.fill,
       }
     }

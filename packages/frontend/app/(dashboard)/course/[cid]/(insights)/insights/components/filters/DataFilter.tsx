@@ -34,7 +34,7 @@ const DataFilter: React.FC<DataFilterProps> = ({
                 )
               }
             >
-              {key.replace(/_/g, ' ')}
+              {(key + '').replace(/_/g, ' ')}
             </Checkbox>
           ),
         }

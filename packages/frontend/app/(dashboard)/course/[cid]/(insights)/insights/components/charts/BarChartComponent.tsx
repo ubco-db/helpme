@@ -42,7 +42,7 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   tickLine ??= true
   tickMargin ??= 8
   axisLine ??= true
-  tickFormatter ??= (value) => (value as string).substring(0, 3)
+  tickFormatter ??= (value) => (value + '').substring(0, 3)
 
   const className = useMemo(() => {
     return size != undefined && AxisChartClasses[size] != undefined

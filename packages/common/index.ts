@@ -1481,12 +1481,19 @@ export const InsightNames = [
   'MostActiveTimes',
 ]
 
+export enum InsightType {
+  Value = 'Value',
+  Chart = 'Chart',
+  Table = 'Table',
+}
+
 export type InsightCategory = (typeof InsightCategories)[number]
 export type InsightName = (typeof InsightNames)[number]
 
 export type InsightSerial = {
   active?: boolean
   category: InsightCategory
+  type: InsightType
 }
 
 export type InsightDetail = { [key in InsightName]: InsightSerial }
@@ -1497,18 +1504,30 @@ export type InsightDashboardPartial = {
 }
 
 export const InsightDirectory: InsightDetail = {
-  HelpSeekingOverTime: { category: 'Tool_Usage_Statistics' },
-  MostActiveStudents: { category: 'Tool_Usage_Statistics' },
-  TotalStudents: { category: 'Tool_Usage_Statistics' },
-  QuestionToStudentRatio: { category: 'Tool_Usage_Statistics' },
-  MedianWaitTime: { category: 'Tool_Usage_Statistics' },
-  TotalQuestionsAsked: { category: 'Questions' },
-  QuestionTypeBreakdown: { category: 'Questions' },
-  MedianHelpingTime: { category: 'Queues' },
-  AverageTimesByWeekDay: { category: 'Queues' },
-  MostActiveTimes: { category: 'Queues' },
-  HumanVsChatbot: { category: 'Chatbot' },
-  HumanVsChatbotVotes: { category: 'Chatbot' },
+  HelpSeekingOverTime: {
+    category: 'Tool_Usage_Statistics',
+    type: InsightType.Chart,
+  },
+  MostActiveStudents: {
+    category: 'Tool_Usage_Statistics',
+    type: InsightType.Table,
+  },
+  TotalStudents: { category: 'Tool_Usage_Statistics', type: InsightType.Value },
+  QuestionToStudentRatio: {
+    category: 'Tool_Usage_Statistics',
+    type: InsightType.Value,
+  },
+  MedianWaitTime: {
+    category: 'Tool_Usage_Statistics',
+    type: InsightType.Value,
+  },
+  TotalQuestionsAsked: { category: 'Questions', type: InsightType.Value },
+  QuestionTypeBreakdown: { category: 'Questions', type: InsightType.Chart },
+  MedianHelpingTime: { category: 'Queues', type: InsightType.Value },
+  AverageTimesByWeekDay: { category: 'Queues', type: InsightType.Chart },
+  MostActiveTimes: { category: 'Queues', type: InsightType.Chart },
+  HumanVsChatbot: { category: 'Chatbot', type: InsightType.Chart },
+  HumanVsChatbotVotes: { category: 'Chatbot', type: InsightType.Chart },
 }
 
 export type GetInsightOutputResponse = InsightOutput
@@ -1540,12 +1559,6 @@ export interface InsightObject {
     insightFilters: any,
     cacheManager?: Cache,
   ) => Promise<PossibleOutputTypes>
-}
-
-export enum InsightType {
-  Value = 'Value',
-  Chart = 'Chart',
-  Table = 'Table',
 }
 
 export interface InsightOutput {

@@ -695,7 +695,9 @@ export const HumanVsChatbot: InsightObject = {
           'COALESCE(SUM(CASE WHEN AsyncQuestionModel.verified = TRUE THEN 1 ELSE 0 END), 0)',
           'verified',
         )
-        .where('AsyncQuestionModel.answerText IS NOT NULL'),
+        .where('AsyncQuestionModel.status in (:...statuses)', {
+          statuses: ['HumanAnswered'],
+        }),
       modelName: AsyncQuestionModel.name,
       allowedFilters: this.allowedFilters,
       filters,
@@ -708,8 +710,13 @@ export const HumanVsChatbot: InsightObject = {
           'COALESCE(SUM(CASE WHEN AsyncQuestionModel.verified = TRUE THEN 1 ELSE 0 END), 0)',
           'verified',
         )
-        .where('AsyncQuestionModel.answerText IS NULL')
-        .andWhere('AsyncQuestionModel.aiAnswerText IS NOT NULL'),
+        .where('AsyncQuestionModel.status in (:...statuses)', {
+          statuses: [
+            'AIAnsweredResolved',
+            'AIAnswered',
+            'AIAnsweredNeedsAttention',
+          ],
+        }),
       modelName: AsyncQuestionModel.name,
       allowedFilters: this.allowedFilters,
       filters,
