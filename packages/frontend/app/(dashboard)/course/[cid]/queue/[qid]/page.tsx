@@ -14,6 +14,7 @@ import {
   TaskTree,
   QuestionType,
   LimboQuestionStatus,
+  QuestionLocations,
 } from '@koh/common'
 import { Tooltip, message, notification, Button } from 'antd'
 import { mutate } from 'swr'
@@ -63,7 +64,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const qid = Number(params.qid)
   const router = useRouter()
   const { queue } = useQueue(qid)
-  const isQueueOnline = queue?.room.startsWith('Online')
+  const isQueueHybrid = queue?.type == 'hybrid'
   const { queueQuestions, mutateQuestions } = useQuestions(qid)
   const [queueSettingsModalOpen, setQueueSettingsModalOpen] = useState(false)
   const [addStudentsModalOpen, setAddStudentsModalOpen] = useState(false)
@@ -223,14 +224,14 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       questionTypes: QuestionType[],
       force: boolean,
       isTaskQuestion: boolean,
-      location?: string,
+      location?: QuestionLocations,
     ) => {
       await API.questions
         .create({
           text: text || '',
           questionTypes: questionTypes,
           queueId: qid,
-          location: location ?? isQueueOnline ? 'Online' : 'In Person',
+          location: (location ?? isQueueHybrid) ? 'Unselected' : undefined,
           force: force,
           groupable: false,
           isTaskQuestion,
@@ -244,7 +245,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           throw e
         })
     },
-    [isQueueOnline, qid, updateQuestionStatus],
+    [isQueueHybrid, qid, updateQuestionStatus],
   )
 
   const rejoinQueue = useCallback(
@@ -387,7 +388,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       questionTypes: QuestionTypeParams[],
       groupable: boolean,
       isTaskQuestion: boolean,
-      location: string,
+      location: QuestionLocations,
     ) => {
       const status = isTaskQuestion ? studentDemoStatus : studentQuestionStatus
       const id = isTaskQuestion ? studentDemoId : studentQuestionId
@@ -751,7 +752,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               leaveQueueDemo={() => leaveQueue(true)}
               configTasks={configTasks}
               zoomLink={course?.zoomLink}
-              isQueueOnline={isQueueOnline}
+              isQueueHybrid={isQueueHybrid}
             />
           ) : null}
           <QueueQuestions
@@ -815,6 +816,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             <CreateQuestionModal
               queueId={qid}
               courseId={cid}
+              queueType={queue!.type}
               open={
                 (!studentQuestion && isJoiningQuestion) || editQuestionModalOpen
               }

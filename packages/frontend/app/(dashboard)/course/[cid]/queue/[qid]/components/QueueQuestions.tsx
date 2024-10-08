@@ -13,6 +13,7 @@ import {
   Task,
   TaskTree,
   QuestionTypeParams,
+  QuestionLocations,
 } from '@koh/common'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
 import QuestionCard from './QuestionCard'
@@ -44,14 +45,14 @@ interface QueueQuestionsProps {
     questionTypes: QuestionType[],
     force: boolean,
     isTaskQuestion: boolean,
-    location?: string,
+    location?: QuestionLocations,
   ) => Promise<void>
   finishQuestionOrDemo: (
     text: string,
     questionTypes: QuestionTypeParams[],
     groupable: boolean,
     isTaskQuestion: boolean,
-    location: string,
+    location: QuestionLocations,
   ) => Promise<void>
   leaveQueue: (isTaskQuestion: boolean) => Promise<void>
   onOpenTagGroupsChange: (key: string | string[]) => void

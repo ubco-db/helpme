@@ -335,7 +335,7 @@ export class QueuePartial {
 
   allowQuestions!: boolean
 
-  type?: QueueTypes
+  type!: QueueTypes
 
   isProfessorQueue!: boolean
 
@@ -451,7 +451,7 @@ export class Question {
 
   groupable!: boolean
 
-  location?: string
+  location?: QuestionLocations
 
   isTaskQuestion?: boolean
 }
@@ -1129,6 +1129,8 @@ export class GetStudentQuestionResponse extends Question {
   queueId!: number
 }
 
+export type QuestionLocations = 'Online' | 'In-Person' | 'Unselected'
+
 export class CreateQuestionParams {
   @IsString()
   text!: string
@@ -1148,7 +1150,7 @@ export class CreateQuestionParams {
 
   @IsString()
   @IsOptional()
-  location?: string
+  location?: QuestionLocations
 
   @IsBoolean()
   force!: boolean

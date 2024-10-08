@@ -26,9 +26,9 @@ interface StudentBannerProps {
   editDemo: () => void
   leaveQueueQuestion: () => Promise<void>
   leaveQueueDemo: () => Promise<void>
-  configTasks: ConfigTasks | undefined
-  zoomLink: string | undefined
-  isQueueOnline: boolean | undefined
+  configTasks?: ConfigTasks
+  zoomLink?: string
+  isQueueHybrid?: boolean
 }
 const StudentBanner: React.FC<StudentBannerProps> = ({
   queueId,
@@ -38,7 +38,7 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
   leaveQueueDemo,
   configTasks,
   zoomLink,
-  isQueueOnline,
+  isQueueHybrid,
 }) => {
   const {
     studentQuestion,
@@ -105,7 +105,7 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
               ? undefined
               : studentQuestionIndex + 1
           }
-          isQueueOnline={!!isQueueOnline}
+          isQueueHybrid={!!isQueueHybrid}
           zoomLink={zoomLink}
           leaveQueue={leaveQueueQuestion}
           edit={editQuestion}
@@ -121,7 +121,7 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
           spot={
             studentDemoIndex === undefined ? undefined : studentDemoIndex + 1
           }
-          isQueueOnline={!!isQueueOnline}
+          isQueueHybrid={!!isQueueHybrid}
           zoomLink={zoomLink}
           leaveQueue={leaveQueueDemo}
           edit={editDemo}
@@ -162,7 +162,7 @@ interface QuestionDetailCardProps {
   question: Question | undefined
   configTasks?: ConfigTasks
   spot: number | undefined
-  isQueueOnline: boolean
+  isQueueHybrid: boolean
   zoomLink: string | undefined
   leaveQueue: () => Promise<void>
   edit: () => void
@@ -172,7 +172,7 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
   question,
   configTasks,
   spot,
-  isQueueOnline,
+  isQueueHybrid,
   zoomLink,
   leaveQueue,
   edit,
@@ -292,7 +292,9 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
             switch (question.status) {
               case 'Helping':
                 return (
-                  isQueueOnline &&
+                  isQueueHybrid &&
+                  question.location &&
+                  question.location == 'Online' &&
                   zoomLink && (
                     <Tooltip title="Open Zoom link">
                       <CircleButton
