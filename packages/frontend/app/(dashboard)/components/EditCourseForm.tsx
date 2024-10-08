@@ -9,7 +9,7 @@ import {
   OrganizationRole,
   User,
 } from '@koh/common'
-import { Button, Form, Input, message, Select } from 'antd'
+import { Button, Form, Input, message, Select, Tag, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
 
 type EditCourseFormProps = {
@@ -131,7 +131,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
     const fetchProfessors = async () => {
       if (!isAdmin) return
       await API.organizations
-        .getProfessors(organization.id)
+        .getProfessors(organization.id, courseData.courseId)
         .then((response) => {
           setProfessors(response ?? [])
         })
@@ -141,7 +141,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         })
     }
     fetchProfessors()
-  }, [isAdmin, organization.id])
+  }, [courseData.courseId, isAdmin, organization.id])
 
   return (
     <Form
@@ -256,16 +256,46 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
             tooltip="Professors teaching the course"
             className="flex-1"
           >
-            <Select mode="multiple" placeholder="Select professors">
-              {professors.map((prof: OrganizationProfessor) => (
-                <Select.Option
-                  value={prof.organizationUser.id}
-                  key={prof.organizationUser.id}
-                >
-                  {prof.organizationUser.name}
-                </Select.Option>
-              ))}
-            </Select>
+            <Select
+              mode="multiple"
+              placeholder="Select professors"
+              options={professors.map((prof: OrganizationProfessor) => ({
+                label: prof.organizationUser.name,
+                value: prof.organizationUser.id,
+              }))}
+              tagRender={(props) => {
+                const { label, value, closable, onClose } = props
+                const onPreventMouseDown = (
+                  event: React.MouseEvent<HTMLSpanElement>,
+                ) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                }
+                // find the professor with the given id and see if they have lacksProfOrgRole
+                const lacksProfOrgRole = professors.find(
+                  (prof) => prof.organizationUser.id === value,
+                )?.organizationUser.lacksProfOrgRole
+                return (
+                  <Tooltip
+                    title={
+                      lacksProfOrgRole
+                        ? 'This user lacks the Professor role in this organization, meaning they cannot create their own courses.'
+                        : ''
+                    }
+                  >
+                    <Tag
+                      color={lacksProfOrgRole ? 'orange' : 'blue'}
+                      onMouseDown={onPreventMouseDown}
+                      closable={closable}
+                      onClose={onClose}
+                      style={{ marginInlineEnd: 4 }}
+                    >
+                      {label}
+                    </Tag>
+                  </Tooltip>
+                )
+              }}
+            />
           </Form.Item>
         ) : (
           <></>

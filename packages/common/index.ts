@@ -1037,6 +1037,7 @@ export type OrganizationProfessor = {
   organizationUser: {
     id: number
     name: string
+    lacksProfOrgRole?: boolean
   }
   userId: number
 }
