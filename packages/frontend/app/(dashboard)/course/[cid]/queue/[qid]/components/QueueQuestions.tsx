@@ -238,6 +238,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                           studentAssignmentProgress={studentAssignmentProgress}
                           isMyQuestion={isMyQuestion}
                           className={background_color}
+                          isBeingHelped={true}
                         />
                       )
                     })}

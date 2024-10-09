@@ -7,7 +7,7 @@ import {
   QueueTypes,
   QuestionLocations,
 } from '@koh/common'
-import { Alert, Form, Modal, Radio } from 'antd'
+import { Alert, Form, Modal, Radio, Segmented } from 'antd'
 import { QuestionTagSelector } from '../../../../components/QuestionTagElement'
 import { toOrdinal } from '@/app/utils/generalUtils'
 import TextArea from 'antd/es/input/TextArea'
@@ -15,7 +15,7 @@ import TextArea from 'antd/es/input/TextArea'
 interface CreateQuestionModalProps {
   queueId: number
   courseId: number
-  queueType: QueueTypes
+  isQueueHybrid: boolean
   open: boolean
   leaveQueue: () => void
   finishQuestion: (
@@ -39,7 +39,7 @@ interface FormValues {
 const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
   queueId,
   courseId,
-  queueType,
+  isQueueHybrid,
   open,
   leaveQueue,
   finishQuestion,
@@ -178,12 +178,14 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
         />
       </Form.Item>
 
-      {queueType === 'hybrid' && (
-        <Form.Item name="location" label="Are you joining the queue in-person?">
-          <Radio.Group className="mb-1">
-            <Radio value="In Person">Yes</Radio>
-            <Radio value="Online">No</Radio>
-          </Radio.Group>
+      {isQueueHybrid && (
+        <Form.Item name="location" label="Is the question in-person?">
+          <Segmented
+            options={[
+              { label: 'Online', value: 'Online' },
+              { label: 'In-Person', value: 'In-Person' },
+            ]}
+          />
         </Form.Item>
       )}
     </Modal>

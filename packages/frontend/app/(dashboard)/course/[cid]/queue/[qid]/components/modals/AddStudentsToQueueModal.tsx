@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import Modal from 'antd/lib/modal/Modal'
-import { Form, message, Checkbox, Input, Radio, Select } from 'antd'
+import { Form, message, Checkbox, Input, Radio, Select, Segmented } from 'antd'
 import { useEffect, useState } from 'react'
 import {
   OpenQuestionStatus,
@@ -190,10 +190,12 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
 
           {isQueueHybrid && (
             <Form.Item name="location" label="Is the question in-person?">
-              <Radio.Group className="mb-1">
-                <Radio value="In-Person">Yes</Radio>
-                <Radio value="Online">No</Radio>
-              </Radio.Group>
+              <Segmented
+                options={[
+                  { label: 'Online', value: 'Online' },
+                  { label: 'In-Person', value: 'In-Person' },
+                ]}
+              />
             </Form.Item>
           )}
           <Form.Item name="help" valuePropName="checked">

@@ -505,6 +505,7 @@ export enum resolutionSource {
 export const StatusInQueue = [
   OpenQuestionStatus.Drafting,
   OpenQuestionStatus.Queued,
+  LimboQuestionStatus.ReQueueing,
 ]
 
 export const StatusInPriorityQueue = [OpenQuestionStatus.PriorityQueued]

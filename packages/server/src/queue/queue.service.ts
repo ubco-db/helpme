@@ -1,5 +1,6 @@
 import {
   decodeBase64,
+  LimboQuestionStatus,
   ListQuestionsResponse,
   OpenQuestionStatus,
   PublicQueueInvite,
@@ -85,7 +86,9 @@ export class QueueService {
     const queueQuestions = new ListQuestionsResponse();
 
     queueQuestions.questions = questionsFromDb.filter((question) =>
-      StatusInQueue.includes(question.status as OpenQuestionStatus),
+      StatusInQueue.includes(
+        question.status as OpenQuestionStatus | LimboQuestionStatus,
+      ),
     );
 
     queueQuestions.questionsGettingHelp = questionsFromDb.filter(
