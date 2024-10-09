@@ -63,7 +63,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     <Tooltip
       title={
         question.status === LimboQuestionStatus.ReQueueing
-          ? ' This student is not quite ready to meet yet and is in the process of requeuing themselves.'
+          ? ' This student is not quite ready to meet yet and is in the process of requeuing themselves. Until they do, other students will be served first.'
           : ''
       }
     >
@@ -85,6 +85,11 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 size={46}
                 username={question.creator.name}
                 photoURL={question.creator.photoURL}
+                className={
+                  question.status === LimboQuestionStatus.ReQueueing
+                    ? 'grayscale'
+                    : ''
+                }
               />
             </Col>
           )}
@@ -160,7 +165,14 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               </>
             )}
             {isStaff && (
-              <div className="mr-1 mt-0.5 inline-block min-w-[120px] text-sm italic text-gray-600">
+              <div
+                className={cn(
+                  'itali mr-1 mt-0.5 inline-block min-w-[120px] text-sm',
+                  question.status === LimboQuestionStatus.ReQueueing
+                    ? 'text-gray-400'
+                    : 'text-gray-600',
+                )}
+              >
                 {question.creator.name}
               </div>
             )}
@@ -169,9 +181,20 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               <QuestionTagElement
                 key={index}
                 tagName={questionType.name}
-                tagColor={questionType.color}
+                tagColor={
+                  question.status !== LimboQuestionStatus.ReQueueing
+                    ? questionType.color
+                    : '#f0f0f0'
+                }
               />
             ))}
+          </Col>
+          <Col flex="1 1 auto">
+            {question.status === LimboQuestionStatus.ReQueueing && (
+              <div className="text-md h-full italic text-gray-600">
+                In the process of requeuing...
+              </div>
+            )}
           </Col>
           {isBeingHelped && !isStaff && question.helpedAt && (
             <Col flex="0 0 3rem">
