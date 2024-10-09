@@ -30,7 +30,10 @@ const QUESTION_STATES: Record<QuestionStatus, AllowableTransitions> = {
       ClosedQuestionStatus.Resolved,
       LimboQuestionStatus.TADeleted,
     ],
-    student: [ClosedQuestionStatus.ConfirmedDeleted],
+    student: [
+      ClosedQuestionStatus.ConfirmedDeleted,
+      LimboQuestionStatus.ReQueueing,
+    ],
   },
   [LimboQuestionStatus.CantFind]: {
     student: [

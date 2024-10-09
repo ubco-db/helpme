@@ -252,7 +252,10 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       )}
     >
       <Form.Item label="Queue Type" name="type">
-        <Segmented options={queueTypeOptions} />
+        <Segmented
+          options={queueTypeOptions}
+          defaultValue={queue?.type ?? ''}
+        />
       </Form.Item>
 
       <Form.Item label="Queue Notes" name="notes">

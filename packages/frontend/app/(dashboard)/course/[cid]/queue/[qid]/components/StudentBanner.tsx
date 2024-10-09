@@ -27,7 +27,6 @@ interface StudentBannerProps {
   leaveQueueQuestion: () => Promise<void>
   leaveQueueDemo: () => Promise<void>
   configTasks?: ConfigTasks
-  zoomLink?: string
   isQueueHybrid?: boolean
 }
 const StudentBanner: React.FC<StudentBannerProps> = ({
@@ -37,7 +36,6 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
   leaveQueueQuestion,
   leaveQueueDemo,
   configTasks,
-  zoomLink,
   isQueueHybrid,
 }) => {
   const {
@@ -106,7 +104,6 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
               : studentQuestionIndex + 1
           }
           isQueueHybrid={!!isQueueHybrid}
-          zoomLink={zoomLink}
           leaveQueue={leaveQueueQuestion}
           edit={editQuestion}
         />
@@ -122,7 +119,6 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
             studentDemoIndex === undefined ? undefined : studentDemoIndex + 1
           }
           isQueueHybrid={!!isQueueHybrid}
-          zoomLink={zoomLink}
           leaveQueue={leaveQueueDemo}
           edit={editDemo}
         />
@@ -163,7 +159,6 @@ interface QuestionDetailCardProps {
   configTasks?: ConfigTasks
   spot: number | undefined
   isQueueHybrid: boolean
-  zoomLink: string | undefined
   leaveQueue: () => Promise<void>
   edit: () => void
 }
@@ -173,7 +168,6 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
   configTasks,
   spot,
   isQueueHybrid,
-  zoomLink,
   leaveQueue,
   edit,
 }) => {
@@ -291,21 +285,7 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
           {(() => {
             switch (question.status) {
               case 'Helping':
-                return (
-                  isQueueHybrid &&
-                  question.location &&
-                  question.location == 'Online' &&
-                  zoomLink && (
-                    <Tooltip title="Open Zoom link">
-                      <CircleButton
-                        icon={<TeamOutlined />}
-                        onClick={() => {
-                          window.open(zoomLink)
-                        }}
-                      />
-                    </Tooltip>
-                  )
-                )
+                return <></> // Join zoom button shows up as a modal instead
               case 'Drafting':
                 return (
                   <Tooltip title="Finish Draft">

@@ -18,7 +18,12 @@ import {
 } from '@koh/common'
 import { Tooltip, message, notification, Button } from 'antd'
 import { mutate } from 'swr'
-import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
+import {
+  EditOutlined,
+  LoginOutlined,
+  PhoneOutlined,
+  PlusOutlined,
+} from '@ant-design/icons'
 import { CheckCheck, ListChecks, ListTodoIcon } from 'lucide-react'
 import { useQueue } from '@/app/hooks/useQueue'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -27,6 +32,7 @@ import { useQuestions } from '@/app/hooks/useQuestions'
 import {
   EditQueueButton,
   JoinQueueButton,
+  JoinZoomButton,
 } from '@/app/(dashboard)/course/[cid]/components/QueueInfoColumnButton'
 import VerticalDivider from '@/app/components/VerticalDivider'
 import QueueHeader from './components/QueueHeader'
@@ -54,6 +60,7 @@ import AssignmentReportModal from './components/modals/AssignmentReportModal'
 import CantFindModal from './components/modals/CantFindModal'
 import { useChatbotContext } from '../../components/chatbot/ChatbotProvider'
 import CircleButton from './components/CircleButton'
+import JoinZoomNowModal from './components/modals/JoinZoomNowModal'
 
 type QueuePageProps = {
   params: { cid: string; qid: string }
@@ -255,6 +262,17 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
         return
       }
       updateQuestionStatus(id, OpenQuestionStatus.Queued)
+    },
+    [studentDemoId, studentQuestionId, updateQuestionStatus],
+  )
+
+  const setRequeuing = useCallback(
+    (isTaskQuestion: boolean) => {
+      const id = isTaskQuestion ? studentDemoId : studentQuestionId
+      if (id === undefined) {
+        return
+      }
+      updateQuestionStatus(id, LimboQuestionStatus.ReQueueing)
     },
     [studentDemoId, studentQuestionId, updateQuestionStatus],
   )
@@ -751,7 +769,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               leaveQueueQuestion={() => leaveQueue(false)}
               leaveQueueDemo={() => leaveQueue(true)}
               configTasks={configTasks}
-              zoomLink={course?.zoomLink}
               isQueueHybrid={isQueueHybrid}
             />
           ) : null}
@@ -793,6 +810,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             <AddStudentsToQueueModal
               queueId={qid}
               courseId={cid}
+              isQueueHybrid={queue.type === 'hybrid'}
               open={addStudentsModalOpen}
               onAddStudent={() => {
                 mutateQuestions()
@@ -856,6 +874,17 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               leaveQueue={() => leaveQueue(false)}
               rejoinQueue={() => rejoinQueue(false)}
             />
+            <JoinZoomNowModal
+              taName={studentQuestion?.taHelped?.name}
+              open={
+                ((queue.type === 'hybrid' &&
+                  studentQuestion?.location === 'Online') ||
+                  queue.type === 'online') &&
+                studentQuestion?.status === OpenQuestionStatus.Helping
+              }
+              zoomLink={course?.zoomLink}
+              setRequeuing={() => setRequeuing(false)}
+            />
 
             {isDemoQueue && (
               <>
@@ -899,6 +928,17 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   open={studentDemo?.status === LimboQuestionStatus.CantFind}
                   leaveQueue={() => leaveQueue(true)}
                   rejoinQueue={() => rejoinQueue(true)}
+                />
+                <JoinZoomNowModal
+                  taName={studentQuestion?.taHelped?.name}
+                  open={
+                    ((queue.type === 'hybrid' &&
+                      studentQuestion?.location === 'Online') ||
+                      queue.type === 'online') &&
+                    studentQuestion?.status === OpenQuestionStatus.Helping
+                  }
+                  zoomLink={course?.zoomLink}
+                  setRequeuing={() => setRequeuing(false)}
                 />
               </>
             )}
