@@ -303,23 +303,27 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
               case 'ReQueueing':
                 return (
                   <Tooltip title="Rejoin Queue">
-                    <CircleButton
-                      variant="primary"
-                      icon={<UndoOutlined />}
-                      loading={isRejoinLoading}
-                      onClick={async () => {
-                        setIsRejoinLoading(true)
-                        await API.questions
-                          .update(question.id, {
-                            status: OpenQuestionStatus.Queued,
-                          })
-                          .catch((e) => {
-                            const errorMessage = getErrorMessage(e)
-                            message.error(errorMessage)
-                          })
-                          .finally(() => setIsRejoinLoading(false))
-                      }}
-                    />
+                    <div className="relative ml-2 inline-flex items-center justify-center">
+                      <div className="absolute inset-0 animate-ping rounded-full bg-white opacity-50 before:content-['']"></div>
+                      <CircleButton
+                        variant="primary"
+                        className="!ml-0"
+                        icon={<UndoOutlined />}
+                        loading={isRejoinLoading}
+                        onClick={async () => {
+                          setIsRejoinLoading(true)
+                          await API.questions
+                            .update(question.id, {
+                              status: OpenQuestionStatus.Queued,
+                            })
+                            .catch((e) => {
+                              const errorMessage = getErrorMessage(e)
+                              message.error(errorMessage)
+                            })
+                            .finally(() => setIsRejoinLoading(false))
+                        }}
+                      />
+                    </div>
                   </Tooltip>
                 )
               default:

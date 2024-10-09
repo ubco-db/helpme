@@ -21,10 +21,12 @@ const ReQueuingButton: React.FC<ReQueuingButtonProps> = ({
       <Button
         size="large"
         className={cn(
-          `mb-0 flex items-center justify-center rounded-md border border-gray-300 text-sm font-semibold disabled:opacity-50 md:mb-3 md:w-full`,
+          `mb-0 flex items-center justify-center rounded-md border border-gray-300 text-sm font-semibold disabled:opacity-50 md:mb-3 md:w-[80%]`,
           className,
         )}
-        onClick={setRequeuing}
+        onClick={() => {
+          setRequeuing()
+        }}
         type={type}
         icon={<ClockCircleOutlined aria-hidden="true" />}
         {...props}

@@ -32,7 +32,6 @@ import { useQuestions } from '@/app/hooks/useQuestions'
 import {
   EditQueueButton,
   JoinQueueButton,
-  JoinZoomButton,
 } from '@/app/(dashboard)/course/[cid]/components/QueueInfoColumnButton'
 import VerticalDivider from '@/app/components/VerticalDivider'
 import QueueHeader from './components/QueueHeader'
@@ -61,6 +60,7 @@ import CantFindModal from './components/modals/CantFindModal'
 import { useChatbotContext } from '../../components/chatbot/ChatbotProvider'
 import CircleButton from './components/CircleButton'
 import JoinZoomNowModal from './components/modals/JoinZoomNowModal'
+import JoinZoomButton from './components/JoinZoomButton'
 
 type QueuePageProps = {
   params: { cid: string; qid: string }
@@ -77,6 +77,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const [addStudentsModalOpen, setAddStudentsModalOpen] = useState(false)
   const [assignmentReportModalOpen, setAssignmentReportModalOpen] =
     useState(false)
+  const [clickedZoomModal, setClickedZoomModal] = useState(false)
   const [staffListHidden, setStaffListHidden] = useState(false)
   const [isFinishAllHelpingButtonLoading, setIsFinishAllHelpingButtonLoading] =
     useState(false)
@@ -137,6 +138,16 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     userInfo.id,
     role,
   )
+
+  const resetClickedZoomModal = useCallback(() => {
+    if (studentQuestion?.status !== OpenQuestionStatus.Helping) {
+      setClickedZoomModal(false)
+    }
+  }, [clickedZoomModal, studentQuestion])
+
+  useEffect(() => {
+    resetClickedZoomModal()
+  }, [resetClickedZoomModal, clickedZoomModal, studentQuestion])
 
   // chatbot
   const { setCid, setRenderSmallChatbot } = useChatbotContext()
@@ -611,6 +622,15 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             </>
           ) : (
             <>
+              {((queue.type === 'hybrid' && // Show the "Join Zoom" button if staff is ready and student already clicked on the modal
+                studentQuestion?.location === 'Online') ||
+                queue.type === 'online') &&
+                clickedZoomModal &&
+                studentQuestion?.status === OpenQuestionStatus.Helping && (
+                  <JoinZoomButton zoomLink={course?.zoomLink}>
+                    Need The Link?
+                  </JoinZoomButton>
+                )}
               <Tooltip
                 title={
                   studentQuestion
@@ -880,9 +900,13 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 ((queue.type === 'hybrid' &&
                   studentQuestion?.location === 'Online') ||
                   queue.type === 'online') &&
+                !clickedZoomModal &&
                 studentQuestion?.status === OpenQuestionStatus.Helping
               }
               zoomLink={course?.zoomLink}
+              onJoin={() => {
+                setClickedZoomModal(true)
+              }}
               setRequeuing={() => setRequeuing(false)}
             />
 
@@ -932,12 +956,14 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 <JoinZoomNowModal
                   taName={studentQuestion?.taHelped?.name}
                   open={
-                    ((queue.type === 'hybrid' &&
-                      studentQuestion?.location === 'Online') ||
+                    ((queue.type === 'hybrid' && // Forces student to join zoom or requeue themselves if they are not ready
+                      studentQuestion?.location === 'Online') || // Modal closes in either case
                       queue.type === 'online') &&
+                    !clickedZoomModal &&
                     studentQuestion?.status === OpenQuestionStatus.Helping
                   }
                   zoomLink={course?.zoomLink}
+                  onJoin={() => setClickedZoomModal(true)}
                   setRequeuing={() => setRequeuing(false)}
                 />
               </>
