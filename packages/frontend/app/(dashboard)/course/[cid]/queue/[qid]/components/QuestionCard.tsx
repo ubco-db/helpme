@@ -72,8 +72,8 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           'mb-2 rounded-md px-2 text-gray-600 shadow-md ',
           isBeingHelped ? 'mt-4 border border-green-600/40 md:mt-3 ' : ' ',
           question.status === LimboQuestionStatus.ReQueueing
-            ? 'greyscale mt-3 border border-gray-200 bg-gray-700 text-gray-400 md:mt-2 '
-            : ' ', // PAT TODO: Fix background issue
+            ? 'greyscale mt-3 border border-gray-200 text-gray-400 md:mt-2 '
+            : ' ',
           className,
         )}
         classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}

@@ -1,7 +1,7 @@
 import Modal from 'antd/lib/modal/Modal'
-import { useStudentQuestion } from '@/app/hooks/useStudentQuestion'
 import JoinZoomButton from '../JoinZoomButton'
 import ReQueuingButton from '../ReQueuingButton'
+import { Popconfirm } from 'antd'
 
 type JoinZoomNowModalProps = {
   open: boolean
@@ -30,7 +30,12 @@ const JoinZoomNowModal: React.FC<JoinZoomNowModalProps> = ({
         <JoinZoomButton zoomLink={zoomLink} onJoin={onJoin}>
           Join Meeting Now
         </JoinZoomButton>
-        <ReQueuingButton setRequeuing={setRequeuing} />
+        <Popconfirm
+          title="Are you sure you want to temporarily leave the queue?"
+          onConfirm={setRequeuing}
+        >
+          <ReQueuingButton />
+        </Popconfirm>
       </div>
     </Modal>
   )
