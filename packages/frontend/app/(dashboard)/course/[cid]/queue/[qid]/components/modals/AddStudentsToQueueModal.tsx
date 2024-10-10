@@ -73,6 +73,7 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
       message.error('Please select a student')
       return
     }
+
     setIsLoading(true)
     const newQuestionTypeInput =
       values.questionTypesInput && questionTypes
@@ -189,7 +190,10 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
           </Form.Item>
 
           {isQueueHybrid && (
-            <Form.Item name="location" label="Is the question in-person?">
+            <Form.Item
+              name="location"
+              label="How would you like them to meet you?"
+            >
               <Segmented
                 options={[
                   { label: 'Online', value: 'Online' },

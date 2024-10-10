@@ -63,6 +63,10 @@ export class QueueModel extends BaseEntity {
   @Column({ default: 'hybrid' })
   type: QueueTypes;
 
+  @Column('text', { nullable: true })
+  @Exclude()
+  zoomLink: string;
+
   @Column({ default: false })
   isProfessorQueue: boolean;
 

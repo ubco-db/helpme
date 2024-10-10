@@ -26,7 +26,7 @@ const JoinZoomNowModal: React.FC<JoinZoomNowModalProps> = ({
       closable={false}
       title={`${taName ?? 'A TA'} is Ready for You Now!`}
     >
-      <div className="mt-8 flex h-full w-full flex-col items-center">
+      <div className="mt-8 flex h-full w-full flex-col items-center gap-2">
         <JoinZoomButton zoomLink={zoomLink} onJoin={onJoin}>
           Join Meeting Now
         </JoinZoomButton>

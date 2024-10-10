@@ -4,6 +4,7 @@ import {
   OpenQuestionStatus,
   parseTaskIdsFromQuestionText,
   Question,
+  QueueTypes,
   StudentAssignmentProgress,
 } from '@koh/common'
 import { Card, Col, Row, Tooltip } from 'antd'
@@ -20,6 +21,7 @@ interface QuestionCardProps {
   cid: number
   qid: number
   isStaff: boolean
+  queueType: QueueTypes
   studentAssignmentProgress?: StudentAssignmentProgress
   configTasks?: ConfigTasks
   isMyQuestion?: boolean
@@ -32,6 +34,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   cid,
   qid,
   isStaff,
+  queueType,
   studentAssignmentProgress,
   configTasks,
   isMyQuestion,
@@ -159,7 +162,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                       } as React.CSSProperties
                     }
                   >
-                    {question.text}
+                    {`${question.text}`}
                   </div>
                 </Tooltip>
               </>
@@ -173,6 +176,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                     : 'text-gray-600',
                 )}
               >
+                {queueType === 'hybrid' && <i>{`[${question.location}] `}</i>}
                 {question.creator.name}
               </div>
             )}
@@ -189,7 +193,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               />
             ))}
           </Col>
-          <Col flex="1 1 auto">
+          <Col flex="1 1">
             {question.status === LimboQuestionStatus.ReQueueing && (
               <div className="text-md h-full italic text-gray-600">
                 In the process of requeuing...
