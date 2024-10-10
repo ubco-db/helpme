@@ -176,7 +176,9 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                     : 'text-gray-600',
                 )}
               >
-                {queueType === 'hybrid' && <i>{`[${question.location}] `}</i>}
+                {queueType === 'hybrid' && (
+                  <i>{`[${question.location ?? 'Unselected'}] `}</i>
+                )}
                 {question.creator.name}
               </div>
             )}
@@ -193,13 +195,13 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               />
             ))}
           </Col>
-          <Col flex="1 1">
-            {question.status === LimboQuestionStatus.ReQueueing && (
+          {question.status === LimboQuestionStatus.ReQueueing && (
+            <Col flex="1 1">
               <div className="text-md h-full italic text-gray-600">
                 In the process of requeuing...
               </div>
-            )}
-          </Col>
+            </Col>
+          )}
           {isBeingHelped && !isStaff && question.helpedAt && (
             <Col flex="0 0 3rem">
               <div className="text-sm font-medium text-green-700">
