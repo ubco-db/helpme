@@ -857,6 +857,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               }
               setIsJoinQueueModalLoading={setIsJoinQueueModalLoading}
               onCancel={() => closeEditQuestionDemoModal(false)}
+              minTags={queueConfig?.minimum_tags}
             />
             <StudentRemovedFromQueueModal
               question={studentQuestion}

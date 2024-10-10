@@ -5,7 +5,6 @@ import { Alert, Form, Modal, Radio } from 'antd'
 import { QuestionTagSelector } from '../../../../components/QuestionTagElement'
 import { toOrdinal } from '@/app/utils/generalUtils'
 import TextArea from 'antd/es/input/TextArea'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useEffect, useState } from 'react'
 
 interface CreateQuestionModalProps {
@@ -24,6 +23,7 @@ interface CreateQuestionModalProps {
   question: Question | undefined
   setIsJoinQueueModalLoading: (loading: boolean) => void
   position?: number
+  minTags?: number
 }
 
 interface FormValues {
@@ -42,6 +42,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
   question,
   setIsJoinQueueModalLoading,
   position,
+  minTags = 0,
 }) => {
   const drafting = question?.status === OpenQuestionStatus.Drafting
   const helping = question?.status === OpenQuestionStatus.Helping
@@ -158,6 +159,22 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
         <Form.Item
           name="questionTypesInput"
           label="What categories does your question fall under?"
+          rules={[
+            ...(minTags > 0
+              ? [
+                  {
+                    required: true,
+                    message:
+                      minTags == 1 ? 'Please select at least one tag' : '',
+                  },
+                ]
+              : []),
+            {
+              type: 'array',
+              min: minTags,
+              message: `Please select at least ${minTags} tags`,
+            },
+          ]}
         >
           <QuestionTagSelector questionTags={questionTypes} />
         </Form.Item>

@@ -103,36 +103,38 @@ h1, h2, h3, h4, h5, h6 {
 
 
 .glowy:before, .glowy:after {
-	content: '';
-	position: absolute;
-	left: -1.5px;
-	top: -1.5px;
-	background: linear-gradient(45deg, #fb0094, #0000ff, #00ff00,#ffff00, #ff0000, #fb0094, 
-		#0000ff, #00ff00,#ffff00, #ff0000);
-	background-size: 400%;
-	width: calc(100% + 3px);
-	height: calc(100% + 3px);
-	z-index: -1;
-	animation: steam 20s linear infinite;
-    border-radius: 6px;
+  content: '';
+  position: absolute;
+  left: -1.5px;
+  top: -2px;
+  /* green - i like the glowyness of it */
+  /* background: linear-gradient(45deg,rgba(0, 255, 0, 0), rgb(0, 214, 0), rgba(0, 255, 0, 0), rgb(0, 214, 0), rgba(0, 255, 0, 0.473), rgba(0, 255, 0, 0), rgb(0, 214, 0), rgba(0, 255, 0, 0), rgb(0, 214, 0), rgba(0, 255, 0, 0), rgb(0, 214, 0), rgba(0, 255, 0, 0), rgb(0, 214, 0), rgba(0, 255, 0, 0.473), rgba(0, 255, 0, 0), rgb(0, 214, 0), rgba(0, 255, 0, 0), rgb(0, 214, 0), rgba(0, 255, 0, 0)); */
+  /* light blue */
+  /* background: linear-gradient(45deg,rgba(0, 255, 0, 0), rgb(0, 214, 214), rgba(0, 255, 0, 0), rgb(0, 214, 214), rgba(0, 255, 255, 0.473), rgba(0, 255, 0, 0), rgb(0, 214, 214), rgba(0, 255, 0, 0), rgb(0, 214, 214), rgba(0, 255, 0, 0), rgb(0, 214, 214), rgba(0, 255, 0, 0), rgb(0, 214, 214), rgba(0, 255, 255, 0.473), rgba(0, 255, 0, 0), rgb(0, 214, 214), rgba(0, 255, 0, 0), rgb(0, 214, 214), rgba(0, 255, 0, 0)); */
+  /* helpmeblue- too dark */
+  /* background: linear-gradient(45deg,rgba(0, 255, 0, 0), rgb(54, 132, 196), rgba(0, 255, 0, 0), rgb(54, 132, 196), rgba(54, 132, 196, 0.473), rgba(0, 255, 0, 0), rgb(54, 132, 196), rgba(0, 255, 0, 0), rgb(54, 132, 196), rgba(0, 255, 0, 0), rgb(54, 132, 196), rgba(0, 255, 0, 0), rgb(54, 132, 196), rgba(54, 132, 196, 0.473), rgba(0, 255, 0, 0), rgb(54, 132, 196), rgba(0, 255, 0, 0), rgb(54, 132, 196), rgba(0, 255, 0, 0)); */
+  /* medium blue - good balance */
+  background: linear-gradient(45deg,rgba(0, 255, 0, 0), rgb(108, 189, 255), rgba(0, 255, 0, 0), rgb(108, 189, 255), rgba(108, 189, 255, 0.473), rgba(0, 255, 0, 0), rgb(108, 189, 255), rgba(0, 255, 0, 0), rgb(108, 189, 255), rgba(0, 255, 0, 0), rgb(108, 189, 255), rgba(0, 255, 0, 0), rgb(108, 189, 255), rgba(108, 189, 255, 0.473), rgba(0, 255, 0, 0), rgb(108, 189, 255), rgba(0, 255, 0, 0), rgb(108, 189, 255), rgba(0, 255, 0, 0));
+  background-size: 300%;
+  width: calc(100% + 3px);
+  height: calc(100% + 3.5px);
+  z-index: -1;
+  animation: steam 20s linear infinite;
+  border-radius: 6px;
 }
 
 @keyframes steam {
-	0% {
-		background-position: 0 0;
-	}
-	50% {
-		background-position: 400% 0;
-	}
-	100% {
-		background-position: 0 0;
-	}
+  0% {
+      background-position: 0 0;
+  }
+  100% {
+      background-position: 300% 0;
+  }
 }
 
 .glowy:after {
-	filter: blur(1.5px);
+  filter: blur(1.5px);
 }
-
 /* make the border a static blue if the person has prefers-reduce-motion on their system */
 @media (prefers-reduced-motion: reduce) {
     .glowy:before, .glowy:after {

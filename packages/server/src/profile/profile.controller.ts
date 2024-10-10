@@ -29,7 +29,7 @@ import * as fs from 'fs';
 import { pick } from 'lodash';
 import { memoryStorage } from 'multer';
 import * as path from 'path';
-import Jimp from 'jimp';
+import * as sharp from 'sharp';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from './user.entity';
@@ -206,6 +206,10 @@ export class ProfileController {
     @Res() response: Response,
   ): Promise<void> {
     try {
+      /*
+       * The second check below may be redundant but will remain for now in case
+       * we allow for third-party images may be used in the future for profile avatars
+       */
       if (user.photoURL && !user.photoURL.startsWith('http')) {
         fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, user.photoURL));
       }
@@ -218,11 +222,9 @@ export class ProfileController {
           ERROR_MESSAGES.profileController.noDiskSpace,
         );
       }
-      const fileName =
-        user.id +
-        '-' +
-        Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15);
+      const fileName = user.id + '-' + Date.now().toString() + '.webp';
+
+      // Create the upload location if it doesn't exist
       if (!fs.existsSync(process.env.UPLOAD_LOCATION)) {
         fs.mkdirSync(process.env.UPLOAD_LOCATION, { recursive: true });
       }
@@ -230,15 +232,15 @@ export class ProfileController {
       const targetPath = path.join(process.env.UPLOAD_LOCATION, fileName);
 
       try {
-        const image = await Jimp.read(file.buffer);
-        image.resize(256, Jimp.AUTO);
-        await image.writeAsync(targetPath);
+        await sharp(file.buffer).resize(256).webp().toFile(targetPath);
         user.photoURL = fileName;
       } catch (err) {
         console.error('Error processing image:', err);
       }
       await user.save();
-      response.status(200).send({ message: 'Image uploaded successfully' });
+      response
+        .status(200)
+        .send({ message: 'Image uploaded successfully', fileName });
     } catch (error) {
       response
         .status(500)
@@ -261,7 +263,18 @@ export class ProfileController {
             .send({ message: 'File not found' });
         }
         if (stats) {
-          res.sendFile(photoURL, { root: process.env.UPLOAD_LOCATION });
+          res.set('Content-Type', 'image/webp');
+          res.sendFile(
+            photoURL,
+            { root: process.env.UPLOAD_LOCATION },
+            (sendFileError) => {
+              if (sendFileError) {
+                return res
+                  .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                  .send({ message: 'Error serving the image.' });
+              }
+            },
+          );
         }
       },
     );
