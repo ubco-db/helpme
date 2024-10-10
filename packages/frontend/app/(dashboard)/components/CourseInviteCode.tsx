@@ -4,7 +4,7 @@ import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import printQRCode from '@/app/utils/QRCodePrintUtils'
 import { CopyOutlined, QrcodeOutlined } from '@ant-design/icons'
-import { OrganizationCourseResponse } from '@koh/common'
+import { encodeBase64, OrganizationCourseResponse } from '@koh/common'
 import { Button, Form, Input, message } from 'antd'
 import { useCallback, useState } from 'react'
 
@@ -54,7 +54,7 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
   const inviteURL =
     courseCode === null || courseCode === undefined
       ? 'No invite code set. No students can join the course'
-      : `${baseURL}/invite?cid=${courseData.course?.id}&code=${encodeURIComponent(courseCode)}`
+      : `${baseURL}/invite?cid=${courseData.course?.id}&code=${encodeBase64(courseCode)}`
 
   const handleCopy = () => {
     if (courseCode === null) {
