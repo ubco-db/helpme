@@ -627,7 +627,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 queue.type === 'online') &&
                 clickedZoomModal &&
                 studentQuestion?.status === OpenQuestionStatus.Helping && (
-                  <JoinZoomButton zoomLink={course?.zoomLink}>
+                  <JoinZoomButton zoomLink={queue.zoomLink ?? course?.zoomLink}>
                     Need The Link?
                   </JoinZoomButton>
                 )}
@@ -905,7 +905,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 !clickedZoomModal &&
                 studentQuestion?.status === OpenQuestionStatus.Helping
               }
-              zoomLink={course?.zoomLink}
+              zoomLink={queue.zoomLink ?? course?.zoomLink}
               onJoin={() => {
                 setClickedZoomModal(true)
               }}
@@ -964,7 +964,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                     !clickedZoomModal &&
                     studentQuestion?.status === OpenQuestionStatus.Helping
                   }
-                  zoomLink={course?.zoomLink}
+                  zoomLink={queue.zoomLink ?? course?.zoomLink}
                   onJoin={() => setClickedZoomModal(true)}
                   setRequeuing={() => setRequeuing(false)}
                 />

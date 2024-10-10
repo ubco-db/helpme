@@ -168,32 +168,17 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             message.error(`Error creating question tag: ${errorMessage}`)
           })
       }) || []
-    const zoomLinkPromise =
-      values.zoomLink !== course?.zoomLink
-        ? API.course
-            .editCourseInfo(courseId, {
-              courseId: courseId,
-              zoomLink: values.zoomLink,
-            })
-            .then(() => {
-              message.success('Zoom link Changed')
-              mutateCourse()
-            })
-            .catch((e) => {
-              errorsHaveOccurred = true
-              const errorMessage = getErrorMessage(e)
-              message.error(`Failed to change zoom link: ${errorMessage}`)
-            })
-        : Promise.resolve()
     const updateQueueParams: UpdateQueueParams = pick(values, [
       'type',
       'notes',
       'allowQuestions',
+      'zoomLink',
     ])
     const updateQueuePromise =
       updateQueueParams.type !== queue?.type ||
       updateQueueParams.notes !== queue?.notes ||
-      updateQueueParams.allowQuestions !== queue?.allowQuestions
+      updateQueueParams.allowQuestions !== queue?.allowQuestions ||
+      updateQueueParams.zoomLink !== queue?.zoomLink
         ? API.queues
             .update(queueId, updateQueueParams)
             .then(() => {
@@ -208,7 +193,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
     await Promise.all([
       ...deletePromises,
       ...createPromises,
-      zoomLinkPromise,
       updateQueuePromise,
     ])
     mutateQuestionTypes()
@@ -242,7 +226,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             notes: queue?.notes,
             allowQuestions: queue?.allowQuestions,
             questionTypesForDeletion: [],
-            zoomLink: course?.zoomLink,
+            zoomLink: queue?.zoomLink,
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
@@ -350,11 +334,25 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
           </>
         )}
       </Form.List>
-      <Form.Item label="Zoom/Teams Link" name="zoomLink">
+      <Form.Item
+        label={
+          <div className="flex flex-row items-center gap-1">
+            Zoom/Teams Link
+            <Tooltip
+              title={
+                'This is the queue-specific link. If not set, the link shown to students will default to the course-wide link.'
+              }
+            >
+              <QuestionCircleOutlined style={{ color: 'gray' }} />
+            </Tooltip>
+          </div>
+        }
+        name="zoomLink"
+      >
         <Input
           allowClear={true}
           className="text-sky-800"
-          placeholder="[No Zoom/Teams link set]"
+          placeholder="[No queue-specific Zoom/Teams link set]"
         />
       </Form.Item>
       {/* Delete Queue and Clear Queue buttons for mobile only (normally shown on QueueInfoColumn.tsx) */}

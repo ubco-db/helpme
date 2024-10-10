@@ -340,6 +340,8 @@ export class QueuePartial {
   isProfessorQueue!: boolean
 
   config?: QueueConfig
+
+  zoomLink?: string
 }
 
 /**
@@ -1228,6 +1230,10 @@ export class UpdateQueueParams {
 
   @IsBoolean()
   allowQuestions?: boolean
+
+  @IsString()
+  @IsOptional()
+  zoomLink?: string
 }
 
 export class QuestionTypeParams {
