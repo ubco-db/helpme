@@ -11,6 +11,7 @@ import {
 import { Alert, Form, Modal } from 'antd'
 import TaskSelector from '../TaskSelector'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
+import { useEffect, useState } from 'react'
 
 interface FormValues {
   taskIds: string[]
@@ -20,7 +21,7 @@ interface CreateDemoModalProps {
   configTasks: ConfigTasks
   studentAssignmentProgress: StudentAssignmentProgress | undefined
   open: boolean
-  leaveQueue: () => void
+  leaveQueue: () => Promise<void>
   finishDemo: (
     text: string,
     questionType: QuestionTypeParams[],
@@ -30,6 +31,7 @@ interface CreateDemoModalProps {
   ) => void
   onCancel: () => void
   question: Question | undefined
+  setIsCreateDemoModalLoading: (loading: boolean) => void
   position?: number
 }
 
@@ -41,11 +43,13 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
   finishDemo,
   onCancel,
   question,
+  setIsCreateDemoModalLoading,
   position,
 }) => {
   const drafting = question?.status === OpenQuestionStatus.Drafting
   const helping = question?.status === OpenQuestionStatus.Helping
   const [form] = Form.useForm()
+  const [isLeaveButtonLoading, setIsLeaveButtonLoading] = useState(false)
 
   const onFinish = (values: FormValues) => {
     const newQuestionText = `Mark ${values.taskIds
@@ -61,6 +65,13 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
     )
   }
 
+  useEffect(() => {
+    if (open) {
+      // Need to put this loading toggle inside the modal so that the Create Demo button stops loading once the modal is rendered
+      setIsCreateDemoModalLoading(false)
+    }
+  }, [setIsCreateDemoModalLoading, open])
+
   return (
     <Modal
       open={open}
@@ -70,9 +81,12 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
       okButtonProps={{ autoFocus: true, htmlType: 'submit' }}
       cancelButtonProps={{
         danger: drafting,
-        onClick: () => {
+        loading: isLeaveButtonLoading,
+        onClick: async () => {
           if (drafting) {
-            leaveQueue()
+            setIsLeaveButtonLoading(true)
+            await leaveQueue()
+            setIsLeaveButtonLoading(false)
           } else {
             onCancel()
           }

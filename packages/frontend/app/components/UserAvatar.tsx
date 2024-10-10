@@ -6,8 +6,8 @@ import { cn, getInitialsFromName, nameToRGB } from '../utils/generalUtils'
 
 type SelfAvatarProps = Omit<AvatarProps, 'icon' | 'src'>
 type UserAvatarProps = Omit<AvatarProps, 'icon' | 'src'> & {
-  photoURL: string | undefined
-  username: string | undefined
+  photoURL?: string
+  username?: string
 }
 
 export function SelfAvatar({ ...props }: SelfAvatarProps): ReactElement {
@@ -41,9 +41,16 @@ export default function UserAvatar({
       {...props}
       icon={<UserOutlined />}
       src={
-        photoURL && photoURL.startsWith('http')
-          ? photoURL
-          : '/api/v1/profile/get_picture/' + photoURL
+        photoURL && photoURL.startsWith('http') ? (
+          <img src={photoURL} alt={username} loading="lazy" decoding="async" />
+        ) : (
+          <img
+            src={`/api/v1/profile/get_picture/${photoURL}`}
+            alt={username}
+            loading="lazy"
+            decoding="async"
+          />
+        )
       }
     />
   ) : username ? (

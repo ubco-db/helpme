@@ -9,6 +9,7 @@ import {
   QueueInviteParams,
   Role,
   UpdateQueueParams,
+  isCycleInTasks,
   setQueueConfigResponse,
   validateQueueConfigInput,
 } from '@koh/common';
@@ -253,6 +254,14 @@ export class QueueController {
     const configError = validateQueueConfigInput(newConfig);
     if (configError) {
       res.status(HttpStatus.BAD_REQUEST).send({ message: configError });
+      return;
+    }
+
+    // Make sure there are no cycles in the tasks of the config
+    if (newConfig.tasks && isCycleInTasks(newConfig.tasks)) {
+      res
+        .status(HttpStatus.BAD_REQUEST)
+        .send({ message: ERROR_MESSAGES.queueController.cycleInTasks });
       return;
     }
 
