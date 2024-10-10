@@ -1,4 +1,4 @@
-import { OpenQuestionStatus, Role } from '@koh/common';
+import { ERROR_MESSAGES, OpenQuestionStatus, Role } from '@koh/common';
 import { QuestionModel } from 'question/question.entity';
 import { QueueModule } from '../src/queue/queue.module';
 import {
@@ -1233,6 +1233,53 @@ describe('Queue Integration', () => {
         .patch(`/queues/${queue.id}/config`)
         .send(invalidConfig)
         .expect(400);
+    });
+    it('detects cycles in task preconditions and returns a 400', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+        config: validConfig,
+      });
+
+      const newConfig = {
+        ...validConfig,
+        tasks: {
+          task1: {
+            display_name: 'Task 1',
+            short_display_name: '1',
+            blocking: false,
+            color_hex: '#ffedb8',
+            precondition: 'task2',
+          },
+          task2: {
+            display_name: 'Task 2',
+            short_display_name: '2',
+            blocking: false,
+            color_hex: '#fadf8e',
+            precondition: 'task3',
+          },
+          task3: {
+            display_name: 'Task 3',
+            short_display_name: '3',
+            blocking: false,
+            color_hex: '#f7ce52',
+            precondition: 'task1',
+          },
+        },
+      };
+
+      const resp = await supertest({ userId: ta.userId })
+        .patch(`/queues/${queue.id}/config`)
+        .send(newConfig)
+        .expect(400);
+
+      expect(resp.body).toMatchObject({
+        message: ERROR_MESSAGES.queueController.cycleInTasks,
+      });
     });
   });
 });
