@@ -42,3 +42,6 @@ yarn-error.log*
 husky.sh
 
 .vscode/
+
+# ignore backups 
+/backups/**/*.gz

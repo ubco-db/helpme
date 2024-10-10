@@ -30,6 +30,7 @@ import { QuestionTypeModule } from './questionType/questionType.module';
 import { StudentTaskProgressModule } from './studentTaskProgress/studentTaskProgress.module';
 import { RedisQueueModule } from 'redisQueue/redis-queue.module';
 import { ApplicationConfigModule } from 'config/application_config.module';
+import { BackupModule } from 'backup/backup.module';
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { ApplicationConfigModule } from 'config/application_config.module';
     QuestionTypeModule,
     StudentTaskProgressModule,
     RedisQueueModule,
+    BackupModule,
   ],
 })
 export class AppModule {}
