@@ -227,21 +227,24 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       minimum_tags: Number(values.minTags),
       assignment_id: values.assignmentId,
       // iterate over each task and accumulate them into an object
-      tasks: values.assignmentId
-        ? values.tasks?.reduce((acc, task) => {
-            acc[task.id] = {
-              display_name: task.display_name,
-              short_display_name: task.short_display_name,
-              blocking: task.blocking,
-              color_hex:
-                typeof task.color_hex === 'string'
-                  ? task.color_hex
-                  : task.color_hex.toHexString(),
-              precondition: task.precondition ?? null,
-            }
-            return acc
-          }, {} as ConfigTasks)
-        : {},
+      // Check if assignmentId exists and has tasks before including tasks field
+      ...(values.assignmentId && values.tasks
+        ? {
+            tasks: values.tasks.reduce((acc, task) => {
+              acc[task.id] = {
+                display_name: task.display_name,
+                short_display_name: task.short_display_name,
+                blocking: task.blocking,
+                color_hex:
+                  typeof task.color_hex === 'string'
+                    ? task.color_hex
+                    : task.color_hex.toHexString(),
+                precondition: task.precondition ?? null,
+              }
+              return acc
+            }, {} as ConfigTasks),
+          }
+        : {}),
     }
 
     const tasksChanged =
