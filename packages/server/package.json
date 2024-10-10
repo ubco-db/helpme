@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "prebuild": "rimraf dist",
-    "build": "nest build --webpack --webpackPath webpack.config.js",
+    "build": "nest build --webpack --webpackPath webpack.config.js && npm run sentry:sourcemaps",
     "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider TYPEORM_LOGGING=true nest build --webpack --webpackPath webpack-hmr.config.js",
     "dev:debug": "nest start --debug --watch",
     "prod:start": "node --max-old-space-size=8192 dist/main",
@@ -19,7 +19,8 @@
     "dev:db:reset": "yarn typeorm schema:drop",
     "migration:generate": "yarn typeorm schema:drop && yarn typeorm migration:run && yarn typeorm migration:generate",
     "typeorm": "cross-env TYPEORM_CLI=true ts-node ../../node_modules/typeorm/cli.js",
-    "cli": "nestjs-command"
+    "cli": "nestjs-command",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org university-of-british-colum-p0 --project helpme-nestjs ./dist && sentry-cli --url https://sentry.io/ sourcemaps upload --org university-of-british-colum-p0 --project helpme-nestjs ./dist"
   },
   "dependencies": {
     "@babel/cli": "^7.12.1",
@@ -38,10 +39,9 @@
     "@nestjs/platform-express": "^7.5.0",
     "@nestjs/schedule": "^0.4.0",
     "@nestjs/typeorm": "^7.1.0",
-    "@sentry/integrations": "^5.29.0",
-    "@sentry/node": "^5.29.0",
-    "@sentry/tracing": "^5.29.0",
-    "@sentry/webpack-plugin": "^1.14.0",
+    "@sentry/cli": "^2.36.1",
+    "@sentry/nestjs": "^8.30.0",
+    "@sentry/profiling-node": "^8.30.0",
     "@types/bcrypt": "^3.0.0",
     "@types/multer": "^1.4.5",
     "@types/nodemailer": "^6.4.7",

@@ -98,22 +98,9 @@
 
 ###### SENTRY_AUTH_TOKEN
 
-**Purpose:** 
+**Purpose:** Sentry captures errors (e.g. 500 level errors) and sends it to its own site. This is needed in order for your environment to capture these errors. This is also needed to get the code source maps (code is normally minified and made unreadable, source maps are just the base code). If you leave it empty, it should be fine.
 
-**How to get:** Probably fine to leave as is.
-
-###### SENTRY_ORG
-
-**Purpose:** 
-
-**How to get:** Probably fine to leave as is.
-
-###### SENTRY_PROJECT
-
-**Purpose:** 
-
-**How to get:** Probably fine to leave as is.
-
+**How to get:** Ask me (Adam) and I can provide you with mine. NOTE: This is a different SENTRY_AUTH_TOKEN from the frontend one.
 
 ## client .env (place in packages/app)
 
@@ -122,3 +109,9 @@
 **Purpose:** for recaptcha (bot protection) for creating an account/ logging in
 
 **How to get:** obtain google recaptcha keys from https://www.google.com/recaptcha/admin/create
+
+###### SENTRY_AUTH_TOKEN
+
+**Purpose:** Sentry captures errors (client-side errors, like doing undefined.length) and sends it to its own site. This is needed in order for your environment to capture these errors. It's also used for authentication when uploading source maps (source code that's not minified). If you leave it empty, it should be fine.
+
+**How to get:** Ask me (Adam) and I can provide you with mine. NOTE: This is a different SENTRY_AUTH_TOKEN from the server one.

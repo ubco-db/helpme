@@ -1,9 +1,6 @@
-import { getEnv, isProd } from '@koh/common';
+import { isProd } from '@koh/common';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { RewriteFrames } from '@sentry/integrations';
-import * as Sentry from '@sentry/node';
-import * as Tracing from '@sentry/tracing';
 import * as cookieParser from 'cookie-parser';
 import * as morgan from 'morgan';
 import * as bodyParser from 'body-parser';
@@ -18,9 +15,6 @@ export async function bootstrap(hot: any): Promise<void> {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
-  if (process.env.NODE_ENV === 'sentryEnabled') {
-    setupAPM(app);
-  }
   app.enableShutdownHooks(); // So we can clean up SSE.
   addGlobalsToApp(app);
   app.setGlobalPrefix('api/v1');
@@ -61,27 +55,6 @@ export async function bootstrap(hot: any): Promise<void> {
     hot.accept();
     hot.dispose(() => app.close());
   }
-}
-
-function setupAPM(app: INestApplication): void {
-  Sentry.init({
-    dsn: process.env.SENTRY_APM_DSN,
-    tracesSampleRate: 0.2,
-    integrations: [
-      // enable HTTP calls tracing
-      new Sentry.Integrations.Http({ tracing: true }),
-      new Tracing.Integrations.Postgres(),
-      new Tracing.Integrations.Express({
-        app: app.getHttpAdapter().getInstance(),
-      }),
-      new RewriteFrames(),
-    ],
-    // Service Version is the git hash, added by Webpack at build time.
-    release: process.env.SERVICE_VERSION,
-    environment: getEnv(),
-  });
-  app.use(Sentry.Handlers.requestHandler());
-  app.use(Sentry.Handlers.tracingHandler());
 }
 
 // Global settings that should be true in prod and in integration tests

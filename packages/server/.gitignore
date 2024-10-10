@@ -37,3 +37,6 @@ lerna-debug.log*
 # but don't keep the files inside it except .gitkeep
 uploads/*
 !/uploads/.gitkeep
+
+# Sentry Config File (This was auto-generated. The .sentryclic file seems to have another auth token of some kind?)
+.sentryclirc

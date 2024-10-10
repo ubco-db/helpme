@@ -1,21 +1,22 @@
 # Developing Guidelines
 
-- [Installation](#installation-to-run-locally)
-- [Technologies](#technologies)
-- [File Structure](#file-structure)
-- [Developing](#developing)
-  - [Running locally outside of Docker container](#running-locally-outside-of-docker-container)
-  - [Running locally within a Docker container](#running-locally-within-a-docker-container)
-  - [Database Changes](#database-changes)
-    - [Migrations](#migrations)
-  - [Adding an API Route](#adding-an-api-route)
-  - [Adding to the frontend app](#adding-to-the-frontend-app)
-  - [Testing](#testing)
-  - [Installing new packages](#installing-new-packages)
-- [Code Formatting](#code-formatting)
-- [Tips](#tips)
-- [Misc](#misc)
-- [Production](#production)
+- [Developing Guidelines](#developing-guidelines)
+  - [Installation to run locally](#installation-to-run-locally)
+  - [Technologies](#technologies)
+  - [File Structure](#file-structure)
+  - [Developing](#developing)
+    - [Running locally outside a Docker container](#running-locally-outside-a-docker-container)
+    - [Running locally within a Docker container](#running-locally-within-a-docker-container)
+    - [Database changes](#database-changes)
+      - [Migrations](#migrations)
+    - [Adding an API Route](#adding-an-api-route)
+    - [Testing](#testing)
+    - [Installing new packages](#installing-new-packages)
+  - [Code Formatting](#code-formatting)
+  - [Tips](#tips)
+  - [Testing the Production Environment](#testing-the-production-environment)
+  - [Production](#production)
+  - [Misc](#misc)
 
 ## Installation to run locally
 
@@ -146,6 +147,15 @@ package, `cd packages/app` and then `yarn add <FRONTEND PACKAGE>`
 - In VSCode settings, enable `Explorer > File Nesting: Enabled` and `Explorer > File Nesting: Expand`, and especially set `Explorer: Sort Order` to **filesFirst**. This will make the file tree much more navigable.
 
 
+## Testing the Production Environment
+
+Want to try running the prod environment on your local machine? Follow these steps:
+- run `yarn build` in the root directory (you may need to run the terminal as administrator)
+- Once done, run `yarn prod:start` in the root directory
+- run `yarn dev:proxy` in a separate terminal in the root directory
+
+Once done, you should be able to visit the website at http://localhost:3001
+
 ## Production
 
 If you have prod ssh access, deploy master to prod with `./deploy.sh <prod username>`.
@@ -153,7 +163,7 @@ If you have prod ssh access, deploy master to prod with `./deploy.sh <prod usern
 On the VM, source code is at `/var/www/source`. From there you can run `yarn cli` commands etc. Make an admin account with `yarn cli create:admin <name>` and give a password. Please auto-generate a random password.
 
 If you need to hotfix something, you can edit the files on prod and run `yarn build && env HOME=/var/www pm2 startOrReload infrastructure/prod/ecosystem.config.js` to build and restart the server. Try to avoid doing this.
-You can also push something to master, and then use the deploy script. Note that it'll still take about 5 minutes for the changes to propogate to the dist folder
+You can also push something to master, and then use the deploy script. Note that it'll still take about 5 minutes for the changes to propagate to the dist folder
 
 ## Misc
 
