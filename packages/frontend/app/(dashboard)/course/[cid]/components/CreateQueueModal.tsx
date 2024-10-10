@@ -1,5 +1,5 @@
 import { QuestionCircleOutlined } from '@ant-design/icons'
-import { Role, validateQueueConfigInput } from '@koh/common'
+import { QueueTypes, Role, validateQueueConfigInput } from '@koh/common'
 import {
   Modal,
   Form,
@@ -9,6 +9,7 @@ import {
   Tooltip,
   Button,
   message,
+  Segmented,
 } from 'antd'
 import TextArea from 'antd/lib/input/TextArea'
 import { useState } from 'react'
@@ -23,7 +24,7 @@ type ConfigPresets = 'default' | 'lab'
 
 interface FormValues {
   officeHourName: string
-  isOnline: boolean
+  type: QueueTypes
   allowTA: boolean
   notes: string
   queue_config: string
@@ -49,12 +50,19 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [hoveredConfig, setHoveredConfig] = useState<ConfigPresets>('default')
 
+  const queueTypeOptions = [
+    { label: 'Online', value: 'online' },
+    { label: 'Hybrid', value: 'hybrid' },
+    { label: 'In-Person', value: 'inPerson' },
+  ]
+
   const onFinish = async (values: FormValues) => {
     setIsLoading(true)
     await API.queues
       .createQueue(
         cid,
         values.officeHourName,
+        values.type,
         !values.allowTA,
         values.notes ?? '',
         values.queue_config ? JSON.parse(values.queue_config) : {},
@@ -114,7 +122,7 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
           form={form}
           name="form_in_modal"
           initialValues={{
-            isOnline: false,
+            type: 'hybrid',
             allowTA: true,
           }}
           clearOnDestroy
@@ -125,13 +133,12 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
       )}
     >
       <Form.Item
-        label="Online?"
-        name="isOnline"
+        label="Queue Location"
+        name="type"
         layout="horizontal"
-        valuePropName="checked"
-        tooltip="Online queues have the option for a zoom/teams link"
+        tooltip="Online queues are for virtual office hours. In-person queues are for physical locations. Hybrid queues are for a mix of both."
       >
-        <Switch />
+        <Segmented options={queueTypeOptions} />
       </Form.Item>
 
       <Form.Item

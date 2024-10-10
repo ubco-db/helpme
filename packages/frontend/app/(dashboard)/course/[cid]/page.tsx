@@ -119,6 +119,7 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                   sortedQueues?.map((q) => (
                     <QueueCard
                       cid={cid}
+                      type={q.type!}
                       linkId={
                         skipLinkTarget == 'first-queue' &&
                         q.id === sortedQueues[0].id
@@ -127,7 +128,7 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                       }
                       key={q.id}
                       queue={q}
-                      isTA={role === Role.TA || role === Role.PROFESSOR}
+                      isStaff={role === Role.TA || role === Role.PROFESSOR}
                     />
                   ))}
 

@@ -1,6 +1,12 @@
 import { cn } from '@/app/utils/generalUtils'
 import { Button, ButtonProps } from 'antd'
-import { PropsWithChildren } from 'react'
+import React, { PropsWithChildren } from 'react'
+
+const JoinZoomButton: React.FC<
+  PropsWithChildren<QueueInfoColumnButtonProps>
+> = (props) => (
+  <QueueInfoColumnButton type="primary" onClick={props.onClick} {...props} />
+)
 
 const JoinQueueButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
@@ -72,6 +78,7 @@ export {
   QueueInfoColumnButton,
   EditQueueButton,
   JoinQueueButton,
+  JoinZoomButton,
   DisableQueueButton,
   ClearQueueButton,
 }

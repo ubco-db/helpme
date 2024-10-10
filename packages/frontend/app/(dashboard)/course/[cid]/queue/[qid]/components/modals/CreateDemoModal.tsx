@@ -6,6 +6,7 @@ import {
   StudentAssignmentProgress,
   ConfigTasks,
   parseTaskIdsFromQuestionText,
+  QuestionLocations,
 } from '@koh/common'
 import { Alert, Form, Modal } from 'antd'
 import TaskSelector from '../TaskSelector'
@@ -23,7 +24,7 @@ interface CreateDemoModalProps {
   finishDemo: (
     text: string,
     questionType: QuestionTypeParams[],
-    location: string,
+    location: QuestionLocations,
     isTaskQuestion: boolean,
     groupable: boolean,
   ) => void
@@ -54,7 +55,7 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
     finishDemo(
       newQuestionText,
       [], // no question types for demos
-      'In Person', // for now, all demos are in person
+      'In-Person', // for now, all demos are in person
       true, //isTaskQuestion
       false, //groupable
     )

@@ -8,11 +8,12 @@ import { formatWaitTime } from '@/app/utils/timeFormatUtils'
 
 interface StaffListProps {
   queueId: number
+  mobile?: boolean
 }
 /**
  * Row of ta statuses
  */
-const StaffList: React.FC<StaffListProps> = ({ queueId }) => {
+const StaffList: React.FC<StaffListProps> = ({ queueId, mobile }) => {
   const { queueQuestions } = useQuestions(queueId)
   const { queue } = useQueue(queueId)
   const staffList = queue?.staffList ?? []
@@ -35,7 +36,7 @@ const StaffList: React.FC<StaffListProps> = ({ queueId }) => {
   }
 
   return (
-    <Col className="mb-3 sm:mb-0">
+    <Col className="my-1 flex flex-col gap-4">
       {staffList.map((ta) => (
         <Col key={ta.id}>
           <StatusCard
@@ -74,7 +75,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
 }) => {
   const isBusy = !!helpedAt
   return (
-    <div className="mb-4 flex rounded-md bg-white p-3 shadow-md md:mb-4 md:p-4">
+    <div className="flex rounded-md bg-white p-3 shadow-md md:mb-4 md:p-4">
       <UserAvatar
         size={48}
         username={taName}

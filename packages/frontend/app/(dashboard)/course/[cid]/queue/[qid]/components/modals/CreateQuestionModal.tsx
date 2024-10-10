@@ -1,7 +1,13 @@
 import { useLocalStorage } from '@/app/hooks/useLocalStorage'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
-import { QuestionTypeParams, OpenQuestionStatus, Question } from '@koh/common'
-import { Alert, Form, Modal, Radio } from 'antd'
+import {
+  QuestionTypeParams,
+  OpenQuestionStatus,
+  Question,
+  QueueTypes,
+  QuestionLocations,
+} from '@koh/common'
+import { Alert, Form, Modal, Radio, Segmented } from 'antd'
 import { QuestionTagSelector } from '../../../../components/QuestionTagElement'
 import { toOrdinal } from '@/app/utils/generalUtils'
 import TextArea from 'antd/es/input/TextArea'
@@ -9,12 +15,13 @@ import TextArea from 'antd/es/input/TextArea'
 interface CreateQuestionModalProps {
   queueId: number
   courseId: number
+  isQueueHybrid: boolean
   open: boolean
   leaveQueue: () => void
   finishQuestion: (
     text: string,
     questionTypes: QuestionTypeParams[] | undefined,
-    location: string,
+    location: QuestionLocations,
     isTaskQuestion: boolean,
     groupable: boolean,
   ) => void
@@ -27,12 +34,13 @@ interface CreateQuestionModalProps {
 interface FormValues {
   questionTypesInput: number[]
   questionText: string
-  location: 'In Person' | 'Online'
+  location: QuestionLocations
 }
 
 const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
   queueId,
   courseId,
+  isQueueHybrid,
   open,
   leaveQueue,
   finishQuestion,
@@ -188,13 +196,16 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
         />
       </Form.Item>
 
-      {/* TODO: change this to only be an option if the queue is hybrid. Strictly in-person or online queues should not have this option */}
-      <Form.Item name="location" label="Are you joining the queue in-person?">
-        <Radio.Group className="mb-1">
-          <Radio value="In Person">Yes</Radio>
-          <Radio value="Online">No</Radio>
-        </Radio.Group>
-      </Form.Item>
+      {isQueueHybrid && (
+        <Form.Item name="location" label="Is the question in-person?">
+          <Segmented
+            options={[
+              { label: 'Online', value: 'Online' },
+              { label: 'In-Person', value: 'In-Person' },
+            ]}
+          />
+        </Form.Item>
+      )}
     </Modal>
   )
 }

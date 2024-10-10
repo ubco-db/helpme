@@ -1,8 +1,13 @@
 import { useCallback } from 'react'
 import Modal from 'antd/lib/modal/Modal'
-import { Form, message, Checkbox, Input, Radio, Select } from 'antd'
+import { Form, message, Checkbox, Input, Radio, Select, Segmented } from 'antd'
 import { useEffect, useState } from 'react'
-import { OpenQuestionStatus, UserTiny } from '@koh/common'
+import {
+  OpenQuestionStatus,
+  QuestionLocations,
+  QueueTypes,
+  UserTiny,
+} from '@koh/common'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../../components/QuestionTagElement'
 import { API } from '@/app/api'
@@ -13,13 +18,14 @@ interface FormValues {
   studentId: number
   questionTypesInput: number[]
   questionText: string
-  location: 'In Person' | 'Online'
+  location: QuestionLocations
   help: boolean
 }
 
 interface AddStudentsToQueueModalProps {
   queueId: number
   courseId: number
+  isQueueHybrid: boolean
   open: boolean
   onAddStudent: () => void
   onCancel: () => void
@@ -28,6 +34,7 @@ interface AddStudentsToQueueModalProps {
 const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
   queueId,
   courseId,
+  isQueueHybrid,
   open,
   onAddStudent,
   onCancel,
@@ -66,6 +73,7 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
       message.error('Please select a student')
       return
     }
+
     setIsLoading(true)
     const newQuestionTypeInput =
       values.questionTypesInput && questionTypes
@@ -181,13 +189,19 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
             <Input.TextArea autoSize={{ minRows: 3, maxRows: 6 }} allowClear />
           </Form.Item>
 
-          {/* TODO: change this to only be an option if the queue is hybrid. Strictly in-person or online queues should not have this option */}
-          <Form.Item name="location" label="Is the question in-person?">
-            <Radio.Group className="mb-1">
-              <Radio value="In Person">Yes</Radio>
-              <Radio value="Online">No</Radio>
-            </Radio.Group>
-          </Form.Item>
+          {isQueueHybrid && (
+            <Form.Item
+              name="location"
+              label="How would you like them to meet you?"
+            >
+              <Segmented
+                options={[
+                  { label: 'Online', value: 'Online' },
+                  { label: 'In-Person', value: 'In-Person' },
+                ]}
+              />
+            </Form.Item>
+          )}
           <Form.Item name="help" valuePropName="checked">
             <Checkbox>
               Help {selectedStudent ? selectedStudent.name : 'Student'}?

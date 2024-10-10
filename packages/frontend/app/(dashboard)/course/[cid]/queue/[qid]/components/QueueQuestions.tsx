@@ -13,6 +13,8 @@ import {
   Task,
   TaskTree,
   QuestionTypeParams,
+  QuestionLocations,
+  QueueTypes,
 } from '@koh/common'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
 import QuestionCard from './QuestionCard'
@@ -24,6 +26,7 @@ const Panel = Collapse.Panel
 interface QueueQuestionsProps {
   questions: Question[]
   questionsGettingHelp: Question[]
+  queueType: QueueTypes
   cid: number
   qid: number
   isStaff: boolean
@@ -44,14 +47,14 @@ interface QueueQuestionsProps {
     questionTypes: QuestionType[],
     force: boolean,
     isTaskQuestion: boolean,
-    location?: string,
+    location?: QuestionLocations,
   ) => Promise<void>
   finishQuestionOrDemo: (
     text: string,
     questionTypes: QuestionTypeParams[],
     groupable: boolean,
     isTaskQuestion: boolean,
-    location: string,
+    location: QuestionLocations,
   ) => Promise<void>
   leaveQueue: (isTaskQuestion: boolean) => Promise<void>
   onOpenTagGroupsChange: (key: string | string[]) => void
@@ -65,6 +68,7 @@ interface QueueQuestionsProps {
 const QueueQuestions: React.FC<QueueQuestionsProps> = ({
   questions,
   questionsGettingHelp,
+  queueType,
   cid,
   qid,
   isStaff,
@@ -232,11 +236,13 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                           question={question}
                           cid={cid}
                           qid={qid}
+                          queueType={queueType}
                           isStaff={isStaff}
                           configTasks={configTasks}
                           studentAssignmentProgress={studentAssignmentProgress}
                           isMyQuestion={isMyQuestion}
                           className={background_color}
+                          isBeingHelped={true}
                         />
                       )
                     })}
@@ -304,6 +310,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                         question={question}
                         cid={cid}
                         qid={qid}
+                        queueType={queueType}
                         isStaff={isStaff}
                         configTasks={configTasks}
                         studentAssignmentProgress={studentAssignmentProgress}
@@ -333,6 +340,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                   question={question}
                   cid={cid}
                   qid={qid}
+                  queueType={queueType}
                   isStaff={isStaff}
                   configTasks={configTasks}
                   studentAssignmentProgress={studentAssignmentProgress}
@@ -354,6 +362,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                 question={question}
                 cid={cid}
                 qid={qid}
+                queueType={queueType}
                 isStaff={isStaff}
                 configTasks={configTasks}
                 studentAssignmentProgress={studentAssignmentProgress}
