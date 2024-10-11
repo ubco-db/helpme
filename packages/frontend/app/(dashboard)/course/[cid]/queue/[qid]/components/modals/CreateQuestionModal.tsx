@@ -130,8 +130,11 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
                   ? storedDraftQuestion?.questionText
                   : question.text,
                 location: drafting
-                  ? storedDraftQuestion?.location
-                  : question.location,
+                  ? ((storedDraftQuestion?.location ??
+                      'Online') as QuestionLocations)
+                  : question.location && question.location !== 'Unselected'
+                    ? question.location
+                    : 'Online',
               }}
               onValuesChange={(changedValues, values) => {
                 setStoredDraftQuestion(values)
