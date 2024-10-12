@@ -32,6 +32,7 @@ import { StudentTaskProgressModel } from './src/studentTaskProgress/studentTaskP
 import { ApplicationConfigModel } from './src/config/application_config.entity';
 import { InsightDashboardModel } from './src/insights/dashboard.entity';
 import { QueueInviteModel } from './src/queue/queue-invite.entity';
+import { AsyncQuestionCommentsModel } from 'asyncQuestion/asyncQuestionComments.entity';
 
 config();
 
@@ -77,6 +78,7 @@ const typeorm = {
     OrganizationCourseModel,
     CourseSettingsModel,
     AsyncQuestionVotesModel,
+    AsyncQuestionCommentsModel,
     UserTokenModel,
     ChatTokenModel,
     StudentTaskProgressModel,
