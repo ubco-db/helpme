@@ -43,6 +43,10 @@ export type ChartComponentProps = {
     | LinearChartProps
 }
 
+export type GanttChartComponentProps = {
+  props: GanttChartProps
+}
+
 export interface DefaultChartProps {
   valueKeys: string[]
   chartConfig: ChartConfig
@@ -90,6 +94,17 @@ export interface LinearChartProps extends PointChartProps {
   curveType?: CurveType
 }
 
+export interface GanttChartProps {
+  chartConfig: ChartConfig
+  chartData: ChartDataType[]
+  size: ChartSize
+  includeTooltip?: boolean
+  includeLegend?: boolean
+  xKey: string
+  yKey: string
+  zKey: string
+}
+
 export type ChartDataType = { key: string; fill?: string; [key: string]: any }
 
 export type ChartType =
@@ -100,7 +115,6 @@ export type ChartType =
   | 'Radar'
   | 'Radial'
   | 'Scatter'
-  | 'WeekdayTime'
 
 export type ChartComponent = {
   chartType: ChartType
@@ -113,6 +127,10 @@ export type ChartComponent = {
     | Partial<PointChartProps>
     | Partial<LinearChartProps>
     | Partial<BarChartProps>
+}
+
+export type GanttChartComponent = {
+  props: Partial<GanttChartProps>
 }
 
 export const charts: {
@@ -194,9 +212,12 @@ export const charts: {
       tickFormatter: (label) => label,
     },
   },
+}
+
+export const gantt_charts: {
+  [key: string]: GanttChartComponent
+} = {
   MostActiveTimes: {
-    chartType: 'WeekdayTime',
-    allowDataFiltering: false,
     props: {
       includeLegend: true,
       includeTooltip: true,

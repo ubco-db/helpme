@@ -1,5 +1,6 @@
 import {
   ChartOutputType,
+  GanttChartOutputType,
   InsightFilterOption,
   InsightObject,
   InsightType,
@@ -135,6 +136,7 @@ export const TotalStudents: InsightObject = {
     'What is the total number of students that are enrolled in the course?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Value,
+  insightCategory: 'Tool_Usage_Statistics',
   allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ValueOutputType> {
     return await addFilters({
@@ -151,6 +153,7 @@ export const TotalQuestionsAsked: InsightObject = {
   description: 'How many questions have been asked in total?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Value,
+  insightCategory: 'Questions',
   allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ValueOutputType> {
     return await addFilters({
@@ -168,6 +171,7 @@ export const MostActiveStudents: InsightObject = {
     'Who are the students who have asked the most questions in Office Hours?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Table,
+  insightCategory: 'Tool_Usage_Statistics',
   allowedFilters: ['courseId', 'timeframe'],
   async compute(filters, cacheManager: Cache): Promise<TableOutputType> {
     const dataSource = await getCachedActiveStudents(
@@ -256,6 +260,7 @@ export const QuestionTypeBreakdown: InsightObject = {
     'What is the distribution of student-selected question-types on the question form?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
+  insightCategory: 'Questions',
   allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ChartOutputType> {
     const questionInfo = await addFilters({
@@ -330,6 +335,7 @@ export const MedianWaitTime: InsightObject = {
     'What is the median wait time for a student to get help in the queue?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Value,
+  insightCategory: 'Tool_Usage_Statistics',
   allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ValueOutputType> {
     const questions = await addFilters({
@@ -363,6 +369,7 @@ export const AverageTimesByWeekDay: InsightObject = {
     'The average time for synchronous help requests to be addressed, grouped by week day.',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
+  insightCategory: 'Queues',
   allowedFilters: ['courseId', 'timeframe', 'queues'],
   async compute(filters): Promise<ChartOutputType> {
     type WaitTimesByDay = {
@@ -417,9 +424,10 @@ export const MostActiveTimes: InsightObject = {
   description:
     'The most in-demand queue times during the calendar week, based on the number of queued questions throughout the day.',
   roles: [Role.PROFESSOR],
-  insightType: InsightType.Chart,
+  insightType: InsightType.GanttChart,
+  insightCategory: 'Queues',
   allowedFilters: ['courseId', 'timeframe', 'queues'],
-  async compute(filters): Promise<ChartOutputType> {
+  async compute(filters): Promise<GanttChartOutputType> {
     type ActiveTimes = {
       quarterTime: number;
       amount: number;
@@ -449,17 +457,17 @@ export const MostActiveTimes: InsightObject = {
         return {
           Weekday: value.weekday,
           Amount: value.amount,
-          quarterTime: value.quarterTime,
+          time: value.quarterTime,
         };
       })
       .sort((a, b) => a.Weekday - b.Weekday);
 
     return {
       data,
-      xKey: 'quarterTime',
-      yKeys: ['Weekday', 'Amount'],
+      xKey: 'time',
+      yKey: 'Weekday',
+      zKey: 'Amount',
       label: 'Weekday',
-      xType: 'numeric',
     };
   },
 };
@@ -470,6 +478,7 @@ export const MedianHelpingTime: InsightObject = {
     'What is the median duration that a TA helps a student on a call?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Value,
+  insightCategory: 'Queues',
   allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ValueOutputType> {
     const questions = await addFilters({
@@ -514,6 +523,7 @@ export const QuestionToStudentRatio: InsightObject = {
   description: 'How many questions were asked per student?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Value,
+  insightCategory: 'Tool_Usage_Statistics',
   async compute(filters): Promise<ValueOutputType> {
     const totalQuestions = await TotalQuestionsAsked.compute(filters);
     const totalStudents = await TotalStudents.compute(filters);
@@ -535,6 +545,7 @@ export const HelpSeekingOverTime: InsightObject = {
   description: 'What help services have students been utilizing over time?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
+  insightCategory: 'Tool_Usage_Statistics',
   allowedFilters: ['courseId', 'timeframe', 'queues', 'students'],
   async compute(filters, cacheManager: Cache): Promise<ChartOutputType> {
     const timeframe = filters.find(
@@ -685,6 +696,7 @@ export const HumanVsChatbot: InsightObject = {
     'How many questions have a verified and/or human answer, and how many only have a chatbot answer?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
+  insightCategory: 'Chatbot',
   allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ChartOutputType> {
     type HumanVsChatbotData = {
@@ -752,6 +764,7 @@ export const HumanVsChatbotVotes: InsightObject = {
   description: 'How helpful are human answers, versus chatbot answers?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
+  insightCategory: 'Chatbot',
   allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ChartOutputType> {
     type HumanVsChatbotData = {

@@ -1467,29 +1467,14 @@ export const InsightCategories = [
   'Chatbot',
 ]
 
-export const InsightNames = [
-  'TotalStudents',
-  'TotalQuestionsAsked',
-  'MedianWaitTime',
-  'QuestionTypeBreakdown',
-  'MostActiveStudents',
-  'QuestionToStudentRatio',
-  'MedianHelpingTime',
-  'AverageTimesByWeekDay',
-  'HelpSeekingOverTime',
-  'HumanVsChatbot',
-  'HumanVsChatbotVotes',
-  'MostActiveTimes',
-]
-
 export enum InsightType {
   Value = 'Value',
   Chart = 'Chart',
   Table = 'Table',
+  GanttChart = 'GanttChart',
 }
 
 export type InsightCategory = (typeof InsightCategories)[number]
-export type InsightName = (typeof InsightNames)[number]
 
 export type InsightSerial = {
   active?: boolean
@@ -1497,38 +1482,11 @@ export type InsightSerial = {
   type: InsightType
 }
 
-export type InsightDetail = { [key in InsightName]: InsightSerial }
+export type InsightDetail = { [key: string]: InsightSerial }
 
 export type InsightDashboardPartial = {
   name: string
   insights: InsightDetail
-}
-
-export const InsightDirectory: InsightDetail = {
-  HelpSeekingOverTime: {
-    category: 'Tool_Usage_Statistics',
-    type: InsightType.Chart,
-  },
-  MostActiveStudents: {
-    category: 'Tool_Usage_Statistics',
-    type: InsightType.Table,
-  },
-  TotalStudents: { category: 'Tool_Usage_Statistics', type: InsightType.Value },
-  QuestionToStudentRatio: {
-    category: 'Tool_Usage_Statistics',
-    type: InsightType.Value,
-  },
-  MedianWaitTime: {
-    category: 'Tool_Usage_Statistics',
-    type: InsightType.Value,
-  },
-  TotalQuestionsAsked: { category: 'Questions', type: InsightType.Value },
-  QuestionTypeBreakdown: { category: 'Questions', type: InsightType.Chart },
-  MedianHelpingTime: { category: 'Queues', type: InsightType.Value },
-  AverageTimesByWeekDay: { category: 'Queues', type: InsightType.Chart },
-  MostActiveTimes: { category: 'Queues', type: InsightType.Chart },
-  HumanVsChatbot: { category: 'Chatbot', type: InsightType.Chart },
-  HumanVsChatbotVotes: { category: 'Chatbot', type: InsightType.Chart },
 }
 
 export type GetInsightOutputResponse = InsightOutput
@@ -1547,6 +1505,7 @@ export type InsightDisplayInfo = {
   displayName: string
   description: string
   insightType: InsightType
+  insightCategory: InsightCategory
   allowedFilters?: InsightFilterOption[]
 }
 
@@ -1555,6 +1514,7 @@ export interface InsightObject {
   description: string
   roles: Role[]
   insightType: InsightType
+  insightCategory: InsightCategory
   allowedFilters?: InsightFilterOption[]
   compute: (
     insightFilters: any,
@@ -1596,6 +1556,7 @@ export type PossibleOutputTypes =
   | ValueOutputType
   | ChartOutputType
   | TableOutputType
+  | GanttChartOutputType
 
 export type ChartOutputType = {
   data: StringMap<any>[]
@@ -1604,6 +1565,14 @@ export type ChartOutputType = {
   label: string
   xType?: 'numeric' | 'category'
   yType?: 'numeric' | 'category'
+}
+
+export type GanttChartOutputType = {
+  data: StringMap<any>[]
+  xKey: string
+  yKey: string
+  zKey: string
+  label: string
 }
 
 export type ValueOutputType = number | string

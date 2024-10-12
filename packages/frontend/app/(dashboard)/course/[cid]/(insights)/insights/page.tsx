@@ -10,9 +10,9 @@ import {
   InsightCategory,
   InsightDashboardPartial,
   InsightDetail,
-  InsightDirectory,
-  InsightSerial,
+  InsightDisplayInfo,
   InsightType,
+  ListInsightsResponse,
 } from '@koh/common'
 import { API } from '@/app/api'
 
@@ -25,6 +25,17 @@ export default function InsightsPage() {
   const [selectedDashboard, setSelectedDashboard] = useState<
     string | undefined
   >(undefined)
+
+  const [insightDirectory, setInsightDirectory] = useState<
+    ListInsightsResponse | undefined
+  >(undefined)
+  useEffect(() => {
+    API.insights.list().then((result) => {
+      if (result != undefined) {
+        setInsightDirectory(result)
+      }
+    })
+  }, [])
 
   useEffect(() => {
     API.insights
@@ -43,26 +54,30 @@ export default function InsightsPage() {
   )
 
   const renderInsights = useCallback(
-    (categories: InsightDetail, dashboard?: boolean) => {
-      const validInsights = dashboard
-        ? Object.keys(categories).filter(
+    (categories?: InsightDetail) => {
+      if (insightDirectory == undefined) {
+        return null
+      }
+
+      const validInsights = categories
+        ? Object.keys(insightDirectory).filter(
             (v) => dashboardInsights?.insights[v].active == true,
           )
-        : Object.keys(categories).filter(
-            (v) => InsightDirectory[v].category == category,
+        : Object.keys(insightDirectory).filter(
+            (v) => insightDirectory[v].insightCategory == category,
           )
 
-      const mappedInsights: { name: string; insight: InsightSerial }[] =
+      const mappedInsights: { name: string; insight: InsightDisplayInfo }[] =
         validInsights.map((v) => {
           return {
             name: v,
-            insight: InsightDirectory[v],
+            insight: insightDirectory[v],
           }
         })
 
       const valueClusters: React.ReactNode[] = []
       const valueOnly = mappedInsights.filter(
-        (v) => v.insight.type == InsightType.Value,
+        (v) => v.insight.insightType == InsightType.Value,
       )
       while (valueOnly.length > 0) {
         const values = [valueOnly.pop(), valueOnly.pop(), valueOnly.pop()]
@@ -82,7 +97,7 @@ export default function InsightsPage() {
       }
 
       const insightRenders: React.ReactNode[] = mappedInsights
-        .filter((v) => v.insight.type != InsightType.Value)
+        .filter((v) => v.insight.insightType != InsightType.Value)
         .map((v, index) => (
           <InsightComponent
             key={index}
@@ -125,6 +140,7 @@ export default function InsightsPage() {
               setAllPresets={setAllPresets}
               selectedDashboard={selectedDashboard}
               setSelectedDashboard={setSelectedDashboard}
+              insightDirectory={insightDirectory}
             />
           )}
           <div
@@ -138,7 +154,7 @@ export default function InsightsPage() {
                 <>
                   {(dashboardInsights != undefined &&
                     Object.keys(dashboardInsights.insights).length > 0 &&
-                    renderInsights(dashboardInsights.insights, true)) || (
+                    renderInsights(dashboardInsights.insights)) || (
                     <div className={'h-full w-full text-center'}>
                       <h2>No insights to show!</h2>
                       <p>
@@ -149,7 +165,7 @@ export default function InsightsPage() {
                   )}
                 </>
               ) : (
-                renderInsights(InsightDirectory)
+                renderInsights()
               )}
             </div>
           </div>

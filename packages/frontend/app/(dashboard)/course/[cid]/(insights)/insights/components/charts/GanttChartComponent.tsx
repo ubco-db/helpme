@@ -1,15 +1,10 @@
 import {
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from '@/app/components/ui/chart'
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
-  ComposedChart,
   Scatter,
   ScatterChart,
   XAxis,
@@ -19,34 +14,24 @@ import {
 import React, { useMemo } from 'react'
 import {
   AxisChartClasses,
-  BarChartProps,
-  ChartComponentProps,
+  GanttChartComponentProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
 import {
   generateAxisRange,
   generateTickRange,
-  generateUniqueColor,
 } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
 import {
   NameType,
   Payload as TooltipPayload,
 } from 'recharts/types/component/DefaultTooltipContent'
-import {
-  getAxisComponents,
-  getLegendAndTooltipComponents,
-} from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/ChartFunctions'
-import { numToWeekday, StringMap } from '@koh/common'
+import { numToWeekday } from '@koh/common'
 
-const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
-  const { chartConfig, chartData, size } = props
+const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
+  const { yKey, zKey, chartConfig, chartData, size } = props
 
-  let { includeTooltip, tickLine, tickMargin, axisLine } =
-    props as BarChartProps
+  let { includeTooltip } = props
 
   includeTooltip ??= true
-  tickLine ??= true
-  tickMargin ??= 8
-  axisLine ??= true
 
   const labelFormatter = (
     label: string,
@@ -83,25 +68,31 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
       : AxisChartClasses['md']
   }, [size])
 
-  const processedChartData = useMemo(
-    () =>
-      chartData.map((v) => {
-        return {
-          ...v,
-          fill: generateUniqueColor(parseInt(v['Weekday'] ?? '0'), 7),
-        }
-      }),
-    [chartData],
-  )
-
-  const timeAxis = useMemo(() => {
-    const range = generateAxisRange(processedChartData, ['key'], 60)
+  const xAxis = useMemo(() => {
+    const range = generateAxisRange(chartData, ['key'], 60)
     range[0] = range[0] >= 60 ? range[0] - 60 : range[0]
     range[1] = range[1] <= 1380 ? range[1] + 60 : range[1]
     return range
-  }, [processedChartData])
+  }, [chartData])
 
-  const timeTicks = useMemo(() => generateTickRange(timeAxis, 4), [timeAxis])
+  const yDomain = useMemo(() => {
+    return [
+      Math.max(
+        0,
+        Math.min(...chartData.map((v: any) => parseInt(v[yKey]))) - 1,
+      ),
+      Math.max(...chartData.map((v: any) => parseInt(v[yKey]))) + 1,
+    ]
+  }, [chartData])
+
+  const xTicks = useMemo(() => generateTickRange(xAxis, 4), [xAxis])
+  const yTicks = useMemo(() => {
+    const range: number[] = []
+    for (let i = yDomain[0]; i <= yDomain[1]; i++) {
+      range.push(i)
+    }
+    return range
+  }, [yDomain])
 
   return (
     <ChartContainer
@@ -109,29 +100,29 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
       className={className}
       style={{ aspectRatio: 3 }}
     >
-      <ScatterChart layout={'vertical'} data={processedChartData}>
+      <ScatterChart layout={'vertical'} data={chartData}>
         <CartesianGrid />
         <XAxis
           type={'number'}
           dataKey={'key'}
-          tickLine={tickLine}
-          tickMargin={tickMargin}
-          axisLine={axisLine}
+          tickLine={true}
+          tickMargin={8}
+          axisLine={true}
           tickFormatter={tickFormatter}
-          ticks={timeTicks}
-          domain={timeAxis}
+          ticks={xTicks}
+          domain={xAxis}
         />
         <YAxis
           type={'number'}
-          dataKey={'Weekday'}
+          dataKey={yKey}
           tickFormatter={(label) => numToWeekday(label).substring(0, 3)}
-          tickLine={tickLine}
-          tickMargin={tickMargin}
-          axisLine={axisLine}
-          ticks={[0, 1, 2, 3, 4, 5, 6]}
-          domain={[0, 6]}
+          tickLine={true}
+          tickMargin={8}
+          axisLine={true}
+          ticks={yTicks}
+          domain={yDomain}
         />
-        <ZAxis dataKey={'Amount'} range={[32, 256]} />
+        <ZAxis dataKey={zKey} range={[32, 256]} />
         {includeTooltip && (
           <ChartTooltip
             formatter={valueFormatter}
@@ -146,4 +137,4 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   )
 }
 
-export default BarChartComponent
+export default GanttChartComponent

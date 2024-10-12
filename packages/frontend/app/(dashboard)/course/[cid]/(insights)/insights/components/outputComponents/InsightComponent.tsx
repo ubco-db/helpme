@@ -15,6 +15,7 @@ import StudentFilter from '@/app/(dashboard)/course/[cid]/(insights)/insights/co
 import DataFilter from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/filters/DataFilter'
 import { charts } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
 import QueueFilter from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/filters/QueueFilter'
+import InsightGanttChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/outputComponents/InsightGanttChartComponent'
 
 interface InsightComponentProps {
   courseId: number
@@ -166,6 +167,14 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
       case InsightType.Table:
         return (
           <InsightTableComponent
+            insight={insightOutput}
+            insightName={insightName}
+            filterContent={renderFilterOptions}
+          />
+        )
+      case InsightType.GanttChart:
+        return (
+          <InsightGanttChartComponent
             insight={insightOutput}
             insightName={insightName}
             filterContent={renderFilterOptions}

@@ -52,14 +52,21 @@ export class InsightsService {
 
   convertToInsightsListResponse(insightNames: string[]): ListInsightsResponse {
     return insightNames.reduce((obj, insightName) => {
-      const { displayName, description, insightType } =
-        INSIGHTS_MAP[insightName];
+      const {
+        displayName,
+        description,
+        insightType,
+        insightCategory,
+        allowedFilters,
+      } = INSIGHTS_MAP[insightName];
       return {
         ...obj,
         [insightName]: {
           displayName,
           description,
           insightType,
+          insightCategory,
+          allowedFilters,
         },
       };
     }, {});

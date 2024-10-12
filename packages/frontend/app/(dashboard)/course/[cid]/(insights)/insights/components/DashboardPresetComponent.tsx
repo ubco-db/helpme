@@ -18,9 +18,7 @@ import {
 import {
   InsightDashboardPartial,
   InsightDetail,
-  InsightDirectory,
   InsightDisplayInfo,
-  InsightName,
   InsightType,
   ListInsightsResponse,
 } from '@koh/common'
@@ -37,6 +35,7 @@ type DashboardPresetComponentProps = {
   allPresets: InsightDashboardPartial[]
   setAllPresets: (items: InsightDashboardPartial[]) => void
   courseId: number
+  insightDirectory?: ListInsightsResponse
 }
 const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
   selectedDashboard,
@@ -44,6 +43,7 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
   allPresets,
   setAllPresets,
   courseId,
+  insightDirectory,
 }: DashboardPresetComponentProps) => {
   const [insightsList, setInsightsList] = useState<
     ListInsightsResponse | undefined
@@ -59,9 +59,9 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
   const [isOpen, setIsOpen] = useState<boolean>(true)
   const [isCreationModalOpen, setIsCreationModalOpen] = useState<boolean>(false)
   const [presetDropdownOpen, setPresetDropdownOpen] = useState<boolean>(false)
-  const [selectedInsights, setSelectedInsights] = useState<InsightName[]>([])
+  const [selectedInsights, setSelectedInsights] = useState<string[]>([])
 
-  const toggleInsight = (name: InsightName) => {
+  const toggleInsight = (name: string) => {
     setSelectedInsights((prev) =>
       prev.includes(name) ? prev.filter((s) => s != name) : [...prev, name],
     )
@@ -85,14 +85,18 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
   }
 
   const onCreatePreset = () => {
-    if (selectedInsights.length <= 0) {
+    if (selectedInsights.length <= 0 || insightDirectory == undefined) {
       return
     }
 
     const preset: InsightDetail = {}
-    Object.keys(InsightDirectory).forEach((name) => {
-      preset[name] = InsightDirectory[name]
-      preset[name].active = selectedInsights.includes(name)
+    Object.keys(insightDirectory).forEach((name) => {
+      const insight = insightDirectory[name]
+      preset[name] = {
+        category: insight.insightCategory,
+        type: insight.insightType,
+        active: selectedInsights.includes(name),
+      }
     })
 
     API.insights
@@ -160,7 +164,9 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
                 overwritten.
               </p>
             )}
-          <div className={'flex flex-row items-center justify-center gap-2'}>
+          <div
+            className={'my-2 flex flex-row items-center justify-center gap-2'}
+          >
             <Button
               onClick={() => setSelectedInsights(Object.keys(insightsList))}
             >
@@ -171,7 +177,7 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
             </Button>
           </div>
           <List
-            className="my-2 max-h-96 overflow-y-auto"
+            className="max-h-96 overflow-y-auto"
             dataSource={Object.keys(insightsList).map((key) => {
               return {
                 name: key,
