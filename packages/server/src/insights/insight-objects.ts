@@ -37,7 +37,11 @@ function addFilters({
   filters,
 }: AddFiltersParams): SelectQueryBuilder<QuestionModel> {
   for (const filter of filters) {
-    if (allowedFilters.includes(filter.type)) {
+    if (
+      allowedFilters.includes(filter.type) &&
+      APPLY_FILTER_MAP[modelName] != undefined &&
+      APPLY_FILTER_MAP[modelName][filter.type] != undefined
+    ) {
       APPLY_FILTER_MAP[modelName][filter.type]({ query, filter });
     }
   }
