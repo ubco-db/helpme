@@ -117,6 +117,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           question.isTaskQuestion,
       ),
   )
+  const [isJoinQueueModalLoading, setIsJoinQueueModalLoading] = useState(false)
+  const [isCreateDemoModalLoading, setIsCreateDemoModalLoading] =
+    useState(false)
   const [tagGroupsEnabled, setTagGroupsEnabled] = useState(
     queueConfig?.default_view === 'tag_groups',
   )
@@ -494,15 +497,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   }, [tagGroupsEnabled, configTasks, studentAssignmentProgress])
 
   function RenderQueueInfoCol(): ReactElement {
-    const [isJoinQueueModalLoading, setIsJoinQueueModalLoading] =
-      useState(false)
-
-    const joinQueue = useCallback(async (isTaskQuestion: boolean) => {
-      setIsJoinQueueModalLoading(true)
-      joinQueueOpenModal(false, isTaskQuestion)
-      setIsJoinQueueModalLoading(false)
-    }, [])
-
+    // TODO: this probably doesn't need to be a separate component inside the whole queue page.
     if (!queue) {
       return <></>
     }
@@ -608,11 +603,20 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                     disabled={
                       !queue?.allowQuestions ||
                       queue?.isDisabled ||
-                      isJoinQueueModalLoading ||
+                      isCreateDemoModalLoading ||
                       queue.staffList.length < 1 ||
                       !!studentQuestion
                     }
-                    onClick={() => joinQueue(false)}
+                    onClick={() => {
+                      setIsJoinQueueModalLoading(true)
+                      joinQueueOpenModal(false, false)
+                      // fallback: After 3s, if the modal hasn't opened, stop the loading state
+                      setTimeout(() => {
+                        if (isJoinQueueModalLoading) {
+                          setIsJoinQueueModalLoading(false)
+                        }
+                      }, 3000)
+                    }}
                     icon={<LoginOutlined aria-hidden="true" />}
                   >
                     {isDemoQueue ? 'Create Question' : 'Join Queue'}
@@ -632,7 +636,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   <div>
                     <JoinQueueButton
                       id="join-queue-button-demo"
-                      loading={isJoinQueueModalLoading}
+                      loading={isCreateDemoModalLoading}
                       disabled={
                         !queue?.allowQuestions ||
                         queue?.isDisabled ||
@@ -640,7 +644,16 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                         queue.staffList.length < 1 ||
                         !!studentDemo
                       }
-                      onClick={() => joinQueue(true)}
+                      onClick={() => {
+                        setIsCreateDemoModalLoading(true)
+                        joinQueueOpenModal(false, true)
+                        // fallback: After 3s, if the modal hasn't opened, stop the loading state
+                        setTimeout(() => {
+                          if (isCreateDemoModalLoading) {
+                            setIsCreateDemoModalLoading(false)
+                          }
+                        }, 3000)
+                      }}
                       icon={<ListTodoIcon aria-hidden="true" />}
                     >
                       Create Demo
@@ -842,7 +855,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   ? undefined
                   : studentQuestionIndex + 1
               }
+              setIsJoinQueueModalLoading={setIsJoinQueueModalLoading}
               onCancel={() => closeEditQuestionDemoModal(false)}
+              minTags={queueConfig?.minimum_tags}
             />
             <StudentRemovedFromQueueModal
               question={studentQuestion}
@@ -886,6 +901,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       ? undefined
                       : studentDemoIndex + 1
                   }
+                  setIsCreateDemoModalLoading={setIsCreateDemoModalLoading}
                   onCancel={() => closeEditQuestionDemoModal(true)}
                 />
                 <StudentRemovedFromQueueModal

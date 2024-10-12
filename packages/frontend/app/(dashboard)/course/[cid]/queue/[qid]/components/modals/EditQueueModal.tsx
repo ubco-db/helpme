@@ -15,14 +15,18 @@ import {
   ColorPickerProps,
   GetProp,
   Dropdown,
+  Checkbox,
+  Select,
 } from 'antd'
 import {
+  ConfigTasks,
+  isCycleInTasks,
   QuestionTypeParams,
   QueueConfig,
   UpdateQueueParams,
   validateQueueConfigInput,
 } from '@koh/common'
-import { pick } from 'lodash'
+import { debounce, pick } from 'lodash'
 import {
   ClearOutlined,
   CloseOutlined,
@@ -50,10 +54,19 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 import exampleConfig from '@/public/exampleQueueConfig.json'
 import exampleLabConfig from '@/public/exampleQueueLabConfig.json'
+import TaskDeleteSelector from '../TaskDisplay'
 
 const { TextArea } = Input
 type Color = GetProp<ColorPickerProps, 'value'>
 
+type TaskParams = {
+  id: string
+  display_name: string
+  short_display_name: string
+  blocking: boolean
+  color_hex: string | Color
+  precondition?: string
+}
 type QuestionTypeForCreation = {
   name: string
   color: string | Color
@@ -63,6 +76,9 @@ interface FormValues {
   allowQuestions: boolean
   questionTypesForDeletion: number[]
   questionTypesForCreation: QuestionTypeForCreation[]
+  minTags: string
+  assignmentId?: string
+  tasks?: TaskParams[]
   zoomLink: string
   queue_config: string
 }
@@ -84,6 +100,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
 }) => {
   const { queue, mutateQueue } = useQueue(queueId)
   const [form] = Form.useForm()
+  const [saveChangesLoading, setSaveChangesLoading] = useState(false)
   const { course, mutateCourse } = useCourse(courseId)
   const [questionTypes, mutateQuestionTypes] = useQuestionTypes(
     courseId,
@@ -98,6 +115,26 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
   // both of these are used to determine if the "Save Queue Changes" button should be enabled
   const [isValidConfig, setIsValidConfig] = useState(true)
   const [configHasChanges, setConfigHasChanges] = useState(false)
+
+  const [assignmentIdEmpty, setAssignmentIdEmpty] = useState(
+    !lastSavedQueueConfig.current?.assignment_id,
+  )
+  const [localTaskIds, setLocalTaskIds] = useState<string[]>(
+    lastSavedQueueConfig.current?.tasks
+      ? Object.keys(lastSavedQueueConfig.current.tasks)
+      : [],
+  )
+
+  // reset localTaskIds back to normal when re-opening modal
+  useEffect(() => {
+    if (open) {
+      setLocalTaskIds(
+        lastSavedQueueConfig.current?.tasks
+          ? Object.keys(lastSavedQueueConfig.current.tasks)
+          : [],
+      )
+    }
+  }, [open])
 
   const resetQueueConfig = useCallback(() => {
     if (open && queue && queue.config) {
@@ -124,6 +161,14 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
   }, [open, queue?.config, resetQueueConfig])
 
   const onFinish = async (values: FormValues) => {
+    setSaveChangesLoading(true)
+    // set a timeout that if it's still loading after 5 seconds, stop loading
+    setTimeout(() => {
+      if (saveChangesLoading) {
+        setSaveChangesLoading(false)
+        message.error('Failed to save changes. Please try again.')
+      }
+    }, 5000)
     let errorsHaveOccurred = false
     const deletePromises =
       values.questionTypesForDeletion?.map((tagID) =>
@@ -177,6 +222,79 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               message.error(`Failed to change zoom link: ${errorMessage}`)
             })
         : Promise.resolve()
+    const newQueueConfig: QueueConfig = {
+      ...lastSavedQueueConfig.current,
+      minimum_tags: Number(values.minTags),
+      assignment_id: values.assignmentId,
+      // iterate over each task and accumulate them into an object
+      // Check if assignmentId exists and has tasks before including tasks field
+      ...(values.assignmentId && values.tasks
+        ? {
+            tasks: values.tasks.reduce((acc, task) => {
+              acc[task.id] = {
+                display_name: task.display_name,
+                short_display_name: task.short_display_name,
+                blocking: task.blocking,
+                color_hex:
+                  typeof task.color_hex === 'string'
+                    ? task.color_hex
+                    : task.color_hex.toHexString(),
+                precondition: task.precondition ?? null,
+              }
+              return acc
+            }, {} as ConfigTasks),
+          }
+        : {}),
+    }
+
+    const tasksChanged =
+      JSON.stringify(newQueueConfig.tasks || {}) !==
+      JSON.stringify(lastSavedQueueConfig.current?.tasks || {})
+    const minimumTagsChanged =
+      lastSavedQueueConfig.current?.minimum_tags !== Number(values.minTags)
+    const assignmentIdChanged =
+      lastSavedQueueConfig.current?.assignment_id !== values.assignmentId
+
+    // if the tasks changed, make sure there's no cycle in the new tasks
+    if (
+      tasksChanged &&
+      newQueueConfig.tasks &&
+      isCycleInTasks(newQueueConfig.tasks)
+    ) {
+      message.error(
+        'Error: Cycle detected in task preconditions. Please fix this before saving.',
+      )
+      setSaveChangesLoading(false)
+      return
+    }
+    const queueConfigPromise =
+      tasksChanged || minimumTagsChanged || assignmentIdChanged
+        ? API.queues
+            .updateConfig(queueId, newQueueConfig)
+            .then(() => {
+              if (minimumTagsChanged) {
+                message.success('Minimum Tags updated to ' + values.minTags)
+              }
+              if (tasksChanged) {
+                message.success('Tasks updated successfully')
+              }
+              if (assignmentIdChanged) {
+                message.success(
+                  'Assignment ID updated from ' +
+                    lastSavedQueueConfig.current?.assignment_id +
+                    ' to ' +
+                    values.assignmentId,
+                )
+              }
+            })
+            .catch((e) => {
+              errorsHaveOccurred = true
+              console.log(JSON.stringify(e))
+              const errorMessage = getErrorMessage(e)
+              console.log(JSON.stringify(errorMessage))
+              message.error(`Update failed: ${errorMessage}`)
+            })
+        : Promise.resolve()
     const updateQueueParams: UpdateQueueParams = pick(values, [
       'notes',
       'allowQuestions',
@@ -199,6 +317,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       ...deletePromises,
       ...createPromises,
       zoomLinkPromise,
+      queueConfigPromise,
       updateQueuePromise,
     ])
     mutateQuestionTypes()
@@ -206,7 +325,28 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
     if (!errorsHaveOccurred) {
       onEditSuccess()
     }
+    setSaveChangesLoading(false)
   }
+
+  // Debounce the form values change to prevent too many updates (e.g. when typing)
+  const handleValuesChange = debounce(
+    (changedValues: any, allValues: FormValues) => {
+      if (changedValues.assignmentId !== undefined) {
+        setAssignmentIdEmpty(!changedValues.assignmentId)
+      }
+      // Whenever one of the taskIds changes, update localTaskIds to reflect the new taskIds
+      // This will be used to check for duplicate taskIds
+      const taskWithId = changedValues.tasks?.find(
+        (task: any) => task?.id !== undefined,
+      )
+      if (taskWithId) {
+        setLocalTaskIds(
+          allValues.tasks ? allValues.tasks.map((task) => task?.id) : [],
+        )
+      }
+    },
+    300,
+  )
 
   return (
     <Modal
@@ -218,9 +358,11 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         autoFocus: true,
         htmlType: 'submit',
         disabled: configHasChanges,
+        loading: saveChangesLoading,
       }}
       width={800}
       onCancel={onCancel}
+      loading={!queue || !course}
       destroyOnClose
       modalRender={(dom) => (
         <Form
@@ -232,8 +374,21 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             notes: queue?.notes,
             allowQuestions: queue?.allowQuestions,
             questionTypesForDeletion: [],
+            assignmentId: lastSavedQueueConfig.current?.assignment_id,
             zoomLink: course?.zoomLink,
+            minTags: queue?.config?.minimum_tags ?? 0,
+            tasks: Object.entries(
+              lastSavedQueueConfig.current?.tasks || {},
+            ).map(([taskID, task]) => ({
+              id: taskID,
+              display_name: task.display_name,
+              short_display_name: task.short_display_name,
+              blocking: task.blocking,
+              color_hex: task.color_hex,
+              precondition: task.precondition,
+            })),
           }}
+          onValuesChange={handleValuesChange}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
         >
@@ -333,6 +488,197 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
           </>
         )}
       </Form.List>
+      <Form.Item
+        label="Minimum Question Tags"
+        name="minTags"
+        layout="horizontal"
+        tooltip="This allows you to force your students to select a number of question tags when creating a question. Setting to 0 will make selecting a question tag optional"
+      >
+        <Input type="number" min={0} max={20} />
+      </Form.Item>
+      <Form.Item
+        label="Assignment Id"
+        name="assignmentId"
+        layout="horizontal"
+        tooltip={`The assignment ID for the queue (e.g. "lab1", "lab2", "assignment1", etc.). This is used to track the assignment progress for students. Only set if you want to define tasks to keep track of.`}
+      >
+        <Input allowClear={true} placeholder="[No Assignment Id set]" />
+      </Form.Item>
+      {!assignmentIdEmpty && (
+        <>
+          <Form.Item
+            label="Tasks"
+            tooltip={`The tasks for the queue. A task is similar to a tag except it is 'check-able'. For example, a lab may have many parts or questions that require a TA to look at before the end of the lab. Students will then be able to Create a Demo which you can then help and select which parts to mark correct.`}
+            name="tasksForDeletion"
+          >
+            <TaskDeleteSelector
+              configTasks={lastSavedQueueConfig.current?.tasks || {}}
+            />
+          </Form.Item>
+          <Form.List name="tasks">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name, ...restField }, index) => {
+                  const defaultColor =
+                    form.getFieldValue(['tasks', name, 'color_hex']) ||
+                    '#' + Math.floor(Math.random() * 16777215).toString(16)
+                  return (
+                    <Space
+                      key={key}
+                      className="mb-2 flex flex-wrap border-b border-gray-300 md:mb-0 md:border-none"
+                      align="center"
+                    >
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'id']}
+                        label={index === 0 ? 'Task ID' : ''}
+                        tooltip={
+                          'The unique task ID for this task (e.g. task1).'
+                        }
+                        validateTrigger="onBlur"
+                        rules={[
+                          {
+                            required: true,
+                            message: 'Task ID required',
+                          },
+                          {
+                            max: 50,
+                            message: 'Task IDs must be less than 50 characters',
+                          },
+                          {
+                            validator: (_, value) => {
+                              // make sure there are no duplicate task IDs
+                              // The reason we check for 2 is because it includes the current task ID
+                              const duplicateCount = localTaskIds.filter(
+                                (id) => id === value,
+                              ).length
+                              if (duplicateCount >= 2) {
+                                return Promise.reject('Duplicate Task ID')
+                              }
+                              return Promise.resolve()
+                            },
+                          },
+                        ]}
+                        className="w-16 md:w-32"
+                      >
+                        <Input placeholder="task1" maxLength={50} />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'display_name']}
+                        label={index === 0 ? 'Display Name' : ''}
+                        tooltip={`The name of the task (e.g. "Task 1", "Task 2", etc.)`}
+                        rules={[
+                          { required: true, message: 'Name required' },
+                          {
+                            max: 20,
+                            message:
+                              'Task names must be less than 20 characters',
+                          },
+                        ]}
+                        className="w-16 md:w-[8.5rem]"
+                      >
+                        <Input placeholder="Task 1" maxLength={20} />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'short_display_name']}
+                        label={index === 0 ? 'Short Name' : ''}
+                        className="w-12 md:min-w-[7.5rem]"
+                        tooltip={`The short display name of the task (e.g. "1", "2", etc.) used in certain parts of the UI. Try to keep this no more than 1 or 2 characters.`}
+                        rules={[
+                          {
+                            max: 3,
+                            message:
+                              'Short task names must be less than 3 characters',
+                          },
+                          {
+                            required: true,
+                            message: 'Short Required',
+                          },
+                        ]}
+                      >
+                        <Input
+                          className="md:ml-7 md:w-12"
+                          placeholder="1"
+                          maxLength={3}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        label={index === 0 ? 'Blocking?' : ''}
+                        name={[name, 'blocking']}
+                        valuePropName="checked"
+                        className="w-20 md:min-w-24"
+                        tooltip={`Whether the task is blocking (i.e. the student cannot complete the next task until this task is completed). For example, a blocking task could be a potentially dangerous chemistry experiment or circuit that requires the TA to look over before the students can continue with the lab. A non-blocking task could be a part of the lab that is just some calculations or coding, where the student can still progress forward with the lab even though they haven't had their work checked yet. A list of tasks where none are blocking essentially allows students to wait until the end of the lab to have every one of their tasks checked off. Default = false`}
+                      >
+                        <Checkbox className="ml-9 md:ml-5" />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        valuePropName="color"
+                        label={index === 0 ? 'Color' : ''}
+                        className="w-12 md:min-w-16"
+                        name={[name, 'color_hex']}
+                        rules={[{ required: true, message: 'Missing color' }]}
+                        // This will give an antd warning in the console but won't work otherwise
+                        initialValue={defaultColor}
+                      >
+                        <ColorPickerWithPresets
+                          // This will give an antd warning in the console but won't work otherwise
+                          defaultValue={defaultColor}
+                          format="hex"
+                          className="ml-3"
+                          defaultFormat="hex"
+                          disabledAlpha
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        label={index === 0 ? 'Precondition' : ''}
+                        name={[name, 'precondition']}
+                        tooltip={`The key of the task (e.g. "task1") that must be completed before this task can be completed. This allows you to define the order in which tasks are completed. It is recommended to keep this empty if your students can do tasks out of order.`}
+                        className="w-20 md:w-28"
+                      >
+                        <Select
+                          allowClear
+                          placeholder="None"
+                          // exclude the current task from the list of tasks
+                          options={localTaskIds
+                            .filter(
+                              (taskID) =>
+                                taskID !==
+                                form.getFieldValue(['tasks', name, 'id']),
+                            )
+                            .map((taskID) => ({
+                              label: taskID,
+                              value: taskID,
+                            }))}
+                          className="w-20 md:w-28"
+                        />
+                      </Form.Item>
+                      <CloseOutlined
+                        className={`text-md mb-[1.5rem] ml-6 text-gray-600 ${index === 0 ? 'mt-7' : ''}`}
+                        onClick={() => remove(name)}
+                      />
+                    </Space>
+                  )
+                })}
+                <Form.Item>
+                  <Button
+                    type="dashed"
+                    onClick={() => add()}
+                    block
+                    icon={<PlusOutlined />}
+                  >
+                    Add Task
+                  </Button>
+                </Form.Item>
+              </>
+            )}
+          </Form.List>
+        </>
+      )}
       <Form.Item label="Zoom/Teams Link" name="zoomLink">
         <Input
           allowClear={true}
@@ -364,7 +710,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
           </ClearQueueButton>
         </Popconfirm>
       </div>
-      {/* TODO: update this to the new collapse api */}
       <Collapse
         bordered={false}
         items={[
@@ -372,10 +717,10 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             key: '1',
             label: (
               <label className="mt-2 font-medium" htmlFor="queue_config">
-                <span className="mr-1">Queue Config</span>
+                <span className="mr-1">Queue Config JSON</span>
                 <Tooltip
                   title={
-                    'Here you can specify a JSON config to automatically set up question tags, tasks, and other settings for the queue. For example, you can use this to set up a chemistry lab that requires certain tasks to be checked off (e.g. have the TA look at the experiment before continuing). You can also easily externally save this config and copy/paste this config to other queues and courses.'
+                    'Here is a JavaScript Object Notation version of all the configurations above. You can easily externally save this config and copy/paste this config to other queues and courses, or share it with other professors!'
                   }
                 >
                   <QuestionCircleOutlined style={{ color: 'gray' }} />
@@ -441,6 +786,15 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                             validateQueueConfigInput(parsedConfig)
                           if (configError) {
                             message.error(configError)
+                            return
+                          }
+                          if (
+                            parsedConfig.tasks &&
+                            isCycleInTasks(parsedConfig.tasks)
+                          ) {
+                            message.error(
+                              'Error: Cycle detected in task preconditions. Please fix this before saving.',
+                            )
                             return
                           }
                           try {
@@ -540,7 +894,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             ),
           },
         ]}
-      ></Collapse>
+      />
     </Modal>
   )
 }

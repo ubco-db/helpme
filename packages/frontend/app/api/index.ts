@@ -712,8 +712,12 @@ class APIClient {
       ),
     getProfessors: async (
       organizationId: number,
+      courseId?: number,
     ): Promise<OrganizationProfessor[]> =>
-      this.req('GET', `/api/v1/organization/${organizationId}/get_professors`),
+      this.req(
+        'GET',
+        `/api/v1/organization/${organizationId}/get_professors/${courseId ?? '0'}`,
+      ),
   }
 
   constructor(baseURL = '') {

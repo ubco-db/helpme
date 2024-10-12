@@ -109,14 +109,10 @@ const AssignmentReportModal: React.FC<AssignmentReportModalProps> = ({
 
                           return (
                             <QuestionTagElement
-                              className={isTaskDone ? '' : '!px-3'}
+                              className={isTaskDone}
                               key={index}
-                              tagName={
-                                isTaskDone
-                                  ? '✔️'
-                                  : `${taskValue.short_display_name} `
-                              }
-                              tagColor={'#f0f0f0'}
+                              tagName={`${taskValue.short_display_name} `}
+                              tagColor={isTaskDone ? '#77e093' : '#f0f0f0'}
                             />
                           )
                         },

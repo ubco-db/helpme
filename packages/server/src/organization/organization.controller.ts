@@ -1480,11 +1480,12 @@ export class OrganizationController {
     return courses;
   }
 
-  @Get(':oid/get_professors')
+  @Get(':oid/get_professors/:courseId')
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getProfessors(
     @Param('oid', ParseIntPipe) oid: number,
+    @Param('courseId', ParseIntPipe) cid: number,
     @Res() res: Response,
   ): Promise<Response<OrganizationProfessor[]>> {
     const orgProfs = await OrganizationUserModel.find({
@@ -1495,14 +1496,39 @@ export class OrganizationController {
       relations: ['organizationUser'],
     });
 
-    const professors: OrganizationProfessor[] = orgProfs.map((prof) => ({
-      organizationUser: {
-        id: prof.organizationUser.id,
-        name: prof.organizationUser.name,
-      },
-      userId: prof.userId,
-    }));
+    let courseProfs = [];
+    if (cid !== 0) {
+      courseProfs = await UserCourseModel.find({
+        where: {
+          courseId: cid,
+          role: Role.PROFESSOR,
+        },
+        relations: ['user'],
+      });
 
+      // filter out professors that are already an organization professor
+      courseProfs = courseProfs.filter(
+        (prof) => !orgProfs.some((orgProf) => orgProf.userId === prof.userId),
+      );
+    }
+
+    const professors: OrganizationProfessor[] = [
+      ...orgProfs.map((prof) => ({
+        organizationUser: {
+          id: prof.organizationUser.id,
+          name: prof.organizationUser.name,
+        },
+        userId: prof.userId,
+      })),
+      ...courseProfs.map((prof) => ({
+        organizationUser: {
+          id: prof.user.id,
+          name: prof.user.name,
+          lacksProfOrgRole: true,
+        },
+        userId: prof.userId,
+      })),
+    ];
     return res.status(HttpStatus.OK).send(professors);
   }
 
