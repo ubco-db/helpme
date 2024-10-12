@@ -7,7 +7,6 @@ import {
 } from '@koh/common'
 import { Button, Card, Col, Form, Input, message, Row } from 'antd'
 import { useState } from 'react'
-import useSWR from 'swr'
 import { pick } from 'lodash'
 import { API } from '@/app/api'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
@@ -15,9 +14,6 @@ import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 
 const EditProfile: React.FC = () => {
-  const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
-    API.profile.index(),
-  )
   const [form] = Form.useForm()
   const { userInfo, setUserInfo } = useUserInfo()
 
@@ -26,12 +22,13 @@ const EditProfile: React.FC = () => {
   const editProfile = async (updateProfile: UpdateProfileParams) => {
     let newProfile = null
 
-    if (profile && profile.accountType === AccountType.LEGACY) {
-      newProfile = { ...profile, ...updateProfile }
+    if (userInfo && userInfo.accountType === AccountType.LEGACY) {
+      newProfile = { ...userInfo, ...updateProfile }
       newProfile.sid = parseInt(`${newProfile.sid}`, 10)
-      if (profile.email === updateProfile.email) {
+      if (userInfo.email === updateProfile.email) {
         await API.profile
           .patch(pick(newProfile, ['firstName', 'lastName', 'sid']))
+          .then(() => setUserInfo({ ...userInfo, ...updateProfile }))
           .catch((error) => {
             const errorMessage = getErrorMessage(error)
             message.error('Error updating profile:' + errorMessage)
@@ -39,6 +36,7 @@ const EditProfile: React.FC = () => {
       } else {
         await API.profile
           .patch(pick(newProfile, ['firstName', 'lastName', 'email', 'sid']))
+          .then(() => setUserInfo({ ...userInfo, ...updateProfile }))
           .catch((error) => {
             const errorMessage = getErrorMessage(error)
             message.error('Error updating profile:' + errorMessage)
@@ -46,7 +44,7 @@ const EditProfile: React.FC = () => {
       }
     } else {
       newProfile = {
-        ...profile,
+        ...userInfo,
         ...{
           firstName: updateProfile.firstName,
           lastName: updateProfile.lastName,
@@ -54,6 +52,7 @@ const EditProfile: React.FC = () => {
         },
       }
       newProfile.sid = parseInt(`${newProfile.sid}`, 10)
+      setUserInfo(newProfile)
       await API.profile
         .patch(pick(newProfile, ['firstName', 'lastName', 'sid']))
         .catch((error) => {
@@ -62,8 +61,6 @@ const EditProfile: React.FC = () => {
         })
     }
 
-    const newUser = await mutate() //update the context
-    setUserInfo({ ...userInfo, ...newUser })
     return newProfile
   }
 
@@ -79,7 +76,7 @@ const EditProfile: React.FC = () => {
     )
   }
 
-  if (!profile) {
+  if (!userInfo) {
     return <CenteredSpinner tip="Loading Profile..." />
   } else {
     return (
@@ -91,7 +88,7 @@ const EditProfile: React.FC = () => {
           <Form
             wrapperCol={{ span: 24 }}
             form={form}
-            initialValues={profile}
+            initialValues={userInfo}
             layout="vertical"
           >
             <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
@@ -133,13 +130,13 @@ const EditProfile: React.FC = () => {
                   name="email"
                   rules={[
                     {
-                      required: profile.accountType === AccountType.LEGACY,
+                      required: userInfo.accountType === AccountType.LEGACY,
                       message: "Your email can't be empty!",
                     },
                   ]}
                 >
                   <Input
-                    disabled={profile.accountType !== AccountType.LEGACY}
+                    disabled={userInfo.accountType !== AccountType.LEGACY}
                   />
                 </Form.Item>
               </Col>

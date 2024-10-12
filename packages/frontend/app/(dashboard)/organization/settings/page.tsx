@@ -1,6 +1,6 @@
 'use client'
 
-import { InboxOutlined } from '@ant-design/icons'
+import { EditOutlined } from '@ant-design/icons'
 import {
   Button,
   Card,
@@ -20,10 +20,19 @@ import { Organization } from '@/app/typings/organization'
 import { organizationApi } from '@/app/api/organizationApi'
 import { API } from '@/app/api'
 import Image from 'next/image'
+import ImageCropperModal from '@/app/(dashboard)/components/ImageCropperModal'
 
 export default function SettingsPage(): ReactElement {
   const [formGeneral] = Form.useForm()
 
+  const [isCropperModalOpen, setIsCropperModalOpen] = useState<{
+    logo: boolean
+    banner: boolean
+  }>({ logo: false, banner: false })
+  const [isUploadingImg, setUploadingImg] = useState<{
+    logo: boolean
+    banner: boolean
+  }>({ logo: false, banner: false })
   const { userInfo } = useUserInfo()
   const [organization, setOrganization] = useState<Organization>()
   const [organizationName, setOrganizationName] = useState(organization?.name)
@@ -56,80 +65,6 @@ export default function SettingsPage(): ReactElement {
     } catch (_) {
       return false
     }
-  }
-
-  const handleBannerUpload = async (file: any) => {
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const response = await fetch(
-        `/api/v1/organization/${organization?.id}/upload_banner`,
-        {
-          method: 'POST',
-          body: formData,
-        },
-      )
-
-      const data = await response.json()
-
-      if (response.ok) {
-        message.success(`${file.name} file uploaded successfully`).then(() => {
-          setTimeout(() => {
-            window.location.reload()
-          }, 1750)
-        })
-      } else {
-        message.error(`${file.name} file upload failed: ${data.message}`)
-      }
-    } catch (error) {
-      message.error(`Error uploading ${file.name}. Please try again.`)
-    }
-  }
-
-  const handleLogoUpload = async (file: any) => {
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const response = await fetch(
-        `/api/v1/organization/${organization?.id}/upload_logo`,
-        {
-          method: 'POST',
-          body: formData,
-        },
-      )
-
-      const data = await response.json()
-
-      if (response.ok) {
-        message.success(`${file.name} file uploaded successfully`).then(() => {
-          setTimeout(() => {
-            window.location.reload()
-          }, 1750)
-        })
-      } else {
-        message.error(`${file.name} file upload failed: ${data.message}`)
-      }
-    } catch (error) {
-      message.error(`Error uploading ${file.name}. Please try again.`)
-    }
-  }
-
-  const beforeUpload = (file: any) => {
-    const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
-
-    if (!isJpgOrPng) {
-      message.error('You can only upload JPG/PNG file!')
-      return
-    }
-
-    const isLT2MB = file.size / 1024 / 1024 < 2
-
-    if (!isLT2MB) {
-      message.error('Image must be smaller than 2MB!')
-      return
-    }
-
-    return isJpgOrPng && isLT2MB
   }
 
   const updateGeneral = async () => {
@@ -251,81 +186,118 @@ export default function SettingsPage(): ReactElement {
 
       <Card title="Logo & Banner" bordered={true} className="mt-3">
         <Form layout="vertical">
-          <Form.Item label="Logo">
-            <Form.Item name="organizationLogo" noStyle>
-              <Row
-                gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}
-                className="items-center"
+          <Row className="flex justify-around">
+            <Form.Item label="Logo">
+              <Form.Item
+                name="organizationLogo"
+                className="flex justify-center"
               >
-                <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <Upload.Dragger
-                    beforeUpload={beforeUpload}
-                    customRequest={({ file }) => handleLogoUpload(file)}
-                    showUploadList={true}
-                    name="organizationLogoFile"
-                    maxCount={1}
-                  >
-                    <p className="ant-upload-drag-icon">
-                      <InboxOutlined />
-                    </p>
-                    <p className="ant-upload-text">
-                      Click or drag file to this area to upload
-                    </p>
-                    <p className="ant-upload-hint">
-                      Support for a single or bulk upload.
-                    </p>
-                  </Upload.Dragger>
+                <Col className="flex flex-col items-center justify-center">
+                  <Row className="min-h-[300px]">
+                    <Image
+                      unoptimized
+                      width={300}
+                      height={300}
+                      alt="Organization Logo"
+                      src={`/api/v1/organization/${organization?.id}/get_logo/${organization?.logoUrl}`}
+                    />
+                  </Row>
+                  <Row>
+                    <ImageCropperModal
+                      isOpen={isCropperModalOpen.logo}
+                      circular={false}
+                      aspect={1}
+                      imgName="Organization Logo"
+                      postURL={`/api/v1/organization/${organization?.id}/upload_logo`}
+                      onUpdateComplete={() => {
+                        setTimeout(() => {
+                          window.location.reload()
+                        }, 1750)
+                      }}
+                      setUploading={(uploading: boolean) => {
+                        setUploadingImg((prev) => ({
+                          ...prev,
+                          logo: uploading,
+                        }))
+                      }}
+                      onCancel={() =>
+                        setIsCropperModalOpen((prev) => ({
+                          ...prev,
+                          logo: false,
+                        }))
+                      }
+                    />
+                    <button
+                      onClick={() =>
+                        setIsCropperModalOpen((prev) => ({
+                          ...prev,
+                          logo: true,
+                        }))
+                      }
+                      className="mt-4 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2"
+                    >
+                      <EditOutlined />
+                      <span>Edit Logo</span>
+                    </button>
+                  </Row>
                 </Col>
-                <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <Image
-                    unoptimized
-                    width={100}
-                    height={100}
-                    alt="Organization Logo"
-                    src={`/api/v1/organization/${organization?.id}/get_logo/${organization?.logoUrl}`}
-                  />
-                </Col>
-              </Row>
+              </Form.Item>
             </Form.Item>
-          </Form.Item>
 
-          <Form.Item label="Banner">
-            <Form.Item name="organizationBanner" noStyle>
-              <Row
-                gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}
-                style={{ alignItems: 'center' }}
-              >
-                <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <Upload.Dragger
-                    beforeUpload={beforeUpload}
-                    customRequest={({ file }) => handleBannerUpload(file)}
-                    showUploadList={true}
-                    name="organizationBannerFile"
-                    maxCount={1}
-                  >
-                    <p className="ant-upload-drag-icon">
-                      <InboxOutlined />
-                    </p>
-                    <p className="ant-upload-text">
-                      Click or drag file to this area to upload
-                    </p>
-                    <p className="ant-upload-hint">
-                      Support for a single or bulk upload.
-                    </p>
-                  </Upload.Dragger>
+            <Form.Item label="Banner">
+              <Form.Item name="organizationBanner" noStyle>
+                <Col className="flex flex-col items-center justify-center">
+                  <Row className="flex min-h-[300px] items-center">
+                    <Image
+                      unoptimized
+                      width={300}
+                      height={300}
+                      alt="Organization Banner"
+                      src={`/api/v1/organization/${organization?.id}/get_banner/${organization?.bannerUrl}`}
+                    />
+                  </Row>
+                  <Row>
+                    <ImageCropperModal
+                      isOpen={isCropperModalOpen.banner}
+                      circular={false}
+                      aspect={1920 / 300}
+                      imgName="Organization Banner"
+                      postURL={`/api/v1/organization/${organization?.id}/upload_banner`}
+                      onUpdateComplete={() => {
+                        setTimeout(() => {
+                          window.location.reload()
+                        }, 1750)
+                      }}
+                      setUploading={(uploading: boolean) => {
+                        setUploadingImg((prev) => ({
+                          ...prev,
+                          banner: uploading,
+                        }))
+                      }}
+                      onCancel={() =>
+                        setIsCropperModalOpen((prev) => ({
+                          ...prev,
+                          banner: false,
+                        }))
+                      }
+                    />
+                    <button
+                      onClick={() =>
+                        setIsCropperModalOpen((prev) => ({
+                          ...prev,
+                          banner: true,
+                        }))
+                      }
+                      className="mt-4 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2"
+                    >
+                      <EditOutlined />
+                      <span>Edit Banner</span>
+                    </button>
+                  </Row>
                 </Col>
-                <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <Image
-                    unoptimized
-                    width={100}
-                    height={100}
-                    alt="Organization Banner"
-                    src={`/api/v1/organization/${organization?.id}/get_banner/${organization?.bannerUrl}`}
-                  />
-                </Col>
-              </Row>
+              </Form.Item>
             </Form.Item>
-          </Form.Item>
+          </Row>
         </Form>
       </Card>
 

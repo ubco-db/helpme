@@ -64,7 +64,6 @@ export class QueueModel extends BaseEntity {
   type: QueueTypes;
 
   @Column('text', { nullable: true })
-  @Exclude()
   zoomLink: string;
 
   @Column({ default: false })

@@ -83,7 +83,7 @@ const QueueCard: React.FC<QueueCardProps> = ({
           <span className="mr-8 flex flex-row flex-wrap items-center justify-between">
             <div>
               {queue.room}
-              <div className="flex">
+              <div className="mb-1 flex flex-wrap gap-y-1 sm:mb-0">
                 {queue?.type && (
                   <Tag
                     color="#2a9187"

@@ -7,6 +7,7 @@ import {
   Modal,
   Pagination,
   Progress,
+  Switch,
   Table,
   Tooltip,
   message,
@@ -52,6 +53,7 @@ export default function ChatbotSettings({
   const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =
     useState(false)
   const [addDocumentModalOpen, setAddDocumentModalOpen] = useState(false)
+  const [isSlideDeck, setIsSlideDeck] = useState(false)
   const [documentType, setDocumentType] = useState('FILE')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
@@ -259,6 +261,7 @@ export default function ChatbotSettings({
         // Create a JSON object and convert it to a string
         const jsonData = {
           source: source,
+          parseAsPng: isSlideDeck,
         }
         formData.append(
           'source',
@@ -431,18 +434,34 @@ export default function ChatbotSettings({
                     )}
                   />
                 )}
-                <Tooltip
-                  title={
-                    'This preview URL will be used to redirect your students to view this file. Make sure to include http header unless you want to redirect route on this site.'
-                  }
-                >
-                  <p>
-                    Preview URL{' '}
-                    <span>
-                      <QuestionCircleOutlined style={{ marginLeft: '5px' }} />
-                    </span>{' '}
-                  </p>
-                </Tooltip>
+                <div className="flex items-center justify-between align-middle">
+                  <div className="flex">
+                    Parse document as slides{' '}
+                    <Tooltip
+                      title={
+                        'toggle this ON if the provided document is a slide deck'
+                      }
+                    >
+                      <QuestionCircleOutlined className="ml-2" />
+                    </Tooltip>
+                  </div>
+                  <Switch
+                    defaultChecked={isSlideDeck}
+                    className="mt-0 pt-0"
+                    disabled={false}
+                    onChange={(checked) => setIsSlideDeck(checked)}
+                  />
+                </div>
+                <p>
+                  Preview URL{' '}
+                  <Tooltip
+                    title={
+                      'This preview URL will be used to redirect your students to view this file. Make sure to include http header unless you want to redirect route on this site.'
+                    }
+                  >
+                    <QuestionCircleOutlined className="ml-2" />{' '}
+                  </Tooltip>
+                </p>
                 <Form.Item
                   name="source"
                   rules={[

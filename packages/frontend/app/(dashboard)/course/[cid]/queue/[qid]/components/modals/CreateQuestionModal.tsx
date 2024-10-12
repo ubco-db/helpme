@@ -11,13 +11,14 @@ import { Alert, Form, Modal, Radio, Segmented } from 'antd'
 import { QuestionTagSelector } from '../../../../components/QuestionTagElement'
 import { toOrdinal } from '@/app/utils/generalUtils'
 import TextArea from 'antd/es/input/TextArea'
+import { useEffect, useState } from 'react'
 
 interface CreateQuestionModalProps {
   queueId: number
   courseId: number
   isQueueHybrid: boolean
   open: boolean
-  leaveQueue: () => void
+  leaveQueue: () => Promise<void>
   finishQuestion: (
     text: string,
     questionTypes: QuestionTypeParams[] | undefined,
@@ -27,7 +28,9 @@ interface CreateQuestionModalProps {
   ) => void
   onCancel: () => void
   question: Question | undefined
+  setIsJoinQueueModalLoading: (loading: boolean) => void
   position?: number
+  minTags?: number
 }
 
 interface FormValues {
@@ -45,11 +48,14 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
   finishQuestion,
   onCancel,
   question,
+  setIsJoinQueueModalLoading,
   position,
+  minTags = 0,
 }) => {
   const drafting = question?.status === OpenQuestionStatus.Drafting
   const helping = question?.status === OpenQuestionStatus.Helping
   const [questionTypes] = useQuestionTypes(courseId, queueId)
+  const [isLeaveButtonLoading, setIsLeaveButtonLoading] = useState(false)
 
   const [
     storedDraftQuestion,
@@ -76,6 +82,13 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
     deleteStoredDraftQuestion()
   }
 
+  useEffect(() => {
+    if (open) {
+      // Need to put this loading toggle inside the modal so that the Join Queue button stops loading once the modal is rendered
+      setIsJoinQueueModalLoading(false)
+    }
+  }, [setIsJoinQueueModalLoading, open])
+
   return (
     <Modal
       open={open}
@@ -85,10 +98,13 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
       okButtonProps={{ autoFocus: true, htmlType: 'submit' }}
       cancelButtonProps={{
         danger: drafting,
-        onClick: () => {
+        loading: isLeaveButtonLoading,
+        onClick: async () => {
           if (drafting) {
+            setIsLeaveButtonLoading(true)
             deleteStoredDraftQuestion()
-            leaveQueue()
+            await leaveQueue()
+            setIsLeaveButtonLoading(false)
           } else {
             onCancel()
           }
@@ -114,8 +130,11 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
                   ? storedDraftQuestion?.questionText
                   : question.text,
                 location: drafting
-                  ? storedDraftQuestion?.location
-                  : question.location,
+                  ? ((storedDraftQuestion?.location ??
+                      'Online') as QuestionLocations)
+                  : question.location && question.location !== 'Unselected'
+                    ? question.location
+                    : 'Online',
               }}
               onValuesChange={(changedValues, values) => {
                 setStoredDraftQuestion(values)
@@ -151,6 +170,22 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
         <Form.Item
           name="questionTypesInput"
           label="What categories does your question fall under?"
+          rules={[
+            ...(minTags > 0
+              ? [
+                  {
+                    required: true,
+                    message:
+                      minTags == 1 ? 'Please select at least one tag' : '',
+                  },
+                ]
+              : []),
+            {
+              type: 'array',
+              min: minTags,
+              message: `Please select at least ${minTags} tags`,
+            },
+          ]}
         >
           <QuestionTagSelector questionTags={questionTypes} />
         </Form.Item>

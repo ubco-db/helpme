@@ -32,7 +32,12 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
 }) => {
   const router = useRouter()
   const { course, mutateCourse } = useCourse(courseId)
+  // This loading keeps track of if we're waiting for the server response
   const [loading, setLoading] = useState(false)
+  // These loading states are to keep track if we're waiting for the frontend to update
+  const [isSuccessfullyCheckedIn, setIsSuccessfullyCheckedIn] = useState(false)
+  const [isSuccessfullyCheckedOut, setIsSuccessfullyCheckedOut] =
+    useState(false)
 
   return (
     <>
@@ -41,7 +46,7 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
           type="default"
           size="large"
           disabled={disabled}
-          loading={loading}
+          loading={loading || isSuccessfullyCheckedOut}
           onClick={async () => {
             onClick?.()
             if (preventDefaultAction) return
@@ -50,6 +55,7 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
               .checkOut(courseId, room)
               .then(() => {
                 mutateCourse()
+                setIsSuccessfullyCheckedOut(true)
               })
               .catch((err) => {
                 const errorMessage = getErrorMessage(err)
@@ -57,6 +63,7 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
               })
               .finally(() => {
                 setLoading(false)
+                setIsSuccessfullyCheckedIn(false)
               })
           }}
           className={`flex items-center justify-center rounded-md text-sm font-semibold text-red-600 hover:border-gray-300 hover:bg-gray-100 focus:bg-gray-100 disabled:text-gray-400 ${className}`}
@@ -69,14 +76,23 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
         <Button
           type="primary"
           size="large"
-          loading={loading}
+          loading={loading || isSuccessfullyCheckedIn}
           onClick={() => {
             onClick?.()
             if (preventDefaultAction) return
             setLoading(true)
-            checkInTA(courseId, room, mutateCourse, router).then(() =>
-              setLoading(false),
-            )
+            checkInTA(courseId, room, mutateCourse, router)
+              .then(() => {
+                setIsSuccessfullyCheckedIn(true)
+              })
+              .catch((err) => {
+                const errorMessage = getErrorMessage(err)
+                message.error(errorMessage)
+              })
+              .finally(() => {
+                setLoading(false)
+                setIsSuccessfullyCheckedOut(false)
+              })
           }}
           disabled={disabled || !course}
           className={`flex items-center justify-center rounded-md font-semibold ${className}`}

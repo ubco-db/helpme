@@ -208,13 +208,15 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
               />
             ) : null}
           </Row>
-          <div className="flex max-h-[200px] w-full items-center overflow-y-auto px-2 text-xl text-[#5f6b79] sm:hidden">
-            <Linkify>
-              <div className="min-w-0 whitespace-pre-wrap break-words text-sm italic md:text-base">
-                {`Notes: ${queue?.notes}`}
-              </div>
-            </Linkify>
-          </div>
+          {queue?.notes && (
+            <div className="flex max-h-[200px] w-full items-center overflow-y-auto px-2 text-xl text-[#5f6b79] sm:hidden">
+              <Linkify>
+                <div className="min-w-0 whitespace-pre-wrap break-words text-sm italic md:text-base">
+                  {`Notes: ${queue?.notes}`}
+                </div>
+              </Linkify>
+            </div>
+          )}
         </div>
       </div>
     </div>
