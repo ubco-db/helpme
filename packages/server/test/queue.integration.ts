@@ -1290,7 +1290,7 @@ describe('Queue Integration', () => {
 
       const queue = await QueueFactory.create({
         course: course,
-        config: validConfig,
+        config: {},
       });
 
       const qt1 = await QuestionTypeFactory.create({
