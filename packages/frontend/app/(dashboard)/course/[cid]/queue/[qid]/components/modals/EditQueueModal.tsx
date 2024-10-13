@@ -48,7 +48,10 @@ import {
   confirmDisable,
   clearQueue,
 } from '../../../../utils/commonCourseFunctions'
-import { QuestionTagDeleteSelector } from '../../../../components/QuestionTagElement'
+import {
+  EditedQuestionTag,
+  QuestionTagEditor,
+} from '../../../../components/QuestionTagElement'
 import { useRouter } from 'next/navigation'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
@@ -74,7 +77,7 @@ type QuestionTypeForCreation = {
 interface FormValues {
   notes: string
   allowQuestions: boolean
-  questionTypesForDeletion: number[]
+  editedQuestionTags: EditedQuestionTag[]
   questionTypesForCreation: QuestionTypeForCreation[]
   minTags: string
   assignmentId?: string
@@ -170,19 +173,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       }
     }, 5000)
     let errorsHaveOccurred = false
-    const deletePromises =
-      values.questionTypesForDeletion?.map((tagID) =>
-        API.questionType
-          .deleteQuestionType(courseId, tagID)
-          .then((responseMessage) => {
-            message.success(responseMessage)
-          })
-          .catch((e) => {
-            errorsHaveOccurred = true
-            const errorMessage = getErrorMessage(e)
-            message.error(`Error deleting question tag: ${errorMessage}`)
-          }),
-      ) || []
     const createPromises =
       values.questionTypesForCreation?.map((questionType) => {
         const newQuestionType: QuestionTypeParams = {
@@ -224,6 +214,45 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         : Promise.resolve()
     const newQueueConfig: QueueConfig = {
       ...lastSavedQueueConfig.current,
+      // TODO: test when editing and adding at the same time
+      // rather than creating a new endpoint for editing question tags, just change the config
+      ...(values.editedQuestionTags && {
+        /* there exists 3 states of tags: 
+          - the tags from the old config (they have the old name)
+          - the current questionTypes (which have the old name, as well as the id)
+          - the editedQuestionTags (which have the new name (which can't be matched with), as well as the id)
+        If I want to update the config properly, I must find what the config was previously and update the correct tags.
+        Or in other words, I need to match each editedQuestionTag with a corresponding old tag.
+        And this would need to take the route of going editedQuestionTag.id == questionType.id and questionType.name == oldTag.display_name
+        */
+        tags: Object.entries(lastSavedQueueConfig.current?.tags || {}).reduce(
+          (acc, [id, oldTag]) => {
+            // for each old tag, find corresponding questionType from questionTypes (matching name with display_name)
+            const questionType = questionTypes?.find(
+              (questionType) => questionType.name === oldTag.display_name,
+            )
+            // find the corresponding editedQuestionTag
+            const editedTag = values.editedQuestionTags.find(
+              (editedTag) => editedTag.newValues?.id === questionType?.id,
+            )
+            // if there is no editedTag, return the old tag
+            if (!editedTag) {
+              acc[id] = oldTag
+              // if the editedTag is marked for deletion, do not add it to the accumulator
+            } else if (!editedTag.markedForDeletion) {
+              // else return the updated tag
+              acc[id] = {
+                display_name: editedTag.newValues?.name ?? oldTag.display_name,
+                color_hex: editedTag.newValues?.color ?? oldTag.color_hex,
+              }
+            }
+            return acc
+          },
+          {} as {
+            [tagKey: string]: { display_name: string; color_hex: string }
+          },
+        ),
+      }),
       minimum_tags: Number(values.minTags),
       assignment_id: values.assignmentId,
       // iterate over each task and accumulate them into an object
@@ -246,6 +275,8 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
           }
         : {}),
     }
+    console.log(newQueueConfig)
+    // TODO: update this to work on the anytime question centre
 
     const tasksChanged =
       JSON.stringify(newQueueConfig.tasks || {}) !==
@@ -254,6 +285,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       lastSavedQueueConfig.current?.minimum_tags !== Number(values.minTags)
     const assignmentIdChanged =
       lastSavedQueueConfig.current?.assignment_id !== values.assignmentId
+    const tagsChanged = values.editedQuestionTags.length > 0
 
     // if the tasks changed, make sure there's no cycle in the new tasks
     if (
@@ -268,10 +300,10 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       return
     }
     const queueConfigPromise =
-      tasksChanged || minimumTagsChanged || assignmentIdChanged
+      tasksChanged || minimumTagsChanged || assignmentIdChanged || tagsChanged
         ? API.queues
             .updateConfig(queueId, newQueueConfig)
-            .then(() => {
+            .then((updatedTagsMessages) => {
               if (minimumTagsChanged) {
                 message.success('Minimum Tags updated to ' + values.minTags)
               }
@@ -286,12 +318,19 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                     values.assignmentId,
                 )
               }
+              if (
+                tagsChanged &&
+                updatedTagsMessages.questionTypeMessages.length > 0
+              ) {
+                mutateQuestionTypes()
+                for (const tagMessage of updatedTagsMessages.questionTypeMessages) {
+                  message.info(tagMessage)
+                }
+              }
             })
             .catch((e) => {
               errorsHaveOccurred = true
-              console.log(JSON.stringify(e))
               const errorMessage = getErrorMessage(e)
-              console.log(JSON.stringify(errorMessage))
               message.error(`Update failed: ${errorMessage}`)
             })
         : Promise.resolve()
@@ -314,7 +353,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             })
         : Promise.resolve()
     await Promise.all([
-      ...deletePromises,
       ...createPromises,
       zoomLinkPromise,
       queueConfigPromise,
@@ -413,10 +451,10 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         <Switch />
       </Form.Item>
       <Form.Item
-        label="Question Tags (Click to be marked for deletion)"
-        name="questionTypesForDeletion"
+        label="Question Tags (Click to Edit)"
+        name="editedQuestionTags"
       >
-        <QuestionTagDeleteSelector currentTags={questionTypes ?? []} />
+        <QuestionTagEditor currentTags={questionTypes ?? []} />
       </Form.Item>
       <Form.List name="questionTypesForCreation">
         {(fields, { add, remove }) => (

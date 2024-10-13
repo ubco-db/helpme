@@ -6,7 +6,7 @@ import { getBrightness } from '@/app/utils/generalUtils'
 import tinycolor from 'tinycolor2'
 import { Button, Form, Input, Popover } from 'antd'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
-import { DeleteOutlined } from '@ant-design/icons'
+import { DeleteOutlined, UndoOutlined } from '@ant-design/icons'
 
 interface QuestionTagElementProps {
   tagName: string
@@ -54,7 +54,8 @@ const QuestionTagElement: React.FC<QuestionTagElementProps> = ({
 interface CheckableQuestionTagProps {
   tagName: string
   tagColor: string
-  onChangeWithName?: (tagName: string) => void
+  tagID?: number
+  onChangeWithID?: (tagID: number, checked: boolean) => void
   checked: boolean
   onMouseEnter?: (e: React.MouseEvent<HTMLDivElement>) => void
   onMouseLeave?: (e: React.MouseEvent<HTMLDivElement>) => void
@@ -70,7 +71,8 @@ interface CheckableQuestionTagProps {
 const CheckableQuestionTag: React.FC<CheckableQuestionTagProps> = ({
   tagName,
   tagColor,
-  onChangeWithName,
+  tagID,
+  onChangeWithID,
   checked,
   onMouseEnter,
   onMouseLeave,
@@ -98,8 +100,8 @@ const CheckableQuestionTag: React.FC<CheckableQuestionTagProps> = ({
         : 'gray'
 
   const handleClick = (e?: React.MouseEvent<HTMLDivElement>) => {
-    if (onChangeWithName) {
-      onChangeWithName(tagName)
+    if (onChangeWithID && tagID) {
+      onChangeWithID(tagID, !checked)
     }
     if (onClick && e) {
       onClick(e)
@@ -241,7 +243,7 @@ type LocalQuestionTag = QuestionType & {
 }
 
 /** These are what QuestionTagEditor "returns" */
-type EditedQuestionTag = {
+export type EditedQuestionTag = {
   markedForDeletion?: boolean
   newValues?: QuestionType
 }
@@ -325,7 +327,7 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
                   allowClear={true}
                   placeholder="Tag Name"
                   maxLength={20}
-                  className="w-44"
+                  className="w-48"
                   onChange={(e) => {
                     const newName = e.target.value
                     // update the change locally
@@ -405,6 +407,26 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
               </Form.Item>
 
               <div className="flex gap-1">
+                <Button
+                  disabled={!editedTags.find((t) => t.newValues?.id === tag.id)}
+                  icon={<UndoOutlined />}
+                  onClick={() => {
+                    // remove this tag from editedTags and reset the one in localQuestionTags back to currentTags
+                    setEditedTags((prev) =>
+                      prev.filter((t) => t.newValues?.id !== tag.id),
+                    )
+                    setLocalQuestionTags((prev) =>
+                      prev.map((t) =>
+                        t.id === tag.id
+                          ? currentTags.find((ct) => ct.id === tag.id) ?? t
+                          : t,
+                      ),
+                    )
+                  }}
+                >
+                  Reset
+                </Button>
+
                 {tag.markedForDeletion ? (
                   <Button
                     onClick={() => {
@@ -478,25 +500,6 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
                     Mark for Deletion
                   </Button>
                 )}
-
-                <Button
-                  disabled={!editedTags.find((t) => t.newValues?.id === tag.id)}
-                  onClick={() => {
-                    // remove this tag from editedTags and reset the one in localQuestionTags back to currentTags
-                    setEditedTags((prev) =>
-                      prev.filter((t) => t.newValues?.id !== tag.id),
-                    )
-                    setLocalQuestionTags((prev) =>
-                      prev.map((t) =>
-                        t.id === tag.id
-                          ? currentTags.find((ct) => ct.id === tag.id) ?? t
-                          : t,
-                      ),
-                    )
-                  }}
-                >
-                  Reset
-                </Button>
               </div>
             </div>
           }
