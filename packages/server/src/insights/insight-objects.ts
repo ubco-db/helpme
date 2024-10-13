@@ -402,7 +402,7 @@ export const AverageTimesByWeekDay: InsightObject = {
       .map((value) => {
         return {
           weekday: numToWeekday(value.weekday),
-          weekdayN: value.weekday,
+          weekdayN: parseInt('' + value.weekday),
           Average_Help_Time: (value.avgHelpTime / 60).toFixed(2),
           Average_Wait_Time: (value.avgWaitTime / 60).toFixed(2),
           Total_Time: (value.avgWaitTime / 60 + value.avgHelpTime / 60).toFixed(
@@ -458,9 +458,9 @@ export const MostActiveTimes: InsightObject = {
     const data: StringMap<any>[] = questions
       .map((value) => {
         return {
-          Weekday: value.weekday,
-          Amount: value.amount,
-          time: value.quarterTime,
+          Weekday: parseInt(value.weekday + ''),
+          Amount: parseInt(value.amount + ''),
+          time: parseInt(value.quarterTime + ''),
         };
       })
       .sort((a, b) => a.Weekday - b.Weekday);
@@ -745,8 +745,8 @@ export const HumanVsChatbot: InsightObject = {
     const mapData = (value: HumanVsChatbotData, type: string) => {
       return {
         type,
-        Answered: value.answered,
-        Verified: value.verified,
+        Answered: parseInt(value.answered),
+        Verified: parseInt(value.verified),
       };
     };
     const data = humanData
@@ -839,8 +839,8 @@ export const HumanVsChatbotVotes: InsightObject = {
     const mapData = (value: HumanVsChatbotData, type: string) => {
       return {
         type,
-        Total_Score: value.totalScore,
-        Total_Votes: value.totalVotes,
+        Total_Score: parseInt(value.totalScore),
+        Total_Votes: parseInt(value.totalVotes),
       };
     };
     const data = humanData

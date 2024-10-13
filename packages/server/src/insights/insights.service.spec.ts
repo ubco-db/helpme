@@ -354,35 +354,35 @@ describe('InsightsService', () => {
     expect(res.data).toEqual([
       {
         weekday: 'Monday',
-        weekdayN: '1',
+        weekdayN: 1,
         Average_Help_Time: '5.00',
         Average_Wait_Time: '10.00',
         Total_Time: '15.00',
       },
       {
         weekday: 'Tuesday',
-        weekdayN: '2',
+        weekdayN: 2,
         Average_Help_Time: '5.00',
         Average_Wait_Time: '20.00',
         Total_Time: '25.00',
       },
       {
         weekday: 'Wednesday',
-        weekdayN: '3',
+        weekdayN: 3,
         Average_Help_Time: '5.00',
         Average_Wait_Time: '30.00',
         Total_Time: '35.00',
       },
       {
         weekday: 'Thursday',
-        weekdayN: '4',
+        weekdayN: 4,
         Average_Help_Time: '5.00',
         Average_Wait_Time: '40.00',
         Total_Time: '45.00',
       },
       {
         weekday: 'Friday',
-        weekdayN: '5',
+        weekdayN: 5,
         Average_Help_Time: '5.00',
         Average_Wait_Time: '50.00',
         Total_Time: '55.00',
@@ -406,16 +406,16 @@ describe('InsightsService', () => {
     const expected = [];
     for (let i = 8; i <= 20; i++) {
       const date = new Date(
-        Date.parse(`2024-09-09T${i < 10 ? '0' + i : i}:00:00.000Z`),
+        Date.parse(`2024-09-09T${i < 10 ? '0' + i : i}:00:00.000`),
       );
       const minsAfterMidnight =
-        (date.getTime() - Date.parse('2024-09-09T00:00:00Z')) / 60000;
+        (date.getTime() - Date.parse('2024-09-09T00:00:00')) / 60000;
       const rounded = Math.ceil(minsAfterMidnight / 15) * 15;
 
       expected.push({
-        time: `${rounded - 420}`,
-        Amount: '1',
-        Weekday: '1',
+        time: rounded,
+        Amount: 1,
+        Weekday: 1,
       });
 
       await QuestionFactory.create({
@@ -452,14 +452,14 @@ describe('InsightsService', () => {
     const course = await CourseFactory.create();
     const queue = await QueueFactory.create({ course: course });
 
-    const startTime = new Date('2024-09-01T08:00:00Z'),
-      endTime = new Date('2024-09-30T08:00:00Z');
+    const startTime = new Date('2024-09-01T00:00:00'),
+      endTime = new Date('2024-09-30T00:00:00');
 
     const expected = [];
     for (let i = 0; i < 30; i++) {
       const time = new Date(startTime.getTime() + i * 1000 * 60 * 60 * 24);
       expected.push({
-        date: time.getTime() - 60 * 60000, // 1 hour offset
+        date: time.getTime(),
         Questions: 1,
         Async_Questions: 1,
         Chatbot_Interactions: 1,
@@ -525,8 +525,8 @@ describe('InsightsService', () => {
       course: course,
       status: asyncQuestionStatus.AIAnsweredNeedsAttention,
     });
-    const expectedAI = '12',
-      expectedAIVerified = '4';
+    const expectedAI = 12,
+      expectedAIVerified = 4;
 
     await AsyncQuestionFactory.createList(3, {
       creator: student,
@@ -539,8 +539,8 @@ describe('InsightsService', () => {
       course: course,
       status: asyncQuestionStatus.HumanAnswered,
     });
-    const expectedHuman = '8',
-      expectedHumanVerified = '3';
+    const expectedHuman = 8,
+      expectedHumanVerified = 3;
 
     const res = (await service.computeOutput({
       insight: INSIGHTS_MAP.HumanVsChatbot,
@@ -569,64 +569,6 @@ describe('InsightsService', () => {
   });
 
   it('humanVsChatbotVotes', async () => {
-    const student = await UserFactory.create();
-    const course = await CourseFactory.create();
-    const queue = await QueueFactory.create({ course: course });
-
-    const startTime = new Date('2024-09-01T08:00:00Z'),
-      endTime = new Date('2024-09-30T08:00:00Z');
-
-    const expected = [];
-    for (let i = 0; i < 30; i++) {
-      const time = new Date(startTime.getTime() + i * 1000 * 60 * 60 * 24);
-      expected.push({
-        date: time.getTime() - 60 * 60000, // 1 hour offset
-        Questions: 1,
-        Async_Questions: 1,
-        Chatbot_Interactions: 1,
-      });
-      await QuestionFactory.create({
-        creator: student,
-        queue: queue,
-        createdAt: time,
-      });
-      await AsyncQuestionFactory.create({
-        creator: student,
-        course: course,
-        createdAt: time,
-      });
-      await InteractionFactory.create({
-        user: student,
-        course: course,
-        timestamp: time,
-      });
-    }
-
-    const res = (await service.computeOutput({
-      insight: INSIGHTS_MAP.HelpSeekingOverTime,
-      filters: [
-        {
-          type: 'courseId',
-          courseId: course.id,
-        },
-        {
-          type: 'timeframe',
-          start: startTime.toDateString(),
-          end: endTime.toDateString(),
-        },
-      ],
-    })) as ChartOutputType;
-
-    expect(res.data).toEqual(expected);
-    expect(res.xKey).toEqual('date');
-    expect(res.yKeys).toEqual([
-      'Questions',
-      'Async_Questions',
-      'Chatbot_Interactions',
-    ]);
-  }, 30000);
-
-  it('humanVsChatbot', async () => {
     const student = await UserFactory.create();
     const students = [];
     for (let i = 0; i < 4; i++) {
@@ -679,13 +621,13 @@ describe('InsightsService', () => {
     expect(res.data).toEqual([
       {
         type: 'Human',
-        Total_Score: '16',
-        Total_Votes: '16',
+        Total_Score: 16,
+        Total_Votes: 16,
       },
       {
         type: 'Chatbot',
-        Total_Score: '16',
-        Total_Votes: '16',
+        Total_Score: 16,
+        Total_Votes: 16,
       },
     ]);
     expect(res.xKey).toEqual('type');
