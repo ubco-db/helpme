@@ -1,5 +1,7 @@
 import {
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from '@/app/components/ui/chart'
@@ -27,11 +29,12 @@ import {
 import { numToWeekday } from '@koh/common'
 
 const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
-  const { yKey, zKey, chartConfig, chartData, size } = props
+  const { yKey, zKey, chartConfig, chartData, size, numCategories } = props
 
-  let { includeTooltip } = props
+  let { includeTooltip, includeLegend } = props
 
   includeTooltip ??= true
+  includeLegend ??= true
 
   const labelFormatter = (
     label: string,
@@ -75,24 +78,14 @@ const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
     return range
   }, [chartData])
 
-  const yDomain = useMemo(() => {
-    return [
-      Math.max(
-        0,
-        Math.min(...chartData.map((v: any) => parseInt(v[yKey]))) - 1,
-      ),
-      Math.max(...chartData.map((v: any) => parseInt(v[yKey]))) + 1,
-    ]
-  }, [chartData])
-
   const xTicks = useMemo(() => generateTickRange(xAxis, 4), [xAxis])
   const yTicks = useMemo(() => {
     const range: number[] = []
-    for (let i = yDomain[0]; i <= yDomain[1]; i++) {
+    for (let i = -1; i <= numCategories; i++) {
       range.push(i)
     }
     return range
-  }, [yDomain])
+  }, [numCategories])
 
   return (
     <ChartContainer
@@ -115,12 +108,16 @@ const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
         <YAxis
           type={'number'}
           dataKey={yKey}
-          tickFormatter={(label) => numToWeekday(label).substring(0, 3)}
+          tickFormatter={(label) =>
+            yTicks.slice(1, yTicks.length - 1).includes(parseInt(label))
+              ? numToWeekday(label).substring(0, 3)
+              : ''
+          }
           tickLine={true}
           tickMargin={8}
           axisLine={true}
           ticks={yTicks}
-          domain={yDomain}
+          domain={[0, numCategories - 1]}
         />
         <ZAxis dataKey={zKey} range={[32, 256]} />
         {includeTooltip && (
@@ -131,6 +128,7 @@ const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
             content={<ChartTooltipContent />}
           />
         )}
+        {includeLegend && <ChartLegend content={<ChartLegendContent />} />}
         <Scatter dataKey={'key'} />
       </ScatterChart>
     </ChartContainer>

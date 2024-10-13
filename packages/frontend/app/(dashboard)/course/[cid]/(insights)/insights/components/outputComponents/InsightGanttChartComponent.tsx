@@ -36,7 +36,7 @@ const InsightGanttChartComponent: React.FC<GenericInsightComponentProps> = ({
           [chartOutput.zKey]: v[chartOutput.zKey],
           fill: generateUniqueColor(
             parseInt(v[chartOutput.yKey] ?? '0'),
-            Math.max(...chartOutput.data.map((v) => v[chartOutput.yKey])),
+            chartOutput.numCategories,
           ),
         } as ChartDataType
       })
@@ -50,6 +50,7 @@ const InsightGanttChartComponent: React.FC<GenericInsightComponentProps> = ({
         yKey: chartOutput.yKey,
         zKey: chartOutput.zKey,
         size: 'md' as ChartSize,
+        numCategories: chartOutput.numCategories,
         ...matchingChart.props,
       }
 

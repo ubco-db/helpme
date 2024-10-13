@@ -103,6 +103,7 @@ export interface GanttChartProps {
   xKey: string
   yKey: string
   zKey: string
+  numCategories: number
 }
 
 export type ChartDataType = { key: string; fill?: string; [key: string]: any }

@@ -405,6 +405,9 @@ export const AverageTimesByWeekDay: InsightObject = {
           weekdayN: value.weekday,
           Average_Help_Time: (value.avgHelpTime / 60).toFixed(2),
           Average_Wait_Time: (value.avgWaitTime / 60).toFixed(2),
+          Total_Time: (value.avgWaitTime / 60 + value.avgHelpTime / 60).toFixed(
+            2,
+          ),
         };
       })
       .sort((a, b) => a.weekdayN - b.weekdayN);
@@ -412,7 +415,7 @@ export const AverageTimesByWeekDay: InsightObject = {
     return {
       data,
       xKey: 'weekday',
-      yKeys: ['Average_Wait_Time', 'Average_Help_Time'],
+      yKeys: ['Average_Wait_Time', 'Average_Help_Time', 'Total_Time'],
       label: 'Weekday',
       xType: 'category',
     };
@@ -468,6 +471,7 @@ export const MostActiveTimes: InsightObject = {
       yKey: 'Weekday',
       zKey: 'Amount',
       label: 'Weekday',
+      numCategories: 7,
     };
   },
 };
@@ -796,7 +800,9 @@ export const HumanVsChatbotVotes: InsightObject = {
           'COALESCE(SUM("AsyncQuestionVotesModel"."votes"), 0)',
           'totalVotes',
         )
-        .where('AsyncQuestionModel.answerText IS NOT NULL'),
+        .where('AsyncQuestionModel.status in (:...statuses)', {
+          statuses: ['HumanAnswered'],
+        }),
       modelName: AsyncQuestionModel.name,
       allowedFilters: this.allowedFilters,
       filters,
@@ -818,8 +824,13 @@ export const HumanVsChatbotVotes: InsightObject = {
           'COALESCE(SUM("AsyncQuestionVotesModel"."votes"), 0)',
           'totalVotes',
         )
-        .where('AsyncQuestionModel.answerText IS NULL')
-        .andWhere('AsyncQuestionModel.aiAnswerText IS NOT NULL'),
+        .where('AsyncQuestionModel.status in (:...statuses)', {
+          statuses: [
+            'AIAnsweredResolved',
+            'AIAnswered',
+            'AIAnsweredNeedsAttention',
+          ],
+        }),
       modelName: AsyncQuestionModel.name,
       allowedFilters: this.allowedFilters,
       filters,
@@ -855,8 +866,8 @@ export const INSIGHTS_MAP = {
   QuestionToStudentRatio,
   MedianHelpingTime,
   AverageTimesByWeekDay,
-  HelpSeekingOverTime,
   HumanVsChatbot,
   HumanVsChatbotVotes,
   MostActiveTimes,
+  HelpSeekingOverTime,
 };

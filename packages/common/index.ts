@@ -1573,6 +1573,7 @@ export type GanttChartOutputType = {
   yKey: string
   zKey: string
   label: string
+  numCategories: number
 }
 
 export type ValueOutputType = number | string
