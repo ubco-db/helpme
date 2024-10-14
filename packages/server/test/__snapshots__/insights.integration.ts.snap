@@ -1,0 +1,170 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Insights Integration DELETE /insights/:courseId/dashboard/remove should delete matching dashboard and return list 1`] = `
+[
+  {
+    "insights": {},
+    "name": "Preset #2",
+  },
+  {
+    "insights": {},
+    "name": "Preset #3",
+  },
+]
+`;
+
+exports[`Insights Integration GET /insights/:courseId/dashboard should return list 1`] = `
+[
+  {
+    "insights": {},
+    "name": "Preset #1",
+  },
+]
+`;
+
+exports[`Insights Integration GET /insights/list should return list of insights 1`] = `
+{
+  "AverageTimesByWeekDay": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+      "queues",
+    ],
+    "description": "The average time for synchronous help requests to be addressed, grouped by week day.",
+    "displayName": "Average Times By Weekday",
+    "insightCategory": "Queues",
+    "insightType": "Chart",
+  },
+  "HelpSeekingOverTime": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+      "queues",
+      "students",
+    ],
+    "description": "What help services have students been utilizing over time?",
+    "displayName": "Student Interactions Over Time",
+    "insightCategory": "Tool_Usage_Statistics",
+    "insightType": "Chart",
+  },
+  "HumanVsChatbot": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+    ],
+    "description": "How many questions have a verified and/or human answer, and how many only have a chatbot answer?",
+    "displayName": "Human vs. Chatbot Answers",
+    "insightCategory": "Chatbot",
+    "insightType": "Chart",
+  },
+  "HumanVsChatbotVotes": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+    ],
+    "description": "How helpful are human answers, versus chatbot answers?",
+    "displayName": "Human vs. Chatbot Votes",
+    "insightCategory": "Chatbot",
+    "insightType": "Chart",
+  },
+  "MedianHelpingTime": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+    ],
+    "description": "What is the median duration that a TA helps a student on a call?",
+    "displayName": "Median Helping Time",
+    "insightCategory": "Queues",
+    "insightType": "Value",
+  },
+  "MedianWaitTime": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+    ],
+    "description": "What is the median wait time for a student to get help in the queue?",
+    "displayName": "Median Wait Time",
+    "insightCategory": "Tool_Usage_Statistics",
+    "insightType": "Value",
+  },
+  "MostActiveStudents": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+    ],
+    "description": "Who are the students who have asked the most questions in Office Hours?",
+    "displayName": "Most Active Students",
+    "insightCategory": "Tool_Usage_Statistics",
+    "insightType": "Table",
+  },
+  "MostActiveTimes": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+      "queues",
+    ],
+    "description": "The most in-demand queue times during the calendar week, based on the number of queued questions throughout the day.",
+    "displayName": "Most Active Times",
+    "insightCategory": "Queues",
+    "insightType": "GanttChart",
+  },
+  "QuestionToStudentRatio": {
+    "description": "How many questions were asked per student?",
+    "displayName": "Questions per Student",
+    "insightCategory": "Tool_Usage_Statistics",
+    "insightType": "Value",
+  },
+  "QuestionTypeBreakdown": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+    ],
+    "description": "What is the distribution of student-selected question-types on the question form?",
+    "displayName": "Question Tag Breakdown",
+    "insightCategory": "Questions",
+    "insightType": "Chart",
+  },
+  "TotalQuestionsAsked": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+    ],
+    "description": "How many questions have been asked in total?",
+    "displayName": "Total Questions",
+    "insightCategory": "Questions",
+    "insightType": "Value",
+  },
+  "TotalStudents": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+    ],
+    "description": "What is the total number of students that are enrolled in the course?",
+    "displayName": "Total Students",
+    "insightCategory": "Tool_Usage_Statistics",
+    "insightType": "Value",
+  },
+}
+`;
+
+exports[`Insights Integration POST /insights/:courseId/dashboard/create should create new dashboard and return list 1`] = `
+[
+  {
+    "insights": {
+      "example": "example",
+    },
+    "name": "Preset #1",
+  },
+]
+`;
+
+exports[`Insights Integration POST /insights/:courseId/dashboard/create should update matching dashboard and return list 1`] = `
+[
+  {
+    "insights": {
+      "example": "example",
+    },
+    "name": "Preset #1",
+  },
+]
+`;
