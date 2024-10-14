@@ -2354,6 +2354,7 @@ export const ERROR_MESSAGES = {
     queueNotFound: 'Queue not found',
   },
   insightsController: {
+    dashboardUnauthorized: 'User is not authorized to manage dashboards',
     insightUnathorized: 'User is not authorized to view this insight',
     insightNameNotFound: 'The insight requested was not found',
     insightsDisabled: 'Insights are currently unavailable, sorry :(',

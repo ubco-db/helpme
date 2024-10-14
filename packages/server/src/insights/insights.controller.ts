@@ -35,6 +35,7 @@ import { Roles } from 'decorators/roles.decorator';
 import { CourseRole } from '../decorators/course-role.decorator';
 import { Filter } from './insight-objects';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { UserCourseModel } from '../profile/user-course.entity';
 
 @Controller('insights')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -49,6 +50,16 @@ export class InsightsController {
     @Body() body: { name: string },
     @User() user: UserModel,
   ): Promise<InsightDashboardPartial[]> {
+    const userCourse = await UserCourseModel.findOne({
+      where: { courseId, user },
+    });
+    // Check that the current user's role has access to dashboards
+    if (userCourse?.role != Role.PROFESSOR) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.insightsController.dashboardUnauthorized,
+      );
+    }
+
     return await this.insightsService.removeDashboardPreset(
       user,
       courseId,
@@ -67,6 +78,16 @@ export class InsightsController {
       name?: string;
     },
   ): Promise<InsightDashboardPartial[]> {
+    const userCourse = await UserCourseModel.findOne({
+      where: { courseId, user },
+    });
+    // Check that the current user's role has access to dashboards
+    if (userCourse?.role != Role.PROFESSOR) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.insightsController.dashboardUnauthorized,
+      );
+    }
+
     return await this.insightsService.upsertDashboardPreset(
       user,
       courseId,
@@ -81,6 +102,16 @@ export class InsightsController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @User() user: UserModel,
   ): Promise<InsightDashboardPartial[]> {
+    const userCourse = await UserCourseModel.findOne({
+      where: { courseId, user },
+    });
+    // Check that the current user's role has access to dashboards
+    if (userCourse?.role != Role.PROFESSOR) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.insightsController.dashboardUnauthorized,
+      );
+    }
+
     return await this.insightsService.getDashboardPresets(user, courseId);
   }
 
