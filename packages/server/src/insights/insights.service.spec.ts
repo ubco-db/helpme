@@ -183,7 +183,7 @@ describe('InsightsService', () => {
           },
         ],
       });
-      expect((res as number) - 5).toBeLessThanOrEqual(0.001);
+      expect(parseFloat(res as string) - 5).toBeLessThanOrEqual(0.001);
     });
   });
 
