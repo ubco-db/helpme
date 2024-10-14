@@ -1,24 +1,17 @@
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/app/components/ui/chart'
-import { Line, LineChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { ChartContainer } from '@/app/components/ui/chart'
+import { Scatter, ScatterChart, CartesianGrid } from 'recharts'
 import React, { useMemo } from 'react'
 import {
   AxisChartClasses,
   ChartComponentProps,
-  LinearChartProps,
-} from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
-import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
+  PointChartProps,
+} from '@/app/(dashboard)/course/[cid]/insights/utils/types'
 import {
   getAxisComponents,
   getLegendAndTooltipComponents,
-} from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/ChartFunctions'
+} from '@/app/(dashboard)/course/[cid]/insights/components/charts/ChartFunctions'
 
-const LineChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
+const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
     chartConfig,
     chartData,
@@ -35,25 +28,23 @@ const LineChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   let {
     includeLegend,
     includeTooltip,
-    curveType,
-    showPoints,
     verticalAxis,
     tickLine,
     tickMargin,
     axisLine,
-    axisRatio,
+    aspectRatio,
+    fullPointFill,
     tickFormatter,
-  } = props as LinearChartProps
+  } = props as PointChartProps
 
-  curveType ??= 'monotone'
-  showPoints ??= false
+  fullPointFill ??= true
   includeLegend ??= true
   includeTooltip ??= true
   verticalAxis ??= true
   tickLine ??= true
   tickMargin ??= 8
   axisLine ??= true
-  axisRatio ??= 2
+  aspectRatio ??= 2
   tickFormatter ??= (value) => (value as string).substring(0, 3)
 
   const className = useMemo(() => {
@@ -66,9 +57,9 @@ const LineChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     <ChartContainer
       config={chartConfig}
       className={className}
-      style={{ aspectRatio: axisRatio }}
+      style={{ aspectRatio: aspectRatio }}
     >
-      <LineChart data={chartData}>
+      <ScatterChart data={chartData}>
         <CartesianGrid vertical={verticalAxis} />
         {getAxisComponents(
           chartData,
@@ -91,17 +82,16 @@ const LineChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
         {valueKeys &&
           valueFills &&
           valueKeys.map((key, index) => (
-            <Line
+            <Scatter
               key={index}
-              stroke={valueFills[key]}
+              stroke={!fullPointFill ? valueFills[key] : 'transparent'}
+              fill={fullPointFill ? valueFills[key] : 'transparent'}
               dataKey={key}
-              dot={showPoints}
-              type={curveType ?? 'monotone'}
             />
           ))}
-      </LineChart>
+      </ScatterChart>
     </ChartContainer>
   )
 }
 
-export default LineChartComponent
+export default ScatterChartComponent

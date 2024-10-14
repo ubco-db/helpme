@@ -3,9 +3,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import DashboardPresetComponent from '../insights/components/DashboardPresetComponent'
 import { useParams } from 'next/navigation'
-import InsightComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/outputComponents/InsightComponent'
-import InsightsPageMenu from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/InsightsPageMenu'
-import { InsightContextProvider } from '@/app/(dashboard)/course/[cid]/(insights)/insights/context/InsightsContext'
+import InsightComponent from '@/app/(dashboard)/course/[cid]/insights/components/outputComponents/InsightComponent'
+import InsightsPageMenu from '@/app/(dashboard)/course/[cid]/insights/components/InsightsPageMenu'
+import { InsightContextProvider } from '@/app/(dashboard)/course/[cid]/insights/context/InsightsContext'
 import {
   InsightCategory,
   InsightDashboardPartial,
@@ -125,7 +125,7 @@ export default function InsightsPage() {
           return renders
       }
     },
-    [category, selectedDashboard, dashboardInsights],
+    [category, dashboardInsights, courseId, insightDirectory],
   )
 
   return (

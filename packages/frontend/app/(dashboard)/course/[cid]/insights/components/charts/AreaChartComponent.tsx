@@ -1,24 +1,17 @@
 import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/app/components/ui/chart'
-import { Scatter, ScatterChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import React, { useMemo } from 'react'
-import {
   AxisChartClasses,
   ChartComponentProps,
-  PointChartProps,
-} from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
-import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
+  LinearChartProps,
+} from '@/app/(dashboard)/course/[cid]/insights/utils/types'
+import React, { useMemo } from 'react'
+import { ChartContainer } from '@/app/components/ui/chart'
+import { Area, AreaChart, CartesianGrid } from 'recharts'
 import {
   getAxisComponents,
   getLegendAndTooltipComponents,
-} from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/ChartFunctions'
+} from '@/app/(dashboard)/course/[cid]/insights/components/charts/ChartFunctions'
 
-const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
+const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
     chartConfig,
     chartData,
@@ -35,23 +28,25 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   let {
     includeLegend,
     includeTooltip,
+    curveType,
+    showPoints,
     verticalAxis,
     tickLine,
     tickMargin,
     axisLine,
-    axisRatio,
-    fullPointFill,
+    aspectRatio,
     tickFormatter,
-  } = props as PointChartProps
+  } = props as LinearChartProps
 
-  fullPointFill ??= true
+  curveType ??= 'monotone'
+  showPoints ??= false
   includeLegend ??= true
   includeTooltip ??= true
   verticalAxis ??= true
   tickLine ??= true
   tickMargin ??= 8
   axisLine ??= true
-  axisRatio ??= 2
+  aspectRatio ??= 2
   tickFormatter ??= (value) => (value as string).substring(0, 3)
 
   const className = useMemo(() => {
@@ -64,9 +59,9 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     <ChartContainer
       config={chartConfig}
       className={className}
-      style={{ aspectRatio: axisRatio }}
+      style={{ aspectRatio: aspectRatio }}
     >
-      <ScatterChart data={chartData}>
+      <AreaChart data={chartData} accessibilityLayer>
         <CartesianGrid vertical={verticalAxis} />
         {getAxisComponents(
           chartData,
@@ -86,19 +81,42 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           valueFormatter,
           legendFormatter,
         )}
+        <defs>
+          {valueKeys &&
+            valueFills &&
+            valueKeys.map((key) => (
+              <>
+                <linearGradient id={'fill' + key} x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset={'5%'}
+                    stopColor={valueFills[key]}
+                    stopOpacity={0.8}
+                  />
+                  <stop
+                    offset={'95%'}
+                    stopColor={valueFills[key]}
+                    stopOpacity={0.0}
+                  />
+                </linearGradient>
+              </>
+            ))}
+        </defs>
         {valueKeys &&
           valueFills &&
           valueKeys.map((key, index) => (
-            <Scatter
+            <Area
               key={index}
-              stroke={!fullPointFill ? valueFills[key] : 'transparent'}
-              fill={fullPointFill ? valueFills[key] : 'transparent'}
+              stroke={valueFills[key]}
+              strokeWidth={2}
+              fill={`url(#fill${key})`}
               dataKey={key}
+              dot={showPoints}
+              type={curveType ?? 'monotone'}
             />
           ))}
-      </ScatterChart>
+      </AreaChart>
     </ChartContainer>
   )
 }
 
-export default ScatterChartComponent
+export default AreaChartComponent

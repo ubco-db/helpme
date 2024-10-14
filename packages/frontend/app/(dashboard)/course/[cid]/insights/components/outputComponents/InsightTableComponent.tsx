@@ -1,6 +1,6 @@
 import { TableOutputType } from '@koh/common'
 import React, { useMemo } from 'react'
-import { GenericInsightComponentProps } from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/outputComponents/InsightComponent'
+import { GenericInsightComponentProps } from '@/app/(dashboard)/course/[cid]/insights/components/outputComponents/InsightComponent'
 import { Empty } from 'antd'
 
 const InsightTableComponent: React.FC<GenericInsightComponentProps> = ({

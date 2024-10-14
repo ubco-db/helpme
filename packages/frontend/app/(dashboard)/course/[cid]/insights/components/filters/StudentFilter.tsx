@@ -1,10 +1,10 @@
 import { Button, Modal, Pagination, Checkbox, List, Input } from 'antd'
 import { useMemo, useState } from 'react'
-import { useInsightContext } from '@/app/(dashboard)/course/[cid]/(insights)/insights/context/InsightsContext'
+import { useInsightContext } from '@/app/(dashboard)/course/[cid]/insights/context/InsightsContext'
 import { UserPartial } from '@koh/common'
 import UserAvatar from '@/app/components/UserAvatar'
 import { DownOutlined, SearchOutlined } from '@ant-design/icons'
-import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/filters/FilterWrapper'
+import FilterWrapper from '@/app/(dashboard)/course/[cid]/insights/components/filters/FilterWrapper'
 
 type StudentFilterProps = {
   selectedStudents: number[]

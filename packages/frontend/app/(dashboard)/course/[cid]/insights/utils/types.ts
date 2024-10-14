@@ -6,7 +6,21 @@ import {
   Formatter as TooltipFormatter,
 } from 'recharts/types/component/DefaultTooltipContent'
 import { Formatter } from 'recharts/types/component/DefaultLegendContent'
-export type ChartSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl'
+import { numToWeekday } from '@koh/common'
+import {
+  generateAxisRange,
+  getMinutesToTime,
+} from '@/app/(dashboard)/course/[cid]/insights/utils/functions'
+export type ChartSize =
+  | 'xxs'
+  | 'xs'
+  | 'sm'
+  | 'md'
+  | 'lg'
+  | 'xl'
+  | '2xl'
+  | '3xl'
+  | '4xl'
 
 export const AxisChartClasses = {
   xxs: 'mx-auto chart-xxs',
@@ -80,7 +94,7 @@ export interface AxisChartProps extends DefaultChartProps {
   tickMargin?: number
   axisLine?: boolean
   tickFormatter?: (label: string) => string
-  axisRatio?: number
+  aspectRatio?: number
 }
 
 export interface BarChartProps extends AxisChartProps, StackChartProps {}
@@ -99,11 +113,19 @@ export interface GanttChartProps {
   chartData: ChartDataType[]
   size: ChartSize
   includeTooltip?: boolean
-  includeLegend?: boolean
   xKey: string
   yKey: string
-  zKey: string
+  zKey?: string
   numCategories: number
+  labelFormatter?: (
+    label: any,
+    payload: TooltipPayload<string, NameType>[],
+  ) => React.ReactNode
+  valueFormatter?: TooltipFormatter<any, NameType>
+  xTickFormatter?: (label: string) => string
+  yTickFormatter?: (label: string) => string
+  xRange?: (chartData: ChartDataType[]) => number[]
+  aspectRatio?: number
 }
 
 export type ChartDataType = { key: string; fill?: string; [key: string]: any }
@@ -164,7 +186,7 @@ export const charts: {
       includeLegend: true,
       includeTooltip: true,
       size: '4xl',
-      axisRatio: 3,
+      aspectRatio: 3,
       tickFormatter: (label) =>
         new Date(label).toLocaleString('en-US', {
           year: '2-digit',
@@ -220,9 +242,44 @@ export const gantt_charts: {
 } = {
   MostActiveTimes: {
     props: {
-      includeLegend: true,
       includeTooltip: true,
       size: '4xl',
+      labelFormatter: (
+        label: string,
+        payload: TooltipPayload<string, NameType>[],
+      ) => {
+        if (payload != undefined) {
+          const p = (payload as any[])[0]?.payload
+          return (
+            numToWeekday(p.Weekday) + `  (${getMinutesToTime(p.key as number)})`
+          )
+        } else {
+          return label
+        }
+      },
+      xTickFormatter: (label: string) => {
+        const num = parseInt(label)
+        if (isNaN(num)) {
+          return ''
+        }
+        return getMinutesToTime(num)
+      },
+      yTickFormatter: (label: string) =>
+        numToWeekday(parseInt(label)).substring(0, 3),
+      valueFormatter: (label: any, key: any, body: any) => {
+        if (key == 'key') {
+          const payload: any = body.payload
+          return 'Questions: ' + payload?.Amount ?? 0
+        }
+        return undefined
+      },
+      xRange: (chartData: ChartDataType[]) => {
+        const range = generateAxisRange(chartData, ['key'], 60)
+        range[0] = range[0] >= 60 ? range[0] - 60 : range[0]
+        range[1] = range[1] <= 1380 ? range[1] + 60 : range[1]
+        return range
+      },
+      aspectRatio: 3,
     },
   },
 }

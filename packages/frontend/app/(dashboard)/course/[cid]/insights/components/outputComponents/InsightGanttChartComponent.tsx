@@ -1,18 +1,18 @@
-import { GanttChartOutputType } from '@koh/common'
 import React, { useMemo } from 'react'
-import {
-  constructChartConfig,
-  generateUniqueColor,
-} from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
+import { GenericInsightComponentProps } from '@/app/(dashboard)/course/[cid]/insights/components/outputComponents/InsightComponent'
+import { GanttChartOutputType } from '@koh/common'
 import {
   ChartDataType,
   ChartSize,
   gantt_charts,
-} from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
-import InsightCard from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/InsightCard'
-import { GenericInsightComponentProps } from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/outputComponents/InsightComponent'
+} from '@/app/(dashboard)/course/[cid]/insights/utils/types'
+import {
+  constructChartConfig,
+  generateUniqueColor,
+} from '@/app/(dashboard)/course/[cid]/insights/utils/functions'
+import GanttChartComponent from '@/app/(dashboard)/course/[cid]/insights/components/charts/GanttChartComponent'
+import InsightCard from '@/app/(dashboard)/course/[cid]/insights/components/InsightCard'
 import { Empty } from 'antd'
-import GanttChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/GanttChartComponent'
 
 const InsightGanttChartComponent: React.FC<GenericInsightComponentProps> = ({
   insight,
@@ -22,26 +22,28 @@ const InsightGanttChartComponent: React.FC<GenericInsightComponentProps> = ({
   const chartOutput = insight.output as GanttChartOutputType
   const matchingChart = gantt_charts[insightName]
 
-  const chartData = useMemo(
-    () => chartOutput.data,
-    [chartOutput.data, chartOutput.xKey, matchingChart],
-  )
+  const chartData = useMemo(() => chartOutput.data, [chartOutput.data])
 
   const chartRender = useMemo(() => {
     if (matchingChart) {
-      const data: ChartDataType[] = chartOutput.data.map((v) => {
-        return {
+      const data: ChartDataType[] = chartData.map((v) => {
+        const d = {
           key: v[chartOutput.xKey],
           [chartOutput.yKey]: v[chartOutput.yKey],
-          [chartOutput.zKey]: v[chartOutput.zKey],
           fill: generateUniqueColor(
             parseInt(v[chartOutput.yKey] ?? '0'),
             chartOutput.numCategories,
           ),
         } as ChartDataType
+
+        if (chartOutput.zKey != undefined) {
+          d[chartOutput.zKey] = v[chartOutput.zKey]
+        }
+
+        return d
       })
 
-      const chartConfig = constructChartConfig(data, chartOutput.label)
+      const chartConfig = constructChartConfig(data, chartOutput.yKey)
 
       const props = {
         chartData: data,
@@ -57,12 +59,12 @@ const InsightGanttChartComponent: React.FC<GenericInsightComponentProps> = ({
       return <GanttChartComponent props={props} />
     }
   }, [
-    chartData,
-    chartOutput.label,
-    chartOutput.xKey,
-    chartOutput.yKey,
-    chartOutput.xKey,
     matchingChart,
+    chartData,
+    chartOutput.yKey,
+    chartOutput.zKey,
+    chartOutput.numCategories,
+    chartOutput.xKey,
   ])
 
   return (

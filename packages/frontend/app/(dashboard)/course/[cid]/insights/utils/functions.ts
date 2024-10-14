@@ -1,5 +1,5 @@
 import { ChartConfig } from '@/app/components/ui/chart'
-import { ChartDataType } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
+import { ChartDataType } from '@/app/(dashboard)/course/[cid]/insights/utils/types'
 
 const hsvToHex = (h: number, s: number, v: number) => {
   const a = s * Math.min(v, 1 - v)
@@ -123,4 +123,13 @@ export const generateTickRange = (domain: number[], numberOfTicks: number) => {
   }
   range.push(domain[1])
   return range
+}
+
+export const getMinutesToTime = (mins: number) => {
+  const hours = Math.floor(mins / 60)
+  const minutes = Math.floor(mins - hours * 60)
+  const hourToPm =
+    hours > 0 && hours <= 12 ? hours : hours == 0 ? 12 : hours - 12
+
+  return `${hourToPm}:${(minutes < 10 ? '0' : '') + Math.round(minutes)} ${hours == 24 || hours == 0 || hours < 12 ? 'AM' : 'PM'}`
 }

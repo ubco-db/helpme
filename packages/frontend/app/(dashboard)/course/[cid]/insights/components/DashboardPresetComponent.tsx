@@ -23,9 +23,12 @@ import {
   ListInsightsResponse,
 } from '@koh/common'
 import {
+  ChartComponent,
   charts,
   ChartSize,
-} from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
+  gantt_charts,
+  GanttChartComponent,
+} from '@/app/(dashboard)/course/[cid]/insights/utils/types'
 import { API } from '@/app/api'
 import { CloseIcon } from 'next/dist/client/components/react-dev-overlay/internal/icons/CloseIcon'
 
@@ -122,6 +125,7 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
 
   const onModalClose = () => {
     setSelectedInsights([])
+    setNameValue('')
     setIsCreationModalOpen(false)
   }
 
@@ -189,18 +193,27 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
               index: number,
             ) => {
               const { name, displayInfo } = item
-              const matchingChart = charts[item.name]
+              let matchingChart: ChartComponent | GanttChartComponent =
+                charts[item.name]
+              if (matchingChart == undefined) {
+                matchingChart = gantt_charts[item.name]
+              }
+
               const detailsNode: React.ReactNode = (
                 <div className={pillContainerClass}>
                   <div className={pillLabelClass}>
                     {(displayInfo.insightType == InsightType.Chart &&
-                      `${matchingChart?.chartType} Chart`) ||
+                      `${(matchingChart as ChartComponent)?.chartType} Chart`) ||
                       (displayInfo.insightType == InsightType.Value &&
                         'Single Value') ||
-                      (displayInfo.insightType == InsightType.Table && 'Table')}
+                      (displayInfo.insightType == InsightType.Table &&
+                        'Table') ||
+                      (displayInfo.insightType == InsightType.GanttChart &&
+                        'Gantt Chart')}
                   </div>
                   <div className={pillLabelClass}>
-                    {(displayInfo.insightType == InsightType.Chart &&
+                    {((displayInfo.insightType == InsightType.Chart ||
+                      displayInfo.insightType == InsightType.GanttChart) &&
                       `${
                         matchingChart?.props.size
                           ? translateSize(matchingChart.props.size)

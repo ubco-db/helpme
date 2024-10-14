@@ -1,19 +1,19 @@
+import { GenericInsightComponentProps } from '@/app/(dashboard)/course/[cid]/insights/components/outputComponents/InsightComponent'
 import { ChartOutputType } from '@koh/common'
+import { charts } from '@/app/(dashboard)/course/[cid]/insights/utils/types'
 import React, { useMemo } from 'react'
-import AreaChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/AreaChartComponent'
-import BarChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/BarChartComponent'
-import LineChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/LineChartComponent'
-import PieChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/PieChartComponent'
-import RadarChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/RadarChartComponent'
-import RadialChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/RadialChartComponent'
-import ScatterChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/charts/ScatterChartComponent'
 import {
   constructChartConfig,
   processChartData,
-} from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
-import { charts } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
-import InsightCard from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/InsightCard'
-import { GenericInsightComponentProps } from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/outputComponents/InsightComponent'
+} from '@/app/(dashboard)/course/[cid]/insights/utils/functions'
+import AreaChartComponent from '@/app/(dashboard)/course/[cid]/insights/components/charts/AreaChartComponent'
+import BarChartComponent from '@/app/(dashboard)/course/[cid]/insights/components/charts/BarChartComponent'
+import LineChartComponent from '@/app/(dashboard)/course/[cid]/insights/components/charts/LineChartComponent'
+import PieChartComponent from '@/app/(dashboard)/course/[cid]/insights/components/charts/PieChartComponent'
+import RadarChartComponent from '@/app/(dashboard)/course/[cid]/insights/components/charts/RadarChartComponent'
+import RadialChartComponent from '@/app/(dashboard)/course/[cid]/insights/components/charts/RadialChartComponent'
+import ScatterChartComponent from '@/app/(dashboard)/course/[cid]/insights/components/charts/ScatterChartComponent'
+import InsightCard from '@/app/(dashboard)/course/[cid]/insights/components/InsightCard'
 import { Empty } from 'antd'
 
 const InsightChartComponent: React.FC<

@@ -1548,7 +1548,7 @@ export function numToWeekday(num: number) {
     case 6:
       return 'Saturday'
     default:
-      return 'N/A'
+      return ''
   }
 }
 
@@ -1571,7 +1571,7 @@ export type GanttChartOutputType = {
   data: StringMap<any>[]
   xKey: string
   yKey: string
-  zKey: string
+  zKey?: string
   label: string
   numCategories: number
 }

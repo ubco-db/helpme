@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Button, Checkbox, Dropdown, MenuProps } from 'antd'
-import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/filters/FilterWrapper'
+import FilterWrapper from '@/app/(dashboard)/course/[cid]/insights/components/filters/FilterWrapper'
 
 type DataFilterProps = {
   dataKeys: string[]
@@ -14,7 +14,7 @@ const DataFilter: React.FC<DataFilterProps> = ({
 }) => {
   useEffect(() => {
     setSelectedData(dataKeys)
-  }, [])
+  }, [dataKeys, setSelectedData])
 
   const [open, setOpen] = useState<boolean>(false)
 
@@ -26,13 +26,17 @@ const DataFilter: React.FC<DataFilterProps> = ({
           label: (
             <Checkbox
               checked={selectedData.includes(key)}
-              onChange={() =>
+              onChange={() => {
                 setSelectedData(
                   selectedData.includes(key)
-                    ? selectedData.filter((s) => s != key)
-                    : [...selectedData, key],
+                    ? dataKeys.filter(
+                        (s) => selectedData.includes(s) && s != key,
+                      )
+                    : dataKeys.filter(
+                        (s) => selectedData.includes(s) || s == key,
+                      ),
                 )
-              }
+              }}
             >
               {(key + '').replace(/_/g, ' ')}
             </Checkbox>

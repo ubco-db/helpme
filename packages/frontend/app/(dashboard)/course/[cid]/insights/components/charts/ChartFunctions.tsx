@@ -1,7 +1,6 @@
 import { XAxis, YAxis } from 'recharts'
-import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
-import React from 'react'
-import { ChartDataType } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
+import { ChartDataType } from '@/app/(dashboard)/course/[cid]/insights/utils/types'
+import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/insights/utils/functions'
 import {
   ChartLegend,
   ChartLegendContent,
@@ -9,9 +8,9 @@ import {
   ChartTooltipContent,
 } from '@/app/components/ui/chart'
 import {
-  NameType,
-  Payload as TooltipPayload,
   Formatter as TooltipFormatter,
+  Payload as TooltipPayload,
+  NameType,
 } from 'recharts/types/component/DefaultTooltipContent'
 import { Formatter } from 'recharts/types/component/DefaultLegendContent'
 

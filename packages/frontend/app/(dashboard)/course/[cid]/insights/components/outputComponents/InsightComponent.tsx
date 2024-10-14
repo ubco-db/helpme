@@ -7,15 +7,15 @@ import {
   InsightParamsType,
   InsightType,
 } from '@koh/common'
-import InsightValueComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/outputComponents/InsightValueComponent'
-import InsightTableComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/outputComponents/InsightTableComponent'
-import InsightChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/outputComponents/InsightChartComponent'
-import DateOptionFilter from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/filters/DateOptionFilter'
-import StudentFilter from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/filters/StudentFilter'
-import DataFilter from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/filters/DataFilter'
-import { charts } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
-import QueueFilter from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/filters/QueueFilter'
-import InsightGanttChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/outputComponents/InsightGanttChartComponent'
+import DateOptionFilter from '@/app/(dashboard)/course/[cid]/insights/components/filters/DateOptionFilter'
+import { charts } from '@/app/(dashboard)/course/[cid]/insights/utils/types'
+import StudentFilter from '@/app/(dashboard)/course/[cid]/insights/components/filters/StudentFilter'
+import QueueFilter from '@/app/(dashboard)/course/[cid]/insights/components/filters/QueueFilter'
+import DataFilter from '@/app/(dashboard)/course/[cid]/insights/components/filters/DataFilter'
+import InsightValueComponent from '@/app/(dashboard)/course/[cid]/insights/components/outputComponents/InsightValueComponent'
+import InsightChartComponent from '@/app/(dashboard)/course/[cid]/insights/components/outputComponents/InsightChartComponent'
+import InsightTableComponent from '@/app/(dashboard)/course/[cid]/insights/components/outputComponents/InsightTableComponent'
+import InsightGanttChartComponent from '@/app/(dashboard)/course/[cid]/insights/components/outputComponents/InsightGanttChartComponent'
 
 interface InsightComponentProps {
   courseId: number

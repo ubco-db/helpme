@@ -5,15 +5,15 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/app/components/ui/chart'
-import { LabelList, RadialBar, RadialBarChart } from 'recharts'
+import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from 'recharts'
 import React, { useMemo } from 'react'
 import {
-  RadialChartProps,
-  RadialChartClasses,
   ChartComponentProps,
-} from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
+  PointChartProps,
+  RadialChartClasses,
+} from '@/app/(dashboard)/course/[cid]/insights/utils/types'
 
-const RadialChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
+const RadarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
     chartConfig,
     chartData,
@@ -25,13 +25,11 @@ const RadialChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     legendFormatter,
   } = props
 
-  const { stackData } = props as RadialChartProps
+  let { includeLegend, includeTooltip, showPoints } = props as PointChartProps
 
-  let { includeLegend, includeTooltip, showLabels } = props as RadialChartProps
-
+  showPoints ??= false
   includeLegend ??= true
   includeTooltip ??= true
-  showLabels ??= true
 
   const className = useMemo(() => {
     return size != undefined && RadialChartClasses[size] != undefined
@@ -41,12 +39,9 @@ const RadialChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
 
   return (
     <ChartContainer config={chartConfig} className={className}>
-      <RadialBarChart
-        data={chartData}
-        innerRadius={30}
-        startAngle={-90}
-        endAngle={380}
-      >
+      <RadarChart data={chartData}>
+        <PolarAngleAxis dataKey={'key'} />
+        <PolarGrid />
         {includeTooltip && (
           <ChartTooltip
             formatter={valueFormatter}
@@ -64,25 +59,17 @@ const RadialChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
         {valueKeys &&
           valueFills &&
           valueKeys.map((key, index) => (
-            <RadialBar
+            <Radar
               key={index}
-              stackId={stackData ? 'radial-stack' : undefined}
               fill={valueFills[key]}
+              fillOpacity={0.5}
               dataKey={key}
-            >
-              {showLabels && (
-                <LabelList
-                  position={'insideStart'}
-                  dataKey={'key'}
-                  className={'fill-white capitalize mix-blend-luminosity'}
-                  fontSize={11}
-                />
-              )}
-            </RadialBar>
+              dot={showPoints ? { r: 4, fillOpacity: 1 } : undefined}
+            />
           ))}
-      </RadialBarChart>
+      </RadarChart>
     </ChartContainer>
   )
 }
 
-export default RadialChartComponent
+export default RadarChartComponent

@@ -1,4 +1,10 @@
 import {
+  AxisChartClasses,
+  BarChartProps,
+  ChartComponentProps,
+} from '@/app/(dashboard)/course/[cid]/insights/utils/types'
+import React, { useMemo } from 'react'
+import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
@@ -6,13 +12,7 @@ import {
   ChartTooltipContent,
 } from '@/app/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import React, { useMemo } from 'react'
-import {
-  AxisChartClasses,
-  BarChartProps,
-  ChartComponentProps,
-} from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
-import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/functions'
+import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/insights/utils/functions'
 
 const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {

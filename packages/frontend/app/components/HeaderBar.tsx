@@ -120,7 +120,6 @@ const NavBar = ({
   courseId,
   isAQueuePage,
   isACourseSettingsPage,
-  isAnInsightsPage,
   isProfilePage = false,
   orientation = 'horizontal',
 }: {
@@ -128,7 +127,6 @@ const NavBar = ({
   courseId: number | null
   isAQueuePage: boolean
   isACourseSettingsPage: boolean
-  isAnInsightsPage: boolean
   isProfilePage?: boolean
   orientation?: 'horizontal' | 'vertical'
 }) => {
@@ -268,14 +266,7 @@ const NavBar = ({
                 </NavigationMenuItem>
               )}
               {role === Role.PROFESSOR && (
-                <NavigationMenuItem
-                  className={
-                    isAnInsightsPage
-                      ? // the hover:border-none is because the inner link has a hover effect that adds another border
-                        'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white md:hover:border-none md:focus:border-none'
-                      : ''
-                  }
-                >
+                <NavigationMenuItem>
                   <Link href={`/course/${courseId}/insights`}>
                     <LineChart strokeWidth={1.5} className="mr-3" />
                     Insights
@@ -393,7 +384,6 @@ const HeaderBar: React.FC = () => {
   const isAQueuePage = URLSegments[3] === 'queue'
   const isACourseSettingsPage =
     URLSegments[3] === 'settings' && !!URLSegments[4]
-  const isAnInsightsPage = URLSegments[3] === 'insights' && !!URLSegments[4]
   const isProfilePage = URLSegments[1] === 'profile'
   const { course } = useCourse(courseId)
 
@@ -408,7 +398,6 @@ const HeaderBar: React.FC = () => {
       courseId={courseId}
       isAQueuePage={isAQueuePage}
       isACourseSettingsPage={isACourseSettingsPage}
-      isAnInsightsPage={isAnInsightsPage}
       isProfilePage={isProfilePage}
     />
   ) : (
@@ -483,7 +472,6 @@ const HeaderBar: React.FC = () => {
               courseId={courseId}
               isAQueuePage={isAQueuePage}
               isACourseSettingsPage={isACourseSettingsPage}
-              isAnInsightsPage={isAnInsightsPage}
               orientation="vertical"
             />
           </div>

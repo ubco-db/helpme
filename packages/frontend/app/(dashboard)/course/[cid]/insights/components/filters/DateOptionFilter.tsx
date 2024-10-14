@@ -2,7 +2,7 @@ import { DateRangeType } from '@koh/common'
 import React, { useState } from 'react'
 import { Select, DatePicker } from 'antd'
 import dayjs from 'dayjs'
-import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/filters/FilterWrapper'
+import FilterWrapper from '@/app/(dashboard)/course/[cid]/insights/components/filters/FilterWrapper'
 
 const { RangePicker } = DatePicker
 const { Option } = Select

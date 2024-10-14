@@ -1,9 +1,9 @@
 import { Button, Modal, Checkbox, List, Input } from 'antd'
 import { useMemo, useState } from 'react'
-import { useInsightContext } from '@/app/(dashboard)/course/[cid]/(insights)/insights/context/InsightsContext'
+import { useInsightContext } from '@/app/(dashboard)/course/[cid]/insights/context/InsightsContext'
 import { QueuePartial } from '@koh/common'
 import { DownOutlined, SearchOutlined } from '@ant-design/icons'
-import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/insights/components/filters/FilterWrapper'
+import FilterWrapper from '@/app/(dashboard)/course/[cid]/insights/components/filters/FilterWrapper'
 
 type QueueFilterProps = {
   selectedQueues: number[]

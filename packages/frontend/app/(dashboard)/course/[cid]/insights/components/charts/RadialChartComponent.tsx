@@ -5,32 +5,33 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/app/components/ui/chart'
-import { LabelList, Pie, PieChart } from 'recharts'
+import { LabelList, RadialBar, RadialBarChart } from 'recharts'
 import React, { useMemo } from 'react'
 import {
   RadialChartProps,
   RadialChartClasses,
   ChartComponentProps,
-} from '@/app/(dashboard)/course/[cid]/(insights)/insights/utils/types'
+} from '@/app/(dashboard)/course/[cid]/insights/utils/types'
 
-const PieChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
+const RadialChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
-    valueKeys,
     chartConfig,
     chartData,
     size,
+    valueKeys,
+    valueFills,
     labelFormatter,
     valueFormatter,
     legendFormatter,
   } = props
 
-  const { showLabels } = props as RadialChartProps
+  const { stackData } = props as RadialChartProps
 
-  let { includeLegend, includeTooltip, innerRadius } = props as RadialChartProps
+  let { includeLegend, includeTooltip, showLabels } = props as RadialChartProps
 
   includeLegend ??= true
   includeTooltip ??= true
-  innerRadius ??= 0
+  showLabels ??= true
 
   const className = useMemo(() => {
     return size != undefined && RadialChartClasses[size] != undefined
@@ -40,13 +41,18 @@ const PieChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
 
   return (
     <ChartContainer config={chartConfig} className={className}>
-      <PieChart accessibilityLayer>
+      <RadialBarChart
+        data={chartData}
+        innerRadius={30}
+        startAngle={-90}
+        endAngle={380}
+      >
         {includeTooltip && (
           <ChartTooltip
             formatter={valueFormatter}
             labelFormatter={labelFormatter}
             cursor={false}
-            content={<ChartTooltipContent nameKey={'key'} />}
+            content={<ChartTooltipContent />}
           />
         )}
         {includeLegend && (
@@ -56,33 +62,27 @@ const PieChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           />
         )}
         {valueKeys &&
+          valueFills &&
           valueKeys.map((key, index) => (
-            <Pie
+            <RadialBar
               key={index}
-              data={chartData}
+              stackId={stackData ? 'radial-stack' : undefined}
+              fill={valueFills[key]}
               dataKey={key}
-              innerRadius={innerRadius ?? 0}
             >
               {showLabels && (
                 <LabelList
+                  position={'insideStart'}
                   dataKey={'key'}
-                  className={'fill-background'}
-                  fontWeight={'bold'}
-                  stroke={'none'}
-                  position={'outside'}
-                  fontSize={12}
-                  formatter={(value: keyof typeof chartConfig) =>
-                    labelFormatter
-                      ? labelFormatter(chartConfig[value]?.label + '', [])
-                      : chartConfig[value]?.label + ''
-                  }
+                  className={'fill-white capitalize mix-blend-luminosity'}
+                  fontSize={11}
                 />
               )}
-            </Pie>
+            </RadialBar>
           ))}
-      </PieChart>
+      </RadialBarChart>
     </ChartContainer>
   )
 }
 
-export default PieChartComponent
+export default RadialChartComponent
