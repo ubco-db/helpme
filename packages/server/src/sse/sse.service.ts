@@ -4,7 +4,6 @@ import { serialize } from 'class-transformer';
 import { Response } from 'express';
 import { RedisService } from 'nestjs-redis';
 import { ERROR_MESSAGES } from '@koh/common';
-import * as Sentry from '@sentry/node';
 
 /**
  * A connection to a particular frontend client
@@ -39,7 +38,6 @@ export class SSEService<T> implements OnModuleDestroy {
     const redisSub = this.redisService.getClient('sub');
 
     if (!redisSub) {
-      Sentry.captureException(ERROR_MESSAGES.sseService.getSubClient);
       throw new Error(ERROR_MESSAGES.sseService.getSubClient);
     }
 
@@ -58,12 +56,10 @@ export class SSEService<T> implements OnModuleDestroy {
       await conn.cleanup().catch((err) => {
         console.error(ERROR_MESSAGES.sseService.cleanupConnection);
         console.error(err);
-        Sentry.captureException(err);
       });
     }).catch((err) => {
       console.error(ERROR_MESSAGES.sseService.moduleDestroy);
       console.error(err);
-      Sentry.captureException(err);
     });
   }
 
@@ -84,11 +80,9 @@ export class SSEService<T> implements OnModuleDestroy {
     const redis = this.redisService.getClient('db');
 
     if (!redisSub) {
-      Sentry.captureException(ERROR_MESSAGES.sseService.getSubClient);
       throw new Error(ERROR_MESSAGES.sseService.getSubClient);
     }
     if (!redis) {
-      Sentry.captureException(ERROR_MESSAGES.sseService.getDBClient);
       throw new Error(ERROR_MESSAGES.sseService.getDBClient);
     }
 
@@ -96,19 +90,16 @@ export class SSEService<T> implements OnModuleDestroy {
     const clientId = await redis.incr('sse::client::id').catch((err) => {
       console.error(ERROR_MESSAGES.sseService.clientIdSubscribe);
       console.error(err);
-      Sentry.captureException(err);
     });
     // Subscribe to the redis channel for this client
 
     if (!clientId) {
-      Sentry.captureException(ERROR_MESSAGES.sseService.clientIdNotFound);
       throw new Error(ERROR_MESSAGES.sseService.clientIdNotFound);
     }
 
     await redisSub.subscribe(this.idToChannel(clientId)).catch((err) => {
       console.error(ERROR_MESSAGES.sseService.subscribe);
       console.error(err);
-      Sentry.captureException(err);
     });
 
     // Add to room
@@ -118,7 +109,6 @@ export class SSEService<T> implements OnModuleDestroy {
     } as RedisClientInfo<T>);
     await redis.sadd(room, clientInfo).catch((err) => {
       console.error(err);
-      Sentry.captureException(err);
     });
 
     // Keep track of response object in direct connections
@@ -133,7 +123,6 @@ export class SSEService<T> implements OnModuleDestroy {
         await redisSub.unsubscribe(this.idToChannel(clientId)).catch((err) => {
           console.error(ERROR_MESSAGES.sseService.unsubscribe);
           console.error(err);
-          Sentry.captureException(err);
         });
         res.end();
       },
@@ -147,7 +136,6 @@ export class SSEService<T> implements OnModuleDestroy {
       await this.directConnnections[clientId].cleanup().catch((err) => {
         console.error(ERROR_MESSAGES.sseService.directConnections);
         console.error(err);
-        Sentry.captureException(err);
       });
       delete this.directConnnections[clientId];
     });
@@ -162,19 +150,16 @@ export class SSEService<T> implements OnModuleDestroy {
     const redis = this.redisService.getClient('db');
 
     if (!redisPub) {
-      Sentry.captureException(ERROR_MESSAGES.sseService.getPubClient);
       throw new Error(ERROR_MESSAGES.sseService.getPubClient);
     }
 
     if (!redis) {
-      Sentry.captureException(ERROR_MESSAGES.sseService.getDBClient);
       throw new Error(ERROR_MESSAGES.sseService.getDBClient);
     }
 
     const roomInfo = await redis.smembers(room).catch((err) => {
       console.error(ERROR_MESSAGES.sseService.roomMembers);
       console.error(err);
-      Sentry.captureException(err);
     });
 
     if (room && roomInfo) {
@@ -184,7 +169,6 @@ export class SSEService<T> implements OnModuleDestroy {
           await payload(metadata).catch((err) => {
             console.error(ERROR_MESSAGES.sseService.serialize);
             console.error(err);
-            Sentry.captureException(err);
           }),
         );
         await redisPub
@@ -192,7 +176,6 @@ export class SSEService<T> implements OnModuleDestroy {
           .catch((err) => {
             console.error(ERROR_MESSAGES.sseService.publish);
             console.error(err);
-            Sentry.captureException(err);
           });
       });
     }
