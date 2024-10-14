@@ -109,6 +109,10 @@ exports[`Insights Integration GET /insights/list should return list of insights 
     "insightType": "GanttChart",
   },
   "QuestionToStudentRatio": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+    ],
     "description": "How many questions were asked per student?",
     "displayName": "Questions per Student",
     "insightCategory": "Tool_Usage_Statistics",
