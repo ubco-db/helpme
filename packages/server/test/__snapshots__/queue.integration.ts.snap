@@ -8,41 +8,6 @@ exports[`Queue Integration GET /queues/:id returns 401 when not logged in 1`] = 
 }
 `;
 
-exports[`Queue Integration GET /queues/:id/questions returns all creator data for ta 1`] = `
-{
-  "groups": [],
-  "priorityQueue": [],
-  "questions": [
-    {
-      "closedAt": null,
-      "createdAt": "2020-03-01T05:00:00.000Z",
-      "creator": {},
-      "groupable": true,
-      "helpedAt": null,
-      "id": 1,
-      "isTaskQuestion": false,
-      "location": null,
-      "questionTypes": [
-        {
-          "cid": 1,
-          "color": "#000000",
-          "deletedAt": null,
-          "id": 1,
-          "name": "Question Type",
-          "queueId": 1,
-        },
-      ],
-      "status": "Queued",
-      "taHelped": null,
-      "text": "in queue",
-    },
-  ],
-  "questionsGettingHelp": [],
-  "unresolvedAlerts": [],
-  "yourQuestions": [],
-}
-`;
-
 exports[`Queue Integration GET /queues/:id/questions returns questions in the queue 1`] = `
 {
   "groups": [],
