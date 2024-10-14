@@ -8,6 +8,7 @@ import { promisify } from 'util';
 const execPromise = promisify(exec);
 
 export const baseBackupCommand =
+  process.env.BASE_BACKUP_COMMAND ||
   'docker exec -u postgres helpme-postgresql-1 pg_dumpall -U postgres | gzip >';
 
 @Injectable()
