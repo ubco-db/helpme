@@ -225,33 +225,52 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         Or in other words, I need to match each editedQuestionTag with a corresponding old tag.
         And this would need to take the route of going editedQuestionTag.id == questionType.id and questionType.name == oldTag.display_name
         */
-        tags: Object.entries(lastSavedQueueConfig.current?.tags || {}).reduce(
-          (acc, [id, oldTag]) => {
-            // for each old tag, find corresponding questionType from questionTypes (matching name with display_name)
-            const questionType = questionTypes?.find(
-              (questionType) => questionType.name === oldTag.display_name,
-            )
-            // find the corresponding editedQuestionTag
-            const editedTag = values.editedQuestionTags.find(
-              (editedTag) => editedTag.newValues?.id === questionType?.id,
-            )
-            // if there is no editedTag, return the old tag
-            if (!editedTag) {
-              acc[id] = oldTag
-              // if the editedTag is marked for deletion, do not add it to the accumulator
-            } else if (!editedTag.markedForDeletion) {
-              // else return the updated tag
-              acc[id] = {
-                display_name: editedTag.newValues?.name ?? oldTag.display_name,
-                color_hex: editedTag.newValues?.color ?? oldTag.color_hex,
+        tags: {
+          ...Object.entries(lastSavedQueueConfig.current?.tags || {}).reduce(
+            (acc, [id, oldTag]) => {
+              // for each old tag, find corresponding questionType from questionTypes (matching name with display_name)
+              const questionType = questionTypes?.find(
+                (questionType) => questionType.name === oldTag.display_name,
+              )
+              // find the corresponding editedQuestionTag
+              const editedTag = values.editedQuestionTags.find(
+                (editedTag) => editedTag.newValues?.id === questionType?.id,
+              )
+              // if there is no editedTag, return the old tag
+              if (!editedTag) {
+                acc[id] = oldTag
+                // if the editedTag is marked for deletion, do not add it to the accumulator
+              } else if (!editedTag.markedForDeletion) {
+                // else return the updated tag
+                acc[id] = {
+                  display_name:
+                    editedTag.newValues?.name ?? oldTag.display_name,
+                  color_hex: editedTag.newValues?.color ?? oldTag.color_hex,
+                }
               }
-            }
-            return acc
-          },
-          {} as {
-            [tagKey: string]: { display_name: string; color_hex: string }
-          },
-        ),
+              return acc
+            },
+            {} as {
+              [tagKey: string]: { display_name: string; color_hex: string }
+            },
+          ),
+          // add the new tags
+          ...values.questionTypesForCreation?.reduce(
+            (acc, questionType) => {
+              acc[questionType.name] = {
+                display_name: questionType.name,
+                color_hex:
+                  typeof questionType.color === 'string'
+                    ? questionType.color
+                    : questionType.color.toHexString(),
+              }
+              return acc
+            },
+            {} as {
+              [tagKey: string]: { display_name: string; color_hex: string }
+            },
+          ),
+        },
       }),
       minimum_tags: Number(values.minTags),
       assignment_id: values.assignmentId,
