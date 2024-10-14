@@ -528,12 +528,15 @@ export const QuestionToStudentRatio: InsightObject = {
   roles: [Role.PROFESSOR],
   insightType: InsightType.Value,
   insightCategory: 'Tool_Usage_Statistics',
+  allowedFilters: ['courseId', 'timeframe'],
   async compute(filters): Promise<ValueOutputType> {
     const totalQuestions = await TotalQuestionsAsked.compute(filters);
     const totalStudents = await TotalStudents.compute(filters);
-    return totalStudents !== 0
-      ? ((totalQuestions as number) / (totalStudents as number)).toFixed(2)
-      : '0 students';
+    return (
+      (totalStudents !== 0
+        ? ((totalQuestions as number) / (totalStudents as number)).toFixed(2)
+        : '0') + ' Questions per Student'
+    );
   },
 };
 
