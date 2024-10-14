@@ -33,6 +33,7 @@ import { ApplicationConfigModule } from 'config/application_config.module';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { APP_FILTER } from '@nestjs/core';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
+import { BackupModule } from 'backup/backup.module';
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { SentryGlobalFilter } from '@sentry/nestjs/setup';
     QuestionTypeModule,
     StudentTaskProgressModule,
     RedisQueueModule,
+    BackupModule,
   ],
   providers: [
     {

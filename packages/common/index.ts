@@ -1037,6 +1037,7 @@ export type OrganizationProfessor = {
   organizationUser: {
     id: number
     name: string
+    lacksProfOrgRole?: boolean
   }
   userId: number
 }
@@ -1981,7 +1982,57 @@ export function validateQueueConfigInput(obj: any): string {
 }
 
 /**
- * note: this "Task" is only for frontend components (TaskSelector and in Queue)
+ * Detects if there are cycles in the tasks and returns true if there are.
+ *
+ * Used in both frontend and backend
+ */
+export function isCycleInTasks(
+  tasks: ConfigTasks,
+  taskKey?: string,
+  visited: string[] = [],
+  currentlyVisiting: string[] = [],
+): boolean {
+  // If no taskKey is provided, get the first key from the tasks object
+  if (!taskKey) {
+    const keys = Object.keys(tasks)
+    if (keys.length === 0) {
+      return false // No tasks to check
+    }
+    taskKey = keys[0] // Pick the first task
+  }
+
+  if (currentlyVisiting.includes(taskKey)) {
+    return true // Cycle detected
+  }
+
+  if (visited.includes(taskKey)) {
+    return false // Already checked this task
+  }
+
+  currentlyVisiting.push(taskKey) // Mark this task as currently visiting
+  visited.push(taskKey) // Mark this task as visited
+
+  const task = tasks[taskKey]
+
+  // Check precondition if it exists
+  if (task.precondition !== null) {
+    const hasCycle = isCycleInTasks(
+      tasks,
+      task.precondition,
+      visited,
+      currentlyVisiting,
+    )
+    if (hasCycle) {
+      return true // Propagate cycle detection result up
+    }
+  }
+
+  currentlyVisiting.pop() // Unmark this task from currently visiting
+  return false // No cycle found
+}
+
+/**
+ * note: this "Task" is only for frontend components (TaskSelector, TaskDeletionSelector, and in Queue)
  */
 export interface Task {
   taskId: string
@@ -2220,6 +2271,7 @@ export const ERROR_MESSAGES = {
     cleanQueue: 'Unable to clean queue',
     cannotCloseQueue: 'Unable to close professor queue as a TA',
     missingStaffList: 'Stafflist relation not present on Queue',
+    cycleInTasks: 'Cycle detected in task preconditions',
   },
   queueRoleGuard: {
     queueNotFound: 'Queue not found',

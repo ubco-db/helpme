@@ -195,7 +195,10 @@ const QuestionTagSelector: React.FC<QuestionTagSelectorProps> = ({
   }
 
   const sortedQuestionTags = useMemo(() => {
-    return [...questionTags].sort((a, b) => a.name.localeCompare(b.name))
+    // setting numeric: true will essentially perform a natural sort, where 10 is treated one number, thus making it appear after 2
+    return [...questionTags].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true }),
+    )
   }, [questionTags])
 
   return (
@@ -251,7 +254,10 @@ const QuestionTagDeleteSelector: React.FC<QuestionTagDeleteSelectorProps> = ({
   }
 
   const sortedQuestionTags = useMemo(() => {
-    return [...currentTags].sort((a, b) => a.name.localeCompare(b.name))
+    // setting numeric: true will essentially perform a natural sort, where 10 is treated one number, thus making it appear after 2
+    return [...currentTags].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true }),
+    )
   }, [currentTags])
 
   return (
