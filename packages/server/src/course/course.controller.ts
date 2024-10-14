@@ -140,7 +140,7 @@ export class CourseController {
           courseId: cid,
           status: Not(asyncQuestionStatus.StudentDeleted),
         },
-        relations: ['creator', 'taHelped', 'votes'],
+        relations: ['creator', 'taHelped', 'votes', 'comments'],
         order: {
           createdAt: 'DESC',
         },
@@ -196,10 +196,38 @@ export class CourseController {
         'visible',
         'verified',
         'votes',
+        'comments',
         'questionTypes',
         'votesSum',
         'isTaskQuestion',
       ]);
+
+      const filteredComments = question.comments?.map((comment) => {
+        const temp = { ...comment };
+
+        temp.creator =
+          isStaff || comment.creator.id === user.id
+            ? {
+                id: comment.creator.id,
+                name: comment.creator.name,
+                photoURL: comment.creator.photoURL,
+              }
+            : null;
+
+        return temp;
+      });
+      temp.comments = filteredComments;
+
+      Object.assign(temp, {
+        creator:
+          isStaff || question.creator.id == user.id
+            ? {
+                id: question.creator.id,
+                name: question.creator.name,
+                photoURL: question.creator.photoURL,
+              }
+            : null,
+      });
 
       Object.assign(temp, {
         creator:

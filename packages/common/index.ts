@@ -121,7 +121,7 @@ export class UserPartial {
 
   @IsOptional()
   @IsString()
-  name?: string
+  name!: string
 
   @IsString()
   @IsOptional()
@@ -555,6 +555,7 @@ export type AsyncQuestion = {
   visible?: boolean
   verified: boolean
   votes?: AsyncQuestionVotes[]
+  comments?: AsyncQuestionComment[]
   votesSum: number
 }
 
@@ -632,6 +633,30 @@ export class AsyncQuestionVotes {
 
   @IsInt()
   vote!: number
+}
+
+export class AsyncQuestionComment {
+  @IsOptional()
+  @IsInt()
+  id?: number
+
+  @IsInt()
+  questionId!: number
+
+  @IsInt()
+  userId!: number
+
+  @Type(() => UserPartial)
+  creator!: UserPartial
+
+  @IsString()
+  commentText!: string
+
+  @IsString()
+  createdBy!: string
+
+  @IsDate()
+  createdAt!: number
 }
 
 export class Image {
@@ -2217,6 +2242,7 @@ export const ERROR_MESSAGES = {
       oneQuestionAtATime: "You can't create more than one question at a time.",
       oneDemoAtATime: "You can't create more than one demo at a time.",
       invalidQuestionType: 'Invalid question type',
+      tooFast: 'You are posting too quickly',
     },
     updateQuestion: {
       fsmViolation: (

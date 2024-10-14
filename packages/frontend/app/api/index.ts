@@ -59,6 +59,7 @@ import {
   QueueInviteParams,
   PublicQueueInvite,
   QueueInvite,
+  AsyncQuestionComment,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -358,6 +359,23 @@ class APIClient {
       this.req('POST', `/api/v1/asyncQuestions/${qid}/${vote}`, undefined, {
         vote,
       }),
+    comment: async (
+      questionId: number,
+      userId: number,
+      commentText: string,
+    ): Promise<Response> => {
+      return this.req('POST', `/api/v1/asyncQuestions/comment`, Response, {
+        questionId,
+        userId,
+        commentText,
+      })
+    },
+    getComments: async (questionId: number): Promise<AsyncQuestionComment> =>
+      this.req(
+        'GET',
+        `/api/v1/asyncQuestions/comment/${questionId}`,
+        undefined,
+      ),
   }
   questions = {
     index: async (queueId: number) =>

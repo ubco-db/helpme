@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
-import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
+import { AsyncQuestion, asyncQuestionStatus, UserPartial } from '@koh/common'
 import {
   CheckCircleOutlined,
   DownOutlined,
@@ -19,6 +19,7 @@ import Markdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import MarkdownCustom from '@/app/components/Markdown'
+import CommentSection from './CommentSection'
 
 const statusDisplayMap = {
   // if the question has no answer text, it will say "awaiting answer"
@@ -56,7 +57,8 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     question.status === asyncQuestionStatus.AIAnswered &&
     userId === question.creatorId
 
-  const showUser = (isStaff || userId == question.creatorId) && question.creator
+  const showUser: UserPartial | null =
+    isStaff || userId == question.creatorId ? question.creator : null
 
   const handleFeedback = async (resolved: boolean) => {
     const newstatus = resolved
@@ -159,7 +161,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             <div className="mb-1 flex justify-between">
               <div className="flex flex-grow">
                 {showUser && (
-                  <>
+                  <React.Fragment>
                     <UserAvatar
                       size={40}
                       username={question.creator.name}
@@ -172,7 +174,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                       photoURL={question.creator.photoURL}
                       className="mr-2 flex md:hidden"
                     />
-                  </>
+                  </React.Fragment>
                 )}
                 <div className="flex flex-grow flex-col justify-between md:flex-row">
                   <div
@@ -275,6 +277,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   </>
                 )}
               </div>
+              <CommentSection question={question} />
             </div>
             <div className="flex flex-wrap">
               {question.questionTypes?.map((questionType, index) => (
