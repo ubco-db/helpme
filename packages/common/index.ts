@@ -2133,6 +2133,17 @@ export function transformIntoTaskTree(
   return taskTree
 }
 
+export function generateTagIdFromName(name: string): string {
+  // Sanitize the name by removing illegal characters
+  const sanitized = name.replace(/[\{\}"\:\,]/g, '')
+
+  // Generate a couple of random digits
+  const randomDigits = Math.floor(Math.random() * 100) // Generates a number between 0 and 99
+
+  // Append the random digits to the sanitized name (to prevent the edge case where two tags have different names but the same tag ids)
+  return `${sanitized}_${randomDigits}`
+}
+
 export function encodeBase64(str: string) {
   return Buffer.from(str, 'utf-8').toString('base64')
 }

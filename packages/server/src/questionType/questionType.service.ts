@@ -1,4 +1,4 @@
-import { QuestionTypeParams } from '@koh/common';
+import { generateTagIdFromName, QuestionTypeParams } from '@koh/common';
 import {
   BadRequestException,
   ConflictException,
@@ -67,7 +67,7 @@ export class QuestionTypeService {
     queue.config.tags = queue.config.tags || {}; // just in case it's undefined
 
     // generate a new tag id based on the question type name
-    const newTagId = newQuestionType.name.replace(/[\{\}"\:\,]/g, '');
+    const newTagId = generateTagIdFromName(newQuestionType.name);
     if (newTagId.length === 0) {
       throw new BadRequestException(
         'Name cannot only be made of illegal characters',

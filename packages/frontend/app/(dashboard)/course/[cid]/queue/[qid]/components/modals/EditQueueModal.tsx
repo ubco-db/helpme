@@ -20,8 +20,8 @@ import {
 } from 'antd'
 import {
   ConfigTasks,
+  generateTagIdFromName,
   isCycleInTasks,
-  QuestionTypeParams,
   QueueConfig,
   UpdateQueueParams,
   validateQueueConfigInput,
@@ -190,11 +190,12 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               message.error(`Failed to change zoom link: ${errorMessage}`)
             })
         : Promise.resolve()
-    const newQueueConfig: QueueConfig = {
-      ...lastSavedQueueConfig.current,
-      // rather than creating a new endpoint for editing question tags, just change the config
-      ...(values.editedQuestionTags && {
-        /* there exists 3 states of tags: 
+
+    // Create an updated "tags" object based on the editedQuestionTags and the current question tags
+    const updatedTags =
+      values.editedQuestionTags.length > 0
+        ? Object.entries(lastSavedQueueConfig.current?.tags || {}).reduce(
+            /* there exists 3 states of tags: 
           - the tags from the old config (they have the old name)
           - the current questionTypes (which have the old name, as well as the id)
           - the editedQuestionTags (which have the new name (which can't be matched with), as well as the id)
@@ -202,8 +203,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         Or in other words, I need to match each editedQuestionTag with a corresponding old tag.
         And this would need to take the route of going editedQuestionTag.id == questionType.id and questionType.name == oldTag.display_name
         */
-        tags: {
-          ...Object.entries(lastSavedQueueConfig.current?.tags || {}).reduce(
             (acc, [id, oldTag]) => {
               // for each old tag, find corresponding questionType from questionTypes (matching name with display_name)
               const questionType = questionTypes?.find(
@@ -230,16 +229,37 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             {} as {
               [tagKey: string]: { display_name: string; color_hex: string }
             },
-          ),
+          )
+        : lastSavedQueueConfig.current?.tags || {}
+
+    // create a new queue config
+    const newQueueConfig: QueueConfig = {
+      ...lastSavedQueueConfig.current,
+      // rather than creating a new endpoint for editing question tags, just change the config
+      ...((values.editedQuestionTags.length > 0 ||
+        values.questionTypesForCreation) && {
+        tags: {
+          ...updatedTags,
           // add the new tags
           ...values.questionTypesForCreation?.reduce(
             (acc, questionType) => {
-              acc[questionType.name] = {
-                display_name: questionType.name,
-                color_hex:
-                  typeof questionType.color === 'string'
-                    ? questionType.color
-                    : questionType.color.toHexString(),
+              let newTagId = generateTagIdFromName(questionType.name)
+              if (newTagId.length === 0) {
+                // give random id if the name is only made of illegal characters
+                newTagId = Math.random().toString(36).substring(7)
+              }
+              // make sure there's no duplicate tag id
+              if (acc[newTagId] || updatedTags[newTagId]) {
+                message.error(`tagId ${newTagId} already exists`)
+                errorsHaveOccurred = true
+              } else {
+                acc[newTagId] = {
+                  display_name: questionType.name,
+                  color_hex:
+                    typeof questionType.color === 'string'
+                      ? questionType.color
+                      : questionType.color.toHexString(),
+                }
               }
               return acc
             },
@@ -271,6 +291,8 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
           }
         : {}),
     }
+
+    console.log(newQueueConfig)
 
     const tasksChanged =
       JSON.stringify(newQueueConfig.tasks || {}) !==
@@ -349,7 +371,13 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               message.error(`Failed to save queue details: ${errorMessage}`)
             })
         : Promise.resolve()
-    await Promise.all([zoomLinkPromise, queueConfigPromise, updateQueuePromise])
+    if (!errorsHaveOccurred) {
+      await Promise.all([
+        zoomLinkPromise,
+        queueConfigPromise,
+        updateQueuePromise,
+      ])
+    }
     mutateQuestionTypes()
     mutateQueue()
     if (!errorsHaveOccurred) {

@@ -1,5 +1,6 @@
 import {
   decodeBase64,
+  generateTagIdFromName,
   ListQuestionsResponse,
   OpenQuestionStatus,
   PublicQueueInvite,
@@ -352,7 +353,11 @@ export class QueueService {
 
     const newTagsObject = newTags.reduce((acc, questionType) => {
       // generate a new tag id based on the question type name
-      const newTagId = questionType.name.replace(/[\{\}"\:\,]/g, '');
+      let newTagId = generateTagIdFromName(questionType.name);
+      if (newTagId.length === 0) {
+        // give random id if the name is only made of illegal characters
+        newTagId = Math.random().toString(36).substring(7);
+      }
       acc[newTagId] = {
         color_hex: questionType.color,
         display_name: questionType.name,
