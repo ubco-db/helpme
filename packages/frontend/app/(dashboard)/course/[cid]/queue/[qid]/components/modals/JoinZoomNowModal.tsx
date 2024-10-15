@@ -3,7 +3,7 @@ import JoinZoomButton from '../JoinZoomButton'
 import ReQueuingButton from '../ReQueuingButton'
 import { Popconfirm } from 'antd'
 import { InfoCircleFilled } from '@ant-design/icons'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type JoinZoomNowModalProps = {
   open: boolean
@@ -23,12 +23,26 @@ const JoinZoomNowModal: React.FC<JoinZoomNowModalProps> = ({
   setRequeuing,
 }) => {
   const [isLoadingRequeue, setIsLoadingRequeue] = useState(false)
+  const [isClosable, setIsClosable] = useState(false)
+  const [localOpen, setLocalOpen] = useState(true)
+
+  useEffect(() => {
+    setIsClosable(false)
+    if (open) {
+      setLocalOpen(true)
+      setTimeout(() => {
+        setIsClosable(true)
+      }, 10000)
+    }
+  }, [open])
+
   return (
     <Modal
-      open={open}
+      open={isClosable ? localOpen : open}
       footer={[]}
       style={{ top: '30%' }}
-      closable={false}
+      closable={isClosable}
+      onCancel={() => setLocalOpen(false)}
       title={
         <div className="flex items-center gap-x-2">
           <InfoCircleFilled className="text-2xl text-green-500" />{' '}

@@ -2196,7 +2196,6 @@ export const ERROR_MESSAGES = {
     courseNameTooShort: 'Course name must be at least 1 character',
     coordinatorEmailTooShort: 'Coordinator email must be at least 1 character',
     sectionGroupNameTooShort: 'Section group name must be at least 1 character',
-    zoomLinkTooShort: 'Zoom link must be at least 1 character',
     courseAlreadyRegistered: 'One or more of the courses is already registered',
     courseNotFound: 'The course was not found',
     sectionGroupNotFound: 'One or more of the section groups was not found',
