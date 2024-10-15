@@ -300,7 +300,6 @@ export const QuestionTypeBreakdown: InsightObject = {
       await createQueryBuilder(QuestionTypeModel)
         .withDeleted()
         .select('QuestionTypeModel.name', 'name')
-        .distinct(true)
         .addSelect('QuestionTypeModel.color', 'fill')
         .where('QuestionTypeModel.cid = :courseId', {
           courseId: filters.find((f: Filter) => f.type == 'courseId')?.courseId,
@@ -308,8 +307,10 @@ export const QuestionTypeBreakdown: InsightObject = {
         .andWhere('QuestionTypeModel.name IS NOT NULL')
         .getRawMany<{ name: string; fill: string }>()
     ).forEach((v) => {
-      keys.push(v.name);
-      fills[v.name] = v.fill == '#000000' ? undefined : v.fill;
+      if (!keys.includes(v.name)) {
+        keys.push(v.name);
+        fills[v.name] = v.fill == '#000000' ? undefined : v.fill;
+      }
     });
 
     const data: StringMap<any>[] = keys.map((key) => {
