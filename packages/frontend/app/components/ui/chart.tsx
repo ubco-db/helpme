@@ -4,6 +4,12 @@ import * as React from 'react'
 import * as RechartsPrimitive from 'recharts'
 import { cn } from '@/app/lib/utils'
 
+/*
+  Chart and related components, types, constants are from ShadCN
+  * Tooltip label modified to allow simple display of fill color next to label text always
+    (Overriding the tooltip formatter would disable this)
+*/
+
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: '', dark: '.dark' } as const
 

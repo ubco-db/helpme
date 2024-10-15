@@ -269,7 +269,7 @@ export const gantt_charts: {
       valueFormatter: (label: any, key: any, body: any) => {
         if (key == 'key') {
           const payload: any = body.payload
-          return 'Questions: ' + payload?.Amount ?? 0
+          return 'Questions: ' + (payload?.Amount ?? 0)
         }
         return undefined
       },
