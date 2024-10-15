@@ -1,13 +1,8 @@
 import { useCallback } from 'react'
 import Modal from 'antd/lib/modal/Modal'
-import { Form, message, Checkbox, Input, Radio, Select, Segmented } from 'antd'
+import { Form, message, Checkbox, Input, Select, Segmented } from 'antd'
 import { useEffect, useState } from 'react'
-import {
-  OpenQuestionStatus,
-  QuestionLocations,
-  QueueTypes,
-  UserTiny,
-} from '@koh/common'
+import { OpenQuestionStatus, QuestionLocations, UserTiny } from '@koh/common'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../../components/QuestionTagElement'
 import { API } from '@/app/api'
@@ -140,6 +135,9 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
           layout="vertical"
           form={form}
           name="form_in_modal"
+          initialValues={{
+            location: isQueueHybrid ? 'Online' : undefined,
+          }}
           onValuesChange={(changedValues, allValues) => {
             if (changedValues.studentId) {
               setSelectedStudent(

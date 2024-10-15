@@ -302,6 +302,9 @@ export interface Queue {
   allowQuestions: boolean
 }
 
+// Queue location/type for different queues within each course
+export type QueueTypes = 'online' | 'hybrid' | 'inPerson'
+
 /**
  * A Queue partial to be shown on the course page. It's like the full Queue object but without the questions.
  * @param id - The unique id number for a Queue.
@@ -312,8 +315,6 @@ export interface Queue {
  * @param isOpen - A queue is open if it has staff and is not disabled.
  * @param config - A JSON object that contains the configuration for the queue. Contains stuff like tags, tasks, etc.
  */
-export type QueueTypes = 'online' | 'hybrid' | 'inPerson'
-
 export class QueuePartial {
   id!: number
   room!: string

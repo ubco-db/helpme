@@ -112,7 +112,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
         {buttons}
       </div>
 
-      <div className="mt-3 flex">
+      <div className="flex md:mt-3">
         <h3 className="mb-0 text-2xl font-semibold">Staff</h3>
         {/* Button to hide staff list on mobile */}
         <Button
@@ -130,7 +130,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
           <p> No staff checked in</p>
         </div>
       ) : !staffListHidden ? (
-        <StaffList queueId={queueId} mobile={true} />
+        <StaffList queueId={queueId} />
       ) : null}
 
       {/* buttons for staff on mobile */}
@@ -208,7 +208,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
               />
             ) : null}
           </Row>
-          {queue?.notes && (
+          {queue?.notes && queue?.notes.length > 0 && (
             <div className="flex max-h-[200px] w-full items-center overflow-y-auto px-2 text-xl text-[#5f6b79] sm:hidden">
               <Linkify>
                 <div className="min-w-0 whitespace-pre-wrap break-words text-sm italic md:text-base">

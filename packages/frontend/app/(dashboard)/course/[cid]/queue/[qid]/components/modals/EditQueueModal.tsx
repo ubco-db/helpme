@@ -698,7 +698,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         <Input
           allowClear={true}
           className="text-sky-800"
-          placeholder="[No queue-specific Zoom/Teams link set]"
+          placeholder={course?.zoomLink ?? '[No Zoom/Teams link set]'}
         />
       </Form.Item>
       {/* Delete Queue and Clear Queue buttons for mobile only (normally shown on QueueInfoColumn.tsx) */}

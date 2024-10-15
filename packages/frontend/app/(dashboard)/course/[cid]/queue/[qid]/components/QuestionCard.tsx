@@ -195,13 +195,6 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               />
             ))}
           </Col>
-          {question.status === LimboQuestionStatus.ReQueueing && (
-            <Col flex="1 1">
-              <div className="text-md h-full italic text-gray-600">
-                In the process of requeuing...
-              </div>
-            </Col>
-          )}
           {isBeingHelped && !isStaff && question.helpedAt && (
             <Col flex="0 0 3rem">
               <div className="text-sm font-medium text-green-700">
@@ -217,16 +210,24 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               </div>
             )}
           </Col>
-          {isStaff && (
+          {question.status !== LimboQuestionStatus.ReQueueing ? (
+            isStaff ? (
+              <Col className="w-full sm:w-auto">
+                <TAQuestionCardButtons
+                  courseId={cid}
+                  queueId={qid}
+                  question={question}
+                  hasUnresolvedRephraseAlert={false}
+                  tasksSelectedForMarking={tasksSelectedForMarking}
+                  className="align-center flex items-center justify-around"
+                />
+              </Col>
+            ) : null
+          ) : (
             <Col className="w-full sm:w-auto">
-              <TAQuestionCardButtons
-                courseId={cid}
-                queueId={qid}
-                question={question}
-                hasUnresolvedRephraseAlert={false}
-                tasksSelectedForMarking={tasksSelectedForMarking}
-                className="align-center flex items-center justify-around"
-              />
+              <div className="text-md ml-0 h-full italic text-gray-600 sm:ml-2">
+                In the process of requeuing...
+              </div>
             </Col>
           )}
           <div

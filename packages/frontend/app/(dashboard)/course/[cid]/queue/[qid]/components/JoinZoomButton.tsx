@@ -2,31 +2,28 @@ import { cn } from '@/app/utils/generalUtils'
 import { Button, ButtonProps, Tooltip } from 'antd'
 import { PhoneOutlined } from '@ant-design/icons'
 import { PropsWithChildren } from 'react'
+import { Mr_Dafoe } from 'next/font/google'
 
 interface JoinZoomButtonProps extends ButtonProps {
+  textSize?: 'sm' | 'md' | 'lg'
   zoomLink?: string
   onJoin?: () => void
 }
 
 const JoinZoomButton: React.FC<PropsWithChildren<JoinZoomButtonProps>> = ({
   type = 'primary',
+  textSize = 'md',
   zoomLink,
   onJoin,
   className,
   children,
 }): React.ReactElement => {
-  return (
-    <Tooltip
-      title={
-        zoomLink
-          ? 'The meeting is active. Click to join.'
-          : 'Sorry, no Zoom link is set for this queue.'
-      }
-    >
+  return zoomLink ? (
+    <Tooltip title="The meeting is active. Click to join.">
       <Button
         size="large"
         className={cn(
-          `text-md mb-0 flex items-center justify-center rounded-md border border-gray-300 font-semibold disabled:opacity-50 md:mb-3 md:w-full`,
+          `text-${textSize} mb-0 flex items-center justify-center rounded-md border border-gray-300 font-semibold disabled:opacity-50 md:mb-3 md:w-full`,
           className,
         )}
         onClick={() => {
@@ -40,6 +37,14 @@ const JoinZoomButton: React.FC<PropsWithChildren<JoinZoomButtonProps>> = ({
         {children}
       </Button>
     </Tooltip>
+  ) : (
+    <div className="md: mb-0 flex w-full items-center justify-center rounded-md border border-gray-300 p-2 text-sm font-semibold md:mb-3">
+      <p className="text-center">
+        {
+          "A TA has begun helping you. Be respectful of the TA's time. Be prepared with your question! \nOnce finished, this popup will automatically close."
+        }
+      </p>
+    </div>
   )
 }
 

@@ -281,12 +281,12 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   )
 
   const setRequeuing = useCallback(
-    (isTaskQuestion: boolean) => {
+    async (isTaskQuestion: boolean) => {
       const id = isTaskQuestion ? studentDemoId : studentQuestionId
       if (id === undefined) {
         return
       }
-      updateQuestionStatus(id, LimboQuestionStatus.ReQueueing)
+      await updateQuestionStatus(id, LimboQuestionStatus.ReQueueing)
     },
     [studentDemoId, studentQuestionId, updateQuestionStatus],
   )
@@ -622,8 +622,11 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 queue.type === 'online') &&
                 clickedZoomModal &&
                 studentQuestion?.status === OpenQuestionStatus.Helping && (
-                  <JoinZoomButton zoomLink={queue.zoomLink ?? course?.zoomLink}>
-                    Need The Link?
+                  <JoinZoomButton
+                    zoomLink={queue.zoomLink ?? course?.zoomLink}
+                    textSize="sm"
+                  >
+                    Join Zoom
                   </JoinZoomButton>
                 )}
               <Tooltip
@@ -920,6 +923,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 !clickedZoomModal &&
                 studentQuestion?.status === OpenQuestionStatus.Helping
               }
+              notes={queue?.notes}
               zoomLink={queue.zoomLink ?? course?.zoomLink}
               onJoin={() => {
                 setClickedZoomModal(true)
@@ -980,6 +984,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                     !clickedZoomModal &&
                     studentQuestion?.status === OpenQuestionStatus.Helping
                   }
+                  notes={queue?.notes}
                   zoomLink={queue.zoomLink ?? course?.zoomLink}
                   onJoin={() => setClickedZoomModal(true)}
                   setRequeuing={() => setRequeuing(false)}

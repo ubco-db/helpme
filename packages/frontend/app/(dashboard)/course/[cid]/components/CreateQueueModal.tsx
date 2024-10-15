@@ -136,7 +136,7 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
         label="Queue Location"
         name="type"
         layout="horizontal"
-        tooltip="Online queues are for virtual office hours. In-person queues are for physical locations. Hybrid queues are for a mix of both."
+        tooltip="Online and Hybrid queues have an option for a zoom link, and students will be prompted to join this zoom link once you start helping them."
       >
         <Segmented options={queueTypeOptions} />
       </Form.Item>

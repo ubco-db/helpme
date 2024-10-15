@@ -8,12 +8,11 @@ import { formatWaitTime } from '@/app/utils/timeFormatUtils'
 
 interface StaffListProps {
   queueId: number
-  mobile?: boolean
 }
 /**
  * Row of ta statuses
  */
-const StaffList: React.FC<StaffListProps> = ({ queueId, mobile }) => {
+const StaffList: React.FC<StaffListProps> = ({ queueId }) => {
   const { queueQuestions } = useQuestions(queueId)
   const { queue } = useQueue(queueId)
   const staffList = queue?.staffList ?? []
