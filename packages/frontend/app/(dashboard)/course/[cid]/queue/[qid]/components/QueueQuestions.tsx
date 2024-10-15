@@ -15,6 +15,7 @@ import {
   QuestionTypeParams,
   QuestionLocations,
   QueueTypes,
+  LimboQuestionStatus,
 } from '@koh/common'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
 import QuestionCard from './QuestionCard'
@@ -227,9 +228,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                   >
                     {filteredQuestions.map((question: Question) => {
                       const isMyQuestion = question.id === studentDemoId
-                      const background_color = isMyQuestion
-                        ? 'bg-teal-200/25'
-                        : 'bg-white'
                       return (
                         <QuestionCard
                           key={question.id}
@@ -241,7 +239,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                           configTasks={configTasks}
                           studentAssignmentProgress={studentAssignmentProgress}
                           isMyQuestion={isMyQuestion}
-                          className={background_color}
                           isBeingHelped={true}
                         />
                       )
@@ -301,9 +298,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                 >
                   {filteredQuestions.map((question: Question) => {
                     const isMyQuestion = question.id === studentQuestionId
-                    const background_color = isMyQuestion
-                      ? 'bg-teal-200/25'
-                      : 'bg-white'
                     return (
                       <QuestionCard
                         key={question.id}
@@ -315,7 +309,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                         configTasks={configTasks}
                         studentAssignmentProgress={studentAssignmentProgress}
                         isMyQuestion={isMyQuestion}
-                        className={background_color}
                       />
                     )
                   })}
@@ -331,9 +324,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
               const isMyQuestion =
                 question.id === studentQuestionId ||
                 question.id === studentDemoId
-              const background_color = isMyQuestion
-                ? 'bg-teal-200/25'
-                : 'bg-white'
               return (
                 <QuestionCard
                   key={question.id}
@@ -345,7 +335,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                   configTasks={configTasks}
                   studentAssignmentProgress={studentAssignmentProgress}
                   isMyQuestion={isMyQuestion}
-                  className={background_color}
                   isBeingHelped={true}
                 />
               )
@@ -353,9 +342,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
           {questions.map((question: Question) => {
             const isMyQuestion =
               question.id === studentQuestionId || question.id === studentDemoId
-            const background_color = isMyQuestion
-              ? 'bg-teal-200/25'
-              : 'bg-white'
             return (
               <QuestionCard
                 key={question.id}
@@ -367,7 +353,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                 configTasks={configTasks}
                 studentAssignmentProgress={studentAssignmentProgress}
                 isMyQuestion={isMyQuestion}
-                className={background_color}
               />
             )
           })}
