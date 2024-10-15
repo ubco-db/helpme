@@ -305,6 +305,7 @@ export const QuestionTypeBreakdown: InsightObject = {
           courseId: filters.find((f: Filter) => f.type == 'courseId')?.courseId,
         })
         .andWhere('QuestionTypeModel.name IS NOT NULL')
+        .orderBy('QuestionTypeModel.deletedAt', 'ASC')
         .getRawMany<{ name: string; fill: string }>()
     ).forEach((v) => {
       if (!keys.includes(v.name)) {
