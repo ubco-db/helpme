@@ -78,7 +78,7 @@ interface FormValues {
   notes: string
   allowQuestions: boolean
   editedQuestionTags: EditedQuestionTag[]
-  questionTypesForCreation: QuestionTypeForCreation[]
+  questionTypesForCreation?: QuestionTypeForCreation[]
   minTags: string
   assignmentId?: string
   tasks?: TaskParams[]
@@ -173,28 +173,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       }
     }, 5000)
     let errorsHaveOccurred = false
-    const createPromises =
-      values.questionTypesForCreation?.map((questionType) => {
-        const newQuestionType: QuestionTypeParams = {
-          cid: courseId,
-          queueId: queueId,
-          name: questionType.name,
-          color:
-            typeof questionType.color === 'string'
-              ? questionType.color
-              : questionType.color.toHexString(),
-        }
-        return API.questionType
-          .addQuestionType(courseId, newQuestionType)
-          .then((responseMessage) => {
-            message.success(responseMessage)
-          })
-          .catch((e) => {
-            errorsHaveOccurred = true
-            const errorMessage = getErrorMessage(e)
-            message.error(`Error creating question tag: ${errorMessage}`)
-          })
-      }) || []
     const zoomLinkPromise =
       values.zoomLink !== course?.zoomLink
         ? API.course
@@ -214,7 +192,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         : Promise.resolve()
     const newQueueConfig: QueueConfig = {
       ...lastSavedQueueConfig.current,
-      // TODO: test when editing and adding at the same time
       // rather than creating a new endpoint for editing question tags, just change the config
       ...(values.editedQuestionTags && {
         /* there exists 3 states of tags: 
@@ -294,8 +271,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
           }
         : {}),
     }
-    console.log(newQueueConfig)
-    // TODO: update this to work on the anytime question centre
 
     const tasksChanged =
       JSON.stringify(newQueueConfig.tasks || {}) !==
@@ -304,7 +279,10 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       lastSavedQueueConfig.current?.minimum_tags !== Number(values.minTags)
     const assignmentIdChanged =
       lastSavedQueueConfig.current?.assignment_id !== values.assignmentId
-    const tagsChanged = values.editedQuestionTags.length > 0
+    const tagsChanged =
+      values.editedQuestionTags.length > 0 ||
+      (values.questionTypesForCreation &&
+        values.questionTypesForCreation.length > 0)
 
     // if the tasks changed, make sure there's no cycle in the new tasks
     if (
@@ -371,12 +349,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               message.error(`Failed to save queue details: ${errorMessage}`)
             })
         : Promise.resolve()
-    await Promise.all([
-      ...createPromises,
-      zoomLinkPromise,
-      queueConfigPromise,
-      updateQueuePromise,
-    ])
+    await Promise.all([zoomLinkPromise, queueConfigPromise, updateQueuePromise])
     mutateQuestionTypes()
     mutateQueue()
     if (!errorsHaveOccurred) {
