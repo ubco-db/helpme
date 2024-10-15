@@ -12,7 +12,6 @@ import { InsightDetail } from '@koh/common';
 @Entity('insight_dashboard_model')
 @Unique('dashboardKey', ['name', 'userCourseId'])
 export class InsightDashboardModel extends BaseEntity {
-  // CourseSettings existence is dependent on the existence of a course
   @PrimaryColumn()
   userCourseId: number;
 

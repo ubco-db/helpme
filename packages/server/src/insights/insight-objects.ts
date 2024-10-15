@@ -18,6 +18,7 @@ import { Cache } from 'cache-manager';
 import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
 import { InteractionModel } from '../chatbot/interaction.entity';
 import { AsyncQuestionVotesModel } from '../asyncQuestion/asyncQuestionVotes.entity';
+import { QuestionTypeModel } from '../questionType/question-type.entity';
 
 export type Filter = {
   type: string;
@@ -181,7 +182,7 @@ export const MostActiveStudents: InsightObject = {
     );
 
     return {
-      headerRow: ['Student Name', 'Email', 'Questions Asked'],
+      headerRow: ['Student Name (Student ID)', 'Email', 'Questions Asked'],
       data: dataSource.map((item) => {
         return {
           studentName: `${item.name} (${item.studentId})`,
@@ -265,6 +266,7 @@ export const QuestionTypeBreakdown: InsightObject = {
   async compute(filters): Promise<ChartOutputType> {
     const questionInfo = await addFilters({
       query: createQueryBuilder(QuestionModel)
+        .withDeleted()
         .leftJoinAndSelect('QuestionModel.questionTypes', 'questionType')
         .select('questionType.name', 'questionTypeName')
         .addSelect('COUNT(QuestionModel.id)', 'totalQuestions')
@@ -279,6 +281,7 @@ export const QuestionTypeBreakdown: InsightObject = {
 
     const asyncQuestionInfo = await addFilters({
       query: createQueryBuilder(AsyncQuestionModel)
+        .withDeleted()
         .leftJoinAndSelect('AsyncQuestionModel.questionTypes', 'questionType')
         .select('questionType.name', 'questionTypeName')
         .addSelect('COUNT(AsyncQuestionModel.id)', 'totalQuestions')
@@ -292,17 +295,23 @@ export const QuestionTypeBreakdown: InsightObject = {
       .getRawMany();
 
     const keys: string[] = [];
+    const fills: { [key: string]: string } = {};
+    (
+      await createQueryBuilder(QuestionTypeModel)
+        .withDeleted()
+        .select('QuestionTypeModel.name', 'name')
+        .distinct(true)
+        .addSelect('QuestionTypeModel.color', 'fill')
+        .where('QuestionTypeModel.cid = :courseId', {
+          courseId: filters.find((f: Filter) => f.type == 'courseId')?.courseId,
+        })
+        .andWhere('QuestionTypeModel.name IS NOT NULL')
+        .getRawMany<{ name: string; fill: string }>()
+    ).forEach((v) => {
+      keys.push(v.name);
+      fills[v.name] = v.fill == '#000000' ? undefined : v.fill;
+    });
 
-    const keyGrabber = (value: any) => {
-      if (
-        value['questionTypeName'] != undefined &&
-        !keys.includes(value['questionTypeName'])
-      ) {
-        keys.push(value['questionTypeName']);
-      }
-    };
-    questionInfo.forEach(keyGrabber);
-    asyncQuestionInfo.forEach(keyGrabber);
     const data: StringMap<any>[] = keys.map((key) => {
       let qNum = questionInfo.find(
           (v) => v['questionTypeName'] == key,
@@ -316,6 +325,7 @@ export const QuestionTypeBreakdown: InsightObject = {
       return {
         questionTypeName: key,
         totalQuestions: aNum + qNum,
+        fill: fills[key],
       };
     });
 

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import * as RechartsPrimitive from 'recharts'
-import { cn } from '@/app/lib/utils'
+import { cn } from '@/app/utils/generalUtils'
 
 /*
   Chart and related components, types, constants are from ShadCN

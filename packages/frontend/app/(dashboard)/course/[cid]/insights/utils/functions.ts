@@ -43,7 +43,10 @@ export const processChartData = (
         : item[labelKey],
     }
     if (uniquePerLabel) {
-      mappedData['fill'] = generateUniqueColor(index, chartData.length)
+      mappedData['fill'] =
+        item['fill'] != undefined
+          ? item['fill']
+          : generateUniqueColor(index, chartData.length)
     }
     valueKeys.forEach((key) => {
       mappedData[key] = item[key]
