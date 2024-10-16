@@ -790,13 +790,14 @@ export class OrganizationController {
     if (organization.bannerUrl) {
       fs.unlink(
         process.env.UPLOAD_LOCATION + '/' + organization.bannerUrl,
-        (err) => {
-          if (err) {
-            const errMessage =
+        (e) => {
+          if (e) {
+            console.error(
               'Error deleting previous picture at : ' +
-              organization.logoUrl +
-              'the previous image was at an invalid location?';
-            console.error(errMessage);
+                organization.bannerUrl +
+                '\n Perhaps the previous image was deleted or the database is out of sync with the uploads directory for some reason.' +
+                '\n Will remove this entry from the database and continue.',
+            );
           }
         },
       );
@@ -874,13 +875,14 @@ export class OrganizationController {
     if (organization.logoUrl) {
       fs.unlink(
         process.env.UPLOAD_LOCATION + '/' + organization.logoUrl,
-        (err) => {
-          if (err) {
-            const errMessage =
+        (e) => {
+          if (e) {
+            console.error(
               'Error deleting previous picture at : ' +
-              organization.logoUrl +
-              'the previous image was at an invalid location?';
-            console.error(errMessage);
+                organization.logoUrl +
+                '\n Perhaps the previous image was deleted or the database is out of sync with the uploads directory for some reason.' +
+                '\n Will remove this entry from the database and continue.',
+            );
           }
         },
       );

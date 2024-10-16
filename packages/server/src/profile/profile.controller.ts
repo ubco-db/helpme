@@ -207,11 +207,19 @@ export class ProfileController {
   ): Promise<void> {
     try {
       /*
-       * The second check below may be redundant but will remain for now in case
-       * we allow for third-party images may be used in the future for profile avatars
+       * The second check is for google accounts, which have a photoURL that is a external link
        */
       if (user.photoURL && !user.photoURL.startsWith('http')) {
-        fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, user.photoURL));
+        try {
+          fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, user.photoURL));
+        } catch (e) {
+          console.error(
+            'Error deleting previous picture at : ' +
+              user.photoURL +
+              '\n Perhaps the previous image was deleted or the database is out of sync with the uploads directory for some reason.' +
+              '\n Will remove this entry from the database and continue.',
+          );
+        }
       }
 
       const spaceLeft = await checkDiskSpace(path.parse(process.cwd()).root);
