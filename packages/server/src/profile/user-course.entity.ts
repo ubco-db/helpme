@@ -5,10 +5,12 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { CourseModel } from '../course/course.entity';
 import { UserModel } from './user.entity';
+import { InsightDashboardModel } from '../insights/dashboard.entity';
 
 @Entity('user_course_model')
 export class UserCourseModel extends BaseEntity {
@@ -35,4 +37,10 @@ export class UserCourseModel extends BaseEntity {
   // If this expires
   @Column({ nullable: true, default: false })
   expires: boolean;
+
+  @OneToMany(
+    (type) => InsightDashboardModel,
+    (insightDashboard) => insightDashboard.userCourse,
+  )
+  insightDashboard?: InsightDashboardModel;
 }
