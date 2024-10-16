@@ -879,7 +879,7 @@ export class OrganizationController {
           if (e) {
             console.error(
               'Error deleting previous picture at : ' +
-                organization.bannerUrl +
+                organization.logoUrl +
                 '\n Perhaps the previous image was deleted or the database is out of sync with the uploads directory for some reason.' +
                 '\n Will remove this entry from the database and continue.',
             );
