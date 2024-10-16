@@ -12,6 +12,8 @@ import {
   Delete,
   Patch,
   ParseIntPipe,
+  ParseArrayPipe,
+  Post,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import {
@@ -19,7 +21,12 @@ import {
   ERROR_MESSAGES,
   ListInsightsResponse,
   Role,
-  SimpleTableOutputType,
+  TableOutputType,
+  InsightType,
+  InsightOutput,
+  InsightObject,
+  InsightDetail,
+  InsightDashboardPartial,
 } from '@koh/common';
 import { User } from '../decorators/user.decorator';
 import { INSIGHTS_MAP } from './insight-objects';
@@ -28,6 +35,7 @@ import { Roles } from 'decorators/roles.decorator';
 import { CourseRole } from '../decorators/course-role.decorator';
 import { Filter } from './insight-objects';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { UserCourseModel } from '../profile/user-course.entity';
 
 @Controller('insights')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -35,15 +43,90 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 export class InsightsController {
   constructor(private insightsService: InsightsService) {}
 
+  @Delete(':courseId/dashboard/remove')
+  @Roles(Role.PROFESSOR)
+  async removeDashboardPreset(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() body: { name: string },
+    @User() user: UserModel,
+  ): Promise<InsightDashboardPartial[]> {
+    const userCourse = await UserCourseModel.findOne({
+      where: { courseId, user },
+    });
+    // Check that the current user's role has access to dashboards
+    if (userCourse?.role != Role.PROFESSOR) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.insightsController.dashboardUnauthorized,
+      );
+    }
+
+    return await this.insightsService.removeDashboardPreset(
+      user,
+      courseId,
+      body.name,
+    );
+  }
+
+  @Post(':courseId/dashboard/create')
+  @Roles(Role.PROFESSOR)
+  async upsertDashboardPreset(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @User() user: UserModel,
+    @Body()
+    body: {
+      insights: InsightDetail;
+      name?: string;
+    },
+  ): Promise<InsightDashboardPartial[]> {
+    const userCourse = await UserCourseModel.findOne({
+      where: { courseId, user },
+    });
+    // Check that the current user's role has access to dashboards
+    if (userCourse?.role != Role.PROFESSOR) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.insightsController.dashboardUnauthorized,
+      );
+    }
+
+    return await this.insightsService.upsertDashboardPreset(
+      user,
+      courseId,
+      body.insights,
+      body.name,
+    );
+  }
+
+  @Get(':courseId/dashboard')
+  @Roles(Role.PROFESSOR)
+  async retrieveDashboardPresets(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @User() user: UserModel,
+  ): Promise<InsightDashboardPartial[]> {
+    const userCourse = await UserCourseModel.findOne({
+      where: { courseId, user },
+    });
+    // Check that the current user's role has access to dashboards
+    if (userCourse?.role != Role.PROFESSOR) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.insightsController.dashboardUnauthorized,
+      );
+    }
+
+    return await this.insightsService.getDashboardPresets(user, courseId);
+  }
+
   @Get(':courseId/:insightName')
   async get(
     @CourseRole() role: Role,
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('insightName') insightName: string,
-    @Query('start') start: string,
-    @Query('end') end: string,
-    @Query('limit', ParseIntPipe) limit: number,
-    @Query('offset', ParseIntPipe) offset: number,
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+    @Query('limit', ParseIntPipe) limit?: number,
+    @Query('offset', ParseIntPipe) offset?: number,
+    @Query('students', new ParseArrayPipe({ optional: true }))
+    students?: number[],
+    @Query('queues', new ParseArrayPipe({ optional: true })) queues?: number[],
   ): Promise<GetInsightOutputResponse> {
     // Temporarily disabling insights until we finish refactoring QueueModel
     // Check that the insight name is valid
@@ -53,8 +136,10 @@ export class InsightsController {
         ERROR_MESSAGES.insightsController.insightNameNotFound,
       );
     }
+
+    const targetInsight: InsightObject = INSIGHTS_MAP[insightName];
     // Check that the current user's role has access to the given insight
-    if (!INSIGHTS_MAP[insightName].roles.includes(role)) {
+    if (!targetInsight.roles.includes(role)) {
       throw new BadRequestException(
         ERROR_MESSAGES.insightsController.insightUnathorized,
       );
@@ -85,23 +170,59 @@ export class InsightsController {
       });
     }
 
+    if (students) {
+      students.forEach((n) => {
+        if (isNaN(n)) {
+          throw new BadRequestException(
+            ERROR_MESSAGES.insightsController.invalidStudentID,
+          );
+        }
+      });
+
+      filters.push({
+        type: 'students',
+        studentIds: students,
+      });
+    }
+
+    if (queues) {
+      queues.forEach((n) => {
+        if (isNaN(n)) {
+          throw new BadRequestException(
+            ERROR_MESSAGES.insightsController.invalidQueueID,
+          );
+        }
+      });
+
+      filters.push({
+        type: 'queues',
+        queueIds: queues,
+      });
+    }
+
     let insight = await this.insightsService.computeOutput({
-      insight: INSIGHTS_MAP[insightName],
+      insight: targetInsight,
       filters,
     });
 
-    if (insightName === 'MostActiveStudents') {
-      let dataSource = (insight as SimpleTableOutputType).dataSource;
+    if (targetInsight.insightType == InsightType.Table) {
+      let data = (insight as TableOutputType).data;
       if (offset) {
-        dataSource = dataSource.slice(offset, dataSource.length);
+        data = data.slice(offset, data.length);
       }
       if (limit) {
-        dataSource = dataSource.slice(0, limit);
+        data = data.slice(0, limit);
       }
-      insight = { ...(insight as SimpleTableOutputType), dataSource };
+      insight = { ...(insight as TableOutputType), data };
     }
 
-    return insight;
+    return {
+      title: targetInsight.displayName,
+      description: targetInsight.description,
+      allowedFilters: targetInsight.allowedFilters,
+      outputType: targetInsight.insightType,
+      output: insight,
+    } as InsightOutput;
   }
 
   @Get('list')
