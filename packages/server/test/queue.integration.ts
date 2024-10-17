@@ -1281,5 +1281,97 @@ describe('Queue Integration', () => {
         message: ERROR_MESSAGES.queueController.cycleInTasks,
       });
     });
+    it('Will retroactively update the queue config if there are more questionTypes in the database than tags in the config', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+
+      const queue = await QueueFactory.create({
+        course: course,
+        config: validConfig,
+      });
+
+      const qt1 = await QuestionTypeFactory.create({
+        cid: course.id,
+        queue: queue,
+        name: 'gur',
+        color: validConfig.tags.tag1.color_hex,
+      });
+      const qt2 = await QuestionTypeFactory.create({
+        cid: course.id,
+        queue: queue,
+        name: validConfig.tags.tag2.display_name,
+        color: validConfig.tags.tag2.color_hex,
+      });
+      const qt3 = await QuestionTypeFactory.create({
+        cid: course.id,
+        queue: queue,
+        name: validConfig.tags.tag3.display_name,
+        color: validConfig.tags.tag3.color_hex,
+      });
+
+      const newConfig = {
+        ...validConfig,
+        tags: {
+          tag1: validConfig.tags.tag1,
+        },
+      };
+
+      const response = await supertest({ userId: ta.userId })
+        .patch(`/queues/${queue.id}/config`)
+        .send(newConfig)
+        .expect(200);
+
+      expect(response.body.questionTypeMessages.length).toBe(2);
+      expect(response.body.questionTypeMessages).toContain(
+        'Updated tag: General',
+      );
+      expect(response.body.questionTypeMessages).toContain(
+        'Retroactively added Bugs, Blocking to the queue config',
+      );
+
+      // check to make sure the old question types are still there and unchanged, and that the tag1 was updated
+      const updatedQuestionTypes = await QuestionTypeModel.find({
+        queueId: queue.id,
+      });
+      expect(updatedQuestionTypes.length).toBe(3);
+      expect(updatedQuestionTypes).toContainEqual(
+        expect.objectContaining({
+          id: qt1.id,
+          cid: qt1.cid,
+          queueId: qt1.queueId,
+          name: validConfig.tags.tag1.display_name,
+          color: validConfig.tags.tag1.color_hex,
+        }),
+      );
+      expect(updatedQuestionTypes).toContainEqual(
+        expect.objectContaining({
+          id: qt2.id,
+          cid: qt2.cid,
+          queueId: qt2.queueId,
+          name: validConfig.tags.tag2.display_name,
+          color: validConfig.tags.tag2.color_hex,
+        }),
+      );
+      expect(updatedQuestionTypes).toContainEqual(
+        expect.objectContaining({
+          id: qt3.id,
+          cid: qt3.cid,
+          queueId: qt3.queueId,
+          name: validConfig.tags.tag3.display_name,
+          color: validConfig.tags.tag3.color_hex,
+        }),
+      );
+
+      // Check to make sure the new queue config has also been updated
+      const updatedQueue = await QueueModel.findOne({ id: queue.id });
+      expect(updatedQueue.config.tags).toEqual({
+        ...newConfig.tags,
+        [validConfig.tags.tag1.display_name]: validConfig.tags.tag1,
+        [validConfig.tags.tag2.display_name]: validConfig.tags.tag2,
+      });
+    });
   });
 });
