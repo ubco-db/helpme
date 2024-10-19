@@ -1290,7 +1290,15 @@ describe('Queue Integration', () => {
 
       const queue = await QueueFactory.create({
         course: course,
-        config: {},
+        config: {
+          ...validConfig,
+          tags: {
+            tag1: {
+              display_name: 'gur',
+              color_hex: '#66FF66',
+            },
+          },
+        },
       });
 
       const qt1 = await QuestionTypeFactory.create({

@@ -74,6 +74,7 @@ const CheckableQuestionTag: React.FC<CheckableQuestionTagProps> = ({
   tagID,
   onChangeWithID,
   checked,
+  // Note that all of these are needed for antd's Popover to work.
   onMouseEnter,
   onMouseLeave,
   onFocus,

@@ -382,7 +382,7 @@ describe('QuestionType Integration', () => {
 
       const updatedQueue = await QueueModel.findOne(queue.id);
       const generatedTagId = Object.keys(updatedQueue.config.tags).find(
-        (tagId) => tagId.startsWith('NewQuestion Type_'),
+        (tagId) => tagId.startsWith('New Question Type_'),
       );
       expect(generatedTagId).not.toBeUndefined();
 
@@ -422,9 +422,13 @@ describe('QuestionType Integration', () => {
       expect(resp.text).toBe(`Successfully created ${newQuestionType.name}`);
 
       const updatedQueue = await QueueModel.findOne(queue.id);
+      const generatedTagId = Object.keys(updatedQueue.config.tags).find(
+        (tagId) => tagId.startsWith('New Question Type_'),
+      );
+      expect(generatedTagId).not.toBeUndefined();
       expect(updatedQueue.config).toEqual({
         tags: {
-          'New Question Type': {
+          [generatedTagId]: {
             display_name: newQuestionType.name,
             color_hex: newQuestionType.color,
           },

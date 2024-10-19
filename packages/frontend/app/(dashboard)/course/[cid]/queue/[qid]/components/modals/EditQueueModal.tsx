@@ -432,7 +432,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             notes: queue?.notes,
             allowQuestions: queue?.allowQuestions,
             editedQuestionTags: [],
-            questionTagsForCreation: [],
+            questionTypesForCreation: [],
             assignmentId: lastSavedQueueConfig.current?.assignment_id,
             zoomLink: course?.zoomLink,
             minTags: queue?.config?.minimum_tags ?? 0,
