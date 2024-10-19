@@ -1271,7 +1271,6 @@ describe('Queue Integration', () => {
           },
         },
       };
-
       const resp = await supertest({ userId: ta.userId })
         .patch(`/queues/${queue.id}/config`)
         .send(newConfig)
