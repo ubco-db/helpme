@@ -53,11 +53,14 @@ import {
   QuestionTagEditor,
 } from '../../../../components/QuestionTagElement'
 import { useRouter } from 'next/navigation'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import {
+  generateRandomHexColor,
+  getErrorMessage,
+} from '@/app/utils/generalUtils'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 import exampleConfig from '@/public/exampleQueueConfig.json'
 import exampleLabConfig from '@/public/exampleQueueLabConfig.json'
-import TaskDeleteSelector from '../TaskDisplay'
+import TaskDisplay from '../TaskDisplay'
 
 const { TextArea } = Input
 type Color = GetProp<ColorPickerProps, 'value'>
@@ -78,7 +81,7 @@ interface FormValues {
   notes: string
   allowQuestions: boolean
   editedQuestionTags: EditedQuestionTag[]
-  questionTypesForCreation?: QuestionTypeForCreation[]
+  questionTypesForCreation: QuestionTypeForCreation[]
   minTags: string
   assignmentId?: string
   tasks?: TaskParams[]
@@ -237,11 +240,11 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       ...lastSavedQueueConfig.current,
       // rather than creating a new endpoint for editing question tags, just change the config
       ...((values.editedQuestionTags.length > 0 ||
-        values.questionTypesForCreation) && {
+        values.questionTypesForCreation.length > 0) && {
         tags: {
           ...updatedTags,
           // add the new tags
-          ...values.questionTypesForCreation?.reduce(
+          ...values.questionTypesForCreation.reduce(
             (acc, questionType) => {
               let newTagId = generateTagIdFromName(questionType.name)
               if (newTagId.length === 0) {
@@ -292,8 +295,6 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         : {}),
     }
 
-    console.log(newQueueConfig)
-
     const tasksChanged =
       JSON.stringify(newQueueConfig.tasks || {}) !==
       JSON.stringify(lastSavedQueueConfig.current?.tasks || {})
@@ -303,8 +304,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       lastSavedQueueConfig.current?.assignment_id !== values.assignmentId
     const tagsChanged =
       values.editedQuestionTags.length > 0 ||
-      (values.questionTypesForCreation &&
-        values.questionTypesForCreation.length > 0)
+      values.questionTypesForCreation.length > 0
 
     // if the tasks changed, make sure there's no cycle in the new tasks
     if (
@@ -431,7 +431,8 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             queue_config: localQueueConfigString,
             notes: queue?.notes,
             allowQuestions: queue?.allowQuestions,
-            questionTypesForDeletion: [],
+            editedQuestionTags: [],
+            questionTagsForCreation: [],
             assignmentId: lastSavedQueueConfig.current?.assignment_id,
             zoomLink: course?.zoomLink,
             minTags: queue?.config?.minimum_tags ?? 0,
@@ -480,8 +481,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         {(fields, { add, remove }) => (
           <>
             {fields.map(({ key, name, ...restField }) => {
-              const defaultColor =
-                '#' + Math.floor(Math.random() * 16777215).toString(16)
+              const defaultColor = generateRandomHexColor()
               return (
                 <Space key={key} className="flex" align="center">
                   <Form.Item
@@ -569,7 +569,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             tooltip={`The tasks for the queue. A task is similar to a tag except it is 'check-able'. For example, a lab may have many parts or questions that require a TA to look at before the end of the lab. Students will then be able to Create a Demo which you can then help and select which parts to mark correct.`}
             name="tasksForDeletion"
           >
-            <TaskDeleteSelector
+            <TaskDisplay
               configTasks={lastSavedQueueConfig.current?.tasks || {}}
             />
           </Form.Item>
@@ -579,7 +579,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                 {fields.map(({ key, name, ...restField }, index) => {
                   const defaultColor =
                     form.getFieldValue(['tasks', name, 'color_hex']) ||
-                    '#' + Math.floor(Math.random() * 16777215).toString(16)
+                    generateRandomHexColor()
                   return (
                     <Space
                       key={key}

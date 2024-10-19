@@ -168,6 +168,8 @@ export class QuestionTypeController {
    * Edits a question type.
    * Note that this does not update the queue config.
    * This endpoint is needed for async question centre.
+   * Note that it does not prevent the name to be edited to a name that already exists in the queue (or async centre).
+   * This is because I am lazy, and nothing actually breaks if this happens since questionTypes all go by their unique ids in the async centre.
    */
   @Patch(':courseId/:questionTypeId')
   @UseGuards(CourseRolesGuard)

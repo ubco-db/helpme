@@ -2352,4 +2352,7 @@ export const ERROR_MESSAGES = {
       'There is no disk space left to store a iCal file. Please immediately contact your course staff and let them know. They will contact the Khoury Office Hours team as soon as possible.',
     saveCalError: 'There was an error saving an iCal to disk',
   },
+  questionType: {
+    questionTypeNotFound: 'Question type not found',
+  },
 }
