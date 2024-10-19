@@ -490,7 +490,7 @@ describe('QuestionType Integration', () => {
       await supertest()
         .delete(`/questionType/${course.id}/${questionType.id}`)
         .expect(401);
-      expectQuestionTypeUnchanged(questionType);
+      await expectQuestionTypeUnchanged(questionType);
     });
 
     it('should return 200 and delete the question type if it exists', async () => {
@@ -553,7 +553,7 @@ describe('QuestionType Integration', () => {
       );
 
       expect(resp.status).toBe(404);
-      expectQuestionTypeUnchanged(questionType);
+      await expectQuestionTypeUnchanged(questionType);
     });
 
     it('should not allow students to delete question types', async () => {
@@ -573,7 +573,7 @@ describe('QuestionType Integration', () => {
       );
 
       expect(resp.status).toBe(403);
-      expectQuestionTypeUnchanged(questionType);
+      await expectQuestionTypeUnchanged(questionType);
     });
 
     it('should update the queue config and delete the tag', async () => {
@@ -705,7 +705,7 @@ describe('QuestionType Integration', () => {
         .send(updatedQuestionType)
         .expect(401);
 
-      expectQuestionTypeUnchanged(questionType);
+      await expectQuestionTypeUnchanged(questionType);
     });
 
     it('should return 200 and update the question type if it exists', async () => {
@@ -765,7 +765,7 @@ describe('QuestionType Integration', () => {
         .send(updatedQuestionType);
 
       expect(resp.status).toBe(404);
-      expectQuestionTypeUnchanged(questionType);
+      await expectQuestionTypeUnchanged(questionType);
     });
 
     it('should not allow students to update question types', async () => {
@@ -789,7 +789,7 @@ describe('QuestionType Integration', () => {
         .send(updatedQuestionType);
 
       expect(resp.status).toBe(403);
-      expectQuestionTypeUnchanged(questionType);
+      await expectQuestionTypeUnchanged(questionType);
     });
 
     it('should return 404 if the question type does not exist', async () => {
@@ -833,7 +833,7 @@ describe('QuestionType Integration', () => {
         .send(updatedQuestionType);
 
       expect(resp.status).toBe(404);
-      expectQuestionTypeUnchanged(questionType);
+      await expectQuestionTypeUnchanged(questionType);
     });
   });
 });
