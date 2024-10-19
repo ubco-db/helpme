@@ -436,9 +436,15 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                         message: 'Tag name must be less than 20 characters',
                       },
                       {
-                        validator: (_, value) => {
+                        validator: (_: any, value: string) => {
+                          if (!value || value.trim() === '') {
+                            return Promise.reject(
+                              'Tag name cannot be empty or spaces only',
+                            )
+                          }
                           // make sure no other tags have the same name
-                          if (
+                          else if (
+                            value &&
                             questionTypes?.find((tag) => tag.name === value)
                           ) {
                             return Promise.reject('Duplicate tag name')

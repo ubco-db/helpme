@@ -44,12 +44,20 @@ export class QuestionTypeController {
       queueId = null;
     }
 
+    if (newQuestionType?.name?.trim() === '') {
+      res.status(HttpStatus.BAD_REQUEST).send({
+        message: 'Question type name cannot be empty',
+      });
+      return;
+    }
+
     const questionTypeCount = await QuestionTypeModel.count({
       where: {
         cid: courseId,
         queueId: queueId !== null ? queueId : IsNull(),
       },
     });
+
     if (
       questionTypeCount >= this.appConfig.get('max_question_types_per_queue')
     ) {
