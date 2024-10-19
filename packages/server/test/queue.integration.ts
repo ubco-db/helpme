@@ -1375,10 +1375,18 @@ describe('Queue Integration', () => {
 
       // Check to make sure the new queue config has also been updated
       const updatedQueue = await QueueModel.findOne({ id: queue.id });
+      const generatedTagId3 = Object.keys(updatedQueue.config.tags).find(
+        (tagId) => tagId.startsWith(validConfig.tags.tag3.display_name),
+      );
+      expect(generatedTagId3).not.toBeUndefined();
+      const generatedTagId2 = Object.keys(updatedQueue.config.tags).find(
+        (tagId) => tagId.startsWith(validConfig.tags.tag2.display_name),
+      );
+      expect(generatedTagId2).not.toBeUndefined();
       expect(updatedQueue.config.tags).toEqual({
         ...newConfig.tags,
-        [validConfig.tags.tag1.display_name]: validConfig.tags.tag1,
-        [validConfig.tags.tag2.display_name]: validConfig.tags.tag2,
+        [generatedTagId3]: validConfig.tags.tag3,
+        [generatedTagId2]: validConfig.tags.tag2,
       });
     });
   });
