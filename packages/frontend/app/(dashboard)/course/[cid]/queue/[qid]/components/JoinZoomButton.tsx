@@ -41,8 +41,10 @@ const JoinZoomButton: React.FC<PropsWithChildren<JoinZoomButtonProps>> = ({
     <div className="md: mb-0 flex w-full items-center justify-center rounded-md border border-gray-300 p-2 text-sm font-semibold md:mb-3">
       <p className="text-center">
         {
-          "A TA has begun helping you. Be respectful of the TA's time. Be prepared with your question! \nOnce finished, this popup will automatically close."
+          "A TA has begun helping you. Be respectful of the TA's time. Be prepared with your question!"
         }
+        <br />
+        {'Once finished, this popup will automatically close.'}
       </p>
     </div>
   )
