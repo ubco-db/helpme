@@ -1287,7 +1287,6 @@ describe('Queue Integration', () => {
         course: course,
         user: await UserFactory.create(),
       });
-
       const queue = await QueueFactory.create({
         course: course,
         config: {
