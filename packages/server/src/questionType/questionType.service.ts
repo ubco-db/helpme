@@ -83,4 +83,29 @@ export class QuestionTypeService {
     };
     await transactionalEntityManager.save(queue);
   }
+
+  /**
+   * Edits a question type.
+   * Note that this does not update the queue config.
+   * Returns the new name of the question type (if it has changed).
+   */
+  async editQuestionType(
+    oldQuestionType: QuestionTypeModel,
+    newQuestionType: QuestionTypeParams,
+  ): Promise<string> {
+    const oldName = oldQuestionType.name;
+    if (newQuestionType.name) {
+      oldQuestionType.name = newQuestionType.name;
+    }
+    if (newQuestionType.color) {
+      oldQuestionType.color = newQuestionType.color;
+    }
+    await oldQuestionType.save();
+
+    if (newQuestionType.name !== oldName) {
+      return `${newQuestionType.name}`;
+    } else {
+      return '';
+    }
+  }
 }

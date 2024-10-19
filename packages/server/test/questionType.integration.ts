@@ -10,6 +10,7 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 import { QuestionTypeModel } from '../src/questionType/question-type.entity';
 import { QueueModel } from '../src/queue/queue.entity';
+import { ERROR_MESSAGES } from '@koh/common';
 
 describe('QuestionType Integration', () => {
   const supertest = setupIntegrationTest(QuestionTypeModule);
@@ -57,6 +58,19 @@ describe('QuestionType Integration', () => {
       },
     },
   };
+
+  // function to ensure a question type is unchanged
+  const expectQuestionTypeUnchanged = async (
+    questionType: QuestionTypeModel,
+  ) => {
+    const unchangedQuestionType = await QuestionTypeModel.findOne(
+      questionType.id,
+    );
+    expect(unchangedQuestionType).not.toBeUndefined();
+    expect(unchangedQuestionType.name).toBe(questionType.name);
+    expect(unchangedQuestionType.color).toBe(questionType.color);
+  };
+
   describe('GET /questionType/:courseId/:queueId', () => {
     it('should return 401 if user is not authorized', async () => {
       await supertest().get(`/questionType/1/1`).expect(401);
@@ -367,11 +381,16 @@ describe('QuestionType Integration', () => {
       expect(resp.text).toBe(`Successfully created ${newQuestionType.name}`);
 
       const updatedQueue = await QueueModel.findOne(queue.id);
+      const generatedTagId = Object.keys(updatedQueue.config.tags).find(
+        (tagId) => tagId.startsWith('NewQuestion Type_'),
+      );
+      expect(generatedTagId).not.toBeUndefined();
+
       expect(updatedQueue.config).toEqual({
         ...exampleConfig,
         tags: {
           ...exampleConfig.tags,
-          'New Question Type': {
+          [generatedTagId]: {
             display_name: newQuestionType.name,
             color_hex: newQuestionType.color,
           },
@@ -437,11 +456,16 @@ describe('QuestionType Integration', () => {
       expect(resp.text).toBe(`Successfully created ${newQuestionType.name}`);
 
       const updatedQueue = await QueueModel.findOne(queue.id);
+      const generatedTagId = Object.keys(updatedQueue.config.tags).find(
+        (tagId) => tagId.startsWith('NewQuestion Type_'),
+      );
+      expect(generatedTagId).not.toBeUndefined();
+
       expect(updatedQueue.config).toEqual({
         ...exampleConfig,
         tags: {
           ...exampleConfig.tags,
-          'NewQuestion Type': {
+          [generatedTagId]: {
             display_name: newQuestionType.name,
             color_hex: newQuestionType.color,
           },
@@ -485,12 +509,17 @@ describe('QuestionType Integration', () => {
 
   describe('DELETE /questionType/:courseId/:questionTypeId', () => {
     it('should return 401 if user is not authorized', async () => {
-      const courseId = 1;
-      const questionTypeId = 1;
+      const course = await CourseFactory.create();
+      const questionType = await QuestionTypeFactory.create({
+        cid: course.id,
+        name: 'Existing Question Type',
+        color: '#FFFFFF',
+      });
 
       await supertest()
-        .delete(`/questionType/${courseId}/${questionTypeId}`)
+        .delete(`/questionType/${course.id}/${questionType.id}`)
         .expect(401);
+      expectQuestionTypeUnchanged(questionType);
     });
 
     it('should return 200 and delete the question type if it exists', async () => {
@@ -553,6 +582,7 @@ describe('QuestionType Integration', () => {
       );
 
       expect(resp.status).toBe(404);
+      expectQuestionTypeUnchanged(questionType);
     });
 
     it('should not allow students to delete question types', async () => {
@@ -572,13 +602,7 @@ describe('QuestionType Integration', () => {
       );
 
       expect(resp.status).toBe(403);
-      const notDeletedQuestionType = await QuestionTypeModel.findOne({
-        where: {
-          id: questionType.id,
-          cid: course.id,
-        },
-      });
-      expect(notDeletedQuestionType).not.toBeUndefined();
+      expectQuestionTypeUnchanged(questionType);
     });
 
     it('should update the queue config and delete the tag', async () => {
@@ -689,6 +713,156 @@ describe('QuestionType Integration', () => {
       });
       expect(deletedQuestionType).not.toBeUndefined();
       expect(deletedQuestionType.deletedAt).not.toBeUndefined();
+    });
+  });
+
+  describe('PATCH /questionType/:courseId/:questionTypeId', () => {
+    it('should return 401 if user is not authorized', async () => {
+      const course = await CourseFactory.create();
+      const questionType = await QuestionTypeFactory.create({
+        cid: course.id,
+        name: 'Existing Question Type',
+        color: '#FFFFFF',
+      });
+      const updatedQuestionType = {
+        name: 'Updated Question Type',
+        color: '#FFFFFF',
+      };
+
+      await supertest()
+        .patch(`/questionType/${course.id}/${questionType.id}`)
+        .send(updatedQuestionType)
+        .expect(401);
+
+      expectQuestionTypeUnchanged(questionType);
+    });
+
+    it('should return 200 and update the question type if it exists', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const questionType = await QuestionTypeFactory.create({
+        cid: course.id,
+        name: 'Existing Question Type',
+        color: '#FFFFFF',
+      });
+      const updatedQuestionType = {
+        name: 'Updated Question Type',
+        color: '#000000',
+      };
+
+      const resp = await supertest({ userId: ta.id })
+        .patch(`/questionType/${course.id}/${questionType.id}`)
+        .send(updatedQuestionType);
+
+      expect(resp.status).toBe(200);
+      expect(resp.text).toBe(
+        `Successfully edited ${questionType.name} (${updatedQuestionType.name})`,
+      );
+
+      const updatedQuestionTypeModel = await QuestionTypeModel.findOne({
+        where: {
+          id: questionType.id,
+          cid: course.id,
+        },
+      });
+      expect(updatedQuestionTypeModel).not.toBeUndefined();
+      expect(updatedQuestionTypeModel.name).toBe(updatedQuestionType.name);
+      expect(updatedQuestionTypeModel.color).toBe(updatedQuestionType.color);
+    });
+
+    it('should return 404 if the course does not exist', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const questionType = await QuestionTypeFactory.create({
+        cid: course.id,
+        name: 'Existing Question Type',
+        color: '#FFFFFF',
+      });
+      const updatedQuestionType = {
+        name: 'Updated Question Type',
+        color: '#000000',
+      };
+
+      const resp = await supertest({ userId: ta.id })
+        .patch(`/questionType/999/${questionType.id}`)
+        .send(updatedQuestionType);
+
+      expect(resp.status).toBe(404);
+      expectQuestionTypeUnchanged(questionType);
+    });
+
+    it('should not allow students to update question types', async () => {
+      const course = await CourseFactory.create();
+      const student = await StudentCourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const questionType = await QuestionTypeFactory.create({
+        cid: course.id,
+        name: 'Existing Question Type',
+        color: '#FFFFFF',
+      });
+      const updatedQuestionType = {
+        name: 'Updated Question Type',
+        color: '#000000',
+      };
+
+      const resp = await supertest({ userId: student.id })
+        .patch(`/questionType/${course.id}/${questionType.id}`)
+        .send(updatedQuestionType);
+
+      expect(resp.status).toBe(403);
+      expectQuestionTypeUnchanged(questionType);
+    });
+
+    it('should return 404 if the question type does not exist', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
+      const updatedQuestionType = {
+        name: 'Updated Question Type',
+        color: '#000000',
+      };
+
+      const resp = await supertest({ userId: ta.id })
+        .patch(`/questionType/${course.id}/999`)
+        .send(updatedQuestionType);
+
+      expect(resp.text).toBe(ERROR_MESSAGES.questionType.questionTypeNotFound);
+      expect(resp.statusCode).toBe(404);
+    });
+
+    it('does not allow professors to update question types in other courses', async () => {
+      const course1 = await CourseFactory.create();
+      const course2 = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course1,
+        user: await UserFactory.create(),
+      });
+      const questionType = await QuestionTypeFactory.create({
+        cid: course1.id,
+        name: 'Existing Question Type',
+        color: '#FFFFFF',
+      });
+      const updatedQuestionType = {
+        name: 'Updated Question Type',
+        color: '#000000',
+      };
+
+      const resp = await supertest({ userId: ta.id })
+        .patch(`/questionType/${course2.id}/${questionType.id}`)
+        .send(updatedQuestionType);
+
+      expect(resp.status).toBe(404);
+      expectQuestionTypeUnchanged(questionType);
     });
   });
 });

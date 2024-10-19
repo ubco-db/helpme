@@ -1,4 +1,4 @@
-import { Role, QuestionTypeParams } from '@koh/common';
+import { Role, QuestionTypeParams, ERROR_MESSAGES } from '@koh/common';
 import {
   Controller,
   UseGuards,
@@ -12,6 +12,7 @@ import {
   Res,
   HttpStatus,
   ParseIntPipe,
+  Patch,
 } from '@nestjs/common';
 import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
@@ -161,5 +162,49 @@ export class QuestionTypeController {
     }
     res.status(HttpStatus.OK).send(`Successfully deleted ${questionType.name}`);
     return;
+  }
+
+  /**
+   * Edits a question type.
+   * Note that this does not update the queue config.
+   * This endpoint is needed for async question centre.
+   */
+  @Patch(':courseId/:questionTypeId')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.TA, Role.PROFESSOR)
+  async editQuestionType(
+    @Res() res: Response,
+    @Param('courseId', ParseIntPipe) courseId: number, // this is just needed for the CourseRolesGuard
+    @Param('questionTypeId', ParseIntPipe) questionTypeId: number,
+    @Body() newQuestionType: QuestionTypeParams,
+  ): Promise<void> {
+    const oldQuestionType = await QuestionTypeModel.findOne({
+      where: {
+        id: questionTypeId,
+      },
+    });
+    if (!oldQuestionType) {
+      res
+        .status(HttpStatus.NOT_FOUND)
+        .send(ERROR_MESSAGES.questionType.questionTypeNotFound);
+      return;
+    }
+    const oldQuestionTypeName = oldQuestionType.name;
+    try {
+      const newQuestionTypeName =
+        await this.questionTypeService.editQuestionType(
+          oldQuestionType,
+          newQuestionType,
+        );
+      res
+        .status(HttpStatus.OK)
+        .send(
+          `Successfully edited ${oldQuestionTypeName}${newQuestionTypeName && ` (${newQuestionTypeName})`}`,
+        );
+    } catch (e) {
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .send(`Error editing ${oldQuestionTypeName}`);
+    }
   }
 }
