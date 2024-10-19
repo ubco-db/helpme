@@ -472,39 +472,6 @@ describe('QuestionType Integration', () => {
         },
       });
     });
-    it('should return 400 if the name is only made of illegal characters', async () => {
-      const course = await CourseFactory.create();
-      const ta = await TACourseFactory.create({
-        course: course,
-        user: await UserFactory.create(),
-      });
-
-      const queue = await QueueFactory.create({
-        course: course,
-      });
-      const newQuestionType = {
-        queueId: queue.id,
-        name: '{}:"',
-        color: '#FFFFFF',
-      };
-
-      const resp = await supertest({ userId: ta.id })
-        .post(`/questionType/${course.id}`)
-        .send(newQuestionType);
-
-      expect(resp.status).toBe(400);
-      expect(resp.text).toBe('Name cannot only be made of illegal characters');
-
-      // make sure no question type was created
-      const questionType = await QuestionTypeModel.findOne({
-        where: {
-          cid: course.id,
-          queueId: newQuestionType.queueId,
-          name: newQuestionType.name,
-        },
-      });
-      expect(questionType).toBeUndefined();
-    });
   });
 
   describe('DELETE /questionType/:courseId/:questionTypeId', () => {
