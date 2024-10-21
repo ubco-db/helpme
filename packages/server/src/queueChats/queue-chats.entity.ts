@@ -17,16 +17,6 @@ export class QueueChatModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => CourseModel, (course) => course.queueChats, {
-    onDelete: 'CASCADE',
-  })
-  @JoinColumn({ name: 'courseId' })
-  @Exclude()
-  course: CourseModel;
-
-  @Column({ nullable: true })
-  courseId: number;
-
   @ManyToOne(() => QueueModel, (q) => q.chats, {
     onDelete: 'CASCADE',
   })

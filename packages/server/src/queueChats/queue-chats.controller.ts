@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpException,
@@ -10,56 +11,154 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { QueueChatService } from './queue-chats.service';
-import { QueueModel } from 'queue/queue.entity';
-import { QueueService } from 'queue/queue.service';
-import { OpenQuestionStatus } from '@koh/common';
 import { User } from 'decorators/user.decorator';
 import { UserModel } from 'profile/user.entity';
+import { QueueSSEService } from 'queue/queue-sse.service';
 
 @Controller('queue-chats')
 @UseGuards(JwtAuthGuard)
 export class QueueChatController {
-  constructor(private queueChatService: QueueChatService) {}
+  constructor(
+    private queueChatService: QueueChatService,
+    private queueSSEService: QueueSSEService,
+  ) {}
 
-  @Get(':courseId/:queueId')
-  async getQueueChat(
-    @Param('queueId') queueId: number,
-    @Param('courseId') courseId: number,
-  ) {
-    return this.queueChatService.getChatMessages(courseId, queueId);
-  }
+  // PAT TODO: put error messages in ERROR_MESSAGES
+  // PAT TODO: consider more than one student being helped
+  // PAT TODO: remove unused functions
 
-  @Put(':courseId/:queueId')
+  // @Get(':queueId')
+  // @UseGuards(JwtAuthGuard)
+  // async getQueueChat(
+  //   @Param('queueId') queueId: number,
+  //   @User() user: UserModel,
+  // ) {
+  //   try {
+  //     this.queueChatService.getChatMessages(queueId).then((chatMessages) => {
+  //       if (chatMessages.length === 0) {
+  //         throw new HttpException('Chat not found', HttpStatus.NOT_FOUND)
+  //       }
+
+  //       this.queueChatService.checkPermissions(queueId, user.id).then((allowedToRetrieve) => {
+  //         if (!allowedToRetrieve) {
+  //           throw new HttpException('User is not allowed to view chat', HttpStatus.FORBIDDEN);
+  //         }
+  //       })
+
+  //       return chatMessages;
+  //     });
+  //   } catch (error) {
+  //     if (error) {
+  //       console.error(error);
+  //       throw new HttpException('Error getting chat', HttpStatus.INTERNAL_SERVER_ERROR);
+  //     }
+  //   }
+  // }
+
+  // @Put(':queueId')
+  // @UseGuards(JwtAuthGuard)
+  // async createChat(
+  //   @Param('queueId') queueId: number,
+  //   @User() user: UserModel,
+  // ) {
+  //   try {
+  //     const queue = await QueueModel.findOne(queueId, {
+  //       relations: ['questions'],
+  //     });
+  //     if (!queue) {
+  //       throw new HttpException('Queue not found', HttpStatus.NOT_FOUND);
+  //     }
+  //     const helpedQuestion = queue.questions.find(
+  //       (question) => question.status === OpenQuestionStatus.Helping,
+  //     );
+
+  //     this.queueChatService.checkPermissions(queueId, user.id).then((allowedToCreate) => {
+  //       if (!allowedToCreate) {
+  //         throw new HttpException(
+  //           'User is not allowed to create chat',
+  //           HttpStatus.FORBIDDEN,
+  //         );
+  //       }
+  //     });
+
+  //     // Create a chat in Redis and return status 200 if successful
+  //     return this.queueChatService.createChat(
+  //       queueId,
+  //       helpedQuestion.taHelpedId,
+  //       helpedQuestion.creatorId,
+  //     );
+
+  //   } catch (error) {
+  //     if (error) {
+  //       console.error(error);
+  //       throw new HttpException('Error creating chat', HttpStatus.INTERNAL_SERVER_ERROR);
+  //     }
+  //   }
+  // }
+
+  @Patch(':queueId')
   @UseGuards(JwtAuthGuard)
-  async createChat(
+  async sendMessage(
     @Param('queueId') queueId: number,
-    @Param('courseId') courseId: number,
     @User() user: UserModel,
+    @Body('message') message: string,
   ) {
-    const queue = await QueueModel.findOne(queueId, {
-      relations: ['questions'],
-    });
-    if (!queue) {
-      throw new HttpException('Queue not found', HttpStatus.NOT_FOUND);
-    }
-    const helpedQuestion = queue.questions.find(
-      (question) => question.status === OpenQuestionStatus.Helping,
-    );
+    try {
+      this.queueChatService.checkChatExists(queueId).then((chatExists) => {
+        if (!chatExists) {
+          throw new HttpException('Chat does not exist', HttpStatus.NOT_FOUND);
+        }
 
-    if (
-      user.id !== helpedQuestion.taHelpedId &&
-      user.id !== helpedQuestion.creatorId
-    ) {
-      throw new HttpException(
-        'User is not allowed to create chat',
-        HttpStatus.FORBIDDEN,
-      );
+        this.queueChatService
+          .checkPermissions(queueId, user.id)
+          .then((allowedToSend) => {
+            if (!allowedToSend) {
+              throw new HttpException(
+                'User is not allowed to send message',
+                HttpStatus.FORBIDDEN,
+              );
+            }
+          });
+
+        // Add message to chat in Redis and return status 200 if successful
+        return this.queueChatService
+          .sendMessage(queueId, user.id, message)
+          .then(() => {
+            this.queueSSEService.updateQueueChat(queueId);
+          });
+      });
+    } catch (error) {
+      if (error) {
+        console.error(error);
+        throw new HttpException(
+          'Error sending message',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
     }
-    return this.queueChatService.createChat(
-      courseId,
-      queueId,
-      helpedQuestion.taHelpedId,
-      helpedQuestion.creatorId,
-    );
   }
+
+  // @Delete(':courseId/:queueId')
+  // @UseGuards(JwtAuthGuard)
+  // async deleteChat(
+  //   @Param('queueId') queueId: number,
+  //   @Param('courseId') courseId: number,
+  //   @User() user: UserModel,
+  // ) {
+  //   try {
+  //     this.queueChatService.checkPermissions(courseId, queueId, user.id).then((allowedToDelete) => {
+  //       if (!allowedToDelete) {
+  //         throw new HttpException('User is not allowed to delete chat', HttpStatus.FORBIDDEN);
+  //       }
+  //     });
+
+  //     // Delete chat from Redis and return status 200 if successful
+  //     return this.queueChatService.endChat(courseId, queueId);
+  //   } catch (error) {
+  //     if (error) {
+  //       console.error(error);
+  //       throw new HttpException('Error deleting chat', HttpStatus.INTERNAL_SERVER_ERROR);
+  //     }
+  //   }
+  // }
 }

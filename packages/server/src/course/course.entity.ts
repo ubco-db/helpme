@@ -122,8 +122,4 @@ export class CourseModel extends BaseEntity {
   @OneToMany(() => StudentTaskProgressModel, (stpm) => stpm.course)
   @Exclude()
   taskProgresses: StudentTaskProgressModel[];
-
-  @OneToMany(() => QueueChatModel, (queueChat) => queueChat.course)
-  @Exclude()
-  queueChats: QueueChatModel[];
 }

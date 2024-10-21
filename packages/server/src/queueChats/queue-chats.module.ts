@@ -6,5 +6,6 @@ import { QueueService } from 'queue/queue.service';
 @Module({
   controllers: [QueueChatController],
   providers: [QueueService, QueueChatService],
+  exports: [QueueChatService],
 })
 export class QueueChatsModule {}

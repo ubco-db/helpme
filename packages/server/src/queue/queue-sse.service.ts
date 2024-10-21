@@ -4,6 +4,8 @@ import { Response } from 'express';
 import { throttle } from 'lodash';
 import { SSEService } from 'sse/sse.service';
 import { QueueService } from './queue.service';
+import { QueueChatService } from 'queueChats/queue-chats.service';
+import { queue } from 'async';
 
 type QueueClientMetadata = { userId: number; role: Role };
 
@@ -16,6 +18,7 @@ export class QueueSSEService {
   constructor(
     private queueService: QueueService,
     private sseService: SSEService<QueueClientMetadata>,
+    private queueChatService: QueueChatService,
   ) {}
 
   subscribeClient(
@@ -48,11 +51,30 @@ export class QueueSSEService {
     }
   });
 
+  updateQueueChat = this.throttleUpdate(async (queueId) => {
+    const queueChat = await this.queueChatService.getChatData(queueId);
+    if (queueChat) {
+      await this.sendToRoom(queueId, async () => ({ queueChat }));
+    }
+  });
+
   private async sendToRoom(
     queueId: number,
     data: (metadata: QueueClientMetadata) => Promise<SSEQueueResponse>,
   ) {
-    await this.sseService.sendEvent(idToRoom(queueId), data);
+    await this.sseService.sendEvent(
+      idToRoom(queueId),
+      (metadata: QueueClientMetadata) => {
+        if (!this.queueChatService.checkPermissions(queueId, metadata.userId)) {
+          return data(metadata).then((response) => {
+            delete response.queueChat; // Protect student privacy
+            return response;
+          });
+        } else {
+          return data(metadata);
+        }
+      },
+    );
   }
 
   private throttleUpdate(updateFunction: (queueId: number) => Promise<void>) {

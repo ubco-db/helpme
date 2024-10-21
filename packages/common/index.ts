@@ -634,6 +634,42 @@ export class AsyncQuestionVotes {
   vote!: number
 }
 
+export class QueueChatPartial {
+  // Might be useful for frontend insights on chat (after the fact; won't be sent to chat users)
+  @IsOptional()
+  @IsInt()
+  id?: number
+
+  @IsInt()
+  staffId!: number
+
+  @IsInt()
+  studentId!: number
+
+  @IsDate()
+  startedAt!: Date
+
+  messages!: QueueChatMessagePartial[]
+}
+
+export class QueueChatMessagePartial {
+  @IsOptional()
+  @IsInt()
+  userId?: number
+
+  @IsString()
+  firstName!: string
+
+  @IsString()
+  lastName!: string
+
+  @IsString()
+  message!: string
+
+  @IsDate()
+  timestamp!: Date
+}
+
 export class Image {
   @IsOptional()
   @IsInt()
@@ -1099,6 +1135,8 @@ export class GetQueueResponse extends QueuePartial {}
 
 export class GetCourseQueuesResponse extends Array<QueuePartial> {}
 
+export class GetQueueChatResponse extends QueueChatPartial {}
+
 export class ListQuestionsResponse {
   @Type(() => Question)
   yourQuestions?: Array<Question>
@@ -1456,6 +1494,7 @@ export class SemesterPartial {
 export class SSEQueueResponse {
   queue?: GetQueueResponse
   queueQuestions?: ListQuestionsResponse
+  queueChat?: GetQueueChatResponse
 }
 
 export type GetInsightOutputResponse = PossibleOutputTypes

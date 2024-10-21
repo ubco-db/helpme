@@ -47,6 +47,7 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { QueueService } from '../queue/queue.service';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QuestionService } from './question.service';
+import { QueueChatService } from 'queueChats/queue-chats.service';
 
 // NOTE: FIXME: EVERY REQUEST INTO QUESTIONCONTROLLER REQUIRES THE BODY TO HAVE A
 // FIELD questionId OR queueId! If not, stupid weird untraceable bugs will happen
@@ -60,6 +61,7 @@ export class QuestionController {
     private questionService: QuestionService,
     private queueService: QueueService,
     private redisQueueService: RedisQueueService,
+    private QueueChatService: QueueChatService,
   ) {}
 
   @Get('allQuestions/:cid')
@@ -457,7 +459,32 @@ export class QuestionController {
         }
       }
       if (body.status) {
-        await this.questionService.changeStatus(body.status, question, userId);
+        await this.questionService
+          .changeStatus(body.status, question, userId)
+          .then(async () => {
+            // if the question is being resolved or helped, create or end the queue chat for that question
+            switch (body.status) {
+              case OpenQuestionStatus.Helping:
+                await this.QueueChatService.createChat(
+                  question.queueId,
+                  question.taHelpedId,
+                  question.creatorId,
+                ).catch((error) =>
+                  console.log(
+                    `Failed to create queue chat record for course "${question.queue.course.name} (id: ${question.queue.courseId})" and queue "${question.queue.room} (id: ${question.queueId})": ${error}`,
+                  ),
+                );
+                break;
+              case ClosedQuestionStatus.Resolved:
+                await this.QueueChatService.endChat(question.queueId).catch(
+                  (error) =>
+                    console.log(
+                      `Failed to migrate queue chat record to database for course "${question.queue.course.name} (id: ${question.queue.courseId})" and queue "${question.queue.room} (id: ${question.queueId})": ${error}`,
+                    ),
+                );
+                break;
+            }
+          });
       }
       // if it's a task question, update the studentTaskProgress for the student
       if (

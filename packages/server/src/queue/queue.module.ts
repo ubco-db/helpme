@@ -10,6 +10,7 @@ import { AlertsModule } from '../alerts/alerts.module';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueInviteController } from './queue-invite.controller';
+import { QueueChatService } from 'queueChats/queue-chats.service';
 
 @Module({
   controllers: [QueueController, QueueInviteController],
@@ -21,6 +22,7 @@ import { QueueInviteController } from './queue-invite.controller';
     QueueSubscriber,
     AlertsService,
     RedisQueueService,
+    QueueChatService,
   ],
   exports: [QueueCleanService, QueueSSEService],
   imports: [ApplicationConfigService, SSEModule, AlertsModule],
