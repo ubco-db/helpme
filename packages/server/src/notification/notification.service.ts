@@ -12,6 +12,8 @@ export const NotifMsgs = {
     THIRD_PLACE: `You're 3rd in the queue. Be ready for a TA to call you soon!`,
     TA_HIT_HELPED: (taName: string): string =>
       `${taName} is ready for you now!`,
+    PAUSED: (taName: string): string =>
+      `${taName} has paused your question for the time being.`,
     REMOVED: `You've been removed from the queue. Please return to the app for more information.`,
   },
   ta: {

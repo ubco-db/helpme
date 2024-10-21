@@ -1,7 +1,9 @@
 import {
   ClosedQuestionStatus,
   ERROR_MESSAGES,
+  LimboQuestionStatus,
   OpenQuestionStatus,
+  QuestionStatus,
   QuestionStatusKeys,
 } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
@@ -17,6 +19,7 @@ import {
   StudentCourseFactory,
   StudentTaskProgressFactory,
   TACourseFactory,
+  UserCourseFactory,
   UserFactory,
 } from './util/factories';
 import {
@@ -27,6 +30,7 @@ import {
 import { forEach } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
+import { QUESTION_STATES } from '../src/question/question-fsm';
 
 describe('Question Integration', () => {
   const supertest = setupIntegrationTest(QuestionModule, modifyMockNotifs);
@@ -1015,6 +1019,7 @@ describe('Question Integration', () => {
         queueId: qt.queueId,
       });
     });
+
     it('PATCH invalid state transition not allowed', async () => {
       const q = await QuestionFactory.create({ text: 'Help pls' });
       const ta = await UserFactory.create();
@@ -1801,6 +1806,96 @@ describe('Question Integration', () => {
       expect(response.body.message).toBe(
         ERROR_MESSAGES.questionController.studentTaskProgress.taskNotInConfig,
       );
+    });
+    it('PATCH: cannot change question status to paused when not being helped', async () => {
+      const q = await QuestionFactory.create({
+        text: 'Help pls',
+        status: 'Queued',
+      });
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ course: q.queue.course, user: ta });
+
+      q.queue.staffList.push(ta);
+      expect(await q.queue.checkIsOpen()).toBe(true);
+
+      const res = await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          status: OpenQuestionStatus.Paused,
+        })
+        .expect(401);
+      expect(res.body?.message).toContain('TA cannot change status from ');
+    });
+
+    it('PATCH: changing question status to paused removes helpedAt, adds pausedAt', async () => {
+      const ta = await UserFactory.create();
+      const queue = await QueueFactory.create();
+      await TACourseFactory.create({ course: queue.course, user: ta });
+      const q = await QuestionFactory.create({
+        text: 'Help pls',
+        status: 'Helping',
+        taHelpedId: ta.id,
+        helpedAt: new Date(),
+        queue: queue,
+      });
+
+      q.queue.staffList.push(ta);
+      expect(await q.queue.checkIsOpen()).toBe(true);
+
+      await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          status: OpenQuestionStatus.Paused,
+        })
+        .expect(200);
+
+      await q.reload();
+      expect(q.helpedAt).toBeNull();
+      expect(q.pausedAt).not.toBeNull();
+      expect(q.status).toBe(OpenQuestionStatus.Paused);
+    });
+
+    it('PATCH: changing question status to paused does not fail when user is not the original helper', async () => {
+      const ta = await UserFactory.create();
+      const ta2 = await UserFactory.create();
+      const queue = await QueueFactory.create();
+      await TACourseFactory.create({ course: queue.course, user: ta });
+      await TACourseFactory.create({ course: queue.course, user: ta2 });
+      const q = await QuestionFactory.create({
+        text: 'Help pls',
+        status: 'Helping',
+        taHelpedId: ta.id,
+        helpedAt: new Date(),
+        queue: queue,
+      });
+
+      q.queue.staffList.push(ta);
+      q.queue.staffList.push(ta2);
+      expect(await q.queue.checkIsOpen()).toBe(true);
+
+      await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          status: OpenQuestionStatus.Paused,
+        })
+        .expect(200);
+
+      await q.reload();
+      expect(q.helpedAt).toBeNull();
+      expect(q.pausedAt).not.toBeNull();
+      expect(q.status).toBe(OpenQuestionStatus.Paused);
+
+      await supertest({ userId: ta2.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          status: OpenQuestionStatus.Helping,
+        })
+        .expect(200);
+
+      await q.reload();
+      expect(q.helpedAt).not.toBeNull();
+      expect(q.pausedAt).toBeNull();
+      expect(q.status).toBe(OpenQuestionStatus.Helping);
     });
   });
 });
