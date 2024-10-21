@@ -11,10 +11,16 @@ import {
 import { CloseOutlined, PlusOutlined } from '@ant-design/icons'
 import { API } from '@/app/api'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import {
+  generateRandomHexColor,
+  getErrorMessage,
+} from '@/app/utils/generalUtils'
 import { QuestionTypeParams } from '@koh/common'
-import { QuestionTagDeleteSelector } from '../../../components/QuestionTagElement'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
+import {
+  EditedQuestionTag,
+  QuestionTagEditor,
+} from '../../../components/QuestionTagElement'
 
 type Color = GetProp<ColorPickerProps, 'value'>
 
@@ -24,7 +30,7 @@ type QuestionTypeForCreation = {
 }
 interface FormValues {
   notes: string
-  questionTypesForDeletion: number[]
+  editedQuestionTags: EditedQuestionTag[]
   questionTypesForCreation: QuestionTypeForCreation[]
 }
 
@@ -47,8 +53,12 @@ const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
   const onFinish = async (values: FormValues) => {
     let errorsHaveOccurred = false
 
+    const questionTypesForDeletion = values.editedQuestionTags
+      .filter((tag) => tag.markedForDeletion)
+      .map((tag) => tag.newValues?.id || -1)
+
     const deletePromises =
-      values.questionTypesForDeletion?.map((tagID) =>
+      questionTypesForDeletion.map((tagID) =>
         API.questionType
           .deleteQuestionType(courseId, tagID)
           .then((responseMessage) => {
@@ -61,8 +71,35 @@ const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
           }),
       ) || []
 
+    const questionTypesToBeEdited = values.editedQuestionTags.filter(
+      (tag) => !tag.markedForDeletion,
+    )
+    const editPromises = questionTypesToBeEdited.map((tag) => {
+      if (!tag.newValues) {
+        return Promise.resolve()
+      }
+      if (!tag.newValues?.id) {
+        message.error('Error editing question tag: ID not found')
+        return Promise.resolve()
+      }
+      const updatePayload: QuestionTypeParams = {
+        name: tag.newValues.name,
+        color: tag.newValues.color,
+      }
+      return API.questionType
+        .updateQuestionType(courseId, tag.newValues.id, updatePayload)
+        .then((responseMessage) => {
+          message.success(responseMessage)
+        })
+        .catch((e) => {
+          errorsHaveOccurred = true
+          const errorMessage = getErrorMessage(e)
+          message.error(`Error editing question tag: ${errorMessage}`)
+        })
+    })
+
     const createPromises =
-      values.questionTypesForCreation?.map((questionType) => {
+      values.questionTypesForCreation.map((questionType) => {
         const newQuestionType: QuestionTypeParams = {
           cid: courseId,
           queueId: null,
@@ -84,7 +121,7 @@ const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
           })
       }) || []
 
-    await Promise.all([...deletePromises, ...createPromises])
+    await Promise.all([...deletePromises, ...editPromises, ...createPromises])
     mutateQuestionTypes()
     if (!errorsHaveOccurred) {
       onEditSuccess()
@@ -109,7 +146,8 @@ const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
           form={form}
           name="form_in_modal"
           initialValues={{
-            questionTypesForDeletion: [],
+            editedQuestionTags: [],
+            questionTypesForCreation: [],
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
@@ -119,20 +157,16 @@ const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
       )}
     >
       <Form.Item
-        label="Question Tags (Click to be marked for deletion)"
-        name="questionTypesForDeletion"
+        label="Question Tags (Click to Edit)"
+        name="editedQuestionTags"
       >
-        <QuestionTagDeleteSelector currentTags={questionTypes ?? []} />
+        <QuestionTagEditor currentTags={questionTypes ?? []} />
       </Form.Item>
-      <Form.List
-        name="questionTypesForCreation"
-        // initialValue={[{name: 'test', color: '#' + Math.floor(Math.random() * 16777215).toString(16) }]}
-      >
+      <Form.List name="questionTypesForCreation">
         {(fields, { add, remove }) => (
           <>
             {fields.map(({ key, name, ...restField }) => {
-              const defaultColor =
-                '#' + Math.floor(Math.random() * 16777215).toString(16)
+              const defaultColor = generateRandomHexColor()
               return (
                 <Space key={key} className="flex" align="center">
                   <Form.Item

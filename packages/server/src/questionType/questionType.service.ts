@@ -1,4 +1,4 @@
-import { QuestionTypeParams } from '@koh/common';
+import { generateTagIdFromName, QuestionTypeParams } from '@koh/common';
 import {
   BadRequestException,
   ConflictException,
@@ -67,7 +67,7 @@ export class QuestionTypeService {
     queue.config.tags = queue.config.tags || {}; // just in case it's undefined
 
     // generate a new tag id based on the question type name
-    const newTagId = newQuestionType.name.replace(/[\{\}"\:\,]/g, '');
+    const newTagId = generateTagIdFromName(newQuestionType.name);
     if (newTagId.length === 0) {
       throw new BadRequestException(
         'Name cannot only be made of illegal characters',
@@ -82,5 +82,30 @@ export class QuestionTypeService {
       color_hex: newQuestionType.color,
     };
     await transactionalEntityManager.save(queue);
+  }
+
+  /**
+   * Edits a question type.
+   * Note that this does not update the queue config.
+   * Returns the new name of the question type (if it has changed).
+   */
+  async editQuestionType(
+    oldQuestionType: QuestionTypeModel,
+    newQuestionType: QuestionTypeParams,
+  ): Promise<string> {
+    const oldName = oldQuestionType.name;
+    if (newQuestionType.name) {
+      oldQuestionType.name = newQuestionType.name;
+    }
+    if (newQuestionType.color) {
+      oldQuestionType.color = newQuestionType.color;
+    }
+    await oldQuestionType.save();
+
+    if (newQuestionType.name !== oldName) {
+      return `${newQuestionType.name}`;
+    } else {
+      return '';
+    }
   }
 }
