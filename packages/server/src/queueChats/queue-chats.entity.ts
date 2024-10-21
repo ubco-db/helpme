@@ -61,7 +61,7 @@ export class QueueChatModel extends BaseEntity {
   startedAt: Date;
 
   @CreateDateColumn({ type: 'timestamptz', nullable: true })
-  deletedAt: Date;
+  closedAt: Date;
 
   @Column({ type: 'int', nullable: true })
   messageCount: number;
