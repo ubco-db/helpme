@@ -9,22 +9,25 @@ import { Button, Card, Divider, Input, message, Row, Tag, Tooltip } from 'antd'
 import Link from 'next/link'
 import { ReactElement, useState } from 'react'
 import UserAvatar from '@/app/components/UserAvatar'
-import { QueuePartial } from '@koh/common'
+import { QueuePartial, QueueTypes } from '@koh/common'
+import { getQueueTypeLabel } from '../queue/[qid]/utils/commonQueueFunctions'
 import { useCourse } from '@/app/hooks/useCourse'
 import { API } from '@/app/api'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 
 interface QueueCardProps {
   cid: number
+  type: QueueTypes
   queue: QueuePartial
-  isTA: boolean
+  isStaff: boolean
   linkId: string
 }
 
 const QueueCard: React.FC<QueueCardProps> = ({
   cid,
+  type,
   queue,
-  isTA,
+  isStaff,
   linkId,
 }): ReactElement => {
   const { mutateCourse } = useCourse(cid)
@@ -80,7 +83,15 @@ const QueueCard: React.FC<QueueCardProps> = ({
           <span className="mr-8 flex flex-row flex-wrap items-center justify-between">
             <div>
               {queue.room}
-              <div className="flex">
+              <div className="mb-1 flex flex-wrap gap-y-1 sm:mb-0">
+                {queue?.type && (
+                  <Tag
+                    color="#2a9187"
+                    className="m-0 mr-1 leading-4 text-gray-200"
+                  >
+                    {getQueueTypeLabel(queue.type)}
+                  </Tag>
+                )}
                 {queue?.isProfessorQueue && (
                   <Tag
                     color="#337589"
@@ -149,7 +160,7 @@ const QueueCard: React.FC<QueueCardProps> = ({
             <div className="whitespace-pre-wrap break-words text-[rgb(125,125,125)]">
               <NotificationOutlined /> <i>{queue.notes}</i>
             </div>
-          ) : isTA ? (
+          ) : isStaff ? (
             <i className="font-light text-gray-400"> no notes provided </i>
           ) : null}
           <div className="flex">
@@ -164,7 +175,7 @@ const QueueCard: React.FC<QueueCardProps> = ({
             )}
             {!editingNotes && (
               <Row className="pt-2.5">
-                {isTA && (
+                {isStaff && (
                   <Button
                     className="rounded-md border px-4 py-2 text-base font-medium"
                     onClick={(e) => {

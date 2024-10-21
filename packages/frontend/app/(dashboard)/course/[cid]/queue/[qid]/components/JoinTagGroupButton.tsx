@@ -2,6 +2,7 @@ import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import {
   OpenQuestionStatus,
   Question,
+  QuestionLocations,
   QuestionType,
   QuestionTypeParams,
 } from '@koh/common'
@@ -15,14 +16,14 @@ type JoinTagGroupButtonProps = {
     questionTypes: QuestionType[],
     force: boolean,
     isTaskQuestion: boolean,
-    location?: string,
+    location?: QuestionLocations,
   ) => Promise<void>
   updateQuestion: (
     text: string,
     questionTypes: QuestionTypeParams[],
     groupable: boolean,
     isTaskQuestion: boolean,
-    location: string,
+    location: QuestionLocations,
   ) => Promise<void>
   leaveQueue: (isTaskQuestion: boolean) => Promise<void>
   studentQuestion?: Question
@@ -86,7 +87,7 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
               newQuestionTypes,
               studentQuestion.groupable,
               studentQuestion.isTaskQuestion ?? false,
-              studentQuestion.location ?? '',
+              studentQuestion.location ?? 'Unselected',
             )
           }
         } else if (taskId) {
@@ -101,7 +102,7 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
               [],
               studentDemo.groupable,
               studentDemo.isTaskQuestion ?? true,
-              studentDemo.location ?? '',
+              studentDemo.location ?? 'Unselected',
             )
           }
         } else {
@@ -134,7 +135,7 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
               newQuestionTypes,
               studentQuestion.groupable,
               studentQuestion.isTaskQuestion ?? false,
-              studentQuestion.location ?? '',
+              studentQuestion.location ?? 'Unselected',
             )
           }
         } else if (taskId) {
@@ -153,7 +154,7 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
               [],
               studentDemo.groupable,
               studentDemo.isTaskQuestion ?? true,
-              studentDemo.location ?? '',
+              studentDemo.location ?? 'Unselected',
             )
           }
         } else {

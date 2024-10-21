@@ -1,4 +1,4 @@
-import { ListQuestionsResponse, Role } from '@koh/common'
+import { ListQuestionsResponse, Role, QueueTypes } from '@koh/common'
 
 export function getHelpingQuestions(
   queueQuestions: ListQuestionsResponse | undefined,
@@ -14,4 +14,17 @@ export function getHelpingQuestions(
     ) ?? []
   const isHelping = helpingQuestions.length > 0
   return { helpingQuestions, isHelping }
+}
+
+export const getQueueTypeLabel = (type: QueueTypes) => {
+  switch (type) {
+    case 'online':
+      return 'Online'
+    case 'hybrid':
+      return 'Hybrid'
+    case 'inPerson':
+      return 'In-Person'
+    default:
+      return 'Invalid Queue Type'
+  }
 }
