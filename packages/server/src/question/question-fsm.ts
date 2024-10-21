@@ -16,22 +16,32 @@ const QUEUE_TRANSITIONS: AllowableTransitions = {
   student: [ClosedQuestionStatus.ConfirmedDeleted],
 };
 
-const QUESTION_STATES: Record<QuestionStatus, AllowableTransitions> = {
+const HELPING_TRANSITIONS: AllowableTransitions = {
+  ta: [
+    LimboQuestionStatus.CantFind,
+    LimboQuestionStatus.ReQueueing,
+    ClosedQuestionStatus.Resolved,
+    OpenQuestionStatus.Paused,
+    LimboQuestionStatus.TADeleted,
+  ],
+  student: [ClosedQuestionStatus.ConfirmedDeleted],
+};
+
+export const QUESTION_STATES: Record<QuestionStatus, AllowableTransitions> = {
   [OpenQuestionStatus.Drafting]: {
     student: [OpenQuestionStatus.Queued, ClosedQuestionStatus.ConfirmedDeleted],
     ta: [OpenQuestionStatus.Helping, ClosedQuestionStatus.DeletedDraft],
   },
   [OpenQuestionStatus.Queued]: QUEUE_TRANSITIONS,
   [OpenQuestionStatus.PriorityQueued]: QUEUE_TRANSITIONS,
-  [OpenQuestionStatus.Helping]: {
+  [OpenQuestionStatus.Paused]: {
     ta: [
-      LimboQuestionStatus.CantFind,
-      LimboQuestionStatus.ReQueueing,
-      ClosedQuestionStatus.Resolved,
-      LimboQuestionStatus.TADeleted,
+      ...HELPING_TRANSITIONS.ta.filter((t) => t != OpenQuestionStatus.Paused),
+      OpenQuestionStatus.Helping,
     ],
-    student: [ClosedQuestionStatus.ConfirmedDeleted],
+    student: HELPING_TRANSITIONS.student,
   },
+  [OpenQuestionStatus.Helping]: HELPING_TRANSITIONS,
   [LimboQuestionStatus.CantFind]: {
     student: [
       OpenQuestionStatus.PriorityQueued,

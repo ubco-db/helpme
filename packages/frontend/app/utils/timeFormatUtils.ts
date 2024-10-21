@@ -59,6 +59,39 @@ export function getServedTime(question: Question): string {
   return formatServeTime(difference / 1000)
 }
 
+export function getPausedTime(question: Question): string {
+  if (!question.pausedAt || !question.createdAt) {
+    return ''
+  }
+  const now = new Date()
+
+  if (typeof question.pausedAt === 'string') {
+    const tempDate = new Date(Date.parse(question.pausedAt))
+    const difference = now.getTime() - tempDate.getTime()
+    return formatWaitTime(difference / 60000)
+  }
+  const difference = now.getTime() - question.pausedAt.getTime()
+  return formatWaitTime(difference / 60000)
+}
+
+export function getOriginalPausedTime(question: Question): string {
+  if (!question.pausedAt || !question.createdAt) {
+    return ''
+  }
+
+  const created =
+    typeof question.createdAt === 'string'
+      ? new Date(Date.parse(question.createdAt))
+      : question.createdAt
+  const paused =
+    typeof question.pausedAt === 'string'
+      ? new Date(Date.parse(question.pausedAt))
+      : question.pausedAt
+
+  const difference = paused.getTime() - created.getTime()
+  return formatServeTime(difference / 1000)
+}
+
 /**
  * Formats time as 0:11 (minutes:seconds)
  */

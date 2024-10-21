@@ -10,7 +10,12 @@ import { useState, useEffect } from 'react'
 import UserAvatar from '@/app/components/UserAvatar'
 import TaskMarkingSelector from './TaskMarkingSelector'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
-import { getServedTime, getWaitTime } from '@/app/utils/timeFormatUtils'
+import {
+  getOriginalPausedTime,
+  getPausedTime,
+  getServedTime,
+  getWaitTime,
+} from '@/app/utils/timeFormatUtils'
 import TAQuestionCardButtons from './TAQuestionCardButtons'
 import { cn } from '@/app/utils/generalUtils'
 
@@ -23,6 +28,7 @@ interface QuestionCardProps {
   configTasks?: ConfigTasks
   isMyQuestion?: boolean
   isBeingHelped?: boolean
+  isPaused?: boolean
   className?: string // used to highlight questions or add other classes
 }
 
@@ -35,6 +41,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   configTasks,
   isMyQuestion,
   isBeingHelped,
+  isPaused,
   className,
 }) => {
   const tasks = question.isTaskQuestion
@@ -49,20 +56,36 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   }
 
   const [servedTime, setServedTime] = useState(getServedTime(question))
+  const [pausedTime, setPausedTime] = useState(getPausedTime(question))
+
   useEffect(() => {
-    if (isBeingHelped && question.helpedAt) {
+    if (isBeingHelped && question.helpedAt && !isPaused) {
       const interval = setInterval(() => {
         setServedTime(getServedTime(question))
       }, 1000)
       return () => clearInterval(interval)
+    } else if (isPaused && question.pausedAt) {
+      const interval = setInterval(() => {
+        setPausedTime(getPausedTime(question))
+      }, 1000)
+      return () => clearInterval(interval)
     }
-  }, [isBeingHelped, question])
+  }, [isBeingHelped, question, isPaused])
 
   return (
     <Card
       className={cn(
-        'mb-2 rounded-md px-2 text-gray-600 shadow-md ',
-        isBeingHelped ? 'mt-3 border border-green-600/40 md:mt-2' : '',
+        'mb-2 self-stretch rounded-md px-2 text-gray-600 shadow-md ',
+        isBeingHelped || isPaused ? 'mt-3 border md:mt-2' : '',
+        isBeingHelped ? 'border-green-600/40 bg-green-50' : '',
+        isPaused ? 'border-amber-600/40 bg-amber-50' : '',
+        isMyQuestion ? 'bg-teal-50' : '',
+        isMyQuestion && isBeingHelped
+          ? 'bg-gradient-to-r from-teal-50 to-green-50'
+          : '',
+        isMyQuestion && isPaused
+          ? '-amber-50 bg-gradient-to-r from-teal-50'
+          : '',
         className,
       )}
       classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
@@ -158,20 +181,62 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             />
           ))}
         </Col>
-        {isBeingHelped && !isStaff && question.helpedAt && (
-          <Col flex="0 0 3rem">
-            <div className="text-sm font-medium text-green-700">
-              {servedTime}
-            </div>
-          </Col>
-        )}
-        <Col flex="0 0 3rem">
-          <div className="text-sm text-gray-600">{getWaitTime(question)}</div>
-          {isStaff && isBeingHelped && (
-            <div className="text-sm font-medium text-green-700">
-              {servedTime}
-            </div>
+        <Col flex={'0.1 1 auto'}>
+          {(isBeingHelped || isPaused) && !isStaff && (
+            <Row justify={'end'}>
+              <div
+                className={cn(
+                  'text-sm',
+                  isPaused ? 'text-amber-400' : '',
+                  isBeingHelped ? 'text-green-700' : '',
+                )}
+              >
+                {isPaused && 'Currently Paused'}
+                {isBeingHelped && 'Currently Being Served'}
+              </div>
+            </Row>
           )}
+          <Row
+            justify={'end'}
+            className={cn(
+              !isBeingHelped && !isPaused ? 'h-[2.5rem]' : '',
+              'gap-1',
+            )}
+          >
+            <Col flex="1 0 3rem">
+              {isStaff && (
+                <div className="flex justify-end text-sm text-gray-600">
+                  {getWaitTime(question)}
+                </div>
+              )}
+              {(isBeingHelped || isPaused) && (
+                <div
+                  className={cn(
+                    isBeingHelped ? 'text-green-700' : '',
+                    isPaused ? 'text-amber-400' : '',
+                    'font-md flex justify-end text-sm',
+                  )}
+                >
+                  {isPaused && (
+                    <>
+                      <div className={'text-gray-600'}>
+                        {getOriginalPausedTime(question)}
+                      </div>
+                      <div>{isPaused ? ' +' + pausedTime : ''}</div>
+                    </>
+                  )}
+                  {isBeingHelped && servedTime}
+                </div>
+              )}
+            </Col>
+            {!isStaff && (
+              <Col flex="0 0 3rem">
+                <div className="flex justify-end text-sm text-gray-600">
+                  {getWaitTime(question)}
+                </div>
+              </Col>
+            )}
+          </Row>
         </Col>
         {isStaff && (
           <Col className="w-full sm:w-auto">
@@ -185,13 +250,6 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             />
           </Col>
         )}
-        <div
-          className={`absolute left-auto right-1 ${question.text && question.questionTypes && question.questionTypes.length > 0 ? '-mt-[4.4rem]' : '-mt-12 md:-mt-[3.2rem]'}`}
-        >
-          {isBeingHelped && !isStaff && (
-            <div className="text-sm text-green-700">Currently Being Served</div>
-          )}
-        </div>
       </Row>
     </Card>
   )
