@@ -6,7 +6,6 @@ import {
   Column,
   Entity,
   JoinColumn,
-  JoinTable,
   ManyToMany,
   OneToMany,
   OneToOne,
@@ -24,6 +23,7 @@ import { UserTokenModel } from './user-token.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
+import { QueueChatModel } from 'queueChats/queue-chats.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -140,4 +140,12 @@ export class UserModel extends BaseEntity {
   )
   @Exclude()
   taskProgress: StudentTaskProgressModel[];
+
+  @OneToMany(() => QueueChatModel, (queueChat) => queueChat.staff)
+  @Exclude()
+  staffChats: QueueChatModel[];
+
+  @OneToMany(() => QueueChatModel, (queueChat) => queueChat.student)
+  @Exclude()
+  studentChats: QueueChatModel[];
 }

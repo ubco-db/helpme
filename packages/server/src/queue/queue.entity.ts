@@ -24,6 +24,7 @@ import {
 } from '@koh/common';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
+import { QueueChatModel } from 'queueChats/queue-chats.entity';
 
 @Entity('queue_model')
 export class QueueModel extends BaseEntity {
@@ -103,4 +104,8 @@ export class QueueModel extends BaseEntity {
   })
   @Exclude()
   queueInvite: QueueInviteModel;
+
+  @OneToMany(() => QueueChatModel, (queueChat) => queueChat.queue)
+  @Exclude()
+  chats: QueueChatModel[];
 }

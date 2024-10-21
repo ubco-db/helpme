@@ -21,6 +21,7 @@ import { InteractionModel } from '../chatbot/interaction.entity';
 import { CourseSettingsModel } from './course_settings.entity';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
+import { QueueChatModel } from 'queueChats/queue-chats.entity';
 @Entity('course_model')
 export class CourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -121,4 +122,8 @@ export class CourseModel extends BaseEntity {
   @OneToMany(() => StudentTaskProgressModel, (stpm) => stpm.course)
   @Exclude()
   taskProgresses: StudentTaskProgressModel[];
+
+  @OneToMany(() => QueueChatModel, (queueChat) => queueChat.course)
+  @Exclude()
+  queueChats: QueueChatModel[];
 }
