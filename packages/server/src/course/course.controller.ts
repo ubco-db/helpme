@@ -64,6 +64,7 @@ import { Not, getManager } from 'typeorm';
 import { pick } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { createHash } from 'crypto';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -202,6 +203,7 @@ export class CourseController {
         'isTaskQuestion',
       ]);
 
+      const hash = createHash('sha256');
       const filteredComments = question.comments?.map((comment) => {
         const temp = { ...comment };
 
@@ -212,7 +214,11 @@ export class CourseController {
                 name: comment.creator.name,
                 photoURL: comment.creator.photoURL,
               }
-            : null;
+            : {
+                id: hash.update(comment.creator.id.toString()).digest('hex'),
+                name: 'Anonymous Student',
+                photoURL: null,
+              };
 
         return temp;
       });
