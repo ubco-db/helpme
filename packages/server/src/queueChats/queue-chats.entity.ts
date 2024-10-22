@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { QueueModel } from '../queue/queue.entity';
-import { UserModel } from 'profile/user.entity';
+import { UserModel } from '../profile/user.entity';
 
 @Entity('queue_chats_model')
 export class QueueChatsModel extends BaseEntity {

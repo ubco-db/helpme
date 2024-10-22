@@ -24,7 +24,7 @@ import {
 } from '@koh/common';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
-import { QueueChatsModel } from 'queueChats/queue-chats.entity';
+import { QueueChatsModel } from '../queueChats/queue-chats.entity';
 
 @Entity('queue_model')
 export class QueueModel extends BaseEntity {

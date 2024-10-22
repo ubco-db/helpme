@@ -21,7 +21,7 @@ import { InteractionModel } from '../chatbot/interaction.entity';
 import { CourseSettingsModel } from './course_settings.entity';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
-import { QueueChatsModel } from 'queueChats/queue-chats.entity';
+import { QueueChatsModel } from '../queueChats/queue-chats.entity';
 @Entity('course_model')
 export class CourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
