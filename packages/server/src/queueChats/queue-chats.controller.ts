@@ -102,29 +102,35 @@ export class QueueChatController {
     @Body('message') message: string,
   ) {
     try {
-      this.queueChatService.checkChatExists(queueId).then((chatExists) => {
-        if (!chatExists) {
-          throw new HttpException('Chat does not exist', HttpStatus.NOT_FOUND);
-        }
+      this.queueChatService
+        .checkChatExists(queueId)
+        .then(async (chatExists) => {
+          if (!chatExists) {
+            throw new HttpException(
+              'Chat does not exist',
+              HttpStatus.NOT_FOUND,
+            );
+          }
 
-        this.queueChatService
-          .checkPermissions(queueId, user.id)
-          .then((allowedToSend) => {
-            if (!allowedToSend) {
-              throw new HttpException(
-                'User is not allowed to send message',
-                HttpStatus.FORBIDDEN,
-              );
-            }
-          });
+          this.queueChatService
+            .checkPermissions(queueId, user.id)
+            .then((allowedToSend) => {
+              if (!allowedToSend) {
+                throw new HttpException(
+                  'User is not allowed to send message',
+                  HttpStatus.FORBIDDEN,
+                );
+              }
+            });
 
-        // Add message to chat in Redis and return status 200 if successful
-        return this.queueChatService
-          .sendMessage(queueId, user.id, message)
-          .then(() => {
-            this.queueSSEService.updateQueueChat(queueId);
-          });
-      });
+          const metadata = await this.queueChatService.getChatMetadata(queueId);
+          const isStaff = user.id === metadata.staff.id;
+          return this.queueChatService
+            .sendMessage(queueId, isStaff, message)
+            .then(() => {
+              this.queueSSEService.updateQueueChat(queueId);
+            });
+        });
     } catch (error) {
       if (error) {
         console.error(error);

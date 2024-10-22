@@ -640,28 +640,33 @@ export class QueueChatPartial {
   @IsInt()
   id?: number
 
-  @IsInt()
-  staffId!: number
+  staff!: QueueChatUserPartial
 
-  @IsInt()
-  studentId!: number
+  student!: QueueChatUserPartial
 
   @IsDate()
   startedAt!: Date
 
-  messages!: QueueChatMessagePartial[]
+  messages?: QueueChatMessagePartial[]
 }
 
-export class QueueChatMessagePartial {
-  @IsOptional()
+export class QueueChatUserPartial {
   @IsInt()
-  userId?: number
+  id!: number
 
   @IsString()
   firstName!: string
 
   @IsString()
   lastName!: string
+
+  @IsString()
+  photoURL?: string
+}
+
+export class QueueChatMessagePartial {
+  @IsBoolean()
+  isStaff!: boolean
 
   @IsString()
   message!: string

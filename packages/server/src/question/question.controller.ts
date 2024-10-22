@@ -467,8 +467,8 @@ export class QuestionController {
               case OpenQuestionStatus.Helping:
                 await this.QueueChatService.createChat(
                   question.queueId,
-                  question.taHelpedId,
-                  question.creatorId,
+                  question.taHelped,
+                  question.creator,
                 ).catch((error) =>
                   console.log(
                     `Failed to create queue chat record for course "${question.queue.course.name} (id: ${question.queue.courseId})" and queue "${question.queue.room} (id: ${question.queueId})": ${error}`,

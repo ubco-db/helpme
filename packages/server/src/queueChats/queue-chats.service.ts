@@ -3,22 +3,11 @@ import { RedisService } from 'nestjs-redis';
 import { Redis } from 'ioredis';
 import { QueueChatsModel } from './queue-chats.entity';
 import { UserModel } from 'profile/user.entity';
-import { QueueChatMessagePartial, QueueChatPartial } from '@koh/common';
-
-interface ChatMessage {
-  userId: number;
-  firstName: string;
-  lastName: string;
-  message: string;
-  timestamp: Date;
-}
-
-interface ChatMetadata {
-  staffId: number;
-  studentId: number;
-  startedAt: Date;
-  messages?: ChatMessage[];
-}
+import {
+  QueueChatMessagePartial,
+  QueueChatPartial,
+  QueueChatUserPartial,
+} from '@koh/common';
 
 @Injectable()
 export class QueueChatService {
@@ -35,7 +24,11 @@ export class QueueChatService {
    * @param staffId The ID of the staff member
    * @param studentId The ID of the student
    */
-  async createChat(queueId: number, staffId: number, studentId: number) {
+  async createChat(
+    queueId: number,
+    staff: UserModel,
+    student: UserModel,
+  ): Promise<void> {
     const key = `queue_chats:${queueId}`;
 
     // Remove any existing chat data just in case
@@ -44,10 +37,20 @@ export class QueueChatService {
     await this.redis.lpush(
       key,
       JSON.stringify({
-        staffId,
-        studentId,
+        staff: {
+          id: staff.id,
+          firstName: staff.firstName,
+          lastName: staff.lastName,
+          photoURL: staff.photoURL,
+        } as QueueChatUserPartial,
+        student: {
+          id: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          photoURL: student.photoURL,
+        } as QueueChatUserPartial,
         startedAt: new Date(),
-      } as ChatMetadata),
+      } as QueueChatPartial),
     );
   }
 
@@ -59,20 +62,16 @@ export class QueueChatService {
    */
   async sendMessage(
     queueId: number,
-    userId: number,
+    isStaff: boolean,
     message: string,
   ): Promise<void> {
     const key = `queue_chats:${queueId}`;
 
-    const user = await UserModel.findOne({ where: { id: userId } });
-
     const chatDataString = JSON.stringify({
-      userId,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      isStaff,
       message,
       timestamp: new Date(),
-    } as ChatMessage);
+    } as QueueChatMessagePartial);
     await this.redis.lpush(key, chatDataString);
     await this.redis.expire(key, 7200); // 2 hours = 2 * 60 * 60 = 7200 seconds
   }
@@ -82,18 +81,18 @@ export class QueueChatService {
    * @param queueId The ID of the queue
    * @returns
    */
-  async getChatMetadata(queueId: number): Promise<ChatMetadata> {
+  async getChatMetadata(queueId: number): Promise<QueueChatPartial> {
     const key = `queue_chats:${queueId}`;
 
     const chatDataStrings = await this.redis.lrange(key, 0, -1);
-    return JSON.parse(chatDataStrings[0]) as ChatMetadata;
+    return JSON.parse(chatDataStrings[0]) as QueueChatPartial;
   }
 
   /**
    * Retrieve all chat messages for a given course and queue
    * @param queueId The ID of the queue
    */
-  async getChatMessages(queueId: number): Promise<ChatMessage[]> {
+  async getChatMessages(queueId: number): Promise<QueueChatMessagePartial[]> {
     const key = `queue_chats:${queueId}`;
 
     const chatDataStrings = await this.redis.lrange(key, 0, -1);
@@ -110,16 +109,9 @@ export class QueueChatService {
     const metadata = await this.getChatMetadata(queueId);
     const messages = await this.getChatMessages(queueId);
     return {
-      staffId: metadata.staffId,
-      studentId: metadata.studentId,
-      startedAt: metadata.startedAt,
-      messages: messages.map((message) => ({
-        firstName: message.firstName,
-        lastName: message.lastName,
-        message: message.message,
-        timestamp: message.timestamp,
-      })) as QueueChatMessagePartial[],
-    } as QueueChatPartial;
+      ...metadata,
+      messages: messages,
+    };
   }
 
   /**
@@ -129,19 +121,22 @@ export class QueueChatService {
   async endChat(queueId: number): Promise<void> {
     const key = `queue_chats:${queueId}`;
 
-    const chatDataStrings = await this.redis.lrange(key, 0, -1);
-    const metadata = JSON.parse(chatDataStrings[0]);
+    const metadata = await this.getChatMetadata(queueId);
+    const messageCount = (await this.getChatMessages(queueId)).length;
 
-    const queueChat = new QueueChatsModel();
-    queueChat.queueId = queueId;
-    queueChat.staffId = metadata.staffId;
-    queueChat.studentId = metadata.studentId;
-    queueChat.startedAt = metadata.startedAt;
-    queueChat.closedAt = new Date();
-    queueChat.messageCount = chatDataStrings.length - 1;
-    queueChat.save().then(async () => {
-      await this.redis.del(key);
-    });
+    // Don't bother saving if chat was not used
+    if (messageCount != 0) {
+      const queueChat = new QueueChatsModel();
+      queueChat.queueId = queueId;
+      queueChat.staffId = metadata.staff.id;
+      queueChat.studentId = metadata.staff.id;
+      queueChat.startedAt = metadata.startedAt;
+      queueChat.closedAt = new Date();
+      queueChat.messageCount = messageCount;
+      queueChat.save().then(async () => {
+        await this.redis.del(key);
+      });
+    }
   }
 
   /**
@@ -150,7 +145,7 @@ export class QueueChatService {
    */
   async checkPermissions(queueId: number, userId: number): Promise<boolean> {
     const metadata = await this.getChatMetadata(queueId);
-    return metadata?.staffId === userId || metadata?.studentId === userId;
+    return metadata.staff.id === userId || metadata?.staff.id === userId;
   }
 
   /**
