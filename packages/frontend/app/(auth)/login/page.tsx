@@ -111,7 +111,7 @@ export default function LoginPage() {
             message.error(error)
             break
         }
-        return Promise.reject(error)
+        return
       } else {
         router.push(`/api/v1/login/entry?token=${data.token}`)
       }
