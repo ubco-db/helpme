@@ -66,7 +66,7 @@ export class LoginController {
       user.organizationUser.organization.legacyAuthEnabled === false
     ) {
       return res.status(HttpStatus.UNAUTHORIZED).send({
-        message: 'Organization does not allow legacy auth',
+        message: 'Organization does not allow login with username/password',
       });
     }
 
@@ -85,7 +85,8 @@ export class LoginController {
 
     if (user.password === null || user.password === undefined) {
       return res.status(HttpStatus.UNAUTHORIZED).send({
-        message: 'User did not sign up with legacy account system',
+        message:
+          'User was created with Institution/Google. Please login with Institution or Google instead',
       });
     }
 

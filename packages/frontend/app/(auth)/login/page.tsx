@@ -78,7 +78,9 @@ export default function LoginPage() {
     if (isProd()) {
       const token = (await recaptchaRef?.current?.executeAsync()) ?? ''
       if (organization && !organization.legacyAuthEnabled) {
-        message.error('Organization does not support legacy authentication')
+        message.error(
+          'Organization does not support login with username/password',
+        )
         return
       }
       loginData = {
