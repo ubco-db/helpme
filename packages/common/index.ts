@@ -131,6 +131,8 @@ export class UserPartial {
   @IsInt()
   @IsOptional()
   sid?: number
+
+  userRole?: string
 }
 
 /**
@@ -644,20 +646,14 @@ export class AsyncQuestionComment {
   @IsInt()
   questionId!: number
 
-  @IsInt()
-  userId!: number
-
   @Type(() => UserPartial)
   creator!: UserPartial
 
   @IsString()
   commentText!: string
 
-  @IsString()
-  createdBy!: string
-
   @IsDate()
-  createdAt!: number
+  createdAt!: Date
 }
 
 export class Image {

@@ -47,6 +47,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   courseId,
   mutateAsyncQuestions,
 }) => {
+  const [isLockedExpanded, setIsLockedExpanded] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [truncateText, setTruncateText] = useState(true) // after the max-height transition is finished on expanding the text, truncate it to show a `...`
   const [voteCount, setVoteCount] = useState(question.votesSum)
@@ -80,6 +81,12 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
       })
   }
 
+  const setLockedExpanded = (isLockedExpanded: boolean) => {
+    setIsLockedExpanded(isLockedExpanded)
+    setIsExpanded(isLockedExpanded)
+    setTruncateText(!isLockedExpanded)
+  }
+
   const handleVote = async (questionId: number, vote: number) => {
     const resp = await API.asyncQuestions.vote(questionId, vote)
     setVoteCount(resp.questionSumVotes)
@@ -97,6 +104,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
           : '',
       )}
       onClick={() => {
+        if (isLockedExpanded) return
         setIsExpanded(!isExpanded)
         // after the max-height transition is finished on expanding the text, truncate it to show a `...`
         // truncating the questionText before the animation is finished will cause the animation to jump
@@ -161,7 +169,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             <div className="mb-1 flex justify-between">
               <div className="flex flex-grow">
                 {showUser && (
-                  <React.Fragment>
+                  <>
                     <UserAvatar
                       size={40}
                       username={question.creator.name}
@@ -174,7 +182,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                       photoURL={question.creator.photoURL}
                       className="mr-2 flex md:hidden"
                     />
-                  </React.Fragment>
+                  </>
                 )}
                 <div className="flex flex-grow flex-col justify-between md:flex-row">
                   <div
@@ -277,7 +285,11 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   </>
                 )}
               </div>
-              <CommentSection question={question} />
+              <CommentSection
+                isStaff={isStaff}
+                question={question}
+                setLockedExpanded={setLockedExpanded}
+              />
             </div>
             <div className="flex flex-wrap">
               {question.questionTypes?.map((questionType, index) => (
@@ -319,9 +331,11 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             )}
         </Col>
       </Row>
-      <Row className="justify-center">
-        {isExpanded ? <UpOutlined /> : <DownOutlined />}
-      </Row>
+      {!isLockedExpanded && (
+        <Row className="justify-center">
+          {isExpanded ? <UpOutlined /> : <DownOutlined />}
+        </Row>
+      )}
     </div>
   )
 }

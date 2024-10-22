@@ -134,14 +134,21 @@ export class CourseController {
     );
     let all: AsyncQuestionModel[] = [];
 
-    if (Object.keys(asyncQuestionKeys).length === 0) {
+    if (true) {
       console.log('Fetching from Database');
       all = await AsyncQuestionModel.find({
         where: {
           courseId: cid,
           status: Not(asyncQuestionStatus.StudentDeleted),
         },
-        relations: ['creator', 'taHelped', 'votes', 'comments'],
+        relations: [
+          'creator',
+          'taHelped',
+          'votes',
+          'comments',
+          'comments.creator',
+          'comments.creator.courses',
+        ],
         order: {
           createdAt: 'DESC',
         },
@@ -203,21 +210,33 @@ export class CourseController {
         'isTaskQuestion',
       ]);
 
-      const hash = createHash('sha256');
       const filteredComments = question.comments?.map((comment) => {
         const temp = { ...comment };
 
+        const userRole =
+          comment.creator.courses.find(
+            (course) => course.courseId === question.courseId,
+          )?.role || 'student';
+
         temp.creator =
-          isStaff || comment.creator.id === user.id
+          isStaff || comment.creator.id === user.id || userRole !== 'student'
             ? {
                 id: comment.creator.id,
                 name: comment.creator.name,
                 photoURL: comment.creator.photoURL,
+                userRole: userRole,
               }
             : {
-                id: hash.update(comment.creator.id.toString()).digest('hex'),
-                name: 'Anonymous Student',
+                id: parseInt(
+                  createHash('sha256')
+                    .update(comment.creator.id.toString())
+                    .digest('hex')
+                    .slice(0, 8),
+                  16,
+                ),
+                name: 'Anonymous',
                 photoURL: null,
+                userRole: userRole,
               };
 
         return temp;
@@ -232,18 +251,17 @@ export class CourseController {
                 name: question.creator.name,
                 photoURL: question.creator.photoURL,
               }
-            : null,
-      });
-
-      Object.assign(temp, {
-        creator:
-          isStaff || question.creator.id == user.id
-            ? {
-                id: question.creator.id,
-                name: question.creator.name,
-                photoURL: question.creator.photoURL,
-              }
-            : null,
+            : {
+                id: parseInt(
+                  createHash('sha256')
+                    .update(question.creator.id.toString())
+                    .digest('hex')
+                    .slice(0, 8),
+                  16,
+                ),
+                name: 'Anonymous',
+                photoURL: null,
+              },
       });
 
       return temp;
