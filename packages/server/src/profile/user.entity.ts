@@ -23,7 +23,7 @@ import { UserTokenModel } from './user-token.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
-import { QueueChatModel } from 'queueChats/queue-chats.entity';
+import { QueueChatsModel } from 'queueChats/queue-chats.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -141,11 +141,11 @@ export class UserModel extends BaseEntity {
   @Exclude()
   taskProgress: StudentTaskProgressModel[];
 
-  @OneToMany(() => QueueChatModel, (queueChat) => queueChat.staff)
+  @OneToMany(() => QueueChatsModel, (queueChat) => queueChat.staff)
   @Exclude()
-  staffChats: QueueChatModel[];
+  staffChats: QueueChatsModel[];
 
-  @OneToMany(() => QueueChatModel, (queueChat) => queueChat.student)
+  @OneToMany(() => QueueChatsModel, (queueChat) => queueChat.student)
   @Exclude()
-  studentChats: QueueChatModel[];
+  studentChats: QueueChatsModel[];
 }

@@ -8,12 +8,11 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
-import { CourseModel } from '../course/course.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { UserModel } from 'profile/user.entity';
 
-@Entity('queue_chat_model')
-export class QueueChatModel extends BaseEntity {
+@Entity('queue_chats_model')
+export class QueueChatsModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

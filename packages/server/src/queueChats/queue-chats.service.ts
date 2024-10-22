@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { RedisService } from 'nestjs-redis';
 import { Redis } from 'ioredis';
-import { QueueChatModel } from './queue-chats.entity';
+import { QueueChatsModel } from './queue-chats.entity';
 import { UserModel } from 'profile/user.entity';
 import { QueueChatMessagePartial, QueueChatPartial } from '@koh/common';
 
@@ -132,7 +132,7 @@ export class QueueChatService {
     const chatDataStrings = await this.redis.lrange(key, 0, -1);
     const metadata = JSON.parse(chatDataStrings[0]);
 
-    const queueChat = new QueueChatModel();
+    const queueChat = new QueueChatsModel();
     queueChat.queueId = queueId;
     queueChat.staffId = metadata.staffId;
     queueChat.studentId = metadata.studentId;
