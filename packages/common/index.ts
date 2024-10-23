@@ -439,6 +439,9 @@ export class Question {
   helpedAt?: Date
 
   @Type(() => Date)
+  pausedAt?: Date
+
+  @Type(() => Date)
   closedAt?: Date
 
   @Type(() => QuestionTypeParams)
@@ -466,6 +469,7 @@ export enum OpenQuestionStatus {
   Queued = 'Queued',
   Helping = 'Helping',
   PriorityQueued = 'PriorityQueued',
+  Paused = 'Paused',
 }
 
 /**
@@ -510,6 +514,7 @@ export const StatusSentToCreator = [
   ...StatusInPriorityQueue,
   ...StatusInQueue,
   OpenQuestionStatus.Helping,
+  OpenQuestionStatus.Paused,
   LimboQuestionStatus.ReQueueing,
   LimboQuestionStatus.CantFind,
   LimboQuestionStatus.TADeleted,

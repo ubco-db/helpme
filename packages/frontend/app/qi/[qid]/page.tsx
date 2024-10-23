@@ -14,6 +14,7 @@ import { ReactElement, useCallback, useEffect, useRef, useState } from 'react'
 import {
   decodeBase64,
   encodeBase64,
+  OpenQuestionStatus,
   parseTaskIdsFromQuestionText,
   PublicQueueInvite,
   Question,
@@ -248,6 +249,18 @@ export default function QueueInvitePage({
     }
   }, [tagGroupsEnabled, configTasks])
 
+  const renderQuestion = (question: Question) => {
+    return (
+      <QuestionCardSimple
+        key={question.id}
+        question={question}
+        configTasks={configTasks}
+        isBeingHelped={question.status == OpenQuestionStatus.Helping}
+        isPaused={question.status == OpenQuestionStatus.Paused}
+      />
+    )
+  }
+
   if (pageLoading) {
     return <CenteredSpinner tip="Loading..." />
   } else if (hasFetchErrorOccurred) {
@@ -450,15 +463,9 @@ export default function QueueInvitePage({
                                 </div>
                               }
                             >
-                              {filteredQuestions.map((question: Question) => {
-                                return (
-                                  <QuestionCardSimple
-                                    key={question.id}
-                                    question={question}
-                                    configTasks={configTasks}
-                                  />
-                                )
-                              })}
+                              {filteredQuestions.map((question: Question) =>
+                                renderQuestion(question),
+                              )}
                             </Panel>
                           )
                         )
@@ -505,15 +512,9 @@ export default function QueueInvitePage({
                                 </div>
                               }
                             >
-                              {filteredQuestions.map((question: Question) => {
-                                return (
-                                  <QuestionCardSimple
-                                    key={question.id}
-                                    question={question}
-                                    configTasks={configTasks}
-                                  />
-                                )
-                              })}
+                              {filteredQuestions.map((question: Question) =>
+                                renderQuestion(question),
+                              )}
                             </Panel>
                           )
                         )
@@ -529,19 +530,16 @@ export default function QueueInvitePage({
                             question={question}
                             configTasks={configTasks}
                             isBeingHelped={true}
+                            isPaused={
+                              question.status === OpenQuestionStatus.Paused
+                            }
                           />
                         )
                       },
                     )}
-                    {queueQuestions.questions.map((question: Question) => {
-                      return (
-                        <QuestionCardSimple
-                          key={question.id}
-                          question={question}
-                          configTasks={configTasks}
-                        />
-                      )
-                    })}
+                    {queueQuestions.questions.map((question: Question) =>
+                      renderQuestion(question),
+                    )}
                   </>
                 )}
               </div>

@@ -2,7 +2,7 @@ import { cn } from '@/app/utils/generalUtils'
 import { Button, ButtonProps } from 'antd'
 
 interface CircleButtonProps extends ButtonProps {
-  variant?: 'default' | 'primary' | 'red' | 'orange' | 'green'
+  variant?: 'default' | 'primary' | 'red' | 'orange' | 'green' | 'gray'
 }
 
 const CircleButton: React.FC<CircleButtonProps> = ({
@@ -31,6 +31,8 @@ const CircleButton: React.FC<CircleButtonProps> = ({
         'bg-[#ff8c00] text-white hover:border-orange-400 hover:bg-[#ffa700] focus:bg-[#ffa700]',
       variant === 'green' &&
         'bg-[#66bb6a] text-white hover:border-green-500 hover:bg-[#82c985] focus:bg-[#82c985]',
+      variant === 'gray' &&
+        'bg-[#ababab] text-white hover:border-gray-400 hover:bg-[#c7c7c7] focus:bg-[#c7c7c7]',
       className,
     )}
     {...props}
