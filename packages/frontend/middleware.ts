@@ -107,8 +107,7 @@ export async function middleware(request: NextRequest) {
       }
     } catch (error) {
       console.error('Error fetching user data in middleware:', error)
-      throw error
-      // return NextResponse.redirect(new URL('/login?error=redirect', url))
+      return NextResponse.redirect(new URL('/login?error=redirect', url))
     }
   }
 
