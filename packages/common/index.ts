@@ -1285,6 +1285,7 @@ export class TACheckinPair {
 
 export enum AlertType {
   REPHRASE_QUESTION = 'rephraseQuestion',
+  EVENT_ENDED_CHECKOUT_STAFF = 'eventEndedCheckoutStaff',
 }
 
 export class AlertPayload {}

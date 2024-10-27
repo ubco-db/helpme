@@ -19,6 +19,7 @@ interface TACheckinButtonProps {
   preventDefaultAction?: boolean
   disabled?: boolean
   onClick?: () => void
+  onSuccess?: () => void
   className?: string
 }
 const TACheckinButton: React.FC<TACheckinButtonProps> = ({
@@ -28,6 +29,7 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
   preventDefaultAction,
   disabled = false,
   onClick,
+  onSuccess,
   className,
 }) => {
   const router = useRouter()
@@ -56,6 +58,7 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
               .then(() => {
                 mutateCourse()
                 setIsSuccessfullyCheckedOut(true)
+                onSuccess?.()
               })
               .catch((err) => {
                 const errorMessage = getErrorMessage(err)
@@ -84,6 +87,7 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
             checkInTA(courseId, room, mutateCourse, router)
               .then(() => {
                 setIsSuccessfullyCheckedIn(true)
+                onSuccess?.()
               })
               .catch((err) => {
                 const errorMessage = getErrorMessage(err)

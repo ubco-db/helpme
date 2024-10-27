@@ -6,6 +6,7 @@ import * as zlib from 'zlib';
 export type CalendarStaff = {
   userId: number;
   calendarId: number;
+  courseId: number;
   username: string;
   startTime: Date;
   endTime: Date;
