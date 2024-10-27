@@ -7,10 +7,11 @@ import {
   Radio,
   message,
   TimePicker,
+  Select,
 } from 'antd'
 import { useEffect, useState } from 'react'
 import { API } from '@/app/api'
-import { calendarEventLocationType } from '@koh/common'
+import { calendarEventLocationType, UserPartial } from '@koh/common'
 import { dayToIntMapping } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import dayjs from 'dayjs'
@@ -35,6 +36,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [isRepeating, setIsRepeating] = useState(false)
   const [locationType, setLocationType] = useState(0)
   const [selectedDays, setSelectedDays] = useState<string[]>([])
+  const [staff, setStaff] = useState<UserPartial[] | null>(null)
 
   useEffect(() => {
     // reset the form to its default state when modal is closed
@@ -44,6 +46,22 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
       setSelectedDays([])
     }
   }, [visible])
+
+  useEffect(() => {
+    const fetchStaff = async () => {
+      const data = await API.course.getUserInfo(courseId, 1, 'staff')
+      // sort staff by name
+      data.users.sort((a, b) => {
+        if (!a.name || !b.name) {
+          return 0
+        } else {
+          return a.name.localeCompare(b.name)
+        }
+      })
+      setStaff(data.users)
+    }
+    fetchStaff()
+  }, [courseId])
 
   useEffect(() => {
     //default to the day of the event(create event object)
@@ -212,6 +230,42 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           minuteStep={5}
           format="HH:mm"
           className="w-36"
+        />
+      </Form.Item>
+      <Form.Item
+        label="Staff"
+        name="staffIds"
+        tooltip={{
+          title: (
+            <div className="flex flex-col gap-y-2">
+              <p>
+                Select staff members that should be checked into a queue at this
+                time.
+              </p>
+              <p>
+                At the end, staff will have an option to stay a bit longer or
+                will otherwise be auto-checked out after 10mins.
+              </p>
+              <p>
+                This also will keep track if staff are checking in late (or
+                completely miss their session), shown on the TA Check In/Out
+                Times page in Course Settings.
+              </p>
+            </div>
+          ),
+          overlayStyle: { maxWidth: '25rem' },
+        }}
+      >
+        <Select
+          placeholder="Select Staff"
+          mode="multiple"
+          options={staff?.map((staff) => ({
+            label: staff.name,
+            value: staff.id,
+          }))}
+          loading={staff === null}
+          style={{ width: '100%' }}
+          allowClear
         />
       </Form.Item>
       <Form.Item>

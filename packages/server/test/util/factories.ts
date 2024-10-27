@@ -53,6 +53,11 @@ export const TACourseFactory = new Factory(UserCourseModel).attr(
   Role.TA,
 );
 
+export const ProfessorCourseFactory = new Factory(UserCourseModel).attr(
+  'role',
+  Role.PROFESSOR,
+);
+
 export const SemesterFactory = new Factory(SemesterModel)
   .attr('season', 'Fall')
   .attr('year', 2022);

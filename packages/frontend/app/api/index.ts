@@ -199,7 +199,7 @@ class APIClient {
     getUserInfo: async (
       courseId: number,
       page: number,
-      role?: Role,
+      role?: Role | 'staff',
       search?: string,
     ): Promise<GetCourseUserInfoResponse> =>
       this.req(

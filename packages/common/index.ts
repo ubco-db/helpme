@@ -809,6 +809,11 @@ export class Calendar {
   @IsOptional()
   @MaxLength(7)
   color?: string
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @IsOptional()
+  staffIds?: number[]
 }
 
 export class questions {
@@ -2246,6 +2251,7 @@ export const ERROR_MESSAGES = {
         'Cannot check into multiple queues at the same time',
     },
     queueLimitReached: 'Queue limit per course reached',
+    roleInvalid: 'Role must be a valid role',
     semesterYearInvalid: 'Semester year must be a valid year',
     semesterNameFormat:
       'Semester must be in the format "season,year". E.g. Fall,2021',

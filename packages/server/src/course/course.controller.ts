@@ -749,19 +749,20 @@ export class CourseController {
   async getUserInfo(
     @Param('id', ParseIntPipe) courseId: number,
     @Param('page', ParseIntPipe) page: number,
-    @Param('role') role?: Role,
+    @Param('role') role?: Role | 'staff',
     @Query('search') search?: string,
   ): Promise<GetCourseUserInfoResponse> {
-    const pageSize = 50;
+    const pageSize = role === 'staff' ? 100 : 50;
     if (!search) {
       search = '';
     }
+    const roles = role === 'staff' ? [Role.TA, Role.PROFESSOR] : [role];
     const users = await this.courseService.getUserInfo(
       courseId,
       page,
       pageSize,
       search,
-      role,
+      roles,
     );
     return users;
   }

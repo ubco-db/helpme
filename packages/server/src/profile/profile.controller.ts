@@ -114,7 +114,8 @@ export class ProfileController {
       );
     }
 
-    const pendingCourses = await this.profileService.getPendingCourses(user.id);
+    // this is old code from Khoury College's semester system
+    //const pendingCourses = await this.profileService.getPendingCourses(user.id);
     const userOrganization =
       await this.organizationService.getOrganizationAndRoleByUserId(user.id);
 
@@ -132,7 +133,6 @@ export class ProfileController {
       ...userResponse,
       courses,
       desktopNotifs,
-      pendingCourses,
       organization,
     };
   }

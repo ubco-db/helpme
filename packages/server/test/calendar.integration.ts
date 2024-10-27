@@ -3,11 +3,14 @@ import {
   CourseFactory,
   UserCourseFactory,
   calendarFactory,
+  TACourseFactory,
+  ProfessorCourseFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { CalendarModel } from '../src/calendar/calendar.entity';
 import { CalendarModule } from '../src/calendar/calendar.module';
 import { calendarEventLocationType, Role } from '@koh/common';
+import { CalendarStaffModel } from 'calendar/calendar-staff.entity';
 
 describe('Calendar Integration', () => {
   const supertest = setupIntegrationTest(CalendarModule);
@@ -38,6 +41,118 @@ describe('Calendar Integration', () => {
 
       const savedEvent = await CalendarModel.findOne(res.body.id);
       expect(savedEvent).toBeTruthy();
+    });
+    it('allows the user to pass in staffIds, creating calendar_staff entries', async () => {
+      const course = await CourseFactory.create();
+      const ta1 = await TACourseFactory.create({ course });
+      const ta2 = await TACourseFactory.create({ course });
+      const prof = await ProfessorCourseFactory.create({ course });
+      const eventData = {
+        title: 'Test Event',
+        start: new Date('2023-08-26T10:00:00'),
+        end: new Date('2023-08-26T11:00:00'),
+        locationType: calendarEventLocationType.online,
+        locationOnline: 'https://zoom.us/test',
+        allDay: false,
+        staffIds: [ta1.user.id, ta2.user.id, prof.user.id],
+      };
+
+      const res = await supertest({ userId: prof.user.id })
+        .post(`/calendar/${course.id}`)
+        .send(eventData)
+        .expect(201);
+
+      const savedEvent = await CalendarModel.findOne(res.body.id);
+      expect(savedEvent).toBeTruthy();
+
+      const calendarStaff = await CalendarStaffModel.find({
+        calendarId: savedEvent.id,
+      });
+      expect(calendarStaff).toHaveLength(3);
+      expect(calendarStaff.map((cs) => cs.userId)).toEqual([
+        ta1.user.id,
+        ta2.user.id,
+        prof.user.id,
+      ]);
+    });
+    it('should return bad request if a student tries to create an event', async () => {
+      const course = await CourseFactory.create();
+      const user = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: user,
+        course: course,
+        role: Role.STUDENT,
+      });
+
+      const eventData = {
+        title: 'Test Event',
+        start: new Date('2023-08-26T10:00:00'),
+        end: new Date('2023-08-26T11:00:00'),
+        locationType: calendarEventLocationType.online,
+        locationOnline: 'https://zoom.us/test',
+        allDay: false,
+      };
+
+      await supertest({ userId: user.id })
+        .post(`/calendar/${course.id}`)
+        .send(eventData)
+        .expect(400);
+
+      const savedEvent = await CalendarModel.findOne({ title: 'Test Event' });
+      expect(savedEvent).toBeUndefined();
+    });
+    it('should return 404 if the staffId does not exist', async () => {
+      const course = await CourseFactory.create();
+      const user = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: user,
+        course: course,
+        role: Role.TA,
+      });
+
+      const eventData = {
+        title: 'Test Event',
+        start: new Date('2023-08-26T10:00:00'),
+        end: new Date('2023-08-26T11:00:00'),
+        locationType: calendarEventLocationType.online,
+        locationOnline: 'https://zoom.us/test',
+        allDay: false,
+        staffIds: [999],
+      };
+
+      await supertest({ userId: user.id })
+        .post(`/calendar/${course.id}`)
+        .send(eventData)
+        .expect(404);
+
+      const savedEvent = await CalendarModel.findOne({ title: 'Test Event' });
+      expect(savedEvent).toBeUndefined();
+    });
+    it('should return 404 if the course does not exist', async () => {
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user: user,
+        course: course,
+        role: Role.TA,
+      });
+
+      const eventData = {
+        title: 'Test Event',
+        start: new Date('2023-08-26T10:00:00'),
+        end: new Date('2023-08-26T11:00:00'),
+        locationType: calendarEventLocationType.online,
+        locationOnline: 'https://zoom.us/test',
+        allDay: false,
+      };
+
+      await supertest({ userId: user.id })
+        .post(`/calendar/999`)
+        .send(eventData)
+        .expect(404);
+
+      const savedEvent = await CalendarModel.findOne({ title: 'Test Event' });
+      expect(savedEvent).toBeUndefined();
     });
   });
 

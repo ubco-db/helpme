@@ -12,6 +12,7 @@ import {
   Patch,
   Query,
   ParseIntPipe,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CalendarModel } from './calendar.entity';
@@ -19,6 +20,7 @@ import { Calendar, ERROR_MESSAGES, Role } from '@koh/common';
 import { CourseModel } from 'course/course.entity';
 import { Roles } from 'decorators/roles.decorator';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
+import { getManager } from 'typeorm';
 
 @Controller('calendar')
 @UseGuards(JwtAuthGuard, CourseRolesGuard)
@@ -38,27 +40,44 @@ export class CalendarController {
       );
     }
     try {
-      const event = await CalendarModel.create({
-        title: body.title,
-        start: body.start,
-        end: body.end || null,
-        startDate: body.startDate || null,
-        endDate: body.endDate || null,
-        locationType: body.locationType,
-        locationInPerson: body.locationInPerson || null,
-        locationOnline: body.locationOnline || null,
-        allDay: body.allDay || false,
-        daysOfWeek: body.daysOfWeek || [],
-        course: course,
-        color: body.color || '#3788d8',
-      }).save();
+      const entityManager = getManager();
+      let event: null | CalendarModel = null;
+      await entityManager.transaction(async (transactionalEntityManager) => {
+        event = await transactionalEntityManager.save(CalendarModel, {
+          title: body.title,
+          start: body.start,
+          end: body.end || null,
+          startDate: body.startDate || null,
+          endDate: body.endDate || null,
+          locationType: body.locationType,
+          locationInPerson: body.locationInPerson || null,
+          locationOnline: body.locationOnline || null,
+          allDay: body.allDay || false,
+          daysOfWeek: body.daysOfWeek || [],
+          course: course,
+          color: body.color || '#3788d8',
+        });
+        if (body.staffIds) {
+          for (const staffId of body.staffIds) {
+            await this.calendarService.createCalendarStaff(
+              staffId,
+              event,
+              transactionalEntityManager,
+            );
+          }
+        }
+      });
       return event;
     } catch (err) {
-      console.error(err);
-      throw new HttpException(
-        'Calendar create error',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      if (err instanceof NotFoundException) {
+        throw err;
+      } else {
+        console.error(err);
+        throw new HttpException(
+          'Calendar create error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
     }
   }
 
@@ -144,7 +163,23 @@ export class CalendarController {
       console.error('Event not found');
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
     }
-
-    return event.remove();
+    try {
+      const removedEvent = await event.remove();
+      // for each staff member associated with the event, remove the association
+      for (const staff of removedEvent.staff) {
+        await this.calendarService.deleteCalendarStaff(
+          staff.userId,
+          staff.calendarId,
+          true,
+        );
+      }
+      return removedEvent;
+    } catch (err) {
+      console.error(err);
+      throw new HttpException(
+        'Calendar delete error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }
