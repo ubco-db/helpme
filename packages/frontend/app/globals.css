@@ -316,41 +316,33 @@ It is used for displaying markdown nicely inside any <Markdown> components
 }
 
 .chart-xxs {
-    min-width: 8rem;
     max-width: 8rem;
 }
 
 .chart-xs {
-    min-width: 16rem;
     max-width: 16rem;
 }
 
 .chart-sm {
-    min-width: 24rem;
     max-width: 24rem;
 }
 
 .chart-md {
-    min-width: 32rem;
     max-width: 32rem;
 }
 
 .chart-lg {
-    min-width: 40rem;
     max-width: 40rem;
 }
 
 .chart-2xl {
-    min-width: 48rem;
     max-width: 48rem;
 }
 
 .chart-3xl {
-    min-width: 56rem;
     max-width: 56rem;
 }
 
 .chart-4xl {
-    min-width: 64rem;
     max-width: 64rem;
 }

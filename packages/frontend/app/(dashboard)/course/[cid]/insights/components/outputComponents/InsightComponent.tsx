@@ -6,6 +6,7 @@ import {
   InsightOutput,
   InsightParamsType,
   InsightType,
+  MultipleGanttChartOutputType,
 } from '@koh/common'
 import DateOptionFilter from '@/app/(dashboard)/course/[cid]/insights/components/filters/DateOptionFilter'
 import { charts } from '@/app/(dashboard)/course/[cid]/insights/utils/types'
@@ -16,6 +17,8 @@ import InsightValueComponent from '@/app/(dashboard)/course/[cid]/insights/compo
 import InsightChartComponent from '@/app/(dashboard)/course/[cid]/insights/components/outputComponents/InsightChartComponent'
 import InsightTableComponent from '@/app/(dashboard)/course/[cid]/insights/components/outputComponents/InsightTableComponent'
 import InsightGanttChartComponent from '@/app/(dashboard)/course/[cid]/insights/components/outputComponents/InsightGanttChartComponent'
+import InsightCard from '@/app/(dashboard)/course/[cid]/insights/components/InsightCard'
+import { Empty } from 'antd'
 
 interface InsightComponentProps {
   courseId: number
@@ -179,6 +182,44 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
             insightName={insightName}
             filterContent={renderFilterOptions}
           />
+        )
+      case InsightType.MultipleGanttChart:
+        return (
+          <div className={'w-full'}>
+            <InsightCard
+              title={insightOutput.title}
+              description={insightOutput.description}
+            >
+              {renderFilterOptions}
+              {(insightOutput.output as MultipleGanttChartOutputType).length >
+              0 ? (
+                <div className={'grid w-full grid-cols-2 gap-4'}>
+                  {(insightOutput.output as MultipleGanttChartOutputType).map(
+                    (ganttChart, index) => {
+                      return (
+                        <InsightGanttChartComponent
+                          key={`${insightName}-${index}`}
+                          insight={{
+                            title: ganttChart.label,
+                            description: '',
+                            outputType: InsightType.GanttChart,
+                            output: ganttChart,
+                          }}
+                          insightName={insightName}
+                          filterContent={<></>}
+                          partOfSeries={true}
+                        />
+                      )
+                    },
+                  )}
+                </div>
+              ) : (
+                <div className="mx-auto mt-8 w-full p-4">
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                </div>
+              )}
+            </InsightCard>
+          </div>
         )
     }
   }, [insightName, insightOutput, renderFilterOptions, selectedData])

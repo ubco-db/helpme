@@ -31,6 +31,8 @@ const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
     size,
     numCategories,
     aspectRatio,
+    yIsCategory,
+    yDomain,
   } = props
 
   let {
@@ -107,14 +109,15 @@ const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
           domain={xAxis}
         />
         <YAxis
-          type={'number'}
+          type={yIsCategory ? 'category' : 'number'}
           dataKey={yKey}
           tickFormatter={yTickFormatter}
           tickLine={true}
-          tickMargin={8}
+          tickMargin={4}
           axisLine={true}
-          ticks={yTicks}
-          domain={[0, numCategories - 1]}
+          ticks={!yDomain ? yTicks : yDomain}
+          domain={!yDomain ? [0, numCategories - 1] : yDomain}
+          allowDuplicatedCategory={false}
         />
         {(zKey != undefined && (
           <ZAxis dataKey={zKey} range={bubbleSizeRange} />

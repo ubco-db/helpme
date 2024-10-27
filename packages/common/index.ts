@@ -1472,6 +1472,7 @@ export enum InsightType {
   Chart = 'Chart',
   Table = 'Table',
   GanttChart = 'GanttChart',
+  MultipleGanttChart = 'MultipleGanttChart',
 }
 
 export type InsightCategory = (typeof InsightCategories)[number]
@@ -1498,6 +1499,7 @@ export const InsightFilterOptions = [
   'timeframe',
   'students',
   'queues',
+  'tas',
 ] as const
 export type InsightFilterOption = (typeof InsightFilterOptions)[number]
 
@@ -1516,10 +1518,15 @@ export interface InsightObject {
   insightType: InsightType
   insightCategory: InsightCategory
   allowedFilters?: InsightFilterOption[]
-  compute: (
-    insightFilters: any,
-    cacheManager?: Cache,
-  ) => Promise<PossibleOutputTypes>
+  compute: ({
+    insightFilters,
+    timezone,
+    cacheManager,
+  }: {
+    insightFilters: any
+    timezone: string
+    cacheManager: Cache
+  }) => Promise<PossibleOutputTypes>
 }
 
 export interface InsightOutput {
@@ -1557,6 +1564,7 @@ export type PossibleOutputTypes =
   | ChartOutputType
   | TableOutputType
   | GanttChartOutputType
+  | MultipleGanttChartOutputType
 
 export type ChartOutputType = {
   data: StringMap<any>[]
@@ -1575,6 +1583,8 @@ export type GanttChartOutputType = {
   label: string
   numCategories: number
 }
+
+export type MultipleGanttChartOutputType = GanttChartOutputType[]
 
 export type ValueOutputType = number | string
 

@@ -16,6 +16,7 @@ import { InsightDashboardModel } from './dashboard.entity';
 
 type ComputeOutputParams = {
   insight: InsightObject;
+  timeZone?: string;
   filters: Filter[];
 };
 
@@ -35,8 +36,13 @@ export class InsightsService {
   async computeOutput({
     insight,
     filters,
+    timeZone,
   }: ComputeOutputParams): Promise<PossibleOutputTypes> {
-    return await insight.compute(filters, this.cacheManager);
+    return await insight.compute({
+      insightFilters: filters,
+      timezone: timeZone ?? 'America/Los_Angeles',
+      cacheManager: this.cacheManager,
+    });
   }
 
   async generateAllInsights({

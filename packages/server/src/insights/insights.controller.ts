@@ -36,6 +36,7 @@ import { CourseRole } from '../decorators/course-role.decorator';
 import { Filter } from './insight-objects';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { UserCourseModel } from '../profile/user-course.entity';
+import { CourseModel } from '../course/course.entity';
 
 @Controller('insights')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -200,9 +201,13 @@ export class InsightsController {
       });
     }
 
+    const courseTimezone = (
+      await CourseModel.findOne({ where: { id: courseId } })
+    )?.timezone;
     let insight = await this.insightsService.computeOutput({
       insight: targetInsight,
       filters,
+      timeZone: courseTimezone,
     });
 
     if (targetInsight.insightType == InsightType.Table) {

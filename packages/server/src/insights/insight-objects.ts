@@ -4,6 +4,7 @@ import {
   InsightFilterOption,
   InsightObject,
   InsightType,
+  MultipleGanttChartOutputType,
   numToWeekday,
   Role,
   StringMap,
@@ -80,6 +81,11 @@ const APPLY_FILTER_MAP = {
         queueIds: filter.queueIds,
       });
     },
+    tas: ({ query, filter }: ApplyFilterParams) => {
+      query.andWhere('QuestionModel.taHelpedId IN (:...taIds)', {
+        taIds: filter.taIds,
+      });
+    },
   },
   AsyncQuestionModel: {
     courseId: ({ query, filter }: ApplyFilterParams) => {
@@ -96,6 +102,11 @@ const APPLY_FILTER_MAP = {
     students: ({ query, filter }: ApplyFilterParams) => {
       query.andWhere('AsyncQuestionModel.creatorId IN (:...studentIds)', {
         studentIds: filter.studentIds,
+      });
+    },
+    tas: ({ query, filter }: ApplyFilterParams) => {
+      query.andWhere('QuestionModel.taHelpedId IN (:...taIds)', {
+        taIds: filter.taIds,
       });
     },
   },
@@ -131,6 +142,19 @@ const APPLY_FILTER_MAP = {
   },
 };
 
+function constructDateExtractString(
+  extract: 'DOW' | 'EPOCH',
+  modelName: string,
+  attribute: string,
+  timeZone?: string,
+  map: 'DATE' | 'TIMESTAMP' = 'TIMESTAMP',
+) {
+  if (modelName == 'NOW()') {
+    return `EXTRACT(${extract} FROM NOW() ${timeZone != undefined ? `AT TIME ZONE '${timeZone}` : ''})`;
+  }
+  return `EXTRACT(${extract} FROM "${modelName}"."${attribute}"::${map} ${timeZone != undefined ? `AT TIME ZONE '${timeZone}'` : ''})`;
+}
+
 export const TotalStudents: InsightObject = {
   displayName: 'Total Students',
   description:
@@ -139,12 +163,12 @@ export const TotalStudents: InsightObject = {
   insightType: InsightType.Value,
   insightCategory: 'Tool_Usage_Statistics',
   allowedFilters: ['courseId', 'timeframe'],
-  async compute(filters): Promise<ValueOutputType> {
+  async compute({ insightFilters }): Promise<ValueOutputType> {
     return await addFilters({
       query: createQueryBuilder(UserCourseModel).where("role = 'student'"),
       modelName: UserCourseModel.name,
       allowedFilters: this.allowedFilters,
-      filters,
+      filters: insightFilters,
     }).getCount();
   },
 };
@@ -156,12 +180,12 @@ export const TotalQuestionsAsked: InsightObject = {
   insightType: InsightType.Value,
   insightCategory: 'Questions',
   allowedFilters: ['courseId', 'timeframe'],
-  async compute(filters): Promise<ValueOutputType> {
+  async compute({ insightFilters }): Promise<ValueOutputType> {
     return await addFilters({
       query: createQueryBuilder(QuestionModel).select(),
       modelName: QuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters,
+      filters: insightFilters,
     }).getCount();
   },
 };
@@ -174,10 +198,10 @@ export const MostActiveStudents: InsightObject = {
   insightType: InsightType.Table,
   insightCategory: 'Tool_Usage_Statistics',
   allowedFilters: ['courseId', 'timeframe'],
-  async compute(filters, cacheManager: Cache): Promise<TableOutputType> {
+  async compute({ insightFilters, cacheManager }): Promise<TableOutputType> {
     const dataSource = await getCachedActiveStudents(
       cacheManager,
-      filters,
+      insightFilters,
       this.allowedFilters,
     );
 
@@ -263,7 +287,7 @@ export const QuestionTypeBreakdown: InsightObject = {
   insightType: InsightType.Chart,
   insightCategory: 'Questions',
   allowedFilters: ['courseId', 'timeframe'],
-  async compute(filters): Promise<ChartOutputType> {
+  async compute({ insightFilters }): Promise<ChartOutputType> {
     const questionInfo = await addFilters({
       query: createQueryBuilder(QuestionModel)
         .withDeleted()
@@ -273,7 +297,7 @@ export const QuestionTypeBreakdown: InsightObject = {
         .andWhere('questionType.name IS NOT NULL'),
       modelName: QuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters,
+      filters: insightFilters,
     })
       .groupBy('questionType.name')
       .having('questionType.name IS NOT NULL')
@@ -288,7 +312,7 @@ export const QuestionTypeBreakdown: InsightObject = {
         .andWhere('questionType.name IS NOT NULL'),
       modelName: AsyncQuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters,
+      filters: insightFilters,
     })
       .groupBy('questionType.name')
       .having('questionType.name IS NOT NULL')
@@ -302,7 +326,8 @@ export const QuestionTypeBreakdown: InsightObject = {
         .select('QuestionTypeModel.name', 'name')
         .addSelect('QuestionTypeModel.color', 'fill')
         .where('QuestionTypeModel.cid = :courseId', {
-          courseId: filters.find((f: Filter) => f.type == 'courseId')?.courseId,
+          courseId: insightFilters.find((f: Filter) => f.type == 'courseId')
+            ?.courseId,
         })
         .andWhere('QuestionTypeModel.name IS NOT NULL')
         .orderBy('QuestionTypeModel.deletedAt', 'ASC')
@@ -349,14 +374,14 @@ export const MedianWaitTime: InsightObject = {
   insightType: InsightType.Value,
   insightCategory: 'Tool_Usage_Statistics',
   allowedFilters: ['courseId', 'timeframe'],
-  async compute(filters): Promise<ValueOutputType> {
+  async compute({ insightFilters }): Promise<ValueOutputType> {
     const questions = await addFilters({
       query: createQueryBuilder(QuestionModel)
         .select()
         .where('QuestionModel.firstHelpedAt IS NOT NULL'),
       modelName: QuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters,
+      filters: insightFilters,
     }).getMany();
 
     if (questions.length === 0) {
@@ -383,31 +408,57 @@ export const AverageTimesByWeekDay: InsightObject = {
   insightType: InsightType.Chart,
   insightCategory: 'Queues',
   allowedFilters: ['courseId', 'timeframe', 'queues'],
-  async compute(filters): Promise<ChartOutputType> {
+  async compute({ insightFilters, timezone }): Promise<ChartOutputType> {
     type WaitTimesByDay = {
       avgWaitTime: number;
       avgHelpTime: number;
       weekday: number;
     };
 
+    const now = constructDateExtractString('EPOCH', 'NOW()', '');
+    const firstHelped = constructDateExtractString(
+      'EPOCH',
+      'QuestionModel',
+      'firstHelpedAt',
+    );
+    const createdAt = constructDateExtractString(
+      'EPOCH',
+      'QuestionModel',
+      'createdAt',
+    );
+    const closedAt = constructDateExtractString(
+      'EPOCH',
+      'QuestionModel',
+      'closedAt',
+    );
+
     const questions = await addFilters({
       query: createQueryBuilder(QuestionModel)
         .select(
-          'AVG(COALESCE(EXTRACT(EPOCH FROM QuestionModel.firstHelpedAt), EXTRACT(EPOCH FROM NOW())) - EXTRACT(EPOCH FROM QuestionModel.createdAt))',
+          `AVG(COALESCE(${firstHelped}, ${now}) - ${createdAt})`,
           'avgWaitTime',
         )
         .addSelect(
-          'AVG(COALESCE(EXTRACT(EPOCH FROM QuestionModel.closedAt), EXTRACT(EPOCH FROM NOW())) - COALESCE(EXTRACT(EPOCH FROM QuestionModel.firstHelpedAt), EXTRACT(EPOCH FROM QuestionModel.createdAt)))',
+          `AVG(COALESCE(${closedAt}, ${now}) - COALESCE(${firstHelped}, ${createdAt}))`,
           'avgHelpTime',
         )
-        .addSelect('EXTRACT(DOW FROM QuestionModel.createdAt)', 'weekday')
+        .addSelect(
+          constructDateExtractString(
+            'DOW',
+            'QuestionModel',
+            'createdAt',
+            timezone,
+            'DATE',
+          ),
+          'weekday',
+        )
         .andWhere('QuestionModel.status IN (:...status)', {
           status: ['Resolved'],
         })
         .groupBy('weekday'),
       modelName: QuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters,
+      filters: insightFilters,
     }).getRawMany<WaitTimesByDay>();
 
     const data: StringMap<any>[] = questions
@@ -442,29 +493,44 @@ export const MostActiveTimes: InsightObject = {
   insightType: InsightType.GanttChart,
   insightCategory: 'Queues',
   allowedFilters: ['courseId', 'timeframe', 'queues'],
-  async compute(filters): Promise<GanttChartOutputType> {
+  async compute({ insightFilters, timezone }): Promise<GanttChartOutputType> {
     type ActiveTimes = {
       quarterTime: number;
       amount: number;
       weekday: number;
     };
 
-    const extractMinutesIntoDay = `ROUND((EXTRACT(EPOCH FROM "QuestionModel"."createdAt") - EXTRACT(EPOCH FROM "QuestionModel"."createdAt"::DATE))/60)`;
+    const extractMinutesIntoDay = `ROUND((${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt')} - ${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt', undefined, 'DATE')})/60)`;
     const getQuarterTimeString = `CEIL(${extractMinutesIntoDay}/15)*15`;
 
     const questions = await addFilters({
       query: createQueryBuilder(QuestionModel)
         .select(getQuarterTimeString, 'quarterTime')
         .addSelect('COUNT(QuestionModel.id)', 'amount')
-        .addSelect('EXTRACT(DOW FROM QuestionModel.createdAt)', 'weekday')
+        .addSelect(
+          constructDateExtractString(
+            'DOW',
+            'QuestionModel',
+            'createdAt',
+            timezone,
+          ),
+          'weekday',
+        )
         .andWhere('QuestionModel.createdAt IS NOT NULL')
         .groupBy(getQuarterTimeString)
-        .addGroupBy('EXTRACT(DOW FROM QuestionModel.createdAt)')
+        .addGroupBy(
+          constructDateExtractString(
+            'DOW',
+            'QuestionModel',
+            'createdAt',
+            timezone,
+          ),
+        )
         .orderBy(getQuarterTimeString, 'ASC')
         .addOrderBy('weekday', 'ASC'),
       modelName: QuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters,
+      filters: insightFilters,
     }).getRawMany<ActiveTimes>();
 
     const data: StringMap<any>[] = questions
@@ -496,7 +562,7 @@ export const MedianHelpingTime: InsightObject = {
   insightType: InsightType.Value,
   insightCategory: 'Queues',
   allowedFilters: ['courseId', 'timeframe'],
-  async compute(filters): Promise<ValueOutputType> {
+  async compute({ insightFilters }): Promise<ValueOutputType> {
     const questions = await addFilters({
       query: createQueryBuilder(QuestionModel)
         .select()
@@ -505,7 +571,7 @@ export const MedianHelpingTime: InsightObject = {
         ),
       modelName: QuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters,
+      filters: insightFilters,
     }).getMany();
 
     if (questions.length === 0) {
@@ -541,9 +607,9 @@ export const QuestionToStudentRatio: InsightObject = {
   insightType: InsightType.Value,
   insightCategory: 'Tool_Usage_Statistics',
   allowedFilters: ['courseId', 'timeframe'],
-  async compute(filters): Promise<ValueOutputType> {
-    const totalQuestions = await TotalQuestionsAsked.compute(filters);
-    const totalStudents = await TotalStudents.compute(filters);
+  async compute({ insightFilters }): Promise<ValueOutputType> {
+    const totalQuestions = await TotalQuestionsAsked.compute(insightFilters);
+    const totalStudents = await TotalStudents.compute(insightFilters);
     return (
       (totalStudents !== 0
         ? ((totalQuestions as number) / (totalStudents as number)).toFixed(2)
@@ -566,8 +632,12 @@ export const HelpSeekingOverTime: InsightObject = {
   insightType: InsightType.Chart,
   insightCategory: 'Tool_Usage_Statistics',
   allowedFilters: ['courseId', 'timeframe', 'queues', 'students'],
-  async compute(filters, cacheManager: Cache): Promise<ChartOutputType> {
-    const timeframe = filters.find(
+  async compute({
+    insightFilters,
+    cacheManager,
+    timezone,
+  }): Promise<ChartOutputType> {
+    const timeframe = insightFilters.find(
       (filter: Filter) => filter.type == 'timeframe',
     );
     const startTime = timeframe ? new Date(timeframe['start']).getTime() : 0;
@@ -575,7 +645,11 @@ export const HelpSeekingOverTime: InsightObject = {
       ? new Date(timeframe['end']).getTime()
       : new Date().getTime();
 
-    const rawData = await getCachedHelpSeekingOverTime(cacheManager, filters);
+    const rawData = await getCachedHelpSeekingOverTime(
+      cacheManager,
+      insightFilters,
+      timezone,
+    );
     const data: StringMap<any>[] = rawData
       .map((value) => {
         return {
@@ -638,6 +712,7 @@ export const HelpSeekingOverTime: InsightObject = {
 const getCachedHelpSeekingOverTime = async (
   cacheManager: Cache,
   filters: Filter[],
+  timezone?: string,
 ): Promise<HelpSeekingDates[]> => {
   const courseId = filters.find((filter: Filter) => filter.type === 'courseId')[
     'courseId'
@@ -663,16 +738,17 @@ const getCachedHelpSeekingOverTime = async (
   const cacheLengthInSeconds = 300;
   return cacheManager.wrap(
     `help-seeking/${courseId}${queues != undefined ? '/' + queues : ''}${students != undefined ? '/' + students : ''}`,
-    () => getHelpSeekingOverTime(filters),
+    () => getHelpSeekingOverTime(filters, timezone),
     { ttl: cacheLengthInSeconds },
   );
 };
 
 const getHelpSeekingOverTime = async (
   filters: Filter[],
+  timezone?: string,
 ): Promise<HelpSeekingDates[]> => {
   const dateConverter = (model: string, attr: string) => {
-    return `"${model}"."${attr}"::DATE`;
+    return `"${model}"."${attr}"::DATE AT TIME ZONE ${timezone ?? 'America/Los_Angeles'}`;
   };
 
   const questionModelDate = dateConverter('QuestionModel', 'createdAt'),
@@ -717,7 +793,7 @@ export const HumanVsChatbot: InsightObject = {
   insightType: InsightType.Chart,
   insightCategory: 'Chatbot',
   allowedFilters: ['courseId', 'timeframe'],
-  async compute(filters): Promise<ChartOutputType> {
+  async compute({ insightFilters }): Promise<ChartOutputType> {
     type HumanVsChatbotData = {
       answered: string;
       verified: string;
@@ -735,7 +811,7 @@ export const HumanVsChatbot: InsightObject = {
         }),
       modelName: AsyncQuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters,
+      filters: insightFilters,
     }).getRawMany<HumanVsChatbotData>();
 
     const aiData = await addFilters({
@@ -754,7 +830,7 @@ export const HumanVsChatbot: InsightObject = {
         }),
       modelName: AsyncQuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters,
+      filters: insightFilters,
     }).getRawMany<HumanVsChatbotData>();
 
     const mapData = (value: HumanVsChatbotData, type: string) => {
@@ -785,7 +861,7 @@ export const HumanVsChatbotVotes: InsightObject = {
   insightType: InsightType.Chart,
   insightCategory: 'Chatbot',
   allowedFilters: ['courseId', 'timeframe'],
-  async compute(filters): Promise<ChartOutputType> {
+  async compute({ insightFilters }): Promise<ChartOutputType> {
     type HumanVsChatbotData = {
       totalScore: string;
       totalVotes: string;
@@ -820,7 +896,7 @@ export const HumanVsChatbotVotes: InsightObject = {
         }),
       modelName: AsyncQuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters,
+      filters: insightFilters,
     }).getRawMany<HumanVsChatbotData>();
 
     const aiData = await addFilters({
@@ -848,7 +924,7 @@ export const HumanVsChatbotVotes: InsightObject = {
         }),
       modelName: AsyncQuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters,
+      filters: insightFilters,
     }).getRawMany<HumanVsChatbotData>();
 
     const mapData = (value: HumanVsChatbotData, type: string) => {
@@ -872,6 +948,178 @@ export const HumanVsChatbotVotes: InsightObject = {
   },
 };
 
+export const StaffWorkload: InsightObject = {
+  displayName: 'Staff Workload',
+  description: 'How many questions on average do staff members help in a day?',
+  roles: [Role.PROFESSOR],
+  insightType: InsightType.MultipleGanttChart,
+  insightCategory: 'Queues',
+  allowedFilters: ['courseId', 'timeframe', 'queues', 'tas'],
+  async compute({
+    insightFilters,
+    timezone,
+  }): Promise<MultipleGanttChartOutputType> {
+    type HelpedQuestions = {
+      quarterTime: number;
+      staffMember: number;
+      amount: number;
+      weekday: number;
+    };
+
+    const extractMinutesIntoDay = `ROUND((${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt')} - ${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt', undefined, 'DATE')})/60)`;
+    const extractWeekday = constructDateExtractString(
+      'DOW',
+      'QuestionModel',
+      'createdAt',
+      timezone,
+    );
+    const getQuarterTimeString = `CEIL(${extractMinutesIntoDay}/15)*15`;
+
+    const taQuestions = await addFilters({
+      query: createQueryBuilder(QuestionModel)
+        .select(getQuarterTimeString, 'quarterTime')
+        .addSelect('QuestionModel.taHelpedId', 'staffMember')
+        .addSelect('COUNT(QuestionModel.id)', 'amount')
+        .addSelect(extractWeekday, 'weekday')
+        .where('QuestionModel.taHelpedId IS NOT NULL')
+        .andWhere('QuestionModel.createdAt IS NOT NULL')
+        .groupBy(getQuarterTimeString)
+        .addGroupBy('QuestionModel.taHelpedId')
+        .addGroupBy(extractWeekday)
+        .orderBy(getQuarterTimeString, 'ASC')
+        .addOrderBy('weekday', 'ASC'),
+      modelName: QuestionModel.name,
+      allowedFilters: this.allowedFilters,
+      filters: insightFilters,
+    }).getRawMany<HelpedQuestions>();
+
+    const ids = taQuestions
+      .map((value) => value.staffMember)
+      .filter((v, i, a) => a.indexOf(v) == i);
+    if (ids.length == 0) {
+      return [];
+    }
+
+    const staffNames: { id: number; name: string }[] = await createQueryBuilder(
+      UserModel,
+    )
+      .select('UserModel.id', 'id')
+      .addSelect("UserModel.firstName || ' ' || UserModel.lastName", 'name')
+      .where('UserModel.id IN (:...ids)', { ids })
+      .getRawMany<{ id: number; name: string }>();
+
+    const outputs: GanttChartOutputType[] = [];
+    for (let i = 0; i < 7; i++) {
+      const dayQuestions = taQuestions.filter((q) => q.weekday == i);
+      if (dayQuestions.length == 0) continue;
+      const uniqueStaff: number[] = dayQuestions
+        .map((q) => q.staffMember)
+        .filter((v, i, a) => a.indexOf(v) == i);
+      outputs.push({
+        data: dayQuestions.map((q) => {
+          return {
+            Amount: parseInt(q.amount + ''),
+            time: parseInt(q.quarterTime + ''),
+            Staff_Member:
+              staffNames.find((s) => s.id == q.staffMember)?.name ??
+              `ID ${q.staffMember}`,
+          };
+        }),
+        xKey: 'time',
+        yKey: 'Staff_Member',
+        zKey: 'Amount',
+        label: numToWeekday(i),
+        numCategories: uniqueStaff.length,
+      });
+    }
+    return outputs;
+  },
+};
+
+export const StaffEfficiency: InsightObject = {
+  displayName: 'Staff Efficiency',
+  description: 'How efficient are staff in helping questions?',
+  roles: [Role.PROFESSOR],
+  insightType: InsightType.Chart,
+  insightCategory: 'Queues',
+  allowedFilters: ['courseId', 'timeframe', 'queues', 'tas'],
+  async compute({ insightFilters }): Promise<ChartOutputType> {
+    type WaitTimesByTA = {
+      avgWaitTime: number;
+      avgHelpTime: number;
+      staffMember: number;
+    };
+
+    const now = constructDateExtractString('EPOCH', 'NOW()', '');
+    const firstHelped = constructDateExtractString(
+      'EPOCH',
+      'QuestionModel',
+      'firstHelpedAt',
+    );
+    const createdAt = constructDateExtractString(
+      'EPOCH',
+      'QuestionModel',
+      'createdAt',
+    );
+    const closedAt = constructDateExtractString(
+      'EPOCH',
+      'QuestionModel',
+      'closedAt',
+    );
+
+    const questions = await addFilters({
+      query: createQueryBuilder(QuestionModel)
+        .select(
+          `AVG(COALESCE(${firstHelped},${now}) - ${createdAt})`,
+          'avgWaitTime',
+        )
+        .addSelect(
+          `AVG(COALESCE(${closedAt}, ${now}) - COALESCE(${firstHelped}, ${createdAt}))`,
+          'avgHelpTime',
+        )
+        .addSelect('QuestionModel.taHelpedId', 'staffMember')
+        .where('QuestionModel.taHelpedId IS NOT NULL')
+        .andWhere('QuestionModel.status IN (:...status)', {
+          status: ['Resolved'],
+        })
+        .groupBy('QuestionModel.taHelpedId'),
+      modelName: QuestionModel.name,
+      allowedFilters: this.allowedFilters,
+      filters: insightFilters,
+    }).getRawMany<WaitTimesByTA>();
+
+    const ids = questions.map((value) => value.staffMember);
+    const staffNames: { id: number; name: string }[] = await createQueryBuilder(
+      UserModel,
+    )
+      .select('UserModel.id', 'id')
+      .addSelect("UserModel.firstName || ' ' || UserModel.lastName", 'name')
+      .where('UserModel.id IN (:...ids)', { ids })
+      .getRawMany<{ id: number; name: string }>();
+
+    const data: StringMap<any>[] = questions.map((value) => {
+      return {
+        staffMember:
+          staffNames.find((s) => s.id == value.staffMember)?.name ??
+          `ID ${value.staffMember}`,
+        Average_Help_Time: (value.avgHelpTime / 60).toFixed(2),
+        Average_Wait_Time: (value.avgWaitTime / 60).toFixed(2),
+        Total_Time: (value.avgWaitTime / 60 + value.avgHelpTime / 60).toFixed(
+          2,
+        ),
+      };
+    });
+
+    return {
+      data,
+      xKey: 'staffMember',
+      yKeys: ['Average_Wait_Time', 'Average_Help_Time', 'Total_Time'],
+      label: 'Weekday',
+      xType: 'category',
+    };
+  },
+};
+
 export const INSIGHTS_MAP = {
   TotalStudents,
   TotalQuestionsAsked,
@@ -885,4 +1133,6 @@ export const INSIGHTS_MAP = {
   HumanVsChatbotVotes,
   MostActiveTimes,
   HelpSeekingOverTime,
+  StaffWorkload,
+  StaffEfficiency,
 };
