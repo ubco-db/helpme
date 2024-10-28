@@ -478,6 +478,12 @@ class APIClient {
       this.req('GET', `/api/v1/queueInvites/${queueId}/${code}/queue`),
   }
 
+  queueChats = {
+    sendMessage: async (queueId: number, message: string): Promise<void> => {
+      this.req('POST', `/api/v1/queue-chats/${queueId}`, undefined, { message })
+    },
+  }
+
   notif = {
     desktop: {
       credentials: async (): Promise<string> =>

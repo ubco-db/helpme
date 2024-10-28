@@ -5,7 +5,6 @@ import { throttle } from 'lodash';
 import { SSEService } from 'sse/sse.service';
 import { QueueService } from './queue.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
-import { queue } from 'async';
 
 type QueueClientMetadata = { userId: number; role: Role };
 

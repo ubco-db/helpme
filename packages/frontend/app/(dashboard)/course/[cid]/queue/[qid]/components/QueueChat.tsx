@@ -1,7 +1,10 @@
 import { Fragment, ReactElement, useState } from 'react'
-import { Button, Card } from 'antd'
+import { Button, Card, Space } from 'antd'
 import { GetQueueChatResponse, Role } from '@koh/common'
 import UserAvatar from '@/app/components/UserAvatar'
+import { MessageCircleMore } from 'lucide-react'
+import TextArea from 'antd/es/input/TextArea'
+import { API } from '@/app/api'
 
 interface QueueChatProps {
   role: Role
@@ -14,9 +17,19 @@ const QueueChat: React.FC<QueueChatProps> = ({
   queueId,
   chatData,
 }): ReactElement => {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState<boolean>(false)
+  const [input, setInput] = useState<string>('')
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
   const isStaff = role === Role.PROFESSOR || role === Role.TA
+  const sendMessage = async () => {
+    setIsLoading(true)
+    try {
+      API.queueChats.sendMessage(queueId, input)
+    } catch (error) {
+      console.error(error)
+    }
+  }
 
   return isOpen ? (
     <div className="flex h-[80vh] w-screen flex-col overflow-auto bg-slate-200 md:w-[90%]">
@@ -84,6 +97,33 @@ const QueueChat: React.FC<QueueChatProps> = ({
                 )
               })}
           </div>
+          <div>
+            <Space.Compact block size="large">
+              <TextArea
+                id="queuechat-input"
+                autoSize={{ minRows: 1.35, maxRows: 20 }}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className="rounded-r-none"
+                placeholder={`Chat with your ${isStaff ? 'TA' : 'Student'} (Shift+Enter for new line)`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    if (input.trim().length > 0 && !isLoading) {
+                      sendMessage()
+                    }
+                  }
+                }}
+              />
+              <Button
+                type="primary"
+                onClick={sendMessage}
+                disabled={input.trim().length === 0 || isLoading}
+              >
+                Ask
+              </Button>
+            </Space.Compact>
+          </div>
         </div>
       </Card>
     </div>
@@ -91,6 +131,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     <Button //TODO: change to chat with TA/student
       type="primary"
       size="large"
+      icon={<MessageCircleMore />}
       className="mx-1 rounded-sm"
       onClick={() => setIsOpen(true)}
     >
