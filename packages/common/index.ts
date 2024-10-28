@@ -1520,11 +1520,9 @@ export interface InsightObject {
   allowedFilters?: InsightFilterOption[]
   compute: ({
     insightFilters,
-    timezone,
     cacheManager,
   }: {
     insightFilters: any
-    timezone: string
     cacheManager: Cache
   }) => Promise<PossibleOutputTypes>
 }

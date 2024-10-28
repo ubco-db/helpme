@@ -6,36 +6,36 @@ exports[`InsightsService averageTimesByWeekDay 1`] = `
     "Average_Help_Time": "5.00",
     "Average_Wait_Time": "10.00",
     "Total_Time": "15.00",
-    "weekday": "Sunday",
-    "weekdayN": 0,
-  },
-  {
-    "Average_Help_Time": "5.00",
-    "Average_Wait_Time": "20.00",
-    "Total_Time": "25.00",
     "weekday": "Monday",
     "weekdayN": 1,
   },
   {
     "Average_Help_Time": "5.00",
-    "Average_Wait_Time": "30.00",
-    "Total_Time": "35.00",
+    "Average_Wait_Time": "20.00",
+    "Total_Time": "25.00",
     "weekday": "Tuesday",
     "weekdayN": 2,
   },
   {
     "Average_Help_Time": "5.00",
-    "Average_Wait_Time": "40.00",
-    "Total_Time": "45.00",
+    "Average_Wait_Time": "30.00",
+    "Total_Time": "35.00",
     "weekday": "Wednesday",
     "weekdayN": 3,
   },
   {
     "Average_Help_Time": "5.00",
-    "Average_Wait_Time": "50.00",
-    "Total_Time": "55.00",
+    "Average_Wait_Time": "40.00",
+    "Total_Time": "45.00",
     "weekday": "Thursday",
     "weekdayN": 4,
+  },
+  {
+    "Average_Help_Time": "5.00",
+    "Average_Wait_Time": "50.00",
+    "Total_Time": "55.00",
+    "weekday": "Friday",
+    "weekdayN": 5,
   },
 ]
 `;
@@ -43,184 +43,184 @@ exports[`InsightsService averageTimesByWeekDay 1`] = `
 exports[`InsightsService helpSeekingOverTime 1`] = `
 [
   {
-    "Async_Questions": 0,
-    "Chatbot_Interactions": 0,
-    "Questions": 0,
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
     "date": 1725174000000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1725235200000,
+    "date": 1725260400000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1725321600000,
+    "date": 1725346800000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1725408000000,
+    "date": 1725433200000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1725494400000,
+    "date": 1725519600000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1725580800000,
+    "date": 1725606000000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1725667200000,
+    "date": 1725692400000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1725753600000,
+    "date": 1725778800000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1725840000000,
+    "date": 1725865200000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1725926400000,
+    "date": 1725951600000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1726012800000,
+    "date": 1726038000000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1726099200000,
+    "date": 1726124400000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1726185600000,
+    "date": 1726210800000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1726272000000,
+    "date": 1726297200000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1726358400000,
+    "date": 1726383600000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1726444800000,
+    "date": 1726470000000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1726531200000,
+    "date": 1726556400000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1726617600000,
+    "date": 1726642800000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1726704000000,
+    "date": 1726729200000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1726790400000,
+    "date": 1726815600000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1726876800000,
+    "date": 1726902000000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1726963200000,
+    "date": 1726988400000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1727049600000,
+    "date": 1727074800000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1727136000000,
+    "date": 1727161200000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1727222400000,
+    "date": 1727247600000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1727308800000,
+    "date": 1727334000000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1727395200000,
+    "date": 1727420400000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1727481600000,
+    "date": 1727506800000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1727568000000,
+    "date": 1727593200000,
   },
   {
     "Async_Questions": 1,
     "Chatbot_Interactions": 1,
     "Questions": 1,
-    "date": 1727654400000,
+    "date": 1727679600000,
   },
 ]
 `;
@@ -274,23 +274,106 @@ exports[`InsightsService mostActiveTimes 1`] = `
   },
   {
     "Amount": 1,
-    "Weekday": 2,
+    "Weekday": 1,
     "time": 1035,
   },
   {
     "Amount": 1,
-    "Weekday": 2,
+    "Weekday": 1,
     "time": 1095,
   },
   {
     "Amount": 1,
-    "Weekday": 2,
+    "Weekday": 1,
     "time": 1155,
   },
   {
     "Amount": 1,
-    "Weekday": 2,
+    "Weekday": 1,
     "time": 1215,
+  },
+]
+`;
+
+exports[`InsightsService staffEfficiency 1`] = `
+[
+  {
+    "Average_Help_Time": "420.84",
+    "Average_Wait_Time": "420.84",
+    "Total_Time": "841.68",
+    "staffMember": "User Person",
+  },
+  {
+    "Average_Help_Time": "420.84",
+    "Average_Wait_Time": "420.84",
+    "Total_Time": "841.68",
+    "staffMember": "User Person",
+  },
+  {
+    "Average_Help_Time": "420.84",
+    "Average_Wait_Time": "420.84",
+    "Total_Time": "841.68",
+    "staffMember": "User Person",
+  },
+  {
+    "Average_Help_Time": "420.84",
+    "Average_Wait_Time": "420.84",
+    "Total_Time": "841.68",
+    "staffMember": "User Person",
+  },
+]
+`;
+
+exports[`InsightsService staffTotalHelped 1`] = `
+[
+  {
+    "Async_Questions_Helped": "0",
+    "Questions_Helped": "25",
+    "Total_Helped": 25,
+    "staffMember": "User Person",
+  },
+  {
+    "Async_Questions_Helped": "0",
+    "Questions_Helped": "25",
+    "Total_Helped": 25,
+    "staffMember": "User Person",
+  },
+  {
+    "Async_Questions_Helped": "0",
+    "Questions_Helped": "25",
+    "Total_Helped": 25,
+    "staffMember": "User Person",
+  },
+  {
+    "Async_Questions_Helped": "0",
+    "Questions_Helped": "25",
+    "Total_Helped": 25,
+    "staffMember": "User Person",
+  },
+]
+`;
+
+exports[`InsightsService staffWorkload 1`] = `
+[
+  {
+    "Amount": 25,
+    "Staff_Member": "User Person",
+    "time": 750,
+  },
+  {
+    "Amount": 25,
+    "Staff_Member": "User Person",
+    "time": 750,
+  },
+  {
+    "Amount": 25,
+    "Staff_Member": "User Person",
+    "time": 750,
+  },
+  {
+    "Amount": 25,
+    "Staff_Member": "User Person",
+    "time": 750,
   },
 ]
 `;

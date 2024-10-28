@@ -146,13 +146,12 @@ function constructDateExtractString(
   extract: 'DOW' | 'EPOCH',
   modelName: string,
   attribute: string,
-  timeZone?: string,
   map: 'DATE' | 'TIMESTAMP' = 'TIMESTAMP',
 ) {
   if (modelName == 'NOW()') {
-    return `EXTRACT(${extract} FROM NOW() ${timeZone != undefined ? `AT TIME ZONE '${timeZone}` : ''})`;
+    return `EXTRACT(${extract} FROM NOW())`;
   }
-  return `EXTRACT(${extract} FROM "${modelName}"."${attribute}"::${map} ${timeZone != undefined ? `AT TIME ZONE '${timeZone}'` : ''})`;
+  return `EXTRACT(${extract} FROM "${modelName}"."${attribute}"::${map})`;
 }
 
 export const TotalStudents: InsightObject = {
@@ -408,7 +407,7 @@ export const AverageTimesByWeekDay: InsightObject = {
   insightType: InsightType.Chart,
   insightCategory: 'Queues',
   allowedFilters: ['courseId', 'timeframe', 'queues'],
-  async compute({ insightFilters, timezone }): Promise<ChartOutputType> {
+  async compute({ insightFilters }): Promise<ChartOutputType> {
     type WaitTimesByDay = {
       avgWaitTime: number;
       avgHelpTime: number;
@@ -447,7 +446,6 @@ export const AverageTimesByWeekDay: InsightObject = {
             'DOW',
             'QuestionModel',
             'createdAt',
-            timezone,
             'DATE',
           ),
           'weekday',
@@ -493,14 +491,14 @@ export const MostActiveTimes: InsightObject = {
   insightType: InsightType.GanttChart,
   insightCategory: 'Queues',
   allowedFilters: ['courseId', 'timeframe', 'queues'],
-  async compute({ insightFilters, timezone }): Promise<GanttChartOutputType> {
+  async compute({ insightFilters }): Promise<GanttChartOutputType> {
     type ActiveTimes = {
       quarterTime: number;
       amount: number;
       weekday: number;
     };
 
-    const extractMinutesIntoDay = `ROUND((${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt')} - ${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt', undefined, 'DATE')})/60)`;
+    const extractMinutesIntoDay = `ROUND((${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt')} - ${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt', 'DATE')})/60)`;
     const getQuarterTimeString = `CEIL(${extractMinutesIntoDay}/15)*15`;
 
     const questions = await addFilters({
@@ -508,23 +506,13 @@ export const MostActiveTimes: InsightObject = {
         .select(getQuarterTimeString, 'quarterTime')
         .addSelect('COUNT(QuestionModel.id)', 'amount')
         .addSelect(
-          constructDateExtractString(
-            'DOW',
-            'QuestionModel',
-            'createdAt',
-            timezone,
-          ),
+          constructDateExtractString('DOW', 'QuestionModel', 'createdAt'),
           'weekday',
         )
         .andWhere('QuestionModel.createdAt IS NOT NULL')
         .groupBy(getQuarterTimeString)
         .addGroupBy(
-          constructDateExtractString(
-            'DOW',
-            'QuestionModel',
-            'createdAt',
-            timezone,
-          ),
+          constructDateExtractString('DOW', 'QuestionModel', 'createdAt'),
         )
         .orderBy(getQuarterTimeString, 'ASC')
         .addOrderBy('weekday', 'ASC'),
@@ -632,11 +620,7 @@ export const HelpSeekingOverTime: InsightObject = {
   insightType: InsightType.Chart,
   insightCategory: 'Tool_Usage_Statistics',
   allowedFilters: ['courseId', 'timeframe', 'queues', 'students'],
-  async compute({
-    insightFilters,
-    cacheManager,
-    timezone,
-  }): Promise<ChartOutputType> {
+  async compute({ insightFilters, cacheManager }): Promise<ChartOutputType> {
     const timeframe = insightFilters.find(
       (filter: Filter) => filter.type == 'timeframe',
     );
@@ -648,7 +632,6 @@ export const HelpSeekingOverTime: InsightObject = {
     const rawData = await getCachedHelpSeekingOverTime(
       cacheManager,
       insightFilters,
-      timezone,
     );
     const data: StringMap<any>[] = rawData
       .map((value) => {
@@ -722,7 +705,6 @@ export const HelpSeekingOverTime: InsightObject = {
 const getCachedHelpSeekingOverTime = async (
   cacheManager: Cache,
   filters: Filter[],
-  timezone?: string,
 ): Promise<HelpSeekingDates[]> => {
   const courseId = filters.find((filter: Filter) => filter.type === 'courseId')[
     'courseId'
@@ -748,17 +730,16 @@ const getCachedHelpSeekingOverTime = async (
   const cacheLengthInSeconds = 300;
   return cacheManager.wrap(
     `help-seeking/${courseId}${queues != undefined ? '/' + queues : ''}${students != undefined ? '/' + students : ''}`,
-    () => getHelpSeekingOverTime(filters, timezone),
+    () => getHelpSeekingOverTime(filters),
     { ttl: cacheLengthInSeconds },
   );
 };
 
 const getHelpSeekingOverTime = async (
   filters: Filter[],
-  timezone?: string,
 ): Promise<HelpSeekingDates[]> => {
   const dateConverter = (model: string, attr: string) => {
-    return `"${model}"."${attr}"::DATE AT TIME ZONE '${timezone ?? 'America/Los_Angeles'}'`;
+    return `"${model}"."${attr}"::DATE`;
   };
 
   const questionModelDate = dateConverter('QuestionModel', 'createdAt'),
@@ -965,10 +946,7 @@ export const StaffWorkload: InsightObject = {
   insightType: InsightType.MultipleGanttChart,
   insightCategory: 'Queues',
   allowedFilters: ['courseId', 'timeframe', 'queues', 'staff'],
-  async compute({
-    insightFilters,
-    timezone,
-  }): Promise<MultipleGanttChartOutputType> {
+  async compute({ insightFilters }): Promise<MultipleGanttChartOutputType> {
     type HelpedQuestions = {
       quarterTime: number;
       staffMember: number;
@@ -976,12 +954,11 @@ export const StaffWorkload: InsightObject = {
       weekday: number;
     };
 
-    const extractMinutesIntoDay = `ROUND((${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt')} - ${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt', undefined, 'DATE')})/60)`;
+    const extractMinutesIntoDay = `ROUND((${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt')} - ${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt', 'DATE')})/60)`;
     const extractWeekday = constructDateExtractString(
       'DOW',
       'QuestionModel',
       'createdAt',
-      timezone,
     );
     const getQuarterTimeString = `CEIL(${extractMinutesIntoDay}/15)*15`;
 
