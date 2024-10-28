@@ -330,15 +330,15 @@ describe('InsightsService', () => {
       const index = Object.keys(weekdayTimes).indexOf(key);
       const daytime = weekdayTimes[key];
       const duration = 10 * (index + 1);
-      const helptime = daytime + `T12:${duration}:00.000Z`;
-      const closetime = daytime + `T12:${duration + 5}:00.000Z`;
+      const helptime = daytime + `T08:${duration}:00.000Z`;
+      const closetime = daytime + `T08:${duration + 5}:00.000Z`;
 
       await QuestionFactory.create({
         creator: student,
         taHelped: ta,
         queue: queue,
         status: 'Resolved',
-        createdAt: new Date(Date.parse(daytime + 'T12:00:00.000Z')),
+        createdAt: new Date(Date.parse(daytime + 'T08:00:00.000Z')),
         helpedAt: new Date(Date.parse(helptime)),
         firstHelpedAt: new Date(Date.parse(helptime)),
         closedAt: new Date(Date.parse(closetime)),
@@ -355,7 +355,43 @@ describe('InsightsService', () => {
       ],
     })) as ChartOutputType;
 
-    expect(res.data).toMatchSnapshot();
+    expect(res.data).toEqual([
+      {
+        weekday: 'Monday',
+        weekdayN: 1,
+        Average_Help_Time: '5.00',
+        Average_Wait_Time: '10.00',
+        Total_Time: '15.00',
+      },
+      {
+        weekday: 'Tuesday',
+        weekdayN: 2,
+        Average_Help_Time: '5.00',
+        Average_Wait_Time: '20.00',
+        Total_Time: '25.00',
+      },
+      {
+        weekday: 'Wednesday',
+        weekdayN: 3,
+        Average_Help_Time: '5.00',
+        Average_Wait_Time: '30.00',
+        Total_Time: '35.00',
+      },
+      {
+        weekday: 'Thursday',
+        weekdayN: 4,
+        Average_Help_Time: '5.00',
+        Average_Wait_Time: '40.00',
+        Total_Time: '45.00',
+      },
+      {
+        weekday: 'Friday',
+        weekdayN: 5,
+        Average_Help_Time: '5.00',
+        Average_Wait_Time: '50.00',
+        Total_Time: '55.00',
+      },
+    ]);
     expect(res.xType).toBe('category');
     expect(res.xKey).toBe('weekday');
     expect(res.yKeys).toEqual([
@@ -420,11 +456,18 @@ describe('InsightsService', () => {
     const course = await CourseFactory.create();
     const queue = await QueueFactory.create({ course: course });
 
-    const startTime = new Date('2024-09-01T12:00:00'),
-      endTime = new Date('2024-09-30T12:00:00');
+    const startTime = new Date('2024-09-01T00:00:00'),
+      endTime = new Date('2024-09-30T00:00:00');
 
+    const expected = [];
     for (let i = 0; i < 30; i++) {
       const time = new Date(startTime.getTime() + i * 1000 * 60 * 60 * 24);
+      expected.push({
+        date: time.getTime(),
+        Questions: 1,
+        Async_Questions: 1,
+        Chatbot_Interactions: 1,
+      });
       await QuestionFactory.create({
         creator: student,
         queue: queue,
@@ -457,7 +500,7 @@ describe('InsightsService', () => {
       ],
     })) as ChartOutputType;
 
-    expect(res.data).toMatchSnapshot();
+    expect(res.data).toEqual(expected);
     expect(res.xKey).toEqual('date');
     expect(res.yKeys).toEqual([
       'Questions',
