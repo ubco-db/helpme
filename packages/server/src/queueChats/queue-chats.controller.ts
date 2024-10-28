@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpException,
   HttpStatus,
   Param,
@@ -25,33 +26,41 @@ export class QueueChatController {
   // PAT TODO: consider more than one student being helped
   // PAT TODO: remove unused functions
 
-  // @Get(':queueId')
-  // @UseGuards(JwtAuthGuard)
-  // async getQueueChat(
-  //   @Param('queueId') queueId: number,
-  //   @User() user: UserModel,
-  // ) {
-  //   try {
-  //     this.queueChatService.getChatMessages(queueId).then((chatMessages) => {
-  //       if (chatMessages.length === 0) {
-  //         throw new HttpException('Chat not found', HttpStatus.NOT_FOUND)
-  //       }
+  @Get(':queueId')
+  @UseGuards(JwtAuthGuard)
+  async getQueueChat(
+    @Param('queueId') queueId: number,
+    @User() user: UserModel,
+  ) {
+    try {
+      this.queueChatService.getChatMessages(queueId).then((chatMessages) => {
+        if (chatMessages.length === 0) {
+          throw new HttpException('Chat not found', HttpStatus.NOT_FOUND);
+        }
 
-  //       this.queueChatService.checkPermissions(queueId, user.id).then((allowedToRetrieve) => {
-  //         if (!allowedToRetrieve) {
-  //           throw new HttpException('User is not allowed to view chat', HttpStatus.FORBIDDEN);
-  //         }
-  //       })
+        this.queueChatService
+          .checkPermissions(queueId, user.id)
+          .then((allowedToRetrieve) => {
+            if (!allowedToRetrieve) {
+              throw new HttpException(
+                'User is not allowed to view chat',
+                HttpStatus.FORBIDDEN,
+              );
+            }
+          });
 
-  //       return chatMessages;
-  //     });
-  //   } catch (error) {
-  //     if (error) {
-  //       console.error(error);
-  //       throw new HttpException('Error getting chat', HttpStatus.INTERNAL_SERVER_ERROR);
-  //     }
-  //   }
-  // }
+        return chatMessages;
+      });
+    } catch (error) {
+      if (error) {
+        console.error(error);
+        throw new HttpException(
+          'Error getting chat',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
 
   // @Put(':queueId')
   // @UseGuards(JwtAuthGuard)
