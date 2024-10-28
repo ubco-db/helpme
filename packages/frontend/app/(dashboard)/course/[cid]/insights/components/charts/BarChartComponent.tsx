@@ -26,7 +26,7 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     legendFormatter,
   } = props
 
-  const { verticalAxis, stackData } = props as BarChartProps
+  const { verticalAxis, stackData, minTickGap, angle } = props as BarChartProps
 
   let {
     includeLegend,
@@ -59,6 +59,8 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           tickLine={tickLine}
           tickMargin={tickMargin}
           axisLine={axisLine}
+          minTickGap={minTickGap}
+          angle={angle}
           tickFormatter={tickFormatter}
         />
         <YAxis

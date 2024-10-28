@@ -1,0 +1,296 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`InsightsService averageTimesByWeekDay 1`] = `
+[
+  {
+    "Average_Help_Time": "5.00",
+    "Average_Wait_Time": "10.00",
+    "Total_Time": "15.00",
+    "weekday": "Sunday",
+    "weekdayN": 0,
+  },
+  {
+    "Average_Help_Time": "5.00",
+    "Average_Wait_Time": "20.00",
+    "Total_Time": "25.00",
+    "weekday": "Monday",
+    "weekdayN": 1,
+  },
+  {
+    "Average_Help_Time": "5.00",
+    "Average_Wait_Time": "30.00",
+    "Total_Time": "35.00",
+    "weekday": "Tuesday",
+    "weekdayN": 2,
+  },
+  {
+    "Average_Help_Time": "5.00",
+    "Average_Wait_Time": "40.00",
+    "Total_Time": "45.00",
+    "weekday": "Wednesday",
+    "weekdayN": 3,
+  },
+  {
+    "Average_Help_Time": "5.00",
+    "Average_Wait_Time": "50.00",
+    "Total_Time": "55.00",
+    "weekday": "Thursday",
+    "weekdayN": 4,
+  },
+]
+`;
+
+exports[`InsightsService helpSeekingOverTime 1`] = `
+[
+  {
+    "Async_Questions": 0,
+    "Chatbot_Interactions": 0,
+    "Questions": 0,
+    "date": 1725174000000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1725235200000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1725321600000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1725408000000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1725494400000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1725580800000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1725667200000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1725753600000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1725840000000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1725926400000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1726012800000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1726099200000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1726185600000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1726272000000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1726358400000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1726444800000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1726531200000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1726617600000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1726704000000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1726790400000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1726876800000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1726963200000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1727049600000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1727136000000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1727222400000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1727308800000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1727395200000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1727481600000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1727568000000,
+  },
+  {
+    "Async_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Questions": 1,
+    "date": 1727654400000,
+  },
+]
+`;
+
+exports[`InsightsService mostActiveTimes 1`] = `
+[
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 495,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 555,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 615,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 675,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 735,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 795,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 855,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 915,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 975,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 2,
+    "time": 1035,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 2,
+    "time": 1095,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 2,
+    "time": 1155,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 2,
+    "time": 1215,
+  },
+]
+`;

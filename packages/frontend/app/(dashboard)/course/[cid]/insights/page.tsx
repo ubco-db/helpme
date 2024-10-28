@@ -61,7 +61,7 @@ export default function InsightsPage() {
 
       const validInsights = categories
         ? Object.keys(insightDirectory).filter(
-            (v) => dashboardInsights?.insights[v].active == true,
+            (v) => dashboardInsights?.insights[v]?.active == true,
           )
         : Object.keys(insightDirectory).filter(
             (v) => insightDirectory[v].insightCategory == category,

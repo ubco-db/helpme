@@ -1,5 +1,6 @@
 import {
   AxisChartClasses,
+  AxisChartProps,
   ChartComponentProps,
   LinearChartProps,
 } from '@/app/(dashboard)/course/[cid]/insights/utils/types'
@@ -24,6 +25,8 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     xType,
     yType,
   } = props
+
+  const { minTickGap, angle } = props as AxisChartProps
 
   let {
     includeLegend,
@@ -71,6 +74,8 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           tickLine,
           axisLine,
           tickFormatter,
+          minTickGap,
+          angle,
           xType,
           yType,
         )}

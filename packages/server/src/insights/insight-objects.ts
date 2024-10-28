@@ -81,9 +81,9 @@ const APPLY_FILTER_MAP = {
         queueIds: filter.queueIds,
       });
     },
-    tas: ({ query, filter }: ApplyFilterParams) => {
-      query.andWhere('QuestionModel.taHelpedId IN (:...taIds)', {
-        taIds: filter.taIds,
+    staff: ({ query, filter }: ApplyFilterParams) => {
+      query.andWhere('QuestionModel.taHelpedId IN (:...staffIds)', {
+        staffIds: filter.staffIds,
       });
     },
   },
@@ -104,9 +104,9 @@ const APPLY_FILTER_MAP = {
         studentIds: filter.studentIds,
       });
     },
-    tas: ({ query, filter }: ApplyFilterParams) => {
-      query.andWhere('QuestionModel.taHelpedId IN (:...taIds)', {
-        taIds: filter.taIds,
+    staff: ({ query, filter }: ApplyFilterParams) => {
+      query.andWhere('AsyncQuestionModel.taHelpedId IN (:...staffIds)', {
+        staffIds: filter.staffIds,
       });
     },
   },
@@ -607,9 +607,9 @@ export const QuestionToStudentRatio: InsightObject = {
   insightType: InsightType.Value,
   insightCategory: 'Tool_Usage_Statistics',
   allowedFilters: ['courseId', 'timeframe'],
-  async compute({ insightFilters }): Promise<ValueOutputType> {
-    const totalQuestions = await TotalQuestionsAsked.compute(insightFilters);
-    const totalStudents = await TotalStudents.compute(insightFilters);
+  async compute(args): Promise<ValueOutputType> {
+    const totalQuestions = await TotalQuestionsAsked.compute(args);
+    const totalStudents = await TotalStudents.compute(args);
     return (
       (totalStudents !== 0
         ? ((totalQuestions as number) / (totalStudents as number)).toFixed(2)
@@ -660,6 +660,16 @@ export const HelpSeekingOverTime: InsightObject = {
         };
       })
       .filter((value) => value.date >= startTime && value.date <= endTime);
+
+    if (data.length == 0) {
+      return {
+        data: [],
+        xKey: 'date',
+        yKeys: ['Questions', 'Async_Questions', 'Chatbot_Interactions'],
+        label: 'date',
+        xType: 'numeric',
+      };
+    }
 
     const oneDay = 1000 * 60 * 1440;
     const minDate = Math.min(...data.map((v) => v.date));
@@ -748,7 +758,7 @@ const getHelpSeekingOverTime = async (
   timezone?: string,
 ): Promise<HelpSeekingDates[]> => {
   const dateConverter = (model: string, attr: string) => {
-    return `"${model}"."${attr}"::DATE AT TIME ZONE ${timezone ?? 'America/Los_Angeles'}`;
+    return `"${model}"."${attr}"::DATE AT TIME ZONE '${timezone ?? 'America/Los_Angeles'}'`;
   };
 
   const questionModelDate = dateConverter('QuestionModel', 'createdAt'),
@@ -954,7 +964,7 @@ export const StaffWorkload: InsightObject = {
   roles: [Role.PROFESSOR],
   insightType: InsightType.MultipleGanttChart,
   insightCategory: 'Queues',
-  allowedFilters: ['courseId', 'timeframe', 'queues', 'tas'],
+  allowedFilters: ['courseId', 'timeframe', 'queues', 'staff'],
   async compute({
     insightFilters,
     timezone,
@@ -1042,7 +1052,7 @@ export const StaffEfficiency: InsightObject = {
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
   insightCategory: 'Queues',
-  allowedFilters: ['courseId', 'timeframe', 'queues', 'tas'],
+  allowedFilters: ['courseId', 'timeframe', 'queues', 'staff'],
   async compute({ insightFilters }): Promise<ChartOutputType> {
     type WaitTimesByTA = {
       avgWaitTime: number;
@@ -1089,6 +1099,16 @@ export const StaffEfficiency: InsightObject = {
     }).getRawMany<WaitTimesByTA>();
 
     const ids = questions.map((value) => value.staffMember);
+    if (ids.length == 0) {
+      return {
+        data: [],
+        xKey: 'staffMember',
+        yKeys: ['Average_Wait_Time', 'Average_Help_Time', 'Total_Time'],
+        label: 'Weekday',
+        xType: 'category',
+      };
+    }
+
     const staffNames: { id: number; name: string }[] = await createQueryBuilder(
       UserModel,
     )
@@ -1114,7 +1134,87 @@ export const StaffEfficiency: InsightObject = {
       data,
       xKey: 'staffMember',
       yKeys: ['Average_Wait_Time', 'Average_Help_Time', 'Total_Time'],
-      label: 'Weekday',
+      label: 'Staff Member',
+      xType: 'category',
+    };
+  },
+};
+
+export const StaffTotalHelped: InsightObject = {
+  displayName: 'Staff Helpfulness',
+  description: 'How many questions has each staff member helped?',
+  roles: [Role.PROFESSOR],
+  insightType: InsightType.Chart,
+  insightCategory: 'Queues',
+  allowedFilters: ['courseId', 'timeframe', 'staff'],
+  async compute({ insightFilters }): Promise<ChartOutputType> {
+    const questions = await addFilters({
+      query: createQueryBuilder(QuestionModel)
+        .select('COUNT(QuestionModel.id)', 'questionsHelped')
+        .leftJoin(
+          (qb: SelectQueryBuilder<any>) =>
+            qb
+              .from(AsyncQuestionModel, 'asyncModel')
+              .select('asyncModel.id', 'id')
+              .addSelect('asyncModel.taHelpedId', 'taHelpedId')
+              .where('asyncModel.status IN (:...status)', {
+                status: ['HumanAnswered'],
+              }),
+          'AsyncQuestionModel',
+          '"QuestionModel"."taHelpedId" = "AsyncQuestionModel"."taHelpedId"',
+        )
+        .addSelect('COUNT("AsyncQuestionModel"."id")', 'asyncHelped')
+        .addSelect('QuestionModel.taHelpedId', 'staffMember')
+        .where('QuestionModel.taHelpedId IS NOT NULL')
+        .andWhere('QuestionModel.status IN (:...status)', {
+          status: ['Resolved'],
+        })
+        .groupBy('QuestionModel.taHelpedId'),
+      modelName: QuestionModel.name,
+      allowedFilters: this.allowedFilters,
+      filters: insightFilters,
+    }).getRawMany<{
+      staffMember: number;
+      questionsHelped: number;
+      asyncHelped: number;
+    }>();
+
+    const ids = questions
+      .map((q) => q.staffMember)
+      .filter((v, i, a) => a.indexOf(v) == i);
+    if (ids.length == 0) {
+      return {
+        data: [],
+        xKey: 'staffMember',
+        yKeys: ['Questions_Helped', 'Async_Questions_Helped', 'Total_Helped'],
+        label: 'Staff Member',
+        xType: 'category',
+      };
+    }
+
+    const staffNames: { id: number; name: string }[] = await createQueryBuilder(
+      UserModel,
+    )
+      .select('UserModel.id', 'id')
+      .addSelect("UserModel.firstName || ' ' || UserModel.lastName", 'name')
+      .where('UserModel.id IN (:...ids)', { ids })
+      .getRawMany<{ id: number; name: string }>();
+
+    return {
+      data: questions.map((q) => {
+        return {
+          staffMember:
+            staffNames.find((s) => s.id == q.staffMember)?.name ??
+            `ID ${q.staffMember}`,
+          Questions_Helped: q.questionsHelped,
+          Async_Questions_Helped: q.asyncHelped,
+          Total_Helped:
+            parseInt('' + q.asyncHelped) + parseInt('' + q.questionsHelped),
+        };
+      }),
+      xKey: 'staffMember',
+      yKeys: ['Questions_Helped', 'Async_Questions_Helped', 'Total_Helped'],
+      label: 'Staff Member',
       xType: 'category',
     };
   },
@@ -1135,4 +1235,5 @@ export const INSIGHTS_MAP = {
   HelpSeekingOverTime,
   StaffWorkload,
   StaffEfficiency,
+  StaffTotalHelped,
 };

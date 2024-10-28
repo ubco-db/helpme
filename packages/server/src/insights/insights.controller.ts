@@ -128,6 +128,7 @@ export class InsightsController {
     @Query('students', new ParseArrayPipe({ optional: true }))
     students?: number[],
     @Query('queues', new ParseArrayPipe({ optional: true })) queues?: number[],
+    @Query('staff', new ParseArrayPipe({ optional: true })) staff?: number[],
   ): Promise<GetInsightOutputResponse> {
     // Temporarily disabling insights until we finish refactoring QueueModel
     // Check that the insight name is valid
@@ -198,6 +199,21 @@ export class InsightsController {
       filters.push({
         type: 'queues',
         queueIds: queues,
+      });
+    }
+
+    if (staff) {
+      staff.forEach((n) => {
+        if (isNaN(n)) {
+          throw new BadRequestException(
+            ERROR_MESSAGES.insightsController.invalidStaffID,
+          );
+        }
+      });
+
+      filters.push({
+        type: 'staff',
+        staffIds: staff,
       });
     }
 

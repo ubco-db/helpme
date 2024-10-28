@@ -1499,7 +1499,7 @@ export const InsightFilterOptions = [
   'timeframe',
   'students',
   'queues',
-  'tas',
+  'staff',
 ] as const
 export type InsightFilterOption = (typeof InsightFilterOptions)[number]
 
@@ -1609,6 +1609,7 @@ export type InsightParamsType = {
   offset?: number
   students?: string
   queues?: string
+  staff?: string
 }
 
 export type sendEmailParams = {
@@ -2372,6 +2373,7 @@ export const ERROR_MESSAGES = {
     invalidStudentID:
       'Invalid student ID provided. Student IDs must be numeric',
     invalidQueueID: 'Invalid queue ID provided. Queue IDs must be numeric.',
+    invalidStaffID: 'Invalid staff ID provided. Staff IDs must be numeric.',
   },
   roleGuard: {
     notLoggedIn: 'Must be logged in',

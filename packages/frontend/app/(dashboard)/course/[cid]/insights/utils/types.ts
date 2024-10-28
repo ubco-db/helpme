@@ -92,6 +92,8 @@ export interface AxisChartProps extends DefaultChartProps {
   verticalAxis?: boolean
   tickLine?: boolean
   tickMargin?: number
+  minTickGap?: number
+  angle?: number
   axisLine?: boolean
   tickFormatter?: (label: string) => string
   aspectRatio?: number
@@ -242,11 +244,42 @@ export const charts: {
     props: {
       includeLegend: true,
       includeTooltip: true,
-      size: '2xl',
+      verticalAxis: true,
+      size: '3xl',
+      tickMargin: 15,
       aspectRatio: 4,
+      minTickGap: -200,
+      angle: 20,
       labelFormatter: (label: any) => ('' + label).replace(/_/g, ' '),
       valueFormatter: (value: any, name: any) =>
         `${name.replace(/_/g, ' ')}: ${value} min`,
+      tickFormatter: (label) => {
+        const split = ('' + label).split('_')
+        return split.reduce((prev, curr) => {
+          const isFirst = prev == 'START'
+          if (isFirst) {
+            return curr + ' '
+          } else {
+            return prev + curr.charAt(0) + '.'
+          }
+        }, 'START')
+      },
+    },
+  },
+  StaffTotalHelped: {
+    chartType: 'Bar',
+    props: {
+      includeLegend: true,
+      includeTooltip: true,
+      verticalAxis: true,
+      size: '3xl',
+      tickMargin: 15,
+      aspectRatio: 4,
+      minTickGap: -200,
+      angle: 20,
+      labelFormatter: (label: any) => ('' + label).replace(/_/g, ' '),
+      valueFormatter: (value: any, name: any) =>
+        `${name.replace(/_/g, ' ')}: ${value} questions`,
       tickFormatter: (label) => {
         const split = ('' + label).split('_')
         return split.reduce((prev, curr) => {

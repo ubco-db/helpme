@@ -22,6 +22,8 @@ export function getAxisComponents(
   tickLine?: boolean,
   axisLine?: boolean,
   tickFormatter?: (value: any, index: number) => string,
+  minTickGap?: number,
+  angle?: number,
   xType?: 'numeric' | 'category',
   yType?: 'numeric' | 'category',
 ) {

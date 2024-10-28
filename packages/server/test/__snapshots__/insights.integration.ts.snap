@@ -128,6 +128,41 @@ exports[`Insights Integration GET /insights/list should return list of insights 
     "insightCategory": "Questions",
     "insightType": "Chart",
   },
+  "StaffEfficiency": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+      "queues",
+      "staff",
+    ],
+    "description": "How efficient are staff in helping questions?",
+    "displayName": "Staff Efficiency",
+    "insightCategory": "Queues",
+    "insightType": "Chart",
+  },
+  "StaffTotalHelped": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+      "staff",
+    ],
+    "description": "How many questions has each staff member helped?",
+    "displayName": "Staff Helpfulness",
+    "insightCategory": "Queues",
+    "insightType": "Chart",
+  },
+  "StaffWorkload": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+      "queues",
+      "staff",
+    ],
+    "description": "How many questions on average do staff members help in a day?",
+    "displayName": "Staff Workload",
+    "insightCategory": "Queues",
+    "insightType": "MultipleGanttChart",
+  },
   "TotalQuestionsAsked": {
     "allowedFilters": [
       "courseId",

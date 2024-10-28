@@ -28,6 +28,7 @@ export const processChartData = (
   fills: { [key: string]: string }
 } => {
   const fills: { [key: string]: string } = {}
+
   const keys: string[] = valueKeys.map((item) => item.replace(/\s/g, '_'))
 
   if (!uniquePerLabel) {

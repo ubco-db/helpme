@@ -3,6 +3,7 @@ import { Scatter, ScatterChart, CartesianGrid } from 'recharts'
 import React, { useMemo } from 'react'
 import {
   AxisChartClasses,
+  AxisChartProps,
   ChartComponentProps,
   PointChartProps,
 } from '@/app/(dashboard)/course/[cid]/insights/utils/types'
@@ -24,6 +25,8 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     xType,
     yType,
   } = props
+
+  const { minTickGap, angle } = props as AxisChartProps
 
   let {
     includeLegend,
@@ -69,6 +72,8 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           tickLine,
           axisLine,
           tickFormatter,
+          minTickGap,
+          angle,
           xType,
           yType,
         )}

@@ -14,6 +14,14 @@ type InsightContextType = {
     search: string
     setSearch: (s: string) => void
   }
+  staffDetails?: {
+    staff: UserPartial[]
+    totalStaff: number
+    page: number
+    setPage: (n: number) => void
+    search: string
+    setSearch: (s: string) => void
+  }
   queueDetails?: QueuePartial[]
 }
 
@@ -38,6 +46,10 @@ const InsightContextProvider: React.FC<{
   const [totalStudents, setTotalStudents] = useState<number>(0)
   const [page, setPage] = useState<number>(1)
   const [search, setSearch] = useState<string>('')
+  const [staff, setStaff] = useState<UserPartial[]>([])
+  const [totalStaff, setTotalStaff] = useState<number>(0)
+  const [staffSearch, setStaffSearch] = useState<string>('')
+  const [staffPage, setStaffPage] = useState<number>(1)
 
   useEffect(() => {
     ;(async () => {
@@ -49,6 +61,14 @@ const InsightContextProvider: React.FC<{
       )
       setStudents(data.users)
       setTotalStudents(data.total)
+    })()
+  }, [courseId, page, search])
+
+  useEffect(() => {
+    ;(async () => {
+      const data = await API.course.getUserInfo(courseId, page, Role.TA, search)
+      setStaff(data.users)
+      setTotalStaff(data.total)
     })()
   }, [courseId, page, search])
 
@@ -66,6 +86,20 @@ const InsightContextProvider: React.FC<{
               setSearch('')
             } else {
               setSearch(s)
+            }
+          },
+        },
+        staffDetails: {
+          staff: staff,
+          totalStaff: totalStaff,
+          page: staffPage,
+          setPage: setStaffPage,
+          search: staffSearch,
+          setSearch: (s: string) => {
+            if (s == undefined) {
+              setStaffSearch('')
+            } else {
+              setStaffSearch(s)
             }
           },
         },

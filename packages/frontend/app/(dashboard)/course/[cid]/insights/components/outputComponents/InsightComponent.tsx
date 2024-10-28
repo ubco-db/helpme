@@ -19,6 +19,7 @@ import InsightTableComponent from '@/app/(dashboard)/course/[cid]/insights/compo
 import InsightGanttChartComponent from '@/app/(dashboard)/course/[cid]/insights/components/outputComponents/InsightGanttChartComponent'
 import InsightCard from '@/app/(dashboard)/course/[cid]/insights/components/InsightCard'
 import { Empty } from 'antd'
+import StaffFilter from '@/app/(dashboard)/course/[cid]/insights/components/filters/StaffFilter'
 
 interface InsightComponentProps {
   courseId: number
@@ -44,6 +45,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
   const [selectedData, setSelectedData] = useState<string[]>([])
   const [students, setStudents] = useState<number[]>([])
   const [queues, setQueues] = useState<number[]>([])
+  const [staff, setStaff] = useState<number[]>([])
 
   const insightParams = useMemo(() => {
     return {
@@ -51,8 +53,9 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
       end: dateRange?.end,
       students: students.length != 0 ? students : undefined,
       queues: queues.length != 0 ? queues : undefined,
+      staff: staff.length != 0 ? staff : undefined,
     } as InsightParamsType
-  }, [dateRange?.end, dateRange?.start, students, queues])
+  }, [dateRange?.end, dateRange?.start, students, queues, staff])
 
   useInsight(courseId, insightName, insightParams).then((result) =>
     setInsightOutput(result),
@@ -115,6 +118,13 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
                   setSelectedQueues={setQueues}
                 />
               )
+            case 'staff':
+              return (
+                <StaffFilter
+                  selectedStaff={staff}
+                  setSelectedStaff={setStaff}
+                />
+              )
             default:
               return <></>
           }
@@ -142,7 +152,15 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
         </div>
       )
     )
-  }, [insightOutput, insightName, students, queues, chartKeys, selectedData])
+  }, [
+    insightOutput,
+    insightName,
+    students,
+    queues,
+    chartKeys,
+    selectedData,
+    staff,
+  ])
 
   return useMemo(() => {
     if (insightOutput == undefined) {

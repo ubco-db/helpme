@@ -113,7 +113,7 @@ const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
           dataKey={yKey}
           tickFormatter={yTickFormatter}
           tickLine={true}
-          tickMargin={4}
+          tickMargin={0}
           axisLine={true}
           ticks={!yDomain ? yTicks : yDomain}
           domain={!yDomain ? [0, numCategories - 1] : yDomain}
