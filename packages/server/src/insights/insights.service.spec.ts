@@ -618,11 +618,11 @@ describe('InsightsService', () => {
       });
     }
     const weekdayTimes: { [key: string]: string } = {
-      monday: '2024-09-09T08:00:00',
-      tuesday: '2024-09-10T08:00:00',
-      wednesday: '2024-09-11T08:00:00',
-      thursday: '2024-09-12T08:00:00',
-      friday: '2024-09-13T08:00:00',
+      monday: '2024-09-09T08:00:00Z',
+      tuesday: '2024-09-10T08:00:00Z',
+      wednesday: '2024-09-11T08:00:00Z',
+      thursday: '2024-09-12T08:00:00Z',
+      friday: '2024-09-13T08:00:00Z',
     };
     const taQuestions: { [key: number]: Question[] } = [];
     for (const ta of tas) {
@@ -685,11 +685,11 @@ describe('InsightsService', () => {
       });
     }
     const weekdayTimes: { [key: string]: string } = {
-      monday: '2024-09-09T08:00:00',
-      tuesday: '2024-09-10T08:00:00',
-      wednesday: '2024-09-11T08:00:00',
-      thursday: '2024-09-12T08:00:00',
-      friday: '2024-09-13T08:00:00',
+      monday: '2024-09-09T08:00:00Z',
+      tuesday: '2024-09-10T08:00:00Z',
+      wednesday: '2024-09-11T08:00:00Z',
+      thursday: '2024-09-12T08:00:00Z',
+      friday: '2024-09-13T08:00:00Z',
     };
     const taQuestions: { [key: number]: Question[] } = [];
     for (const ta of tas) {
@@ -753,11 +753,11 @@ describe('InsightsService', () => {
       });
     }
     const weekdayTimes: { [key: string]: string } = {
-      monday: '2024-09-09T08:00:00',
-      tuesday: '2024-09-10T08:00:00',
-      wednesday: '2024-09-11T08:00:00',
-      thursday: '2024-09-12T08:00:00',
-      friday: '2024-09-13T08:00:00',
+      monday: '2024-09-09T08:00:00Z',
+      tuesday: '2024-09-10T08:00:00Z',
+      wednesday: '2024-09-11T08:00:00Z',
+      thursday: '2024-09-12T08:00:00Z',
+      friday: '2024-09-13T08:00:00Z',
     };
     const taQuestions: { [key: number]: Question[] } = [];
     for (const ta of tas) {

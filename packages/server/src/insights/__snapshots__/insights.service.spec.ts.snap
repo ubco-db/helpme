@@ -298,27 +298,27 @@ exports[`InsightsService mostActiveTimes 1`] = `
 exports[`InsightsService staffEfficiency 1`] = `
 [
   {
-    "Average_Help_Time": "420.84",
-    "Average_Wait_Time": "420.84",
-    "Total_Time": "841.68",
+    "Average_Help_Time": "420.89",
+    "Average_Wait_Time": "420.89",
+    "Total_Time": "841.77",
     "staffMember": "User Person",
   },
   {
-    "Average_Help_Time": "420.84",
-    "Average_Wait_Time": "420.84",
-    "Total_Time": "841.68",
+    "Average_Help_Time": "420.89",
+    "Average_Wait_Time": "420.89",
+    "Total_Time": "841.77",
     "staffMember": "User Person",
   },
   {
-    "Average_Help_Time": "420.84",
-    "Average_Wait_Time": "420.84",
-    "Total_Time": "841.68",
+    "Average_Help_Time": "420.89",
+    "Average_Wait_Time": "420.89",
+    "Total_Time": "841.77",
     "staffMember": "User Person",
   },
   {
-    "Average_Help_Time": "420.84",
-    "Average_Wait_Time": "420.84",
-    "Total_Time": "841.68",
+    "Average_Help_Time": "420.89",
+    "Average_Wait_Time": "420.89",
+    "Total_Time": "841.77",
     "staffMember": "User Person",
   },
 ]
@@ -358,22 +358,22 @@ exports[`InsightsService staffWorkload 1`] = `
   {
     "Amount": 25,
     "Staff_Member": "User Person",
-    "time": 750,
+    "time": 780,
   },
   {
     "Amount": 25,
     "Staff_Member": "User Person",
-    "time": 750,
+    "time": 780,
   },
   {
     "Amount": 25,
     "Staff_Member": "User Person",
-    "time": 750,
+    "time": 780,
   },
   {
     "Amount": 25,
     "Staff_Member": "User Person",
-    "time": 750,
+    "time": 780,
   },
 ]
 `;
