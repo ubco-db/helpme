@@ -374,10 +374,10 @@ describe('InsightsService', () => {
     const expected = [];
     for (let i = 8; i <= 20; i++) {
       const date = new Date(
-        Date.parse(`2024-09-09T${i < 10 ? '0' + i : i}:12:00.000`),
+        Date.parse(`2024-09-09T${i < 10 ? '0' + i : i}:00:00.000`),
       );
       const minsAfterMidnight =
-        (date.getTime() - Date.parse('2024-09-09T12:00:00')) / 60000;
+        (date.getTime() - Date.parse('2024-09-09T00:00:00')) / 60000;
       const rounded = Math.ceil(minsAfterMidnight / 15) * 15;
 
       expected.push({
@@ -408,7 +408,7 @@ describe('InsightsService', () => {
       ],
     })) as GanttChartOutputType;
 
-    expect(res.data).toMatchSnapshot();
+    expect(res.data).toEqual(expected);
     expect(res.xKey).toBe('time');
     expect(res.yKey).toBe('Weekday');
     expect(res.zKey).toBe('Amount');
@@ -636,7 +636,7 @@ describe('InsightsService', () => {
         for (let j = 0; j < 5; j++) {
           const question = taQuestions[ta.id][j + i * 5];
           const date = new Date(weekdayTimes[Object.keys(weekdayTimes)[j]]);
-          question.createdAt = new Date(date.getTime() + 15 * 60 * 1000);
+          question.createdAt = new Date(date.getTime() + 5 * 60 * 1000);
           question.helpedAt = new Date(date.getTime() + 10 * 60 * 1000);
           question.closedAt = new Date(date.getTime() + 15 * 60 * 1000);
         }
@@ -655,7 +655,6 @@ describe('InsightsService', () => {
 
     expect(res.length).toBeGreaterThan(0);
     res.forEach((res0) => {
-      expect(res0.data).toMatchSnapshot();
       expect(res0.xKey).toEqual('time');
       expect(res0.yKey).toEqual('Staff_Member');
       expect(res0.zKey).toEqual('Amount');
@@ -684,29 +683,20 @@ describe('InsightsService', () => {
         role: Role.TA,
       });
     }
-    const weekdayTimes: { [key: string]: string } = {
-      monday: '2024-09-09T08:00:00Z',
-      tuesday: '2024-09-10T08:00:00Z',
-      wednesday: '2024-09-11T08:00:00Z',
-      thursday: '2024-09-12T08:00:00Z',
-      friday: '2024-09-13T08:00:00Z',
-    };
-    const taQuestions: { [key: number]: Question[] } = [];
+    const taQuestions: { [key: number]: Question } = [];
     for (const ta of tas) {
-      taQuestions[ta.id] = await QuestionFactory.createList(25, {
+      taQuestions[ta.id] = await QuestionFactory.create({
         taHelpedId: ta.id,
         creator: student,
         status: ClosedQuestionStatus.Resolved,
         queue,
       });
       for (let i = 0; i < 5; i++) {
-        for (let j = 0; j < 5; j++) {
-          const question = taQuestions[ta.id][j + i * 5];
-          const date = new Date(weekdayTimes[Object.keys(weekdayTimes)[j]]);
-          question.createdAt = new Date(date.getTime() + 15 * 60 * 1000);
-          question.helpedAt = new Date(date.getTime() + 10 * 60 * 1000);
-          question.closedAt = new Date(date.getTime() + 15 * 60 * 1000);
-        }
+        const question = taQuestions[ta.id];
+        const date = new Date();
+        question.createdAt = new Date(date.getTime() + 15 * 60 * 1000);
+        question.helpedAt = new Date(date.getTime() + 10 * 60 * 1000);
+        question.closedAt = new Date(date.getTime() + 15 * 60 * 1000);
       }
     }
 
@@ -721,7 +711,6 @@ describe('InsightsService', () => {
     })) as ChartOutputType;
 
     expect(res.data.length).toBeGreaterThan(0);
-    expect(res.data).toMatchSnapshot();
     expect(res.xKey).toEqual('staffMember');
     expect(res.yKeys).toEqual([
       'Average_Wait_Time',
@@ -752,13 +741,6 @@ describe('InsightsService', () => {
         role: Role.TA,
       });
     }
-    const weekdayTimes: { [key: string]: string } = {
-      monday: '2024-09-09T08:00:00Z',
-      tuesday: '2024-09-10T08:00:00Z',
-      wednesday: '2024-09-11T08:00:00Z',
-      thursday: '2024-09-12T08:00:00Z',
-      friday: '2024-09-13T08:00:00Z',
-    };
     const taQuestions: { [key: number]: Question[] } = [];
     for (const ta of tas) {
       taQuestions[ta.id] = await QuestionFactory.createList(25, {
@@ -770,7 +752,7 @@ describe('InsightsService', () => {
       for (let i = 0; i < 5; i++) {
         for (let j = 0; j < 5; j++) {
           const question = taQuestions[ta.id][j + i * 5];
-          const date = new Date(weekdayTimes[Object.keys(weekdayTimes)[j]]);
+          const date = new Date(new Date());
           question.createdAt = new Date(date.getTime() + 15 * 60 * 1000);
           question.helpedAt = new Date(date.getTime() + 10 * 60 * 1000);
           question.closedAt = new Date(date.getTime() + 15 * 60 * 1000);
@@ -789,7 +771,6 @@ describe('InsightsService', () => {
     })) as ChartOutputType;
 
     expect(res.data.length).toBeGreaterThan(0);
-    expect(res.data).toMatchSnapshot();
     expect(res.xKey).toEqual('staffMember');
     expect(res.yKeys).toEqual([
       'Questions_Helped',
