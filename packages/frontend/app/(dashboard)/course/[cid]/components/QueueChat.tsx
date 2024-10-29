@@ -108,7 +108,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
                     {message.isStaff == isStaff ? (
                       <div className="mb-2 flex flex-row items-start justify-end gap-2">
                         <div className="flex flex-col rounded-xl bg-cyan-900 p-2 text-white">
-                          <span className="text-sm">{message.message}</span>
+                          <span className="text-wrap text-sm">
+                            {message.message}
+                          </span>
                           <span className="text-xs">
                             {new Date(message.timestamp).toLocaleTimeString(
                               undefined,
@@ -123,7 +125,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
                           </span>
                         </div>
                         <UserAvatar
-                          size={40}
+                          size="small"
                           username={queueChatData!.staff.firstName}
                           photoURL={queueChatData!.staff.photoURL}
                         />
@@ -131,7 +133,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
                     ) : (
                       <div className="mb-2 flex flex-row items-start justify-start gap-2">
                         <UserAvatar
-                          size={40}
+                          size="small"
                           username={queueChatData!.staff.firstName}
                           photoURL={queueChatData!.staff.photoURL}
                         />

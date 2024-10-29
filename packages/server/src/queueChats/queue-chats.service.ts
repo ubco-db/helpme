@@ -57,7 +57,7 @@ export class QueueChatService {
       } as QueueChatPartial),
     );
 
-    await this.redis.expire(key, 7200); // 2 hours = 2 * 60 * 60 = 7200 seconds
+    // await this.redis.expire(key, 7200); // 2 hours = 2 * 60 * 60 = 7200 seconds
   }
 
   /**
@@ -148,7 +148,7 @@ export class QueueChatService {
       const queueChat = new QueueChatsModel();
       queueChat.queueId = queueId;
       queueChat.staffId = metadata.staff.id;
-      queueChat.studentId = metadata.staff.id;
+      queueChat.studentId = metadata.student.id;
       queueChat.startedAt = metadata.startedAt;
       queueChat.closedAt = new Date();
       queueChat.messageCount = messageCount;
