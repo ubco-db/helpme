@@ -1,24 +1,29 @@
-import { ListQuestionsResponse, SSEQueueResponse } from '@koh/common'
+import {
+  GetQueueChatResponse,
+  ListQuestionsResponse,
+  SSEQueueResponse,
+} from '@koh/common'
 import { plainToClass } from 'class-transformer'
 import { useCallback } from 'react'
 import useSWR, { mutate, SWRResponse } from 'swr'
 import { useEventSource } from './useEventSource'
 import { API } from '../api'
 
-type questionsResponse = SWRResponse<ListQuestionsResponse, any>
+type queueChatResponse = SWRResponse<GetQueueChatResponse, any>
 
-interface UseQuestionReturn {
-  queueQuestions?: questionsResponse['data']
-  questionsError: questionsResponse['error']
-  mutateQuestions: questionsResponse['mutate']
+export interface useQueueChatReturn {
+  queueChatData?: queueChatResponse['data']
+  queueChatError: queueChatResponse['error']
+  mutateQueueChat: queueChatResponse['mutate']
+  isLive: boolean
 }
 
-export function useQuestions(qid: number): UseQuestionReturn {
-  const key = `/api/v1/queues/${qid}/questions`
+export function useQueueChats(qid: number): useQueueChatReturn {
+  const key = `/api/v1/queueChats/${qid}`
   // Subscribe to sse
   const isLive = useEventSource(
     `/api/v1/queues/${qid}/sse`,
-    'question',
+    'queueChat',
     useCallback(
       (data: SSEQueueResponse) => {
         if (data.queueQuestions) {
@@ -34,11 +39,11 @@ export function useQuestions(qid: number): UseQuestionReturn {
   )
 
   const {
-    data: queueQuestions,
-    error: questionsError,
-    mutate: mutateQuestions,
-  } = useSWR(key, async () => API.questions.index(qid), {
+    data: queueChatData,
+    error: queueChatError,
+    mutate: mutateQueueChat,
+  } = useSWR(key, async () => API.queueChats.index(qid), {
     refreshInterval: isLive ? 0 : 10 * 1000,
   })
-  return { queueQuestions, questionsError, mutateQuestions }
+  return { queueChatData, queueChatError, mutateQueueChat, isLive }
 }

@@ -27,10 +27,11 @@ import {
   ChatbotAskResponse,
 } from '@/app/typings/chatbot'
 import { API } from '@/app/api'
-import Markdown from 'react-markdown'
 import MarkdownCustom from '@/app/components/Markdown'
 import { useRouter } from 'next/router'
-import QueueChat from '../../queue/[qid]/components/QueueChat'
+import QueueChat from '../QueueChat'
+import { useQueueChatReturn, useQueueChats } from '@/app/hooks/useQueueChats'
+import { Role } from '@koh/common'
 
 const { TextArea } = Input
 
@@ -75,11 +76,20 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const courseFeatures = useCourseFeatures(cid)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
-  const { asPath } = useRouter()
+  const urlPaths = window.location.pathname.split('/')
 
-  const isQueuePage = asPath.includes('queue')
+  const isQueuePage = urlPaths.includes('queue')
 
-  const role = getRoleInCourse(userInfo, cid)
+  //only populate variables if isQueuePage
+  let role = '' as Role
+  const queueChat = {} as useQueueChatReturn
+  if (isQueuePage) {
+    role = getRoleInCourse(userInfo, cid)
+    //queueChat = useQueueChats(Number(urlPaths[4]))
+    console.log(queueChat)
+  }
+
+  console.log(isQueuePage)
 
   useEffect(() => {
     if (messages.length === 1) {
@@ -514,9 +524,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
             </Card>
             {isQueuePage && (
               <QueueChat
-                queueId={Number(asPath.split('/')[4])}
+                queueId={Number(urlPaths[4])}
                 role={role}
-                chatData={}
+                chatData={queueChat.queueChatData}
               />
             )}
           </>

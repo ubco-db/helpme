@@ -59,6 +59,7 @@ import {
   QueueInviteParams,
   PublicQueueInvite,
   QueueInvite,
+  GetQueueChatResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -479,8 +480,10 @@ class APIClient {
   }
 
   queueChats = {
+    index: async (queueId: number): Promise<GetQueueChatResponse> =>
+      this.req('GET', `/api/v1/queueChats/${queueId}`, GetQueueChatResponse),
     sendMessage: async (queueId: number, message: string): Promise<void> => {
-      this.req('POST', `/api/v1/queue-chats/${queueId}`, undefined, { message })
+      this.req('POST', `/api/v1/queueChats/${queueId}`, undefined, { message })
     },
   }
 

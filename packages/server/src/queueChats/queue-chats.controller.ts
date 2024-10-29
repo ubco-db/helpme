@@ -14,7 +14,7 @@ import { User } from 'decorators/user.decorator';
 import { UserModel } from 'profile/user.entity';
 import { QueueSSEService } from 'queue/queue-sse.service';
 
-@Controller('queue-chats')
+@Controller('queueChats')
 @UseGuards(JwtAuthGuard)
 export class QueueChatController {
   constructor(
@@ -33,8 +33,8 @@ export class QueueChatController {
     @User() user: UserModel,
   ) {
     try {
-      this.queueChatService.getChatMessages(queueId).then((chatMessages) => {
-        if (chatMessages.length === 0) {
+      return this.queueChatService.getChatData(queueId).then((chatData) => {
+        if (!chatData) {
           throw new HttpException('Chat not found', HttpStatus.NOT_FOUND);
         }
 
@@ -49,7 +49,7 @@ export class QueueChatController {
             }
           });
 
-        return chatMessages;
+        return chatData;
       });
     } catch (error) {
       if (error) {

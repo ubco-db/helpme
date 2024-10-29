@@ -1,5 +1,5 @@
 import { Fragment, ReactElement, useState } from 'react'
-import { Button, Card, Space } from 'antd'
+import { Alert, Button, Card, Space } from 'antd'
 import { GetQueueChatResponse, Role } from '@koh/common'
 import UserAvatar from '@/app/components/UserAvatar'
 import { MessageCircleMore } from 'lucide-react'
@@ -9,7 +9,7 @@ import { API } from '@/app/api'
 interface QueueChatProps {
   role: Role
   queueId: number
-  chatData: GetQueueChatResponse
+  chatData?: GetQueueChatResponse
 }
 
 const QueueChat: React.FC<QueueChatProps> = ({
@@ -29,6 +29,17 @@ const QueueChat: React.FC<QueueChatProps> = ({
     } catch (error) {
       console.error(error)
     }
+  }
+
+  if (!chatData) {
+    return (
+      <Alert
+        message="Chat data is not available."
+        description="Please try again later or contact support if the issue persists."
+        type="warning"
+        showIcon
+      />
+    )
   }
 
   return isOpen ? (

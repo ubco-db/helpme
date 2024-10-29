@@ -18,6 +18,7 @@ import { QuestionTagElement } from '../../../components/QuestionTagElement'
 import QuestionCard from './QuestionCard'
 import JoinTagGroupButton from './JoinTagGroupButton'
 import { useCallback } from 'react'
+import { DeliveredProcedureOutlined } from '@ant-design/icons'
 
 const Panel = Collapse.Panel
 

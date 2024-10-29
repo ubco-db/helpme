@@ -81,10 +81,12 @@ export class QueueChatService {
    * @param queueId The ID of the queue
    * @returns
    */
-  async getChatMetadata(queueId: number): Promise<QueueChatPartial> {
+  async getChatMetadata(queueId: number): Promise<QueueChatPartial | null> {
     const key = `queue_chats:${queueId}`;
 
     const chatDataStrings = await this.redis.lrange(key, 0, -1);
+    if (chatDataStrings.length === 0) return null;
+
     return JSON.parse(chatDataStrings[0]) as QueueChatPartial;
   }
 
@@ -92,11 +94,15 @@ export class QueueChatService {
    * Retrieve all chat messages for a given course and queue
    * @param queueId The ID of the queue
    */
-  async getChatMessages(queueId: number): Promise<QueueChatMessagePartial[]> {
+  async getChatMessages(
+    queueId: number,
+  ): Promise<QueueChatMessagePartial[] | null> {
     const key = `queue_chats:${queueId}`;
 
-    const chatDataStrings = await this.redis.lrange(key, 0, -1);
-    return chatDataStrings
+    const chatMessageStrings = await this.redis.lrange(key, 0, -1);
+    if (chatMessageStrings.length == 0) return null;
+
+    return chatMessageStrings
       .filter((_, index) => index !== 0) // Skip the metadata
       .map((chatDataString) => JSON.parse(chatDataString));
   }
@@ -105,9 +111,12 @@ export class QueueChatService {
    * For SSE, get all chat data for a given queue
    * @param queueId The ID of the queue
    */
-  async getChatData(queueId: number): Promise<QueueChatPartial> {
+  async getChatData(queueId: number): Promise<QueueChatPartial | null> {
     const metadata = await this.getChatMetadata(queueId);
     const messages = await this.getChatMessages(queueId);
+
+    if (!metadata || !messages) return null;
+
     return {
       ...metadata,
       messages: messages,

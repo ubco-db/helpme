@@ -53,7 +53,6 @@ import AssignmentReportModal from './components/modals/AssignmentReportModal'
 import CantFindModal from './components/modals/CantFindModal'
 import { useChatbotContext } from '../../components/chatbot/ChatbotProvider'
 import CircleButton from './components/CircleButton'
-import QueueChat from './components/QueueChat'
 
 type QueuePageProps = {
   params: { cid: string; qid: string }
@@ -919,8 +918,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             )}
           </>
         )}
-        {studentQuestion?.status === OpenQuestionStatus.Helping ||
-          (isStaff && <QueueChat messages={} />)}
       </div>
     )
   }
