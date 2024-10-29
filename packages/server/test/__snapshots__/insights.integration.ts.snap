@@ -137,8 +137,20 @@ exports[`Insights Integration GET /insights/list should return list of insights 
     ],
     "description": "How efficient are staff in helping questions?",
     "displayName": "Staff Efficiency",
-    "insightCategory": "Queues",
+    "insightCategory": "Staff",
     "insightType": "Chart",
+  },
+  "StaffQuestionTimesByDay": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+      "queues",
+      "staff",
+    ],
+    "description": "How long do questions take, from start to finish, on different days by different staff?",
+    "displayName": "Staff Question Times By Day",
+    "insightCategory": "Staff",
+    "insightType": "MultipleGanttChart",
   },
   "StaffTotalHelped": {
     "allowedFilters": [
@@ -148,7 +160,7 @@ exports[`Insights Integration GET /insights/list should return list of insights 
     ],
     "description": "How many questions has each staff member helped?",
     "displayName": "Staff Helpfulness",
-    "insightCategory": "Queues",
+    "insightCategory": "Staff",
     "insightType": "Chart",
   },
   "StaffWorkload": {
@@ -160,7 +172,7 @@ exports[`Insights Integration GET /insights/list should return list of insights 
     ],
     "description": "How many questions on average do staff members help in a day?",
     "displayName": "Staff Workload",
-    "insightCategory": "Queues",
+    "insightCategory": "Staff",
     "insightType": "MultipleGanttChart",
   },
   "TotalQuestionsAsked": {

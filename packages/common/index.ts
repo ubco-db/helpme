@@ -1465,6 +1465,7 @@ export const InsightCategories = [
   'Questions',
   'Queues',
   'Chatbot',
+  'Staff',
 ]
 
 export enum InsightType {

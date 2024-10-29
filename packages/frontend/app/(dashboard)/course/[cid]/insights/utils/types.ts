@@ -340,6 +340,59 @@ export const gantt_charts: {
       aspectRatio: 3,
     },
   },
+  StaffQuestionTimesByDay: {
+    props: {
+      includeTooltip: true,
+      size: '4xl',
+      labelFormatter: (
+        label: string,
+        payload: TooltipPayload<string, NameType>[],
+      ) => {
+        if (payload != undefined) {
+          const p = (payload as any[])[0]?.payload
+          return `${p['Staff_Member']} @ ${getMinutesToTime(p.key as number)}`
+        } else {
+          return label
+        }
+      },
+      xTickFormatter: (label: string) => {
+        const num = parseInt(label)
+        if (isNaN(num)) {
+          return ''
+        }
+        return getMinutesToTime(num)
+      },
+      yTickFormatter: (label: string) => {
+        const splitName = label.split(' ')
+        return splitName.reduce((prev, curr) => {
+          if (prev == 'START') {
+            return curr + ' '
+          } else {
+            return prev + curr.charAt(0) + '.'
+          }
+        }, 'START')
+      },
+      valueFormatter: (label: any, key: any, body: any) => {
+        if (key == 'key') {
+          const payload: any = body.payload
+          return (
+            'Average Question Time: ' +
+            (payload?.Average_Question_Time ?? 0) +
+            ' min'
+          )
+        }
+        return undefined
+      },
+      xRange: (chartData: ChartDataType[]) => {
+        const range = generateAxisRange(chartData, ['key'], 60)
+        range[0] = range[0] >= 60 ? range[0] - 60 : range[0]
+        range[1] = range[1] <= 1380 ? range[1] + 60 : range[1]
+        return range
+      },
+      aspectRatio: 1.5,
+      yIsCategory: true,
+    },
+  },
   StaffWorkload: {
     props: {
       includeTooltip: true,

@@ -8,6 +8,7 @@ import {
   LineChartOutlined,
   QuestionCircleOutlined,
   RobotOutlined,
+  TeamOutlined,
 } from '@ant-design/icons'
 import { InsightCategories, InsightCategory } from '@koh/common'
 
@@ -36,6 +37,9 @@ const InsightsMenu: React.FC<InsightsMenuProps> = ({
         break
       case 'Chatbot':
         icon = <RobotOutlined />
+        break
+      case 'Staff':
+        icon = <TeamOutlined />
         break
     }
 

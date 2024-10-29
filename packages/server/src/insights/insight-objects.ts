@@ -944,7 +944,7 @@ export const StaffWorkload: InsightObject = {
   description: 'How many questions on average do staff members help in a day?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.MultipleGanttChart,
-  insightCategory: 'Queues',
+  insightCategory: 'Staff',
   allowedFilters: ['courseId', 'timeframe', 'queues', 'staff'],
   async compute({ insightFilters }): Promise<MultipleGanttChartOutputType> {
     type HelpedQuestions = {
@@ -1028,7 +1028,7 @@ export const StaffEfficiency: InsightObject = {
   description: 'How efficient are staff in helping questions?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
-  insightCategory: 'Queues',
+  insightCategory: 'Staff',
   allowedFilters: ['courseId', 'timeframe', 'queues', 'staff'],
   async compute({ insightFilters }): Promise<ChartOutputType> {
     type WaitTimesByTA = {
@@ -1122,7 +1122,7 @@ export const StaffTotalHelped: InsightObject = {
   description: 'How many questions has each staff member helped?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
-  insightCategory: 'Queues',
+  insightCategory: 'Staff',
   allowedFilters: ['courseId', 'timeframe', 'staff'],
   async compute({ insightFilters }): Promise<ChartOutputType> {
     const questions = await addFilters({
@@ -1156,7 +1156,25 @@ export const StaffTotalHelped: InsightObject = {
       asyncHelped: number;
     }>();
 
-    const ids = questions
+    const asyncQuestions = await addFilters({
+      query: createQueryBuilder(AsyncQuestionModel)
+        .select('COUNT(AsyncQuestionModel.id)', 'questionsHelped')
+        .addSelect('AsyncQuestionModel.taHelpedId', 'staffMember')
+        .where('AsyncQuestionModel.taHelpedId IS NOT NULL')
+        .andWhere('AsyncQuestionModel.status IN (:...status)', {
+          status: ['HumanAnswered'],
+        })
+        .groupBy('AsyncQuestionModel.taHelpedId'),
+      modelName: AsyncQuestionModel.name,
+      allowedFilters: this.allowedFilters,
+      filters: insightFilters,
+    }).getRawMany<{
+      staffMember: number;
+      questionsHelped: number;
+      asyncHelped: number;
+    }>();
+
+    const ids = [...questions, ...asyncQuestions]
       .map((q) => q.staffMember)
       .filter((v, i, a) => a.indexOf(v) == i);
     if (ids.length == 0) {
@@ -1169,6 +1187,30 @@ export const StaffTotalHelped: InsightObject = {
       };
     }
 
+    const merged: {
+      staffMember: number;
+      questionsHelped: number;
+      asyncQuestionsHelped: number;
+    }[] = questions.map((q) => {
+      return {
+        staffMember: q.staffMember,
+        questionsHelped: q.questionsHelped,
+        asyncQuestionsHelped: 0,
+      };
+    });
+    asyncQuestions.forEach((aq) => {
+      const match = merged.find((q) => q.staffMember == aq.staffMember);
+      if (match) {
+        match.asyncQuestionsHelped = aq.questionsHelped;
+      } else {
+        merged.push({
+          staffMember: aq.staffMember,
+          questionsHelped: 0,
+          asyncQuestionsHelped: aq.questionsHelped,
+        });
+      }
+    });
+
     const staffNames: { id: number; name: string }[] = await createQueryBuilder(
       UserModel,
     )
@@ -1178,15 +1220,16 @@ export const StaffTotalHelped: InsightObject = {
       .getRawMany<{ id: number; name: string }>();
 
     return {
-      data: questions.map((q) => {
+      data: merged.map((q) => {
         return {
           staffMember:
             staffNames.find((s) => s.id == q.staffMember)?.name ??
             `ID ${q.staffMember}`,
           Questions_Helped: q.questionsHelped,
-          Async_Questions_Helped: q.asyncHelped,
+          Async_Questions_Helped: q.asyncQuestionsHelped,
           Total_Helped:
-            parseInt('' + q.asyncHelped) + parseInt('' + q.questionsHelped),
+            parseInt('' + q.asyncQuestionsHelped) +
+            parseInt('' + q.questionsHelped),
         };
       }),
       xKey: 'staffMember',
@@ -1194,6 +1237,107 @@ export const StaffTotalHelped: InsightObject = {
       label: 'Staff Member',
       xType: 'category',
     };
+  },
+};
+
+export const StaffQuestionTimesByDay: InsightObject = {
+  displayName: 'Staff Question Times By Day',
+  description:
+    'How long do questions take, from start to finish, on different days by different staff?',
+  roles: [Role.PROFESSOR],
+  insightType: InsightType.MultipleGanttChart,
+  insightCategory: 'Staff',
+  allowedFilters: ['courseId', 'timeframe', 'queues', 'staff'],
+  async compute({ insightFilters }): Promise<MultipleGanttChartOutputType> {
+    type HelpedQuestions = {
+      quarterTime: number;
+      staffMember: number;
+      avgQuestionTime: number;
+      weekday: number;
+    };
+
+    const extractMinutesIntoDay = `ROUND((${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt')} - ${constructDateExtractString('EPOCH', 'QuestionModel', 'createdAt', 'DATE')})/60)`;
+    const extractWeekday = constructDateExtractString(
+      'DOW',
+      'QuestionModel',
+      'createdAt',
+    );
+    const createdAt = constructDateExtractString(
+      'EPOCH',
+      'QuestionModel',
+      'createdAt',
+    );
+    const closedAt = constructDateExtractString(
+      'EPOCH',
+      'QuestionModel',
+      'closedAt',
+    );
+    const getQuarterTimeString = `CEIL(${extractMinutesIntoDay}/15)*15`;
+
+    const taQuestions = await addFilters({
+      query: createQueryBuilder(QuestionModel)
+        .select(getQuarterTimeString, 'quarterTime')
+        .addSelect('QuestionModel.taHelpedId', 'staffMember')
+        .addSelect(`AVG(${closedAt} - ${createdAt})`, 'avgQuestionTime')
+        .addSelect(extractWeekday, 'weekday')
+        .where('QuestionModel.taHelpedId IS NOT NULL')
+        .andWhere('QuestionModel.createdAt IS NOT NULL')
+        .andWhere('QuestionModel.closedAt IS NOT NULL')
+        .andWhere('QuestionModel.status IN (:...statuses)', {
+          statuses: ['Resolved'],
+        })
+        .groupBy(getQuarterTimeString)
+        .addGroupBy('QuestionModel.taHelpedId')
+        .addGroupBy(extractWeekday)
+        .orderBy(getQuarterTimeString, 'ASC')
+        .addOrderBy('weekday', 'ASC'),
+      modelName: QuestionModel.name,
+      allowedFilters: this.allowedFilters,
+      filters: insightFilters,
+    }).getRawMany<HelpedQuestions>();
+
+    const ids = taQuestions
+      .map((value) => value.staffMember)
+      .filter((v, i, a) => a.indexOf(v) == i);
+    if (ids.length == 0) {
+      return [];
+    }
+
+    const staffNames: { id: number; name: string }[] = await createQueryBuilder(
+      UserModel,
+    )
+      .select('UserModel.id', 'id')
+      .addSelect("UserModel.firstName || ' ' || UserModel.lastName", 'name')
+      .where('UserModel.id IN (:...ids)', { ids })
+      .getRawMany<{ id: number; name: string }>();
+
+    const outputs: GanttChartOutputType[] = [];
+    for (let i = 0; i < 7; i++) {
+      const dayQuestions = taQuestions.filter((q) => q.weekday == i);
+      if (dayQuestions.length == 0) continue;
+      const uniqueStaff: number[] = dayQuestions
+        .map((q) => q.staffMember)
+        .filter((v, i, a) => a.indexOf(v) == i);
+      outputs.push({
+        data: dayQuestions.map((q) => {
+          return {
+            Average_Question_Time: (
+              parseInt(q.avgQuestionTime + '') / 60
+            ).toFixed(2),
+            time: parseInt(q.quarterTime + ''),
+            Staff_Member:
+              staffNames.find((s) => s.id == q.staffMember)?.name ??
+              `ID ${q.staffMember}`,
+          };
+        }),
+        xKey: 'time',
+        yKey: 'Staff_Member',
+        zKey: 'Average_Question_Time',
+        label: numToWeekday(i),
+        numCategories: uniqueStaff.length,
+      });
+    }
+    return outputs;
   },
 };
 
@@ -1210,7 +1354,8 @@ export const INSIGHTS_MAP = {
   HumanVsChatbotVotes,
   MostActiveTimes,
   HelpSeekingOverTime,
-  StaffWorkload,
   StaffEfficiency,
   StaffTotalHelped,
+  StaffQuestionTimesByDay,
+  StaffWorkload,
 };

@@ -69,6 +69,15 @@ const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
     return range
   }, [numCategories])
 
+  const bubbleDomain = useMemo(() => {
+    if (zKey != undefined) {
+      return [
+        Math.min(...chartData.map((d) => d[zKey])),
+        Math.max(...chartData.map((d) => d[zKey])),
+      ]
+    }
+  }, [zKey])
+
   const bubbleSizeRange = useMemo(() => {
     switch (size) {
       case '4xl':
@@ -120,7 +129,7 @@ const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
           allowDuplicatedCategory={false}
         />
         {(zKey != undefined && (
-          <ZAxis dataKey={zKey} range={bubbleSizeRange} />
+          <ZAxis dataKey={zKey} range={bubbleSizeRange} domain={bubbleDomain} />
         )) || <ZAxis range={[bubbleSizeRange[1], bubbleSizeRange[1] + 1]} />}
         {includeTooltip && (
           <ChartTooltip

@@ -209,11 +209,16 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
                       (displayInfo.insightType == InsightType.Table &&
                         'Table') ||
                       (displayInfo.insightType == InsightType.GanttChart &&
-                        'Gantt Chart')}
+                        'Gantt Chart') ||
+                      (displayInfo.insightType ==
+                        InsightType.MultipleGanttChart &&
+                        'Multiple Gantt Chart')}
                   </div>
                   <div className={pillLabelClass}>
                     {((displayInfo.insightType == InsightType.Chart ||
-                      displayInfo.insightType == InsightType.GanttChart) &&
+                      displayInfo.insightType == InsightType.GanttChart ||
+                      displayInfo.insightType ==
+                        InsightType.MultipleGanttChart) &&
                       `${
                         matchingChart?.props.size
                           ? translateSize(matchingChart.props.size)
