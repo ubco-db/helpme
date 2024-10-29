@@ -4,7 +4,7 @@ import {
   SSEQueueResponse,
 } from '@koh/common'
 import { plainToClass } from 'class-transformer'
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import useSWR, { mutate, SWRResponse } from 'swr'
 import { useEventSource } from './useEventSource'
 import { API } from '../api'
@@ -18,6 +18,22 @@ export interface useQueueChatReturn {
   isLive: boolean
 }
 
+const useDebouncedCallback = <T extends (...args: any[]) => void>(
+  callback: T,
+  delay: number,
+): ((...args: Parameters<T>) => void) => {
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+  return (...args: Parameters<T>) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+    }
+    timerRef.current = setTimeout(() => {
+      callback(...args)
+    }, delay)
+  }
+}
+
 export function useQueueChats(qid: number): useQueueChatReturn {
   const key = `/api/v1/queueChats/${qid}`
   // Subscribe to sse
@@ -26,7 +42,7 @@ export function useQueueChats(qid: number): useQueueChatReturn {
     'queueChat',
     useCallback(
       (data: SSEQueueResponse) => {
-        if (data.queueQuestions) {
+        if (data.queueChat) {
           mutate(key, plainToClass(GetQueueChatResponse, data.queueChat), false)
         }
       },

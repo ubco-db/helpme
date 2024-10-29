@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from 'nestjs-redis';
 import { Redis } from 'ioredis';
 import { QueueChatsModel } from './queue-chats.entity';
@@ -8,6 +8,9 @@ import {
   QueueChatPartial,
   QueueChatUserPartial,
 } from '@koh/common';
+
+const ChatMessageRedisKey = 'queue_chat_messages';
+const ChatMetadataRedisKey = 'queue_chat_metadata';
 
 @Injectable()
 export class QueueChatService {
@@ -29,12 +32,13 @@ export class QueueChatService {
     staff: UserModel,
     student: UserModel,
   ): Promise<void> {
-    const key = `queue_chats:${queueId}`;
+    const key = `${ChatMetadataRedisKey}:${queueId}`;
 
-    // Remove any existing chat data just in case
+    // Remove any existing chat metadata and messages
     await this.redis.del(key);
+    await this.redis.del(`${ChatMessageRedisKey}:${queueId}`);
 
-    await this.redis.lpush(
+    await this.redis.set(
       key,
       JSON.stringify({
         staff: {
@@ -52,6 +56,8 @@ export class QueueChatService {
         startedAt: new Date(),
       } as QueueChatPartial),
     );
+
+    await this.redis.expire(key, 7200); // 2 hours = 2 * 60 * 60 = 7200 seconds
   }
 
   /**
@@ -65,7 +71,7 @@ export class QueueChatService {
     isStaff: boolean,
     message: string,
   ): Promise<void> {
-    const key = `queue_chats:${queueId}`;
+    const key = `${ChatMessageRedisKey}:${queueId}`;
 
     const chatDataString = JSON.stringify({
       isStaff,
@@ -73,7 +79,6 @@ export class QueueChatService {
       timestamp: new Date(),
     } as QueueChatMessagePartial);
     await this.redis.lpush(key, chatDataString);
-    await this.redis.expire(key, 7200); // 2 hours = 2 * 60 * 60 = 7200 seconds
   }
 
   /**
@@ -82,12 +87,11 @@ export class QueueChatService {
    * @returns
    */
   async getChatMetadata(queueId: number): Promise<QueueChatPartial | null> {
-    const key = `queue_chats:${queueId}`;
-
-    const chatDataStrings = await this.redis.lrange(key, 0, -1);
-    if (chatDataStrings.length === 0) return null;
-
-    return JSON.parse(chatDataStrings[0]) as QueueChatPartial;
+    const key = `${ChatMetadataRedisKey}:${queueId}`;
+    const metadataString = await this.redis.get(key);
+    return metadataString
+      ? (JSON.parse(metadataString) as QueueChatPartial)
+      : null;
   }
 
   /**
@@ -97,14 +101,20 @@ export class QueueChatService {
   async getChatMessages(
     queueId: number,
   ): Promise<QueueChatMessagePartial[] | null> {
-    const key = `queue_chats:${queueId}`;
-
+    const key = `${ChatMessageRedisKey}:${queueId}`;
     const chatMessageStrings = await this.redis.lrange(key, 0, -1);
-    if (chatMessageStrings.length == 0) return null;
+    if (chatMessageStrings.length === 0) return null;
 
     return chatMessageStrings
-      .filter((_, index) => index !== 0) // Skip the metadata
-      .map((chatDataString) => JSON.parse(chatDataString));
+      .map((chatDataString) => {
+        const message = JSON.parse(chatDataString);
+
+        // Ensure the timestamp is a Date object
+        message.timestamp = new Date(message.timestamp);
+
+        return message;
+      })
+      .reverse(); // Because we used lpush, the messages are in reverse order
   }
 
   /**
@@ -115,7 +125,7 @@ export class QueueChatService {
     const metadata = await this.getChatMetadata(queueId);
     const messages = await this.getChatMessages(queueId);
 
-    if (!metadata || !messages) return null;
+    if (!metadata) return null;
 
     return {
       ...metadata,
@@ -128,7 +138,7 @@ export class QueueChatService {
    * @param queueId The ID of the queue
    */
   async endChat(queueId: number): Promise<void> {
-    const key = `queue_chats:${queueId}`;
+    const key = `${ChatMetadataRedisKey}:${queueId}`;
 
     const metadata = await this.getChatMetadata(queueId);
     const messageCount = (await this.getChatMessages(queueId)).length;
@@ -154,7 +164,8 @@ export class QueueChatService {
    */
   async checkPermissions(queueId: number, userId: number): Promise<boolean> {
     const metadata = await this.getChatMetadata(queueId);
-    return metadata.staff.id === userId || metadata?.staff.id === userId;
+    if (!metadata) return false;
+    return metadata.staff.id === userId || metadata.student.id === userId;
   }
 
   /**
@@ -162,7 +173,7 @@ export class QueueChatService {
    * @param queueId The ID of the queue
    */
   async checkChatExists(queueId: number): Promise<boolean> {
-    const key = `queue_chats:${queueId}`;
+    const key = `${ChatMetadataRedisKey}:${queueId}`;
     return this.redis.exists(key).then((exists) => exists === 1);
   }
 }

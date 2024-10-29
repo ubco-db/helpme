@@ -74,10 +74,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
 
-  const urlPaths = window.location.pathname.split('/')
-  const isQueuePage = urlPaths.includes('queue')
-  const role = getRoleInCourse(userInfo, cid)
-
   useEffect(() => {
     if (messages.length === 1) {
       setPreDeterminedQuestions([])
@@ -523,13 +519,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 Chat now!
               </Button>
             </div>
-            {isQueuePage && (
-              <QueueChat
-                queueId={Number(urlPaths[4])}
-                role={role}
-                variant={variant}
-              />
-            )}
           </>
         )}
       </div>

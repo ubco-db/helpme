@@ -53,6 +53,7 @@ import AssignmentReportModal from './components/modals/AssignmentReportModal'
 import CantFindModal from './components/modals/CantFindModal'
 import { useChatbotContext } from '../../components/chatbot/ChatbotProvider'
 import CircleButton from './components/CircleButton'
+import QueueChat from '../../components/QueueChat'
 
 type QueuePageProps = {
   params: { cid: string; qid: string }
@@ -127,7 +128,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     'isFirstQuestion',
     true,
   )
-  const { helpingQuestions } = getHelpingQuestions(
+  const { helpingQuestions, isHelping } = getHelpingQuestions(
     queueQuestions,
     userInfo.id,
     role,
@@ -233,7 +234,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           text: text || '',
           questionTypes: questionTypes,
           queueId: qid,
-          location: location ?? isQueueOnline ? 'Online' : 'In Person',
+          location: (location ?? isQueueOnline) ? 'Online' : 'In Person',
           force: force,
           groupable: false,
           isTaskQuestion,
@@ -822,6 +823,12 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 onClose={() => setAssignmentReportModalOpen(false)}
               />
             )}
+            {((studentQuestion &&
+              studentQuestion.status == OpenQuestionStatus.Helping) ||
+              (studentDemo &&
+                studentDemo.status == OpenQuestionStatus.Helping)) && (
+              <QueueChat queueId={qid} role={role} />
+            )}
           </>
         ) : (
           <>
@@ -918,6 +925,10 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             )}
           </>
         )}
+        {((studentQuestion &&
+          studentQuestion.status == OpenQuestionStatus.Helping) ||
+          (studentDemo && studentDemo.status == OpenQuestionStatus.Helping) ||
+          isHelping) && <QueueChat queueId={qid} role={role} />}
       </div>
     )
   }

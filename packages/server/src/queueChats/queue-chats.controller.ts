@@ -32,31 +32,23 @@ export class QueueChatController {
     @Param('queueId') queueId: number,
     @User() user: UserModel,
   ) {
-    try {
-      const chatData = await this.queueChatService.getChatData(queueId);
-      if (!chatData) {
-        throw new HttpException('Chat not found', HttpStatus.NOT_FOUND);
-      }
-
-      const allowedToRetrieve = await this.queueChatService.checkPermissions(
-        queueId,
-        user.id,
-      );
-      if (!allowedToRetrieve) {
-        throw new HttpException(
-          'User is not allowed to view chat',
-          HttpStatus.FORBIDDEN,
-        );
-      }
-
-      return chatData;
-    } catch (error) {
-      console.error(error);
-      throw new HttpException(
-        'Error getting chat',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+    const chatData = await this.queueChatService.getChatData(queueId);
+    if (!chatData) {
+      throw new HttpException('Chat not found', HttpStatus.NOT_FOUND);
     }
+
+    await this.queueChatService
+      .checkPermissions(queueId, user.id)
+      .then((allowedToRetrieve) => {
+        if (!allowedToRetrieve) {
+          throw new HttpException(
+            'User is not allowed to retrieve chat data at this time',
+            HttpStatus.FORBIDDEN,
+          );
+        }
+      });
+
+    return chatData;
   }
 
   // @Put(':queueId')
@@ -107,45 +99,31 @@ export class QueueChatController {
     @User() user: UserModel,
     @Body('message') message: string,
   ) {
-    try {
-      this.queueChatService
-        .checkChatExists(queueId)
-        .then(async (chatExists) => {
-          if (!chatExists) {
-            throw new HttpException(
-              'Chat does not exist',
-              HttpStatus.NOT_FOUND,
-            );
-          }
-
-          this.queueChatService
-            .checkPermissions(queueId, user.id)
-            .then((allowedToSend) => {
-              if (!allowedToSend) {
-                throw new HttpException(
-                  'User is not allowed to send message',
-                  HttpStatus.FORBIDDEN,
-                );
-              }
-            });
-
-          const metadata = await this.queueChatService.getChatMetadata(queueId);
-          const isStaff = user.id === metadata.staff.id;
-          return this.queueChatService
-            .sendMessage(queueId, isStaff, message)
-            .then(() => {
-              this.queueSSEService.updateQueueChat(queueId);
-            });
-        });
-    } catch (error) {
-      if (error) {
-        console.error(error);
-        throw new HttpException(
-          'Error sending message',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
+    const chatExists = await this.queueChatService.checkChatExists(queueId);
+    if (!chatExists) {
+      throw new HttpException('Chat does not exist', HttpStatus.NOT_FOUND);
     }
+
+    const allowedToSend = await this.queueChatService.checkPermissions(
+      queueId,
+      user.id,
+    );
+    if (!allowedToSend) {
+      throw new HttpException(
+        'User is not allowed to send message',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const metadata = await this.queueChatService.getChatMetadata(queueId);
+    const isStaff = user.id === metadata.staff.id;
+
+    await this.queueChatService.sendMessage(queueId, isStaff, message);
+
+    // Ensure `updateQueueChat` does not trigger this route again
+    await this.queueSSEService.updateQueueChat(queueId);
+
+    return { message: 'Message sent' };
   }
 
   // @Delete(':courseId/:queueId')

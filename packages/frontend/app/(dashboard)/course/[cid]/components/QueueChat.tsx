@@ -1,14 +1,13 @@
 import { Fragment, ReactElement, useEffect, useState } from 'react'
 import { Alert, Button, Card, Space } from 'antd'
-import { GetQueueChatResponse, OpenQuestionStatus, Role } from '@koh/common'
+import { Role } from '@koh/common'
 import UserAvatar from '@/app/components/UserAvatar'
 import { MessageCircleMore } from 'lucide-react'
 import TextArea from 'antd/es/input/TextArea'
 import { API } from '@/app/api'
 import { useQueueChats } from '@/app/hooks/useQueueChats'
-import { useQuestions } from '@/app/hooks/useQuestions'
 import { cn } from '@/app/utils/generalUtils'
-import { useStudentQuestion } from '@/app/hooks/useStudentQuestion'
+import { CloseOutlined } from '@ant-design/icons'
 
 interface QueueChatProps {
   role: Role
@@ -19,36 +18,40 @@ interface QueueChatProps {
 const QueueChat: React.FC<QueueChatProps> = ({
   role,
   queueId,
-  variant,
+  variant = 'small',
 }): ReactElement => {
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [beingHelped, setBeingHelped] = useState<boolean>(false)
+  const [beingHelped, setBeingHelped] = useState<boolean>(true) //PAT TODO: hard-coded for now
   const { queueChatData } = useQueueChats(queueId)
-  const { studentQuestion, studentDemo } = useStudentQuestion(queueId)
+  // const { studentQuestion, studentDemo } = useStudentQuestion(queueId)
+
+  //PAT TODO: Make this work with the chatbot menu
 
   const isStaff = role === Role.PROFESSOR || role === Role.TA
+
   const sendMessage = async () => {
     setIsLoading(true)
     try {
       API.queueChats.sendMessage(queueId, input).then(() => {
         setIsLoading(false)
+        setInput('')
       })
     } catch (error) {
       console.error(error)
     }
   }
 
-  useEffect(() => {
-    if (studentQuestion) {
-      setBeingHelped(studentQuestion.status === OpenQuestionStatus.Helping)
-    } else if (studentDemo) {
-      setBeingHelped(studentDemo.status === OpenQuestionStatus.Helping)
-    } else {
-      setBeingHelped(false)
-    }
-  }, [studentQuestion, studentDemo])
+  // useEffect(() => {
+  //   if (studentQuestion) {
+  //     setBeingHelped(studentQuestion.status === OpenQuestionStatus.Helping)
+  //   } else if (studentDemo) {
+  //     setBeingHelped(studentDemo.status === OpenQuestionStatus.Helping)
+  //   } else {
+  //     setBeingHelped(false)
+  //   }
+  // }, [studentQuestion, studentDemo])
 
   if (!queueChatData) {
     return isOpen && (beingHelped || isStaff) ? (
@@ -67,11 +70,11 @@ const QueueChat: React.FC<QueueChatProps> = ({
     <div
       className={cn(
         variant === 'small'
-          ? 'fixed bottom-8 right-1 z-50 max-h-[90vh] w-screen md:max-w-[400px]'
+          ? 'absolute right-2 top-20 z-50 h-[50vh] w-screen overflow-y-hidden md:max-w-[400px]'
           : variant === 'big'
-            ? 'flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
+            ? 'absolute right-2 top-20 flex h-[80vh] w-screen flex-col overflow-y-hidden md:w-[90%]'
             : variant === 'huge'
-              ? 'flex h-[90vh] w-screen flex-col overflow-auto md:w-[90%]'
+              ? 'absolute right-2 top-20 flex h-[90vh] w-screen flex-col overflow-y-hidden md:w-[90%]'
               : '',
       )}
     >
@@ -85,7 +88,14 @@ const QueueChat: React.FC<QueueChatProps> = ({
           header: 'pr-3',
           body: 'px-4 pb-4 flex flex-col flex-auto',
         }}
-        className="flex w-full flex-auto flex-col overflow-y-auto"
+        className="flex max-h-[50vh] w-full flex-auto flex-col overflow-y-auto"
+        extra={
+          <Button
+            onClick={() => setIsOpen(false)}
+            type="text"
+            icon={<CloseOutlined />}
+          />
+        }
       >
         <div className="flex flex-auto flex-col justify-between">
           <div className="grow-1 overflow-y-auto">
@@ -95,17 +105,20 @@ const QueueChat: React.FC<QueueChatProps> = ({
                   <Fragment key={index}>
                     {/* checks if you are the one sending the message */}
                     {message.isStaff == isStaff ? (
-                      <div className="mb-2 flex flex-row items-start gap-2">
-                        <div className="flex flex-col rounded-xl bg-cyan-900 text-white">
+                      <div className="mb-2 flex flex-row items-start justify-end gap-2">
+                        <div className="flex flex-col rounded-xl bg-cyan-900 p-2 text-white">
                           <span className="text-sm">{message.message}</span>
                           <span className="text-xs">
-                            {message.timestamp.toLocaleTimeString(undefined, {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              hour12: true,
-                              second: undefined,
-                              timeZoneName: 'short',
-                            })}
+                            {new Date(message.timestamp).toLocaleTimeString(
+                              undefined,
+                              {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true,
+                                second: undefined,
+                                timeZoneName: 'short',
+                              },
+                            )}
                           </span>
                         </div>
                         <UserAvatar
@@ -115,22 +128,25 @@ const QueueChat: React.FC<QueueChatProps> = ({
                         />
                       </div>
                     ) : (
-                      <div className="mb-2 flex flex-row items-start gap-2">
+                      <div className="mb-2 flex flex-row items-start justify-start gap-2">
                         <UserAvatar
                           size={40}
                           username={queueChatData!.staff.firstName}
                           photoURL={queueChatData!.staff.photoURL}
                         />
-                        <div className="flex flex-col rounded-xl bg-slate-100 text-slate-900">
+                        <div className="flex flex-col rounded-xl bg-slate-100 p-2 text-slate-900">
                           <span className="text-sm">{message.message}</span>
                           <span className="text-xs">
-                            {message.timestamp.toLocaleTimeString(undefined, {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              hour12: true,
-                              second: undefined,
-                              timeZoneName: 'short',
-                            })}
+                            {new Date(message.timestamp).toLocaleTimeString(
+                              undefined,
+                              {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true,
+                                second: undefined,
+                                timeZoneName: 'short',
+                              },
+                            )}
                           </span>
                         </div>
                       </div>
@@ -170,7 +186,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
       </Card>
     </div>
   ) : (
-    <div className="flex justify-end">
+    <div className="absolute right-2 top-20 flex justify-end">
       <Button
         type="primary"
         size="large"

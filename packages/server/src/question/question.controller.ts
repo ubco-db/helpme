@@ -19,6 +19,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Logger,
   NotFoundException,
   Param,
   ParseIntPipe,
@@ -465,28 +466,28 @@ export class QuestionController {
             // if the question is being resolved or helped, create or end the queue chat for that question
             switch (body.status) {
               case OpenQuestionStatus.Helping:
-                console.log(`question controller queueId: ${question.queueId}`);
-                console.log(
-                  `question controller taHelped: ${question.taHelped}`,
-                );
-                console.log(`question controller creator: ${question.creator}`);
-                await this.QueueChatService.createChat(
-                  question.queueId,
-                  question.taHelped,
-                  question.creator,
-                ).catch((error) =>
-                  console.log(
-                    `Failed to create queue chat record for course "${question.queue.course.name} (id: ${question.queue.courseId})" and queue "${question.queue.room} (id: ${question.queueId})": ${error}`,
-                  ),
-                );
+                try {
+                  await this.QueueChatService.createChat(
+                    question.queueId,
+                    question.taHelped,
+                    question.creator,
+                  );
+                } catch (error) {
+                  throw new HttpException(
+                    'Error creating queue chat',
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                  );
+                }
                 break;
               case ClosedQuestionStatus.Resolved:
-                await this.QueueChatService.endChat(question.queueId).catch(
-                  (error) =>
-                    console.log(
-                      `Failed to migrate queue chat record to database for course "${question.queue.course.name} (id: ${question.queue.courseId})" and queue "${question.queue.room} (id: ${question.queueId})": ${error}`,
-                    ),
-                );
+                try {
+                  await this.QueueChatService.endChat(question.queueId);
+                } catch (error) {
+                  throw new HttpException(
+                    'Error ending queue chat',
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                  );
+                }
                 break;
             }
           });
