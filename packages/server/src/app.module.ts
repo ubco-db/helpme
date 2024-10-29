@@ -35,6 +35,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { BackupModule } from 'backup/backup.module';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { RateLimitExceptionFilter } from 'exception_filters/429-exception.filter';
 
 @Module({
   imports: [
@@ -96,6 +97,10 @@ import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: RateLimitExceptionFilter, // for capturing 429 too many request errors
     },
   ],
 })
