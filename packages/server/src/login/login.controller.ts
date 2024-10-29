@@ -21,8 +21,8 @@ import { getCookie } from 'common/helpers';
 import { CourseService } from 'course/course.service';
 import { minutes, Throttle } from '@nestjs/throttler';
 
-// Only 5 attempts per minute
-@Throttle({ default: { limit: 5, ttl: minutes(1) } })
+// Only 7 attempts per minute
+@Throttle({ default: { limit: 7, ttl: minutes(1) } })
 @Controller()
 export class LoginController {
   constructor(
