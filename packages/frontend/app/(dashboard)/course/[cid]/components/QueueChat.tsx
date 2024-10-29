@@ -24,7 +24,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [beingHelped, setBeingHelped] = useState<boolean>(true) //PAT TODO: hard-coded for now
-  const { queueChatData } = useQueueChats(queueId)
+  const { queueChatData, mutateQueueChat } = useQueueChats(queueId)
   // const { studentQuestion, studentDemo } = useStudentQuestion(queueId)
 
   //PAT TODO: Make this work with the chatbot menu
@@ -37,6 +37,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
       API.queueChats.sendMessage(queueId, input).then(() => {
         setIsLoading(false)
         setInput('')
+        mutateQueueChat()
       })
     } catch (error) {
       console.error(error)
@@ -88,7 +89,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
           header: 'pr-3',
           body: 'px-4 pb-4 flex flex-col flex-auto',
         }}
-        className="flex max-h-[50vh] w-full flex-auto flex-col overflow-y-auto"
+        className="flex h-[50vh] w-full flex-auto flex-col overflow-y-auto"
         extra={
           <Button
             onClick={() => setIsOpen(false)}

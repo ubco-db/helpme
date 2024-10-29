@@ -18,22 +18,6 @@ export interface useQueueChatReturn {
   isLive: boolean
 }
 
-const useDebouncedCallback = <T extends (...args: any[]) => void>(
-  callback: T,
-  delay: number,
-): ((...args: Parameters<T>) => void) => {
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
-
-  return (...args: Parameters<T>) => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-    }
-    timerRef.current = setTimeout(() => {
-      callback(...args)
-    }, delay)
-  }
-}
-
 export function useQueueChats(qid: number): useQueueChatReturn {
   const key = `/api/v1/queueChats/${qid}`
   // Subscribe to sse
