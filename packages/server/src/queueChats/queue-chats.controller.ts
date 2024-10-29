@@ -33,32 +33,29 @@ export class QueueChatController {
     @User() user: UserModel,
   ) {
     try {
-      return this.queueChatService.getChatData(queueId).then((chatData) => {
-        if (!chatData) {
-          throw new HttpException('Chat not found', HttpStatus.NOT_FOUND);
-        }
+      const chatData = await this.queueChatService.getChatData(queueId);
+      if (!chatData) {
+        throw new HttpException('Chat not found', HttpStatus.NOT_FOUND);
+      }
 
-        this.queueChatService
-          .checkPermissions(queueId, user.id)
-          .then((allowedToRetrieve) => {
-            if (!allowedToRetrieve) {
-              throw new HttpException(
-                'User is not allowed to view chat',
-                HttpStatus.FORBIDDEN,
-              );
-            }
-          });
-
-        return chatData;
-      });
-    } catch (error) {
-      if (error) {
-        console.error(error);
+      const allowedToRetrieve = await this.queueChatService.checkPermissions(
+        queueId,
+        user.id,
+      );
+      if (!allowedToRetrieve) {
         throw new HttpException(
-          'Error getting chat',
-          HttpStatus.INTERNAL_SERVER_ERROR,
+          'User is not allowed to view chat',
+          HttpStatus.FORBIDDEN,
         );
       }
+
+      return chatData;
+    } catch (error) {
+      console.error(error);
+      throw new HttpException(
+        'Error getting chat',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 

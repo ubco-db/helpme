@@ -11,14 +11,15 @@ import { API } from '../api'
 
 type queueChatResponse = SWRResponse<GetQueueChatResponse, any>
 
-interface UseQueueChatReturn {
-  queueChatMessages?: queueChatResponse['data']
+export interface useQueueChatReturn {
+  queueChatData?: queueChatResponse['data']
   queueChatError: queueChatResponse['error']
   mutateQueueChat: queueChatResponse['mutate']
+  isLive: boolean
 }
 
-export function useQueueChat(qid: number): UseQueueChatReturn {
-  const key = `/api/v1/queue-chats/${qid}`
+export function useQueueChats(qid: number): useQueueChatReturn {
+  const key = `/api/v1/queueChats/${qid}`
   // Subscribe to sse
   const isLive = useEventSource(
     `/api/v1/queues/${qid}/sse`,
@@ -26,11 +27,7 @@ export function useQueueChat(qid: number): UseQueueChatReturn {
     useCallback(
       (data: SSEQueueResponse) => {
         if (data.queueQuestions) {
-          mutate(
-            key,
-            plainToClass(ListQuestionsResponse, data.queueQuestions),
-            false,
-          )
+          mutate(key, plainToClass(GetQueueChatResponse, data.queueChat), false)
         }
       },
       [key],
@@ -38,11 +35,11 @@ export function useQueueChat(qid: number): UseQueueChatReturn {
   )
 
   const {
-    data: queueChatMessages,
+    data: queueChatData,
     error: queueChatError,
     mutate: mutateQueueChat,
-  } = useSWR(key, async () => API.questions.index(qid), {
+  } = useSWR(key, async () => API.queueChats.index(qid), {
     refreshInterval: isLive ? 0 : 10 * 1000,
   })
-  return { queueChatMessages, queueChatError, mutateQueueChat }
+  return { queueChatData, queueChatError, mutateQueueChat, isLive }
 }

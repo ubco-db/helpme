@@ -465,6 +465,11 @@ export class QuestionController {
             // if the question is being resolved or helped, create or end the queue chat for that question
             switch (body.status) {
               case OpenQuestionStatus.Helping:
+                console.log(`question controller queueId: ${question.queueId}`);
+                console.log(
+                  `question controller taHelped: ${question.taHelped}`,
+                );
+                console.log(`question controller creator: ${question.creator}`);
                 await this.QueueChatService.createChat(
                   question.queueId,
                   question.taHelped,

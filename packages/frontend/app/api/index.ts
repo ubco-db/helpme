@@ -483,7 +483,7 @@ class APIClient {
     index: async (queueId: number): Promise<GetQueueChatResponse> =>
       this.req('GET', `/api/v1/queueChats/${queueId}`, GetQueueChatResponse),
     sendMessage: async (queueId: number, message: string): Promise<void> => {
-      this.req('POST', `/api/v1/queueChats/${queueId}`, undefined, { message })
+      this.req('PATCH', `/api/v1/queueChats/${queueId}`, undefined, { message })
     },
   }
 

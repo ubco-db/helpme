@@ -28,10 +28,7 @@ import {
 } from '@/app/typings/chatbot'
 import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
-import { useRouter } from 'next/router'
 import QueueChat from '../QueueChat'
-import { useQueueChatReturn, useQueueChats } from '@/app/hooks/useQueueChats'
-import { Role } from '@koh/common'
 
 const { TextArea } = Input
 
@@ -76,20 +73,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const courseFeatures = useCourseFeatures(cid)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
+
   const urlPaths = window.location.pathname.split('/')
-
   const isQueuePage = urlPaths.includes('queue')
-
-  //only populate variables if isQueuePage
-  let role = '' as Role
-  const queueChat = {} as useQueueChatReturn
-  if (isQueuePage) {
-    role = getRoleInCourse(userInfo, cid)
-    //queueChat = useQueueChats(Number(urlPaths[4]))
-    console.log(queueChat)
-  }
-
-  console.log(isQueuePage)
+  const role = getRoleInCourse(userInfo, cid)
 
   useEffect(() => {
     if (messages.length === 1) {
@@ -283,7 +270,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
       <div
         className={cn(
           variant === 'small'
-            ? 'fixed bottom-5 z-50 max-h-[90vh] w-screen md:right-5 md:max-w-[400px]'
+            ? 'fixed bottom-8 z-50 max-h-[90vh] w-screen md:right-1 md:max-w-[400px]'
             : variant === 'big'
               ? 'flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
               : variant === 'huge'
@@ -522,24 +509,28 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 </div>
               </div>
             </Card>
+          </>
+        ) : (
+          <>
+            <div className="md:flex md:justify-end">
+              <Button
+                type="primary"
+                icon={<RobotOutlined />}
+                size="large"
+                className="mx-5 rounded-sm"
+                onClick={() => setIsOpen(true)}
+              >
+                Chat now!
+              </Button>
+            </div>
             {isQueuePage && (
               <QueueChat
                 queueId={Number(urlPaths[4])}
                 role={role}
-                chatData={queueChat.queueChatData}
+                variant={variant}
               />
             )}
           </>
-        ) : (
-          <Button
-            type="primary"
-            icon={<RobotOutlined />}
-            size="large"
-            className="mx-5 rounded-sm"
-            onClick={() => setIsOpen(true)}
-          >
-            Chat now!
-          </Button>
         )}
       </div>
     )
