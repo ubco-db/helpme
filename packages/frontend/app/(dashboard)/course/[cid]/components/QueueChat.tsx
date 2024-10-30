@@ -23,11 +23,14 @@ const QueueChat: React.FC<QueueChatProps> = ({
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [beingHelped, setBeingHelped] = useState<boolean>(true) //PAT TODO: hard-coded for now
-  const { queueChatData, mutateQueueChat } = useQueueChat(queueId)
-  // const { studentQuestion, studentDemo } = useStudentQuestion(queueId)
+  const { queueChatData, mutateQueueChat, hasNewMessages } =
+    useQueueChat(queueId)
 
-  //PAT TODO: Make this work with the chatbot menu
+  useEffect(() => {
+    if (hasNewMessages) {
+      setIsOpen(true)
+    }
+  }, [hasNewMessages, setIsOpen])
 
   const isStaff = role === Role.PROFESSOR || role === Role.TA
 
@@ -44,30 +47,18 @@ const QueueChat: React.FC<QueueChatProps> = ({
     }
   }
 
-  // useEffect(() => {
-  //   if (studentQuestion) {
-  //     setBeingHelped(studentQuestion.status === OpenQuestionStatus.Helping)
-  //   } else if (studentDemo) {
-  //     setBeingHelped(studentDemo.status === OpenQuestionStatus.Helping)
-  //   } else {
-  //     setBeingHelped(false)
-  //   }
-  // }, [studentQuestion, studentDemo])
-
-  if (!queueChatData) {
-    return isOpen && (beingHelped || isStaff) ? (
+  if (!queueChatData && isOpen) {
+    return (
       <Alert
         message="Chat data is not available."
         description="Please try again later or contact support if the issue persists."
         type="warning"
         showIcon
       />
-    ) : (
-      <></>
     )
   }
 
-  return isOpen && (beingHelped || isStaff) ? (
+  return isOpen ? (
     <div
       className={cn(
         variant === 'small'
@@ -82,8 +73,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
       <Card
         title={
           isStaff
-            ? `${queueChatData.student.firstName} ${queueChatData.student.lastName}`
-            : `${queueChatData.staff.firstName} ${queueChatData.staff.lastName}`
+            ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName}`
+            : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName}`
         }
         classNames={{
           header: 'pr-3',
@@ -104,8 +95,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
               Your chat messages will not be recorded for your privacy but
               please remain respectful
             </div>
-            {queueChatData.messages &&
-              queueChatData.messages.map((message, index) => {
+            {queueChatData!.messages &&
+              queueChatData!.messages.map((message, index) => {
                 return (
                   <Fragment key={index}>
                     {/* checks if you are the one sending the message */}

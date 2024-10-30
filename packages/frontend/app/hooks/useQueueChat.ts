@@ -1,6 +1,6 @@
 import { GetQueueChatResponse, SSEQueueResponse } from '@koh/common'
 import { plainToClass } from 'class-transformer'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import useSWR, { mutate, SWRResponse } from 'swr'
 import { useEventSource } from './useEventSource'
 import { API } from '../api'
@@ -11,17 +11,22 @@ export interface useQueueChatReturn {
   queueChatData?: queueChatResponse['data']
   queueChatError: queueChatResponse['error']
   mutateQueueChat: queueChatResponse['mutate']
+  hasNewMessages: boolean
 }
 
 export function useQueueChat(qid: number): useQueueChatReturn {
   const key = `/api/v1/queueChats/${qid}`
-  // Subscribe to sse
+  const previousMessageCount = useRef<number>(0)
+  const [hasNewMessages, setHasNewMessages] = useState<boolean>(false)
+
+  // Subscribe to SSE
   const isLive = useEventSource(
     `/api/v1/queues/${qid}/sse`,
     'queueChat',
     useCallback(
       (data: SSEQueueResponse) => {
         if (data.queueChat) {
+          // Update the SWR cache with the new chat data
           mutate(key, plainToClass(GetQueueChatResponse, data.queueChat), false)
         }
       },
@@ -29,6 +34,7 @@ export function useQueueChat(qid: number): useQueueChatReturn {
     ),
   )
 
+  // SWR fetch
   const {
     data: queueChatData,
     error: queueChatError,
@@ -36,5 +42,18 @@ export function useQueueChat(qid: number): useQueueChatReturn {
   } = useSWR(key, async () => API.queueChats.index(qid), {
     refreshInterval: isLive ? 0 : 10 * 1000,
   })
-  return { queueChatData, queueChatError, mutateQueueChat }
+
+  useEffect(() => {
+    if (queueChatData?.messages) {
+      const newMessageCount = queueChatData.messages.length
+      if (newMessageCount > previousMessageCount.current) {
+        setHasNewMessages(true)
+      } else {
+        setHasNewMessages(false)
+      }
+      previousMessageCount.current = newMessageCount
+    }
+  }, [queueChatData?.messages])
+
+  return { queueChatData, queueChatError, mutateQueueChat, hasNewMessages }
 }
