@@ -35,9 +35,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
     setIsLoading(true)
     try {
       API.queueChats.sendMessage(queueId, input).then(() => {
+        mutateQueueChat()
         setIsLoading(false)
         setInput('')
-        mutateQueueChat()
       })
     } catch (error) {
       console.error(error)
@@ -71,11 +71,11 @@ const QueueChat: React.FC<QueueChatProps> = ({
     <div
       className={cn(
         variant === 'small'
-          ? 'absolute right-2 top-20 z-50 h-[50vh] w-screen overflow-y-hidden md:max-w-[400px]'
+          ? 'absolute right-2 top-20 max-h-[70vh] w-screen md:max-w-[400px]'
           : variant === 'big'
-            ? 'absolute right-2 top-20 flex h-[80vh] w-screen flex-col overflow-y-hidden md:w-[90%]'
+            ? 'absolute right-2 top-20 flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
             : variant === 'huge'
-              ? 'absolute right-2 top-20 flex h-[90vh] w-screen flex-col overflow-y-hidden md:w-[90%]'
+              ? 'absolute right-2 top-20 flex h-[90vh] w-screen flex-col overflow-auto md:w-[90%]'
               : '',
       )}
     >
@@ -89,7 +89,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
           header: 'pr-3',
           body: 'px-4 pb-4 flex flex-col flex-auto',
         }}
-        className="flex h-[50vh] w-full flex-auto flex-col overflow-y-auto"
+        className="flex w-full flex-auto flex-col"
         extra={
           <Button
             onClick={() => setIsOpen(false)}
@@ -99,7 +99,11 @@ const QueueChat: React.FC<QueueChatProps> = ({
         }
       >
         <div className="flex flex-auto flex-col justify-between">
-          <div className="grow-1 overflow-y-auto">
+          <div className="no-scrollbar max-h-[40vh] overflow-y-auto">
+            <div className="mb-2 w-full text-center text-xs italic text-gray-500">
+              Your chat messages will not be recorded for your privacy but
+              please remain respectful
+            </div>
             {queueChatData.messages &&
               queueChatData.messages.map((message, index) => {
                 return (
@@ -107,7 +111,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
                     {/* checks if you are the one sending the message */}
                     {message.isStaff == isStaff ? (
                       <div className="mb-2 flex flex-row items-start justify-end gap-2">
-                        <div className="flex flex-col rounded-xl bg-cyan-900 p-2 text-white">
+                        <div className="flex max-w-[70%] flex-col rounded-xl bg-blue-900 p-2 text-white">
                           <span className="text-wrap text-sm">
                             {message.message}
                           </span>
@@ -119,25 +123,41 @@ const QueueChat: React.FC<QueueChatProps> = ({
                                 minute: '2-digit',
                                 hour12: true,
                                 second: undefined,
-                                timeZoneName: 'short',
+                                timeZoneName: undefined,
                               },
                             )}
                           </span>
                         </div>
                         <UserAvatar
                           size="small"
-                          username={queueChatData!.staff.firstName}
-                          photoURL={queueChatData!.staff.photoURL}
+                          username={
+                            message.isStaff
+                              ? queueChatData!.staff.firstName
+                              : queueChatData!.student.firstName
+                          }
+                          photoURL={
+                            message.isStaff
+                              ? queueChatData!.staff.photoURL
+                              : queueChatData!.student.photoURL
+                          }
                         />
                       </div>
                     ) : (
                       <div className="mb-2 flex flex-row items-start justify-start gap-2">
                         <UserAvatar
                           size="small"
-                          username={queueChatData!.staff.firstName}
-                          photoURL={queueChatData!.staff.photoURL}
+                          username={
+                            message.isStaff
+                              ? queueChatData!.staff.firstName
+                              : queueChatData!.student.firstName
+                          }
+                          photoURL={
+                            message.isStaff
+                              ? queueChatData!.staff.photoURL
+                              : queueChatData!.student.photoURL
+                          }
                         />
-                        <div className="flex flex-col rounded-xl bg-slate-100 p-2 text-slate-900">
+                        <div className="flex max-w-[70%] flex-col rounded-xl bg-slate-100 p-2 text-slate-900">
                           <span className="text-sm">{message.message}</span>
                           <span className="text-xs">
                             {new Date(message.timestamp).toLocaleTimeString(
@@ -147,7 +167,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
                                 minute: '2-digit',
                                 hour12: true,
                                 second: undefined,
-                                timeZoneName: 'short',
+                                timeZoneName: undefined,
                               },
                             )}
                           </span>
@@ -166,7 +186,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 className="rounded-r-none"
-                placeholder={`Chat with your ${isStaff ? 'Student' : 'TA'} (Shift+Enter for new line)`}
+                placeholder={`Chat with your ${isStaff ? 'Student' : 'TA'}`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
@@ -194,10 +214,10 @@ const QueueChat: React.FC<QueueChatProps> = ({
         type="primary"
         size="large"
         icon={<MessageCircleMore />}
-        className="rounded-sm"
+        className="rounded-lg"
         onClick={() => setIsOpen(true)}
       >
-        {`Chat with your ${isStaff ? 'Student' : 'TA'}`}
+        {`Queue Chat`}
       </Button>
     </div>
   )

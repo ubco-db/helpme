@@ -99,9 +99,9 @@ export class QueueChatController {
     @User() user: UserModel,
     @Body('message') message: string,
   ) {
-    const chatExists = await this.queueChatService.checkChatExists(queueId);
-    if (!chatExists) {
-      throw new HttpException('Chat does not exist', HttpStatus.NOT_FOUND);
+    const metadata = await this.queueChatService.getChatMetadata(queueId);
+    if (!metadata) {
+      throw new HttpException('Chat not found', HttpStatus.NOT_FOUND);
     }
 
     const allowedToSend = await this.queueChatService.checkPermissions(
@@ -114,16 +114,20 @@ export class QueueChatController {
         HttpStatus.FORBIDDEN,
       );
     }
-
-    const metadata = await this.queueChatService.getChatMetadata(queueId);
-    const isStaff = user.id === metadata.staff.id;
-
-    await this.queueChatService.sendMessage(queueId, isStaff, message);
-
-    // Ensure `updateQueueChat` does not trigger this route again
-    await this.queueSSEService.updateQueueChat(queueId);
-
-    return { message: 'Message sent' };
+    try {
+      const isStaff = user.id === metadata.staff.id;
+      await this.queueChatService.sendMessage(queueId, isStaff, message);
+      await this.queueSSEService.updateQueueChat(queueId);
+      return { message: 'Message sent' };
+    } catch (error) {
+      if (error) {
+        console.error(error);
+        throw new HttpException(
+          'Error sending queue chat message',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
   }
 
   // @Delete(':courseId/:queueId')

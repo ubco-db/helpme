@@ -46,14 +46,14 @@ export class QueueSSEService {
   updateQueue = this.throttleUpdate(async (queueId) => {
     const queue = await this.queueService.getQueue(queueId);
     if (queue) {
-      await this.sendToRoom(queueId, async () => ({ queue }));
+      this.sendToRoom(queueId, async () => ({ queue }));
     }
   });
 
   updateQueueChat = this.throttleUpdate(async (queueId) => {
     const queueChat = await this.queueChatService.getChatData(queueId);
     if (queueChat) {
-      await this.sendToRoom(queueId, async () => ({ queueChat }));
+      this.sendToRoom(queueId, async () => ({ queueChat }));
     }
   });
 
@@ -66,7 +66,7 @@ export class QueueSSEService {
       (metadata: QueueClientMetadata) => {
         if (!this.queueChatService.checkPermissions(queueId, metadata.userId)) {
           return data(metadata).then((response) => {
-            delete response.queueChat; // Protect student privacy
+            delete response.queueChat; // Remove chat data if user is not allowed to see it
             return response;
           });
         } else {

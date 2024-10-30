@@ -1,10 +1,6 @@
-import {
-  GetQueueChatResponse,
-  ListQuestionsResponse,
-  SSEQueueResponse,
-} from '@koh/common'
+import { GetQueueChatResponse, SSEQueueResponse } from '@koh/common'
 import { plainToClass } from 'class-transformer'
-import { useCallback, useRef } from 'react'
+import { useCallback } from 'react'
 import useSWR, { mutate, SWRResponse } from 'swr'
 import { useEventSource } from './useEventSource'
 import { API } from '../api'
@@ -15,7 +11,6 @@ export interface useQueueChatReturn {
   queueChatData?: queueChatResponse['data']
   queueChatError: queueChatResponse['error']
   mutateQueueChat: queueChatResponse['mutate']
-  isLive: boolean
 }
 
 export function useQueueChats(qid: number): useQueueChatReturn {
@@ -41,5 +36,5 @@ export function useQueueChats(qid: number): useQueueChatReturn {
   } = useSWR(key, async () => API.queueChats.index(qid), {
     refreshInterval: isLive ? 0 : 10 * 1000,
   })
-  return { queueChatData, queueChatError, mutateQueueChat, isLive }
+  return { queueChatData, queueChatError, mutateQueueChat }
 }
