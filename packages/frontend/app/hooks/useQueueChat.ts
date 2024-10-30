@@ -13,7 +13,7 @@ export interface useQueueChatReturn {
   mutateQueueChat: queueChatResponse['mutate']
 }
 
-export function useQueueChats(qid: number): useQueueChatReturn {
+export function useQueueChat(qid: number): useQueueChatReturn {
   const key = `/api/v1/queueChats/${qid}`
   // Subscribe to sse
   const isLive = useEventSource(

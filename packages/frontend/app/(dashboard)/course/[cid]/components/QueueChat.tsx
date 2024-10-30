@@ -5,7 +5,7 @@ import UserAvatar from '@/app/components/UserAvatar'
 import { MessageCircleMore } from 'lucide-react'
 import TextArea from 'antd/es/input/TextArea'
 import { API } from '@/app/api'
-import { useQueueChats } from '@/app/hooks/useQueueChats'
+import { useQueueChat } from '@/app/hooks/useQueueChat'
 import { cn } from '@/app/utils/generalUtils'
 import { CloseOutlined } from '@ant-design/icons'
 
@@ -24,7 +24,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [beingHelped, setBeingHelped] = useState<boolean>(true) //PAT TODO: hard-coded for now
-  const { queueChatData, mutateQueueChat } = useQueueChats(queueId)
+  const { queueChatData, mutateQueueChat } = useQueueChat(queueId)
   // const { studentQuestion, studentDemo } = useStudentQuestion(queueId)
 
   //PAT TODO: Make this work with the chatbot menu

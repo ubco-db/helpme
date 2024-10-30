@@ -823,12 +823,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 onClose={() => setAssignmentReportModalOpen(false)}
               />
             )}
-            {((studentQuestion &&
-              studentQuestion.status == OpenQuestionStatus.Helping) ||
-              (studentDemo &&
-                studentDemo.status == OpenQuestionStatus.Helping)) && (
-              <QueueChat queueId={qid} role={role} />
-            )}
           </>
         ) : (
           <>
