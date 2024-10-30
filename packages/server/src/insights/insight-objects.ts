@@ -338,22 +338,24 @@ export const QuestionTypeBreakdown: InsightObject = {
       }
     });
 
-    const data: StringMap<any>[] = keys.map((key) => {
-      let qNum = questionInfo.find(
-          (v) => v['questionTypeName'] == key,
-        )?.totalQuestions,
-        aNum = asyncQuestionInfo.find(
-          (v) => v['questionTypeName'] == key,
-        )?.totalQuestions;
-      qNum = !isNaN(parseInt(qNum)) ? parseInt(qNum) : 0;
-      aNum = !isNaN(parseInt(aNum)) ? parseInt(aNum) : 0;
+    const data: StringMap<any>[] = keys
+      .map((key) => {
+        let qNum = questionInfo.find(
+            (v) => v['questionTypeName'] == key,
+          )?.totalQuestions,
+          aNum = asyncQuestionInfo.find(
+            (v) => v['questionTypeName'] == key,
+          )?.totalQuestions;
+        qNum = !isNaN(parseInt(qNum)) ? parseInt(qNum) : 0;
+        aNum = !isNaN(parseInt(aNum)) ? parseInt(aNum) : 0;
 
-      return {
-        questionTypeName: key,
-        totalQuestions: aNum + qNum,
-        fill: fills[key],
-      };
-    });
+        return {
+          questionTypeName: key,
+          totalQuestions: aNum + qNum,
+          fill: fills[key],
+        };
+      })
+      .filter((d) => d.totalQuestions > 0);
 
     return {
       data,
