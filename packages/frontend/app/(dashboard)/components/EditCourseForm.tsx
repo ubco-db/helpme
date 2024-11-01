@@ -37,7 +37,6 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
     const courseNameField = formValues.courseName
     const coordinatorEmailField = formValues.coordinatorEmail
     const sectionGroupNameField = formValues.sectionGroupName
-    console.log('zoomLink: ' + formValues.zoomLink) // PAT TODO: remove
     const zoomLinkField = formValues.zoomLink
     const courseTimezoneField = formValues.courseTimezone
     const semesterNameField = formValues.semesterName

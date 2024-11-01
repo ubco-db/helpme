@@ -35,6 +35,19 @@ const QueueCard: React.FC<QueueCardProps> = ({
   const [updatedNotes, setUpdatedNotes] = useState(queue.notes)
   const [isLinkEnabled, setIsLinkEnabled] = useState(true) // for enabling/disabling the link to the queue when editing notes
 
+  const getQueueTypeColor = (type: string) => {
+    switch (type) {
+      case 'inPerson':
+        return '#dd9e21'
+      case 'hybrid':
+        return '#037c6e'
+      case 'online':
+        return '#1499c1'
+      default:
+        return '#008080' // just in case, this default will match the color of hybrid
+    }
+  }
+
   const handleSaveQueueNotes = async (e: { preventDefault: () => void }) => {
     e.preventDefault()
     setIsLinkEnabled(true)
@@ -86,7 +99,7 @@ const QueueCard: React.FC<QueueCardProps> = ({
               <div className="mb-1 flex flex-wrap gap-y-1 sm:mb-0">
                 {queue?.type && (
                   <Tag
-                    color="#2a9187"
+                    color={getQueueTypeColor(queue.type)}
                     className="m-0 mr-1 leading-4 text-gray-200"
                   >
                     {getQueueTypeLabel(queue.type)}

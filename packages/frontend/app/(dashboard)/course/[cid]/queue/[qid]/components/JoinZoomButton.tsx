@@ -2,7 +2,6 @@ import { cn } from '@/app/utils/generalUtils'
 import { Button, ButtonProps, Tooltip } from 'antd'
 import { PhoneOutlined } from '@ant-design/icons'
 import { PropsWithChildren } from 'react'
-import { Mr_Dafoe } from 'next/font/google'
 
 interface JoinZoomButtonProps extends ButtonProps {
   textSize?: 'sm' | 'md' | 'lg'
