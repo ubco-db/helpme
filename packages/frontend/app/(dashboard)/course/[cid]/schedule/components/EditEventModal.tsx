@@ -9,6 +9,8 @@ import {
   message,
   Button,
   Popconfirm,
+  ColorPickerProps,
+  GetProp,
 } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import dayjs from 'dayjs'
@@ -20,22 +22,25 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 import { DeleteOutlined } from '@ant-design/icons'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 
+type Color = GetProp<ColorPickerProps, 'value'>
 interface FormValues {
   title: string
-  startTime: Date
-  endTime: Date
-  startDate?: Date
-  endDate?: Date
-  locationType: calendarEventLocationType
+  color: string | Color
+  date: dayjs.Dayjs
+  startTime: dayjs.Dayjs
+  endTime: dayjs.Dayjs
+  locationType: number | calendarEventLocationType
   locationInPerson?: string
   locationOnline?: string
-  repeatDays?: string[]
+  startDate?: dayjs.Dayjs
+  endDate?: dayjs.Dayjs
+  daysOfWeek?: string[]
 }
 
 type EditEventModalProps = {
   visible: boolean
   onClose: () => void
-  event: Event
+  event?: Event
   courseId: number
 }
 
@@ -48,10 +53,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   const [form] = Form.useForm<FormValues>()
   const [isRepeating, setIsRepeating] = useState(false)
   const [locationType, setLocationType] = useState<calendarEventLocationType>(
-    calendarEventLocationType.inPerson,
+    (event?.locationType as calendarEventLocationType) ||
+      calendarEventLocationType.inPerson,
   )
-  const [selectedDays, setSelectedDays] = useState<string[]>([])
-
   const intToDayMapping = Object.fromEntries(
     Object.entries(dayToIntMapping).map(([key, value]) => [value, key]),
   )
@@ -63,38 +67,18 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       } else {
         setIsRepeating(false)
       }
-      form.setFieldsValue({
-        title: event.title,
-        locationInPerson: event.locationInPerson || undefined,
-        locationOnline: event.locationOnline || undefined,
-        startTime: dayjs(event.start),
-        endTime: dayjs(event.end),
-        startDate: event.endRecur ? dayjs(event.startDate) : undefined,
-        endDate: event.endRecur ? dayjs(event.endRecur) : undefined,
-        locationType: event.locationType as calendarEventLocationType,
-      })
       setLocationType(event.locationType as calendarEventLocationType)
-      setSelectedDays((prevDays) =>
-        event.daysOfWeek
-          ? event.daysOfWeek.map((dayInt) => intToDayMapping[dayInt])
-          : prevDays,
-      )
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, event])
 
-  const handleDaysChange = (checkedValues: string[]) => {
-    setSelectedDays(checkedValues)
-  }
-
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: FormValues) => {
     try {
       const eventObject: Partial<Calendar> = {
         cid: courseId,
         title: values.title,
         start: values.startTime.toDate(),
         end: values.endTime.toDate(),
-        locationType: values.locationType,
+        locationType: values.locationType as calendarEventLocationType,
         color:
           typeof values.color === 'string'
             ? values.color
@@ -120,8 +104,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       }
 
       if (isRepeating) {
-        if (values.endDate && selectedDays) {
-          eventObject.daysOfWeek = selectedDays.map(
+        if (values.startDate && values.endDate && values.daysOfWeek) {
+          eventObject.daysOfWeek = values.daysOfWeek.map(
             (day) => dayToIntMapping[day],
           )
           eventObject.startDate = values.startDate.toDate()
@@ -155,7 +139,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       const errorMessage = getErrorMessage(err)
       message.error('Error deleting the event: ' + errorMessage)
     }
-  }, [event, onClose])
+  }, [courseId, event, onClose])
 
   const updateEvent = async (updatedEvent: Partial<Calendar>) => {
     if (!event?.id) {
@@ -217,11 +201,23 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           form={form}
           name="form_in_modal"
           initialValues={{
-            locationType: 0,
+            locationType: event
+              ? event.locationType
+              : calendarEventLocationType.inPerson,
             color:
               event && event.backgroundColor
                 ? event.backgroundColor
                 : '#3788d8',
+            title: event ? event.title : '',
+            startTime: event ? dayjs(event.start) : undefined,
+            endTime: event ? dayjs(event.end) : undefined,
+            locationInPerson: event ? event.locationInPerson : '',
+            locationOnline: event ? event.locationOnline : '',
+            daysOfWeek: event?.daysOfWeek
+              ? event.daysOfWeek.map((dayInt) => intToDayMapping[dayInt])
+              : [],
+            startDate: event ? dayjs(event.startDate) : undefined,
+            endDate: event ? dayjs(event.endRecur) : undefined,
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
@@ -328,12 +324,17 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           >
             <DatePicker />
           </Form.Item>
-          <Form.Item label="Repeat on">
-            <Checkbox.Group
-              name="repeatDays"
-              value={selectedDays}
-              onChange={handleDaysChange}
-            >
+          <Form.Item
+            label="Repeat on"
+            name="daysOfWeek"
+            rules={[
+              {
+                required: true,
+                message: 'Please select at least one day to repeat on',
+              },
+            ]}
+          >
+            <Checkbox.Group>
               {Object.keys(dayToIntMapping).map((day) => (
                 <Checkbox key={day} value={day}>
                   {day}

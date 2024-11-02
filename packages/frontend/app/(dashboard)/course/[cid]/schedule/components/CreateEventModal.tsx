@@ -35,8 +35,8 @@ interface FormValues {
   date: dayjs.Dayjs
   time: [dayjs.Dayjs, dayjs.Dayjs]
   locationType: number | calendarEventLocationType
-  locationInPerson: string
-  locationOnline: string
+  locationInPerson?: string
+  locationOnline?: string
   startDate?: dayjs.Dayjs
   endDate?: dayjs.Dayjs
   daysOfWeek?: string[]
@@ -290,11 +290,25 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           <Form.Item
             label="Start Date"
             name="startDate"
+            dependencies={['endDate']}
             rules={[
               {
                 required: true,
                 message: 'Please select the start date of this repeating event',
               },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || !getFieldValue('endDate')) {
+                    return Promise.resolve()
+                  }
+                  if (value.isBefore(getFieldValue('endDate'))) {
+                    return Promise.resolve()
+                  }
+                  return Promise.reject(
+                    new Error('Start date must be before end date!'),
+                  )
+                },
+              }),
             ]}
           >
             <DatePicker picker="date" />
@@ -302,11 +316,25 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           <Form.Item
             label="End Date"
             name="endDate"
+            dependencies={['startDate']}
             rules={[
               {
                 required: true,
                 message: 'Please select the end date of this repeating event',
               },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || !getFieldValue('startDate')) {
+                    return Promise.resolve()
+                  }
+                  if (value.isAfter(getFieldValue('startDate'))) {
+                    return Promise.resolve()
+                  }
+                  return Promise.reject(
+                    new Error('End date must be after start date!'),
+                  )
+                },
+              }),
             ]}
           >
             <DatePicker picker="date" />
