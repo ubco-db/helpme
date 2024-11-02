@@ -19,7 +19,11 @@ import { UserModel } from 'profile/user.entity';
 import {
   asyncQuestionStatus,
   ChartOutputType,
+  ClosedQuestionStatus,
   GanttChartOutputType,
+  MultipleGanttChartOutputType,
+  Question,
+  Role,
   TableOutputType,
 } from '@koh/common';
 
@@ -633,6 +637,190 @@ describe('InsightsService', () => {
     expect(res.xKey).toEqual('type');
     expect(res.yKeys).toEqual(['Total_Score', 'Total_Votes']);
   });
+
+  it('staffWorkload', async () => {
+    const course = await CourseFactory.create({ id: 1 });
+    const student = await UserFactory.create({ id: 0 });
+    const queue = await QueueFactory.create({ course: course });
+    await UserCourseFactory.create({
+      course: course,
+      user: student,
+      role: Role.STUDENT,
+    });
+    const tas = [];
+    for (let i = 1; i < 5; i++) {
+      tas.push(
+        await UserFactory.create({
+          id: i,
+        }),
+      );
+      await UserCourseFactory.create({
+        course: course,
+        user: tas[i],
+        role: Role.TA,
+      });
+    }
+    const weekdayTimes: { [key: string]: string } = {
+      monday: '2024-09-09T08:00:00Z',
+      tuesday: '2024-09-10T08:00:00Z',
+      wednesday: '2024-09-11T08:00:00Z',
+      thursday: '2024-09-12T08:00:00Z',
+      friday: '2024-09-13T08:00:00Z',
+    };
+    const taQuestions: { [key: number]: Question[] } = [];
+    for (const ta of tas) {
+      taQuestions[ta.id] = await QuestionFactory.createList(25, {
+        taHelpedId: ta.id,
+        creator: student,
+        status: ClosedQuestionStatus.Resolved,
+        queue,
+      });
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          const question = taQuestions[ta.id][j + i * 5];
+          const date = new Date(weekdayTimes[Object.keys(weekdayTimes)[j]]);
+          question.createdAt = new Date(date.getTime() + 5 * 60 * 1000);
+          question.helpedAt = new Date(date.getTime() + 10 * 60 * 1000);
+          question.closedAt = new Date(date.getTime() + 15 * 60 * 1000);
+        }
+      }
+    }
+
+    const res = (await service.computeOutput({
+      insight: INSIGHTS_MAP.StaffWorkload,
+      filters: [
+        {
+          type: 'courseId',
+          courseId: course.id,
+        },
+      ],
+    })) as MultipleGanttChartOutputType;
+
+    expect(res.length).toBeGreaterThan(0);
+    res.forEach((res0) => {
+      expect(res0.xKey).toEqual('time');
+      expect(res0.yKey).toEqual('Staff_Member');
+      expect(res0.zKey).toEqual('Amount');
+    });
+  }, 10000);
+
+  it('staffEfficiency', async () => {
+    const course = await CourseFactory.create({ id: 1 });
+    const student = await UserFactory.create({ id: 0 });
+    const queue = await QueueFactory.create({ course: course });
+    await UserCourseFactory.create({
+      course: course,
+      user: student,
+      role: Role.STUDENT,
+    });
+    const tas = [];
+    for (let i = 1; i < 5; i++) {
+      tas.push(
+        await UserFactory.create({
+          id: i,
+        }),
+      );
+      await UserCourseFactory.create({
+        course: course,
+        user: tas[i],
+        role: Role.TA,
+      });
+    }
+    const taQuestions: { [key: number]: Question } = [];
+    for (const ta of tas) {
+      taQuestions[ta.id] = await QuestionFactory.create({
+        taHelpedId: ta.id,
+        creator: student,
+        status: ClosedQuestionStatus.Resolved,
+        queue,
+      });
+      for (let i = 0; i < 5; i++) {
+        const question = taQuestions[ta.id];
+        const date = new Date();
+        question.createdAt = new Date(date.getTime() + 15 * 60 * 1000);
+        question.helpedAt = new Date(date.getTime() + 10 * 60 * 1000);
+        question.closedAt = new Date(date.getTime() + 15 * 60 * 1000);
+      }
+    }
+
+    const res = (await service.computeOutput({
+      insight: INSIGHTS_MAP.StaffEfficiency,
+      filters: [
+        {
+          type: 'courseId',
+          courseId: course.id,
+        },
+      ],
+    })) as ChartOutputType;
+
+    expect(res.data.length).toBeGreaterThan(0);
+    expect(res.xKey).toEqual('staffMember');
+    expect(res.yKeys).toEqual([
+      'Average_Wait_Time',
+      'Average_Help_Time',
+      'Total_Time',
+    ]);
+  }, 10000);
+
+  it('staffTotalHelped', async () => {
+    const course = await CourseFactory.create({ id: 1 });
+    const student = await UserFactory.create({ id: 0 });
+    const queue = await QueueFactory.create({ course: course });
+    await UserCourseFactory.create({
+      course: course,
+      user: student,
+      role: Role.STUDENT,
+    });
+    const tas = [];
+    for (let i = 1; i < 5; i++) {
+      tas.push(
+        await UserFactory.create({
+          id: i,
+        }),
+      );
+      await UserCourseFactory.create({
+        course: course,
+        user: tas[i],
+        role: Role.TA,
+      });
+    }
+    const taQuestions: { [key: number]: Question[] } = [];
+    for (const ta of tas) {
+      taQuestions[ta.id] = await QuestionFactory.createList(25, {
+        taHelpedId: ta.id,
+        creator: student,
+        status: ClosedQuestionStatus.Resolved,
+        queue,
+      });
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          const question = taQuestions[ta.id][j + i * 5];
+          const date = new Date(new Date());
+          question.createdAt = new Date(date.getTime() + 15 * 60 * 1000);
+          question.helpedAt = new Date(date.getTime() + 10 * 60 * 1000);
+          question.closedAt = new Date(date.getTime() + 15 * 60 * 1000);
+        }
+      }
+    }
+
+    const res = (await service.computeOutput({
+      insight: INSIGHTS_MAP.StaffTotalHelped,
+      filters: [
+        {
+          type: 'courseId',
+          courseId: course.id,
+        },
+      ],
+    })) as ChartOutputType;
+
+    expect(res.data.length).toBeGreaterThan(0);
+    expect(res.xKey).toEqual('staffMember');
+    expect(res.yKeys).toEqual([
+      'Questions_Helped',
+      'Async_Questions_Helped',
+      'Total_Helped',
+    ]);
+  }, 10000);
 
   describe('toggleInsightOn', () => {
     it('works correctly', async () => {
