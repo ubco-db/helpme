@@ -4,6 +4,7 @@ import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
 // This is a sentry-made file. Idk what it does, probably don't touch it.
 if (isProd()) {
+  console.log('Initializing Sentry on Server');
   Sentry.init({
     dsn: 'https://f61b5e5123c15b571f04c69fcf8702f4@o4508000643252224.ingest.us.sentry.io/4508000797392896',
     integrations: [nodeProfilingIntegration()],
