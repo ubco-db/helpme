@@ -1,4 +1,4 @@
-import { isProd } from '@koh/common';
+import { isProd } from 'common/helpers';
 import * as Sentry from '@sentry/nestjs';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
