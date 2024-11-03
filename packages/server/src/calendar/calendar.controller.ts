@@ -13,6 +13,7 @@ import {
   Query,
   ParseIntPipe,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CalendarModel } from './calendar.entity';
@@ -37,6 +38,16 @@ export class CalendarController {
       throw new HttpException(
         ERROR_MESSAGES.courseController.courseNotFound,
         HttpStatus.NOT_FOUND,
+      );
+    }
+    if (
+      body.daysOfWeek &&
+      body.daysOfWeek.length > 0 &&
+      (!body.startDate || !body.endDate)
+    ) {
+      throw new HttpException(
+        'Recurring events must have a start and end date',
+        HttpStatus.BAD_REQUEST,
       );
     }
     try {
@@ -64,12 +75,21 @@ export class CalendarController {
               event,
               transactionalEntityManager,
             );
+            await this.calendarService.createAutoCheckoutCronJob(
+              staffId,
+              event.id,
+              event.startDate,
+              event.endDate,
+              event.end,
+              event.daysOfWeek,
+              cid,
+            );
           }
         }
       });
       return event;
     } catch (err) {
-      if (err instanceof NotFoundException) {
+      if (err instanceof HttpException) {
         throw err;
       } else {
         console.error(err);
@@ -88,10 +108,19 @@ export class CalendarController {
     @Body() body: Partial<Calendar>,
   ): Promise<CalendarModel> {
     const event = await CalendarModel.findOne(calId);
-
     if (!event) {
       console.error('Event not found with calID: ' + calId);
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+    }
+    if (
+      body.daysOfWeek &&
+      body.daysOfWeek.length > 0 &&
+      (!body.startDate || !body.endDate)
+    ) {
+      throw new HttpException(
+        'Recurring events must have a start and end date',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     Object.assign(event, body);
     try {
@@ -158,12 +187,15 @@ export class CalendarController {
   async deleteCalendarEvent(
     @Param('eventId', ParseIntPipe) eventId: number,
   ): Promise<CalendarModel> {
-    const event = await CalendarModel.findOne(eventId);
+    const event = await CalendarModel.findOne(eventId, {
+      relations: ['staff'],
+    });
     if (!event) {
       console.error('Event not found');
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
     }
     try {
+      // TODO: put this in a transaction
       const removedEvent = await event.remove();
       // for each staff member associated with the event, remove the association
       for (const staff of removedEvent.staff) {

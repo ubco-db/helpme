@@ -2231,6 +2231,12 @@ export const ERROR_MESSAGES = {
   questionService: {
     getDBClient: 'Error getting DB client',
   },
+  calendarEvent: {
+    invalidEvent:
+      'Invalid calendar event: Events must either have daysOfWeek.length > 0 and startDate and endDate or have daysOfWeek.length === 0 and startDate and endDate are both null',
+    dateInPast:
+      'Event date is in the past. No AutoCheckout will occur. Please unassign staff from event.',
+  },
   organizationController: {
     notEnoughDiskSpace: 'Not enough disk space to upload file',
     userAlreadyInOrganization: 'User is already in organization',

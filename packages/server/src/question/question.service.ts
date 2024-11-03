@@ -254,4 +254,27 @@ export class QuestionService {
       }
     }
   }
+
+  // TODO: add tests for this
+  async resolveQuestions(queueId: number, helperId: number): Promise<void> {
+    const queue = await QueueModel.findOneOrFail(queueId);
+    const questions = await QuestionModel.find({
+      where: {
+        queueId,
+        taHelpedId: helperId,
+        status: OpenQuestionStatus.Helping,
+      },
+    });
+    for (const question of questions) {
+      if (question.isTaskQuestion) {
+        await this.checkIfValidTaskQuestion(question, queue);
+        await this.markTasksDone(question, question.creatorId);
+      }
+      await this.changeStatus(
+        ClosedQuestionStatus.Resolved,
+        question,
+        helperId,
+      );
+    }
+  }
 }

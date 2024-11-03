@@ -18,6 +18,7 @@ import { dayToIntMapping } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import dayjs from 'dayjs'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
+import { useStaff } from '@/app/hooks/useStaff'
 
 const { RangePicker } = TimePicker
 type Color = GetProp<ColorPickerProps, 'value'>
@@ -51,7 +52,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [form] = Form.useForm()
   const [isRepeating, setIsRepeating] = useState(false)
   const [locationType, setLocationType] = useState(0)
-  const [staff, setStaff] = useState<UserPartial[] | null>(null)
+  const staff = useStaff(courseId)
 
   useEffect(() => {
     // reset the form to its default state when modal is closed
@@ -60,22 +61,6 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
       setLocationType(0)
     }
   }, [visible])
-
-  useEffect(() => {
-    const fetchStaff = async () => {
-      const data = await API.course.getUserInfo(courseId, 1, 'staff')
-      // sort staff by name
-      data.users.sort((a, b) => {
-        if (!a.name || !b.name) {
-          return 0
-        } else {
-          return a.name.localeCompare(b.name)
-        }
-      })
-      setStaff(data.users)
-    }
-    fetchStaff()
-  }, [courseId])
 
   const onFinish = async (values: FormValues) => {
     try {
