@@ -10,13 +10,7 @@ const JoinZoomButton: React.FC<
 
 const JoinQueueButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
-> = (props) => (
-  <QueueInfoColumnButton
-    className={`${props.className}`}
-    type="primary"
-    {...props}
-  />
-)
+> = (props) => <QueueInfoColumnButton type="primary" {...props} />
 
 const EditQueueButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
@@ -60,11 +54,12 @@ const QueueInfoColumnButton: React.FC<
   className,
   ...props
 }): React.ReactElement => {
+  console.log('className of button:', className)
   return (
     <Button
       size="large"
       className={cn(
-        `mb-0 flex items-center justify-center rounded-md border border-gray-300 text-sm font-semibold md:mb-3 md:w-full w-[${mobileWidth}] disabled:opacity-50`,
+        `mb-0 flex items-center justify-center rounded-md border border-gray-300 text-sm font-semibold md:mb-3 ${mobileWidth == '100%' ? 'w-full' : `w-[${mobileWidth}]`} disabled:opacity-50`,
         className,
       )}
       {...props}

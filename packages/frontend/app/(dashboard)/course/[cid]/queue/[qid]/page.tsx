@@ -252,7 +252,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           text: text || '',
           questionTypes: questionTypes,
           queueId: qid,
-          location: location ?? isQueueHybrid ? 'Unselected' : undefined,
+          location: (location ?? isQueueHybrid) ? 'Unselected' : undefined,
           force: force,
           groupable: false,
           isTaskQuestion,
@@ -638,32 +638,31 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       : ''
                 }
               >
-                <div>
-                  <JoinQueueButton
-                    id="join-queue-button"
-                    loading={isJoinQueueModalLoading}
-                    disabled={
-                      !queue?.allowQuestions ||
-                      queue?.isDisabled ||
-                      isCreateDemoModalLoading ||
-                      queue.staffList.length < 1 ||
-                      !!studentQuestion
-                    }
-                    onClick={() => {
-                      setIsJoinQueueModalLoading(true)
-                      joinQueueOpenModal(false, false)
-                      // fallback: After 3s, if the modal hasn't opened, stop the loading state
-                      setTimeout(() => {
-                        if (isJoinQueueModalLoading) {
-                          setIsJoinQueueModalLoading(false)
-                        }
-                      }, 3000)
-                    }}
-                    icon={<LoginOutlined aria-hidden="true" />}
-                  >
-                    {isDemoQueue ? 'Create Question' : 'Join Queue'}
-                  </JoinQueueButton>
-                </div>
+                <JoinQueueButton
+                  id="join-queue-button"
+                  loading={isJoinQueueModalLoading}
+                  className={!isDemoQueue ? 'w-[90%] md:w-full' : undefined}
+                  disabled={
+                    !queue?.allowQuestions ||
+                    queue?.isDisabled ||
+                    isCreateDemoModalLoading ||
+                    queue.staffList.length < 1 ||
+                    !!studentQuestion
+                  }
+                  onClick={() => {
+                    setIsJoinQueueModalLoading(true)
+                    joinQueueOpenModal(false, false)
+                    // fallback: After 3s, if the modal hasn't opened, stop the loading state
+                    setTimeout(() => {
+                      if (isJoinQueueModalLoading) {
+                        setIsJoinQueueModalLoading(false)
+                      }
+                    }, 3000)
+                  }}
+                  icon={<LoginOutlined aria-hidden="true" />}
+                >
+                  {isDemoQueue ? 'Create Question' : 'Join Queue'}
+                </JoinQueueButton>
               </Tooltip>
               {isDemoQueue && (
                 <Tooltip

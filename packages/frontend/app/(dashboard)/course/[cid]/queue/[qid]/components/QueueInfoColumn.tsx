@@ -177,7 +177,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
       )}
 
       {/* mobile only */}
-      <div className="mt-5 flex items-center justify-around sm:hidden">
+      <div className="mt-5 flex w-full items-center justify-around sm:hidden">
         {!isStaff && buttons}
       </div>
       <div className="mt-2 flex w-full items-center justify-between sm:hidden">
