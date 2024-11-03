@@ -1,4 +1,9 @@
-import { ListQuestionsResponse, Role, QueueTypes } from '@koh/common'
+import {
+  ListQuestionsResponse,
+  OpenQuestionStatus,
+  Role,
+  QueueTypes,
+} from '@koh/common'
 
 export function getHelpingQuestions(
   queueQuestions: ListQuestionsResponse | undefined,
@@ -10,7 +15,9 @@ export function getHelpingQuestions(
   }
   const helpingQuestions =
     queueQuestions?.questionsGettingHelp.filter(
-      (question) => question.taHelped?.id === userId,
+      (question) =>
+        question.status == OpenQuestionStatus.Paused ||
+        question.taHelped?.id === userId,
     ) ?? []
   const isHelping = helpingQuestions.length > 0
   return { helpingQuestions, isHelping }
