@@ -31,6 +31,7 @@ interface QuestionCardProps {
   configTasks?: ConfigTasks
   isMyQuestion?: boolean
   isBeingHelped?: boolean
+  isBeingReQueued?: boolean
   isPaused?: boolean
   className?: string // used to highlight questions or add other classes
 }
@@ -45,6 +46,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   configTasks,
   isMyQuestion,
   isBeingHelped,
+  isBeingReQueued,
   isPaused,
   className,
 }) => {
@@ -79,8 +81,8 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   return (
     <Tooltip
       title={
-        question.status === LimboQuestionStatus.ReQueueing
-          ? ' This student is not quite ready to meet yet and is in the process of requeuing themselves. Until they do, other students will be served first.'
+        isBeingReQueued
+          ? `${isMyQuestion ? 'You are' : 'This student is'} not quite ready to meet yet and ${isMyQuestion ? 'are' : 'is'} in the process of requeuing. Until ${isMyQuestion ? 'you' : 'they'} do, other students will be served first.`
           : isMyQuestion
             ? 'This is your question.'
             : ''
@@ -100,16 +102,10 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           isMyQuestion && isPaused
             ? 'bg-gradient-to-r from-teal-100 via-amber-50 to-amber-50'
             : '',
-          question.status === LimboQuestionStatus.ReQueueing
-            ? 'greyscale mt-3 border border-gray-200 text-gray-400 md:mt-2'
+          isMyQuestion && !isBeingReQueued ? 'bg-teal-200/25' : 'bg-white',
+          isBeingReQueued
+            ? 'greyscale mt-3 border-gray-300 bg-gray-200 text-gray-400 md:mt-2'
             : ' ',
-          isMyQuestion && question.status === LimboQuestionStatus.ReQueueing
-            ? 'bg-teal-200/10'
-            : isMyQuestion
-              ? 'bg-teal-200/25'
-              : question.status === LimboQuestionStatus.ReQueueing
-                ? 'bg-white/15'
-                : 'bg-white',
           className,
         )}
         classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
@@ -121,11 +117,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 size={46}
                 username={question.creator.name}
                 photoURL={question.creator.photoURL}
-                className={
-                  question.status === LimboQuestionStatus.ReQueueing
-                    ? 'grayscale'
-                    : ''
-                }
+                className={isBeingReQueued ? 'grayscale' : ''}
               />
             </Col>
           )}
@@ -204,9 +196,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               <div
                 className={cn(
                   'itali mr-1 mt-0.5 inline-block min-w-[120px] text-sm',
-                  question.status === LimboQuestionStatus.ReQueueing
-                    ? 'text-gray-400'
-                    : 'text-gray-600',
+                  isBeingReQueued ? 'text-gray-400' : 'text-gray-600',
                 )}
               >
                 {queueType === 'hybrid' && (
@@ -220,33 +210,33 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               <QuestionTagElement
                 key={index}
                 tagName={questionType.name}
-                tagColor={
-                  question.status !== LimboQuestionStatus.ReQueueing
-                    ? questionType.color
-                    : '#f0f0f0'
-                }
+                tagColor={!isBeingReQueued ? questionType.color : '#f0f0f0'}
               />
             ))}
           </Col>
           <Col flex={'0.1 1 auto'}>
-            {(isBeingHelped || isPaused) && !isStaff && (
+            {(isBeingHelped || isPaused || isBeingReQueued) && !isStaff && (
               <Row justify={'end'}>
                 <div
                   className={cn(
                     'text-sm',
                     isPaused ? 'text-amber-400' : '',
                     isBeingHelped ? 'text-green-700' : '',
+                    isBeingReQueued ? 'italic' : '',
                   )}
                 >
                   {isPaused && 'Currently Paused'}
                   {isBeingHelped && 'Currently Being Served'}
+                  {isBeingReQueued && 'Not Ready'}
                 </div>
               </Row>
             )}
             <Row
               justify={'end'}
               className={cn(
-                !isBeingHelped && !isPaused ? 'h-[2.5rem]' : '',
+                !isBeingHelped && !isPaused && !isBeingReQueued
+                  ? 'h-[2.5rem]'
+                  : '',
                 'gap-1',
               )}
             >

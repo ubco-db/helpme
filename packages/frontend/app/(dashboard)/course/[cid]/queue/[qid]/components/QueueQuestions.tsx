@@ -153,6 +153,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
         configTasks={configTasks}
         studentAssignmentProgress={studentAssignmentProgress}
         isMyQuestion={isMyQuestion}
+        isBeingReQueued={question.status === LimboQuestionStatus.ReQueueing}
         isPaused={isPaused}
         isBeingHelped={isBeingHelped}
       />

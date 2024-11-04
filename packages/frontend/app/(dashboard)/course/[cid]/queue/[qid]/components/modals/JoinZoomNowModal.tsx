@@ -42,6 +42,7 @@ const JoinZoomNowModal: React.FC<JoinZoomNowModalProps> = ({
       footer={[]}
       style={{ top: '30%' }}
       closable={isClosable}
+      maskClosable={false}
       onCancel={() => setLocalOpen(false)}
       title={
         <div className="flex items-center gap-x-2">
