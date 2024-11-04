@@ -2,6 +2,7 @@ import {
   CheckOutlined,
   CloseOutlined,
   DeleteOutlined,
+  PauseOutlined,
   QuestionOutlined,
   UndoOutlined,
 } from '@ant-design/icons'
@@ -60,6 +61,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
     useState(false)
   const [cantFindButtonLoading, setCantFindButtonLoading] = useState(false)
   const [requeueButtonLoading, setRequeueButtonLoading] = useState(false)
+  const [pauseButtonLoading, setPauseButtonLoading] = useState(false)
 
   // let timerCheckout=useRef(null);
   const changeStatus = useCallback(
@@ -218,7 +220,10 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
     return () => clearTimeout(timer)
   }, [tasksSelectedForMarking, previousTasksSelectedForMarking])
 
-  if (question.status === OpenQuestionStatus.Helping) {
+  if (
+    question.status === OpenQuestionStatus.Helping ||
+    question.status === OpenQuestionStatus.Paused
+  ) {
     return (
       <div className={className}>
         <Popconfirm
@@ -237,7 +242,11 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
             <CircleButton
               icon={<UndoOutlined />}
               loading={requeueButtonLoading}
-              disabled={cantFindButtonLoading || finishHelpingButtonLoading}
+              disabled={
+                pauseButtonLoading ||
+                cantFindButtonLoading ||
+                finishHelpingButtonLoading
+              }
             />
           </Tooltip>
         </Popconfirm>
@@ -259,45 +268,94 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
               variant="red"
               icon={<CloseOutlined />}
               loading={cantFindButtonLoading}
-              disabled={requeueButtonLoading || finishHelpingButtonLoading}
+              disabled={
+                pauseButtonLoading ||
+                requeueButtonLoading ||
+                finishHelpingButtonLoading
+              }
             />
           </Tooltip>
         </Popconfirm>
-        <Tooltip
-          title={
-            question.isTaskQuestion
-              ? tasksSelectedForMarking.length > 0
-                ? 'Mark ' + tasksSelectedForMarking.join(', ') + ' as Done'
-                : 'Mark All as Done'
-              : 'Finish Helping'
-          }
-          open={isFinishHelpingTooltipVisible}
-        >
-          <CircleButton
-            onMouseEnter={() => setIsFinishHelpingTooltipVisible(true)}
-            onMouseLeave={() => setIsFinishHelpingTooltipVisible(false)}
-            variant="green"
-            icon={<CheckOutlined />}
-            loading={finishHelpingButtonLoading}
-            disabled={cantFindButtonLoading || requeueButtonLoading}
-            onClick={() => {
-              // setCheckOutTimer()
-              setFinishHelpingButtonLoading(true)
-              if (
-                question.isTaskQuestion &&
-                tasksSelectedForMarking.length > 0
-              ) {
-                markSelected().then(() => {
-                  setFinishHelpingButtonLoading(false)
-                })
-              } else {
-                changeStatus(ClosedQuestionStatus.Resolved).then(() => {
-                  setFinishHelpingButtonLoading(false)
-                })
+        {question.status !== OpenQuestionStatus.Paused && (
+          <Tooltip
+            title={
+              question.isTaskQuestion
+                ? tasksSelectedForMarking.length > 0
+                  ? 'Mark ' + tasksSelectedForMarking.join(', ') + ' as Done'
+                  : 'Mark All as Done'
+                : 'Finish Helping'
+            }
+            open={isFinishHelpingTooltipVisible}
+          >
+            <CircleButton
+              onMouseEnter={() => setIsFinishHelpingTooltipVisible(true)}
+              onMouseLeave={() => setIsFinishHelpingTooltipVisible(false)}
+              variant="green"
+              icon={<CheckOutlined />}
+              loading={finishHelpingButtonLoading}
+              disabled={
+                cantFindButtonLoading ||
+                requeueButtonLoading ||
+                pauseButtonLoading
               }
-            }}
-          />
-        </Tooltip>
+              onClick={() => {
+                // setCheckOutTimer()
+                setFinishHelpingButtonLoading(true)
+                if (
+                  question.isTaskQuestion &&
+                  tasksSelectedForMarking.length > 0
+                ) {
+                  markSelected().then(() => {
+                    setFinishHelpingButtonLoading(false)
+                  })
+                } else {
+                  changeStatus(ClosedQuestionStatus.Resolved).then(() => {
+                    setFinishHelpingButtonLoading(false)
+                  })
+                }
+              }}
+            />
+          </Tooltip>
+        )}
+        {question.status === OpenQuestionStatus.Paused ? (
+          <Tooltip title="Resume Helping">
+            <CircleButton
+              variant="green"
+              icon={<Play size={22} className="shrink-0 pl-1" />}
+              loading={pauseButtonLoading}
+              disabled={
+                cantFindButtonLoading ||
+                requeueButtonLoading ||
+                finishHelpingButtonLoading
+              }
+              onClick={() => {
+                setPauseButtonLoading(true)
+                changeStatus(OpenQuestionStatus.Helping).then(() =>
+                  setPauseButtonLoading(false),
+                )
+              }}
+            />
+          </Tooltip>
+        ) : (
+          <Tooltip title="Pause Helping">
+            <CircleButton
+              variant="gray"
+              icon={<PauseOutlined />}
+              loading={pauseButtonLoading}
+              disabled={
+                cantFindButtonLoading ||
+                requeueButtonLoading ||
+                finishHelpingButtonLoading
+              }
+              onClick={() => {
+                setPauseButtonLoading(true)
+                changeStatus(OpenQuestionStatus.Paused).then(() =>
+                  setPauseButtonLoading(false),
+                )
+              }}
+            />
+          </Tooltip>
+        )}
       </div>
     )
   } else {

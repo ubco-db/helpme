@@ -65,6 +65,8 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
           'Your Questions - You are now in a priority queue, you will be helped soon. Last helped by: ' +
           studentQuestion?.taHelped?.name
         )
+      case 'Paused':
+        return `Your Questions - Your question is currently paused by staff, you will be helped soon.`
       default:
         switch (demoStatus) {
           case 'Drafting':
@@ -192,6 +194,8 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
         return 'border-[#faad14]'
       case 'Helping':
         return 'border-[#4dc186]'
+      case 'Paused':
+        return 'border-amber-200'
       case 'ReQueueing':
         return 'border-[#66BB6A]'
       case 'PriorityQueued':

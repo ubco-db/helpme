@@ -15,7 +15,7 @@ import {
   QuestionType,
   LimboQuestionStatus,
 } from '@koh/common'
-import { Tooltip, message, notification, Button } from 'antd'
+import { Tooltip, message, notification, Button, Divider } from 'antd'
 import { mutate } from 'swr'
 import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
 import { CheckCheck, ListChecks, ListTodoIcon } from 'lucide-react'
@@ -35,7 +35,10 @@ import { useStudentAssignmentProgress } from '@/app/hooks/useStudentAssignmentPr
 import QuestionCard from './components/QuestionCard'
 import { useStudentQuestion } from '@/app/hooks/useStudentQuestion'
 import { isCheckedIn } from '../../utils/commonCourseFunctions'
-import { getHelpingQuestions } from './utils/commonQueueFunctions'
+import {
+  getHelpingQuestions,
+  getPausedQuestions,
+} from './utils/commonQueueFunctions'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { useLocalStorage } from '@/app/hooks/useLocalStorage'
 import QueueInfoColumn from './components/QueueInfoColumn'
@@ -132,6 +135,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     userInfo.id,
     role,
   )
+  const { pausedQuestions } = getPausedQuestions(queueQuestions, role)
 
   // chatbot
   const { setCid, setRenderSmallChatbot } = useChatbotContext()
@@ -681,79 +685,113 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
         <RenderQueueInfoCol />
         <VerticalDivider />
         <div className="flex-grow md:mt-8">
-          {isStaff && helpingQuestions && helpingQuestions.length > 0 ? (
+          {isStaff ? (
             <>
-              <div className="flex items-center justify-between">
-                <QueueHeader
-                  text="You are Currently Helping"
-                  visibleOnDesktopOrMobile="both"
-                />
-                {helpingQuestions.length >= 2 && (
-                  <Tooltip
-                    title={
-                      helpingQuestions.some(
-                        (question) => question.isTaskQuestion,
-                      )
-                        ? 'You cannot finish helping all while checking demos (for your safety)'
-                        : 'Finish helping all questions'
-                    }
-                  >
-                    <span>
-                      <CircleButton
-                        className="mr-[1.2rem]"
-                        variant="green"
-                        icon={
-                          <CheckCheck size={22} className="shrink-0 pl-1" />
-                        }
-                        loading={isFinishAllHelpingButtonLoading}
-                        // disable this button if any of the questions isTaskQuestion (since it is rare that you would want to click this in that case)
-                        disabled={helpingQuestions.some(
-                          (question) => question.isTaskQuestion,
-                        )}
-                        onClick={() => {
-                          setIsFinishAllHelpingButtonLoading(true)
-                          const promises = helpingQuestions.map(
-                            async (question) => {
-                              return API.questions
-                                .update(question.id, {
-                                  status: ClosedQuestionStatus.Resolved,
-                                })
-                                .catch((e) => {
-                                  const errorMessage = getErrorMessage(e)
-                                  message.error(errorMessage)
-                                  throw e
-                                })
-                            },
+              {helpingQuestions.length > 0 && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <QueueHeader
+                      text="You are Currently Helping"
+                      visibleOnDesktopOrMobile="both"
+                    />
+                    {helpingQuestions.filter(
+                      (q) => q.status !== OpenQuestionStatus.Paused,
+                    ).length >= 2 && (
+                      <Tooltip
+                        title={
+                          helpingQuestions.some(
+                            (question) => question.isTaskQuestion,
                           )
-                          Promise.all(promises)
-                            .catch((e) => {
-                              message.error(
-                                'One or more status updates failed:' + e,
-                              )
-                            })
-                            .finally(() => {
-                              setIsFinishAllHelpingButtonLoading(false)
-                            })
-                        }}
+                            ? 'You cannot finish helping all while checking demos (for your safety)'
+                            : 'Finish helping all questions'
+                        }
+                      >
+                        <span>
+                          <CircleButton
+                            className="mr-[1.2rem]"
+                            variant="green"
+                            icon={
+                              <CheckCheck size={22} className="shrink-0 pl-1" />
+                            }
+                            loading={isFinishAllHelpingButtonLoading}
+                            // disable this button if any of the questions isTaskQuestion (since it is rare that you would want to click this in that case)
+                            disabled={helpingQuestions.some(
+                              (question) => question.isTaskQuestion,
+                            )}
+                            onClick={() => {
+                              setIsFinishAllHelpingButtonLoading(true)
+                              const promises = helpingQuestions
+                                .filter(
+                                  (q) => q.status !== OpenQuestionStatus.Paused,
+                                )
+                                .map(async (question) => {
+                                  return API.questions
+                                    .update(question.id, {
+                                      status: ClosedQuestionStatus.Resolved,
+                                    })
+                                    .catch((e) => {
+                                      const errorMessage = getErrorMessage(e)
+                                      message.error(errorMessage)
+                                      throw e
+                                    })
+                                })
+                              Promise.all(promises)
+                                .catch((e) => {
+                                  message.error(
+                                    'One or more status updates failed:' + e,
+                                  )
+                                })
+                                .finally(() => {
+                                  setIsFinishAllHelpingButtonLoading(false)
+                                })
+                            }}
+                          />
+                        </span>
+                      </Tooltip>
+                    )}
+                  </div>
+                  {helpingQuestions.map((question: Question) => {
+                    return (
+                      <QuestionCard
+                        key={question.id}
+                        question={question}
+                        cid={cid}
+                        qid={qid}
+                        configTasks={configTasks}
+                        studentAssignmentProgress={studentAssignmentProgress}
+                        isStaff={isStaff}
+                        isBeingHelped={true}
                       />
-                    </span>
-                  </Tooltip>
-                )}
-              </div>
-              {helpingQuestions.map((question: Question) => {
-                return (
-                  <QuestionCard
-                    key={question.id}
-                    question={question}
-                    cid={cid}
-                    qid={qid}
-                    configTasks={configTasks}
-                    studentAssignmentProgress={studentAssignmentProgress}
-                    isStaff={isStaff}
-                    isBeingHelped={true}
-                  />
-                )
-              })}
+                    )
+                  })}
+                  <Divider className={'my-4'} />
+                </>
+              )}
+              {pausedQuestions && pausedQuestions.length > 0 && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <QueueHeader
+                      text="Paused Questions"
+                      visibleOnDesktopOrMobile="both"
+                    />
+                  </div>
+                  {pausedQuestions.map((question: Question) => (
+                    <QuestionCard
+                      className={'bg-amber-50'}
+                      key={question.id}
+                      question={question}
+                      cid={cid}
+                      qid={qid}
+                      configTasks={configTasks}
+                      studentAssignmentProgress={studentAssignmentProgress}
+                      isStaff={isStaff}
+                      isBeingHelped={true}
+                      isPaused={true}
+                    />
+                  ))}
+                  <Divider className={'my-4'} />
+                </>
+              )}
             </>
           ) : !isStaff ? (
             <StudentBanner
@@ -769,7 +807,15 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           ) : null}
           <QueueQuestions
             questions={queueQuestions.questions}
-            questionsGettingHelp={queueQuestions.questionsGettingHelp}
+            /*
+              The reason there are filters here is because students need to be able to see these too
+            */
+            questionsGettingHelp={queueQuestions.questionsGettingHelp.filter(
+              (q) => q.status == 'Helping',
+            )}
+            pausedQuestions={queueQuestions.questionsGettingHelp.filter(
+              (q) => q.status == 'Paused',
+            )}
             cid={cid}
             qid={qid}
             isStaff={isStaff}
@@ -869,7 +915,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               leaveQueue={() => leaveQueue(false)}
               rejoinQueue={() => rejoinQueue(false)}
             />
-
             {isDemoQueue && (
               <>
                 <CreateDemoModal

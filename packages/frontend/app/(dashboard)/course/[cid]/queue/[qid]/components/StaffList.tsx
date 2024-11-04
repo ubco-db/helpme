@@ -1,4 +1,4 @@
-import { Question } from '@koh/common'
+import { OpenQuestionStatus, Question } from '@koh/common'
 import { Badge, Col, Row } from 'antd'
 import { useQuestions } from '@/app/hooks/useQuestions'
 import { useQueue } from '@/app/hooks/useQueue'
@@ -26,7 +26,11 @@ const StaffList: React.FC<StaffListProps> = ({ queueId }) => {
   const groups = queueQuestions.groups
   // for each TA, give them an array of questions that they are helping
   for (const question of helpingQuestions) {
-    if (question.taHelped && taIds.includes(question.taHelped.id)) {
+    if (
+      question.taHelped &&
+      question.status !== OpenQuestionStatus.Paused &&
+      taIds.includes(question.taHelped.id)
+    ) {
       if (!taToQuestions[question.taHelped.id]) {
         taToQuestions[question.taHelped.id] = []
       }
