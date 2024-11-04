@@ -66,7 +66,7 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
           studentQuestion?.taHelped?.name
         )
       case 'Paused':
-        return `Your Questions - Your question is currently paused, you will be helped later.`
+        return `Your Questions - Your question is currently paused by staff, you will be helped soon.`
       default:
         switch (demoStatus) {
           case 'Drafting':

@@ -133,7 +133,7 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
                 )}
               >
                 {isPaused && 'Helping Paused'}
-                {isBeingHelped && 'Currently Being Served'}
+                {isBeingHelped && 'Being Served'}
               </div>
             </Row>
           )}
@@ -141,7 +141,7 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
             justify={'end'}
             className={cn(!isBeingHelped && !isPaused ? 'h-[2.5rem]' : '')}
           >
-            <Col flex="0 0 3rem">
+            <Col flex="0 0 2rem">
               {(isBeingHelped || isPaused) && (
                 <div
                   className={cn(
@@ -155,7 +155,7 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
                 </div>
               )}
             </Col>
-            <Col flex="0 0 3rem">
+            <Col flex="0 0 2rem">
               <div className="text-sm text-gray-600">
                 {getWaitTime(question)}
               </div>

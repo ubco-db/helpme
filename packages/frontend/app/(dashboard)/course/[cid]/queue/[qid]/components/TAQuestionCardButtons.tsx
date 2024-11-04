@@ -293,7 +293,11 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
               variant="green"
               icon={<CheckOutlined />}
               loading={finishHelpingButtonLoading}
-              disabled={cantFindButtonLoading || requeueButtonLoading}
+              disabled={
+                cantFindButtonLoading ||
+                requeueButtonLoading ||
+                pauseButtonLoading
+              }
               onClick={() => {
                 // setCheckOutTimer()
                 setFinishHelpingButtonLoading(true)
@@ -314,30 +318,26 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           </Tooltip>
         )}
         {question.status === OpenQuestionStatus.Paused ? (
-          <div className="relative ml-3 inline-flex items-center justify-center">
-            <div className="absolute inset-0 animate-ping rounded-[50%] bg-green-300 opacity-50 before:content-['']"></div>
-            <Tooltip title="Resume Helping">
-              <CircleButton
-                className={'!ml-0'}
-                variant="green"
-                icon={<Play size={22} className="shrink-0 pl-1" />}
-                loading={pauseButtonLoading}
-                disabled={
-                  cantFindButtonLoading ||
-                  requeueButtonLoading ||
-                  finishHelpingButtonLoading
-                }
-                onClick={() => {
-                  setPauseButtonLoading(true)
-                  changeStatus(OpenQuestionStatus.Helping).then(() =>
-                    setPauseButtonLoading(false),
-                  )
-                }}
-              />
-            </Tooltip>
-          </div>
+          <Tooltip title="Resume Helping">
+            <CircleButton
+              variant="green"
+              icon={<Play size={22} className="shrink-0 pl-1" />}
+              loading={pauseButtonLoading}
+              disabled={
+                cantFindButtonLoading ||
+                requeueButtonLoading ||
+                finishHelpingButtonLoading
+              }
+              onClick={() => {
+                setPauseButtonLoading(true)
+                changeStatus(OpenQuestionStatus.Helping).then(() =>
+                  setPauseButtonLoading(false),
+                )
+              }}
+            />
+          </Tooltip>
         ) : (
-          <Tooltip title="Help Later">
+          <Tooltip title="Pause Helping">
             <CircleButton
               variant="gray"
               icon={<PauseOutlined />}
