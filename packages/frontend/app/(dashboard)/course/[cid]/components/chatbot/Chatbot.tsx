@@ -516,7 +516,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 className="mx-5 rounded-sm"
                 onClick={() => setIsOpen(true)}
               >
-                Chat now!
+                Chat now
               </Button>
             </div>
           </>

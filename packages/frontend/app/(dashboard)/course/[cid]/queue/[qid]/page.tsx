@@ -93,6 +93,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const isUserCheckedIn = isCheckedIn(queue?.staffList, userInfo.id)
   const { course } = useCourse(cid)
   const [editQuestionModalOpen, setEditQuestionModalOpen] = useState(false)
+  const [queueChatOpen, setQueueChatOpen] = useState(false)
   const [editDemoModalOpen, setEditDemoModalOpen] = useState(false)
   const role = getRoleInCourse(userInfo, cid)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
@@ -1041,7 +1042,14 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
         {((studentQuestion &&
           studentQuestion.status == OpenQuestionStatus.Helping) ||
           (studentDemo && studentDemo.status == OpenQuestionStatus.Helping) ||
-          isHelping) && <QueueChat queueId={qid} role={role} />}
+          isHelping) && (
+          <QueueChat
+            queueId={qid}
+            role={role}
+            isOpen={queueChatOpen}
+            setIsOpen={setQueueChatOpen}
+          />
+        )}
       </div>
     )
   }

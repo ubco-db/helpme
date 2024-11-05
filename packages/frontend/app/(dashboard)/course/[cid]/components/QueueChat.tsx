@@ -12,15 +12,18 @@ import { CloseOutlined } from '@ant-design/icons'
 interface QueueChatProps {
   role: Role
   queueId: number
+  isOpen: boolean
+  setIsOpen: (isOpen: boolean) => void
   variant?: 'small' | 'big' | 'huge'
 }
 
 const QueueChat: React.FC<QueueChatProps> = ({
   role,
   queueId,
+  isOpen,
+  setIsOpen,
   variant = 'small',
 }): ReactElement => {
-  const [isOpen, setIsOpen] = useState<boolean>(false)
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const { queueChatData, mutateQueueChat, hasNewMessages } =
@@ -62,13 +65,14 @@ const QueueChat: React.FC<QueueChatProps> = ({
     <div
       className={cn(
         variant === 'small'
-          ? 'absolute right-2 top-20 max-h-[70vh] w-screen md:max-w-[400px]'
+          ? 'absolute bottom-8 right-0 box-border max-h-[70vh] w-screen md:right-2 md:max-w-[400px]'
           : variant === 'big'
-            ? 'absolute right-2 top-20 flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
+            ? 'absolute bottom-8 right-2 box-border flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
             : variant === 'huge'
-              ? 'absolute right-2 top-20 flex h-[90vh] w-screen flex-col overflow-auto md:w-[90%]'
+              ? 'absolute bottom-8 right-2 box-border flex h-[90vh] w-screen flex-col overflow-auto md:w-[90%]'
               : '',
       )}
+      style={{ zIndex: 1050 }}
     >
       <Card
         title={
@@ -200,12 +204,15 @@ const QueueChat: React.FC<QueueChatProps> = ({
       </Card>
     </div>
   ) : (
-    <div className="absolute right-2 top-20 flex justify-end">
+    <div
+      className="absolute bottom-8 right-3 flex justify-end md:left-2"
+      style={{ zIndex: 1050 }}
+    >
       <Button
         type="primary"
         size="large"
+        className="rounded-sm"
         icon={<MessageCircleMore />}
-        className="rounded-lg"
         onClick={() => setIsOpen(true)}
       >
         {`Queue Chat`}
