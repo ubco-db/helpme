@@ -17,17 +17,19 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CalendarModel } from './calendar.entity';
-import { Calendar, ERROR_MESSAGES, Role } from '@koh/common';
+import { Calendar, ERROR_MESSAGES, OrganizationRole, Role } from '@koh/common';
 import { CourseModel } from 'course/course.entity';
 import { Roles } from 'decorators/roles.decorator';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { getManager } from 'typeorm';
+import { OrganizationRolesGuard } from 'guards/organization-roles.guard';
 
 @Controller('calendar')
-@UseGuards(JwtAuthGuard, CourseRolesGuard)
+@UseGuards(JwtAuthGuard)
 export class CalendarController {
   constructor(private readonly calendarService: CalendarService) {}
   @Post(':cid')
+  @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async addEvent(
     @Body() body: Calendar,
@@ -102,6 +104,7 @@ export class CalendarController {
   }
 
   @Patch(':calId/:cid')
+  @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async updateEvent(
     @Param('calId', ParseIntPipe) calId: string,
@@ -136,6 +139,7 @@ export class CalendarController {
   }
 
   @Get(':cid')
+  @UseGuards(CourseRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getAllEvents(
     @Param('cid', ParseIntPipe) cid: number,
@@ -184,6 +188,8 @@ export class CalendarController {
   }
 
   @Delete(':eventId/:cid/delete')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.TA, Role.PROFESSOR)
   async deleteCalendarEvent(
     @Param('eventId', ParseIntPipe) eventId: number,
   ): Promise<CalendarModel> {
@@ -213,5 +219,13 @@ export class CalendarController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  @Post('reset_cron_jobs/:oid')
+  @UseGuards(OrganizationRolesGuard)
+  @Roles(OrganizationRole.ADMIN)
+  async resetCronJobs(@Param('oid', ParseIntPipe) oid: number) {
+    console.log('Resetting cron jobs');
+    await this.calendarService.resetAutoCheckoutJobs();
   }
 }

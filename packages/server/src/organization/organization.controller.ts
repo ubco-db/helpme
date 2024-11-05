@@ -58,10 +58,9 @@ import { CourseSettingsModel } from 'course/course_settings.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
-import _, { isNumber } from 'lodash';
-import { MailServiceModel } from 'mail/mail-services.entity';
+import _ from 'lodash';
 import * as sharp from 'sharp';
-import { User, UserId } from 'decorators/user.decorator';
+import { UserId } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 
@@ -122,16 +121,15 @@ export class OrganizationController {
   ): Promise<any[] | CronJob[]> {
     const jobs = this.schedulerRegistry.getCronJobs();
     const jobsArray = Array.from(jobs.entries()).map(([key, job]) => {
-      const nextDates = job.nextDates();
-      const nextDatesArray = Array.isArray(nextDates)
-        ? nextDates.map((date) => date.toJSDate())
-        : [nextDates];
+      const nextDates = job.running ? job.nextDates(10) : [];
       return {
         id: key,
         cronTime: job.cronTime.source,
         running: job.running,
-        nextDates: nextDatesArray,
-        lastDate: job.lastDate(),
+        nextDates: nextDates,
+        // nextDates: [],
+        // lastDate: job.lastDate(),
+        // lastDate: null,
         lastExecution: job.lastExecution,
         runOnce: job.runOnce,
       };

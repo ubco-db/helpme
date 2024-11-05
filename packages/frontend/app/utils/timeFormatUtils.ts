@@ -97,7 +97,7 @@ export function formatDateAndTimeForExcel(date: Date | undefined): string {
   if (date === undefined) return ''
 
   const validDate = typeof date === 'string' ? new Date(date) : date
-  if (!validDate || isNaN(validDate.getTime())) return ''
+  if (!validDate || !validDate.getTime || isNaN(validDate.getTime())) return ''
   // Convert to local time and extract parts
   const localDate = new Date(
     validDate.getTime() - validDate.getTimezoneOffset() * 60_000,

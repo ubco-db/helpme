@@ -1,12 +1,16 @@
 'use client'
 
 import { API } from '@/app/api'
+import ExpandableText from '@/app/components/ExpandableText'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
 import { InfoCircleOutlined } from '@ant-design/icons'
 import { CronJob } from '@koh/common'
 import { Button, Card, message, Table, Tag, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/
 
 const DevPage: React.FC = () => {
   const { userInfo } = useUserInfo()
@@ -77,7 +81,6 @@ const DevPage: React.FC = () => {
     }
   }
 
-  console.log(cronJobs)
   return (
     <Card>
       <div className="p-6">
@@ -154,6 +157,7 @@ const DevPage: React.FC = () => {
           {cronJobs && (
             <Table<CronJob>
               size="small"
+              pagination={{ pageSize: 20 }}
               columns={[
                 {
                   title: 'ID',
@@ -164,6 +168,13 @@ const DevPage: React.FC = () => {
                   title: 'cronTime',
                   dataIndex: 'cronTime',
                   key: 'cronTime',
+                  render: (cronTime) => {
+                    if (dateRegex.test(cronTime)) {
+                      return formatDateAndTimeForExcel(cronTime)
+                    } else {
+                      return cronTime
+                    }
+                  },
                 },
                 {
                   title: 'Running',
@@ -177,14 +188,11 @@ const DevPage: React.FC = () => {
                     ),
                 },
                 {
-                  title: 'End Date',
-                  dataIndex: 'lastDate',
-                  key: 'lastDate',
-                },
-                {
                   title: 'Last Execution',
                   dataIndex: 'lastExecution',
                   key: 'lastExecution',
+                  render: (lastExecution) =>
+                    formatDateAndTimeForExcel(lastExecution),
                 },
                 {
                   title: 'One-time',
@@ -196,13 +204,27 @@ const DevPage: React.FC = () => {
                   title: 'Next Date(s)',
                   dataIndex: 'nextDates',
                   key: 'nextDates',
-                  render: (nextDates: Date[]) => (
-                    <div>
-                      {nextDates.map((date) => (
-                        <p key={date.toString()}>{date.toString()}</p>
-                      ))}
-                    </div>
-                  ),
+                  render: (nextDates: Date[] | Date) => {
+                    return Array.isArray(nextDates) && nextDates.length > 1 ? (
+                      <ExpandableText>
+                        {nextDates.map((date) => (
+                          <p key={date.toString()}>
+                            {formatDateAndTimeForExcel(date)}
+                          </p>
+                        ))}
+                      </ExpandableText>
+                    ) : Array.isArray(nextDates) ? (
+                      formatDateAndTimeForExcel(nextDates[0] || [])
+                    ) : (
+                      formatDateAndTimeForExcel(nextDates)
+                    )
+                  },
+                  showSorterTooltip: { target: 'full-header' },
+                  sorter: (a, b) => {
+                    const dateA = formatDateAndTimeForExcel(a.nextDates[0])
+                    const dateB = formatDateAndTimeForExcel(b.nextDates[0])
+                    return dateA.localeCompare(dateB)
+                  },
                 },
               ]}
               dataSource={cronJobs}

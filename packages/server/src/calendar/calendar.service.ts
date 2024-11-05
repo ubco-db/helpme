@@ -37,6 +37,7 @@ export class CalendarService implements OnModuleInit {
 
   async onModuleInit() {
     await this.initializeCache();
+    await this.resetAutoCheckoutJobs();
   }
 
   async initializeCache() {
@@ -208,6 +209,7 @@ export class CalendarService implements OnModuleInit {
     endTime: Date,
     daysOfWeek: string[],
     courseId: number,
+    skipEventsInPast = false,
   ) {
     const jobName = `auto-checkout-${userId}-${calendarId}`;
     //// logic for creating jobInterval
@@ -215,6 +217,9 @@ export class CalendarService implements OnModuleInit {
     // in which case, the cron job should simple happen at endDate
     let jobInterval: string | Date = '';
     if (daysOfWeek.length === 0 && !startDate && !endDate) {
+      if (skipEventsInPast && endDate < new Date()) {
+        return;
+      }
       if (endTime < new Date()) {
         throw new BadRequestException(ERROR_MESSAGES.calendarEvent.dateInPast);
       }
@@ -231,7 +236,8 @@ export class CalendarService implements OnModuleInit {
       | minutes
       seconds (optional)
       */
-      jobInterval = `${endTime.getMinutes()} ${endTime.getHours()} * * ${daysOfWeek.join(',')}`;
+      const sortedDaysOfWeek = daysOfWeek.sort();
+      jobInterval = `${endTime.getMinutes()} ${endTime.getHours()} * * ${sortedDaysOfWeek.join(',')}`;
     } else {
       throw new BadRequestException(ERROR_MESSAGES.calendarEvent.invalidEvent);
     }
@@ -351,11 +357,11 @@ export class CalendarService implements OnModuleInit {
   ) {
     // first check if they are checked in. If not then return
     const query = `
-      SELECT "queueModelId" AS queueId
+      SELECT "queueModelId" AS "queueId"
       FROM queue_model_staff_list_user_model
       WHERE "userModelId" = $1
       `;
-    let myCheckedInQueues: { queueModelId: number; userModelId: number }[] = [];
+    let myCheckedInQueues: { queueId: number }[] = [];
     try {
       myCheckedInQueues = await QueueModel.query(query, [userId]);
     } catch (err) {
@@ -385,22 +391,19 @@ export class CalendarService implements OnModuleInit {
         myCheckedInQueues.forEach(async (queue) => {
           // convert any helping questions to resolved
           try {
-            await this.questionService.resolveQuestions(
-              queue.queueModelId,
-              userId,
-            );
+            await this.questionService.resolveQuestions(queue.queueId, userId);
           } catch (err) {
             console.error('Error resolving questions in cron job', err);
             Sentry.captureException(err);
             return;
           }
-          // check them out with an DELETE query
+          // check them out with a DELETE query
           const query = `
             DELETE FROM queue_model_staff_list_user_model
             WHERE "queueModelId" = $1 AND "userModelId" = $2
             `;
           try {
-            await QueueModel.query(query, [queue.queueModelId, userId]);
+            await QueueModel.query(query, [queue.queueId, userId]);
           } catch (err) {
             console.error('Error checking out user in cron job', err);
             Sentry.captureException(err);
@@ -413,7 +416,7 @@ export class CalendarService implements OnModuleInit {
               eventType: EventType.TA_CHECKED_OUT_EVENT_END,
               userId: userId,
               courseId: courseId,
-              queueId: queue.queueModelId,
+              queueId: queue.queueId,
             }).save();
           } catch (err) {
             console.error(
@@ -461,9 +464,49 @@ export class CalendarService implements OnModuleInit {
     }
   }
 
-  // TODO: add a service that will clear all old cron jobs and create new ones (with an endpoint)
+  async clearAllAutoCheckoutJobs() {
+    const jobs = this.schedulerRegistry.getCronJobs();
+    for (const [name, job] of jobs) {
+      if (
+        name.startsWith('auto-checkout-') &&
+        !name.startsWith('auto-checkout-loop-')
+      ) {
+        job.stop();
+        this.schedulerRegistry.deleteCronJob(name);
+      }
+    }
+  }
+
+  async retroactivelyCreateAutoCheckoutJobs() {
+    // get all calendar staff
+    const calendarStaffList = await CalendarStaffModel.find({
+      relations: ['calendar', 'calendar.course'],
+    });
+    // for each calendar staff, create a cron job
+    for (const calendarStaff of calendarStaffList) {
+      await this.createAutoCheckoutCronJob(
+        calendarStaff.userId,
+        calendarStaff.calendarId,
+        calendarStaff.calendar.startDate,
+        calendarStaff.calendar.endDate,
+        calendarStaff.calendar.end,
+        calendarStaff.calendar.daysOfWeek,
+        calendarStaff.calendar.course.id, // I hate that i have to do it like this and have a join just for the courseId. Thanks typeorm </3
+        true,
+      );
+    }
+  }
+
+  async resetAutoCheckoutJobs() {
+    await this.clearAllAutoCheckoutJobs();
+    console.log('Cleared all auto-checkout jobs');
+    await this.retroactivelyCreateAutoCheckoutJobs();
+    console.log('Retroactively created auto-checkout jobs');
+  }
 
   // also add a service that will clear all old cron jobs with a particular calendar Id
-  // as well as another that will clear all cron jobs with a particular userId
+  // as well as another that will clear all cron jobs with a particular userId (for when they get deleted)
   // somehow maybe add a database trigger for this?
+
+  // TODO: on launch, restart all cron jobs (maybe)
 }
