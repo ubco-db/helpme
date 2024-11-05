@@ -275,18 +275,25 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               )}
             </Row>
           </Col>
-          {isStaff && (
-            <Col className="w-full sm:w-auto">
-              <TAQuestionCardButtons
-                courseId={cid}
-                queueId={qid}
-                question={question}
-                hasUnresolvedRephraseAlert={false}
-                tasksSelectedForMarking={tasksSelectedForMarking}
-                className="align-center flex items-center justify-around"
-              />
-            </Col>
-          )}
+          {isStaff &&
+            (question.status !== LimboQuestionStatus.ReQueueing ? (
+              <Col className="w-full sm:w-auto">
+                <TAQuestionCardButtons
+                  courseId={cid}
+                  queueId={qid}
+                  question={question}
+                  hasUnresolvedRephraseAlert={false}
+                  tasksSelectedForMarking={tasksSelectedForMarking}
+                  className="align-center flex items-center justify-around"
+                />
+              </Col>
+            ) : (
+              <Col className="w-full sm:w-auto">
+                <div className="text-md ml-0 h-full text-center italic text-gray-500 sm:ml-2">
+                  Not Ready
+                </div>
+              </Col>
+            ))}
         </Row>
       </Card>
     </Tooltip>

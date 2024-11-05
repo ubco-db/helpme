@@ -70,7 +70,7 @@ const JoinZoomNowModal: React.FC<JoinZoomNowModalProps> = ({
             setRequeuing().finally(() => setIsLoadingRequeue(false))
           }}
         >
-          <ReQueuingButton loading={isLoadingRequeue} />
+          <ReQueuingButton className="mt-2" loading={isLoadingRequeue} />
         </Popconfirm>
       </div>
     </Modal>
