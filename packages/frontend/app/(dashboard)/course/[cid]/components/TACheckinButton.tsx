@@ -14,7 +14,7 @@ type CheckInButtonState =
 
 interface TACheckinButtonProps {
   courseId: number
-  room: string // name of queue room to check into
+  queueId?: number
   state: CheckInButtonState // State of the button
   preventDefaultAction?: boolean
   disabled?: boolean
@@ -24,7 +24,7 @@ interface TACheckinButtonProps {
 }
 const TACheckinButton: React.FC<TACheckinButtonProps> = ({
   courseId,
-  room,
+  queueId,
   state,
   preventDefaultAction,
   disabled = false,
@@ -54,7 +54,7 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
             if (preventDefaultAction) return
             setLoading(true)
             await API.taStatus
-              .checkOut(courseId, room)
+              .checkMeOut(courseId, queueId)
               .then(() => {
                 mutateCourse()
                 setIsSuccessfullyCheckedOut(true)
@@ -81,10 +81,14 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
           size="large"
           loading={loading || isSuccessfullyCheckedIn}
           onClick={() => {
+            if (!queueId) {
+              message.error('Queue ID not found')
+              return
+            }
             onClick?.()
             if (preventDefaultAction) return
             setLoading(true)
-            checkInTA(courseId, room, mutateCourse, router)
+            checkInTA(courseId, queueId, mutateCourse, router)
               .then(() => {
                 setIsSuccessfullyCheckedIn(true)
                 onSuccess?.()

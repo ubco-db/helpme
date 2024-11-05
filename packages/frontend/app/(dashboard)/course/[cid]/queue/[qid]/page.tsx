@@ -530,7 +530,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 <span>
                   <TACheckinButton
                     courseId={cid}
-                    room={queue.room}
+                    queueId={qid}
                     disabled={
                       staffCheckedIntoAnotherQueue ||
                       (helpingQuestions && helpingQuestions.length > 0) ||
