@@ -1687,6 +1687,16 @@ export interface setQueueConfigResponse {
   questionTypeMessages: string[]
 }
 
+export type CronJob = {
+  id: string
+  cronTime: string | Date
+  running: boolean
+  nextDates: Date[]
+  lastDate?: Date
+  lastExecution?: Date
+  runOnce: boolean
+}
+
 /**
  * This is the queue config that stores settings that the TA can set/edit for the queue.
  * NOTE: tags (aka questionTypes) in this are NOT necessarily going to be the same as the questionType entities for the queue (or at least for now).
