@@ -44,7 +44,6 @@ export class CourseModel extends BaseEntity {
   icalURL: string;
 
   @Column('text', { nullable: true })
-  @Exclude()
   zoomLink: string;
 
   @Column('integer', { nullable: true })

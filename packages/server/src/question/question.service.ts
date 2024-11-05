@@ -64,10 +64,21 @@ export class QuestionService {
     }
 
     // Set TA as taHelped when the TA starts helping the student
-    if (
+    const isHelped =
       oldStatus !== OpenQuestionStatus.Helping &&
-      newStatus === OpenQuestionStatus.Helping
-    ) {
+      newStatus === OpenQuestionStatus.Helping;
+    const isPaused =
+      oldStatus !== OpenQuestionStatus.Paused &&
+      newStatus === OpenQuestionStatus.Paused;
+    const isHelpedFromPause =
+      oldStatus === OpenQuestionStatus.Paused &&
+      newStatus === OpenQuestionStatus.Helping;
+
+    if (isHelpedFromPause) {
+      // If a question was un-paused, remove the pausedAt property
+      question.pausedAt = null;
+    }
+    if (isHelped) {
       question.taHelped = await UserModel.findOne({ where: { id: userId } });
       question.helpedAt = new Date();
 
@@ -80,6 +91,19 @@ export class QuestionService {
         NotifMsgs.queue.TA_HIT_HELPED(question.taHelped.name),
       );
     }
+    if (isPaused) {
+      // Remove the helpedAt property, but original help time is retained by firstHelped property
+      question.helpedAt = null;
+      question.pausedAt = new Date();
+      if (question.taHelpedId != userId) {
+        question.taHelped = await UserModel.findOne({ where: { id: userId } });
+      }
+      await this.notifService.notifyUser(
+        question.creator.id,
+        NotifMsgs.queue.PAUSED(question.taHelped.name),
+      );
+    }
+
     if (newStatus in ClosedQuestionStatus) {
       question.closedAt = new Date();
     }

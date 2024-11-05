@@ -1,4 +1,4 @@
-import { Question } from '@koh/common'
+import { OpenQuestionStatus, Question } from '@koh/common'
 import { Badge, Col, Row } from 'antd'
 import { useQuestions } from '@/app/hooks/useQuestions'
 import { useQueue } from '@/app/hooks/useQueue'
@@ -26,7 +26,11 @@ const StaffList: React.FC<StaffListProps> = ({ queueId }) => {
   const groups = queueQuestions.groups
   // for each TA, give them an array of questions that they are helping
   for (const question of helpingQuestions) {
-    if (question.taHelped && taIds.includes(question.taHelped.id)) {
+    if (
+      question.taHelped &&
+      question.status !== OpenQuestionStatus.Paused &&
+      taIds.includes(question.taHelped.id)
+    ) {
       if (!taToQuestions[question.taHelped.id]) {
         taToQuestions[question.taHelped.id] = []
       }
@@ -35,7 +39,7 @@ const StaffList: React.FC<StaffListProps> = ({ queueId }) => {
   }
 
   return (
-    <Col className="mb-3 sm:mb-0">
+    <Col className="my-1 flex flex-col gap-4">
       {staffList.map((ta) => (
         <Col key={ta.id}>
           <StatusCard
@@ -74,7 +78,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
 }) => {
   const isBusy = !!helpedAt
   return (
-    <div className="mb-4 flex rounded-md bg-white p-3 shadow-md md:mb-4 md:p-4">
+    <div className="flex rounded-md bg-white p-3 shadow-md md:mb-4 md:p-4">
       <UserAvatar
         size={48}
         username={taName}

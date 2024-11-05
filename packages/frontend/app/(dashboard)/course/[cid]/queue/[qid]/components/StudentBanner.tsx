@@ -26,9 +26,8 @@ interface StudentBannerProps {
   editDemo: () => void
   leaveQueueQuestion: () => Promise<void>
   leaveQueueDemo: () => Promise<void>
-  configTasks: ConfigTasks | undefined
-  zoomLink: string | undefined
-  isQueueOnline: boolean | undefined
+  configTasks?: ConfigTasks
+  isQueueHybrid?: boolean
 }
 const StudentBanner: React.FC<StudentBannerProps> = ({
   queueId,
@@ -37,8 +36,7 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
   leaveQueueQuestion,
   leaveQueueDemo,
   configTasks,
-  zoomLink,
-  isQueueOnline,
+  isQueueHybrid,
 }) => {
   const {
     studentQuestion,
@@ -65,6 +63,8 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
           'Your Questions - You are now in a priority queue, you will be helped soon. Last helped by: ' +
           studentQuestion?.taHelped?.name
         )
+      case 'Paused':
+        return `Your Questions - Your question is currently paused, you will be helped later.`
       default:
         switch (demoStatus) {
           case 'Drafting':
@@ -105,8 +105,7 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
               ? undefined
               : studentQuestionIndex + 1
           }
-          isQueueOnline={!!isQueueOnline}
-          zoomLink={zoomLink}
+          isQueueHybrid={!!isQueueHybrid}
           leaveQueue={leaveQueueQuestion}
           edit={editQuestion}
         />
@@ -121,8 +120,7 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
           spot={
             studentDemoIndex === undefined ? undefined : studentDemoIndex + 1
           }
-          isQueueOnline={!!isQueueOnline}
-          zoomLink={zoomLink}
+          isQueueHybrid={!!isQueueHybrid}
           leaveQueue={leaveQueueDemo}
           edit={editDemo}
         />
@@ -162,8 +160,7 @@ interface QuestionDetailCardProps {
   question: Question | undefined
   configTasks?: ConfigTasks
   spot: number | undefined
-  isQueueOnline: boolean
-  zoomLink: string | undefined
+  isQueueHybrid: boolean
   leaveQueue: () => Promise<void>
   edit: () => void
 }
@@ -172,8 +169,7 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
   question,
   configTasks,
   spot,
-  isQueueOnline,
-  zoomLink,
+  isQueueHybrid,
   leaveQueue,
   edit,
 }) => {
@@ -192,6 +188,8 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
         return 'border-[#faad14]'
       case 'Helping':
         return 'border-[#4dc186]'
+      case 'Paused':
+        return 'border-amber-200'
       case 'ReQueueing':
         return 'border-[#66BB6A]'
       case 'PriorityQueued':
@@ -291,19 +289,7 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
           {(() => {
             switch (question.status) {
               case 'Helping':
-                return (
-                  isQueueOnline &&
-                  zoomLink && (
-                    <Tooltip title="Open Zoom link">
-                      <CircleButton
-                        icon={<TeamOutlined />}
-                        onClick={() => {
-                          window.open(zoomLink)
-                        }}
-                      />
-                    </Tooltip>
-                  )
-                )
+                return <></> // Join zoom button shows up as a modal instead
               case 'Drafting':
                 return (
                   <Tooltip title="Finish Draft">
@@ -321,23 +307,27 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
               case 'ReQueueing':
                 return (
                   <Tooltip title="Rejoin Queue">
-                    <CircleButton
-                      variant="primary"
-                      icon={<UndoOutlined />}
-                      loading={isRejoinLoading}
-                      onClick={async () => {
-                        setIsRejoinLoading(true)
-                        await API.questions
-                          .update(question.id, {
-                            status: OpenQuestionStatus.Queued,
-                          })
-                          .catch((e) => {
-                            const errorMessage = getErrorMessage(e)
-                            message.error(errorMessage)
-                          })
-                          .finally(() => setIsRejoinLoading(false))
-                      }}
-                    />
+                    <div className="relative ml-2 inline-flex items-center justify-center">
+                      <div className="absolute inset-0 animate-ping rounded-full bg-white opacity-50 before:content-['']"></div>
+                      <CircleButton
+                        variant="primary"
+                        className="!ml-0"
+                        icon={<UndoOutlined />}
+                        loading={isRejoinLoading}
+                        onClick={async () => {
+                          setIsRejoinLoading(true)
+                          await API.questions
+                            .update(question.id, {
+                              status: OpenQuestionStatus.Queued,
+                            })
+                            .catch((e) => {
+                              const errorMessage = getErrorMessage(e)
+                              message.error(errorMessage)
+                            })
+                            .finally(() => setIsRejoinLoading(false))
+                        }}
+                      />
+                    </div>
                   </Tooltip>
                 )
               default:

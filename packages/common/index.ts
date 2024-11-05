@@ -18,6 +18,7 @@ import {
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
 import { Ajv } from 'ajv'
+
 export const PROD_URL = 'https://coursehelp.ubc.ca'
 
 // Get domain. works on node and browser
@@ -302,6 +303,9 @@ export interface Queue {
   allowQuestions: boolean
 }
 
+// Queue location/type for different queues within each course
+export type QueueTypes = 'online' | 'hybrid' | 'inPerson'
+
 /**
  * A Queue partial to be shown on the course page. It's like the full Queue object but without the questions.
  * @param id - The unique id number for a Queue.
@@ -333,9 +337,13 @@ export class QueuePartial {
 
   allowQuestions!: boolean
 
+  type!: QueueTypes
+
   isProfessorQueue!: boolean
 
   config?: QueueConfig
+
+  zoomLink?: string
 }
 
 /**
@@ -438,6 +446,9 @@ export class Question {
   helpedAt?: Date
 
   @Type(() => Date)
+  pausedAt?: Date
+
+  @Type(() => Date)
   closedAt?: Date
 
   @Type(() => QuestionTypeParams)
@@ -447,7 +458,7 @@ export class Question {
 
   groupable!: boolean
 
-  location?: string
+  location?: QuestionLocations
 
   isTaskQuestion?: boolean
 }
@@ -465,6 +476,7 @@ export enum OpenQuestionStatus {
   Queued = 'Queued',
   Helping = 'Helping',
   PriorityQueued = 'PriorityQueued',
+  Paused = 'Paused',
 }
 
 /**
@@ -501,6 +513,7 @@ export enum resolutionSource {
 export const StatusInQueue = [
   OpenQuestionStatus.Drafting,
   OpenQuestionStatus.Queued,
+  LimboQuestionStatus.ReQueueing,
 ]
 
 export const StatusInPriorityQueue = [OpenQuestionStatus.PriorityQueued]
@@ -509,6 +522,7 @@ export const StatusSentToCreator = [
   ...StatusInPriorityQueue,
   ...StatusInQueue,
   OpenQuestionStatus.Helping,
+  OpenQuestionStatus.Paused,
   LimboQuestionStatus.ReQueueing,
   LimboQuestionStatus.CantFind,
   LimboQuestionStatus.TADeleted,
@@ -1169,6 +1183,8 @@ export class GetStudentQuestionResponse extends Question {
   queueId!: number
 }
 
+export type QuestionLocations = 'Online' | 'In-Person' | 'Unselected'
+
 export class CreateQuestionParams {
   @IsString()
   text!: string
@@ -1188,7 +1204,7 @@ export class CreateQuestionParams {
 
   @IsString()
   @IsOptional()
-  location?: string
+  location?: QuestionLocations
 
   @IsBoolean()
   force!: boolean
@@ -1257,10 +1273,18 @@ export class TACheckoutResponse {
 export class UpdateQueueParams {
   @IsString()
   @IsOptional()
+  type?: QueueTypes
+
+  @IsString()
+  @IsOptional()
   notes?: string
 
   @IsBoolean()
   allowQuestions?: boolean
+
+  @IsString()
+  @IsOptional()
+  zoomLink?: string
 }
 
 export class QuestionTypeParams {
@@ -1502,55 +1526,128 @@ export class SSEQueueResponse {
   queueChat?: GetQueueChatResponse
 }
 
-export type GetInsightOutputResponse = PossibleOutputTypes
+export const InsightCategories = [
+  'Dashboard',
+  'Tool_Usage_Statistics',
+  'Questions',
+  'Queues',
+  'Chatbot',
+]
+
+export enum InsightType {
+  Value = 'Value',
+  Chart = 'Chart',
+  Table = 'Table',
+  GanttChart = 'GanttChart',
+}
+
+export type InsightCategory = (typeof InsightCategories)[number]
+
+export type InsightSerial = {
+  active?: boolean
+  category: InsightCategory
+  type: InsightType
+}
+
+export type InsightDetail = { [key: string]: InsightSerial }
+
+export type InsightDashboardPartial = {
+  name: string
+  insights: InsightDetail
+}
+
+export type GetInsightOutputResponse = InsightOutput
 
 export type ListInsightsResponse = Record<string, InsightDisplayInfo>
+
+export const InsightFilterOptions = [
+  'courseId',
+  'timeframe',
+  'students',
+  'queues',
+] as const
+export type InsightFilterOption = (typeof InsightFilterOptions)[number]
 
 export type InsightDisplayInfo = {
   displayName: string
   description: string
-  component: InsightComponent
-  size: 'small' | 'default'
+  insightType: InsightType
+  insightCategory: InsightCategory
+  allowedFilters?: InsightFilterOption[]
 }
 
 export interface InsightObject {
   displayName: string
   description: string
   roles: Role[]
-  component: InsightComponent
-  size: 'default' | 'small'
+  insightType: InsightType
+  insightCategory: InsightCategory
+  allowedFilters?: InsightFilterOption[]
   compute: (
     insightFilters: any,
     cacheManager?: Cache,
   ) => Promise<PossibleOutputTypes>
 }
 
-export enum InsightComponent {
-  SimpleDisplay = 'SimpleDisplay',
-  BarChart = 'BarChart',
-  SimpleTable = 'SimpleTable',
+export interface InsightOutput {
+  title: string
+  description: string
+  allowedFilters?: string[]
+  outputType: InsightType
+  output: PossibleOutputTypes
+}
+
+export function numToWeekday(num: number) {
+  num = parseInt(num as unknown as string)
+  switch (num) {
+    case 0:
+      return 'Sunday'
+    case 1:
+      return 'Monday'
+    case 2:
+      return 'Tuesday'
+    case 3:
+      return 'Wednesday'
+    case 4:
+      return 'Thursday'
+    case 5:
+      return 'Friday'
+    case 6:
+      return 'Saturday'
+    default:
+      return ''
+  }
 }
 
 export type PossibleOutputTypes =
-  | SimpleDisplayOutputType
-  | BarChartOutputType
-  | SimpleTableOutputType
+  | ValueOutputType
+  | ChartOutputType
+  | TableOutputType
+  | GanttChartOutputType
 
-export type SimpleDisplayOutputType = number | string
-
-export type BarChartOutputType = {
-  data: StringMap<number>[]
-  xField: string
-  yField: string
-  seriesField: string
-  xAxisName?: string
-  yAxisName?: string
+export type ChartOutputType = {
+  data: StringMap<any>[]
+  xKey: string
+  yKeys: string[]
+  label: string
+  xType?: 'numeric' | 'category'
+  yType?: 'numeric' | 'category'
 }
 
-export type SimpleTableOutputType = {
-  dataSource: StringMap<string>[]
-  columns: StringMap<string>[]
-  totalStudents: number
+export type GanttChartOutputType = {
+  data: StringMap<any>[]
+  xKey: string
+  yKey: string
+  zKey?: string
+  label: string
+  numCategories: number
+}
+
+export type ValueOutputType = number | string
+
+export type TableOutputType = {
+  data: StringMap<string>[]
+  headerRow: string[]
 }
 
 export type StringMap<T> = {
@@ -1563,10 +1660,12 @@ export type DateRangeType = {
 }
 
 export type InsightParamsType = {
-  start: string
-  end: string
-  limit: number
-  offset: number
+  start?: string
+  end?: string
+  limit?: number
+  offset?: number
+  students?: string
+  queues?: string
 }
 
 export type sendEmailParams = {
@@ -2013,14 +2112,13 @@ export function validateQueueConfigInput(obj: any): string {
     additionalProperties: false,
   }
   const validate = ajv.compile(schema)
-  const obj2 = obj
-  const valid = validate(obj2)
+  const valid = validate(obj)
   if (!valid) {
-    const errorMessages =
+    return (
       validate.errors
         ?.map((e) => `${e.instancePath} ${e.message}`)
         .join(', ') || 'Unknown error'
-    return errorMessages
+    )
   }
   return ''
 }
@@ -2142,6 +2240,8 @@ export type ConfigTasksWithAssignmentProgress = {
  *   }
  * }
  * ```
+ * @param taskTree
+ * @param precondition
  */
 export function transformIntoTaskTree(
   remainingTasks: ConfigTasksWithAssignmentProgress,
@@ -2222,7 +2322,6 @@ export const ERROR_MESSAGES = {
     courseNameTooShort: 'Course name must be at least 1 character',
     coordinatorEmailTooShort: 'Coordinator email must be at least 1 character',
     sectionGroupNameTooShort: 'Section group name must be at least 1 character',
-    zoomLinkTooShort: 'Zoom link must be at least 1 character',
     courseAlreadyRegistered: 'One or more of the courses is already registered',
     courseNotFound: 'The course was not found',
     sectionGroupNotFound: 'One or more of the section groups was not found',
@@ -2321,10 +2420,14 @@ export const ERROR_MESSAGES = {
     queueNotFound: 'Queue not found',
   },
   insightsController: {
+    dashboardUnauthorized: 'User is not authorized to manage dashboards',
     insightUnathorized: 'User is not authorized to view this insight',
     insightNameNotFound: 'The insight requested was not found',
     insightsDisabled: 'Insights are currently unavailable, sorry :(',
     invalidDateRange: 'Invalid date range. Start and End must be valid dates',
+    invalidStudentID:
+      'Invalid student ID provided. Student IDs must be numeric',
+    invalidQueueID: 'Invalid queue ID provided. Queue IDs must be numeric.',
   },
   roleGuard: {
     notLoggedIn: 'Must be logged in',

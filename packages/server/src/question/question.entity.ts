@@ -1,4 +1,9 @@
-import { QuestionStatus, Role, StatusInQueue } from '@koh/common';
+import {
+  QuestionLocations,
+  QuestionStatus,
+  Role,
+  StatusInQueue,
+} from '@koh/common';
 import { Exclude } from 'class-transformer';
 import {
   BaseEntity,
@@ -58,6 +63,9 @@ export class QuestionModel extends BaseEntity {
   @Exclude()
   firstHelpedAt: Date;
 
+  @Column({ nullable: true })
+  pausedAt: Date;
+
   // When the question was last helped (getting help again on priority queue overwrites)
   @Column({ nullable: true })
   helpedAt: Date;
@@ -70,7 +78,7 @@ export class QuestionModel extends BaseEntity {
   status: QuestionStatus;
 
   @Column({ nullable: true })
-  location: string;
+  location: QuestionLocations;
 
   @Column()
   groupable: boolean;

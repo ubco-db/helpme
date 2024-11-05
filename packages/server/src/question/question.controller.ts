@@ -108,8 +108,15 @@ export class QuestionController {
     @Body() body: CreateQuestionParams,
     @Param('userId', ParseIntPipe) userId: number,
   ): Promise<any> {
-    const { text, questionTypes, groupable, isTaskQuestion, queueId, force } =
-      body;
+    const {
+      text,
+      questionTypes,
+      groupable,
+      location,
+      isTaskQuestion,
+      queueId,
+      force,
+    } = body;
 
     const queue = await QueueModel.findOne({
       where: { id: queueId },
@@ -180,6 +187,7 @@ export class QuestionController {
         queueId: queueId,
         creator: user,
         text,
+        location,
         questionTypes,
         groupable,
         isTaskQuestion,

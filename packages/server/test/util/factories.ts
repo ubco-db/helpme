@@ -34,6 +34,7 @@ import { v4 } from 'uuid';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 import { CalendarModel } from 'calendar/calendar.entity';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
+import { InsightDashboardModel } from '../../src/insights/dashboard.entity';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)
@@ -216,3 +217,8 @@ export const calendarFactory = new Factory(CalendarModel)
   .attr('allDay', false)
   .attr('daysOfWeek', [])
   .assocOne('course', CourseFactory);
+
+export const dashboardPresetFactory = new Factory(InsightDashboardModel)
+  .attr('name', 'Preset')
+  .attr('insights', {})
+  .assocOne('userCourse', UserCourseFactory);

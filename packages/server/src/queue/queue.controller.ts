@@ -128,8 +128,10 @@ export class QueueController {
     if (queue === undefined) {
       throw new NotFoundException();
     }
+    queue.type = body.type;
     queue.notes = body.notes;
     queue.allowQuestions = body.allowQuestions;
+    queue.zoomLink = body.zoomLink;
     try {
       await queue.save();
     } catch (err) {

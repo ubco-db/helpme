@@ -2,6 +2,7 @@ import {
   CheckOutlined,
   CloseOutlined,
   DeleteOutlined,
+  PauseOutlined,
   QuestionOutlined,
   UndoOutlined,
 } from '@ant-design/icons'
@@ -60,6 +61,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
     useState(false)
   const [cantFindButtonLoading, setCantFindButtonLoading] = useState(false)
   const [requeueButtonLoading, setRequeueButtonLoading] = useState(false)
+  const [pauseButtonLoading, setPauseButtonLoading] = useState(false)
 
   // let timerCheckout=useRef(null);
   const changeStatus = useCallback(
@@ -218,7 +220,10 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
     return () => clearTimeout(timer)
   }, [tasksSelectedForMarking, previousTasksSelectedForMarking])
 
-  if (question.status === OpenQuestionStatus.Helping) {
+  if (
+    question.status === OpenQuestionStatus.Helping ||
+    question.status === OpenQuestionStatus.Paused
+  ) {
     return (
       <div className={className}>
         <Popconfirm
@@ -237,7 +242,11 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
             <CircleButton
               icon={<UndoOutlined />}
               loading={requeueButtonLoading}
-              disabled={cantFindButtonLoading || finishHelpingButtonLoading}
+              disabled={
+                pauseButtonLoading ||
+                cantFindButtonLoading ||
+                finishHelpingButtonLoading
+              }
             />
           </Tooltip>
         </Popconfirm>
@@ -259,45 +268,94 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
               variant="red"
               icon={<CloseOutlined />}
               loading={cantFindButtonLoading}
-              disabled={requeueButtonLoading || finishHelpingButtonLoading}
+              disabled={
+                pauseButtonLoading ||
+                requeueButtonLoading ||
+                finishHelpingButtonLoading
+              }
             />
           </Tooltip>
         </Popconfirm>
-        <Tooltip
-          title={
-            question.isTaskQuestion
-              ? tasksSelectedForMarking.length > 0
-                ? 'Mark ' + tasksSelectedForMarking.join(', ') + ' as Done'
-                : 'Mark All as Done'
-              : 'Finish Helping'
-          }
-          open={isFinishHelpingTooltipVisible}
-        >
-          <CircleButton
-            onMouseEnter={() => setIsFinishHelpingTooltipVisible(true)}
-            onMouseLeave={() => setIsFinishHelpingTooltipVisible(false)}
-            variant="green"
-            icon={<CheckOutlined />}
-            loading={finishHelpingButtonLoading}
-            disabled={cantFindButtonLoading || requeueButtonLoading}
-            onClick={() => {
-              // setCheckOutTimer()
-              setFinishHelpingButtonLoading(true)
-              if (
-                question.isTaskQuestion &&
-                tasksSelectedForMarking.length > 0
-              ) {
-                markSelected().then(() => {
-                  setFinishHelpingButtonLoading(false)
-                })
-              } else {
-                changeStatus(ClosedQuestionStatus.Resolved).then(() => {
-                  setFinishHelpingButtonLoading(false)
-                })
+        {question.status !== OpenQuestionStatus.Paused && (
+          <Tooltip
+            title={
+              question.isTaskQuestion
+                ? tasksSelectedForMarking.length > 0
+                  ? 'Mark ' + tasksSelectedForMarking.join(', ') + ' as Done'
+                  : 'Mark All as Done'
+                : 'Finish Helping'
+            }
+            open={isFinishHelpingTooltipVisible}
+          >
+            <CircleButton
+              onMouseEnter={() => setIsFinishHelpingTooltipVisible(true)}
+              onMouseLeave={() => setIsFinishHelpingTooltipVisible(false)}
+              variant="green"
+              icon={<CheckOutlined />}
+              loading={finishHelpingButtonLoading}
+              disabled={cantFindButtonLoading || requeueButtonLoading}
+              onClick={() => {
+                // setCheckOutTimer()
+                setFinishHelpingButtonLoading(true)
+                if (
+                  question.isTaskQuestion &&
+                  tasksSelectedForMarking.length > 0
+                ) {
+                  markSelected().then(() => {
+                    setFinishHelpingButtonLoading(false)
+                  })
+                } else {
+                  changeStatus(ClosedQuestionStatus.Resolved).then(() => {
+                    setFinishHelpingButtonLoading(false)
+                  })
+                }
+              }}
+            />
+          </Tooltip>
+        )}
+        {question.status === OpenQuestionStatus.Paused ? (
+          <div className="relative ml-3 inline-flex items-center justify-center">
+            <div className="absolute inset-0 animate-ping rounded-[50%] bg-green-300 opacity-50 before:content-['']"></div>
+            <Tooltip title="Resume Helping">
+              <CircleButton
+                className={'!ml-0'}
+                variant="green"
+                icon={<Play size={22} className="shrink-0 pl-1" />}
+                loading={pauseButtonLoading}
+                disabled={
+                  cantFindButtonLoading ||
+                  requeueButtonLoading ||
+                  finishHelpingButtonLoading
+                }
+                onClick={() => {
+                  setPauseButtonLoading(true)
+                  changeStatus(OpenQuestionStatus.Helping).then(() =>
+                    setPauseButtonLoading(false),
+                  )
+                }}
+              />
+            </Tooltip>
+          </div>
+        ) : (
+          <Tooltip title="Help Later">
+            <CircleButton
+              variant="gray"
+              icon={<PauseOutlined />}
+              loading={pauseButtonLoading}
+              disabled={
+                cantFindButtonLoading ||
+                requeueButtonLoading ||
+                finishHelpingButtonLoading
               }
-            }}
-          />
-        </Tooltip>
+              onClick={() => {
+                setPauseButtonLoading(true)
+                changeStatus(OpenQuestionStatus.Paused).then(() =>
+                  setPauseButtonLoading(false),
+                )
+              }}
+            />
+          </Tooltip>
+        )}
       </div>
     )
   } else {
@@ -333,7 +391,10 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
         <div className={className}>
           <Popconfirm
             title="Are you sure you want to delete this question from the queue?"
-            disabled={!isUserCheckedIn}
+            disabled={
+              !isUserCheckedIn ||
+              question.status === LimboQuestionStatus.ReQueueing
+            }
             okText="Yes"
             cancelText="No"
             onConfirm={async () => {
@@ -341,7 +402,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
             }}
           >
             <Tooltip
-              className={`${!isUserCheckedIn ? 'cursor-not-allowed' : ''}`}
+              className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
               title={
                 isUserCheckedIn
                   ? 'Remove From Queue'
@@ -357,7 +418,8 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                   disabled={
                     !isUserCheckedIn ||
                     helpButtonLoading ||
-                    rephraseButtonLoading
+                    rephraseButtonLoading ||
+                    question.status === LimboQuestionStatus.ReQueueing
                   }
                   loading={deleteButtonLoading}
                 />
@@ -367,7 +429,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           {!question.isTaskQuestion && (
             // TODO: add new buttons for task questions
             <Tooltip
-              className={`${!isUserCheckedIn ? 'cursor-not-allowed' : ''}`}
+              className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
               title={rephraseTooltip}
             >
               <span>
@@ -376,7 +438,10 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                   icon={<QuestionOutlined />}
                   onClick={sendRephraseAlert}
                   disabled={
-                    !canRephrase || helpButtonLoading || deleteButtonLoading
+                    !canRephrase ||
+                    helpButtonLoading ||
+                    deleteButtonLoading ||
+                    question.status === LimboQuestionStatus.ReQueueing
                   }
                   loading={rephraseButtonLoading}
                 />
@@ -384,7 +449,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
             </Tooltip>
           )}
           <Tooltip
-            className={`${!isUserCheckedIn ? 'cursor-not-allowed' : ''}`}
+            className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
             title={helpTooltip}
           >
             <span>
@@ -397,7 +462,10 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                   helpStudent()
                 }}
                 disabled={
-                  !canHelp || rephraseButtonLoading || deleteButtonLoading
+                  !canHelp ||
+                  rephraseButtonLoading ||
+                  deleteButtonLoading ||
+                  question.status === LimboQuestionStatus.ReQueueing
                 }
                 className="flex items-center justify-center"
                 loading={helpButtonLoading}
