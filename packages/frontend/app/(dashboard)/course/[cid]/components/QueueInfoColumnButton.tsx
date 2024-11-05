@@ -54,7 +54,6 @@ const QueueInfoColumnButton: React.FC<
   className,
   ...props
 }): React.ReactElement => {
-  console.log('className of button:', className)
   return (
     <Button
       size="large"

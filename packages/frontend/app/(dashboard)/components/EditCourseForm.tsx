@@ -190,7 +190,14 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
           tooltip="Default link to the zoom meeting for queues. Each queue can also have a unique zoom link which will automatically overwrite this one. When a student is helped, they will have the option to click this link."
           className="flex-1"
         >
-          <Input allowClear={true} />
+          <Input
+            allowClear={true}
+            placeholder={
+              !courseData.course?.zoomLink
+                ? '[No Zoom/Teams link set]'
+                : undefined
+            }
+          />
         </Form.Item>
       </div>
 

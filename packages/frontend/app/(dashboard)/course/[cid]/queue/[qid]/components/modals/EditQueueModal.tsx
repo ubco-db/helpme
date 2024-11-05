@@ -680,27 +680,29 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
           </Form.List>
         </>
       )}
-      <Form.Item
-        label={
-          <div className="flex flex-row items-center gap-1">
-            Zoom/Teams Link
-            <Tooltip
-              title={
-                'This is the queue-specific link. If not set, the link shown to students will default to the course-wide link.'
-              }
-            >
-              <QuestionCircleOutlined style={{ color: 'gray' }} />
-            </Tooltip>
-          </div>
-        }
-        name="zoomLink"
-      >
-        <Input
-          allowClear={true}
-          className="text-sky-800"
-          placeholder={course?.zoomLink ?? '[No Zoom/Teams link set]'}
-        />
-      </Form.Item>
+      {queue?.type !== 'inPerson' && (
+        <Form.Item
+          label={
+            <div className="flex flex-row items-center gap-1">
+              Zoom/Teams Link
+              <Tooltip
+                title={
+                  'This is the queue-specific link. If not set, the link shown to students will default to the course-wide link.'
+                }
+              >
+                <QuestionCircleOutlined style={{ color: 'gray' }} />
+              </Tooltip>
+            </div>
+          }
+          name="zoomLink"
+        >
+          <Input
+            allowClear={true}
+            className="text-sky-800"
+            placeholder={course?.zoomLink || '[No Zoom/Teams link set]'}
+          />
+        </Form.Item>
+      )}
       {/* Delete Queue and Clear Queue buttons for mobile only (normally shown on QueueInfoColumn.tsx) */}
       <div className="flex flex-row space-x-4 md:hidden">
         <DisableQueueButton
