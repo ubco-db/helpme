@@ -578,7 +578,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   icon={<EditOutlined />}
                 >
                   {/* only show the "Details" part on desktop to keep button small on mobile */}
-                  Edit Queue <span className="hidden sm:inline">Details</span>
+                  <span>
+                    Edit Queue <span className="hidden sm:inline">Details</span>
+                  </span>
                 </EditQueueButton>
               </span>
               <Tooltip

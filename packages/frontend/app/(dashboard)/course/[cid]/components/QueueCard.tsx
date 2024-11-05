@@ -38,11 +38,11 @@ const QueueCard: React.FC<QueueCardProps> = ({
   const getQueueTypeColor = (type: string) => {
     switch (type) {
       case 'inPerson':
-        return '#dd9e21'
+        return '#0488B4'
       case 'hybrid':
-        return '#037c6e'
+        return '#06808E'
       case 'online':
-        return '#1499c1'
+        return '#097969'
       default:
         return '#008080' // just in case, this default will match the color of hybrid
     }
