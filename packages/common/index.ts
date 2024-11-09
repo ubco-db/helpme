@@ -1488,6 +1488,7 @@ export const InsightCategories = [
   'Questions',
   'Queues',
   'Chatbot',
+  'Staff',
 ]
 
 export enum InsightType {
@@ -1495,6 +1496,7 @@ export enum InsightType {
   Chart = 'Chart',
   Table = 'Table',
   GanttChart = 'GanttChart',
+  MultipleGanttChart = 'MultipleGanttChart',
 }
 
 export type InsightCategory = (typeof InsightCategories)[number]
@@ -1521,6 +1523,7 @@ export const InsightFilterOptions = [
   'timeframe',
   'students',
   'queues',
+  'staff',
 ] as const
 export type InsightFilterOption = (typeof InsightFilterOptions)[number]
 
@@ -1539,10 +1542,13 @@ export interface InsightObject {
   insightType: InsightType
   insightCategory: InsightCategory
   allowedFilters?: InsightFilterOption[]
-  compute: (
-    insightFilters: any,
-    cacheManager?: Cache,
-  ) => Promise<PossibleOutputTypes>
+  compute: ({
+    insightFilters,
+    cacheManager,
+  }: {
+    insightFilters: any
+    cacheManager: Cache
+  }) => Promise<PossibleOutputTypes>
 }
 
 export interface InsightOutput {
@@ -1580,6 +1586,7 @@ export type PossibleOutputTypes =
   | ChartOutputType
   | TableOutputType
   | GanttChartOutputType
+  | MultipleGanttChartOutputType
 
 export type ChartOutputType = {
   data: StringMap<any>[]
@@ -1598,6 +1605,8 @@ export type GanttChartOutputType = {
   label: string
   numCategories: number
 }
+
+export type MultipleGanttChartOutputType = GanttChartOutputType[]
 
 export type ValueOutputType = number | string
 
@@ -1622,6 +1631,7 @@ export type InsightParamsType = {
   offset?: number
   students?: string
   queues?: string
+  staff?: string
 }
 
 export type sendEmailParams = {
@@ -2384,6 +2394,7 @@ export const ERROR_MESSAGES = {
     invalidStudentID:
       'Invalid student ID provided. Student IDs must be numeric',
     invalidQueueID: 'Invalid queue ID provided. Queue IDs must be numeric.',
+    invalidStaffID: 'Invalid staff ID provided. Staff IDs must be numeric.',
   },
   roleGuard: {
     notLoggedIn: 'Must be logged in',
