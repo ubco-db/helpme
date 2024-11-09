@@ -9,6 +9,7 @@ import {
   Role,
   StudentAssignmentProgress,
   StudentTaskProgress,
+  waitingStatuses,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -64,23 +65,26 @@ export class QuestionService {
     }
 
     // Set TA as taHelped when the TA starts helping the student
-    const isHelped =
+    const isBecomingHelped =
       oldStatus !== OpenQuestionStatus.Helping &&
       newStatus === OpenQuestionStatus.Helping;
-    const isPaused =
+    const isDoneBeingHelped =
+      oldStatus === OpenQuestionStatus.Helping &&
+      newStatus !== OpenQuestionStatus.Helping;
+    const isBecomingPaused =
       oldStatus !== OpenQuestionStatus.Paused &&
       newStatus === OpenQuestionStatus.Paused;
-    const isHelpedFromPause =
-      oldStatus === OpenQuestionStatus.Paused &&
-      newStatus === OpenQuestionStatus.Helping;
+    const isBecomingWaiting =
+      !waitingStatuses.includes(oldStatus as OpenQuestionStatus) &&
+      waitingStatuses.includes(newStatus as OpenQuestionStatus);
 
-    if (isHelpedFromPause) {
-      // If a question was un-paused, remove the pausedAt property
-      question.pausedAt = null;
-    }
-    if (isHelped) {
+    const now = new Date();
+    if (isBecomingHelped) {
       question.taHelped = await UserModel.findOne({ where: { id: userId } });
-      question.helpedAt = new Date();
+      question.helpedAt = now;
+      question.waitTime =
+        question.waitTime +
+        Math.round((now.getTime() - question.lastReadyAt.getTime()) / 1000);
 
       // Set firstHelpedAt if it hasn't already
       if (!question.firstHelpedAt) {
@@ -91,10 +95,15 @@ export class QuestionService {
         NotifMsgs.queue.TA_HIT_HELPED(question.taHelped.name),
       );
     }
-    if (isPaused) {
-      // Remove the helpedAt property, but original help time is retained by firstHelped property
-      question.helpedAt = null;
-      question.pausedAt = new Date();
+    if (isBecomingWaiting) {
+      question.lastReadyAt = now;
+    }
+    if (isDoneBeingHelped) {
+      question.helpTime =
+        question.helpTime +
+        Math.round((now.getTime() - question.helpedAt.getTime()) / 1000);
+    }
+    if (isBecomingPaused) {
       if (question.taHelpedId != userId) {
         question.taHelped = await UserModel.findOne({ where: { id: userId } });
       }
@@ -105,7 +114,7 @@ export class QuestionService {
     }
 
     if (newStatus in ClosedQuestionStatus) {
-      question.closedAt = new Date();
+      question.closedAt = now;
     }
     if (newStatus in LimboQuestionStatus) {
       // depends on if the question was passed in with its group preloaded
