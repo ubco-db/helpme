@@ -1,4 +1,9 @@
-import { QuestionStatus, Role, StatusInQueue } from '@koh/common';
+import {
+  QuestionLocations,
+  QuestionStatus,
+  Role,
+  StatusInQueue,
+} from '@koh/common';
 import { Exclude } from 'class-transformer';
 import {
   BaseEntity,
@@ -73,7 +78,7 @@ export class QuestionModel extends BaseEntity {
   status: QuestionStatus;
 
   @Column({ nullable: true })
-  location: string;
+  location: QuestionLocations;
 
   @Column()
   groupable: boolean;

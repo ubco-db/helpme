@@ -13,6 +13,9 @@ import {
   Task,
   TaskTree,
   QuestionTypeParams,
+  QuestionLocations,
+  QueueTypes,
+  LimboQuestionStatus,
   OpenQuestionStatus,
 } from '@koh/common'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
@@ -26,6 +29,7 @@ interface QueueQuestionsProps {
   questions: Question[]
   questionsGettingHelp: Question[]
   pausedQuestions: Question[]
+  queueType: QueueTypes
   cid: number
   qid: number
   isStaff: boolean
@@ -46,14 +50,14 @@ interface QueueQuestionsProps {
     questionTypes: QuestionType[],
     force: boolean,
     isTaskQuestion: boolean,
-    location?: string,
+    location?: QuestionLocations,
   ) => Promise<void>
   finishQuestionOrDemo: (
     text: string,
     questionTypes: QuestionTypeParams[],
     groupable: boolean,
     isTaskQuestion: boolean,
-    location: string,
+    location: QuestionLocations,
   ) => Promise<void>
   leaveQueue: (isTaskQuestion: boolean) => Promise<void>
   onOpenTagGroupsChange: (key: string | string[]) => void
@@ -68,6 +72,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
   questions,
   questionsGettingHelp,
   pausedQuestions,
+  queueType,
   cid,
   qid,
   isStaff,
@@ -143,12 +148,14 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
       <QuestionCard
         key={question.id}
         question={question}
+        queueType={queueType}
         cid={cid}
         qid={qid}
         isStaff={isStaff}
         configTasks={configTasks}
         studentAssignmentProgress={studentAssignmentProgress}
         isMyQuestion={isMyQuestion}
+        isBeingReQueued={question.status === LimboQuestionStatus.ReQueueing}
         isPaused={isPaused}
         isBeingHelped={isBeingHelped}
       />
@@ -160,7 +167,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
   // However, this is kind of a difficult task as the Divider will need to be separate and there will likely need to be two Collapse components instead, which may mess with things.
   return (
     <div className="mb-32 md:mb-0">
-      <div className="my-2 flex items-center justify-between">
+      <div className="flex items-center justify-between md:my-2">
         {questions?.length === 0 ? (
           <div className="text-xl font-medium text-gray-900">
             There are no questions in the queue

@@ -1,8 +1,10 @@
 import {
   ConfigTasks,
+  LimboQuestionStatus,
   OpenQuestionStatus,
   parseTaskIdsFromQuestionText,
   Question,
+  QueueTypes,
   StudentAssignmentProgress,
 } from '@koh/common'
 import { Card, Col, Row, Tooltip } from 'antd'
@@ -24,10 +26,12 @@ interface QuestionCardProps {
   cid: number
   qid: number
   isStaff: boolean
+  queueType: QueueTypes
   studentAssignmentProgress?: StudentAssignmentProgress
   configTasks?: ConfigTasks
   isMyQuestion?: boolean
   isBeingHelped?: boolean
+  isBeingReQueued?: boolean
   isPaused?: boolean
   className?: string // used to highlight questions or add other classes
 }
@@ -37,10 +41,12 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   cid,
   qid,
   isStaff,
+  queueType,
   studentAssignmentProgress,
   configTasks,
   isMyQuestion,
   isBeingHelped,
+  isBeingReQueued,
   isPaused,
   className,
 }) => {
@@ -73,10 +79,19 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   }, [isBeingHelped, question, isPaused])
 
   return (
-    <Tooltip title={isMyQuestion ? 'This is your question.' : ''}>
+    <Tooltip
+      title={
+        isBeingReQueued
+          ? `${isMyQuestion ? 'You are' : 'This student is'} not quite ready to meet yet and ${isMyQuestion ? 'are' : 'is'} in the process of requeuing. Until ${isMyQuestion ? 'you' : 'they'} do, other students will be served first.`
+          : isMyQuestion
+            ? 'This is your question.'
+            : ''
+      }
+    >
       <Card
         className={cn(
-          'mb-2 self-stretch rounded-md px-2 text-gray-600 shadow-md ',
+          'mb-2 rounded-md px-2 text-gray-600 shadow-md ',
+          isBeingHelped ? 'mt-4 border border-green-600/40 md:mt-3 ' : '',
           isBeingHelped || isPaused ? 'mt-3 border md:mt-2' : '',
           isBeingHelped ? 'border-green-600/40 bg-green-50' : '',
           isPaused ? 'border-amber-600/40 bg-amber-50' : '',
@@ -87,6 +102,10 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           isMyQuestion && isPaused
             ? 'bg-gradient-to-r from-teal-100 via-amber-50 to-amber-50'
             : '',
+          isMyQuestion && !isBeingReQueued ? 'bg-teal-200/25' : 'bg-white',
+          isBeingReQueued
+            ? 'greyscale mt-3 border-gray-300 bg-gray-200/20 text-gray-400 md:mt-2'
+            : ' ',
           className,
         )}
         classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
@@ -98,6 +117,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 size={46}
                 username={question.creator.name}
                 photoURL={question.creator.photoURL}
+                className={isBeingReQueued ? 'grayscale' : ''}
               />
             </Col>
           )}
@@ -145,33 +165,43 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 }
               </div>
             ) : (
-              <Tooltip // only show tooltip if text is too long TODO: replace with expand card details feature
-                title={
-                  question.text && question.text.length > 110
-                    ? question.text
-                    : ''
-                }
-                overlayStyle={{ maxWidth: '60em' }}
-              >
-                <div
-                  style={
-                    {
-                      // shorten question text dynamically
-                      display: '-webkit-box',
-                      WebkitLineClamp: 1,
-                      WebkitBoxOrient: 'vertical',
-                      textOverflow: 'ellipsis',
-                      overflow: 'hidden',
-                      maxWidth: '55em',
-                    } as React.CSSProperties
+              <>
+                <Tooltip // only show tooltip if text is too long TODO: replace with expand card details feature
+                  title={
+                    question.text && question.text.length > 110
+                      ? question.text
+                      : ''
                   }
+                  overlayStyle={{ maxWidth: '60em' }}
                 >
-                  {question.text}
-                </div>
-              </Tooltip>
+                  <div
+                    style={
+                      {
+                        // shorten question text dynamically
+                        display: '-webkit-box',
+                        WebkitLineClamp: 1,
+                        WebkitBoxOrient: 'vertical',
+                        textOverflow: 'ellipsis',
+                        overflow: 'hidden',
+                        maxWidth: '55em',
+                      } as React.CSSProperties
+                    }
+                  >
+                    {question.text}
+                  </div>
+                </Tooltip>
+              </>
             )}
             {isStaff && (
-              <div className="mr-1 mt-0.5 inline-block min-w-[120px] text-sm italic text-gray-600">
+              <div
+                className={cn(
+                  'itali mr-1 mt-0.5 inline-block min-w-[120px] text-sm',
+                  isBeingReQueued ? 'text-gray-400' : 'text-gray-600',
+                )}
+              >
+                {queueType === 'hybrid' && (
+                  <i>{`[${question.location ?? 'Unselected'}] `}</i>
+                )}
                 {question.creator.name}
               </div>
             )}
@@ -180,29 +210,33 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               <QuestionTagElement
                 key={index}
                 tagName={questionType.name}
-                tagColor={questionType.color}
+                tagColor={!isBeingReQueued ? questionType.color : '#f0f0f0'}
               />
             ))}
           </Col>
           <Col flex={'0.1 1 auto'}>
-            {(isBeingHelped || isPaused) && !isStaff && (
+            {(isBeingHelped || isPaused || isBeingReQueued) && !isStaff && (
               <Row justify={'end'}>
                 <div
                   className={cn(
                     'text-sm',
                     isPaused ? 'text-amber-400' : '',
                     isBeingHelped ? 'text-green-700' : '',
+                    isBeingReQueued ? 'italic' : '',
                   )}
                 >
                   {isPaused && 'Currently Paused'}
                   {isBeingHelped && 'Being Served'}
+                  {isBeingReQueued && 'Not Ready'}
                 </div>
               </Row>
             )}
             <Row
               justify={'end'}
               className={cn(
-                !isBeingHelped && !isPaused ? 'h-[2.5rem]' : '',
+                !isBeingHelped && !isPaused && !isBeingReQueued
+                  ? 'h-[2.5rem]'
+                  : '',
                 'gap-1',
               )}
             >
@@ -234,25 +268,32 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               </Col>
               {!isStaff && (
                 <Col flex="0 0 2rem">
-                  <div className="flex justify-end text-sm text-gray-600">
+                  <div className="flex justify-end text-nowrap text-sm text-gray-600">
                     {getWaitTime(question)}
                   </div>
                 </Col>
               )}
             </Row>
           </Col>
-          {isStaff && (
-            <Col className="w-full sm:w-auto">
-              <TAQuestionCardButtons
-                courseId={cid}
-                queueId={qid}
-                question={question}
-                hasUnresolvedRephraseAlert={false}
-                tasksSelectedForMarking={tasksSelectedForMarking}
-                className="align-center flex items-center justify-around"
-              />
-            </Col>
-          )}
+          {isStaff &&
+            (question.status !== LimboQuestionStatus.ReQueueing ? (
+              <Col className="w-full sm:w-auto">
+                <TAQuestionCardButtons
+                  courseId={cid}
+                  queueId={qid}
+                  question={question}
+                  hasUnresolvedRephraseAlert={false}
+                  tasksSelectedForMarking={tasksSelectedForMarking}
+                  className="align-center flex items-center justify-around"
+                />
+              </Col>
+            ) : (
+              <Col className="w-full sm:w-auto">
+                <div className="text-md ml-0 h-full text-center italic text-gray-500 sm:ml-2">
+                  Not Ready
+                </div>
+              </Col>
+            ))}
         </Row>
       </Card>
     </Tooltip>

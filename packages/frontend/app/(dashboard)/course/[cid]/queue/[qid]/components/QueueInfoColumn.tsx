@@ -8,6 +8,7 @@ import {
   NotificationOutlined,
   StopOutlined,
   UpOutlined,
+  EnvironmentOutlined,
 } from '@ant-design/icons'
 import { Button, Popconfirm, Row, Switch, Tooltip } from 'antd'
 import moment from 'moment'
@@ -26,6 +27,7 @@ import {
 import RenderEvery from '@/app/components/RenderEvery'
 import TagGroupSwitch from './TagGroupSwitch'
 import StaffList from './StaffList'
+import { getQueueTypeLabel } from '../utils/commonQueueFunctions'
 
 interface QueueInfoColumnProps {
   cid: number
@@ -79,14 +81,27 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
       </div>
 
       {queue?.notes && (
-        <div className="mb-0 flex flex-row items-center text-xl text-[#5f6b79] md:mb-5">
-          <NotificationOutlined />
-          <div className="max-h-[200px] w-full overflow-y-auto">
-            <Linkify>
-              <div className="ml-3 min-w-0 whitespace-pre-wrap break-words text-sm italic md:text-base">
-                {queue.notes}
-              </div>
-            </Linkify>
+        <div className="hidden sm:block">
+          <div className="mb-0 flex items-center text-xl text-[#5f6b79] md:mb-5">
+            <NotificationOutlined />
+            <div className="max-h-[200px] w-full overflow-y-auto">
+              <Linkify>
+                <div className="ml-3 min-w-0 whitespace-pre-wrap break-words text-sm italic md:text-base">
+                  {queue.notes}
+                </div>
+              </Linkify>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {queue?.type && (
+        <div className="hidden sm:block">
+          <div className="mb-0 flex items-center text-xl text-[#5f6b79] md:mb-5">
+            <EnvironmentOutlined />
+            <div className="ml-3 min-w-0 whitespace-pre-wrap break-words text-sm italic md:text-base">
+              {getQueueTypeLabel(queue.type)}
+            </div>
           </div>
         </div>
       )}
@@ -97,8 +112,8 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
         {buttons}
       </div>
 
-      <div className="flex">
-        <h3 className="my-0 text-2xl font-semibold md:mt-10">Staff</h3>
+      <div className="flex md:mt-3">
+        <h3 className="mb-0 text-2xl font-semibold">Staff</h3>
         {/* Button to hide staff list on mobile */}
         <Button
           className="sm:hidden"
@@ -120,7 +135,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
 
       {/* buttons for staff on mobile */}
       {isStaff && (
-        <div className="my-3 flex flex-wrap items-center justify-between sm:hidden">
+        <div className="my-3 flex flex-wrap items-center justify-between gap-y-2 sm:hidden">
           {buttons}
         </div>
       )}
@@ -162,17 +177,25 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
       )}
 
       {/* mobile only */}
-      <div className="mt-3 flex items-center justify-between sm:hidden">
-        {!isStaff && hasDemos && buttons}
+      <div className="mt-5 flex w-full items-center justify-around gap-y-2 sm:hidden">
+        {!isStaff && buttons}
       </div>
-      <div className="mt-3 flex items-center justify-between sm:hidden">
-        <div className="flex flex-col">
+      <div className="mt-2 flex w-full items-center justify-between sm:hidden">
+        <div className="flex w-full flex-col gap-2">
           <h3 className="my-0 text-2xl font-semibold">
             {tagGroupsEnabled ? 'Queue Groups By Tag' : 'Queue'}
           </h3>
-          <Row>
+          <Row className="box-border flex w-full flex-row justify-between px-2">
+            {queue?.type && (
+              <div className="mb-0 flex items-center text-xl text-[#5f6b79] md:mb-5">
+                <EnvironmentOutlined />
+                <div className="ml-3 min-w-0 whitespace-pre-wrap break-words text-sm italic md:text-base">
+                  {getQueueTypeLabel(queue?.type)}
+                </div>
+              </div>
+            )}
             <QueueUpToDateInfo queueId={queueId} />
-            {!hasDemos &&
+            {queue &&
             !(
               queue?.config?.fifo_queue_view_enabled === false ||
               queue?.config?.tag_groups_queue_view_enabled === false
@@ -185,22 +208,16 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
               />
             ) : null}
           </Row>
+          {queue?.notes && queue?.notes.length > 0 && (
+            <div className="flex max-h-[200px] w-full items-center overflow-y-auto px-2 text-xl text-[#5f6b79] sm:hidden">
+              <Linkify>
+                <div className="min-w-0 whitespace-pre-wrap break-words text-sm italic md:text-base">
+                  {`Notes: ${queue?.notes}`}
+                </div>
+              </Linkify>
+            </div>
+          )}
         </div>
-        <div>
-          {hasDemos &&
-          !(
-            queue?.config?.fifo_queue_view_enabled === false ||
-            queue?.config?.tag_groups_queue_view_enabled === false
-          ) ? (
-            <TagGroupSwitch
-              tagGroupsEnabled={tagGroupsEnabled}
-              setTagGroupsEnabled={setTagGroupsEnabled}
-              mobile={true}
-            />
-          ) : null}
-        </div>
-        {/* for 'Join Queue' button for students */}
-        {!isStaff && !hasDemos && buttons}
       </div>
     </div>
   )

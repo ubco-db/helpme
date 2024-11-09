@@ -1,4 +1,9 @@
-import { ListQuestionsResponse, OpenQuestionStatus, Role } from '@koh/common'
+import {
+  ListQuestionsResponse,
+  OpenQuestionStatus,
+  Role,
+  QueueTypes,
+} from '@koh/common'
 
 export function getHelpingQuestions(
   queueQuestions: ListQuestionsResponse | undefined,
@@ -30,4 +35,17 @@ export function getPausedQuestions(
       (question) => question.status == OpenQuestionStatus.Paused,
     ) ?? []
   return { pausedQuestions }
+}
+
+export const getQueueTypeLabel = (type: QueueTypes) => {
+  switch (type) {
+    case 'online':
+      return 'Online'
+    case 'hybrid':
+      return 'Hybrid'
+    case 'inPerson':
+      return 'In-Person'
+    default:
+      return 'Invalid Queue Type'
+  }
 }

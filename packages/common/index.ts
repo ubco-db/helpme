@@ -303,6 +303,9 @@ export interface Queue {
   allowQuestions: boolean
 }
 
+// Queue location/type for different queues within each course
+export type QueueTypes = 'online' | 'hybrid' | 'inPerson'
+
 /**
  * A Queue partial to be shown on the course page. It's like the full Queue object but without the questions.
  * @param id - The unique id number for a Queue.
@@ -334,9 +337,13 @@ export class QueuePartial {
 
   allowQuestions!: boolean
 
+  type!: QueueTypes
+
   isProfessorQueue!: boolean
 
   config?: QueueConfig
+
+  zoomLink?: string
 }
 
 /**
@@ -451,7 +458,7 @@ export class Question {
 
   groupable!: boolean
 
-  location?: string
+  location?: QuestionLocations
 
   isTaskQuestion?: boolean
 }
@@ -506,6 +513,7 @@ export enum resolutionSource {
 export const StatusInQueue = [
   OpenQuestionStatus.Drafting,
   OpenQuestionStatus.Queued,
+  LimboQuestionStatus.ReQueueing,
 ]
 
 export const StatusInPriorityQueue = [OpenQuestionStatus.PriorityQueued]
@@ -1132,6 +1140,8 @@ export class GetStudentQuestionResponse extends Question {
   queueId!: number
 }
 
+export type QuestionLocations = 'Online' | 'In-Person' | 'Unselected'
+
 export class CreateQuestionParams {
   @IsString()
   text!: string
@@ -1151,7 +1161,7 @@ export class CreateQuestionParams {
 
   @IsString()
   @IsOptional()
-  location?: string
+  location?: QuestionLocations
 
   @IsBoolean()
   force!: boolean
@@ -1220,10 +1230,18 @@ export class TACheckoutResponse {
 export class UpdateQueueParams {
   @IsString()
   @IsOptional()
+  type?: QueueTypes
+
+  @IsString()
+  @IsOptional()
   notes?: string
 
   @IsBoolean()
   allowQuestions?: boolean
+
+  @IsString()
+  @IsOptional()
+  zoomLink?: string
 }
 
 export class QuestionTypeParams {
@@ -2270,7 +2288,6 @@ export const ERROR_MESSAGES = {
     courseNameTooShort: 'Course name must be at least 1 character',
     coordinatorEmailTooShort: 'Coordinator email must be at least 1 character',
     sectionGroupNameTooShort: 'Section group name must be at least 1 character',
-    zoomLinkTooShort: 'Zoom link must be at least 1 character',
     courseAlreadyRegistered: 'One or more of the courses is already registered',
     courseNotFound: 'The course was not found',
     sectionGroupNotFound: 'One or more of the section groups was not found',

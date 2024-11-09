@@ -24,7 +24,10 @@ const HELPING_TRANSITIONS: AllowableTransitions = {
     OpenQuestionStatus.Paused,
     LimboQuestionStatus.TADeleted,
   ],
-  student: [ClosedQuestionStatus.ConfirmedDeleted],
+  student: [
+    ClosedQuestionStatus.ConfirmedDeleted,
+    LimboQuestionStatus.ReQueueing,
+  ],
 };
 
 export const QUESTION_STATES: Record<QuestionStatus, AllowableTransitions> = {
