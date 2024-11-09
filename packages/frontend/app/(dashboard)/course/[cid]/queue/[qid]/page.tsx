@@ -41,7 +41,10 @@ import { useStudentAssignmentProgress } from '@/app/hooks/useStudentAssignmentPr
 import QuestionCard from './components/QuestionCard'
 import { useStudentQuestion } from '@/app/hooks/useStudentQuestion'
 import { isCheckedIn } from '../../utils/commonCourseFunctions'
-import { getHelpingQuestions } from './utils/commonQueueFunctions'
+import {
+  getHelpingQuestions,
+  getPausedQuestions,
+} from './utils/commonQueueFunctions'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { useLocalStorage } from '@/app/hooks/useLocalStorage'
 import QueueInfoColumn from './components/QueueInfoColumn'
@@ -141,6 +144,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     userInfo.id,
     role,
   )
+  const { pausedQuestions } = getPausedQuestions(queueQuestions, role)
 
   const resetClickedZoomModal = useCallback(() => {
     if (studentQuestion?.status !== OpenQuestionStatus.Helping) {
@@ -252,7 +256,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           text: text || '',
           questionTypes: questionTypes,
           queueId: qid,
-          location: (location ?? isQueueHybrid) ? 'Unselected' : undefined,
+          location: location ?? isQueueHybrid ? 'Unselected' : undefined,
           force: force,
           groupable: false,
           isTaskQuestion,
@@ -724,11 +728,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
         <RenderQueueInfoCol />
         <VerticalDivider />
         <div className="flex-grow md:mt-8">
-          {isStaff && helpingQuestions && helpingQuestions.length > 0 ? (
+          {isStaff ? (
             <>
-              {helpingQuestions.filter(
-                (q) => q.status !== OpenQuestionStatus.Paused,
-              ).length > 0 && (
+              {helpingQuestions.length > 0 && (
                 <>
                   <div className="flex items-center justify-between">
                     <QueueHeader
@@ -791,29 +793,25 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       </Tooltip>
                     )}
                   </div>
-                  {helpingQuestions
-                    .filter((q) => q.status !== OpenQuestionStatus.Paused)
-                    .map((question: Question) => {
-                      return (
-                        <QuestionCard
-                          key={question.id}
-                          question={question}
-                          queueType={queue.type}
-                          cid={cid}
-                          qid={qid}
-                          configTasks={configTasks}
-                          studentAssignmentProgress={studentAssignmentProgress}
-                          isStaff={isStaff}
-                          isBeingHelped={true}
-                        />
-                      )
-                    })}
+                  {helpingQuestions.map((question: Question) => {
+                    return (
+                      <QuestionCard
+                        key={question.id}
+                        question={question}
+                        cid={cid}
+                        queueType={queue.type}
+                        qid={qid}
+                        configTasks={configTasks}
+                        studentAssignmentProgress={studentAssignmentProgress}
+                        isStaff={isStaff}
+                        isBeingHelped={true}
+                      />
+                    )
+                  })}
                   <Divider className={'my-4'} />
                 </>
               )}
-              {helpingQuestions.filter(
-                (q) => q.status == OpenQuestionStatus.Paused,
-              ).length > 0 && (
+              {pausedQuestions && pausedQuestions.length > 0 && (
                 <>
                   <div className="flex items-center justify-between">
                     <QueueHeader
@@ -821,23 +819,21 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       visibleOnDesktopOrMobile="both"
                     />
                   </div>
-                  {helpingQuestions
-                    .filter((q) => q.status === OpenQuestionStatus.Paused)
-                    .map((question: Question) => (
-                      <QuestionCard
-                        className={'bg-amber-50'}
-                        key={question.id}
-                        question={question}
-                        queueType={queue.type}
-                        cid={cid}
-                        qid={qid}
-                        configTasks={configTasks}
-                        studentAssignmentProgress={studentAssignmentProgress}
-                        isStaff={isStaff}
-                        isBeingHelped={true}
-                        isPaused={true}
-                      />
-                    ))}
+                  {pausedQuestions.map((question: Question) => (
+                    <QuestionCard
+                      className={'bg-amber-50'}
+                      key={question.id}
+                      question={question}
+                      cid={cid}
+                      qid={qid}
+                      configTasks={configTasks}
+                      queueType={queue.type}
+                      studentAssignmentProgress={studentAssignmentProgress}
+                      isStaff={isStaff}
+                      isBeingHelped={true}
+                      isPaused={true}
+                    />
+                  ))}
                   <Divider className={'my-4'} />
                 </>
               )}
@@ -855,7 +851,15 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           ) : null}
           <QueueQuestions
             questions={queueQuestions.questions}
-            questionsGettingHelp={queueQuestions.questionsGettingHelp}
+            /*
+              The reason there are filters here is because students need to be able to see these too
+            */
+            questionsGettingHelp={queueQuestions.questionsGettingHelp.filter(
+              (q) => q.status == 'Helping',
+            )}
+            pausedQuestions={queueQuestions.questionsGettingHelp.filter(
+              (q) => q.status == 'Paused',
+            )}
             cid={cid}
             qid={qid}
             queueType={queue.type}

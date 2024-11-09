@@ -226,7 +226,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                   )}
                 >
                   {isPaused && 'Currently Paused'}
-                  {isBeingHelped && 'Currently Being Served'}
+                  {isBeingHelped && 'Being Served'}
                   {isBeingReQueued && 'Not Ready'}
                 </div>
               </Row>
@@ -240,7 +240,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 'gap-1',
               )}
             >
-              <Col flex="1 0 3rem">
+              <Col flex="1 0 2rem">
                 {isStaff && (
                   <div className="flex justify-end text-sm text-gray-600">
                     {getWaitTime(question)}
@@ -267,7 +267,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 )}
               </Col>
               {!isStaff && (
-                <Col flex="0 0 3rem">
+                <Col flex="0 0 2rem">
                   <div className="flex justify-end text-sm text-gray-600">
                     {getWaitTime(question)}
                   </div>

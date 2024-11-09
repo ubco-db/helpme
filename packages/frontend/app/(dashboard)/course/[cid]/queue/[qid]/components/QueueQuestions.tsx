@@ -28,6 +28,7 @@ const Panel = Collapse.Panel
 interface QueueQuestionsProps {
   questions: Question[]
   questionsGettingHelp: Question[]
+  pausedQuestions: Question[]
   queueType: QueueTypes
   cid: number
   qid: number
@@ -70,6 +71,7 @@ interface QueueQuestionsProps {
 const QueueQuestions: React.FC<QueueQuestionsProps> = ({
   questions,
   questionsGettingHelp,
+  pausedQuestions,
   queueType,
   cid,
   qid,
@@ -317,10 +319,16 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
         </Collapse>
       ) : (
         <>
-          {!isStaff &&
-            questionsGettingHelp.map((question: Question) =>
-              renderQuestion(question),
-            )}
+          {!isStaff && (
+            <>
+              {questionsGettingHelp.map((question: Question) =>
+                renderQuestion(question),
+              )}
+              {pausedQuestions.map((question: Question) =>
+                renderQuestion(question),
+              )}
+            </>
+          )}
           {questions.map((question: Question) => renderQuestion(question))}
         </>
       )}
