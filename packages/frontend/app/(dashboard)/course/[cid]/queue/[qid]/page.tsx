@@ -647,7 +647,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 <JoinQueueButton
                   id="join-queue-button"
                   loading={isJoinQueueModalLoading}
-                  className={!isDemoQueue ? 'w-[90%] md:w-full' : undefined}
+                  className={!isDemoQueue ? 'w-[90%] md:w-full' : 'mx-2'}
                   disabled={
                     !queue?.allowQuestions ||
                     queue?.isDisabled ||
@@ -680,32 +680,31 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                         : ''
                   }
                 >
-                  <div>
-                    <JoinQueueButton
-                      id="join-queue-button-demo"
-                      loading={isCreateDemoModalLoading}
-                      disabled={
-                        !queue?.allowQuestions ||
-                        queue?.isDisabled ||
-                        isJoinQueueModalLoading ||
-                        queue.staffList.length < 1 ||
-                        !!studentDemo
-                      }
-                      onClick={() => {
-                        setIsCreateDemoModalLoading(true)
-                        joinQueueOpenModal(false, true)
-                        // fallback: After 3s, if the modal hasn't opened, stop the loading state
-                        setTimeout(() => {
-                          if (isCreateDemoModalLoading) {
-                            setIsCreateDemoModalLoading(false)
-                          }
-                        }, 3000)
-                      }}
-                      icon={<ListTodoIcon aria-hidden="true" />}
-                    >
-                      Create Demo
-                    </JoinQueueButton>
-                  </div>
+                  <JoinQueueButton
+                    id="join-queue-button-demo"
+                    loading={isCreateDemoModalLoading}
+                    className="mx-2"
+                    disabled={
+                      !queue?.allowQuestions ||
+                      queue?.isDisabled ||
+                      isJoinQueueModalLoading ||
+                      queue.staffList.length < 1 ||
+                      !!studentDemo
+                    }
+                    onClick={() => {
+                      setIsCreateDemoModalLoading(true)
+                      joinQueueOpenModal(false, true)
+                      // fallback: After 3s, if the modal hasn't opened, stop the loading state
+                      setTimeout(() => {
+                        if (isCreateDemoModalLoading) {
+                          setIsCreateDemoModalLoading(false)
+                        }
+                      }, 3000)
+                    }}
+                    icon={<ListTodoIcon aria-hidden="true" />}
+                  >
+                    Create Demo
+                  </JoinQueueButton>
                 </Tooltip>
               )}
             </>
@@ -727,12 +726,12 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
         <title>{`HelpMe | ${course.name} - ${queue.room}`}</title>
         <RenderQueueInfoCol />
         <VerticalDivider />
-        <div className="flex-grow md:mt-8">
+        <div className="flex-grow">
           {isStaff ? (
             <>
               {helpingQuestions.length > 0 && (
                 <>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between md:mt-2">
                     <QueueHeader
                       text="You are Currently Helping"
                       visibleOnDesktopOrMobile="both"

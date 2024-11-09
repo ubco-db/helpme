@@ -104,7 +104,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             : '',
           isMyQuestion && !isBeingReQueued ? 'bg-teal-200/25' : 'bg-white',
           isBeingReQueued
-            ? 'greyscale mt-3 border-gray-300 bg-gray-200 text-gray-400 md:mt-2'
+            ? 'greyscale mt-3 border-gray-300 bg-gray-200/20 text-gray-400 md:mt-2'
             : ' ',
           className,
         )}
@@ -268,7 +268,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
               </Col>
               {!isStaff && (
                 <Col flex="0 0 2rem">
-                  <div className="flex justify-end text-sm text-gray-600">
+                  <div className="flex justify-end text-nowrap text-sm text-gray-600">
                     {getWaitTime(question)}
                   </div>
                 </Col>
