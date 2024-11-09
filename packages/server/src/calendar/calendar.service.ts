@@ -442,7 +442,7 @@ export class CalendarService implements OnModuleInit {
         const tenMinutes = 10 * 60 * 1000;
         const resolveDate = alert.resolved;
         const nextRun = new Date(resolveDate.getTime() + tenMinutes);
-        if (now < nextRun) {
+        if (now > nextRun) {
           // somehow, the alert was resolved *after* the 10min mark (When they should've been checked out)
           // in which case, catch error and return
           console.error(
@@ -455,6 +455,8 @@ export class CalendarService implements OnModuleInit {
         }
         // create a new cron job
         const jobName = `auto-checkout-loop-${userId}-${calendarId}`;
+        // delete the current cron job and add a new one
+        this.schedulerRegistry.deleteCronJob(jobName);
         const job = new CronJob(nextRun, () => {
           this.autoCheckoutResponseLoop(userId, calendarId, courseId, alertId);
         });
