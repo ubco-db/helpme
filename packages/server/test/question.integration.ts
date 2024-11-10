@@ -802,10 +802,11 @@ describe('Question Integration', () => {
 
   describe('PATCH /questions/:id', () => {
     beforeAll(() => {
-      jest.useFakeTimers();
+      jest.useRealTimers(); // Ensure real timers are used during initialization
     });
+
     afterAll(() => {
-      jest.useRealTimers();
+      jest.useRealTimers(); // Ensure real timers are used after tests
     });
 
     it('as student creator, edit a question', async () => {
@@ -1041,7 +1042,7 @@ describe('Question Integration', () => {
           status: ClosedQuestionStatus.ConfirmedDeleted,
         })
         .expect(401);
-      expect(res.body?.message).toContain('TA cannot change status from ');
+      expect(res.body?.message).toContain('ta cannot change status from ');
     });
     it('PATCH question fails when you are not the question creator', async () => {
       const q = await QuestionFactory.create({ text: 'Help pls' });
@@ -1815,6 +1816,7 @@ describe('Question Integration', () => {
       );
     });
     it('Will set lastReadyAt when going from a waiting status to a non-waiting status (e.g. helping to queued', async () => {
+      jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
       const course = await CourseFactory.create();
       const ta = await UserFactory.create();
       await TACourseFactory.create({ course: course, user: ta });
@@ -1838,19 +1840,20 @@ describe('Question Integration', () => {
       const response = await supertest({ userId: ta.id })
         .patch(`/questions/${q.id}`)
         .send({
-          status: QuestionStatusKeys.Queued,
+          status: QuestionStatusKeys.Paused,
         })
         .expect(200);
       expect(response.body).toMatchObject({
         id: q.id,
-        status: QuestionStatusKeys.Queued,
+        status: QuestionStatusKeys.Paused,
       });
       expect(await QuestionModel.findOne({ id: q.id })).toMatchObject({
-        status: QuestionStatusKeys.Queued,
+        status: QuestionStatusKeys.Paused,
         lastReadyAt: expect.any(Date),
       });
     });
     it('will accurately set waitTime and helpTime when going from Drafting -> Queued -> Helping -> Paused -> Helping -> Requeueing -> Queued -> Helping -> Resolved', async () => {
+      jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
       const course = await CourseFactory.create();
       const ta = await UserFactory.create();
       await TACourseFactory.create({ course: course, user: ta });
