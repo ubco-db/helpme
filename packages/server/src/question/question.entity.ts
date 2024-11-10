@@ -70,7 +70,7 @@ export class QuestionModel extends BaseEntity {
   // Stores how long the question has been waiting for help.
   // Only gets set on status change, so it will be fine to display this for done questions (e.g. in insights),
   // but for questions currently in the queue, you need to calculate the actual wait time as waitTime + (now - lastReadyAt)
-  @Column({ default: 0 })
+  @Column('integer', { default: 0 })
   waitTime: number; // in seconds
 
   // When the question was last helped (getting help again overwrites) - alterative name is lastHelpedAt
@@ -80,7 +80,7 @@ export class QuestionModel extends BaseEntity {
   // Stores how long the question has been helped for (since just doing closedAt - helpedAt is not accurate as a question can be helped multiple times)
   // Only gets set on status change, so it will be fine to display this for done questions (e.g. in insights),
   // but for questions currently in the queue, you need to calculate the actual help time as helpTime + (now - helpedAt)
-  @Column({ default: 0 })
+  @Column('integer', { default: 0 })
   helpTime: number; // in seconds
 
   // When the question leaves the queue

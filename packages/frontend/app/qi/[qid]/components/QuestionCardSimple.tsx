@@ -4,11 +4,7 @@ import {
   Question,
 } from '@koh/common'
 import { Card, Col, Row, Tooltip } from 'antd'
-import {
-  getPausedTime,
-  getServedTime,
-  getWaitTime,
-} from '@/app/utils/timeFormatUtils'
+import { getServedTime, getWaitTime } from '@/app/utils/timeFormatUtils'
 import { QuestionTagElement } from '@/app/(dashboard)/course/[cid]/components/QuestionTagElement'
 import { useState, useEffect } from 'react'
 import { cn } from '@/app/utils/generalUtils'
@@ -36,18 +32,14 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
     : [] // gives an array of "part1","part2",etc.
 
   const [servedTime, setServedTime] = useState(getServedTime(question))
-  const [pausedTime, setPausedTime] = useState(getPausedTime(question))
   useEffect(() => {
     if (isBeingHelped && question.helpedAt && !isPaused) {
       const interval = setInterval(() => {
         setServedTime(getServedTime(question))
       }, 1000)
       return () => clearInterval(interval)
-    } else if (isPaused && question.pausedAt) {
-      const interval = setInterval(() => {
-        setPausedTime(getPausedTime(question))
-      }, 1000)
-      return () => clearInterval(interval)
+    } else if (isPaused) {
+      setServedTime(getServedTime(question))
     }
   }, [isBeingHelped, question, isPaused])
 
@@ -150,8 +142,7 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
                     'text-sm font-medium',
                   )}
                 >
-                  {isPaused && pausedTime}
-                  {isBeingHelped && servedTime}
+                  {(isBeingHelped || isPaused) && servedTime}
                 </div>
               )}
             </Col>

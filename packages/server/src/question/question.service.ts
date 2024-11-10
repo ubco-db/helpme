@@ -36,11 +36,12 @@ export class QuestionService {
     status: QuestionStatus,
     question: QuestionModel,
     userId: number,
+    myRole: Role.STUDENT | Role.TA,
   ): Promise<void> {
     const oldStatus = question.status;
     const newStatus = status;
     // If the taHelped is already set, make sure the same ta updates the status
-    if (question.taHelped?.id !== userId) {
+    if (myRole === Role.TA && question.taHelped?.id !== userId) {
       if (oldStatus === OpenQuestionStatus.Helping) {
         throw new UnauthorizedException(
           ERROR_MESSAGES.questionController.updateQuestion.otherTAHelping,
@@ -53,13 +54,13 @@ export class QuestionService {
       }
     }
 
-    const validTransition = question.changeStatus(newStatus, Role.TA);
+    const validTransition = question.changeStatus(newStatus, myRole);
     if (!validTransition) {
       throw new UnauthorizedException(
         ERROR_MESSAGES.questionController.updateQuestion.fsmViolation(
-          'TA',
-          question.status,
-          status,
+          myRole,
+          oldStatus,
+          newStatus,
         ),
       );
     }
@@ -82,6 +83,10 @@ export class QuestionService {
     if (isBecomingHelped) {
       question.taHelped = await UserModel.findOne({ where: { id: userId } });
       question.helpedAt = now;
+      if (!question.lastReadyAt) {
+        // failsafe in case for some reason lastReadyAt isn't set
+        question.lastReadyAt = question.createdAt;
+      }
       question.waitTime =
         question.waitTime +
         Math.round((now.getTime() - question.lastReadyAt.getTime()) / 1000);

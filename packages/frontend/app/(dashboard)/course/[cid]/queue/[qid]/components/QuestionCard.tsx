@@ -12,12 +12,7 @@ import { useState, useEffect } from 'react'
 import UserAvatar from '@/app/components/UserAvatar'
 import TaskMarkingSelector from './TaskMarkingSelector'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
-import {
-  getOriginalPausedTime,
-  getPausedTime,
-  getServedTime,
-  getWaitTime,
-} from '@/app/utils/timeFormatUtils'
+import { getServedTime, getWaitTime } from '@/app/utils/timeFormatUtils'
 import TAQuestionCardButtons from './TAQuestionCardButtons'
 import { cn } from '@/app/utils/generalUtils'
 
@@ -62,7 +57,6 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   }
 
   const [servedTime, setServedTime] = useState(getServedTime(question))
-  const [pausedTime, setPausedTime] = useState(getPausedTime(question))
 
   useEffect(() => {
     if (isBeingHelped && question.helpedAt && !isPaused) {
@@ -70,11 +64,8 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
         setServedTime(getServedTime(question))
       }, 1000)
       return () => clearInterval(interval)
-    } else if (isPaused && question.pausedAt) {
-      const interval = setInterval(() => {
-        setPausedTime(getPausedTime(question))
-      }, 1000)
-      return () => clearInterval(interval)
+    } else if (isPaused) {
+      setServedTime(getServedTime(question))
     }
   }, [isBeingHelped, question, isPaused])
 
@@ -254,15 +245,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                       'font-md flex justify-end text-sm',
                     )}
                   >
-                    {isPaused && (
-                      <>
-                        <div className={'text-gray-600'}>
-                          {getOriginalPausedTime(question)}
-                        </div>
-                        <div>{isPaused ? ' +' + pausedTime : ''}</div>
-                      </>
-                    )}
-                    {isBeingHelped && servedTime}
+                    {(isBeingHelped || isPaused) && servedTime}
                   </div>
                 )}
               </Col>
