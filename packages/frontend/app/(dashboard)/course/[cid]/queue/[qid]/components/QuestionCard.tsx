@@ -96,7 +96,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           isMyQuestion && !isBeingReQueued ? 'bg-teal-200/25' : 'bg-white',
           isBeingReQueued
             ? 'greyscale mt-3 border-gray-300 bg-gray-200/20 text-gray-400 md:mt-2'
-            : ' ',
+            : '',
           className,
         )}
         classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
@@ -211,12 +211,12 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 <div
                   className={cn(
                     'text-sm',
-                    isPaused ? 'text-amber-400' : '',
+                    isPaused ? 'mr-6 text-amber-400' : '',
                     isBeingHelped ? 'text-green-700' : '',
                     isBeingReQueued ? 'italic' : '',
                   )}
                 >
-                  {isPaused && 'Currently Paused'}
+                  {isPaused && 'Paused'}
                   {isBeingHelped && 'Being Served'}
                   {isBeingReQueued && 'Not Ready'}
                 </div>
@@ -242,7 +242,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                     className={cn(
                       isBeingHelped ? 'text-green-700' : '',
                       isPaused ? 'text-amber-400' : '',
-                      'font-md flex justify-end text-sm',
+                      'flex justify-end text-sm font-medium',
                     )}
                   >
                     {(isBeingHelped || isPaused) && servedTime}
