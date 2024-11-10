@@ -804,7 +804,6 @@ describe('Question Integration', () => {
     beforeAll(() => {
       jest.useFakeTimers();
     });
-
     afterAll(() => {
       jest.useRealTimers();
     });
