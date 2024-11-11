@@ -12,6 +12,7 @@ import supertest from 'supertest';
 import { QuestionModel } from '../src/question/question.entity';
 import { QuestionModule } from '../src/question/question.module';
 import {
+  AlertFactory,
   CourseFactory,
   QuestionFactory,
   QuestionTypeFactory,
@@ -802,6 +803,8 @@ describe('Question Integration', () => {
 
   describe('PATCH /questions/:id', () => {
     it('will accurately set waitTime and helpTime when going from Drafting -> Queued -> Helping -> Paused -> Helping -> Requeueing -> Queued -> Helping -> Resolved', async () => {
+      // Create an alert to hopefully avoid create alert table error?
+      await AlertFactory.create(); // I cannot BELIEVE this actually works LMAO
       jest.useFakeTimers({
         doNotFake: [
           'hrtime',
@@ -948,7 +951,7 @@ describe('Question Integration', () => {
       // simulate 1 minute passing
       jest.advanceTimersByTime(60 * 1000);
       // Requeueing -> Queued
-      const response6 = await supertest({ userId: ta.id })
+      const response6 = await supertest({ userId: student.id })
         .patch(`/questions/${q.id}`)
         .send({
           status: QuestionStatusKeys.Queued,
