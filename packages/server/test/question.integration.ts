@@ -805,6 +805,14 @@ describe('Question Integration', () => {
     it('will accurately set waitTime and helpTime when going from Drafting -> Queued -> Helping -> Paused -> Helping -> Requeueing -> Queued -> Helping -> Resolved', async () => {
       // Create an alert to hopefully avoid create alert table error?
       await AlertFactory.create(); // I cannot BELIEVE this actually works LMAO
+      // for context, this test uses jest.advanceTimersByTime to simulate time passing in order to see if waitTime and helpTime are increasing correctly.
+      // For some reason, jest's fakeTimers break dates for typeorm/postgres in certain cases.
+      // And typeorm seems to only create tables as they are needed.
+      // So, when the status changes on one of these questions, an alert is made (e.g. Queued -> Helping "You are now being helped!"),
+      // and since it's the first alert, typeorm attempts to create a table with a Date column, but that fails because jest's fakeTimers broke the dates.
+      // Hence, by doing await AlertFactory.create(), it ensures that the alert table is already created before jest breaks the dates.
+      // Or at least that's what I think is happening.
+      // To those reading this, I hope you enjoyed this little gem <3
       jest.useFakeTimers({
         doNotFake: [
           'hrtime',
@@ -822,11 +830,10 @@ describe('Question Integration', () => {
           'setTimeout',
           'clearTimeout',
         ],
-        now: new Date('2024-01-01'),
+        // set time to be 12pm (midday) so that hopefully no cron jobs or something weird runs
+        now: new Date('2024-01-01T12:00:00Z'),
         advanceTimers: true,
-      }); //.setSystemTime(new Date("2024-01-01"));;
-      // set time to be 12pm (midday) so that hopefully no cron jobs or something weird runs
-      jest.setSystemTime(new Date('2024-01-01T12:00:00Z'));
+      });
       const course = await CourseFactory.create();
       const ta = await UserFactory.create();
       await TACourseFactory.create({ course: course, user: ta });

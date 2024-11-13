@@ -6,6 +6,5 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
-  "moduleDirectories": ["node_modules", "src"],
-  "testTimeout": 30000
+  "moduleDirectories": ["node_modules", "src"]
 }
