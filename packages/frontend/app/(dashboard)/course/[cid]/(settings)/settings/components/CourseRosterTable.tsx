@@ -44,7 +44,8 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
   const [page, setPage] = useState(1)
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
-  const [users, setUsers] = useState<any>([])
+  const [users, setUsers] = useState<UserPartial[]>([])
+  const [totalUsers, setTotalUsers] = useState<number>(0)
   const [isSensitiveInfoHidden, setIsSensitiveInfoHidden] = useState(
     hideSensitiveInformation,
   )
@@ -64,15 +65,16 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
   const fetchUsers = async () => {
     const data = await API.course.getUserInfo(courseId, page, role, search)
     setUsers(data.users)
+    setTotalUsers(data.total)
   }
 
   useEffect(() => {
-    fetchUsers()
+    fetchUsers().then()
   }, [page, search, role, courseId])
 
   // everytime updateFlag changes, refresh the tables
   useEffect(() => {
-    fetchUsers()
+    fetchUsers().then()
   }, [updateFlag])
 
   const handleRoleChange = async (
@@ -255,12 +257,12 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
             bordered
           />
         </div>
-        {users.total > 50 && (
+        {totalUsers > 50 && (
           <Pagination
             style={{ float: 'right' }}
             current={page}
             pageSize={50}
-            total={users.total}
+            total={totalUsers}
             onChange={(page) => setPage(page)}
             showSizeChanger={false}
           />

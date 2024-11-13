@@ -9,6 +9,7 @@
     "lint": "eslint packages/ --ext .ts,.tsx .",
     "test": "yarn workspace @koh/server test",
     "test:cov": "yarn workspace @koh/server test:cov",
+    "test:update-snapshots": "yarn workspace @koh/server test:update-snapshots",
     "typeorm": "yarn workspace @koh/server typeorm",
     "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider concurrently -n \"server,frontend,proxy\" \"yarn workspace @koh/server dev\" \"yarn workspace @koh/frontend dev\" \"yarn dev:proxy\"",
     "dev:proxy": "node infrastructure/dev/devProxy.js",

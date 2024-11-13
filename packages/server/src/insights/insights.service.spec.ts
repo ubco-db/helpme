@@ -4,16 +4,28 @@ import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { Connection } from 'typeorm';
 import { InsightsService } from './insights.service';
 import {
-  UserCourseFactory,
-  QuestionFactory,
+  AsyncQuestionFactory,
   CourseFactory,
-  QueueFactory,
-  UserFactory,
+  InteractionFactory,
+  QuestionFactory,
   QuestionTypeFactory,
+  QueueFactory,
+  UserCourseFactory,
+  UserFactory,
+  VotesFactory,
 } from '../../test/util/factories';
 import { INSIGHTS_MAP } from './insight-objects';
-import { BarChartOutputType, SimpleTableOutputType } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
+import {
+  asyncQuestionStatus,
+  ChartOutputType,
+  ClosedQuestionStatus,
+  GanttChartOutputType,
+  MultipleGanttChartOutputType,
+  Question,
+  Role,
+  TableOutputType,
+} from '@koh/common';
 
 describe('InsightsService', () => {
   let service: InsightsService;
@@ -175,7 +187,7 @@ describe('InsightsService', () => {
           },
         ],
       });
-      expect((res as number) - 5).toBeLessThanOrEqual(0.001);
+      expect(parseFloat(res as string) - 5).toBeLessThanOrEqual(0.001);
     });
   });
 
@@ -210,7 +222,7 @@ describe('InsightsService', () => {
       ],
     });
 
-    const output = res as BarChartOutputType;
+    const output = res as ChartOutputType;
 
     const expectedQuestionTypes = [
       { questionTypeName: 'Bug', totalQuestions: 8 },
@@ -274,35 +286,541 @@ describe('InsightsService', () => {
       ],
     });
 
-    const output = res as SimpleTableOutputType;
+    const output = res as TableOutputType;
 
-    expect(output.dataSource).toEqual([
+    expect(output.data).toEqual([
       {
-        studentId: 4,
-        name: 'Jean Valjean',
+        studentName: 'Jean Valjean (4)',
         email: 'valjean.j@protonmail.com',
         questionsAsked: '110',
       },
       {
-        studentId: 2,
-        name: 'David Wright',
+        studentName: 'David Wright (2)',
         email: 'wright.da@northeastern.edu',
         questionsAsked: '20',
       },
       {
-        studentId: 3,
-        name: 'Adam Smith',
+        studentName: 'Adam Smith (3)',
         email: 'smith.a@northeastern.edu',
         questionsAsked: '10',
       },
       {
-        studentId: 1,
-        name: 'Derek Jeter',
+        studentName: 'Derek Jeter (1)',
         email: 'jeter.d@northeastern.edu',
         questionsAsked: '8',
       },
     ]);
   });
+
+  it('averageTimesByWeekDay', async () => {
+    const student = await UserFactory.create();
+    const ta = await UserFactory.create();
+    const course = await CourseFactory.create();
+    const queue = await QueueFactory.create({ course: course });
+
+    const weekdayTimes = {
+      monday: '2024-09-09',
+      tuesday: '2024-09-10',
+      wednesday: '2024-09-11',
+      thursday: '2024-09-12',
+      friday: '2024-09-13',
+    };
+
+    for (const key of Object.keys(weekdayTimes)) {
+      const index = Object.keys(weekdayTimes).indexOf(key);
+      const daytime = weekdayTimes[key];
+      const duration = 10 * (index + 1);
+      const helptime = daytime + `T08:${duration}:00.000Z`;
+      const closetime = daytime + `T08:${duration + 5}:00.000Z`;
+
+      await QuestionFactory.create({
+        creator: student,
+        taHelped: ta,
+        queue: queue,
+        status: 'Resolved',
+        createdAt: new Date(Date.parse(daytime + 'T08:00:00.000Z')),
+        helpedAt: new Date(Date.parse(helptime)),
+        firstHelpedAt: new Date(Date.parse(helptime)),
+        closedAt: new Date(Date.parse(closetime)),
+      });
+    }
+
+    const res = (await service.computeOutput({
+      insight: INSIGHTS_MAP.AverageTimesByWeekDay,
+      filters: [
+        {
+          type: 'courseId',
+          courseId: course.id,
+        },
+      ],
+    })) as ChartOutputType;
+
+    expect(res.data).toEqual([
+      {
+        weekday: 'Monday',
+        weekdayN: 1,
+        Average_Help_Time: '5.00',
+        Average_Wait_Time: '10.00',
+        Total_Time: '15.00',
+      },
+      {
+        weekday: 'Tuesday',
+        weekdayN: 2,
+        Average_Help_Time: '5.00',
+        Average_Wait_Time: '20.00',
+        Total_Time: '25.00',
+      },
+      {
+        weekday: 'Wednesday',
+        weekdayN: 3,
+        Average_Help_Time: '5.00',
+        Average_Wait_Time: '30.00',
+        Total_Time: '35.00',
+      },
+      {
+        weekday: 'Thursday',
+        weekdayN: 4,
+        Average_Help_Time: '5.00',
+        Average_Wait_Time: '40.00',
+        Total_Time: '45.00',
+      },
+      {
+        weekday: 'Friday',
+        weekdayN: 5,
+        Average_Help_Time: '5.00',
+        Average_Wait_Time: '50.00',
+        Total_Time: '55.00',
+      },
+    ]);
+    expect(res.xType).toBe('category');
+    expect(res.xKey).toBe('weekday');
+    expect(res.yKeys).toEqual([
+      'Average_Wait_Time',
+      'Average_Help_Time',
+      'Total_Time',
+    ]);
+  });
+
+  it('mostActiveTimes', async () => {
+    const student = await UserFactory.create();
+    const ta = await UserFactory.create();
+    const course = await CourseFactory.create();
+    const queue = await QueueFactory.create({ course: course });
+
+    const expected = [];
+    for (let i = 8; i <= 20; i++) {
+      const date = new Date(
+        Date.parse(`2024-09-09T${i < 10 ? '0' + i : i}:00:00.000`),
+      );
+      const minsAfterMidnight =
+        (date.getTime() - Date.parse('2024-09-09T00:00:00')) / 60000;
+      const rounded = Math.ceil(minsAfterMidnight / 15) * 15;
+
+      expected.push({
+        time: rounded,
+        Amount: 1,
+        Weekday: 1,
+      });
+
+      await QuestionFactory.create({
+        creator: student,
+        taHelped: ta,
+        queue: queue,
+        status: 'Resolved',
+        createdAt: date,
+        firstHelpedAt: date,
+        helpedAt: date,
+        closedAt: date,
+      });
+    }
+
+    const res = (await service.computeOutput({
+      insight: INSIGHTS_MAP.MostActiveTimes,
+      filters: [
+        {
+          type: 'courseId',
+          courseId: course.id,
+        },
+      ],
+    })) as GanttChartOutputType;
+
+    expect(res.data).toEqual(expected);
+    expect(res.xKey).toBe('time');
+    expect(res.yKey).toBe('Weekday');
+    expect(res.zKey).toBe('Amount');
+    expect(res.numCategories).toBe(7);
+  }, 10000);
+
+  it('helpSeekingOverTime', async () => {
+    const student = await UserFactory.create();
+    const course = await CourseFactory.create();
+    const queue = await QueueFactory.create({ course: course });
+
+    const startTime = new Date('2024-09-01T00:00:00'),
+      endTime = new Date('2024-09-30T00:00:00');
+
+    const expected = [];
+    for (let i = 0; i < 30; i++) {
+      const time = new Date(startTime.getTime() + i * 1000 * 60 * 60 * 24);
+      expected.push({
+        date: time.getTime(),
+        Questions: 1,
+        Async_Questions: 1,
+        Chatbot_Interactions: 1,
+      });
+      await QuestionFactory.create({
+        creator: student,
+        queue: queue,
+        createdAt: time,
+      });
+      await AsyncQuestionFactory.create({
+        creator: student,
+        course: course,
+        createdAt: time,
+      });
+      await InteractionFactory.create({
+        user: student,
+        course: course,
+        timestamp: time,
+      });
+    }
+
+    const res = (await service.computeOutput({
+      insight: INSIGHTS_MAP.HelpSeekingOverTime,
+      filters: [
+        {
+          type: 'courseId',
+          courseId: course.id,
+        },
+        {
+          type: 'timeframe',
+          start: startTime.toDateString(),
+          end: endTime.toDateString(),
+        },
+      ],
+    })) as ChartOutputType;
+
+    expect(res.data).toEqual(expected);
+    expect(res.xKey).toEqual('date');
+    expect(res.yKeys).toEqual([
+      'Questions',
+      'Async_Questions',
+      'Chatbot_Interactions',
+    ]);
+  }, 30000);
+
+  it('humanVsChatbot', async () => {
+    const student = await UserFactory.create();
+    const course = await CourseFactory.create();
+
+    await AsyncQuestionFactory.createList(4, {
+      creator: student,
+      course: course,
+      status: asyncQuestionStatus.AIAnsweredResolved,
+      verified: true,
+    });
+    await AsyncQuestionFactory.createList(6, {
+      creator: student,
+      course: course,
+      status: asyncQuestionStatus.AIAnswered,
+    });
+    await AsyncQuestionFactory.createList(2, {
+      creator: student,
+      course: course,
+      status: asyncQuestionStatus.AIAnsweredNeedsAttention,
+    });
+    const expectedAI = 12,
+      expectedAIVerified = 4;
+
+    await AsyncQuestionFactory.createList(3, {
+      creator: student,
+      course: course,
+      status: asyncQuestionStatus.HumanAnswered,
+      verified: true,
+    });
+    await AsyncQuestionFactory.createList(5, {
+      creator: student,
+      course: course,
+      status: asyncQuestionStatus.HumanAnswered,
+    });
+    const expectedHuman = 8,
+      expectedHumanVerified = 3;
+
+    const res = (await service.computeOutput({
+      insight: INSIGHTS_MAP.HumanVsChatbot,
+      filters: [
+        {
+          type: 'courseId',
+          courseId: course.id,
+        },
+      ],
+    })) as ChartOutputType;
+
+    expect(res.data).toEqual([
+      {
+        type: 'Human',
+        Answered: expectedHuman,
+        Verified: expectedHumanVerified,
+      },
+      {
+        type: 'Chatbot',
+        Answered: expectedAI,
+        Verified: expectedAIVerified,
+      },
+    ]);
+    expect(res.xKey).toEqual('type');
+    expect(res.yKeys).toEqual(['Answered', 'Verified']);
+  });
+
+  it('humanVsChatbotVotes', async () => {
+    const student = await UserFactory.create();
+    const students = [];
+    for (let i = 0; i < 4; i++) {
+      students.push(await UserFactory.create());
+    }
+    const course = await CourseFactory.create();
+
+    const ai_questions = await AsyncQuestionFactory.createList(4, {
+      creator: student,
+      course: course,
+      status: asyncQuestionStatus.AIAnsweredResolved,
+      verified: true,
+    });
+    for (const question of ai_questions) {
+      for (const student of students) {
+        await VotesFactory.create({
+          question,
+          user: student,
+          vote: 1,
+        });
+      }
+    }
+
+    const human_questions = await AsyncQuestionFactory.createList(4, {
+      creator: student,
+      course: course,
+      status: asyncQuestionStatus.HumanAnswered,
+      verified: true,
+    });
+    for (const question of human_questions) {
+      for (const student of students) {
+        await VotesFactory.create({
+          question,
+          user: student,
+          vote: 1,
+        });
+      }
+    }
+
+    const res = (await service.computeOutput({
+      insight: INSIGHTS_MAP.HumanVsChatbotVotes,
+      filters: [
+        {
+          type: 'courseId',
+          courseId: course.id,
+        },
+      ],
+    })) as ChartOutputType;
+
+    expect(res.data).toEqual([
+      {
+        type: 'Human',
+        Total_Score: 16,
+        Total_Votes: 16,
+      },
+      {
+        type: 'Chatbot',
+        Total_Score: 16,
+        Total_Votes: 16,
+      },
+    ]);
+    expect(res.xKey).toEqual('type');
+    expect(res.yKeys).toEqual(['Total_Score', 'Total_Votes']);
+  });
+
+  it('staffWorkload', async () => {
+    const course = await CourseFactory.create({ id: 1 });
+    const student = await UserFactory.create({ id: 0 });
+    const queue = await QueueFactory.create({ course: course });
+    await UserCourseFactory.create({
+      course: course,
+      user: student,
+      role: Role.STUDENT,
+    });
+    const tas = [];
+    for (let i = 1; i < 5; i++) {
+      tas.push(
+        await UserFactory.create({
+          id: i,
+        }),
+      );
+      await UserCourseFactory.create({
+        course: course,
+        user: tas[i],
+        role: Role.TA,
+      });
+    }
+    const weekdayTimes: { [key: string]: string } = {
+      monday: '2024-09-09T08:00:00Z',
+      tuesday: '2024-09-10T08:00:00Z',
+      wednesday: '2024-09-11T08:00:00Z',
+      thursday: '2024-09-12T08:00:00Z',
+      friday: '2024-09-13T08:00:00Z',
+    };
+    const taQuestions: { [key: number]: Question[] } = [];
+    for (const ta of tas) {
+      taQuestions[ta.id] = await QuestionFactory.createList(25, {
+        taHelpedId: ta.id,
+        creator: student,
+        status: ClosedQuestionStatus.Resolved,
+        queue,
+      });
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          const question = taQuestions[ta.id][j + i * 5];
+          const date = new Date(weekdayTimes[Object.keys(weekdayTimes)[j]]);
+          question.createdAt = new Date(date.getTime() + 5 * 60 * 1000);
+          question.helpedAt = new Date(date.getTime() + 10 * 60 * 1000);
+          question.closedAt = new Date(date.getTime() + 15 * 60 * 1000);
+        }
+      }
+    }
+
+    const res = (await service.computeOutput({
+      insight: INSIGHTS_MAP.StaffWorkload,
+      filters: [
+        {
+          type: 'courseId',
+          courseId: course.id,
+        },
+      ],
+    })) as MultipleGanttChartOutputType;
+
+    expect(res.length).toBeGreaterThan(0);
+    res.forEach((res0) => {
+      expect(res0.xKey).toEqual('time');
+      expect(res0.yKey).toEqual('Staff_Member');
+      expect(res0.zKey).toEqual('Amount');
+    });
+  }, 10000);
+
+  it('staffEfficiency', async () => {
+    const course = await CourseFactory.create({ id: 1 });
+    const student = await UserFactory.create({ id: 0 });
+    const queue = await QueueFactory.create({ course: course });
+    await UserCourseFactory.create({
+      course: course,
+      user: student,
+      role: Role.STUDENT,
+    });
+    const tas = [];
+    for (let i = 1; i < 5; i++) {
+      tas.push(
+        await UserFactory.create({
+          id: i,
+        }),
+      );
+      await UserCourseFactory.create({
+        course: course,
+        user: tas[i],
+        role: Role.TA,
+      });
+    }
+    const taQuestions: { [key: number]: Question } = [];
+    for (const ta of tas) {
+      taQuestions[ta.id] = await QuestionFactory.create({
+        taHelpedId: ta.id,
+        creator: student,
+        status: ClosedQuestionStatus.Resolved,
+        queue,
+      });
+      for (let i = 0; i < 5; i++) {
+        const question = taQuestions[ta.id];
+        const date = new Date();
+        question.createdAt = new Date(date.getTime() + 15 * 60 * 1000);
+        question.helpedAt = new Date(date.getTime() + 10 * 60 * 1000);
+        question.closedAt = new Date(date.getTime() + 15 * 60 * 1000);
+      }
+    }
+
+    const res = (await service.computeOutput({
+      insight: INSIGHTS_MAP.StaffEfficiency,
+      filters: [
+        {
+          type: 'courseId',
+          courseId: course.id,
+        },
+      ],
+    })) as ChartOutputType;
+
+    expect(res.data.length).toBeGreaterThan(0);
+    expect(res.xKey).toEqual('staffMember');
+    expect(res.yKeys).toEqual([
+      'Average_Wait_Time',
+      'Average_Help_Time',
+      'Total_Time',
+    ]);
+  }, 10000);
+
+  it('staffTotalHelped', async () => {
+    const course = await CourseFactory.create({ id: 1 });
+    const student = await UserFactory.create({ id: 0 });
+    const queue = await QueueFactory.create({ course: course });
+    await UserCourseFactory.create({
+      course: course,
+      user: student,
+      role: Role.STUDENT,
+    });
+    const tas = [];
+    for (let i = 1; i < 5; i++) {
+      tas.push(
+        await UserFactory.create({
+          id: i,
+        }),
+      );
+      await UserCourseFactory.create({
+        course: course,
+        user: tas[i],
+        role: Role.TA,
+      });
+    }
+    const taQuestions: { [key: number]: Question[] } = [];
+    for (const ta of tas) {
+      taQuestions[ta.id] = await QuestionFactory.createList(25, {
+        taHelpedId: ta.id,
+        creator: student,
+        status: ClosedQuestionStatus.Resolved,
+        queue,
+      });
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          const question = taQuestions[ta.id][j + i * 5];
+          const date = new Date(new Date());
+          question.createdAt = new Date(date.getTime() + 15 * 60 * 1000);
+          question.helpedAt = new Date(date.getTime() + 10 * 60 * 1000);
+          question.closedAt = new Date(date.getTime() + 15 * 60 * 1000);
+        }
+      }
+    }
+
+    const res = (await service.computeOutput({
+      insight: INSIGHTS_MAP.StaffTotalHelped,
+      filters: [
+        {
+          type: 'courseId',
+          courseId: course.id,
+        },
+      ],
+    })) as ChartOutputType;
+
+    expect(res.data.length).toBeGreaterThan(0);
+    expect(res.xKey).toEqual('staffMember');
+    expect(res.yKeys).toEqual([
+      'Questions_Helped',
+      'Async_Questions_Helped',
+      'Total_Helped',
+    ]);
+  }, 10000);
 
   describe('toggleInsightOn', () => {
     it('works correctly', async () => {

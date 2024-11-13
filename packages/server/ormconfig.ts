@@ -30,6 +30,7 @@ import { UserTokenModel } from './src/profile/user-token.entity';
 import { ChatTokenModel } from './src/chatbot/chat-token.entity';
 import { StudentTaskProgressModel } from './src/studentTaskProgress/studentTaskProgress.entity';
 import { ApplicationConfigModel } from './src/config/application_config.entity';
+import { InsightDashboardModel } from './src/insights/dashboard.entity';
 import { QueueInviteModel } from './src/queue/queue-invite.entity';
 
 config();
@@ -81,6 +82,7 @@ const typeorm = {
     StudentTaskProgressModel,
     ApplicationConfigModel,
     QueueInviteModel,
+    InsightDashboardModel,
   ],
   keepConnectionAlive: true,
   logging:

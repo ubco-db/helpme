@@ -12,6 +12,8 @@ exports[`Course Integration GET /courses/:id gets all queues that are not disabl
   "queueSize": 0,
   "room": "room 2",
   "staffList": [],
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -44,6 +46,15 @@ exports[`Course Integration GET /courses/:id gets all queues that are not disabl
         "MostActiveStudents",
         "QuestionToStudentRatio",
         "MedianHelpingTime",
+        "AverageTimesByWeekDay",
+        "HumanVsChatbot",
+        "HumanVsChatbotVotes",
+        "MostActiveTimes",
+        "HelpSeekingOverTime",
+        "StaffEfficiency",
+        "StaffTotalHelped",
+        "StaffQuestionTimesByDay",
+        "StaffWorkload",
       ],
       "lastName": "Person",
       "name": "User Person",
@@ -52,6 +63,8 @@ exports[`Course Integration GET /courses/:id gets all queues that are not disabl
       "userRole": "user",
     },
   ],
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -84,6 +97,15 @@ exports[`Course Integration GET /courses/:id gets all queues that are not disabl
         "MostActiveStudents",
         "QuestionToStudentRatio",
         "MedianHelpingTime",
+        "AverageTimesByWeekDay",
+        "HumanVsChatbot",
+        "HumanVsChatbotVotes",
+        "MostActiveTimes",
+        "HelpSeekingOverTime",
+        "StaffEfficiency",
+        "StaffTotalHelped",
+        "StaffQuestionTimesByDay",
+        "StaffWorkload",
       ],
       "lastName": "Person",
       "name": "User Person",
@@ -92,6 +114,8 @@ exports[`Course Integration GET /courses/:id gets all queues that are not disabl
       "userRole": "user",
     },
   ],
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -130,6 +154,8 @@ exports[`Course Integration GET /courses/:id gets queues that are not disabled (
   "queueSize": 0,
   "room": "room 2",
   "staffList": [],
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -162,6 +188,15 @@ exports[`Course Integration GET /courses/:id gets queues that are not disabled (
         "MostActiveStudents",
         "QuestionToStudentRatio",
         "MedianHelpingTime",
+        "AverageTimesByWeekDay",
+        "HumanVsChatbot",
+        "HumanVsChatbotVotes",
+        "MostActiveTimes",
+        "HelpSeekingOverTime",
+        "StaffEfficiency",
+        "StaffTotalHelped",
+        "StaffQuestionTimesByDay",
+        "StaffWorkload",
       ],
       "lastName": "Person",
       "name": "User Person",
@@ -170,6 +205,8 @@ exports[`Course Integration GET /courses/:id gets queues that are not disabled (
       "userRole": "user",
     },
   ],
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -202,6 +239,15 @@ exports[`Course Integration GET /courses/:id gets queues that are not disabled (
         "MostActiveStudents",
         "QuestionToStudentRatio",
         "MedianHelpingTime",
+        "AverageTimesByWeekDay",
+        "HumanVsChatbot",
+        "HumanVsChatbotVotes",
+        "MostActiveTimes",
+        "HelpSeekingOverTime",
+        "StaffEfficiency",
+        "StaffTotalHelped",
+        "StaffQuestionTimesByDay",
+        "StaffWorkload",
       ],
       "lastName": "Person",
       "name": "User Person",
@@ -210,6 +256,8 @@ exports[`Course Integration GET /courses/:id gets queues that are not disabled (
       "userRole": "user",
     },
   ],
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -223,6 +271,8 @@ exports[`Course Integration POST /courses/:id/create_queue/:room correctly propa
   "isProfessorQueue": false,
   "notes": "example note 1",
   "room": "abcd1",
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -236,6 +286,8 @@ exports[`Course Integration POST /courses/:id/create_queue/:room correctly propa
   "isProfessorQueue": true,
   "notes": "example note 7",
   "room": "abcd2",
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -249,6 +301,8 @@ exports[`Course Integration POST /courses/:id/create_queue/:room correctly propa
   "isProfessorQueue": false,
   "notes": "ta queue",
   "room": "abcd3",
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -279,6 +333,15 @@ exports[`Course Integration POST /courses/:id/ta_location/:room checks a TA into
         "MostActiveStudents",
         "QuestionToStudentRatio",
         "MedianHelpingTime",
+        "AverageTimesByWeekDay",
+        "HumanVsChatbot",
+        "HumanVsChatbotVotes",
+        "MostActiveTimes",
+        "HelpSeekingOverTime",
+        "StaffEfficiency",
+        "StaffTotalHelped",
+        "StaffQuestionTimesByDay",
+        "StaffWorkload",
       ],
       "lastName": "Person",
       "name": "User Person",
@@ -287,5 +350,7 @@ exports[`Course Integration POST /courses/:id/ta_location/:room checks a TA into
       "userRole": "user",
     },
   ],
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
