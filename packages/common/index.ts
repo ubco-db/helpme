@@ -2218,6 +2218,10 @@ export function decodeBase64(str: string) {
   return Buffer.from(str, 'base64').toString('utf-8')
 }
 
+export enum LMSIntegration {
+  Canvas = 'Canvas',
+}
+
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
