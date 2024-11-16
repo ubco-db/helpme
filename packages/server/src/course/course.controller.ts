@@ -2,6 +2,7 @@ import {
   asyncQuestionStatus,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
+  decodeBase64,
   EditCourseInfoParams,
   ERROR_MESSAGES,
   GetCourseResponse,
@@ -226,10 +227,11 @@ export class CourseController {
     @Param('code') code: string,
     @Res() res: Response,
   ): Promise<Response<GetLimitedCourseResponse>> {
+    const decodedCode = decodeBase64(code);
     const courseWithOrganization = await CourseModel.findOne({
       where: {
         id: id,
-        courseInviteCode: code,
+        courseInviteCode: decodedCode,
       },
       relations: ['organizationCourse', 'organizationCourse.organization'],
     });
@@ -776,6 +778,7 @@ export class CourseController {
     @Body() body: UBCOuserParam,
     @Res() res: Response,
   ): Promise<Response<void>> {
+    const decodedCode = decodeBase64(code);
     const user = await UserModel.findOne({
       where: {
         email: body.email,
@@ -806,7 +809,7 @@ export class CourseController {
 
     if (
       course.course.courseInviteCode === null ||
-      course.course.courseInviteCode !== code
+      course.course.courseInviteCode !== decodedCode
     ) {
       res.status(HttpStatus.BAD_REQUEST).send({
         message: ERROR_MESSAGES.courseController.invalidInviteCode,
