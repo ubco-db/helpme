@@ -8,6 +8,9 @@ const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
 export const organizationApi = {
   getOrganizations: async () => {
     const response = await fetch(`${baseUrl}/api/v1/organization`)
+    if (!response.ok) {
+      throw new Error('Failed to fetch organizations' + response.statusText)
+    }
     return response.json()
   },
 

@@ -8,10 +8,11 @@ import { AppModule } from './app.module';
 import { StripUndefinedPipe } from './stripUndefined.pipe';
 import * as expressSession from 'express-session';
 import { ApplicationConfigService } from './config/application_config.service';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function bootstrap(hot: any): Promise<void> {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
@@ -49,6 +50,7 @@ export async function bootstrap(hot: any): Promise<void> {
     allowedHeaders: 'Content-Type, Accept',
   });
 
+  app.set('trust proxy', 'loopback'); // Trust requests from the loopback address
   await app.listen(3002);
 
   if (hot) {

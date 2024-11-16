@@ -7,6 +7,7 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "nest build --webpack --webpackPath webpack.config.js && npm run sentry:sourcemaps",
+    "build:dev": "nest build --webpack --webpackPath webpack.config.js",
     "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider TYPEORM_LOGGING=true nest build --webpack --webpackPath webpack-hmr.config.js",
     "dev:debug": "nest start --debug --watch",
     "prod:start": "node --max-old-space-size=8192 dist/main",
@@ -41,6 +42,7 @@
     "@nestjs/passport": "^7.1.0",
     "@nestjs/platform-express": "^7.5.0",
     "@nestjs/schedule": "^0.4.0",
+    "@nestjs/throttler": "^6.2.1",
     "@nestjs/typeorm": "^7.1.0",
     "@sentry/cli": "^2.36.1",
     "@sentry/nestjs": "^8.30.0",

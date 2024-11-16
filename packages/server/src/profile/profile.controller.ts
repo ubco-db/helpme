@@ -36,6 +36,7 @@ import { UserModel } from './user.entity';
 import { ProfileService } from './profile.service';
 import { OrganizationService } from '../organization/organization.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { minutes, SkipThrottle, Throttle } from '@nestjs/throttler';
 
 @Controller('profile')
 export class ProfileController {
@@ -44,6 +45,8 @@ export class ProfileController {
     private organizationService: OrganizationService,
   ) {}
 
+  // Don't throttle this endpoint since the middleware calls this for every page (and if it prefetches like 30 pages, it will hit the throttle limit and can cause issue for the user)
+  @SkipThrottle()
   @Get()
   @UseGuards(JwtAuthGuard)
   async get(
@@ -193,6 +196,8 @@ export class ProfileController {
     return res.status(200).send({ message: 'Profile updated successfully' });
   }
 
+  // Only 10 calls allowed in 1 minute
+  @Throttle({ default: { limit: 10, ttl: minutes(1) } })
   @Post('/upload_picture')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @UseInterceptors(

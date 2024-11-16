@@ -2,14 +2,15 @@
 
 import * as Sentry from '@sentry/nextjs'
 import { Button, Result } from 'antd'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
-export default function GlobalError({
+export default function ErrorPage429({
   error,
 }: {
   error: Error & { digest?: string }
 }) {
+  const router = useRouter()
   useEffect(() => {
     Sentry.captureException(error)
     console.error(error)
@@ -20,17 +21,13 @@ export default function GlobalError({
       <body>
         <Result
           status="500"
-          title="500"
+          title="429 - Too Many Requests"
           subTitle={
-            'Sorry, something went wrong:' +
-            error +
-            '.\n This error has been logged and we are working on fixing it.'
+            'This error occurred because your browser was making too many errors to our servers.\n This error is likely on our end and we are working on fixing it.'
           }
           extra={
-            <Button type="primary">
-              <Link href="/api/v1/logout" prefetch={false}>
-                Back To Login
-              </Link>
+            <Button type="primary" onClick={() => router.back()}>
+              Back
             </Button>
           }
         />
