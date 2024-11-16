@@ -31,9 +31,11 @@ import { StudentTaskProgressModule } from './studentTaskProgress/studentTaskProg
 import { RedisQueueModule } from 'redisQueue/redis-queue.module';
 import { ApplicationConfigModule } from 'config/application_config.module';
 import { SentryModule } from '@sentry/nestjs/setup';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { BackupModule } from 'backup/backup.module';
+import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { RateLimitExceptionFilter } from 'exception_filters/429-exception.filter';
 
 @Module({
   imports: [
@@ -79,11 +81,26 @@ import { BackupModule } from 'backup/backup.module';
     StudentTaskProgressModule,
     RedisQueueModule,
     BackupModule,
+    // no more than 30 calls per 1 second
+    ThrottlerModule.forRoot([
+      {
+        ttl: seconds(1),
+        limit: 30,
+      },
+    ]),
   ],
   providers: [
     {
       provide: APP_FILTER,
       useClass: SentryGlobalFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: RateLimitExceptionFilter, // for capturing 429 too many request errors
     },
   ],
 })

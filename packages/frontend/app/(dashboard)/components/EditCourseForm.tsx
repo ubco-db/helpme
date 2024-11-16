@@ -69,11 +69,6 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       return
     }
 
-    if (courseData.course?.zoomLink && zoomLinkField.length < 1) {
-      message.error('Zoom link cannot be empty')
-      return
-    }
-
     if (courseData.course?.timezone && courseTimezoneField.length < 1) {
       message.error('Course timezone cannot be empty')
       return
@@ -192,10 +187,17 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         <Form.Item
           label="Zoom Link"
           name="zoomLink"
-          tooltip="Link to the zoom meeting for queues. Currently, this is shared between all queues. When a student is helped, they will have the option to click this link."
+          tooltip="Default link to the zoom meeting for queues. Each queue can also have a unique zoom link which will automatically overwrite this one. When a student is helped, they will have the option to click this link."
           className="flex-1"
         >
-          <Input allowClear={true} />
+          <Input
+            allowClear={true}
+            placeholder={
+              !courseData.course?.zoomLink
+                ? '[No Zoom/Teams link set]'
+                : undefined
+            }
+          />
         </Form.Item>
       </div>
 

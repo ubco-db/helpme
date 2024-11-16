@@ -1,5 +1,6 @@
 import {
   decodeBase64,
+  LimboQuestionStatus,
   ListQuestionsResponse,
   OpenQuestionStatus,
   PublicQueueInvite,
@@ -71,7 +72,12 @@ export class QueueService {
 
     const questionsFromDb = await QuestionModel.inQueueWithStatus(
       queueId,
-      [...StatusInPriorityQueue, ...StatusInQueue, OpenQuestionStatus.Helping],
+      [
+        ...StatusInPriorityQueue,
+        ...StatusInQueue,
+        OpenQuestionStatus.Helping,
+        OpenQuestionStatus.Paused,
+      ],
       this.appConfig.get('max_questions_per_queue'),
     )
       .leftJoinAndSelect('question.questionTypes', 'questionTypes')
@@ -85,12 +91,16 @@ export class QueueService {
     const queueQuestions = new ListQuestionsResponse();
 
     queueQuestions.questions = questionsFromDb.filter((question) =>
-      StatusInQueue.includes(question.status as OpenQuestionStatus),
+      StatusInQueue.includes(
+        question.status as OpenQuestionStatus | LimboQuestionStatus,
+      ),
     );
 
     queueQuestions.questionsGettingHelp = questionsFromDb.filter(
       (question) =>
-        question.status === OpenQuestionStatus.Helping && !question.groupId,
+        (question.status === OpenQuestionStatus.Helping ||
+          question.status === OpenQuestionStatus.Paused) &&
+        !question.groupId,
     );
 
     // Also remove sensitive data from taHelped inside questionsGettingHelp

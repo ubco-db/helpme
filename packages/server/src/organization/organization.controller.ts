@@ -315,12 +315,6 @@ export class OrganizationController {
       });
     }
 
-    if (courseDetails.zoomLink && courseDetails.zoomLink.trim().length < 1) {
-      return res.status(HttpStatus.BAD_REQUEST).send({
-        message: ERROR_MESSAGES.courseController.zoomLinkTooShort,
-      });
-    }
-
     if (
       !courseDetails.timezone ||
       !COURSE_TIMEZONES.find((timezone) => timezone === courseDetails.timezone)
@@ -502,15 +496,6 @@ export class OrganizationController {
     }
 
     if (
-      courseInfo.course.zoomLink &&
-      (!courseDetails.zoomLink || courseDetails.zoomLink.trim().length < 1)
-    ) {
-      return res.status(HttpStatus.BAD_REQUEST).send({
-        message: ERROR_MESSAGES.courseController.zoomLinkTooShort,
-      });
-    }
-
-    if (
       !courseDetails.timezone ||
       !COURSE_TIMEZONES.find((timezone) => timezone === courseDetails.timezone)
     ) {
@@ -593,9 +578,7 @@ export class OrganizationController {
       courseInfo.course.sectionGroupName = courseDetails.sectionGroupName;
     }
 
-    if (courseDetails.zoomLink) {
-      courseInfo.course.zoomLink = courseDetails.zoomLink;
-    }
+    courseInfo.course.zoomLink = courseDetails.zoomLink;
     courseInfo.course.timezone = courseDetails.timezone;
 
     try {

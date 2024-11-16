@@ -303,6 +303,9 @@ export interface Queue {
   allowQuestions: boolean
 }
 
+// Queue location/type for different queues within each course
+export type QueueTypes = 'online' | 'hybrid' | 'inPerson'
+
 /**
  * A Queue partial to be shown on the course page. It's like the full Queue object but without the questions.
  * @param id - The unique id number for a Queue.
@@ -334,9 +337,13 @@ export class QueuePartial {
 
   allowQuestions!: boolean
 
+  type!: QueueTypes
+
   isProfessorQueue!: boolean
 
   config?: QueueConfig
+
+  zoomLink?: string
 }
 
 /**
@@ -439,6 +446,9 @@ export class Question {
   helpedAt?: Date
 
   @Type(() => Date)
+  pausedAt?: Date
+
+  @Type(() => Date)
   closedAt?: Date
 
   @Type(() => QuestionTypeParams)
@@ -448,7 +458,7 @@ export class Question {
 
   groupable!: boolean
 
-  location?: string
+  location?: QuestionLocations
 
   isTaskQuestion?: boolean
 }
@@ -466,6 +476,7 @@ export enum OpenQuestionStatus {
   Queued = 'Queued',
   Helping = 'Helping',
   PriorityQueued = 'PriorityQueued',
+  Paused = 'Paused',
 }
 
 /**
@@ -502,6 +513,7 @@ export enum resolutionSource {
 export const StatusInQueue = [
   OpenQuestionStatus.Drafting,
   OpenQuestionStatus.Queued,
+  LimboQuestionStatus.ReQueueing,
 ]
 
 export const StatusInPriorityQueue = [OpenQuestionStatus.PriorityQueued]
@@ -510,6 +522,7 @@ export const StatusSentToCreator = [
   ...StatusInPriorityQueue,
   ...StatusInQueue,
   OpenQuestionStatus.Helping,
+  OpenQuestionStatus.Paused,
   LimboQuestionStatus.ReQueueing,
   LimboQuestionStatus.CantFind,
   LimboQuestionStatus.TADeleted,
@@ -1132,6 +1145,8 @@ export class GetStudentQuestionResponse extends Question {
   queueId!: number
 }
 
+export type QuestionLocations = 'Online' | 'In-Person' | 'Unselected'
+
 export class CreateQuestionParams {
   @IsString()
   text!: string
@@ -1151,7 +1166,7 @@ export class CreateQuestionParams {
 
   @IsString()
   @IsOptional()
-  location?: string
+  location?: QuestionLocations
 
   @IsBoolean()
   force!: boolean
@@ -1220,10 +1235,18 @@ export class TACheckoutResponse {
 export class UpdateQueueParams {
   @IsString()
   @IsOptional()
+  type?: QueueTypes
+
+  @IsString()
+  @IsOptional()
   notes?: string
 
   @IsBoolean()
   allowQuestions?: boolean
+
+  @IsString()
+  @IsOptional()
+  zoomLink?: string
 }
 
 export class QuestionTypeParams {
@@ -1471,6 +1494,7 @@ export const InsightCategories = [
   'Questions',
   'Queues',
   'Chatbot',
+  'Staff',
 ]
 
 export enum InsightType {
@@ -1478,6 +1502,7 @@ export enum InsightType {
   Chart = 'Chart',
   Table = 'Table',
   GanttChart = 'GanttChart',
+  MultipleGanttChart = 'MultipleGanttChart',
 }
 
 export type InsightCategory = (typeof InsightCategories)[number]
@@ -1504,6 +1529,7 @@ export const InsightFilterOptions = [
   'timeframe',
   'students',
   'queues',
+  'staff',
 ] as const
 export type InsightFilterOption = (typeof InsightFilterOptions)[number]
 
@@ -1522,10 +1548,13 @@ export interface InsightObject {
   insightType: InsightType
   insightCategory: InsightCategory
   allowedFilters?: InsightFilterOption[]
-  compute: (
-    insightFilters: any,
-    cacheManager?: Cache,
-  ) => Promise<PossibleOutputTypes>
+  compute: ({
+    insightFilters,
+    cacheManager,
+  }: {
+    insightFilters: any
+    cacheManager: Cache
+  }) => Promise<PossibleOutputTypes>
 }
 
 export interface InsightOutput {
@@ -1563,6 +1592,7 @@ export type PossibleOutputTypes =
   | ChartOutputType
   | TableOutputType
   | GanttChartOutputType
+  | MultipleGanttChartOutputType
 
 export type ChartOutputType = {
   data: StringMap<any>[]
@@ -1581,6 +1611,8 @@ export type GanttChartOutputType = {
   label: string
   numCategories: number
 }
+
+export type MultipleGanttChartOutputType = GanttChartOutputType[]
 
 export type ValueOutputType = number | string
 
@@ -1605,6 +1637,7 @@ export type InsightParamsType = {
   offset?: number
   students?: string
   queues?: string
+  staff?: string
 }
 
 export type sendEmailParams = {
@@ -2278,7 +2311,6 @@ export const ERROR_MESSAGES = {
     courseNameTooShort: 'Course name must be at least 1 character',
     coordinatorEmailTooShort: 'Coordinator email must be at least 1 character',
     sectionGroupNameTooShort: 'Section group name must be at least 1 character',
-    zoomLinkTooShort: 'Zoom link must be at least 1 character',
     courseAlreadyRegistered: 'One or more of the courses is already registered',
     courseNotFound: 'The course was not found',
     sectionGroupNotFound: 'One or more of the section groups was not found',
@@ -2385,6 +2417,7 @@ export const ERROR_MESSAGES = {
     invalidStudentID:
       'Invalid student ID provided. Student IDs must be numeric',
     invalidQueueID: 'Invalid queue ID provided. Queue IDs must be numeric.',
+    invalidStaffID: 'Invalid staff ID provided. Staff IDs must be numeric.',
   },
   roleGuard: {
     notLoggedIn: 'Must be logged in',

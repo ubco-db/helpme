@@ -11,6 +11,7 @@ import {
   QueueConfig,
   QueueInvite,
   QueuePartial,
+  QueueTypes,
   Role,
   TACheckinTimesResponse,
   TACheckoutResponse,
@@ -405,6 +406,7 @@ export class CourseController {
     @Body()
     body: {
       notes: string;
+      type: QueueTypes;
       isProfessorQueue: boolean;
       config: QueueConfig;
     },
@@ -470,6 +472,7 @@ export class CourseController {
             .create(QueueModel, {
               room,
               courseId,
+              type: body.type,
               staffList: [],
               questions: [],
               allowQuestions: true,

@@ -1,9 +1,11 @@
-import { isProd } from '@koh/common';
 import * as Sentry from '@sentry/nestjs';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
+export const PROD_URL = 'https://coursehelp.ubc.ca';
+
 // This is a sentry-made file. Idk what it does, probably don't touch it.
-if (isProd()) {
+if (process.env.DOMAIN == PROD_URL) {
+  console.log('Initializing Sentry on Server');
   Sentry.init({
     dsn: 'https://f61b5e5123c15b571f04c69fcf8702f4@o4508000643252224.ingest.us.sentry.io/4508000797392896',
     integrations: [nodeProfilingIntegration()],

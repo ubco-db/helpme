@@ -1,7 +1,8 @@
 'use client'
 
 import * as Sentry from '@sentry/nextjs'
-import NextError from 'next/error'
+import { Button, Result } from 'antd'
+import Link from 'next/link'
 import { useEffect } from 'react'
 
 export default function GlobalError({
@@ -11,16 +12,28 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     Sentry.captureException(error)
+    console.error(error)
   }, [error])
 
   return (
     <html>
       <body>
-        {/* `NextError` is the default Next.js error page component. Its type
-        definition requires a `statusCode` prop. However, since the App Router
-        does not expose status codes for errors, we simply pass 0 to render a
-        generic error message. */}
-        <NextError statusCode={0} />
+        <Result
+          status="500"
+          title="500"
+          subTitle={
+            'Sorry, something went wrong:' +
+            error +
+            '.\n This error has been logged and we are working on fixing it.'
+          }
+          extra={
+            <Button type="primary">
+              <Link href="/api/v1/logout" prefetch={false}>
+                Back To Login
+              </Link>
+            </Button>
+          }
+        />
       </body>
     </html>
   )
