@@ -103,18 +103,21 @@ describe('InsightsService', () => {
         queue: queue,
         createdAt: new Date(Date.now() - 30 * 60 * 1000),
         firstHelpedAt: new Date(Date.now() - 25 * 60 * 1000),
+        waitTime: 5 * 60,
       });
       await QuestionFactory.createList(20, {
         // 10 min
         queue: queue,
         createdAt: new Date(Date.now() - 30 * 60 * 1000),
         firstHelpedAt: new Date(Date.now() - 20 * 60 * 1000),
+        waitTime: 10 * 60,
       });
       await QuestionFactory.createList(20, {
         // 30 min
         queue: queue,
         createdAt: new Date(Date.now() - 60 * 60 * 1000),
         firstHelpedAt: new Date(Date.now() - 30 * 60 * 1000),
+        waitTime: 30 * 60,
       });
 
       const res = await service.computeOutput({
@@ -342,6 +345,8 @@ describe('InsightsService', () => {
         helpedAt: new Date(Date.parse(helptime)),
         firstHelpedAt: new Date(Date.parse(helptime)),
         closedAt: new Date(Date.parse(closetime)),
+        waitTime: duration * 60,
+        helpTime: 5 * 60,
       });
     }
 
