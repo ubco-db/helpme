@@ -445,11 +445,13 @@ export class Question {
   @Type(() => Date)
   helpedAt?: Date
 
+  // in seconds
   helpTime!: number
 
   @Type(() => Date)
   lastReadyAt?: Date
 
+  // in seconds
   waitTime!: number
 
   @Type(() => Date)
