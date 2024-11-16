@@ -21,7 +21,10 @@ import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 import { useStaff } from '@/app/hooks/useStaff'
 
 const { RangePicker } = TimePicker
-type Color = GetProp<ColorPickerProps, 'value'>
+type Color = Extract<
+  GetProp<ColorPickerProps, 'value'>,
+  string | { cleared: any }
+>
 
 type CreateEventModalProps = {
   visible: boolean

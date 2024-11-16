@@ -58,7 +58,10 @@ import exampleLabConfig from '@/public/exampleQueueLabConfig.json'
 import TaskDeleteSelector from '../TaskDisplay'
 
 const { TextArea } = Input
-type Color = GetProp<ColorPickerProps, 'value'>
+type Color = Extract<
+  GetProp<ColorPickerProps, 'value'>,
+  string | { cleared: any }
+>
 
 type TaskParams = {
   id: string

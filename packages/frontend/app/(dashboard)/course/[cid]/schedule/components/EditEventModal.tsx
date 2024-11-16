@@ -22,7 +22,11 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 import { DeleteOutlined } from '@ant-design/icons'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 
-type Color = GetProp<ColorPickerProps, 'value'>
+type Color = Extract<
+  GetProp<ColorPickerProps, 'value'>,
+  string | { cleared: any }
+>
+
 interface FormValues {
   title: string
   color: string | Color

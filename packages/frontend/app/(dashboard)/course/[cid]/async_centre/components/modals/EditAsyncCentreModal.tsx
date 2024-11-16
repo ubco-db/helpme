@@ -16,7 +16,10 @@ import { QuestionTypeParams } from '@koh/common'
 import { QuestionTagDeleteSelector } from '../../../components/QuestionTagElement'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 
-type Color = GetProp<ColorPickerProps, 'value'>
+type Color = Extract<
+  GetProp<ColorPickerProps, 'value'>,
+  string | { cleared: any }
+>
 
 type QuestionTypeForCreation = {
   name: string
