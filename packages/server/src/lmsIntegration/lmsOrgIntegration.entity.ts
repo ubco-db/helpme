@@ -19,13 +19,13 @@ export class LMSOrganizationIntegrationModel extends BaseEntity {
   apiPlatform: LMSIntegration;
 
   @Column({ type: 'text' })
-  rootURL: string;
+  rootUrl: string;
 
   @OneToMany(
     (type) => LMSCourseIntegrationModel,
     (integration) => integration.orgIntegration,
   )
-  integrations: LMSCourseIntegrationModel[];
+  courseIntegrations: LMSCourseIntegrationModel[];
 
   @ManyToOne((type) => OrganizationModel, (org) => org.organizationIntegrations)
   organization: OrganizationModel;

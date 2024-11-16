@@ -680,6 +680,8 @@ class APIClient {
       this.req('GET', `/api/v1/organization/${organizationId}/stats`),
     get: async (organizationId: number): Promise<any> =>
       this.req('GET', `/api/v1/organization/${organizationId}`),
+    getIntegrations: async (organizationId: number): Promise<any> =>
+      this.req('GET', `/api/v1/organization/${organizationId}/lms_integration`),
     getUser: async (
       organizationId: number,
       userId: number,

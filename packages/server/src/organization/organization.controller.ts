@@ -32,6 +32,9 @@ import {
   CourseSettingsRequestBody,
   OrganizationProfessor,
   CourseResponse,
+  LMSOrganizationIntegrationPartial,
+  LMSCourseIntegrationPartial,
+  CoursePartial,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -62,6 +65,7 @@ import _, { isNumber } from 'lodash';
 import { MailServiceModel } from 'mail/mail-services.entity';
 import * as sharp from 'sharp';
 import { User, UserId } from 'decorators/user.decorator';
+import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 
 @Controller('organization')
 export class OrganizationController {
@@ -1004,6 +1008,46 @@ export class OrganizationController {
       .catch((err) => {
         res.status(500).send({ message: err });
       });
+  }
+
+  @Get(':oid/lms_integration')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN)
+  async getLmsIntegrations(
+    @Param('oid', ParseIntPipe) oid: number,
+  ): Promise<LMSOrganizationIntegrationPartial[]> {
+    const lmsIntegrations = await LMSOrganizationIntegrationModel.find({
+      where: { organizationId: oid },
+      relations: ['courseIntegrations.course'],
+    });
+    if (lmsIntegrations.length <= 0) {
+      return [];
+    }
+
+    return lmsIntegrations.map((int) => {
+      return {
+        organizationId: int.organizationId,
+        apiPlatform: int.apiPlatform,
+        rootUrl: int.rootUrl,
+        courseIntegrations:
+          int.courseIntegrations?.map((cint) => {
+            return {
+              courseId: cint.courseId,
+              course: {
+                id: cint.courseId,
+                name: cint.course.name,
+              } satisfies CoursePartial,
+              apiCourseId: cint.apiCourseId,
+              apiKeyExpiry: cint.apiKeyExpiry,
+            } satisfies LMSCourseIntegrationPartial;
+          }) ?? [],
+      } satisfies LMSOrganizationIntegrationPartial;
+    });
   }
 
   @Patch(':oid/update_user_role')

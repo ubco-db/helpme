@@ -5,22 +5,27 @@ import {
   Button,
   Card,
   Col,
+  Collapse,
   Form,
   Input,
+  List,
   message,
   Row,
   Spin,
   Switch,
+  Table,
   Upload,
 } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import { ReactElement, useEffect, useState } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { Organization } from '@/app/typings/organization'
-import { organizationApi } from '@/app/api/organizationApi'
 import { API } from '@/app/api'
 import Image from 'next/image'
 import ImageCropperModal from '@/app/(dashboard)/components/ImageCropperModal'
+import { PlusIcon } from 'lucide-react'
+import Column from 'antd/es/table/Column'
+import { LMSOrganizationIntegrationPartial } from '@koh/common'
 
 export default function SettingsPage(): ReactElement {
   const [formGeneral] = Form.useForm()
@@ -42,10 +47,13 @@ export default function SettingsPage(): ReactElement {
   const [organizationWebsiteUrl, setOrganizationWebsiteUrl] = useState(
     organization?.websiteUrl,
   )
+  const [lmsIntegrations, setLmsIntegrations] = useState<
+    LMSOrganizationIntegrationPartial[]
+  >([])
 
   useEffect(() => {
     const fetchDataAsync = async () => {
-      const response = await organizationApi.getOrganization(
+      const response = await API.organizations.get(
         Number(userInfo?.organization?.orgId) ?? -1,
       )
 
@@ -53,6 +61,11 @@ export default function SettingsPage(): ReactElement {
       setOrganizationName(response.name)
       setOrganizationDescription(response.description)
       setOrganizationWebsiteUrl(response.websiteUrl)
+
+      const lmsResponse = await API.organizations.getIntegrations(
+        Number(userInfo?.organization?.orgId) ?? -1,
+      )
+      setLmsIntegrations(lmsResponse)
     }
 
     fetchDataAsync()
@@ -335,6 +348,59 @@ export default function SettingsPage(): ReactElement {
             </Col>
           </Row>
         </Form>
+      </Card>
+
+      <Card
+        title={'Learning Management System Integrations'}
+        bordered={true}
+        style={{ marginTop: 10, marginBottom: 10 }}
+      >
+        <Table>
+          <Column title={'Learning Management System'} dataIndex={''} />
+        </Table>
+        <List
+          bordered={true}
+          dataSource={lmsIntegrations ?? []}
+          renderItem={(integration) => {
+            return (
+              <List.Item>
+                <div>{integration.apiPlatform}</div>
+                <div>{integration.rootUrl}</div>
+                <Collapse>
+                  <Collapse.Panel header={'Connections'} key={'1'}>
+                    <Table dataSource={integration.courseIntegrations}>
+                      <Column
+                        title={'Course Name'}
+                        render={(courseIntegration) => (
+                          <p>{courseIntegration.course.name}</p>
+                        )}
+                      />
+                      <Column
+                        title={'API Course ID'}
+                        dataIndex={'apiCourseId'}
+                      />
+                      <Column
+                        title={'API Key Expiry Date'}
+                        render={(courseIntegration) => (
+                          <p>
+                            {courseIntegration.apiKeyExpiry.toLocaleDateString()}
+                          </p>
+                        )}
+                      />
+                    </Table>
+                  </Collapse.Panel>
+                </Collapse>
+              </List.Item>
+            )
+          }}
+          footer={
+            <div>
+              <Button>
+                Add New Integration <PlusIcon />
+              </Button>
+            </div>
+          }
+        />
       </Card>
     </>
   ) : (

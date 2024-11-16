@@ -943,6 +943,20 @@ export class GetOrganizationResponse {
   ssoUrl?: string
 }
 
+export class LMSOrganizationIntegrationPartial {
+  organizationId!: number
+  apiPlatform!: LMSIntegration
+  rootUrl!: string
+  courseIntegrations!: LMSCourseIntegrationPartial[]
+}
+
+export class LMSCourseIntegrationPartial {
+  courseId!: number
+  course!: CoursePartial
+  apiCourseId!: string
+  apiKeyExpiry!: Date
+}
+
 export interface CourseResponse {
   courseId: number
   courseName: string
