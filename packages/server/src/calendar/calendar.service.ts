@@ -87,41 +87,49 @@ export class CalendarService implements OnModuleInit {
       userId,
       calendarId: calendar.id,
     });
-    // get the user and calendar data to store in redis
-    const calendarStaff: CalendarStaff = {
-      userId,
-      calendarId: calendar.id,
-      courseId: calendar.course.id,
-      username: user.name,
-      startDate: calendar.startDate,
-      endDate: calendar.endDate,
-      startTime: calendar.start,
-      endTime: calendar.end,
-      daysOfWeek: calendar.daysOfWeek,
-    };
-    // await this.calStaffRedisService.setCalendarStaff(
-    //   'calendar-staff',
-    //   calendarStaff,
-    // );
+    // // get the user and calendar data to store in redis
+    // const calendarStaff: CalendarStaff = {
+    //   userId,
+    //   calendarId: calendar.id,
+    //   courseId: calendar.course.id,
+    //   username: user.name,
+    //   startDate: calendar.startDate,
+    //   endDate: calendar.endDate,
+    //   startTime: calendar.start,
+    //   endTime: calendar.end,
+    //   daysOfWeek: calendar.daysOfWeek,
+    // };
+    // // await this.calStaffRedisService.setCalendarStaff(
+    // //   'calendar-staff',
+    // //   calendarStaff,
+    // // );
+  }
+
+  async deleteAllCalendarStaffForCalendar(
+    calendarId: number,
+    transactionalEntityManager: EntityManager,
+  ) {
+    await transactionalEntityManager.delete(CalendarStaffModel, { calendarId });
   }
 
   // TODO: updateCalendarStaff
+  // async updateCalendarStaff(
 
   /** delete the calendar staff model (for many to many relationship) */
-  async deleteCalendarStaff(
-    userId: number,
-    calendarId: number,
-    calendarAlreadyDeleted = false,
-  ) {
-    if (!calendarAlreadyDeleted) {
-      await CalendarStaffModel.delete({ userId, calendarId });
-    }
-    // await this.calStaffRedisService.deleteCalendarStaff(
-    //   'calendar-staff',
-    //   userId,
-    //   calendarId,
-    // );
-  }
+  // async deleteCalendarStaff(
+  //   userId: number,
+  //   calendarId: number,
+  //   calendarAlreadyDeleted = false,
+  // ) {
+  //   if (!calendarAlreadyDeleted) {
+  //     await CalendarStaffModel.delete({ userId, calendarId });
+  //   }
+  //   // await this.calStaffRedisService.deleteCalendarStaff(
+  //   //   'calendar-staff',
+  //   //   userId,
+  //   //   calendarId,
+  //   // );
+  // }
 
   // So every time a calendar-staff is created, it gets added to redis
   // Every 10 minutes, cycle through all calendar-staff and send an alert that they are going to be auto-checked out (or just check them out).
@@ -260,8 +268,18 @@ export class CalendarService implements OnModuleInit {
     job.start();
   }
 
-  async deleteAutoCheckoutCronJob(userId: number, calendarId: number) {
+  async deleteAutoCheckoutCronJob(
+    userId: number,
+    calendarId: number,
+    skipIfNotExists = false,
+  ) {
     const jobName = `auto-checkout-${userId}-${calendarId}`;
+    if (skipIfNotExists && !this.schedulerRegistry.getCronJob(jobName)) {
+      console.log(
+        `Skipped deleting cron job ${jobName} because it does not exist`,
+      );
+      return;
+    }
     this.schedulerRegistry.deleteCronJob(jobName);
     console.log(`Deleted cron job with name ${jobName}`);
   }

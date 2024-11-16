@@ -5,11 +5,18 @@ import {
   calendarFactory,
   TACourseFactory,
   ProfessorCourseFactory,
+  OrganizationFactory,
+  OrganizationUserFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { CalendarModel } from '../src/calendar/calendar.entity';
 import { CalendarModule } from '../src/calendar/calendar.module';
-import { calendarEventLocationType, Role } from '@koh/common';
+import {
+  calendarEventLocationType,
+  CronJob,
+  OrganizationRole,
+  Role,
+} from '@koh/common';
 import { CalendarStaffModel } from 'calendar/calendar-staff.entity';
 
 describe('Calendar Integration', () => {
@@ -157,6 +164,50 @@ describe('Calendar Integration', () => {
   });
 
   describe('PATCH /calendar/:calId/:cid', () => {
+    it('does not allow non-logged in users to update an event', async () => {
+      const course = await CourseFactory.create();
+      const event = await calendarFactory.create();
+
+      await supertest().patch(`/calendar/${event.id}/${course.id}`).expect(401);
+    });
+    it('does not allow students to update an event', async () => {
+      const course = await CourseFactory.create();
+      const user = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: user,
+        course: course,
+        role: Role.STUDENT,
+      });
+
+      const event = await calendarFactory.create();
+
+      await supertest({ userId: user.id })
+        .patch(`/calendar/${event.id}/${course.id}`)
+        .expect(403);
+    });
+    it('does not allow professors from other courses to update an event', async () => {
+      const course = await CourseFactory.create();
+      const user = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: user,
+        course: course,
+        role: Role.PROFESSOR,
+      });
+
+      const event = await calendarFactory.create({ course });
+
+      const otherCourse = await CourseFactory.create();
+      const otherUser = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: otherUser,
+        course: otherCourse,
+        role: Role.PROFESSOR,
+      });
+
+      await supertest({ userId: otherUser.id })
+        .patch(`/calendar/${event.id}/${course.id}`)
+        .expect(403);
+    });
     it('updates an existing calendar event', async () => {
       const course = await CourseFactory.create();
       const user = await UserFactory.create();
@@ -185,6 +236,122 @@ describe('Calendar Integration', () => {
       expect(updatedEvent.title).toBe('Updated Event');
       expect(updatedEvent.locationType).toBe('in-person');
       expect(updatedEvent.locationInPerson).toBe('Room 101');
+    });
+    it('updates the staff for an event', async () => {
+      const course = await CourseFactory.create();
+      const ta1 = await TACourseFactory.create({ course });
+      const ta2 = await TACourseFactory.create({ course });
+      const prof = await ProfessorCourseFactory.create({ course });
+      const event = await calendarFactory.create({
+        course,
+      });
+
+      await CalendarStaffModel.create({
+        user: ta1.user,
+        calendar: event,
+        userId: ta1.user.id,
+        calendarId: event.id,
+      }).save();
+      await CalendarStaffModel.create({
+        user: ta2.user,
+        calendar: event,
+        userId: ta2.user.id,
+        calendarId: event.id,
+      }).save();
+
+      const updateData = {
+        staffIds: [ta2.user.id, prof.user.id],
+      };
+
+      const res = await supertest({ userId: prof.user.id })
+        .patch(`/calendar/${event.id}/${course.id}`)
+        .send(updateData)
+        .expect(200);
+
+      const updatedEvent = await CalendarModel.findOne(event.id);
+      expect(updatedEvent.staff).toHaveLength(2);
+      expect(updatedEvent.staff.map((s) => s.userId)).toEqual([
+        ta2.user.id,
+        prof.user.id,
+      ]);
+    });
+    it('updates the auto-checkout cron jobs with new startDates and endDates', async () => {
+      const org = await OrganizationFactory.create();
+      const prof = await UserFactory.create();
+      await OrganizationUserFactory.create({
+        organization: org,
+        organizationUser: prof,
+        role: OrganizationRole.ADMIN,
+      });
+      const course = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user: prof,
+        course,
+        role: Role.PROFESSOR,
+      });
+      const ta1 = await TACourseFactory.create({ course });
+      const ta2 = await TACourseFactory.create({ course });
+      // create an event using the endpoint, that way the cron jobs are made
+      const eventData = {
+        title: 'Test Event',
+        start: new Date('2023-08-26T10:00:00'),
+        end: new Date('2023-08-26T11:00:00'),
+        daysOfWeek: [1, 2, 3],
+        startDate: new Date('2023-08-24T10:00:00'),
+        endDate: new Date('2023-09-26T11:00:00'),
+        locationType: calendarEventLocationType.online,
+        locationOnline: 'https://zoom.us/test',
+        allDay: false,
+        staffIds: [ta1.user.id, ta2.user.id, prof.id],
+      };
+      const eventRes = await supertest({ userId: prof.id })
+        .post(`/calendar/${course.id}`)
+        .send(eventData)
+        .expect(201);
+      const event: CalendarModel = eventRes.body;
+
+      // go through the jobs, filter and find all the auto-checkout jobs
+      const jobsBeforeRes = await supertest({ userId: prof.id }).get(
+        `/organization/${org.id}/cronjobs`,
+      );
+      const jobsBefore = jobsBeforeRes.body;
+      const autoCheckoutJobsBefore: CronJob[] = jobsBefore.filter(
+        (job: CronJob) => job.id.includes('auto-checkout'),
+      );
+      expect(autoCheckoutJobsBefore).toHaveLength(3);
+      for (const job of autoCheckoutJobsBefore) {
+        expect(job.cronTime).toEqual('0 11 * * 1,2,3');
+      }
+
+      const updateData = {
+        ...eventData,
+        end: new Date('2023-08-26T12:00:00'),
+        daysOfWeek: [1, 2, 3, 4],
+        staffIds: [ta1.user.id, prof.id],
+      };
+
+      await supertest({ userId: prof.id })
+        .patch(`/calendar/${event.id}/${course.id}`)
+        .send(updateData)
+        .expect(200);
+
+      const updatedEvent = await CalendarModel.findOne(event.id);
+      expect(updatedEvent.end).toEqual(new Date('2023-08-26T12:00:00'));
+      expect(updatedEvent.daysOfWeek).toEqual([1, 2, 3, 4]);
+      expect(updatedEvent.staff).toHaveLength(2);
+
+      // go through the jobs, filter and find all the auto-checkout jobs
+      const jobsAfterRes = await supertest({ userId: prof.id }).get(
+        `/organization/${org.id}/cronjobs`,
+      );
+      const jobsAfter = jobsAfterRes.body;
+      const autoCheckoutJobsAfter: CronJob[] = jobsAfter.filter(
+        (job: CronJob) => job.id.includes('auto-checkout'),
+      );
+      expect(autoCheckoutJobsAfter).toHaveLength(2);
+      for (const job of autoCheckoutJobsAfter) {
+        expect(job.cronTime).toEqual('0 12 * * 1,2,3,4');
+      }
     });
   });
 
@@ -274,6 +441,65 @@ describe('Calendar Integration', () => {
       await supertest({ userId: user.id })
         .delete(`/calendar/${event.id}/${course.id}/delete`)
         .expect(400);
+    });
+    it('should delete an auto-checkout job for each staff member', async () => {
+      const course = await CourseFactory.create();
+      const ta1 = await TACourseFactory.create({ course });
+      const ta2 = await TACourseFactory.create({ course });
+      const prof = await ProfessorCourseFactory.create({ course });
+
+      const event = await calendarFactory.create({
+        course: course,
+        staff: [],
+      });
+
+      await CalendarStaffModel.create({
+        user: ta1.user,
+        calendar: event,
+        userId: ta1.user.id,
+        calendarId: event.id,
+      }).save();
+
+      await CalendarStaffModel.create({
+        user: ta2.user,
+        calendar: event,
+        userId: ta2.user.id,
+        calendarId: event.id,
+      }).save();
+
+      await CalendarStaffModel.create({
+        user: prof.user,
+        calendar: event,
+        userId: prof.user.id,
+        calendarId: event.id,
+      }).save();
+
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
+      await supertest({ userId: prof.user.id })
+        .delete(`/calendar/${event.id}/${course.id}/delete`)
+        .expect(200);
+
+      const deletedEvent = await CalendarModel.findOne(event.id);
+      expect(deletedEvent).toBeUndefined();
+
+      const calendarStaff = await CalendarStaffModel.find({
+        calendarId: event.id,
+      });
+      expect(calendarStaff).toHaveLength(0);
+
+      expect(consoleSpy).toHaveBeenCalledTimes(3);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        `Deleted cron job with name auto-checkout-${ta1.user.id}-${event.id}`,
+      );
+      expect(consoleSpy).toHaveBeenCalledWith(
+        `Deleted cron job with name auto-checkout-${ta2.user.id}-${event.id}`,
+      );
+      expect(consoleSpy).toHaveBeenCalledWith(
+        `Deleted cron job with name auto-checkout-${prof.user.id}-${event.id}`,
+      );
+
+      consoleSpy.mockRestore();
     });
   });
 });

@@ -13,7 +13,7 @@ import {
 } from 'antd'
 import { useEffect, useState } from 'react'
 import { API } from '@/app/api'
-import { calendarEventLocationType, UserPartial } from '@koh/common'
+import { calendarEventLocationType } from '@koh/common'
 import { dayToIntMapping } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import dayjs from 'dayjs'
@@ -44,6 +44,7 @@ interface FormValues {
   startDate?: dayjs.Dayjs
   endDate?: dayjs.Dayjs
   daysOfWeek?: string[]
+  staffIds?: number[]
 }
 
 const CreateEventModal: React.FC<CreateEventModalProps> = ({

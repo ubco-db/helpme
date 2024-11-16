@@ -3,6 +3,9 @@ import { CalendarService } from './calendar.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { BadRequestException } from '@nestjs/common';
 import { CronJob } from 'cron';
+import { QuestionService } from 'question/question.service';
+import { NotificationService } from 'notification/notification.service';
+import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 
 describe('CalendarService', () => {
   let service: CalendarService;
@@ -10,8 +13,11 @@ describe('CalendarService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [TestTypeOrmModule, TestConfigModule],
       providers: [
         CalendarService,
+        QuestionService,
+        NotificationService,
         {
           provide: SchedulerRegistry,
           useValue: {

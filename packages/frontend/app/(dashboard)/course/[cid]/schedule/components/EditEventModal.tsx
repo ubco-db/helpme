@@ -11,6 +11,7 @@ import {
   Popconfirm,
   ColorPickerProps,
   GetProp,
+  Select,
 } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import dayjs from 'dayjs'
@@ -21,6 +22,7 @@ import { dayToIntMapping } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { DeleteOutlined } from '@ant-design/icons'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
+import { useStaff } from '@/app/hooks/useStaff'
 
 type Color = Extract<
   GetProp<ColorPickerProps, 'value'>,
@@ -39,6 +41,7 @@ interface FormValues {
   startDate?: dayjs.Dayjs
   endDate?: dayjs.Dayjs
   daysOfWeek?: string[]
+  staffIds?: number[]
 }
 
 type EditEventModalProps = {
@@ -63,6 +66,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   const intToDayMapping = Object.fromEntries(
     Object.entries(dayToIntMapping).map(([key, value]) => [value, key]),
   )
+  const staff = useStaff(courseId)
 
   useEffect(() => {
     if (event && visible) {
@@ -87,6 +91,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           typeof values.color === 'string'
             ? values.color
             : values.color.toHexString(),
+        staffIds: values.staffIds,
       }
 
       switch (values.locationType) {
@@ -162,9 +167,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         message.error('Failed to update event')
       }
     } catch (err) {
-      message.error('Error updating the event')
+      const errorMessage = getErrorMessage(err)
+      message.error('Error updating event:' + errorMessage)
     }
-    console.log(updatedEvent)
     onClose()
   }
 
@@ -222,6 +227,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               : [],
             startDate: event ? dayjs(event.startDate) : undefined,
             endDate: event ? dayjs(event.endRecur) : undefined,
+            staffIds: event?.staffIds || [],
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
@@ -269,6 +275,42 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         rules={[{ required: true, message: 'Please select the end time!' }]}
       >
         <TimePicker format="HH:mm" minuteStep={5} />
+      </Form.Item>
+      <Form.Item
+        label="Staff"
+        name="staffIds"
+        tooltip={{
+          title: (
+            <div className="flex flex-col gap-y-2">
+              <p>
+                Select staff members that should be checked into a queue at this
+                time.
+              </p>
+              <p>
+                At the end, staff will have an option to stay a bit longer or
+                will otherwise be auto-checked out after 10mins.
+              </p>
+              <p>
+                This also will keep track if staff are checking in late (or
+                completely miss their session), shown on the TA Check In/Out
+                Times page in Course Settings.
+              </p>
+            </div>
+          ),
+          overlayStyle: { maxWidth: '25rem' },
+        }}
+      >
+        <Select
+          placeholder="Select Staff"
+          mode="multiple"
+          options={staff?.map((staff) => ({
+            label: staff.name,
+            value: staff.id,
+          }))}
+          loading={staff === null}
+          style={{ width: '100%' }}
+          allowClear
+        />
       </Form.Item>
 
       <Form.Item>

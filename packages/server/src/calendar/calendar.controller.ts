@@ -96,7 +96,7 @@ export class CalendarController {
       } else {
         console.error(err);
         throw new HttpException(
-          'Calendar create error',
+          '500 Calendar create error',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
@@ -108,9 +108,10 @@ export class CalendarController {
   @Roles(Role.TA, Role.PROFESSOR)
   async updateEvent(
     @Param('calId', ParseIntPipe) calId: string,
+    @Param('cid', ParseIntPipe) cid: number,
     @Body() body: Partial<Calendar>,
   ): Promise<CalendarModel> {
-    const event = await CalendarModel.findOne(calId);
+    const event = await CalendarModel.findOne(calId, { relations: ['staff'] });
     if (!event) {
       console.error('Event not found with calID: ' + calId);
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
@@ -125,16 +126,53 @@ export class CalendarController {
         HttpStatus.BAD_REQUEST,
       );
     }
-    Object.assign(event, body);
     try {
-      await event.save();
+      const entityManager = getManager();
+      await entityManager.transaction(async (transactionalEntityManager) => {
+        const oldStaff = event.staff;
+        Object.assign(event, body);
+        await event.save();
+        // is this logic most optimized? No, not really, but it's simple and covers the case where the start/end/daysOfWeek change
+        // delete all old staff associations and cron jobs
+        await this.calendarService.deleteAllCalendarStaffForCalendar(
+          event.id,
+          transactionalEntityManager,
+        );
+        for (const staff of oldStaff) {
+          await this.calendarService.deleteAutoCheckoutCronJob(
+            staff.userId,
+            staff.calendarId,
+          );
+        }
+        // re-add new staff associations and cron jobs
+        for (const staffId of body.staffIds) {
+          await this.calendarService.createCalendarStaff(
+            staffId,
+            event,
+            transactionalEntityManager,
+          );
+          await this.calendarService.createAutoCheckoutCronJob(
+            staffId,
+            event.id,
+            new Date(body.startDate),
+            new Date(body.endDate),
+            new Date(body.end),
+            body.daysOfWeek,
+            cid,
+          );
+        }
+      });
       return event;
     } catch (err) {
-      console.error(err);
-      throw new HttpException(
-        'Calendar update error',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      if (err instanceof HttpException) {
+        throw err;
+      } else {
+        console.error(err);
+        throw new HttpException(
+          '500 Calendar create error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
     }
   }
 
@@ -143,8 +181,16 @@ export class CalendarController {
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getAllEvents(
     @Param('cid', ParseIntPipe) cid: number,
-  ): Promise<CalendarModel[]> {
-    const events = await CalendarModel.find({ where: { course: cid } });
+  ): Promise<Calendar[]> {
+    const events: (CalendarModel & { staffIds?: number[] })[] =
+      await CalendarModel.find({
+        where: { course: cid },
+        relations: ['staff'],
+      });
+    // reduce staff from [{userId: 1, calendarId: 2}, {userId: 3, calendarId: 2}] to [1, 3]
+    events.forEach((event) => {
+      event.staffIds = event.staff.map((staff) => staff.userId);
+    });
     return events || [];
   }
 
@@ -153,7 +199,7 @@ export class CalendarController {
     @Param('cid') cid: number,
     @Param('date') date: string,
     @Query('timezone') timezone: string,
-  ): Promise<CalendarModel[]> {
+  ): Promise<Calendar[]> {
     // Parse the date string into a Date object
     const targetDate = new Date(date);
 
@@ -167,22 +213,28 @@ export class CalendarController {
     // Retrieve all events for the given course
     const events = await CalendarModel.find({
       where: { course: cid },
+      relations: ['staff'],
     });
     // Filter to get events occurring on the target date
-    const filteredEvents = events.filter((event) => {
-      if (!event.daysOfWeek) {
-        // For one-time events, check if they occur on the target date
-        return (
-          new Date(event.start) >= startOfDay && new Date(event.end) <= endOfDay
-        );
-      } else {
-        // For recurring events, check if the target day is a match and within the event's date range
-        return (
-          event.daysOfWeek.includes(dayOfWeek) &&
-          new Date(event.start) <= targetDate &&
-          (!event.endDate || new Date(event.endDate) >= targetDate)
-        );
-      }
+    const filteredEvents: (CalendarModel & { staffIds?: number[] })[] =
+      events.filter((event) => {
+        if (!event.daysOfWeek) {
+          // For one-time events, check if they occur on the target date
+          return (
+            new Date(event.start) >= startOfDay &&
+            new Date(event.end) <= endOfDay
+          );
+        } else {
+          // For recurring events, check if the target day is a match and within the event's date range
+          return (
+            event.daysOfWeek.includes(dayOfWeek) &&
+            new Date(event.start) <= targetDate &&
+            (!event.endDate || new Date(event.endDate) >= targetDate)
+          );
+        }
+      });
+    filteredEvents.forEach((event) => {
+      event.staffIds = event.staff.map((staff) => staff.userId);
     });
     return filteredEvents;
   }
@@ -201,14 +253,12 @@ export class CalendarController {
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
     }
     try {
-      // TODO: put this in a transaction
       const removedEvent = await event.remove();
       // for each staff member associated with the event, remove the association
       for (const staff of removedEvent.staff) {
-        await this.calendarService.deleteCalendarStaff(
+        await this.calendarService.deleteAutoCheckoutCronJob(
           staff.userId,
           staff.calendarId,
-          true,
         );
       }
       return removedEvent;
