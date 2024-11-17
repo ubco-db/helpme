@@ -6,7 +6,7 @@ import {
   OrganizationFactory,
   OrganizationUserFactory,
 } from './util/factories';
-import { clearAllCronJobs, setupIntegrationTest } from './util/testUtils';
+import { setupIntegrationTest } from './util/testUtils';
 import { CalendarModel } from '../src/calendar/calendar.entity';
 import { CalendarModule } from '../src/calendar/calendar.module';
 import {
@@ -605,4 +605,8 @@ describe('Calendar Integration', () => {
       expect(autoCheckoutJobsAfter).toHaveLength(0);
     });
   });
+
+  // describe('Auto-checkout cron jobs', () => {
+
+  // })
 });

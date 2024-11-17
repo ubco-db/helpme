@@ -37,7 +37,7 @@ export const TestConfigModule = ConfigModule.forRoot({
 export function setupIntegrationTest(
   module: Type<any>,
   modifyModule?: ModuleModifier,
-  additionalModules?: Type<any>[] | any[],
+  additionalModules: Type<any>[] = [],
 ): (u?: SupertestOptions) => supertest.SuperTest<supertest.Test> {
   let app: INestApplication;
   let jwtService: JwtService;
