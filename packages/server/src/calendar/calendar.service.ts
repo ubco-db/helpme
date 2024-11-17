@@ -199,44 +199,60 @@ export class CalendarService implements OnModuleInit {
     // - send an alert to ask them if they want to check out
     // - then create a new cron job to be 10mins from now that checks if they have responded to the alert
     if (myCheckedInQueues && myCheckedInQueues.length > 0) {
-      // send an alert
-      let alert: AlertModel | null = null;
-      try {
-        alert = await AlertModel.create({
-          alertType: AlertType.EVENT_ENDED_CHECKOUT_STAFF,
-          sent: new Date(),
-          userId: userId,
-          courseId: courseId,
-          payload: {},
-        }).save();
-      } catch (err) {
-        console.error(
-          'Error creating EVENT_ENDED_CHECKOUT_STAFF alert in cron job',
-          err,
-        );
-        Sentry.captureException(err);
-        return;
-      }
-      if (!alert) {
-        console.error(
-          'Error creating EVENT_ENDED_CHECKOUT_STAFF alert in cron job',
-        );
-        Sentry.captureMessage(
-          'Error creating EVENT_ENDED_CHECKOUT_STAFF alert in cron job',
-        );
-        return;
-      }
-      // create the cron job (10mins from now)
-      const jobName = `auto-checkout-loop-${userId}-${calendarId}`;
-      const job = new CronJob(
-        new Date(new Date().getTime() + 10 * 60 * 1000),
-        () => {
-          this.autoCheckoutResponseLoop(userId, calendarId, courseId, alert.id);
-        },
+      this.sendAlertToAutoCheckout10minsFromNow(
+        userId,
+        calendarId,
+        courseId,
+        true,
       );
-      this.schedulerRegistry.addCronJob(jobName, job);
-      job.start();
     }
+  }
+
+  async sendAlertToAutoCheckout10minsFromNow(
+    userId: number,
+    calendarId: number,
+    courseId: number,
+    firstTime = false,
+  ) {
+    const now = new Date();
+    const tenMinutes = 10 * 60 * 1000;
+    const nowPlus10Mins = new Date(now.getTime() + tenMinutes);
+    const jobName = `auto-checkout-loop-${userId}-${calendarId}`;
+    // send an alert
+    let alert: AlertModel | null = null;
+    try {
+      alert = await AlertModel.create({
+        alertType: AlertType.EVENT_ENDED_CHECKOUT_STAFF,
+        sent: now,
+        userId: userId,
+        courseId: courseId,
+        payload: {},
+      }).save();
+    } catch (err) {
+      console.error(
+        'Error creating EVENT_ENDED_CHECKOUT_STAFF alert in cron job',
+        err,
+      );
+      Sentry.captureException(err);
+      return;
+    }
+    if (!alert) {
+      console.error(
+        'Error creating EVENT_ENDED_CHECKOUT_STAFF alert in cron job',
+      );
+      Sentry.captureMessage(
+        'Error creating EVENT_ENDED_CHECKOUT_STAFF alert in cron job',
+      );
+      return;
+    }
+    if (!firstTime) {
+      this.schedulerRegistry.deleteCronJob(jobName);
+    }
+    const job = new CronJob(nowPlus10Mins, async () => {
+      this.autoCheckout(userId, calendarId, courseId, alert.id);
+    });
+    this.schedulerRegistry.addCronJob(jobName, job);
+    job.start();
   }
 
   /**
@@ -250,7 +266,7 @@ export class CalendarService implements OnModuleInit {
    *      - if not, check out the user
    *      - if resolved, check when resolved, and create a new cron job that calls this function again 10mins from the resolve date
    */
-  async autoCheckoutResponseLoop(
+  async autoCheckout(
     userId: number,
     calendarId: number,
     courseId: number,
@@ -358,8 +374,14 @@ export class CalendarService implements OnModuleInit {
         const jobName = `auto-checkout-loop-${userId}-${calendarId}`;
         // delete the current cron job and add a new one
         this.schedulerRegistry.deleteCronJob(jobName);
-        const job = new CronJob(nextRun, () => {
-          this.autoCheckoutResponseLoop(userId, calendarId, courseId, alertId);
+        // this cron job runs 10mins from the resolve date
+        const job = new CronJob(nextRun, async () => {
+          // initiate logic to auto-checkout 10mins from the resolve date
+          this.sendAlertToAutoCheckout10minsFromNow(
+            userId,
+            calendarId,
+            courseId,
+          );
         });
         this.schedulerRegistry.addCronJob(jobName, job);
         job.start();
