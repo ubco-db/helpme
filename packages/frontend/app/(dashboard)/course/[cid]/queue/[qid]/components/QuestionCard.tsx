@@ -12,12 +12,7 @@ import { useState, useEffect } from 'react'
 import UserAvatar from '@/app/components/UserAvatar'
 import TaskMarkingSelector from './TaskMarkingSelector'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
-import {
-  getOriginalPausedTime,
-  getPausedTime,
-  getServedTime,
-  getWaitTime,
-} from '@/app/utils/timeFormatUtils'
+import { getServedTime, getWaitTime } from '@/app/utils/timeFormatUtils'
 import TAQuestionCardButtons from './TAQuestionCardButtons'
 import { cn } from '@/app/utils/generalUtils'
 
@@ -62,7 +57,6 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   }
 
   const [servedTime, setServedTime] = useState(getServedTime(question))
-  const [pausedTime, setPausedTime] = useState(getPausedTime(question))
 
   useEffect(() => {
     if (isBeingHelped && question.helpedAt && !isPaused) {
@@ -70,11 +64,8 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
         setServedTime(getServedTime(question))
       }, 1000)
       return () => clearInterval(interval)
-    } else if (isPaused && question.pausedAt) {
-      const interval = setInterval(() => {
-        setPausedTime(getPausedTime(question))
-      }, 1000)
-      return () => clearInterval(interval)
+    } else if (isPaused) {
+      setServedTime(getServedTime(question))
     }
   }, [isBeingHelped, question, isPaused])
 
@@ -105,7 +96,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           isMyQuestion && !isBeingReQueued ? 'bg-teal-200/25' : 'bg-white',
           isBeingReQueued
             ? 'greyscale mt-3 border-gray-300 bg-gray-200/20 text-gray-400 md:mt-2'
-            : ' ',
+            : '',
           className,
         )}
         classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
@@ -220,12 +211,12 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 <div
                   className={cn(
                     'text-sm',
-                    isPaused ? 'text-amber-400' : '',
+                    isPaused ? 'mr-6 text-amber-400' : '',
                     isBeingHelped ? 'text-green-700' : '',
                     isBeingReQueued ? 'italic' : '',
                   )}
                 >
-                  {isPaused && 'Currently Paused'}
+                  {isPaused && 'Paused'}
                   {isBeingHelped && 'Being Served'}
                   {isBeingReQueued && 'Not Ready'}
                 </div>
@@ -251,18 +242,10 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                     className={cn(
                       isBeingHelped ? 'text-green-700' : '',
                       isPaused ? 'text-amber-400' : '',
-                      'font-md flex justify-end text-sm',
+                      'flex justify-end text-sm font-medium',
                     )}
                   >
-                    {isPaused && (
-                      <>
-                        <div className={'text-gray-600'}>
-                          {getOriginalPausedTime(question)}
-                        </div>
-                        <div>{isPaused ? ' +' + pausedTime : ''}</div>
-                      </>
-                    )}
-                    {isBeingHelped && servedTime}
+                    {(isBeingHelped || isPaused) && servedTime}
                   </div>
                 )}
               </Col>

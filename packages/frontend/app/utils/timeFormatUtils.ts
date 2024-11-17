@@ -1,19 +1,30 @@
-import { AsyncQuestion, Question, QueuePartial } from '@koh/common'
+import {
+  AsyncQuestion,
+  OpenQuestionStatus,
+  Question,
+  QueuePartial,
+} from '@koh/common'
 
 export function getWaitTime(question: Question): string {
-  if (!question.createdAt) {
+  const lastReadyDate = question.lastReadyAt
+    ? typeof question.lastReadyAt === 'string'
+      ? new Date(Date.parse(question.lastReadyAt))
+      : question.lastReadyAt
+    : question.createdAt
+      ? typeof question.createdAt === 'string'
+        ? new Date(Date.parse(question.createdAt))
+        : question.createdAt
+      : null
+  if (!lastReadyDate) {
     return formatWaitTime(0)
   }
-  // A dirty fix until we can get the serializer working properly again (i renamed `questions` in SSEQueueResponse to `queueQuestions` and renamed `queue` in ListQuestionsResponse to `questions` and stuff broke for some reason)
-  if (typeof question.createdAt === 'string') {
-    const now = new Date()
-    const tempDate = new Date(Date.parse(question.createdAt))
-    const difference = now.getTime() - tempDate.getTime()
-    return formatWaitTime(difference / 60000)
-  }
   const now = new Date()
-  const difference = now.getTime() - question.createdAt.getTime()
-  return formatWaitTime(difference / 60000)
+  const actualWaitTimeSecs =
+    question.waitTime +
+    Math.round((now.getTime() - lastReadyDate.getTime()) / 1000)
+  console.log('question.waitTime', question.waitTime)
+  console.log('actualWaitTimeSecs', actualWaitTimeSecs)
+  return formatWaitTime(actualWaitTimeSecs / 60)
 }
 
 export function getAsyncWaitTime(question: AsyncQuestion): string {
@@ -45,51 +56,25 @@ export function formatWaitTime(minutes: number): string {
 }
 
 export function getServedTime(question: Question): string {
-  if (!question.helpedAt || !question.createdAt) {
+  if (!question.helpedAt) {
     return ''
   }
   const now = new Date()
+  let actualServeTimeSecs = 0
   // A dirty fix until we can get the serializer working properly again (i renamed `questions` in SSEQueueResponse to `queueQuestions` and renamed `queue` in ListQuestionsResponse to `questions` and stuff broke for some reason)
-  if (typeof question.helpedAt === 'string') {
+  if (question.status === OpenQuestionStatus.Paused) {
+    actualServeTimeSecs = question.helpTime
+  } else if (typeof question.helpedAt === 'string') {
     const tempDate = new Date(Date.parse(question.helpedAt))
-    const difference = now.getTime() - tempDate.getTime()
-    return formatServeTime(difference / 1000)
+    actualServeTimeSecs =
+      question.helpTime +
+      Math.round((now.getTime() - tempDate.getTime()) / 1000)
+  } else {
+    actualServeTimeSecs =
+      question.helpTime +
+      Math.round((now.getTime() - question.helpedAt.getTime()) / 1000)
   }
-  const difference = now.getTime() - question.helpedAt.getTime()
-  return formatServeTime(difference / 1000)
-}
-
-export function getPausedTime(question: Question): string {
-  if (!question.pausedAt || !question.createdAt) {
-    return ''
-  }
-  const now = new Date()
-
-  if (typeof question.pausedAt === 'string') {
-    const tempDate = new Date(Date.parse(question.pausedAt))
-    const difference = now.getTime() - tempDate.getTime()
-    return formatWaitTime(difference / 60000)
-  }
-  const difference = now.getTime() - question.pausedAt.getTime()
-  return formatWaitTime(difference / 60000)
-}
-
-export function getOriginalPausedTime(question: Question): string {
-  if (!question.pausedAt || !question.createdAt) {
-    return ''
-  }
-
-  const created =
-    typeof question.createdAt === 'string'
-      ? new Date(Date.parse(question.createdAt))
-      : question.createdAt
-  const paused =
-    typeof question.pausedAt === 'string'
-      ? new Date(Date.parse(question.pausedAt))
-      : question.pausedAt
-
-  const difference = paused.getTime() - created.getTime()
-  return formatServeTime(difference / 1000)
+  return formatServeTime(actualServeTimeSecs)
 }
 
 /**

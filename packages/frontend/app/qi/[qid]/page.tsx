@@ -14,6 +14,7 @@ import { ReactElement, useCallback, useEffect, useRef, useState } from 'react'
 import {
   decodeBase64,
   encodeBase64,
+  LimboQuestionStatus,
   OpenQuestionStatus,
   parseTaskIdsFromQuestionText,
   PublicQueueInvite,
@@ -257,6 +258,7 @@ export default function QueueInvitePage({
         configTasks={configTasks}
         isBeingHelped={question.status == OpenQuestionStatus.Helping}
         isPaused={question.status == OpenQuestionStatus.Paused}
+        isBeingReQueued={question.status === LimboQuestionStatus.ReQueueing}
       />
     )
   }
@@ -529,9 +531,14 @@ export default function QueueInvitePage({
                             key={question.id}
                             question={question}
                             configTasks={configTasks}
-                            isBeingHelped={true}
+                            isBeingHelped={
+                              question.status === OpenQuestionStatus.Helping
+                            }
                             isPaused={
                               question.status === OpenQuestionStatus.Paused
+                            }
+                            isBeingReQueued={
+                              question.status === LimboQuestionStatus.ReQueueing
                             }
                           />
                         )

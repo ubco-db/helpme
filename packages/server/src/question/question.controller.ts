@@ -87,9 +87,12 @@ export class QuestionController {
         'createdAt',
         'helpedAt',
         'closedAt',
+        'lastReadyAt',
         'status',
         'location',
         'isTaskQuestion',
+        'helpTime',
+        'waitTime',
       ]);
       Object.assign(temp, {
         creatorName: q.creator?.name,
@@ -346,17 +349,9 @@ export class QuestionController {
 
     // creating/editing your own question
     if (isCreator) {
-      // Fail if student tries an invalid status change
-      if (body.status && !question.changeStatus(body.status, Role.STUDENT)) {
-        throw new UnauthorizedException(
-          ERROR_MESSAGES.questionController.updateQuestion.fsmViolation(
-            'Student',
-            question.status,
-            body.status,
-          ),
-        );
-      }
+      const oldStatus = question.status;
       question = Object.assign(question, body);
+      question.status = oldStatus; // change the status back (idk if there's a better way to do this)
       if (body.questionTypes) {
         question.questionTypes = await Promise.all(
           body.questionTypes.map(async (type) => {
@@ -394,8 +389,26 @@ export class QuestionController {
         await this.questionService.checkIfValidTaskQuestion(question, queue);
       }
 
+      // change the status
+      if (body.status) {
+        await this.questionService.changeStatus(
+          body.status,
+          question,
+          userId,
+          Role.STUDENT,
+        );
+      }
       try {
         await question.save();
+      } catch (err) {
+        console.error(err);
+        throw new HttpException(
+          ERROR_MESSAGES.questionController.saveQError,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      // update redis
+      try {
         const queueQuestions = await this.queueService.getQuestions(
           question.queue.id,
         );
@@ -406,7 +419,7 @@ export class QuestionController {
       } catch (err) {
         console.error(err);
         throw new HttpException(
-          ERROR_MESSAGES.questionController.saveQError,
+          'Successfully updated question but failed to update redis cache',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
@@ -465,7 +478,12 @@ export class QuestionController {
         }
       }
       if (body.status) {
-        await this.questionService.changeStatus(body.status, question, userId);
+        await this.questionService.changeStatus(
+          body.status,
+          question,
+          userId,
+          Role.TA,
+        );
       }
       // if it's a task question, update the studentTaskProgress for the student
       if (

@@ -58,17 +58,30 @@ export class QuestionModel extends BaseEntity {
   @Column()
   createdAt: Date;
 
-  // When the question was first helped (doesn't overwrite)
+  // When the question was first helped (doesn't overwrite) - probably don't need anymore (other than if we want to compare if a question has been helped multiple times by seeing if helpedAt == firstHelpedAt)
   @Column({ nullable: true })
   @Exclude()
   firstHelpedAt: Date;
 
+  // ready questions are questions that can be helped (i.e. queued or paused questions)
   @Column({ nullable: true })
-  pausedAt: Date;
+  lastReadyAt: Date;
 
-  // When the question was last helped (getting help again on priority queue overwrites)
+  // Stores how long the question has been waiting for help.
+  // Only gets set on status change, so it will be fine to display this for done questions (e.g. in insights),
+  // but for questions currently in the queue, you need to calculate the actual wait time as waitTime + (now - lastReadyAt)
+  @Column('integer', { default: 0 })
+  waitTime: number; // in seconds
+
+  // When the question was last helped (getting help again overwrites) - alterative name is lastHelpedAt
   @Column({ nullable: true })
   helpedAt: Date;
+
+  // Stores how long the question has been helped for (since just doing closedAt - helpedAt is not accurate as a question can be helped multiple times)
+  // Only gets set on status change, so it will be fine to display this for done questions (e.g. in insights),
+  // but for questions currently in the queue, you need to calculate the actual help time as helpTime + (now - helpedAt)
+  @Column('integer', { default: 0 })
+  helpTime: number; // in seconds
 
   // When the question leaves the queue
   @Column({ nullable: true })
