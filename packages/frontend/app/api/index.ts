@@ -61,6 +61,7 @@ import {
   QueueInvite,
   InsightDashboardPartial,
   InsightDetail,
+  LMSIntegration,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -680,8 +681,6 @@ class APIClient {
       this.req('GET', `/api/v1/organization/${organizationId}/stats`),
     get: async (organizationId: number): Promise<any> =>
       this.req('GET', `/api/v1/organization/${organizationId}`),
-    getIntegrations: async (organizationId: number): Promise<any> =>
-      this.req('GET', `/api/v1/organization/${organizationId}/lms_integration`),
     getUser: async (
       organizationId: number,
       userId: number,
@@ -719,6 +718,28 @@ class APIClient {
       this.req(
         'GET',
         `/api/v1/organization/${organizationId}/get_professors/${courseId ?? '0'}`,
+      ),
+    getIntegrations: async (organizationId: number): Promise<any> =>
+      this.req('GET', `/api/v1/organization/${organizationId}/lms_integration`),
+    upsertIntegration: async (
+      organizationId: number,
+      props: { rootUrl: string; apiPlatform: LMSIntegration },
+    ): Promise<string | undefined> =>
+      this.req(
+        'POST',
+        `/api/v1/organization/${organizationId}/lms_integration/upsert`,
+        undefined,
+        props,
+      ),
+    removeIntegration: async (
+      organizationId: number,
+      props: { apiPlatform: LMSIntegration },
+    ): Promise<string | undefined> =>
+      this.req(
+        'DELETE',
+        `/api/v1/organization/${organizationId}/lms_integration/remove`,
+        undefined,
+        props,
       ),
   }
 

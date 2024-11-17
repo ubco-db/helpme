@@ -2257,6 +2257,12 @@ export const ERROR_MESSAGES = {
     userNotFoundInOrganization: 'User not found in organization',
     cannotRemoveAdminRole: 'Cannot remove admin role from user',
     cannotGetAdminUser: 'Information about this user account is restricted',
+    lmsIntegrationNotFound:
+      'Learning Management System integration was not found',
+    lmsIntegrationInvalidPlatform: 'The specified API platform was invalid',
+    lmsIntegrationUrlRequired: 'Root URL is required for LMS integrations',
+    lmsIntegrationProtocolIncluded:
+      'Root URL should not include protocol (https/http)',
   },
   courseController: {
     checkIn: {

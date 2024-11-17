@@ -64,6 +64,10 @@ export function addGlobalsToApp(app: INestApplication): void {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: (e) => {
+        console.error(e);
+        return e;
+      },
     }),
   );
   app.useGlobalPipes(new StripUndefinedPipe());

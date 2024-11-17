@@ -2,6 +2,7 @@ import {
   BaseEntity,
   Column,
   Entity,
+  JoinColumn,
   ManyToOne,
   OneToMany,
   PrimaryColumn,
@@ -15,7 +16,11 @@ export class LMSOrganizationIntegrationModel extends BaseEntity {
   @PrimaryColumn()
   organizationId: number;
 
-  @PrimaryColumn({ type: 'enum', enum: LMSIntegration })
+  @PrimaryColumn({
+    type: 'enum',
+    enum: LMSIntegration,
+    enumName: 'lms_api_platform_enum',
+  })
   apiPlatform: LMSIntegration;
 
   @Column({ type: 'text' })
@@ -28,5 +33,6 @@ export class LMSOrganizationIntegrationModel extends BaseEntity {
   courseIntegrations: LMSCourseIntegrationModel[];
 
   @ManyToOne((type) => OrganizationModel, (org) => org.organizationIntegrations)
+  @JoinColumn({ referencedColumnName: 'id' })
   organization: OrganizationModel;
 }

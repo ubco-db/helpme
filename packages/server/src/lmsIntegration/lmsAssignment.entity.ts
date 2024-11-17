@@ -15,7 +15,7 @@ export class LMSAssignmentModel {
   @Column({ type: 'text' })
   description: string;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'timestamp' })
   trackedAt: Date;
 
   @ManyToOne(
