@@ -825,7 +825,6 @@ export class Calendar {
 
   @IsArray()
   @IsNumber({}, { each: true })
-  @IsOptional()
   staffIds?: number[]
 }
 
@@ -2279,6 +2278,7 @@ export const ERROR_MESSAGES = {
       'Invalid calendar event: Events must either have daysOfWeek.length > 0 and startDate and endDate or have daysOfWeek.length === 0 and startDate and endDate are both null',
     dateInPast:
       'Event date is in the past. No AutoCheckout will occur. Please unassign staff from event.',
+    invalidRecurringEvent: 'Recurring events must have a start and end date',
   },
   organizationController: {
     notEnoughDiskSpace: 'Not enough disk space to upload file',

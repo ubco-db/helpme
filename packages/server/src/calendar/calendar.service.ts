@@ -7,15 +7,15 @@ import {
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CalendarStaffModel } from './calendar-staff.entity';
 import { EntityManager } from 'typeorm';
-import { UserModel } from 'profile/user.entity';
+import { UserModel } from '../profile/user.entity';
 import { CalendarModel } from './calendar.entity';
-import { AlertModel } from 'alerts/alerts.entity';
+import { AlertModel } from '../alerts/alerts.entity';
 import { AlertType, ERROR_MESSAGES } from '@koh/common';
-import { QueueModel } from 'queue/queue.entity';
-import { EventModel, EventType } from 'profile/event-model.entity';
+import { QueueModel } from '../queue/queue.entity';
+import { EventModel, EventType } from '../profile/event-model.entity';
 import { CronJob } from 'cron';
 import * as Sentry from '@sentry/browser';
-import { QuestionService } from 'question/question.service';
+import { QuestionService } from '../question/question.service';
 
 @Injectable()
 export class CalendarService implements OnModuleInit {
@@ -68,7 +68,11 @@ export class CalendarService implements OnModuleInit {
     // if the event is a one-time event, then the daysOfWeek will be an empty array, and startDate and endDate will both be null
     // in which case, the cron job should simple happen at endDate
     let jobInterval: string | Date = '';
-    if (daysOfWeek.length === 0 && !startDate && !endDate) {
+    if (
+      (!daysOfWeek || (Array.isArray(daysOfWeek) && daysOfWeek.length === 0)) &&
+      !startDate &&
+      !endDate
+    ) {
       if (skipEventsInPast && endDate < new Date()) {
         return;
       }
@@ -76,7 +80,7 @@ export class CalendarService implements OnModuleInit {
         throw new BadRequestException(ERROR_MESSAGES.calendarEvent.dateInPast);
       }
       jobInterval = endTime;
-    } else if (daysOfWeek.length > 0 && startDate && endDate) {
+    } else if (daysOfWeek && daysOfWeek.length > 0 && startDate && endDate) {
       // if the event is recurring
       /* From nest.js docs:
       * * * * * *
@@ -91,6 +95,20 @@ export class CalendarService implements OnModuleInit {
       const sortedDaysOfWeek = daysOfWeek.sort();
       jobInterval = `${endTime.getMinutes()} ${endTime.getHours()} * * ${sortedDaysOfWeek.join(',')}`;
     } else {
+      // console.log('daysOfWeek:', daysOfWeek);
+      // console.log( JSON.stringify({ userId, calendarId, startDate, endDate, endTime, "daysOfWeek": daysOfWeek, courseId }))
+      Sentry.captureMessage(
+        'Invalid event in createAutoCheckoutCronJob:' +
+          JSON.stringify({
+            userId,
+            calendarId,
+            startDate,
+            endDate,
+            endTime,
+            daysOfWeek: daysOfWeek,
+            courseId,
+          }),
+      );
       throw new BadRequestException(ERROR_MESSAGES.calendarEvent.invalidEvent);
     }
 
@@ -117,8 +135,13 @@ export class CalendarService implements OnModuleInit {
       // otherwise, initialize the auto-checkout loop
       this.initializeAutoCheckout(userId, calendarId, courseId);
     });
-    this.schedulerRegistry.addCronJob(jobName, job);
-    job.start();
+    try {
+      this.schedulerRegistry.addCronJob(jobName, job);
+      job.start();
+    } catch (err) {
+      console.error('Error adding cron job', err);
+      Sentry.captureException(err);
+    }
   }
 
   async deleteAutoCheckoutCronJob(
@@ -127,14 +150,21 @@ export class CalendarService implements OnModuleInit {
     skipIfNotExists = false,
   ) {
     const jobName = `auto-checkout-${userId}-${calendarId}`;
-    if (skipIfNotExists && !this.schedulerRegistry.getCronJob(jobName)) {
-      console.log(
-        `Skipped deleting cron job ${jobName} because it does not exist`,
-      );
+    const cronJobs = this.schedulerRegistry.getCronJobs();
+    if (!cronJobs.has(jobName)) {
+      if (!skipIfNotExists) {
+        console.error(`Cron job with name ${jobName} does not exist`);
+        Sentry.captureMessage(`Cron job with name ${jobName} does not exist`);
+      }
       return;
     }
-    this.schedulerRegistry.deleteCronJob(jobName);
-    console.log(`Deleted cron job with name ${jobName}`);
+    try {
+      this.schedulerRegistry.deleteCronJob(jobName);
+      console.log(`Deleted cron job with name ${jobName}`);
+    } catch (err) {
+      console.error(`Error deleting cron job with name ${jobName}`, err);
+      Sentry.captureException(err);
+    }
   }
 
   /**

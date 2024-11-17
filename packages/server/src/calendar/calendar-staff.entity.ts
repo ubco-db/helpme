@@ -5,7 +5,7 @@ import {
   ManyToOne,
   PrimaryColumn,
 } from 'typeorm';
-import { UserModel } from 'profile/user.entity';
+import { UserModel } from '../profile/user.entity';
 import { CalendarModel } from './calendar.entity';
 
 /**

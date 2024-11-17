@@ -12,17 +12,15 @@ import {
   Patch,
   Query,
   ParseIntPipe,
-  NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CalendarModel } from './calendar.entity';
 import { Calendar, ERROR_MESSAGES, OrganizationRole, Role } from '@koh/common';
-import { CourseModel } from 'course/course.entity';
-import { Roles } from 'decorators/roles.decorator';
-import { CourseRolesGuard } from 'guards/course-roles.guard';
+import { CourseModel } from '../course/course.entity';
+import { Roles } from '../decorators/roles.decorator';
+import { CourseRolesGuard } from '../guards/course-roles.guard';
 import { getManager } from 'typeorm';
-import { OrganizationRolesGuard } from 'guards/organization-roles.guard';
+import { OrganizationRolesGuard } from '../guards/organization-roles.guard';
 
 @Controller('calendar')
 @UseGuards(JwtAuthGuard)
@@ -83,7 +81,7 @@ export class CalendarController {
               event.startDate,
               event.endDate,
               event.end,
-              event.daysOfWeek,
+              event.daysOfWeek || [],
               cid,
             );
           }
@@ -122,14 +120,14 @@ export class CalendarController {
       (!body.startDate || !body.endDate)
     ) {
       throw new HttpException(
-        'Recurring events must have a start and end date',
+        ERROR_MESSAGES.calendarEvent.invalidRecurringEvent,
         HttpStatus.BAD_REQUEST,
       );
     }
     try {
       const entityManager = getManager();
       await entityManager.transaction(async (transactionalEntityManager) => {
-        const oldStaff = event.staff;
+        const oldStaff = event.staff.map((staff) => ({ ...staff }));
         Object.assign(event, body);
         await event.save();
         // is this logic most optimized? No, not really, but it's simple and covers the case where the start/end/daysOfWeek change
@@ -142,6 +140,7 @@ export class CalendarController {
           await this.calendarService.deleteAutoCheckoutCronJob(
             staff.userId,
             staff.calendarId,
+            true,
           );
         }
         // re-add new staff associations and cron jobs
@@ -154,10 +153,10 @@ export class CalendarController {
           await this.calendarService.createAutoCheckoutCronJob(
             staffId,
             event.id,
-            new Date(body.startDate),
-            new Date(body.endDate),
+            body.startDate ? new Date(body.startDate) : null,
+            body.endDate ? new Date(body.endDate) : null,
             new Date(body.end),
-            body.daysOfWeek,
+            body.daysOfWeek || [],
             cid,
           );
         }
@@ -169,7 +168,7 @@ export class CalendarController {
       } else {
         console.error(err);
         throw new HttpException(
-          '500 Calendar create error',
+          '500 Calendar edit error',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }

@@ -53,11 +53,6 @@ export const TACourseFactory = new Factory(UserCourseModel).attr(
   Role.TA,
 );
 
-export const ProfessorCourseFactory = new Factory(UserCourseModel).attr(
-  'role',
-  Role.PROFESSOR,
-);
-
 export const SemesterFactory = new Factory(SemesterModel)
   .attr('season', 'Fall')
   .attr('year', 2022);
@@ -221,6 +216,7 @@ export const calendarFactory = new Factory(CalendarModel)
   .attr('locationOnline', 'https://zoom.us/j/example')
   .attr('allDay', false)
   .attr('daysOfWeek', [])
+  .attr('staff', [])
   .assocOne('course', CourseFactory);
 
 export const dashboardPresetFactory = new Factory(InsightDashboardModel)
