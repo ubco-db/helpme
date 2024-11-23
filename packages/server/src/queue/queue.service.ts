@@ -1,6 +1,7 @@
 import {
   decodeBase64,
   LimboQuestionStatus,
+  generateTagIdFromName,
   ListQuestionsResponse,
   OpenQuestionStatus,
   PublicQueueInvite,
@@ -323,7 +324,80 @@ export class QueueService {
       await transactionalEntityManager.save(queue);
     });
 
+    // before sending the messages, get all the updated question types and see if
+    // there are more questionTypes than tags in the config.
+    // If so, run retroactivelyAddOldQuestionTypesToQueueConfig
+    const questionTypes = await QuestionTypeModel.find({
+      where: {
+        cid: queue.courseId,
+        queueId: queueId,
+      },
+      take: this.appConfig.get('max_question_types_per_queue'),
+    });
+    if (questionTypes.length > Object.keys(newConfig.tags).length) {
+      const retroactiveUpdateMessage =
+        await this.retroactivelyAddOldQuestionTypesToQueueConfig(
+          queue,
+          questionTypes,
+        );
+      questionTypeMessages.push(retroactiveUpdateMessage);
+    }
+
     return questionTypeMessages;
+  }
+
+  /**
+   * So there exists a case where a queue config may become out-of-sync with the question types in the database.
+   * One of these cases is old question types that were created before the queue config was implemented, though
+   * I imagine that there are other cases as well (such as if an error happens).
+   * In any case, this service was created to retroactively add any old question types to the queue config's
+   * 'tags' object. It only adds question types whose name does not match a tag's display_name.
+   *
+   * @returns a string message that says what question types were added to the queue config
+   */
+  async retroactivelyAddOldQuestionTypesToQueueConfig(
+    queue: QueueModel,
+    oldQuestionTypes: QuestionTypeModel[],
+  ): Promise<string> {
+    const oldConfig: QueueConfig = queue.config ?? { tags: {} };
+
+    const newTags = oldQuestionTypes.filter((questionType) => {
+      return !Object.values(oldConfig.tags).some(
+        (tag) => tag.display_name === questionType.name,
+      );
+    });
+
+    const newTagsObject = newTags.reduce((acc, questionType) => {
+      // generate a new tag id based on the question type name
+      let newTagId = generateTagIdFromName(questionType.name);
+      if (newTagId.length === 0) {
+        // give random id if the name is only made of illegal characters
+        newTagId = Math.random().toString(36).substring(7);
+      }
+      acc[newTagId] = {
+        color_hex: questionType.color,
+        display_name: questionType.name,
+      };
+      return acc;
+    }, {});
+
+    const newConfig = {
+      ...oldConfig,
+      tags: {
+        ...oldConfig.tags,
+        ...newTagsObject,
+      },
+    };
+
+    // save the new config (not using the updateQueueConfigAndTags function because we don't want to create new question types)
+    queue.config = newConfig;
+    await queue.save();
+
+    const message = `Retroactively added ${newTags
+      .map((questionType) => questionType.name)
+      .join(', ')} to the queue config`;
+
+    return message;
   }
 
   /**
