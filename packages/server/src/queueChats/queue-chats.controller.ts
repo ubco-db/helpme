@@ -26,19 +26,23 @@ export class QueueChatController {
   // PAT TODO: consider more than one student being helped
   // PAT TODO: remove unused functions
 
-  @Get(':queueId')
+  @Get(':queueId/:studentId')
   @UseGuards(JwtAuthGuard)
   async getQueueChat(
     @Param('queueId') queueId: number,
+    @Param('studentId') studentId: number,
     @User() user: UserModel,
   ) {
-    const chatData = await this.queueChatService.getChatData(queueId);
+    const chatData = await this.queueChatService.getChatData(
+      queueId,
+      studentId,
+    );
     if (!chatData) {
       throw new HttpException('Chat not found', HttpStatus.NOT_FOUND);
     }
 
     await this.queueChatService
-      .checkPermissions(queueId, user.id)
+      .checkPermissions(queueId, studentId, user.id)
       .then((allowedToRetrieve) => {
         if (!allowedToRetrieve) {
           throw new HttpException(
@@ -92,20 +96,25 @@ export class QueueChatController {
   //   }
   // }
 
-  @Patch(':queueId')
+  @Patch(':queueId/:studentId')
   @UseGuards(JwtAuthGuard)
   async sendMessage(
     @Param('queueId') queueId: number,
+    @Param('studentId') studentId: number,
     @User() user: UserModel,
     @Body('message') message: string,
   ) {
-    const metadata = await this.queueChatService.getChatMetadata(queueId);
+    const metadata = await this.queueChatService.getChatMetadata(
+      queueId,
+      studentId,
+    );
     if (!metadata) {
       throw new HttpException('Chat not found', HttpStatus.NOT_FOUND);
     }
 
     const allowedToSend = await this.queueChatService.checkPermissions(
       queueId,
+      studentId,
       user.id,
     );
     if (!allowedToSend) {
@@ -116,7 +125,12 @@ export class QueueChatController {
     }
     try {
       const isStaff = user.id === metadata.staff.id;
-      await this.queueChatService.sendMessage(queueId, isStaff, message);
+      await this.queueChatService.sendMessage(
+        queueId,
+        studentId,
+        isStaff,
+        message,
+      );
       await this.queueSSEService.updateQueueChat(queueId);
       return { message: 'Message sent' };
     } catch (error) {
