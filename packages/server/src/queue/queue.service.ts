@@ -137,6 +137,7 @@ export class QueueService {
         'createdAt',
         'firstHelpedAt',
         'helpedAt',
+        'lastReadyAt',
         'closedAt',
         'status',
         'location',
@@ -145,6 +146,8 @@ export class QueueService {
         'questionTypes',
         'taHelped',
         'isTaskQuestion',
+        'waitTime',
+        'helpTime',
       ]);
 
       Object.assign(temp, {
@@ -217,6 +220,7 @@ export class QueueService {
             'createdAt',
             'creatorId',
             'firstHelpedAt',
+            'lastReadyAt',
             'groupId',
             'groupable',
             'helpedAt',
@@ -229,6 +233,8 @@ export class QueueService {
             'taHelped',
             'text',
             'isTaskQuestion',
+            'waitTime',
+            'helpTime',
           ]);
 
           return Object.assign(temp, {

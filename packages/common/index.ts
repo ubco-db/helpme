@@ -445,8 +445,14 @@ export class Question {
   @Type(() => Date)
   helpedAt?: Date
 
+  // in seconds
+  helpTime!: number
+
   @Type(() => Date)
-  pausedAt?: Date
+  lastReadyAt?: Date
+
+  // in seconds
+  waitTime!: number
 
   @Type(() => Date)
   closedAt?: Date
@@ -494,6 +500,13 @@ export enum ClosedQuestionStatus {
   ConfirmedDeleted = 'ConfirmedDeleted',
   Stale = 'Stale',
 }
+
+/** waitingStatuses are statuses where the student waiting to be helped */
+export const waitingStatuses: ReadonlyArray<OpenQuestionStatus> = [
+  OpenQuestionStatus.Paused,
+  OpenQuestionStatus.Queued,
+  OpenQuestionStatus.PriorityQueued,
+]
 
 export enum asyncQuestionStatus {
   AIAnsweredNeedsAttention = 'AIAnsweredNeedsAttention', // AI has answered, but the answer is unsatisfactory.

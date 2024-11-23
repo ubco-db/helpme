@@ -389,13 +389,7 @@ export const MedianWaitTime: InsightObject = {
       return `0 min`;
     }
 
-    const waitTimes = questions.map(
-      (question) =>
-        Math.floor(
-          (question.firstHelpedAt.getTime() - question.createdAt.getTime()) /
-            1000,
-        ) / 60,
-    );
+    const waitTimes = questions.map((question) => question.waitTime / 60);
 
     return `${Math.floor(Math.round(median(waitTimes)))} min`;
   },
@@ -416,33 +410,10 @@ export const AverageTimesByWeekDay: InsightObject = {
       weekday: number;
     };
 
-    const now = constructDateExtractString('EPOCH', 'NOW()', '');
-    const firstHelped = constructDateExtractString(
-      'EPOCH',
-      'QuestionModel',
-      'firstHelpedAt',
-    );
-    const createdAt = constructDateExtractString(
-      'EPOCH',
-      'QuestionModel',
-      'createdAt',
-    );
-    const closedAt = constructDateExtractString(
-      'EPOCH',
-      'QuestionModel',
-      'closedAt',
-    );
-
     const questions = await addFilters({
       query: createQueryBuilder(QuestionModel)
-        .select(
-          `AVG(COALESCE(${firstHelped}, ${now}) - ${createdAt})`,
-          'avgWaitTime',
-        )
-        .addSelect(
-          `AVG(COALESCE(${closedAt}, ${now}) - COALESCE(${firstHelped}, ${createdAt}))`,
-          'avgHelpTime',
-        )
+        .select(`AVG(QuestionModel.waitTime)`, 'avgWaitTime')
+        .addSelect(`AVG(QuestionModel.helpTime)`, 'avgHelpTime')
         .addSelect(
           constructDateExtractString(
             'DOW',
@@ -1039,33 +1010,10 @@ export const StaffEfficiency: InsightObject = {
       staffMember: number;
     };
 
-    const now = constructDateExtractString('EPOCH', 'NOW()', '');
-    const firstHelped = constructDateExtractString(
-      'EPOCH',
-      'QuestionModel',
-      'firstHelpedAt',
-    );
-    const createdAt = constructDateExtractString(
-      'EPOCH',
-      'QuestionModel',
-      'createdAt',
-    );
-    const closedAt = constructDateExtractString(
-      'EPOCH',
-      'QuestionModel',
-      'closedAt',
-    );
-
     const questions = await addFilters({
       query: createQueryBuilder(QuestionModel)
-        .select(
-          `AVG(COALESCE(${firstHelped},${now}) - ${createdAt})`,
-          'avgWaitTime',
-        )
-        .addSelect(
-          `AVG(COALESCE(${closedAt}, ${now}) - COALESCE(${firstHelped}, ${createdAt}))`,
-          'avgHelpTime',
-        )
+        .select(`AVG(QuestionModel.waitTime)`, 'avgWaitTime')
+        .addSelect(`AVG(QuestionModel.helpTime)`, 'avgHelpTime')
         .addSelect('QuestionModel.taHelpedId', 'staffMember')
         .where('QuestionModel.taHelpedId IS NOT NULL')
         .andWhere('QuestionModel.status IN (:...status)', {
@@ -1264,23 +1212,17 @@ export const StaffQuestionTimesByDay: InsightObject = {
       'QuestionModel',
       'createdAt',
     );
-    const createdAt = constructDateExtractString(
-      'EPOCH',
-      'QuestionModel',
-      'createdAt',
-    );
-    const closedAt = constructDateExtractString(
-      'EPOCH',
-      'QuestionModel',
-      'closedAt',
-    );
+
     const getQuarterTimeString = `CEIL(${extractMinutesIntoDay}/15)*15`;
 
     const taQuestions = await addFilters({
       query: createQueryBuilder(QuestionModel)
         .select(getQuarterTimeString, 'quarterTime')
         .addSelect('QuestionModel.taHelpedId', 'staffMember')
-        .addSelect(`AVG(${closedAt} - ${createdAt})`, 'avgQuestionTime')
+        .addSelect(
+          `AVG(QuestionModel.waitTime + QuestionModel.helpTime)`,
+          'avgQuestionTime',
+        )
         .addSelect(extractWeekday, 'weekday')
         .where('QuestionModel.taHelpedId IS NOT NULL')
         .andWhere('QuestionModel.createdAt IS NOT NULL')

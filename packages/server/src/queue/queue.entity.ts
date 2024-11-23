@@ -99,6 +99,7 @@ export class QueueModel extends BaseEntity {
     this.queueSize = await QuestionModel.inQueueWithStatus(this.id, [
       ...StatusInQueue,
       OpenQuestionStatus.Helping,
+      OpenQuestionStatus.Paused,
     ]).getCount();
   }
 
