@@ -311,6 +311,7 @@ export class QuestionService {
         ClosedQuestionStatus.Resolved,
         question,
         helperId,
+        Role.TA,
       );
     }
   }

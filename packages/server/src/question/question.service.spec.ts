@@ -1,4 +1,9 @@
-import { QuestionStatusKeys, Role } from '@koh/common';
+import {
+  ClosedQuestionStatus,
+  OpenQuestionStatus,
+  QuestionStatusKeys,
+  Role,
+} from '@koh/common';
 import { TestingModule, Test } from '@nestjs/testing';
 import { NotificationService } from 'notification/notification.service';
 import { Connection } from 'typeorm';
@@ -8,6 +13,8 @@ import {
   QuestionFactory,
   UserFactory,
   TACourseFactory,
+  UserCourseFactory,
+  CourseFactory,
 } from '../../test/util/factories';
 import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
 import { QuestionGroupModel } from './question-group.entity';
@@ -84,6 +91,104 @@ describe('QuestionService', () => {
       expect(updatedQ2.group).toBeNull();
       expect(updatedQ2.groupId).toBeNull();
       expect(updatedQ2.status).toEqual(QuestionStatusKeys.CantFind);
+    });
+  });
+  describe('resolveQuestions', () => {
+    it('should resolve all helping questions for a given helper', async () => {
+      const queue = await QueueFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({
+        course: queue.course,
+        user: ta,
+      });
+
+      const question1 = await QuestionFactory.create({
+        queue,
+        taHelped: ta,
+        status: OpenQuestionStatus.Helping,
+      });
+
+      const question2 = await QuestionFactory.create({
+        queue,
+        taHelped: ta,
+        status: OpenQuestionStatus.Helping,
+      });
+
+      await service.resolveQuestions(queue.id, ta.id);
+
+      const resolvedQuestion1 = await QuestionModel.findOne(question1.id);
+      const resolvedQuestion2 = await QuestionModel.findOne(question2.id);
+
+      expect(resolvedQuestion1.status).toEqual(ClosedQuestionStatus.Resolved);
+      expect(resolvedQuestion2.status).toEqual(ClosedQuestionStatus.Resolved);
+    });
+
+    it('should mark tasks done for task questions', async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      await UserCourseFactory.create({ user: student, course });
+      const queue = await QueueFactory.create({
+        course,
+        config: {
+          assignment_id: 'lab1',
+          tasks: {
+            task1: {
+              color_hex: '#000000',
+              display_name: 'Task 1',
+              short_display_name: 'T1',
+              precondition: null,
+              blocking: false,
+            },
+            task2: {
+              color_hex: '#000000',
+              display_name: 'Task 2',
+              short_display_name: 'T2',
+              precondition: 'task1',
+              blocking: false,
+            },
+          },
+        },
+      });
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({
+        course,
+        user: ta,
+      });
+
+      const taskQuestion = await QuestionFactory.create({
+        text: 'Mark "task1" "task2"',
+        queue,
+        taHelped: ta,
+        status: OpenQuestionStatus.Helping,
+        isTaskQuestion: true,
+      });
+
+      jest.spyOn(service, 'checkIfValidTaskQuestion').mockResolvedValue();
+      jest.spyOn(service, 'markTasksDone').mockResolvedValue();
+
+      await service.resolveQuestions(queue.id, ta.id);
+
+      expect(service.checkIfValidTaskQuestion).toHaveBeenCalledWith(
+        taskQuestion,
+        queue,
+      );
+      expect(service.markTasksDone).toHaveBeenCalledWith(
+        taskQuestion,
+        taskQuestion.creatorId,
+      );
+    });
+
+    it('should handle no questions gracefully', async () => {
+      const queue = await QueueFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({
+        course: queue.course,
+        user: ta,
+      });
+
+      await expect(
+        service.resolveQuestions(queue.id, ta.id),
+      ).resolves.not.toThrow();
     });
   });
 });
