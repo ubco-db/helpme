@@ -12,18 +12,15 @@ import { CloseOutlined } from '@ant-design/icons'
 interface QueueChatProps {
   role: Role
   queueId: number
-  isOpen: boolean
-  setIsOpen: (isOpen: boolean) => void
   variant?: 'small' | 'big' | 'huge'
 }
 
 const QueueChat: React.FC<QueueChatProps> = ({
   role,
   queueId,
-  isOpen,
-  setIsOpen,
   variant = 'small',
 }): ReactElement => {
+  const [isOpen, setIsOpen] = useState<boolean>(true)
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const { queueChatData, mutateQueueChat, hasNewMessages } =
@@ -53,6 +50,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   if (!queueChatData && isOpen) {
     return (
       <Alert
+        className="fixed bottom-8 right-0 box-border md:right-2"
         message="Chat data is not available."
         description="Please try again later or contact support if the issue persists."
         type="warning"
@@ -65,11 +63,11 @@ const QueueChat: React.FC<QueueChatProps> = ({
     <div
       className={cn(
         variant === 'small'
-          ? 'absolute bottom-8 right-0 box-border max-h-[70vh] w-screen md:right-2 md:max-w-[400px]'
+          ? 'fixed bottom-8 right-0 box-border max-h-[70vh] w-screen md:right-2 md:max-w-[400px]'
           : variant === 'big'
-            ? 'absolute bottom-8 right-2 box-border flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
+            ? 'fixed bottom-8 right-2 box-border flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
             : variant === 'huge'
-              ? 'absolute bottom-8 right-2 box-border flex h-[90vh] w-screen flex-col overflow-auto md:w-[90%]'
+              ? 'fixed bottom-8 right-2 box-border flex h-[90vh] w-screen flex-col overflow-auto md:w-[90%]'
               : '',
       )}
       style={{ zIndex: 1050 }}
@@ -205,7 +203,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     </div>
   ) : (
     <div
-      className="absolute bottom-8 right-3 flex justify-end md:left-2"
+      className="fixed bottom-8 right-3 flex justify-end md:left-2"
       style={{ zIndex: 1050 }}
     >
       <Button
