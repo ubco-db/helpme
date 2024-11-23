@@ -256,7 +256,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           text: text || '',
           questionTypes: questionTypes,
           queueId: qid,
-          location: location ?? isQueueHybrid ? 'Unselected' : undefined,
+          location: (location ?? isQueueHybrid) ? 'Unselected' : undefined,
           force: force,
           groupable: false,
           isTaskQuestion,

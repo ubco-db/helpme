@@ -96,6 +96,19 @@ export default function stringToHexColor(str: string): string {
 }
 
 /**
+ * Generates a random hex color
+ * @returns {string} The hex color. It will always be a 6-digits, so it should not appear transparent
+ */
+export function generateRandomHexColor(): string {
+  return (
+    '#' +
+    Math.floor(Math.random() * 16777215)
+      .toString(16)
+      .padStart(6, '0')
+  )
+}
+
+/**
  * Returns the role of the user in the course.
  */
 export function getRoleInCourse(userInfo: User, courseId: number): Role {
