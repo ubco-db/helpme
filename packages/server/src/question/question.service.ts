@@ -39,7 +39,11 @@ export class QuestionService {
     const oldStatus = question.status;
     const newStatus = status;
     // If the taHelped is already set, make sure the same ta updates the status
-    if (myRole === Role.TA && question.taHelped?.id !== userId) {
+    if (
+      myRole === Role.TA &&
+      question.taHelped &&
+      question.taHelped.id !== userId
+    ) {
       if (oldStatus === OpenQuestionStatus.Helping) {
         throw new UnauthorizedException(
           ERROR_MESSAGES.questionController.updateQuestion.otherTAHelping,
@@ -292,7 +296,6 @@ export class QuestionService {
     }
   }
 
-  // TODO: add tests for this
   async resolveQuestions(queueId: number, helperId: number): Promise<void> {
     const queue = await QueueModel.findOneOrFail(queueId);
     const questions = await QuestionModel.find({

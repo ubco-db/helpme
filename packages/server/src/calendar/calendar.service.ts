@@ -21,7 +21,7 @@ import { QuestionService } from '../question/question.service';
 export class CalendarService implements OnModuleInit {
   constructor(
     private schedulerRegistry: SchedulerRegistry,
-    private questionService: QuestionService,
+    public questionService: QuestionService, // needed to make public for jest testing purposes
   ) {}
 
   async onModuleInit() {

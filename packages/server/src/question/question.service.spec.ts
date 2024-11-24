@@ -20,6 +20,7 @@ import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
 import { QuestionGroupModel } from './question-group.entity';
 import { QuestionModel } from './question.entity';
 import { QuestionService } from './question.service';
+import { QueueModel } from 'queue/queue.entity';
 
 describe('QuestionService', () => {
   let service: QuestionService;
@@ -168,12 +169,16 @@ describe('QuestionService', () => {
 
       await service.resolveQuestions(queue.id, ta.id);
 
+      const updatedQuestion = await QuestionModel.findOne(taskQuestion.id);
+      expect(updatedQuestion.status).toBe(ClosedQuestionStatus.Resolved);
+      const realQueue = await QueueModel.findOne(queue.id);
+
       expect(service.checkIfValidTaskQuestion).toHaveBeenCalledWith(
-        taskQuestion,
-        queue,
+        updatedQuestion,
+        realQueue,
       );
       expect(service.markTasksDone).toHaveBeenCalledWith(
-        taskQuestion,
+        updatedQuestion,
         taskQuestion.creatorId,
       );
     });
