@@ -169,8 +169,8 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
     <div className="mb-32 md:mb-0">
       <div className="flex items-center justify-between md:my-2">
         {questions?.length === 0 ? (
-          <div className="text-xl font-medium text-gray-900">
-            There are no questions in the queue
+          <div className="ml-auto mr-auto mt-4 text-lg font-medium text-gray-500">
+            The queue is empty!
           </div>
         ) : (
           <QueueHeader
