@@ -3,6 +3,7 @@ import {
   OpenQuestionStatus,
   Question,
   QueuePartial,
+  waitingStatuses,
 } from '@koh/common'
 
 export function getWaitTime(question: Question): string {
@@ -19,11 +20,13 @@ export function getWaitTime(question: Question): string {
     return formatWaitTime(0)
   }
   const now = new Date()
-  const actualWaitTimeSecs =
-    question.waitTime +
-    Math.round((now.getTime() - lastReadyDate.getTime()) / 1000)
-  console.log('question.waitTime', question.waitTime)
-  console.log('actualWaitTimeSecs', actualWaitTimeSecs)
+  // if the question's status is not waiting, the wait time is not moving up, so it stays at whatever it was set at in the database
+  // if the question is not being helped, then the wait time in the database is outdated, so it becomes the time since the last time the question was ready
+  const actualWaitTimeSecs = !waitingStatuses.includes(question.status)
+    ? question.waitTime
+    : question.waitTime +
+      Math.round((now.getTime() - lastReadyDate.getTime()) / 1000)
+
   return formatWaitTime(actualWaitTimeSecs / 60)
 }
 
