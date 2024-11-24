@@ -59,6 +59,43 @@ describe('AsyncQuestion Integration', () => {
       course: course,
     });
   });
+
+  describe('Async question comment', () => {
+    it('Student can comment on a question', async () => {
+      await supertest({ userId: studentUser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: studentUser.id,
+          commentText: 'Student comment 1',
+        })
+        .expect(201)
+        .then((response) => {
+          expect(response.body).toHaveProperty(
+            'commentText',
+            'Student comment 1',
+          );
+          expect(response.body.creator.email).toBe('justino@ubc.ca');
+          expect(response.body.questionId).toBe(asyncQuestion.id);
+        });
+    });
+    it('TA can comment on a question', async () => {
+      await supertest({ userId: TAuser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: TAuser.id,
+          commentText: 'TA Comment 1',
+        })
+        .expect(201)
+        .then((response) => {
+          expect(response.body).toHaveProperty('commentText', 'TA Comment 1');
+          expect(response.body.creator.email).toBe('wskksw@student.ubc.ca');
+          expect(response.body.questionId).toBe(asyncQuestion.id);
+        });
+    });
+  });
+
   describe('Async question creation', () => {
     it('Student can create a question', async () => {
       await supertest({ userId: studentUser.id })
