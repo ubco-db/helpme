@@ -147,7 +147,7 @@ function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => Promise<void> }) {
     >
       <Tooltip title="Leave Queue">
         <CircleButton
-          variant="red"
+          customVariant="red"
           icon={<DeleteRowOutlined />}
           loading={isLeavingLoading}
         />
@@ -310,7 +310,7 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
                     <div className="relative ml-2 inline-flex items-center justify-center">
                       <div className="absolute inset-0 animate-ping rounded-full bg-white opacity-50 before:content-['']"></div>
                       <CircleButton
-                        variant="primary"
+                        customVariant="primary"
                         className="!ml-0"
                         icon={<UndoOutlined />}
                         loading={isRejoinLoading}

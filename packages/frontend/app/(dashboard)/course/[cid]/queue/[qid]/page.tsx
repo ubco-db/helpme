@@ -751,7 +751,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                         <span>
                           <CircleButton
                             className="mr-[1.2rem]"
-                            variant="green"
+                            customVariant="green"
                             icon={
                               <CheckCheck size={22} className="shrink-0 pl-1" />
                             }

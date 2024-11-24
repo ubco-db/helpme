@@ -22,7 +22,10 @@ import {
   QuestionTagEditor,
 } from '../../../components/QuestionTagElement'
 
-type Color = GetProp<ColorPickerProps, 'value'>
+type Color = Extract<
+  GetProp<ColorPickerProps, 'value'>,
+  string | { cleared: any }
+>
 
 type QuestionTypeForCreation = {
   name: string
