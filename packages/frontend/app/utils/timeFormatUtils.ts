@@ -7,6 +7,10 @@ import {
 } from '@koh/common'
 
 export function getWaitTime(question: Question): string {
+  return formatWaitTime(question.waitTime / 60)
+}
+
+export function getWaitTimeOld(question: Question): string {
   const lastReadyDate = question.lastReadyAt
     ? typeof question.lastReadyAt === 'string'
       ? new Date(Date.parse(question.lastReadyAt))
