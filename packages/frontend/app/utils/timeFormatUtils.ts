@@ -6,6 +6,29 @@ import {
   waitingStatuses,
 } from '@koh/common'
 
+export function updateWaitTime(question: Question): Question {
+  const now = new Date()
+  const lastReadyDate = question.lastReadyAt
+    ? typeof question.lastReadyAt === 'string'
+      ? new Date(Date.parse(question.lastReadyAt))
+      : question.lastReadyAt
+    : question.createdAt
+      ? typeof question.createdAt === 'string'
+        ? new Date(Date.parse(question.createdAt))
+        : question.createdAt
+      : null
+  if (!lastReadyDate) {
+    return { ...question, waitTime: 0 }
+  }
+  // if the question's status is not waiting, the wait time is not moving up, so it stays at whatever it was set at in the database
+  // if the question is not being helped, then the wait time in the database is outdated, so it becomes the time since the last time the question was ready
+  const actualWaitTimeSecs = !waitingStatuses.includes(question.status)
+    ? question.waitTime
+    : question.waitTime +
+      Math.round((now.getTime() - lastReadyDate.getTime()) / 1000)
+  return { ...question, waitTime: actualWaitTimeSecs }
+}
+
 export function getWaitTime(question: Question): string {
   return formatWaitTime(question.waitTime / 60)
 }

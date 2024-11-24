@@ -1,13 +1,10 @@
-import {
-  ListQuestionsResponse,
-  SSEQueueResponse,
-  waitingStatuses,
-} from '@koh/common'
+import { ListQuestionsResponse, SSEQueueResponse } from '@koh/common'
 import { plainToClass } from 'class-transformer'
 import { useCallback, useMemo } from 'react'
 import useSWR, { mutate, SWRResponse } from 'swr'
 import { useEventSource } from './useEventSource'
 import { API } from '../api'
+import { updateWaitTime } from '../utils/timeFormatUtils'
 
 type questionsResponse = SWRResponse<ListQuestionsResponse, any>
 
@@ -45,42 +42,49 @@ export function useQuestions(qid: number): UseQuestionReturn {
     refreshInterval: isLive ? 0 : 10 * 1000,
   })
 
+  //
+  // frontend dataprocessing logic.
+  // This is here since the response from the backend and/or database is cached
+  // and we want the waitTime to be updated more often.
+  // This should basically have the same performance as putting these calculations in the getWaitTime in timeFormatUtils since the same calcs are being made.
+  //
   const sortedQuestions = useMemo(() => {
     if (!queueQuestions?.questions) return []
-    // if the question's status is not waiting, the wait time is not moving up, so it stays at whatever it was set at in the database
-    // if the question is not being helped, then the wait time in the database is outdated, so it becomes the time since the last time the question was ready
-    return queueQuestions.questions
-      .map(
-        (question) => {
-          const now = new Date()
-          const lastReadyDate = question.lastReadyAt
-            ? typeof question.lastReadyAt === 'string'
-              ? new Date(Date.parse(question.lastReadyAt))
-              : question.lastReadyAt
-            : question.createdAt
-              ? typeof question.createdAt === 'string'
-                ? new Date(Date.parse(question.createdAt))
-                : question.createdAt
-              : null
-          if (!lastReadyDate) {
-            return { ...question, waitTime: 0 }
-          }
-          const actualWaitTimeSecs = !waitingStatuses.includes(question.status)
-            ? question.waitTime
-            : question.waitTime +
-              Math.round((now.getTime() - lastReadyDate.getTime()) / 1000)
-          return { ...question, waitTime: actualWaitTimeSecs }
-        },
+    return (
+      queueQuestions.questions
+        .map((question) => updateWaitTime(question))
         // sort by wait time DESC
-      )
-      .sort((a, b) => b.waitTime - a.waitTime)
+        .sort((a, b) => b.waitTime - a.waitTime)
+    )
   }, [queueQuestions])
+
+  const questionsGettingHelpWithWaitTime = useMemo(() => {
+    if (!queueQuestions?.questionsGettingHelp) return []
+    return queueQuestions.questionsGettingHelp.map((question) =>
+      updateWaitTime(question),
+    )
+  }, [queueQuestions])
+
+  const yourQuestionsWithWaitTime = useMemo(() => {
+    if (!queueQuestions?.yourQuestions) return []
+    return queueQuestions.yourQuestions.map((question) =>
+      updateWaitTime(question),
+    )
+  }, [queueQuestions])
+
+  // priority queue is unused right now, save some calcs
+  // const priorityQueueWithWaitTime = useMemo(() => {
+  //   if (!queueQuestions?.priorityQueue) return []
+  //   return queueQuestions.priorityQueue.map((question) => {
+  //     return updateWaitTime(question)
+  //   })
+  // }, [queueQuestions])
 
   const newQueueQuestions: ListQuestionsResponse = {
     ...queueQuestions,
     questions: sortedQuestions,
-    questionsGettingHelp: queueQuestions?.questionsGettingHelp || [],
-    yourQuestions: queueQuestions?.yourQuestions || [],
+    questionsGettingHelp: questionsGettingHelpWithWaitTime,
+    yourQuestions: yourQuestionsWithWaitTime,
     priorityQueue: queueQuestions?.priorityQueue || [],
     groups: queueQuestions?.groups || [],
     unresolvedAlerts: queueQuestions?.unresolvedAlerts || [],
