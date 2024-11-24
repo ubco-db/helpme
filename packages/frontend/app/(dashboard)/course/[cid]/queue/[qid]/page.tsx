@@ -509,6 +509,30 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     [isFirstQuestion, router, setIsFirstQuestion],
   )
 
+  const finishHelpingAllStudents = useCallback(async () => {
+    setIsFinishAllHelpingButtonLoading(true)
+    const promises = helpingQuestions
+      .filter((q) => q.status !== OpenQuestionStatus.Paused)
+      .map(async (question) => {
+        return API.questions
+          .update(question.id, {
+            status: ClosedQuestionStatus.Resolved,
+          })
+          .catch((e) => {
+            const errorMessage = getErrorMessage(e)
+            message.error(errorMessage)
+            throw e
+          })
+      })
+    Promise.all(promises)
+      .catch((e) => {
+        message.error('One or more status updates failed:' + e)
+      })
+      .finally(() => {
+        setIsFinishAllHelpingButtonLoading(false)
+      })
+  }, [helpingQuestions])
+
   // used for the "Join" button on the tag groups feature (specifically, for the tasks)
   useEffect(() => {
     // only re-calculate the taskTree and everything if tagGroups is enabled and the user is a student
@@ -755,7 +779,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       >
                         <span>
                           <CircleButton
-                            className="mr-[1.2rem]"
+                            className="mr-[1.2rem] hidden md:block"
                             customVariant="green"
                             icon={
                               <CheckCheck size={22} className="shrink-0 pl-1" />
@@ -765,33 +789,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                             disabled={helpingQuestions.some(
                               (question) => question.isTaskQuestion,
                             )}
-                            onClick={() => {
-                              setIsFinishAllHelpingButtonLoading(true)
-                              const promises = helpingQuestions
-                                .filter(
-                                  (q) => q.status !== OpenQuestionStatus.Paused,
-                                )
-                                .map(async (question) => {
-                                  return API.questions
-                                    .update(question.id, {
-                                      status: ClosedQuestionStatus.Resolved,
-                                    })
-                                    .catch((e) => {
-                                      const errorMessage = getErrorMessage(e)
-                                      message.error(errorMessage)
-                                      throw e
-                                    })
-                                })
-                              Promise.all(promises)
-                                .catch((e) => {
-                                  message.error(
-                                    'One or more status updates failed:' + e,
-                                  )
-                                })
-                                .finally(() => {
-                                  setIsFinishAllHelpingButtonLoading(false)
-                                })
-                            }}
+                            onClick={finishHelpingAllStudents}
                           />
                         </span>
                       </Tooltip>
@@ -812,12 +810,12 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       />
                     )
                   })}
-                  <Divider className={'my-4 hidden md:block'} />
+                  <Divider className={'my-2 hidden md:block'} />
                 </>
               )}
               {pausedQuestions && pausedQuestions.length > 0 && (
                 <>
-                  <div className="flex items-center justify-between">
+                  <div className="hidden items-center justify-between md:flex">
                     <QueueHeader
                       text="Paused Questions"
                       visibleOnDesktopOrMobile="desktop"
@@ -838,7 +836,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       isPaused={true}
                     />
                   ))}
-                  <Divider className={'my-4 hidden md:block'} />
+                  <Divider className={'my-3 hidden md:block'} />
                 </>
               )}
             </>
