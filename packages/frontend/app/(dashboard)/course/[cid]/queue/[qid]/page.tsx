@@ -581,9 +581,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   onClick={() => setQueueSettingsModalOpen(true)}
                   icon={<EditOutlined />}
                 >
-                  {/* only show the "Details" part on desktop to keep button small on mobile */}
                   <span>
-                    Edit Queue <span className="hidden sm:inline">Details</span>
+                    <span className="hidden md:inline">Edit Queue Details</span>
+                    <span className="inline md:hidden">Edit Queue</span>
                   </span>
                 </EditQueueButton>
               </span>
@@ -602,8 +602,10 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   >
                     {/* "+ Add Students to Queue" on desktop, "+ Students" on mobile */}
                     <span>
-                      <span className="hidden sm:inline">Add</span> Students{' '}
-                      <span className="hidden sm:inline">to Queue</span>
+                      <span className="hidden md:inline">
+                        Add Students to Queue
+                      </span>
+                      <span className="inline md:hidden">Students</span>
                     </span>
                   </EditQueueButton>
                 </span>
@@ -613,10 +615,13 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   onClick={() => setAssignmentReportModalOpen(true)}
                   icon={<ListChecks className="mr-1" />}
                 >
-                  {/* "View Students {lab} Progress" on desktop, "{lab} Progress" on mobile */}
                   <span>
-                    <span className="hidden sm:inline">View Students </span>
-                    {queueConfig?.assignment_id} Progress
+                    <span className="hidden md:inline">
+                      View Students {queueConfig?.assignment_id} Progress
+                    </span>
+                    <span className="inline md:hidden">
+                      {queueConfig?.assignment_id} Progress
+                    </span>
                   </span>
                 </EditQueueButton>
               )}
@@ -734,7 +739,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   <div className="flex items-center justify-between md:mt-2">
                     <QueueHeader
                       text="You are Currently Helping"
-                      visibleOnDesktopOrMobile="both"
+                      visibleOnDesktopOrMobile="desktop"
                     />
                     {helpingQuestions.filter(
                       (q) => q.status !== OpenQuestionStatus.Paused,
@@ -807,7 +812,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       />
                     )
                   })}
-                  <Divider className={'my-4'} />
+                  <Divider className={'my-4 hidden md:block'} />
                 </>
               )}
               {pausedQuestions && pausedQuestions.length > 0 && (
@@ -815,7 +820,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   <div className="flex items-center justify-between">
                     <QueueHeader
                       text="Paused Questions"
-                      visibleOnDesktopOrMobile="both"
+                      visibleOnDesktopOrMobile="desktop"
                     />
                   </div>
                   {pausedQuestions.map((question: Question) => (
@@ -833,7 +838,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       isPaused={true}
                     />
                   ))}
-                  <Divider className={'my-4'} />
+                  <Divider className={'my-4 hidden md:block'} />
                 </>
               )}
             </>
