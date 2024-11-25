@@ -200,7 +200,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     </div>
   ) : (
     <div
-      className="fixed bottom-8 right-3 flex justify-end md:left-2"
+      className={`${fixed ? `fixed ` : ''}bottom-8 right-3 flex justify-end md:left-2`}
       style={{ zIndex: 1050 }}
     >
       <Button
@@ -210,7 +210,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
         icon={<MessageCircleMore />}
         onClick={() => setIsOpen(true)}
       >
-        {`Queue Chat`}
+        {isStaff
+          ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName}`
+          : `Queue Chat`}
       </Button>
     </div>
   )

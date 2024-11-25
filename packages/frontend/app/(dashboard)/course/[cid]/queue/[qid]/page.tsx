@@ -707,8 +707,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     )
   }
 
-  console.log('studentQuestion: ', studentQuestion)
-
   if (!course) {
     return <CenteredSpinner tip="Loading Course Data..." />
   } else if (!queue) {
@@ -908,9 +906,8 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 onClose={() => setAssignmentReportModalOpen(false)}
               />
             )}
-            {/* PAT TODO: Refactor to load multiple chats and test */}
             <div className="fixed bottom-8 right-0 box-border md:right-2">
-              <div className="flex flex-row gap-2">
+              <div className="flex flex-row items-end justify-end gap-2">
                 {helpingQuestions.map((question) => {
                   return (
                     <QueueChat

@@ -57,7 +57,7 @@ export class QueueChatService {
       } as QueueChatPartial),
     );
 
-    await this.redis.expire(key, 7200); // 2 hours = 2 * 60 * 60 = 7200 seconds
+    await this.redis.expire(key, 86400); // 24 hours = 24 * 60 * 60 = 86400 seconds
   }
 
   /**
@@ -152,14 +152,14 @@ export class QueueChatService {
    * @param studentId The ID of the student
    */
   async endChat(queueId: number, studentId: number): Promise<void> {
-    const key = `${ChatMetadataRedisKey}:${queueId}`;
+    const key = `${ChatMetadataRedisKey}:${queueId}:${studentId}`;
 
     const metadata = await this.getChatMetadata(queueId, studentId);
     const messageCount = (await this.getChatMessages(queueId, studentId))
       .length;
 
     // Don't bother saving if chat was not used
-    if (messageCount != 0) {
+    if (messageCount !== 0) {
       const queueChat = new QueueChatsModel();
       queueChat.queueId = queueId;
       queueChat.staffId = metadata.staff.id;

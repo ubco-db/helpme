@@ -22,7 +22,7 @@ export function useQueueChat(
   qid: number,
   studentId: number,
 ): useQueueChatReturn {
-  const key = `/api/v1/queueChats/${qid}`
+  const key = `/api/v1/queueChats/${qid}/${studentId}`
   const previousMessageCount = useRef<number>(0)
   const [hasNewMessages, setHasNewMessages] = useState<boolean>(false)
 
