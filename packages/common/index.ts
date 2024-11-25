@@ -1523,6 +1523,9 @@ export class SemesterPartial {
 export class SSEQueueResponse {
   queue?: GetQueueResponse
   queueQuestions?: ListQuestionsResponse
+}
+
+export class SSEQueueChatResponse {
   queueChat?: GetQueueChatResponse
 }
 

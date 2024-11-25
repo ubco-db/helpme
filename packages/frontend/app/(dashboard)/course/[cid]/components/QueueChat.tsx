@@ -6,25 +6,28 @@ import { MessageCircleMore } from 'lucide-react'
 import TextArea from 'antd/es/input/TextArea'
 import { API } from '@/app/api'
 import { useQueueChat } from '@/app/hooks/useQueueChat'
-import { cn } from '@/app/utils/generalUtils'
 import { CloseOutlined } from '@ant-design/icons'
 
 interface QueueChatProps {
   role: Role
   queueId: number
-  variant?: 'small' | 'big' | 'huge'
+  studentId: number
+  fixed?: boolean
 }
 
 const QueueChat: React.FC<QueueChatProps> = ({
   role,
   queueId,
-  variant = 'small',
+  studentId,
+  fixed = true,
 }): ReactElement => {
   const [isOpen, setIsOpen] = useState<boolean>(true)
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
-  const { queueChatData, mutateQueueChat, hasNewMessages } =
-    useQueueChat(queueId)
+  const { queueChatData, mutateQueueChat, hasNewMessages } = useQueueChat(
+    queueId,
+    studentId,
+  )
 
   useEffect(() => {
     if (hasNewMessages) {
@@ -37,11 +40,13 @@ const QueueChat: React.FC<QueueChatProps> = ({
   const sendMessage = async () => {
     setIsLoading(true)
     try {
-      API.queueChats.sendMessage(queueId, input).then(() => {
-        mutateQueueChat()
-        setIsLoading(false)
-        setInput('')
-      })
+      if (studentId) {
+        API.queueChats.sendMessage(queueId, studentId, input).then(() => {
+          mutateQueueChat()
+          setIsLoading(false)
+          setInput('')
+        })
+      }
     } catch (error) {
       console.error(error)
     }
@@ -50,7 +55,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   if (!queueChatData && isOpen) {
     return (
       <Alert
-        className="fixed bottom-8 right-0 box-border md:right-2"
+        className={`${fixed ? 'fixed ' : ' '}bottom-8 right-0 box-border md:right-2`}
         message="Chat data is not available."
         description="Please try again later or contact support if the issue persists."
         type="warning"
@@ -61,15 +66,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
 
   return isOpen ? (
     <div
-      className={cn(
-        variant === 'small'
-          ? 'fixed bottom-8 right-0 box-border max-h-[70vh] w-screen md:right-2 md:max-w-[400px]'
-          : variant === 'big'
-            ? 'fixed bottom-8 right-2 box-border flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
-            : variant === 'huge'
-              ? 'fixed bottom-8 right-2 box-border flex h-[90vh] w-screen flex-col overflow-auto md:w-[90%]'
-              : '',
-      )}
+      className={`${fixed ? 'fixed ' : ' '} bottom-8 right-0 box-border max-h-[70vh] w-screen md:right-2 md:max-w-[400px]`}
       style={{ zIndex: 1050 }}
     >
       <Card

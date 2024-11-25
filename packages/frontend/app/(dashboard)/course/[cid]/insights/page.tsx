@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import DashboardPresetComponent from '../insights/components/DashboardPresetComponent'
+import DashboardPresetComponent from './components/DashboardPresetComponent'
 import { useParams } from 'next/navigation'
 import InsightComponent from '@/app/(dashboard)/course/[cid]/insights/components/outputComponents/InsightComponent'
 import InsightsPageMenu from '@/app/(dashboard)/course/[cid]/insights/components/InsightsPageMenu'

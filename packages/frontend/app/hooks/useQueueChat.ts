@@ -1,4 +1,8 @@
-import { GetQueueChatResponse, SSEQueueResponse } from '@koh/common'
+import {
+  GetQueueChatResponse,
+  SSEQueueChatResponse,
+  SSEQueueResponse,
+} from '@koh/common'
 import { plainToClass } from 'class-transformer'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import useSWR, { mutate, SWRResponse } from 'swr'
@@ -14,17 +18,20 @@ export interface useQueueChatReturn {
   hasNewMessages: boolean
 }
 
-export function useQueueChat(qid: number): useQueueChatReturn {
+export function useQueueChat(
+  qid: number,
+  studentId: number,
+): useQueueChatReturn {
   const key = `/api/v1/queueChats/${qid}`
   const previousMessageCount = useRef<number>(0)
   const [hasNewMessages, setHasNewMessages] = useState<boolean>(false)
 
   // Subscribe to SSE
   const isLive = useEventSource(
-    `/api/v1/queues/${qid}/sse`,
+    `/api/v1/queueChats/${qid}/${studentId}/sse`,
     'queueChat',
     useCallback(
-      (data: SSEQueueResponse) => {
+      (data: SSEQueueChatResponse) => {
         if (data.queueChat) {
           // Update the SWR cache with the new chat data
           mutate(key, plainToClass(GetQueueChatResponse, data.queueChat), false)
@@ -39,7 +46,7 @@ export function useQueueChat(qid: number): useQueueChatReturn {
     data: queueChatData,
     error: queueChatError,
     mutate: mutateQueueChat,
-  } = useSWR(key, async () => API.queueChats.index(qid), {
+  } = useSWR(key, async () => API.queueChats.index(qid, studentId), {
     refreshInterval: isLive ? 0 : 10 * 1000,
   })
 

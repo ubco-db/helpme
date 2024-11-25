@@ -5,21 +5,27 @@ import {
   HttpException,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Patch,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { QueueChatService } from './queue-chats.service';
-import { User } from 'decorators/user.decorator';
+import { User, UserId } from 'decorators/user.decorator';
 import { UserModel } from 'profile/user.entity';
 import { QueueSSEService } from 'queue/queue-sse.service';
+import { Response } from 'express-serve-static-core';
+import { QueueRole } from 'decorators/queue-role.decorator';
+import { Role } from '@koh/common';
+import { QueueChatSSEService } from './queue-chats-sse.service';
 
 @Controller('queueChats')
 @UseGuards(JwtAuthGuard)
 export class QueueChatController {
   constructor(
     private queueChatService: QueueChatService,
-    private queueSSEService: QueueSSEService,
+    private queueChatSSEService: QueueChatSSEService,
   ) {}
 
   // PAT TODO: put error messages in ERROR_MESSAGES
@@ -55,46 +61,34 @@ export class QueueChatController {
     return chatData;
   }
 
-  // @Put(':queueId')
-  // @UseGuards(JwtAuthGuard)
-  // async createChat(
-  //   @Param('queueId') queueId: number,
-  //   @User() user: UserModel,
-  // ) {
-  //   try {
-  //     const queue = await QueueModel.findOne(queueId, {
-  //       relations: ['questions'],
-  //     });
-  //     if (!queue) {
-  //       throw new HttpException('Queue not found', HttpStatus.NOT_FOUND);
-  //     }
-  //     const helpedQuestion = queue.questions.find(
-  //       (question) => question.status === OpenQuestionStatus.Helping,
-  //     );
+  /**
+   * Endpoint to tell frontend when the queue chat changes
+   * Note there is a similar method in queue-invite.controller.ts & queue.controller.ts
+   *  */
+  @Get(':queueId/:studentId/sse')
+  sendEvent(
+    @Param('queueId', ParseIntPipe) queueId: number,
+    @Param('studentId', ParseIntPipe) studentId: number,
+    @QueueRole() role: Role,
+    @UserId() userId: number,
+    @Res() res: Response,
+  ): void {
+    res.set({
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'X-Accel-Buffering': 'no',
+      Connection: 'keep-alive',
+    });
 
-  //     this.queueChatService.checkPermissions(queueId, user.id).then((allowedToCreate) => {
-  //       if (!allowedToCreate) {
-  //         throw new HttpException(
-  //           'User is not allowed to create chat',
-  //           HttpStatus.FORBIDDEN,
-  //         );
-  //       }
-  //     });
-
-  //     // Create a chat in Redis and return status 200 if successful
-  //     return this.queueChatService.createChat(
-  //       queueId,
-  //       helpedQuestion.taHelpedId,
-  //       helpedQuestion.creatorId,
-  //     );
-
-  //   } catch (error) {
-  //     if (error) {
-  //       console.error(error);
-  //       throw new HttpException('Error creating chat', HttpStatus.INTERNAL_SERVER_ERROR);
-  //     }
-  //   }
-  // }
+    try {
+      this.queueChatSSEService.subscribeClient(queueId, studentId, res, {
+        role,
+        userId,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
   @Patch(':queueId/:studentId')
   @UseGuards(JwtAuthGuard)
@@ -131,7 +125,7 @@ export class QueueChatController {
         isStaff,
         message,
       );
-      await this.queueSSEService.updateQueueChat(queueId);
+      await this.queueChatSSEService.updateQueueChat(queueId, studentId);
       return { message: 'Message sent' };
     } catch (error) {
       if (error) {
@@ -143,28 +137,4 @@ export class QueueChatController {
       }
     }
   }
-
-  // @Delete(':courseId/:queueId')
-  // @UseGuards(JwtAuthGuard)
-  // async deleteChat(
-  //   @Param('queueId') queueId: number,
-  //   @Param('courseId') courseId: number,
-  //   @User() user: UserModel,
-  // ) {
-  //   try {
-  //     this.queueChatService.checkPermissions(courseId, queueId, user.id).then((allowedToDelete) => {
-  //       if (!allowedToDelete) {
-  //         throw new HttpException('User is not allowed to delete chat', HttpStatus.FORBIDDEN);
-  //       }
-  //     });
-
-  //     // Delete chat from Redis and return status 200 if successful
-  //     return this.queueChatService.endChat(courseId, queueId);
-  //   } catch (error) {
-  //     if (error) {
-  //       console.error(error);
-  //       throw new HttpException('Error deleting chat', HttpStatus.INTERNAL_SERVER_ERROR);
-  //     }
-  //   }
-  // }
 }

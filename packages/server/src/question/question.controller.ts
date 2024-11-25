@@ -489,7 +489,10 @@ export class QuestionController {
                 break;
               case ClosedQuestionStatus.Resolved:
                 try {
-                  await this.QueueChatService.endChat(question.queueId);
+                  await this.QueueChatService.endChat(
+                    question.queueId,
+                    question.creatorId,
+                  );
                 } catch (error) {
                   throw new HttpException(
                     'Error ending queue chat',
