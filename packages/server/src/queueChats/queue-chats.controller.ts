@@ -29,8 +29,6 @@ export class QueueChatController {
   ) {}
 
   // PAT TODO: put error messages in ERROR_MESSAGES
-  // PAT TODO: consider more than one student being helped
-  // PAT TODO: remove unused functions
 
   @Get(':queueId/:studentId')
   @UseGuards(JwtAuthGuard)

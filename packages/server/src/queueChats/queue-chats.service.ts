@@ -152,23 +152,24 @@ export class QueueChatService {
    * @param studentId The ID of the student
    */
   async endChat(queueId: number, studentId: number): Promise<void> {
-    const key = `${ChatMetadataRedisKey}:${queueId}:${studentId}`;
+    const metaKey = `${ChatMetadataRedisKey}:${queueId}:${studentId}`;
+    const messageKey = `${ChatMessageRedisKey}:${queueId}:${studentId}`;
 
     const metadata = await this.getChatMetadata(queueId, studentId);
-    const messageCount = (await this.getChatMessages(queueId, studentId))
-      .length;
+    const messages = await this.getChatMessages(queueId, studentId);
 
     // Don't bother saving if chat was not used
-    if (messageCount !== 0) {
+    if (messages && messages.length !== 0) {
       const queueChat = new QueueChatsModel();
       queueChat.queueId = queueId;
       queueChat.staffId = metadata.staff.id;
       queueChat.studentId = metadata.student.id;
       queueChat.startedAt = metadata.startedAt;
       queueChat.closedAt = new Date();
-      queueChat.messageCount = messageCount;
+      queueChat.messageCount = messages.length;
       queueChat.save().then(async () => {
-        await this.redis.del(key);
+        await this.redis.del(metaKey);
+        await this.redis.del(messageKey);
       });
     }
   }
