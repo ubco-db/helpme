@@ -63,6 +63,7 @@ import {
   InsightDashboardPartial,
   InsightDetail,
   CronJob,
+  OrgUser,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -713,7 +714,7 @@ class APIClient {
       organizationId: number,
       page: number,
       search?: string,
-    ): Promise<any> =>
+    ): Promise<OrgUser[]> =>
       this.req(
         'GET',
         `/api/v1/organization/${organizationId}/get_users/${page}${

@@ -32,6 +32,7 @@ import {
   CourseSettingsRequestBody,
   OrganizationProfessor,
   CourseResponse,
+  OrgUser,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -44,7 +45,6 @@ import { Roles } from 'decorators/roles.decorator';
 import {
   OrganizationCourseResponse,
   OrganizationService,
-  UserResponse,
 } from './organization.service';
 import { OrganizationGuard } from 'guards/organization.guard';
 import * as checkDiskSpace from 'check-disk-space';
@@ -1452,7 +1452,7 @@ export class OrganizationController {
     @Param('oid', ParseIntPipe) oid: number,
     @Param('page', ParseIntPipe) page: number,
     @Query('search') search: string,
-  ): Promise<UserResponse[]> {
+  ): Promise<OrgUser[]> {
     const pageSize = 50;
 
     if (!search) {

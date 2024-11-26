@@ -107,6 +107,19 @@ export class DesktopNotifPartial {
 }
 
 /**
+ * Given by get_users endpoint that returns all users
+ */
+export interface OrgUser {
+  userId: number
+  firstName: string
+  lastName: string
+  email: string
+  photoUrl: string | null
+  userRole: string
+  organizationRole: string
+}
+
+/**
  * Contains the partial user info needed by the frontend when nested in a response
  * @param id - The unique id of the user in our db.
  * @param name - The full name of this user: First Last.
