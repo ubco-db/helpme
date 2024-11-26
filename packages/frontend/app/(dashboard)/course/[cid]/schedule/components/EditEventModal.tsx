@@ -307,6 +307,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
             label: staff.name,
             value: staff.id,
           }))}
+          optionFilterProp="label"
           loading={staff === null}
           style={{ width: '100%' }}
           allowClear

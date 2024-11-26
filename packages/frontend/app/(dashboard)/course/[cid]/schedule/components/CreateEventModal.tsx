@@ -262,6 +262,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           }))}
           loading={staff === null}
           style={{ width: '100%' }}
+          optionFilterProp="label"
           allowClear
         />
       </Form.Item>
