@@ -196,6 +196,114 @@ describe('BackupService', () => {
     });
   });
 
+  describe('handleDailyUploadsBackup', () => {
+    const mockFiles = [
+      'uploads_backup-2023-01-01.zip',
+      'uploads_backup-2023-01-02.zip',
+    ];
+    const uploadsDir = '../../uploads';
+    const backupDir = '../../backups/uploads-daily';
+    const todayFormatted = new Date().toISOString().split('T')[0];
+    const backupFile = `uploads_backup-${todayFormatted}.zip`;
+
+    beforeEach(() => {
+      jest.spyOn(fs, 'createWriteStream').mockReturnValue({
+        on: jest.fn().mockReturnThis(),
+        end: jest.fn(),
+      } as unknown as fs.WriteStream);
+
+      jest.spyOn(fs, 'readdir').mockImplementation((_, options, callback) => {
+        const dirents = mockFiles.map((file) => ({
+          name: file,
+          isFile: () => true,
+          isDirectory: () => false,
+          isBlockDevice: () => false,
+          isCharacterDevice: () => false,
+          isSymbolicLink: () => false,
+          isFIFO: () => false,
+          isSocket: () => false,
+        }));
+        callback(null, dirents as unknown as fs.Dirent[]);
+      });
+
+      jest.spyOn(fs, 'stat').mockImplementation((_, options, callback) => {
+        const stats = {
+          mtime: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // Mock a file last modified 10 days ago
+          isFile: () => true,
+          isDirectory: () => false,
+        };
+        callback(null, stats as unknown as fs.Stats);
+      });
+
+      jest.spyOn(fs, 'rmdirSync').mockImplementation(() => {});
+      jest.spyOn(service, 'checkDiskSpace').mockResolvedValue(true);
+      jest
+        .spyOn(fs, 'readdir')
+        .mockImplementation((_, options, callback) => callback(null, []));
+
+      const zipStreamOnMock = jest.fn().mockReturnThis();
+      const archiveFinalizeMock = jest.fn();
+      const archiveFileMock = jest.fn();
+
+      jest.mock('archiver', () => () => ({
+        pipe: jest.fn(),
+        on: zipStreamOnMock,
+        finalize: archiveFinalizeMock,
+        file: archiveFileMock,
+      }));
+    });
+
+    it('should create an uploads backup when there is sufficient disk space', async () => {
+      jest.spyOn(service, 'checkDiskSpace').mockResolvedValue(true);
+      jest
+        .spyOn(fs, 'readdir')
+        .mockImplementation((_, options, callback) => callback(null, []));
+
+      const zipStreamOnMock = jest.fn().mockReturnThis();
+      const archiveFinalizeMock = jest.fn();
+      const archiveFileMock = jest.fn();
+
+      jest.mock('archiver', () => () => ({
+        pipe: jest.fn(),
+        on: zipStreamOnMock,
+        finalize: archiveFinalizeMock,
+        file: archiveFileMock,
+      }));
+
+      await service.handleDailyUploadsBackup();
+
+      expect(fs.createWriteStream).toHaveBeenCalledWith(
+        `${backupDir}/${backupFile}`,
+      );
+    });
+
+    it('should log an error if insufficient disk space', async () => {
+      jest.spyOn(service, 'checkDiskSpace').mockResolvedValue(false);
+
+      await service.handleDailyUploadsBackup();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Insufficient disk space for uploads backup.'),
+      );
+    });
+
+    it('should handle errors during file reading', async () => {
+      jest.spyOn(service, 'checkDiskSpace').mockResolvedValue(true);
+      jest
+        .spyOn(fs, 'readdir')
+        .mockImplementationOnce((_, options, callback) => {
+          callback(new Error('Failed to read directory'), []);
+        });
+
+      await service.handleDailyUploadsBackup();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error backing up uploads:'),
+        expect.any(Error),
+      );
+    });
+  });
+
   describe('checkDiskSpace', () => {
     it('should return true if there is enough disk space', async () => {
       execMock.mockImplementation((command, callback) => {

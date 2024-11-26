@@ -134,11 +134,11 @@ export class BackupService {
               path.join(backupDir, sortedFiles[sortedFiles.length - 1].name),
               { recursive: true },
             ); // Delete the oldest backup
-            console.log('Deleted oldest backup successfully!');
+            console.log('Deleted oldest uploads backup successfully!');
           }
 
           console.log(
-            `Backup zipped successfully! Total bytes: ${archive.pointer() / 1024}kB`,
+            `Uploads backup zipped successfully! Total bytes: ${archive.pointer() / 1024}kB`,
           );
         });
 
@@ -179,7 +179,7 @@ export class BackupService {
           archive.finalize();
         });
       } else {
-        console.error('Insufficient disk space for backup.');
+        console.error('Insufficient disk space for uploads backup.');
         Sentry.captureMessage('Insufficient disk space for uploads backup.');
       }
     } catch (error) {
