@@ -56,15 +56,18 @@ const ChangeLogModal: React.FC<ChangeLogModalProps> = ({
   return (
     <>
       <Modal
+        title={<span>What&apos;s New?</span>}
         open={isOpen}
         destroyOnClose
         closable
         footer={null}
         onCancel={onClose}
         width="auto"
-        className="flex flex-col items-center justify-center overflow-y-auto"
+        className="box-border flex flex-col items-center justify-center overflow-y-auto"
       >
-        <MarkdownCustom>{currentChangeLog}</MarkdownCustom>
+        <div className="box-border h-[75vh] w-full overflow-y-auto px-4">
+          <MarkdownCustom>{currentChangeLog}</MarkdownCustom>
+        </div>
       </Modal>
     </>
   )

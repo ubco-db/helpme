@@ -12,7 +12,7 @@ const FooterBar: React.FC = () => {
         aria-hidden="true"
       >
         <div>
-          Version 1.0.0{' '}
+          Version 2.0.0{' '}
           <a
             className="ml-1 cursor-pointer text-blue-600 underline"
             onClick={() => {

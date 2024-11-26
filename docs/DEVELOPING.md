@@ -168,7 +168,7 @@ You can also push something to master, and then use the deploy script. Note that
 ### Changelog
 The changelog (```./packages/frontend/public/changelog.md``` from project-root) contains a formatted list of feature roll-outs for each deployment update.
 
-Be sure to update this file and set all users' ```readChangeLog``` attributes in the User model of the database to false before finishing deployment updates.
+Be sure to update this file, the version number in the footer, and set all users' ```readChangeLog``` attributes in the User model of the database to false before finishing deployment updates.
 
 ## Misc
 
