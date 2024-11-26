@@ -419,7 +419,7 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
                     setLocalQuestionTags((prev) =>
                       prev.map((t) =>
                         t.id === tag.id
-                          ? currentTags.find((ct) => ct.id === tag.id) ?? t
+                          ? (currentTags.find((ct) => ct.id === tag.id) ?? t)
                           : t,
                       ),
                     )

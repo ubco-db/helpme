@@ -661,6 +661,47 @@ export class AsyncQuestionVotes {
   vote!: number
 }
 
+export class QueueChatPartial {
+  // Might be useful for frontend insights on chat (after the fact; won't be sent to chat users)
+  @IsOptional()
+  @IsInt()
+  id?: number
+
+  staff!: QueueChatUserPartial
+
+  student!: QueueChatUserPartial
+
+  @IsDate()
+  startedAt!: Date
+
+  messages?: QueueChatMessagePartial[]
+}
+
+export class QueueChatUserPartial {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  firstName!: string
+
+  @IsString()
+  lastName!: string
+
+  @IsString()
+  photoURL?: string
+}
+
+export class QueueChatMessagePartial {
+  @IsBoolean()
+  isStaff!: boolean
+
+  @IsString()
+  message!: string
+
+  @IsDate()
+  timestamp!: Date
+}
+
 export class Image {
   @IsOptional()
   @IsInt()
@@ -1126,6 +1167,8 @@ export class GetQueueResponse extends QueuePartial {}
 
 export class GetCourseQueuesResponse extends Array<QueuePartial> {}
 
+export class GetQueueChatResponse extends QueueChatPartial {}
+
 export class ListQuestionsResponse {
   @Type(() => Question)
   yourQuestions?: Array<Question>
@@ -1493,6 +1536,10 @@ export class SemesterPartial {
 export class SSEQueueResponse {
   queue?: GetQueueResponse
   queueQuestions?: ListQuestionsResponse
+}
+
+export class SSEQueueChatResponse {
+  queueChat?: GetQueueChatResponse
 }
 
 export const InsightCategories = [
@@ -2405,6 +2452,12 @@ export const ERROR_MESSAGES = {
     cannotCloseQueue: 'Unable to close professor queue as a TA',
     missingStaffList: 'Stafflist relation not present on Queue',
     cycleInTasks: 'Cycle detected in task preconditions',
+  },
+  queueChatsController: {
+    chatNotFound: 'Chat not found',
+    chatNotAuthorized: 'User is not allowed to retrieve requested chat data',
+    sendNotAuthorized: 'User is not allowed to send messages to this chat',
+    internalSendError: 'Error occurred while sending message',
   },
   queueRoleGuard: {
     queueNotFound: 'Queue not found',

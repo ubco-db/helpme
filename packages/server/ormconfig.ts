@@ -32,6 +32,7 @@ import { StudentTaskProgressModel } from './src/studentTaskProgress/studentTaskP
 import { ApplicationConfigModel } from './src/config/application_config.entity';
 import { InsightDashboardModel } from './src/insights/dashboard.entity';
 import { QueueInviteModel } from './src/queue/queue-invite.entity';
+import { QueueChatsModel } from './src/queueChats/queue-chats.entity';
 
 config();
 
@@ -82,6 +83,7 @@ const typeorm = {
     StudentTaskProgressModel,
     ApplicationConfigModel,
     QueueInviteModel,
+    QueueChatsModel,
     InsightDashboardModel,
   ],
   keepConnectionAlive: true,
