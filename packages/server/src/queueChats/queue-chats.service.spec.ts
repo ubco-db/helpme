@@ -37,9 +37,7 @@ describe('QueueChatService', () => {
         },
       ],
     }).compile();
-    jest
-      .spyOn(global, 'Date')
-      .mockImplementation(() => staticDate as unknown as string);
+    jest.spyOn(global, 'Date').mockImplementation(() => staticDate);
     service = module.get<QueueChatService>(QueueChatService);
   });
 
