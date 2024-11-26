@@ -265,7 +265,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
         >
           <Tooltip title="Can't Find">
             <CircleButton
-              variant="red"
+              customVariant="red"
               icon={<CloseOutlined />}
               loading={cantFindButtonLoading}
               disabled={
@@ -290,7 +290,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
             <CircleButton
               onMouseEnter={() => setIsFinishHelpingTooltipVisible(true)}
               onMouseLeave={() => setIsFinishHelpingTooltipVisible(false)}
-              variant="green"
+              customVariant="green"
               icon={<CheckOutlined />}
               loading={finishHelpingButtonLoading}
               disabled={
@@ -320,7 +320,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
         {question.status === OpenQuestionStatus.Paused ? (
           <Tooltip title="Resume Helping">
             <CircleButton
-              variant="green"
+              customVariant="green"
               icon={<Play size={22} className="shrink-0 pl-1" />}
               loading={pauseButtonLoading}
               disabled={
@@ -339,7 +339,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
         ) : (
           <Tooltip title="Pause Helping">
             <CircleButton
-              variant="gray"
+              customVariant="gray"
               icon={<PauseOutlined />}
               loading={pauseButtonLoading}
               disabled={
@@ -413,7 +413,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                 {/* This span is a workaround for tooltip-on-disabled-button 
               https://github.com/ant-design/ant-design/issues/9581#issuecomment-599668648 */}
                 <CircleButton
-                  variant="red"
+                  customVariant="red"
                   icon={<DeleteOutlined />}
                   disabled={
                     !isUserCheckedIn ||
@@ -434,7 +434,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
             >
               <span>
                 <CircleButton
-                  variant="orange"
+                  customVariant="orange"
                   icon={<QuestionOutlined />}
                   onClick={sendRephraseAlert}
                   disabled={
@@ -454,7 +454,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           >
             <span>
               <CircleButton
-                variant="primary"
+                customVariant="primary"
                 icon={<Play size={22} className="shrink-0 pl-1" />}
                 onClick={() => {
                   // message.success("timer cleared")

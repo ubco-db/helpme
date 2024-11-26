@@ -84,7 +84,7 @@ export const constructChartConfig = (
         }
       })
     } else {
-      const key = item.key + '' ?? ''
+      const key = item.key ? item.key + '' : ''
       chartConfig[item.key] = {
         label: (key.charAt(0).toUpperCase() + key.slice(1)).replace(/_/g, ' '),
         color: item.fill,

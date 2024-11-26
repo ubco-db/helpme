@@ -559,7 +559,26 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         label="Assignment Id"
         name="assignmentId"
         layout="horizontal"
-        tooltip={`The assignment ID for the queue (e.g. "lab1", "lab2", "assignment1", etc.). This is used to track the assignment progress for students. Only set if you want to define tasks to keep track of.`}
+        tooltip={{
+          title: (
+            <div className="flex flex-col gap-y-2">
+              <p>
+                The assignment ID for the queue (e.g. &quot;lab1&quot;,
+                &quot;lab2&quot;, &quot;assignment1&quot;, etc.).
+              </p>
+              <p>
+                This is used to track the assignment progress for students. Only
+                set if you want to define tasks to keep track of.
+              </p>
+              <p>
+                Note: you can edit this assignment id freely without worry that
+                any existing data will be modified. Student assignment data will
+                only be modified when a question is done being helped.
+              </p>
+            </div>
+          ),
+          overlayStyle: { maxWidth: '25rem' },
+        }}
       >
         <Input allowClear={true} placeholder="[No Assignment Id set]" />
       </Form.Item>
@@ -567,7 +586,28 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         <>
           <Form.Item
             label="Tasks"
-            tooltip={`The tasks for the queue. A task is similar to a tag except it is 'check-able'. For example, a lab may have many parts or questions that require a TA to look at before the end of the lab. Students will then be able to Create a Demo which you can then help and select which parts to mark correct.`}
+            tooltip={{
+              title: (
+                <div className="flex flex-col gap-y-2">
+                  <p>
+                    The tasks for the queue. A task is similar to a tag except
+                    it is &apos;check-able&apos;.
+                  </p>
+                  <p>
+                    For example, a lab may have many parts or questions that
+                    require a TA to look at before the end of the lab. Students
+                    will then be able to Create a Demo which you can then help
+                    and select which parts to mark correct.
+                  </p>
+                  <p>
+                    Note: you can edit these tasks freely without worry that any
+                    existing data will be modified. Student assignment data will
+                    only be modified when a question is done being helped.
+                  </p>
+                </div>
+              ),
+              overlayStyle: { maxWidth: '25rem' },
+            }}
             name="tasksForDeletion"
           >
             <TaskDisplay

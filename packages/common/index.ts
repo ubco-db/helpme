@@ -515,7 +515,7 @@ export enum ClosedQuestionStatus {
 }
 
 /** waitingStatuses are statuses where the student waiting to be helped */
-export const waitingStatuses: ReadonlyArray<OpenQuestionStatus> = [
+export const waitingStatuses: ReadonlyArray<QuestionStatus> = [
   OpenQuestionStatus.Paused,
   OpenQuestionStatus.Queued,
   OpenQuestionStatus.PriorityQueued,

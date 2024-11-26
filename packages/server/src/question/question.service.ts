@@ -79,8 +79,8 @@ export class QuestionService {
       oldStatus !== OpenQuestionStatus.Paused &&
       newStatus === OpenQuestionStatus.Paused;
     const isBecomingWaiting =
-      !waitingStatuses.includes(oldStatus as OpenQuestionStatus) &&
-      waitingStatuses.includes(newStatus as OpenQuestionStatus);
+      !waitingStatuses.includes(oldStatus) &&
+      waitingStatuses.includes(newStatus);
 
     const now = new Date();
     if (isBecomingHelped) {
