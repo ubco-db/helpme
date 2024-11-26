@@ -19,6 +19,7 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 import dayjs from 'dayjs'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 import { useStaff } from '@/app/hooks/useStaff'
+import { useLocalStorage } from '@/app/hooks/useLocalStorage'
 
 const { RangePicker } = TimePicker
 type Color = Extract<
@@ -44,7 +45,7 @@ interface FormValues {
   startDate?: dayjs.Dayjs
   endDate?: dayjs.Dayjs
   daysOfWeek?: string[]
-  staffIds?: number[]
+  staffIds: number[]
 }
 
 const CreateEventModal: React.FC<CreateEventModalProps> = ({
@@ -57,6 +58,10 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [isRepeating, setIsRepeating] = useState(false)
   const [locationType, setLocationType] = useState(0)
   const staff = useStaff(courseId)
+  // saving the last set endDate to local storage to make creating a lot of events easier
+  const [lastSetEndDate, setLastSetEndDate] = useLocalStorage<
+    dayjs.Dayjs | string | null
+  >('lastSetEndDate', null)
 
   useEffect(() => {
     // reset the form to its default state when modal is closed
@@ -172,8 +177,16 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
             time: [dayjs(event?.start), dayjs(event?.end)],
             daysOfWeek: [dayjs(event?.start).format('dddd')],
             startDate: dayjs(event?.start),
-            // end date to be start date + 4 months
-            endDate: dayjs(event?.start).add(4, 'month'),
+            staffIds: [],
+            // end date is lastSetEndDate.
+            // if lastSetEndDate is null, set it to be start date + 4 months
+            endDate:
+              dayjs(lastSetEndDate) || dayjs(event?.start).add(4, 'month'),
+          }}
+          onValuesChange={(changedValues, allValues) => {
+            if (changedValues.endDate) {
+              setLastSetEndDate(changedValues.endDate)
+            }
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
