@@ -29,6 +29,7 @@ const Panel = Collapse.Panel
 interface QueueQuestionsProps {
   questions: Question[]
   questionsGettingHelp: Question[]
+  pausedQuestions: Question[]
   queueType: QueueTypes
   cid: number
   qid: number
@@ -71,6 +72,7 @@ interface QueueQuestionsProps {
 const QueueQuestions: React.FC<QueueQuestionsProps> = ({
   questions,
   questionsGettingHelp,
+  pausedQuestions,
   queueType,
   cid,
   qid,
@@ -166,10 +168,10 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
   // However, this is kind of a difficult task as the Divider will need to be separate and there will likely need to be two Collapse components instead, which may mess with things.
   return (
     <div className="mb-32 md:mb-0">
-      <div className="my-2 flex items-center justify-between">
+      <div className="flex items-center justify-between md:my-2">
         {questions?.length === 0 ? (
-          <div className="text-xl font-medium text-gray-900">
-            There are no questions in the queue
+          <div className="ml-auto mr-auto mt-4 text-lg font-medium text-gray-500">
+            The queue is empty!
           </div>
         ) : (
           <QueueHeader
@@ -318,10 +320,16 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
         </Collapse>
       ) : (
         <>
-          {!isStaff &&
-            questionsGettingHelp.map((question: Question) =>
-              renderQuestion(question),
-            )}
+          {!isStaff && (
+            <>
+              {questionsGettingHelp.map((question: Question) =>
+                renderQuestion(question),
+              )}
+              {pausedQuestions.map((question: Question) =>
+                renderQuestion(question),
+              )}
+            </>
+          )}
           {questions.map((question: Question) => renderQuestion(question))}
         </>
       )}

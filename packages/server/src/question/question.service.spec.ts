@@ -1,4 +1,4 @@
-import { QuestionStatusKeys } from '@koh/common';
+import { QuestionStatusKeys, Role } from '@koh/common';
 import { TestingModule, Test } from '@nestjs/testing';
 import { NotificationService } from 'notification/notification.service';
 import { Connection } from 'typeorm';
@@ -64,7 +64,12 @@ describe('QuestionService', () => {
         status: QuestionStatusKeys.Helping,
       });
 
-      await service.changeStatus(QuestionStatusKeys.CantFind, g1q2, ta.id);
+      await service.changeStatus(
+        QuestionStatusKeys.CantFind,
+        g1q2,
+        ta.id,
+        Role.TA,
+      );
 
       const updatedGroup = await QuestionGroupModel.findOne({
         where: { id: group.id },

@@ -35,13 +35,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </Spin>
     </main>
   ) : !profile.organization ? (
-    <main className="mt-20 flex content-center justify-center">
+    <main className="mt-20 flex flex-col items-center justify-center gap-2">
       <p>
         It seems you do not have an organization! Please use a different account
         or contact an administrator.
       </p>
       <p>
-        <Link className="text-blue-500" href="api/v1/logout">
+        (You may also see this if another error is thrown, such as too many
+        requests.)
+      </p>
+      <p>
+        <Link className="text-xl text-blue-500" href="api/v1/logout">
           Log Out
         </Link>
       </p>

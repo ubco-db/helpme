@@ -267,6 +267,7 @@ export class QueueController {
     try {
       const questionTypeMessages =
         await this.queueService.updateQueueConfigAndTags(queueId, newConfig);
+
       res.status(HttpStatus.OK).send({ questionTypeMessages });
       return;
     } catch (err) {

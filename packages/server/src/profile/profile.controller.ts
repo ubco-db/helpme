@@ -36,6 +36,7 @@ import { UserModel } from './user.entity';
 import { ProfileService } from './profile.service';
 import { OrganizationService } from '../organization/organization.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { minutes, SkipThrottle, Throttle } from '@nestjs/throttler';
 
 @Controller('profile')
 export class ProfileController {
@@ -44,6 +45,8 @@ export class ProfileController {
     private organizationService: OrganizationService,
   ) {}
 
+  // Don't throttle this endpoint since the middleware calls this for every page (and if it prefetches like 30 pages, it will hit the throttle limit and can cause issue for the user)
+  @SkipThrottle()
   @Get()
   @UseGuards(JwtAuthGuard)
   async get(
@@ -193,6 +196,8 @@ export class ProfileController {
     return res.status(200).send({ message: 'Profile updated successfully' });
   }
 
+  // Only 10 calls allowed in 1 minute
+  @Throttle({ default: { limit: 10, ttl: minutes(1) } })
   @Post('/upload_picture')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @UseInterceptors(
@@ -207,11 +212,19 @@ export class ProfileController {
   ): Promise<void> {
     try {
       /*
-       * The second check below may be redundant but will remain for now in case
-       * we allow for third-party images may be used in the future for profile avatars
+       * The second check is for google accounts, which have a photoURL that is a external link
        */
       if (user.photoURL && !user.photoURL.startsWith('http')) {
-        fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, user.photoURL));
+        try {
+          fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, user.photoURL));
+        } catch (e) {
+          console.error(
+            'Error deleting previous picture at : ' +
+              user.photoURL +
+              '\n Perhaps the previous image was deleted or the database is out of sync with the uploads directory for some reason.' +
+              '\n Will remove this entry from the database and continue.',
+          );
+        }
       }
 
       const spaceLeft = await checkDiskSpace(path.parse(process.cwd()).root);

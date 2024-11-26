@@ -416,6 +416,17 @@ class APIClient {
       questionTypeId: number,
     ): Promise<string> =>
       this.req('DELETE', `/api/v1/questionType/${courseId}/${questionTypeId}`),
+    updateQuestionType: async (
+      courseId: number,
+      questionTypeId: number,
+      body: QuestionTypeParams,
+    ): Promise<string> =>
+      this.req(
+        'PATCH',
+        `/api/v1/questionType/${courseId}/${questionTypeId}`,
+        undefined,
+        body,
+      ),
   }
   calendar = {
     addCalendar: async (body: Calendar, cid: number): Promise<Calendar> =>

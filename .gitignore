@@ -45,3 +45,6 @@ husky.sh
 
 # ignore backups 
 /backups/**/*.gz
+
+# ignore everything in backups folder
+/backups/*

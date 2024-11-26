@@ -21,8 +21,8 @@ import {
 } from 'antd'
 import {
   ConfigTasks,
+  generateTagIdFromName,
   isCycleInTasks,
-  QuestionTypeParams,
   QueueConfig,
   UpdateQueueParams,
   validateQueueConfigInput,
@@ -49,16 +49,25 @@ import {
   confirmDisable,
   clearQueue,
 } from '../../../../utils/commonCourseFunctions'
-import { QuestionTagDeleteSelector } from '../../../../components/QuestionTagElement'
+import {
+  EditedQuestionTag,
+  QuestionTagEditor,
+} from '../../../../components/QuestionTagElement'
 import { useRouter } from 'next/navigation'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import {
+  generateRandomHexColor,
+  getErrorMessage,
+} from '@/app/utils/generalUtils'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
 import exampleConfig from '@/public/exampleQueueConfig.json'
 import exampleLabConfig from '@/public/exampleQueueLabConfig.json'
-import TaskDeleteSelector from '../TaskDisplay'
+import TaskDisplay from '../TaskDisplay'
 
 const { TextArea } = Input
-type Color = GetProp<ColorPickerProps, 'value'>
+type Color = Extract<
+  GetProp<ColorPickerProps, 'value'>,
+  string | { cleared: any }
+>
 
 type TaskParams = {
   id: string
@@ -75,7 +84,7 @@ type QuestionTypeForCreation = {
 interface FormValues {
   notes: string
   allowQuestions: boolean
-  questionTypesForDeletion: number[]
+  editedQuestionTags: EditedQuestionTag[]
   questionTypesForCreation: QuestionTypeForCreation[]
   minTags: string
   assignmentId?: string
@@ -178,43 +187,85 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       }
     }, 5000)
     let errorsHaveOccurred = false
-    const deletePromises =
-      values.questionTypesForDeletion?.map((tagID) =>
-        API.questionType
-          .deleteQuestionType(courseId, tagID)
-          .then((responseMessage) => {
-            message.success(responseMessage)
-          })
-          .catch((e) => {
-            errorsHaveOccurred = true
-            const errorMessage = getErrorMessage(e)
-            message.error(`Error deleting question tag: ${errorMessage}`)
-          }),
-      ) || []
-    const createPromises =
-      values.questionTypesForCreation?.map((questionType) => {
-        const newQuestionType: QuestionTypeParams = {
-          cid: courseId,
-          queueId: queueId,
-          name: questionType.name,
-          color:
-            typeof questionType.color === 'string'
-              ? questionType.color
-              : questionType.color.toHexString(),
-        }
-        return API.questionType
-          .addQuestionType(courseId, newQuestionType)
-          .then((responseMessage) => {
-            message.success(responseMessage)
-          })
-          .catch((e) => {
-            errorsHaveOccurred = true
-            const errorMessage = getErrorMessage(e)
-            message.error(`Error creating question tag: ${errorMessage}`)
-          })
-      }) || []
+
+    // Create an updated "tags" object based on the editedQuestionTags and the current question tags
+    const updatedTags =
+      values.editedQuestionTags.length > 0
+        ? Object.entries(lastSavedQueueConfig.current?.tags || {}).reduce(
+            /* there exists 3 states of tags: 
+          - the tags from the old config (they have the old name)
+          - the current questionTypes (which have the old name, as well as the id)
+          - the editedQuestionTags (which have the new name (which can't be matched with), as well as the id)
+        If I want to update the config properly, I must find what the config was previously and update the correct tags.
+        Or in other words, I need to match each editedQuestionTag with a corresponding old tag.
+        And this would need to take the route of going editedQuestionTag.id == questionType.id and questionType.name == oldTag.display_name
+        */
+            (acc, [id, oldTag]) => {
+              // for each old tag, find corresponding questionType from questionTypes (matching name with display_name)
+              const questionType = questionTypes?.find(
+                (questionType) => questionType.name === oldTag.display_name,
+              )
+              // find the corresponding editedQuestionTag
+              const editedTag = values.editedQuestionTags.find(
+                (editedTag) => editedTag.newValues?.id === questionType?.id,
+              )
+              // if there is no editedTag, return the old tag
+              if (!editedTag) {
+                acc[id] = oldTag
+                // if the editedTag is marked for deletion, do not add it to the accumulator
+              } else if (!editedTag.markedForDeletion) {
+                // else return the updated tag
+                acc[id] = {
+                  display_name:
+                    editedTag.newValues?.name ?? oldTag.display_name,
+                  color_hex: editedTag.newValues?.color ?? oldTag.color_hex,
+                }
+              }
+              return acc
+            },
+            {} as {
+              [tagKey: string]: { display_name: string; color_hex: string }
+            },
+          )
+        : lastSavedQueueConfig.current?.tags || {}
+
+    // create a new queue config
     const newQueueConfig: QueueConfig = {
       ...lastSavedQueueConfig.current,
+      // rather than creating a new endpoint for editing question tags, just change the config
+      ...((values.editedQuestionTags.length > 0 ||
+        values.questionTypesForCreation.length > 0) && {
+        tags: {
+          ...updatedTags,
+          // add the new tags
+          ...values.questionTypesForCreation.reduce(
+            (acc, questionType) => {
+              let newTagId = generateTagIdFromName(questionType.name)
+              if (newTagId.length === 0) {
+                // give random id if the name is only made of illegal characters
+                newTagId = Math.random().toString(36).substring(7)
+              }
+              // make sure there's no duplicate tag id
+              if (acc[newTagId] || updatedTags[newTagId]) {
+                message.error(`tagId ${newTagId} already exists`)
+                errorsHaveOccurred = true
+              } else {
+                acc[newTagId] = {
+                  display_name: questionType.name,
+                  color_hex:
+                    typeof questionType.color === 'string'
+                      ? questionType.color
+                      : questionType.color.toHexString(),
+                }
+              }
+              return acc
+            },
+            {} as {
+              [tagKey: string]: { display_name: string; color_hex: string }
+            },
+          ),
+        },
+      }),
       minimum_tags: Number(values.minTags),
       assignment_id: values.assignmentId,
       // iterate over each task and accumulate them into an object
@@ -245,6 +296,9 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       lastSavedQueueConfig.current?.minimum_tags !== Number(values.minTags)
     const assignmentIdChanged =
       lastSavedQueueConfig.current?.assignment_id !== values.assignmentId
+    const tagsChanged =
+      values.editedQuestionTags.length > 0 ||
+      values.questionTypesForCreation.length > 0
 
     // if the tasks changed, make sure there's no cycle in the new tasks
     if (
@@ -259,10 +313,10 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       return
     }
     const queueConfigPromise =
-      tasksChanged || minimumTagsChanged || assignmentIdChanged
+      tasksChanged || minimumTagsChanged || assignmentIdChanged || tagsChanged
         ? API.queues
             .updateConfig(queueId, newQueueConfig)
-            .then(() => {
+            .then((updatedTagsMessages) => {
               if (minimumTagsChanged) {
                 message.success('Minimum Tags updated to ' + values.minTags)
               }
@@ -277,12 +331,19 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                     values.assignmentId,
                 )
               }
+              if (
+                tagsChanged &&
+                updatedTagsMessages.questionTypeMessages.length > 0
+              ) {
+                mutateQuestionTypes()
+                for (const tagMessage of updatedTagsMessages.questionTypeMessages) {
+                  message.info(tagMessage)
+                }
+              }
             })
             .catch((e) => {
               errorsHaveOccurred = true
-              console.log(JSON.stringify(e))
               const errorMessage = getErrorMessage(e)
-              console.log(JSON.stringify(errorMessage))
               message.error(`Update failed: ${errorMessage}`)
             })
         : Promise.resolve()
@@ -308,12 +369,9 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               message.error(`Failed to save queue details: ${errorMessage}`)
             })
         : Promise.resolve()
-    await Promise.all([
-      ...deletePromises,
-      ...createPromises,
-      queueConfigPromise,
-      updateQueuePromise,
-    ])
+    if (!errorsHaveOccurred) {
+      await Promise.all([queueConfigPromise, updateQueuePromise])
+    }
     mutateQuestionTypes()
     mutateQueue()
     if (!errorsHaveOccurred) {
@@ -367,7 +425,8 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             queue_config: localQueueConfigString,
             notes: queue?.notes,
             allowQuestions: queue?.allowQuestions,
-            questionTypesForDeletion: [],
+            editedQuestionTags: [],
+            questionTypesForCreation: [],
             zoomLink: queue?.zoomLink,
             assignmentId: lastSavedQueueConfig.current?.assignment_id,
             minTags: queue?.config?.minimum_tags ?? 0,
@@ -414,17 +473,16 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         <Switch />
       </Form.Item>
       <Form.Item
-        label="Question Tags (Click to be marked for deletion)"
-        name="questionTypesForDeletion"
+        label="Question Tags (Click to Edit)"
+        name="editedQuestionTags"
       >
-        <QuestionTagDeleteSelector currentTags={questionTypes ?? []} />
+        <QuestionTagEditor currentTags={questionTypes ?? []} />
       </Form.Item>
       <Form.List name="questionTypesForCreation">
         {(fields, { add, remove }) => (
           <>
             {fields.map(({ key, name, ...restField }) => {
-              const defaultColor =
-                '#' + Math.floor(Math.random() * 16777215).toString(16)
+              const defaultColor = generateRandomHexColor()
               return (
                 <Space key={key} className="flex" align="center">
                   <Form.Item
@@ -501,7 +559,26 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         label="Assignment Id"
         name="assignmentId"
         layout="horizontal"
-        tooltip={`The assignment ID for the queue (e.g. "lab1", "lab2", "assignment1", etc.). This is used to track the assignment progress for students. Only set if you want to define tasks to keep track of.`}
+        tooltip={{
+          title: (
+            <div className="flex flex-col gap-y-2">
+              <p>
+                The assignment ID for the queue (e.g. &quot;lab1&quot;,
+                &quot;lab2&quot;, &quot;assignment1&quot;, etc.).
+              </p>
+              <p>
+                This is used to track the assignment progress for students. Only
+                set if you want to define tasks to keep track of.
+              </p>
+              <p>
+                Note: you can edit this assignment id freely without worry that
+                any existing data will be modified. Student assignment data will
+                only be modified when a question is done being helped.
+              </p>
+            </div>
+          ),
+          overlayStyle: { maxWidth: '25rem' },
+        }}
       >
         <Input allowClear={true} placeholder="[No Assignment Id set]" />
       </Form.Item>
@@ -509,10 +586,31 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         <>
           <Form.Item
             label="Tasks"
-            tooltip={`The tasks for the queue. A task is similar to a tag except it is 'check-able'. For example, a lab may have many parts or questions that require a TA to look at before the end of the lab. Students will then be able to Create a Demo which you can then help and select which parts to mark correct.`}
+            tooltip={{
+              title: (
+                <div className="flex flex-col gap-y-2">
+                  <p>
+                    The tasks for the queue. A task is similar to a tag except
+                    it is &apos;check-able&apos;.
+                  </p>
+                  <p>
+                    For example, a lab may have many parts or questions that
+                    require a TA to look at before the end of the lab. Students
+                    will then be able to Create a Demo which you can then help
+                    and select which parts to mark correct.
+                  </p>
+                  <p>
+                    Note: you can edit these tasks freely without worry that any
+                    existing data will be modified. Student assignment data will
+                    only be modified when a question is done being helped.
+                  </p>
+                </div>
+              ),
+              overlayStyle: { maxWidth: '25rem' },
+            }}
             name="tasksForDeletion"
           >
-            <TaskDeleteSelector
+            <TaskDisplay
               configTasks={lastSavedQueueConfig.current?.tasks || {}}
             />
           </Form.Item>
@@ -522,7 +620,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                 {fields.map(({ key, name, ...restField }, index) => {
                   const defaultColor =
                     form.getFieldValue(['tasks', name, 'color_hex']) ||
-                    '#' + Math.floor(Math.random() * 16777215).toString(16)
+                    generateRandomHexColor()
                   return (
                     <Space
                       key={key}

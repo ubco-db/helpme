@@ -27,13 +27,13 @@ export class QuestionTypeModel extends BaseEntity {
   @Exclude()
   course: CourseModel;
 
-  @Column({ nullable: true })
+  @Column()
   cid: number;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', default: '' })
   name: string;
 
-  @Column({ type: 'text', nullable: true, default: '#000000' })
+  @Column({ type: 'text', default: '#000000' })
   color: string;
 
   @ManyToMany(() => QuestionModel, (question) => question.questionTypes)

@@ -445,8 +445,14 @@ export class Question {
   @Type(() => Date)
   helpedAt?: Date
 
+  // in seconds
+  helpTime!: number
+
   @Type(() => Date)
-  pausedAt?: Date
+  lastReadyAt?: Date
+
+  // in seconds
+  waitTime!: number
 
   @Type(() => Date)
   closedAt?: Date
@@ -494,6 +500,13 @@ export enum ClosedQuestionStatus {
   ConfirmedDeleted = 'ConfirmedDeleted',
   Stale = 'Stale',
 }
+
+/** waitingStatuses are statuses where the student waiting to be helped */
+export const waitingStatuses: ReadonlyArray<QuestionStatus> = [
+  OpenQuestionStatus.Paused,
+  OpenQuestionStatus.Queued,
+  OpenQuestionStatus.PriorityQueued,
+]
 
 export enum asyncQuestionStatus {
   AIAnsweredNeedsAttention = 'AIAnsweredNeedsAttention', // AI has answered, but the answer is unsatisfactory.
@@ -1535,6 +1548,7 @@ export const InsightCategories = [
   'Questions',
   'Queues',
   'Chatbot',
+  'Staff',
 ]
 
 export enum InsightType {
@@ -1542,6 +1556,7 @@ export enum InsightType {
   Chart = 'Chart',
   Table = 'Table',
   GanttChart = 'GanttChart',
+  MultipleGanttChart = 'MultipleGanttChart',
 }
 
 export type InsightCategory = (typeof InsightCategories)[number]
@@ -1568,6 +1583,7 @@ export const InsightFilterOptions = [
   'timeframe',
   'students',
   'queues',
+  'staff',
 ] as const
 export type InsightFilterOption = (typeof InsightFilterOptions)[number]
 
@@ -1586,10 +1602,13 @@ export interface InsightObject {
   insightType: InsightType
   insightCategory: InsightCategory
   allowedFilters?: InsightFilterOption[]
-  compute: (
-    insightFilters: any,
-    cacheManager?: Cache,
-  ) => Promise<PossibleOutputTypes>
+  compute: ({
+    insightFilters,
+    cacheManager,
+  }: {
+    insightFilters: any
+    cacheManager: Cache
+  }) => Promise<PossibleOutputTypes>
 }
 
 export interface InsightOutput {
@@ -1627,6 +1646,7 @@ export type PossibleOutputTypes =
   | ChartOutputType
   | TableOutputType
   | GanttChartOutputType
+  | MultipleGanttChartOutputType
 
 export type ChartOutputType = {
   data: StringMap<any>[]
@@ -1645,6 +1665,8 @@ export type GanttChartOutputType = {
   label: string
   numCategories: number
 }
+
+export type MultipleGanttChartOutputType = GanttChartOutputType[]
 
 export type ValueOutputType = number | string
 
@@ -1669,6 +1691,7 @@ export type InsightParamsType = {
   offset?: number
   students?: string
   queues?: string
+  staff?: string
 }
 
 export type sendEmailParams = {
@@ -2280,6 +2303,17 @@ export function transformIntoTaskTree(
   return taskTree
 }
 
+export function generateTagIdFromName(name: string): string {
+  // Sanitize the name by removing illegal characters
+  const sanitized = name.replace(/[\{\}"\:\,]/g, '')
+
+  // Generate a couple of random digits
+  const randomDigits = Math.floor(Math.random() * 100) // Generates a number between 0 and 99
+
+  // Append the random digits to the sanitized name (to prevent the edge case where two tags have different names but the same tag ids)
+  return `${sanitized}_${randomDigits}`
+}
+
 export function encodeBase64(str: string) {
   return Buffer.from(str, 'utf-8').toString('base64')
 }
@@ -2437,6 +2471,7 @@ export const ERROR_MESSAGES = {
     invalidStudentID:
       'Invalid student ID provided. Student IDs must be numeric',
     invalidQueueID: 'Invalid queue ID provided. Queue IDs must be numeric.',
+    invalidStaffID: 'Invalid staff ID provided. Staff IDs must be numeric.',
   },
   roleGuard: {
     notLoggedIn: 'Must be logged in',
@@ -2496,5 +2531,8 @@ export const ERROR_MESSAGES = {
     noDiskSpace:
       'There is no disk space left to store a iCal file. Please immediately contact your course staff and let them know. They will contact the Khoury Office Hours team as soon as possible.',
     saveCalError: 'There was an error saving an iCal to disk',
+  },
+  questionType: {
+    questionTypeNotFound: 'Question type not found',
   },
 }

@@ -3,10 +3,11 @@
 // Note that this config is unrelated to the Vercel Edge Runtime and is also required when running locally.
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
-import { isProd } from '@koh/common'
 import * as Sentry from '@sentry/nextjs'
+import { isProd } from './middlewareType'
 
 if (isProd()) {
+  console.log('Initializing Sentry on frontend: sentry.edge.config.ts')
   Sentry.init({
     dsn: 'https://02886ace32d0ae13a1bc81482aa1bdef@o4508000643252224.ingest.us.sentry.io/4508000651116544',
 

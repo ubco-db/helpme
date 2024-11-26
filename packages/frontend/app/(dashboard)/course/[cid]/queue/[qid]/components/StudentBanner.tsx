@@ -64,7 +64,7 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
           studentQuestion?.taHelped?.name
         )
       case 'Paused':
-        return `Your Questions - Your question is currently paused, you will be helped later.`
+        return `Your Questions - Your question is currently paused by staff, you will be helped soon`
       default:
         switch (demoStatus) {
           case 'Drafting':
@@ -91,7 +91,7 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
   }
 
   return (
-    <div className="mb-1 w-full md:mb-2">
+    <div className="mb-1 w-full md:mb-2 md:mt-4">
       <div className="bg-helpmeblue  relative flex min-h-[3rem] items-center justify-between rounded-t-md pl-4 pr-1.5 shadow-md md:min-h-14 md:pl-6">
         <div className="text-xl text-white md:text-2xl">
           {getTitle(studentQuestion?.status, studentDemo?.status)}
@@ -147,7 +147,7 @@ function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => Promise<void> }) {
     >
       <Tooltip title="Leave Queue">
         <CircleButton
-          variant="red"
+          customVariant="red"
           icon={<DeleteRowOutlined />}
           loading={isLeavingLoading}
         />
@@ -310,7 +310,7 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
                     <div className="relative ml-2 inline-flex items-center justify-center">
                       <div className="absolute inset-0 animate-ping rounded-full bg-white opacity-50 before:content-['']"></div>
                       <CircleButton
-                        variant="primary"
+                        customVariant="primary"
                         className="!ml-0"
                         icon={<UndoOutlined />}
                         loading={isRejoinLoading}

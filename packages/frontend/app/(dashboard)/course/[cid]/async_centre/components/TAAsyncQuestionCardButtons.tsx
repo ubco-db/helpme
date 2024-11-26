@@ -38,13 +38,13 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
         }}
       >
         <Tooltip title={isMobile ? '' : 'Delete Question'}>
-          <CircleButton variant="red" icon={<DeleteOutlined />} />
+          <CircleButton customVariant="red" icon={<DeleteOutlined />} />
         </Tooltip>
       </Popconfirm>
       <Tooltip title={isMobile ? '' : 'Post response'}>
         <CircleButton
           className="mt-0"
-          variant="primary"
+          customVariant="primary"
           icon={<FormOutlined />}
           onClick={() => {
             setPostResponseModalOpen(true)
