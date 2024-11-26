@@ -165,6 +165,11 @@ On the VM, source code is at `/var/www/source`. From there you can run `yarn cli
 If you need to hotfix something, you can edit the files on prod and run `yarn build && env HOME=/var/www pm2 startOrReload infrastructure/prod/ecosystem.config.js` to build and restart the server. Try to avoid doing this.
 You can also push something to master, and then use the deploy script. Note that it'll still take about 5 minutes for the changes to propagate to the dist folder
 
+### Changelog
+The changelog (```./packages/frontend/public/changelog.md``` from project-root) contains a formatted list of feature roll-outs for each deployment update.
+
+Be sure to update this file, the version number in the footer, and set all users' ```readChangeLog``` attributes in the User model of the database to false before finishing deployment updates.
+
 ## Misc
 
 Your IDE should do type-checking for you. You can run type-checks manually with `yarn tsc`.

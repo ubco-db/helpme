@@ -66,6 +66,14 @@ const MarkdownCustom: React.FC<MarkdownCustomProps> = ({
             </code>
           )
         },
+        ul: ({ children }) => (
+          <ul className="ml-6 list-disc space-y-1">{children}</ul>
+        ), // Custom styling for ordered and unordered lists
+        ol: ({ children }) => (
+          <ol className="ml-6 list-decimal space-y-1">{children}</ol>
+        ),
+        li: ({ children }) => <li className="text-gray-700">{children}</li>,
+        hr: () => <hr className="my-6 border-gray-300" />, // Custom styling for horizontal rule ('***' in markdown)
       }}
     >
       {preprocessedText}
