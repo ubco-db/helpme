@@ -724,7 +724,9 @@ export class CourseController {
     });
 
     for (const queue of queues) {
+      // if you are in a queue
       if (queue.staffList.find((e) => e.id === user.id)) {
+        // remove yourself from the queue
         queue.staffList = queue.staffList.filter((e) => e.id !== user.id);
         if (queue.staffList.length === 0) {
           queue.allowQuestions = false;

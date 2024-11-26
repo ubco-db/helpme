@@ -95,8 +95,6 @@ export class CalendarService implements OnModuleInit {
       const sortedDaysOfWeek = daysOfWeek.sort();
       jobInterval = `${endTime.getMinutes()} ${endTime.getHours()} * * ${sortedDaysOfWeek.join(',')}`;
     } else {
-      // console.log('daysOfWeek:', daysOfWeek);
-      // console.log( JSON.stringify({ userId, calendarId, startDate, endDate, endTime, "daysOfWeek": daysOfWeek, courseId }))
       Sentry.captureMessage(
         'Invalid event in createAutoCheckoutCronJob:' +
           JSON.stringify({

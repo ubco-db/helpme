@@ -127,9 +127,6 @@ export class OrganizationController {
         cronTime: job.cronTime.source,
         running: job.running,
         nextDates: nextDates,
-        // nextDates: [],
-        // lastDate: job.lastDate(),
-        // lastDate: null,
         lastExecution: job.lastExecution,
         runOnce: job.runOnce,
       };

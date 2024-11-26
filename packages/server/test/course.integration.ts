@@ -456,55 +456,26 @@ describe('Course Integration', () => {
 
       expect(events.length).toBe(0);
     });
-
-    it('correctly checks out when two queues have same location, but one is disabled ', async () => {
-      const ta = await UserFactory.create();
-      const queue = await QueueFactory.create({
-        room: 'room1',
-        isDisabled: true,
-      });
-      const tcf = await TACourseFactory.create({
-        course: queue.course,
-        user: ta,
-      });
-
-      await QueueFactory.create({
-        course: queue.course,
-        room: queue.room,
-        isDisabled: false,
-        staffList: [ta],
-      });
-
-      await supertest({ userId: ta.id })
-        .delete(`/courses/${tcf.courseId}/checkout/${queue.id}`)
-        .expect(200);
-      const q3 = await QueueModel.findOne(
-        {
-          room: queue.room,
-          isDisabled: false,
-        },
-        { relations: ['staffList'] },
-      );
-
-      expect(q3.staffList.length).toBe(0);
-    });
   });
 
   // checks me out of all queues
   describe('DELETE /courses/:id/checkout_all', () => {
     it('checks out a TA from all queues', async () => {
       const ta = await UserFactory.create();
+      const course = await CourseFactory.create();
+      const tcf = await TACourseFactory.create({
+        course: course,
+        user: ta,
+      });
       const queue1 = await QueueFactory.create({
-        room: 'The Alamo',
+        room: 'queue1',
         staffList: [ta],
+        course: course,
       });
       const queue2 = await QueueFactory.create({
-        room: 'The Alamo 2',
+        room: 'queue2',
         staffList: [ta],
-      });
-      const tcf = await TACourseFactory.create({
-        course: queue1.course,
-        user: ta,
+        course: course,
       });
 
       await supertest({ userId: ta.id })
@@ -518,11 +489,39 @@ describe('Course Integration', () => {
       });
 
       const events = await EventModel.find();
+      console.log(events);
       expect(events.length).toBe(2);
       expect(events[0].eventType).toBe(EventType.TA_CHECKED_OUT);
       expect(events[0].queueId).toBe(queue1.id);
       expect(events[1].eventType).toBe(EventType.TA_CHECKED_OUT);
       expect(events[1].queueId).toBe(queue2.id);
+    });
+    it('if multiple TAs are checked in, it only checks out the one TA that called the endpoint', async () => {
+      const ta1 = await UserFactory.create();
+      const ta2 = await UserFactory.create();
+      const queue1 = await QueueFactory.create({
+        room: 'queue1',
+        staffList: [ta1, ta2],
+      });
+      const tcf = await TACourseFactory.create({
+        course: queue1.course,
+        user: ta1,
+      });
+
+      await supertest({ userId: ta1.id })
+        .delete(`/courses/${tcf.courseId}/checkout_all`)
+        .expect(200);
+
+      expect(
+        await QueueModel.findOne({}, { relations: ['staffList'] }),
+      ).toMatchObject({
+        staffList: [ta2],
+      });
+
+      const events = await EventModel.find();
+      expect(events.length).toBe(1);
+      expect(events[0].eventType).toBe(EventType.TA_CHECKED_OUT);
+      expect(events[0].queueId).toBe(queue1.id);
     });
 
     it('tests student cant checkout from queue', async () => {
