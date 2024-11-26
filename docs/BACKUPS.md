@@ -3,6 +3,7 @@
 ## Saving backups
 
 There are three types of backups:
+
 - **Semi-Hourly**: Every 3 hours. These are rolling (we only keep 5 days of these). We also only take these from 7am to 10pm.
 - **Daily**: Every day at midnight. These are rolling (we only keep 1 month of these)
 - **Monthly**: The first of every month at midnight. These are kept indefinitely.

@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 import * as Sentry from '@sentry/browser';
+import archiver from 'archiver';
 
 const execPromise = promisify(exec);
 
@@ -98,6 +99,92 @@ export class BackupService {
     } else {
       console.error('Insufficient disk space for backup.');
       Sentry.captureMessage('Insufficient disk space for backup.');
+    }
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async handleDailyUploadsBackup() {
+    try {
+      const date = new Date().toISOString().split('T')[0];
+      const uploadsDir = '../../uploads';
+      const backupFile = `uploads_backup-${date}.zip`;
+      const backupDir = '../../backups/uploads-daily';
+
+      const hasSpace = await this.checkDiskSpace(backupDir);
+
+      if (hasSpace) {
+        const zipStream = fs.createWriteStream(`${backupDir}/${backupFile}`);
+        const archive = archiver('zip', {
+          zlib: { level: 9 },
+        });
+
+        zipStream.on('close', () => {
+          // Delete last one if there are more than 10 backups
+          const files = fs.readdirSync(backupDir);
+
+          if (files.length > 10) {
+            const sortedFiles = files
+              .map((file) => ({
+                name: file,
+                time: new Date(file.split('-')[1].split('.')[0]).getTime(),
+              }))
+              .sort((a, b) => b.time - a.time); // Sort by time in descending order
+
+            fs.rmdirSync(
+              path.join(backupDir, sortedFiles[sortedFiles.length - 1].name),
+              { recursive: true },
+            ); // Delete the oldest backup
+            console.log('Deleted oldest backup successfully!');
+          }
+
+          console.log(
+            `Backup zipped successfully! Total bytes: ${archive.pointer() / 1024}kB`,
+          );
+        });
+
+        archive.on('error', (err: any) => {
+          throw err;
+        });
+
+        archive.pipe(zipStream);
+
+        const appendFilesToArchive = (dir: string, callback: () => void) => {
+          fs.readdir(dir, { withFileTypes: true }, (err, entries) => {
+            if (err) throw err;
+
+            let pending = entries.length;
+            if (!pending) return callback();
+
+            entries.forEach((entry) => {
+              const fullPath = path.join(dir, entry.name);
+
+              if (entry.isDirectory()) {
+                // Recursively append subdirectories
+                appendFilesToArchive(fullPath, () => {
+                  if (!--pending) callback();
+                });
+              } else {
+                // Append files
+                archive.file(fullPath, {
+                  name: path.relative(uploadsDir, fullPath),
+                });
+                if (!--pending) callback();
+              }
+            });
+          });
+        };
+
+        appendFilesToArchive(uploadsDir, () => {
+          // Finalize the archive after processing the directory
+          archive.finalize();
+        });
+      } else {
+        console.error('Insufficient disk space for backup.');
+        Sentry.captureMessage('Insufficient disk space for uploads backup.');
+      }
+    } catch (error) {
+      console.error('Error backing up uploads:', error);
+      Sentry.captureMessage('Error backing up uploads:', error);
     }
   }
 

@@ -50,6 +50,7 @@
     "@types/bcrypt": "^3.0.0",
     "@types/multer": "^1.4.5",
     "@types/nodemailer": "^6.4.7",
+    "archiver": "^7.0.1",
     "async": "^3.2.0",
     "bcrypt": "^5.0.0",
     "cache-manager": "^3.4.0",
