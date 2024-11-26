@@ -14,10 +14,9 @@ import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { QueueChatService } from './queue-chats.service';
 import { User, UserId } from 'decorators/user.decorator';
 import { UserModel } from 'profile/user.entity';
-import { QueueSSEService } from 'queue/queue-sse.service';
 import { Response } from 'express-serve-static-core';
 import { QueueRole } from 'decorators/queue-role.decorator';
-import { Role } from '@koh/common';
+import { ERROR_MESSAGES, Role } from '@koh/common';
 import { QueueChatSSEService } from './queue-chats-sse.service';
 
 @Controller('queueChats')
@@ -27,8 +26,6 @@ export class QueueChatController {
     private queueChatService: QueueChatService,
     private queueChatSSEService: QueueChatSSEService,
   ) {}
-
-  // PAT TODO: put error messages in ERROR_MESSAGES
 
   @Get(':queueId/:studentId')
   @UseGuards(JwtAuthGuard)
@@ -42,7 +39,10 @@ export class QueueChatController {
       studentId,
     );
     if (!chatData) {
-      throw new HttpException('Chat not found', HttpStatus.NOT_FOUND);
+      throw new HttpException(
+        ERROR_MESSAGES.queueChatsController.chatNotFound,
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     await this.queueChatService
@@ -50,7 +50,7 @@ export class QueueChatController {
       .then((allowedToRetrieve) => {
         if (!allowedToRetrieve) {
           throw new HttpException(
-            'User is not allowed to retrieve chat data at this time',
+            ERROR_MESSAGES.queueChatsController.chatNotAuthorized,
             HttpStatus.FORBIDDEN,
           );
         }
@@ -111,7 +111,7 @@ export class QueueChatController {
     );
     if (!allowedToSend) {
       throw new HttpException(
-        'User is not allowed to send message',
+        ERROR_MESSAGES.queueChatsController.sendNotAuthorized,
         HttpStatus.FORBIDDEN,
       );
     }
@@ -129,7 +129,7 @@ export class QueueChatController {
       if (error) {
         console.error(error);
         throw new HttpException(
-          'Error sending queue chat message',
+          ERROR_MESSAGES.queueChatsController.internalSendError,
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }

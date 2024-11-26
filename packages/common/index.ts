@@ -2419,6 +2419,12 @@ export const ERROR_MESSAGES = {
     missingStaffList: 'Stafflist relation not present on Queue',
     cycleInTasks: 'Cycle detected in task preconditions',
   },
+  queueChatsController: {
+    chatNotFound: 'Chat not found',
+    chatNotAuthorized: 'User is not allowed to retrieve requested chat data',
+    sendNotAuthorized: 'User is not allowed to send messages to this chat',
+    internalSendError: 'Error occurred while sending message',
+  },
   queueRoleGuard: {
     queueNotFound: 'Queue not found',
   },
