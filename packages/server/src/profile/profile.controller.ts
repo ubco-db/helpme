@@ -107,6 +107,7 @@ export class ProfileController {
       'accountType',
       'emailVerified',
       'chat_token',
+      'readChangeLog',
     ]);
 
     if (userResponse === null || userResponse === undefined) {
@@ -336,7 +337,7 @@ export class ProfileController {
 
   // PAT TODO: Find better place for this route
 
-  @Post('/read_changelogs')
+  @Patch('/read_changelog')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async readChangelogs(
     @User() user: UserModel,
