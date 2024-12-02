@@ -129,8 +129,10 @@ export class QueueController {
     if (queue === undefined) {
       throw new NotFoundException();
     }
+    queue.type = body.type;
     queue.notes = body.notes;
     queue.allowQuestions = body.allowQuestions;
+    queue.zoomLink = body.zoomLink;
     try {
       await queue.save();
     } catch (err) {
@@ -266,6 +268,7 @@ export class QueueController {
     try {
       const questionTypeMessages =
         await this.queueService.updateQueueConfigAndTags(queueId, newConfig);
+
       res.status(HttpStatus.OK).send({ questionTypeMessages });
       return;
     } catch (err) {

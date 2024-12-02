@@ -4,6 +4,7 @@ import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
+import * as Sentry from '@sentry/browser';
 
 const execPromise = promisify(exec);
 
@@ -30,6 +31,7 @@ export class BackupService {
         (error, stdout, stderr) => {
           if (error) {
             console.error(`Backup failed: ${stderr}`);
+            Sentry.captureMessage(`Backup failed: ${stderr}`);
           } else {
             console.log(`Daily backup saved: ${backupFile}`);
             this.deleteOldBackups(backupDir, 30);
@@ -38,6 +40,7 @@ export class BackupService {
       );
     } else {
       console.error('Insufficient disk space for backup.');
+      Sentry.captureMessage('Insufficient disk space for backup.');
     }
   }
 
@@ -58,6 +61,7 @@ export class BackupService {
         (error, stdout, stderr) => {
           if (error) {
             console.error(`Semi-hourly backup failed: ${stderr}`);
+            Sentry.captureMessage(`Semi-hourly backup failed: ${stderr}`);
           } else {
             console.log(`Semi-hourly backup saved: ${backupFile}`);
             this.deleteOldBackups(backupDir, 5);
@@ -66,6 +70,7 @@ export class BackupService {
       );
     } else {
       console.error('Insufficient disk space for backup.');
+      Sentry.captureMessage('Insufficient disk space for backup.');
     }
   }
 
@@ -84,6 +89,7 @@ export class BackupService {
         (error, stdout, stderr) => {
           if (error) {
             console.error(`Monthly backup failed: ${stderr}`);
+            Sentry.captureMessage(`Monthly backup failed: ${stderr}`);
           } else {
             console.log(`Monthly backup saved: ${backupFile}`);
           }
@@ -91,6 +97,7 @@ export class BackupService {
       );
     } else {
       console.error('Insufficient disk space for backup.');
+      Sentry.captureMessage('Insufficient disk space for backup.');
     }
   }
 
@@ -126,6 +133,7 @@ export class BackupService {
       return freeSpaceMb > this.MINIMUM_FREE_SPACE_MB;
     } catch (error) {
       console.error('Error checking disk space:', error);
+      Sentry.captureMessage('Error checking disk space:', error);
       return false;
     }
   }

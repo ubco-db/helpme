@@ -1,16 +1,16 @@
 import { cn } from '@/app/utils/generalUtils'
 import { Button, ButtonProps } from 'antd'
-import { PropsWithChildren } from 'react'
+import React, { PropsWithChildren } from 'react'
+
+const JoinZoomButton: React.FC<
+  PropsWithChildren<QueueInfoColumnButtonProps>
+> = (props) => (
+  <QueueInfoColumnButton type="primary" onClick={props.onClick} {...props} />
+)
 
 const JoinQueueButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
-> = (props) => (
-  <QueueInfoColumnButton
-    className={`${props.className}`}
-    type="primary"
-    {...props}
-  />
-)
+> = (props) => <QueueInfoColumnButton type="primary" {...props} />
 
 const EditQueueButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
@@ -58,7 +58,7 @@ const QueueInfoColumnButton: React.FC<
     <Button
       size="large"
       className={cn(
-        `mb-0 flex items-center justify-center rounded-md border border-gray-300 text-sm font-semibold md:mb-3 md:w-full w-[${mobileWidth}] disabled:opacity-50`,
+        `mb-0 flex items-center justify-center rounded-md border border-gray-300 text-sm font-semibold md:mb-3 ${mobileWidth == '100%' ? 'w-full' : `w-[${mobileWidth}]`} disabled:opacity-50`,
         className,
       )}
       {...props}
@@ -72,6 +72,7 @@ export {
   QueueInfoColumnButton,
   EditQueueButton,
   JoinQueueButton,
+  JoinZoomButton,
   DisableQueueButton,
   ClearQueueButton,
 }

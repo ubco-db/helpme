@@ -37,7 +37,7 @@ const StudentAsyncQuestionCardButtons: React.FC<
         }}
       >
         <Tooltip title={isMobile ? '' : 'Delete Question'}>
-          <CircleButton variant="red" icon={<DeleteOutlined />} />
+          <CircleButton customVariant="red" icon={<DeleteOutlined />} />
         </Tooltip>
       </Popconfirm>
       <Tooltip title={isMobile ? '' : 'Edit Your Question'}>

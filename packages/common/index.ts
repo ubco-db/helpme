@@ -303,6 +303,9 @@ export interface Queue {
   allowQuestions: boolean
 }
 
+// Queue location/type for different queues within each course
+export type QueueTypes = 'online' | 'hybrid' | 'inPerson'
+
 /**
  * A Queue partial to be shown on the course page. It's like the full Queue object but without the questions.
  * @param id - The unique id number for a Queue.
@@ -334,9 +337,13 @@ export class QueuePartial {
 
   allowQuestions!: boolean
 
+  type!: QueueTypes
+
   isProfessorQueue!: boolean
 
   config?: QueueConfig
+
+  zoomLink?: string
 }
 
 /**
@@ -438,6 +445,15 @@ export class Question {
   @Type(() => Date)
   helpedAt?: Date
 
+  // in seconds
+  helpTime!: number
+
+  @Type(() => Date)
+  lastReadyAt?: Date
+
+  // in seconds
+  waitTime!: number
+
   @Type(() => Date)
   closedAt?: Date
 
@@ -448,7 +464,7 @@ export class Question {
 
   groupable!: boolean
 
-  location?: string
+  location?: QuestionLocations
 
   isTaskQuestion?: boolean
 }
@@ -466,6 +482,7 @@ export enum OpenQuestionStatus {
   Queued = 'Queued',
   Helping = 'Helping',
   PriorityQueued = 'PriorityQueued',
+  Paused = 'Paused',
 }
 
 /**
@@ -483,6 +500,13 @@ export enum ClosedQuestionStatus {
   ConfirmedDeleted = 'ConfirmedDeleted',
   Stale = 'Stale',
 }
+
+/** waitingStatuses are statuses where the student waiting to be helped */
+export const waitingStatuses: ReadonlyArray<QuestionStatus> = [
+  OpenQuestionStatus.Paused,
+  OpenQuestionStatus.Queued,
+  OpenQuestionStatus.PriorityQueued,
+]
 
 export enum asyncQuestionStatus {
   AIAnsweredNeedsAttention = 'AIAnsweredNeedsAttention', // AI has answered, but the answer is unsatisfactory.
@@ -502,6 +526,7 @@ export enum resolutionSource {
 export const StatusInQueue = [
   OpenQuestionStatus.Drafting,
   OpenQuestionStatus.Queued,
+  LimboQuestionStatus.ReQueueing,
 ]
 
 export const StatusInPriorityQueue = [OpenQuestionStatus.PriorityQueued]
@@ -510,6 +535,7 @@ export const StatusSentToCreator = [
   ...StatusInPriorityQueue,
   ...StatusInQueue,
   OpenQuestionStatus.Helping,
+  OpenQuestionStatus.Paused,
   LimboQuestionStatus.ReQueueing,
   LimboQuestionStatus.CantFind,
   LimboQuestionStatus.TADeleted,
@@ -1165,6 +1191,8 @@ export class GetStudentQuestionResponse extends Question {
   queueId!: number
 }
 
+export type QuestionLocations = 'Online' | 'In-Person' | 'Unselected'
+
 export class CreateQuestionParams {
   @IsString()
   text!: string
@@ -1184,7 +1212,7 @@ export class CreateQuestionParams {
 
   @IsString()
   @IsOptional()
-  location?: string
+  location?: QuestionLocations
 
   @IsBoolean()
   force!: boolean
@@ -1253,10 +1281,18 @@ export class TACheckoutResponse {
 export class UpdateQueueParams {
   @IsString()
   @IsOptional()
+  type?: QueueTypes
+
+  @IsString()
+  @IsOptional()
   notes?: string
 
   @IsBoolean()
   allowQuestions?: boolean
+
+  @IsString()
+  @IsOptional()
+  zoomLink?: string
 }
 
 export class QuestionTypeParams {
@@ -1503,6 +1539,7 @@ export const InsightCategories = [
   'Questions',
   'Queues',
   'Chatbot',
+  'Staff',
 ]
 
 export enum InsightType {
@@ -1510,6 +1547,7 @@ export enum InsightType {
   Chart = 'Chart',
   Table = 'Table',
   GanttChart = 'GanttChart',
+  MultipleGanttChart = 'MultipleGanttChart',
 }
 
 export type InsightCategory = (typeof InsightCategories)[number]
@@ -1536,6 +1574,7 @@ export const InsightFilterOptions = [
   'timeframe',
   'students',
   'queues',
+  'staff',
 ] as const
 export type InsightFilterOption = (typeof InsightFilterOptions)[number]
 
@@ -1554,10 +1593,13 @@ export interface InsightObject {
   insightType: InsightType
   insightCategory: InsightCategory
   allowedFilters?: InsightFilterOption[]
-  compute: (
-    insightFilters: any,
-    cacheManager?: Cache,
-  ) => Promise<PossibleOutputTypes>
+  compute: ({
+    insightFilters,
+    cacheManager,
+  }: {
+    insightFilters: any
+    cacheManager: Cache
+  }) => Promise<PossibleOutputTypes>
 }
 
 export interface InsightOutput {
@@ -1595,6 +1637,7 @@ export type PossibleOutputTypes =
   | ChartOutputType
   | TableOutputType
   | GanttChartOutputType
+  | MultipleGanttChartOutputType
 
 export type ChartOutputType = {
   data: StringMap<any>[]
@@ -1613,6 +1656,8 @@ export type GanttChartOutputType = {
   label: string
   numCategories: number
 }
+
+export type MultipleGanttChartOutputType = GanttChartOutputType[]
 
 export type ValueOutputType = number | string
 
@@ -1637,6 +1682,7 @@ export type InsightParamsType = {
   offset?: number
   students?: string
   queues?: string
+  staff?: string
 }
 
 export type sendEmailParams = {
@@ -2248,6 +2294,17 @@ export function transformIntoTaskTree(
   return taskTree
 }
 
+export function generateTagIdFromName(name: string): string {
+  // Sanitize the name by removing illegal characters
+  const sanitized = name.replace(/[\{\}"\:\,]/g, '')
+
+  // Generate a couple of random digits
+  const randomDigits = Math.floor(Math.random() * 100) // Generates a number between 0 and 99
+
+  // Append the random digits to the sanitized name (to prevent the edge case where two tags have different names but the same tag ids)
+  return `${sanitized}_${randomDigits}`
+}
+
 export function encodeBase64(str: string) {
   return Buffer.from(str, 'utf-8').toString('base64')
 }
@@ -2303,7 +2360,6 @@ export const ERROR_MESSAGES = {
     courseNameTooShort: 'Course name must be at least 1 character',
     coordinatorEmailTooShort: 'Coordinator email must be at least 1 character',
     sectionGroupNameTooShort: 'Section group name must be at least 1 character',
-    zoomLinkTooShort: 'Zoom link must be at least 1 character',
     courseAlreadyRegistered: 'One or more of the courses is already registered',
     courseNotFound: 'The course was not found',
     sectionGroupNotFound: 'One or more of the section groups was not found',
@@ -2413,6 +2469,7 @@ export const ERROR_MESSAGES = {
     invalidStudentID:
       'Invalid student ID provided. Student IDs must be numeric',
     invalidQueueID: 'Invalid queue ID provided. Queue IDs must be numeric.',
+    invalidStaffID: 'Invalid staff ID provided. Staff IDs must be numeric.',
   },
   roleGuard: {
     notLoggedIn: 'Must be logged in',
@@ -2472,5 +2529,8 @@ export const ERROR_MESSAGES = {
     noDiskSpace:
       'There is no disk space left to store a iCal file. Please immediately contact your course staff and let them know. They will contact the Khoury Office Hours team as soon as possible.',
     saveCalError: 'There was an error saving an iCal to disk',
+  },
+  questionType: {
+    questionTypeNotFound: 'Question type not found',
   },
 }

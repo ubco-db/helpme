@@ -18,9 +18,11 @@ exports[`Queue Integration GET /queues/:id/questions returns questions in the qu
       "createdAt": "2020-03-01T05:00:00.000Z",
       "creator": {},
       "groupable": true,
+      "helpTime": 0,
       "helpedAt": null,
       "id": 1,
       "isTaskQuestion": false,
+      "lastReadyAt": null,
       "location": null,
       "questionTypes": [
         {
@@ -35,6 +37,7 @@ exports[`Queue Integration GET /queues/:id/questions returns questions in the qu
       "status": "Queued",
       "taHelped": null,
       "text": "in queue",
+      "waitTime": 0,
     },
   ],
   "questionsGettingHelp": [],

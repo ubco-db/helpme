@@ -12,6 +12,7 @@ const publicPages = [
   '/',
   '/invite*',
   '/qi/*', // queue invite page
+  '/error_pages*',
 ]
 
 const isPublicPage = (url: string) => {
@@ -54,6 +55,11 @@ export async function middleware(request: NextRequest) {
         )
         response.cookies.delete('auth_token')
         return response
+      } else if (data.status === 429) {
+        // Too many requests (somehow. This should never happen since the getUser api has no throttler, but i'm leaving this here in case that changes).
+        // Ideally, we would just do an antd message.error, but we can't do that in middelware since it's server-side.
+        // The best solution we have right now is just sending them to the /429 page, which has a back button.
+        return NextResponse.redirect(new URL('/error_pages/429', url))
       } else if (data.status >= 400) {
         // this really is not meant to happen
         const response = NextResponse.redirect(
@@ -110,7 +116,8 @@ export async function middleware(request: NextRequest) {
     isPublicPageRequested &&
     cookies.has('auth_token') &&
     !nextUrl.pathname.startsWith('/invite') &&
-    !nextUrl.pathname.startsWith('/qi/')
+    !nextUrl.pathname.startsWith('/qi/') &&
+    !nextUrl.pathname.startsWith('/error_pages')
   ) {
     return NextResponse.redirect(new URL('/courses', url))
   }

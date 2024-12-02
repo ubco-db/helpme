@@ -13,6 +13,10 @@ import {
   Task,
   TaskTree,
   QuestionTypeParams,
+  QuestionLocations,
+  QueueTypes,
+  LimboQuestionStatus,
+  OpenQuestionStatus,
 } from '@koh/common'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
 import QuestionCard from './QuestionCard'
@@ -24,6 +28,8 @@ const Panel = Collapse.Panel
 interface QueueQuestionsProps {
   questions: Question[]
   questionsGettingHelp: Question[]
+  pausedQuestions: Question[]
+  queueType: QueueTypes
   cid: number
   qid: number
   isStaff: boolean
@@ -44,14 +50,14 @@ interface QueueQuestionsProps {
     questionTypes: QuestionType[],
     force: boolean,
     isTaskQuestion: boolean,
-    location?: string,
+    location?: QuestionLocations,
   ) => Promise<void>
   finishQuestionOrDemo: (
     text: string,
     questionTypes: QuestionTypeParams[],
     groupable: boolean,
     isTaskQuestion: boolean,
-    location: string,
+    location: QuestionLocations,
   ) => Promise<void>
   leaveQueue: (isTaskQuestion: boolean) => Promise<void>
   onOpenTagGroupsChange: (key: string | string[]) => void
@@ -65,6 +71,8 @@ interface QueueQuestionsProps {
 const QueueQuestions: React.FC<QueueQuestionsProps> = ({
   questions,
   questionsGettingHelp,
+  pausedQuestions,
+  queueType,
   cid,
   qid,
   isStaff,
@@ -130,15 +138,39 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
     [taskTree],
   )
 
+  const renderQuestion = (question: Question) => {
+    const isMyQuestion =
+      question.id === studentDemoId || question.id === studentQuestionId
+    const isPaused = question.status === OpenQuestionStatus.Paused
+    const isBeingHelped = question.status === OpenQuestionStatus.Helping
+
+    return (
+      <QuestionCard
+        key={question.id}
+        question={question}
+        queueType={queueType}
+        cid={cid}
+        qid={qid}
+        isStaff={isStaff}
+        configTasks={configTasks}
+        studentAssignmentProgress={studentAssignmentProgress}
+        isMyQuestion={isMyQuestion}
+        isBeingReQueued={question.status === LimboQuestionStatus.ReQueueing}
+        isPaused={isPaused}
+        isBeingHelped={isBeingHelped}
+      />
+    )
+  }
+
   // TODO: this does still needs to be updated to the newest version of Collapse from antd, where it uses the 'items' prop instead of Collapse.Panel.
   // This will help with all the console deprecation warnings.
   // However, this is kind of a difficult task as the Divider will need to be separate and there will likely need to be two Collapse components instead, which may mess with things.
   return (
     <div className="mb-32 md:mb-0">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between md:my-2">
         {questions?.length === 0 ? (
-          <div className="text-xl font-medium text-gray-900">
-            There are no questions in the queue
+          <div className="ml-auto mr-auto mt-4 text-lg font-medium text-gray-500">
+            The queue is empty!
           </div>
         ) : (
           <QueueHeader
@@ -221,25 +253,9 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                       </div>
                     }
                   >
-                    {filteredQuestions.map((question: Question) => {
-                      const isMyQuestion = question.id === studentDemoId
-                      const background_color = isMyQuestion
-                        ? 'bg-teal-200/25'
-                        : 'bg-white'
-                      return (
-                        <QuestionCard
-                          key={question.id}
-                          question={question}
-                          cid={cid}
-                          qid={qid}
-                          isStaff={isStaff}
-                          configTasks={configTasks}
-                          studentAssignmentProgress={studentAssignmentProgress}
-                          isMyQuestion={isMyQuestion}
-                          className={background_color}
-                        />
-                      )
-                    })}
+                    {filteredQuestions.map((question: Question) =>
+                      renderQuestion(question),
+                    )}
                   </Panel>
                 )
               )
@@ -293,25 +309,9 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                     </div>
                   }
                 >
-                  {filteredQuestions.map((question: Question) => {
-                    const isMyQuestion = question.id === studentQuestionId
-                    const background_color = isMyQuestion
-                      ? 'bg-teal-200/25'
-                      : 'bg-white'
-                    return (
-                      <QuestionCard
-                        key={question.id}
-                        question={question}
-                        cid={cid}
-                        qid={qid}
-                        isStaff={isStaff}
-                        configTasks={configTasks}
-                        studentAssignmentProgress={studentAssignmentProgress}
-                        isMyQuestion={isMyQuestion}
-                        className={background_color}
-                      />
-                    )
-                  })}
+                  {filteredQuestions.map((question: Question) =>
+                    renderQuestion(question),
+                  )}
                 </Panel>
               )
             )
@@ -319,49 +319,17 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
         </Collapse>
       ) : (
         <>
-          {!isStaff &&
-            questionsGettingHelp.map((question: Question) => {
-              const isMyQuestion =
-                question.id === studentQuestionId ||
-                question.id === studentDemoId
-              const background_color = isMyQuestion
-                ? 'bg-teal-200/25'
-                : 'bg-white'
-              return (
-                <QuestionCard
-                  key={question.id}
-                  question={question}
-                  cid={cid}
-                  qid={qid}
-                  isStaff={isStaff}
-                  configTasks={configTasks}
-                  studentAssignmentProgress={studentAssignmentProgress}
-                  isMyQuestion={isMyQuestion}
-                  className={background_color}
-                  isBeingHelped={true}
-                />
-              )
-            })}
-          {questions.map((question: Question) => {
-            const isMyQuestion =
-              question.id === studentQuestionId || question.id === studentDemoId
-            const background_color = isMyQuestion
-              ? 'bg-teal-200/25'
-              : 'bg-white'
-            return (
-              <QuestionCard
-                key={question.id}
-                question={question}
-                cid={cid}
-                qid={qid}
-                isStaff={isStaff}
-                configTasks={configTasks}
-                studentAssignmentProgress={studentAssignmentProgress}
-                isMyQuestion={isMyQuestion}
-                className={background_color}
-              />
-            )
-          })}
+          {!isStaff && (
+            <>
+              {questionsGettingHelp.map((question: Question) =>
+                renderQuestion(question),
+              )}
+              {pausedQuestions.map((question: Question) =>
+                renderQuestion(question),
+              )}
+            </>
+          )}
+          {questions.map((question: Question) => renderQuestion(question))}
         </>
       )}
     </div>
