@@ -62,7 +62,7 @@ export default function LMSIntegrationsPage(): ReactElement {
         return {
           value: key,
           label: <span>{mappedLMS[key]}</span>,
-          disabled: lmsIntegrations.find((i) => i.apiPlatform == key),
+          disabled: lmsIntegrations?.find((i) => i.apiPlatform == key) ?? false,
         }
       }),
     [lmsIntegrations, mappedLMS],
@@ -102,7 +102,6 @@ export default function LMSIntegrationsPage(): ReactElement {
         } else if (result.includes('Success')) {
           message.success(result)
           modalCleanup()
-          fetchDataAsync()
         } else {
           message.error(result)
         }
@@ -160,7 +159,10 @@ export default function LMSIntegrationsPage(): ReactElement {
             dataIndex={'courseIntegrations'}
             render={(courses: LMSCourseIntegrationPartial[]) => (
               <Collapse className={'col-span-2'}>
-                <Collapse.Panel header={'Connections'} key={'1'}>
+                <Collapse.Panel
+                  header={`Connections (${courses.length})`}
+                  key={'1'}
+                >
                   <Table dataSource={courses}>
                     <Table.Column
                       colSpan={1}

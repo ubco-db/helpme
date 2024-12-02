@@ -128,5 +128,5 @@ export class CourseModel extends BaseEntity {
     (integration) => integration.course,
   )
   @JoinColumn({ name: 'courseId' })
-  lmsIntegration: LMSCourseIntegrationModel;
+  lmsIntegration?: LMSCourseIntegrationModel;
 }

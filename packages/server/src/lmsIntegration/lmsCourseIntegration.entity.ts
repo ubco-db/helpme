@@ -23,7 +23,7 @@ export class LMSCourseIntegrationModel extends BaseEntity {
   @Column({ type: 'text' })
   apiKey: string;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamp', nullable: true })
   apiKeyExpiry: Date;
 
   @ManyToOne(
@@ -33,6 +33,7 @@ export class LMSCourseIntegrationModel extends BaseEntity {
   orgIntegration: LMSOrganizationIntegrationModel;
 
   @OneToOne((type) => CourseModel, (course) => course.lmsIntegration)
+  @JoinColumn()
   course: CourseModel;
 
   @OneToMany((type) => LMSAssignmentModel, (assignment) => assignment.course)

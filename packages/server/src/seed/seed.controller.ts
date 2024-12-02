@@ -55,6 +55,7 @@ import { InsightDashboardModel } from '../insights/dashboard.entity';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from '../lmsIntegration/lmsAssignment.entity';
+import { CalendarModel } from '../calendar/calendar.entity';
 
 const exampleConfig = {
   fifo_queue_view_enabled: true,
@@ -138,6 +139,7 @@ export class SeedController {
   async deleteAll(): Promise<string> {
     // NOTE: order of deletion matters for tables with foreign keys.
     // Children tables should be removed as early as possible.
+    await this.seedService.deleteAll(CalendarModel);
     await this.seedService.deleteAll(QuestionTypeModel);
     await this.seedService.deleteAll(OrganizationCourseModel);
     await this.seedService.deleteAll(UserSubscriptionModel);

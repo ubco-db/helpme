@@ -953,8 +953,32 @@ export class LMSOrganizationIntegrationPartial {
 export class LMSCourseIntegrationPartial {
   courseId!: number
   course!: CoursePartial
+  apiPlatform!: LMSIntegration
   apiCourseId!: string
   apiKeyExpiry!: Date
+}
+
+export type LMSCourseAPIResponse = {
+  name: string
+  code: string
+  studentCount: number
+}
+
+export type LMSAssignmentAPIResponse = {
+  id: number
+  name: string
+  description: string
+  modified: Date
+}
+
+export enum LMSApiResponseStatus {
+  None,
+  InvalidPlatform,
+  InvalidKey,
+  InvalidCourseId,
+  InvalidConfiguration,
+  Error,
+  Success,
 }
 
 export interface CourseResponse {
@@ -2309,6 +2333,9 @@ export const ERROR_MESSAGES = {
       'You are unauthorized to submit an application. Please email help@khouryofficehours.com for the correct URL.',
     crnAlreadyRegistered: (crn: number, courseId: number): string =>
       `The CRN ${crn} already exists for another course with course id ${courseId}`,
+    organizationNotFound: 'Course has no related organization',
+    orgIntegrationNotFound: 'Course organization has no LMS integrations',
+    lmsIntegrationNotFound: 'Course has no related LMS integrations',
   },
   questionController: {
     createQuestion: {

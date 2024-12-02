@@ -34,6 +34,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
 import { APP_FILTER } from '@nestjs/core';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { BackupModule } from 'backup/backup.module';
+import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { BackupModule } from 'backup/backup.module';
     StudentTaskProgressModule,
     RedisQueueModule,
     BackupModule,
+    LmsIntegrationModule,
   ],
   providers: [
     {

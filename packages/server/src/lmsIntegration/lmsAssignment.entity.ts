@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 
 @Entity('lms_assignment_model')
@@ -6,8 +6,8 @@ export class LMSAssignmentModel {
   @PrimaryColumn()
   id: number;
 
-  @PrimaryColumn({ type: 'text' })
-  courseId: string;
+  @PrimaryColumn()
+  courseId: number;
 
   @Column({ type: 'text' })
   name: string;
@@ -22,5 +22,6 @@ export class LMSAssignmentModel {
     (type) => LMSCourseIntegrationModel,
     (integration) => integration.assignments,
   )
+  @JoinColumn()
   course: LMSCourseIntegrationModel;
 }

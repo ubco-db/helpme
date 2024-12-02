@@ -62,6 +62,10 @@ import {
   InsightDashboardPartial,
   InsightDetail,
   LMSIntegration,
+  LMSCourseIntegrationPartial,
+  LMSAssignmentAPIResponse,
+  LMSApiResponseStatus,
+  LMSCourseAPIResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -114,6 +118,7 @@ class APIClient {
   ): Promise<T> {
     const res = (await this.axios.request({ method, url, data: body, params }))
       .data
+    if (res == '') return undefined as T
     return responseClass ? plainToClass(responseClass, res) : res
   }
 
@@ -280,6 +285,36 @@ class APIClient {
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
     getAllQueueInvites: async (courseId: number): Promise<QueueInvite[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/queue_invites`),
+    getIntegration: async (
+      courseId: number,
+    ): Promise<LMSCourseIntegrationPartial> =>
+      this.req('GET', `/api/v1/courses/${courseId}/lms_integration`),
+    upsertIntegration: async (
+      courseId: number,
+      props: {
+        apiPlatform: LMSIntegration
+        apiKey: string
+        apiKeyExpiry?: Date
+        apiKeyExpiryDeleted?: boolean
+        apiCourseId: string
+      },
+    ): Promise<string | undefined> =>
+      this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/lms_integration/upsert`,
+        undefined,
+        props,
+      ),
+    removeIntegration: async (
+      courseId: number,
+      props: { apiPlatform: LMSIntegration },
+    ): Promise<string | undefined> =>
+      this.req(
+        'DELETE',
+        `/api/v1/courses/${courseId}/lms_integration/remove`,
+        undefined,
+        props,
+      ),
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>
@@ -738,6 +773,31 @@ class APIClient {
       this.req(
         'DELETE',
         `/api/v1/organization/${organizationId}/lms_integration/remove`,
+        undefined,
+        props,
+      ),
+  }
+
+  lmsIntegration = {
+    getCourse: async (courseId: number): Promise<LMSCourseAPIResponse> =>
+      this.req('GET', `/api/v1/lms_integration/${courseId}`),
+    getStudents: async (courseId: number): Promise<string[]> =>
+      this.req('GET', `/api/v1/lms_integration/${courseId}/students`),
+    getAssignments: async (
+      courseId: number,
+    ): Promise<LMSAssignmentAPIResponse[]> =>
+      this.req('GET', `/api/v1/lms_integration/${courseId}/assignments`),
+    testIntegration: async (
+      courseId: number,
+      props: {
+        apiPlatform: LMSIntegration
+        apiKey: string
+        apiCourseId: string
+      },
+    ): Promise<LMSApiResponseStatus> =>
+      this.req(
+        'POST',
+        `/api/v1/lms_integration/${courseId}/test`,
         undefined,
         props,
       ),

@@ -1022,8 +1022,9 @@ export class OrganizationController {
   ): Promise<LMSOrganizationIntegrationPartial[]> {
     const lmsIntegrations = await LMSOrganizationIntegrationModel.find({
       where: { organizationId: oid },
-      relations: ['courseIntegrations'],
+      relations: ['courseIntegrations', 'courseIntegrations.course'],
     });
+
     if (lmsIntegrations.length <= 0) {
       return [];
     }
@@ -1037,9 +1038,10 @@ export class OrganizationController {
           int.courseIntegrations?.map((cint) => {
             return {
               courseId: cint.courseId,
+              apiPlatform: int.apiPlatform,
               course: {
                 id: cint.courseId,
-                name: cint.course.name,
+                name: cint.course?.name,
               } satisfies CoursePartial,
               apiCourseId: cint.apiCourseId,
               apiKeyExpiry: cint.apiKeyExpiry,
