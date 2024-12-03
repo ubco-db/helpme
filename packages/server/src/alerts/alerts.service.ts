@@ -43,6 +43,15 @@ export class AlertsService {
             );
           }
           break;
+        case AlertType.EVENT_ENDED_CHECKOUT_STAFF:
+          nonStaleAlerts.push(
+            pick(alert, ['sent', 'alertType', 'payload', 'id']),
+          );
+          break;
+        case AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE:
+          nonStaleAlerts.push(
+            pick(alert, ['sent', 'alertType', 'payload', 'id']),
+          );
       }
     }
 
