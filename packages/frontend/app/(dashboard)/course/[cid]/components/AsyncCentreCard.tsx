@@ -1,7 +1,7 @@
 'use client'
 
 import { API } from '@/app/api'
-import { Card } from 'antd'
+import { Badge, Card } from 'antd'
 import Link from 'next/link'
 import React, { ReactElement, useEffect, useState } from 'react'
 
@@ -36,10 +36,13 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
         title={'Anytime Question Hub'}
         extra={
           unreadCount > 0 && (
-            <div className="mr-8 h-fit text-sm font-normal text-gray-200">
-              <span className="text-lg font-medium">{unreadCount}</span> Unread
-              Question{unreadCount > 1 ? 's' : ''}
-            </div>
+            <>
+              {/* <div className="mr-8 h-fit text-sm font-normal text-gray-200">
+                <span className="text-lg font-medium">{unreadCount}</span> Unread
+                Question{unreadCount > 1 ? 's' : ''}
+              </div> */}
+              <Badge count={unreadCount} size="default" overflowCount={10} />
+            </>
           )
         }
       >
