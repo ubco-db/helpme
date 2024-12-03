@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { QueueController } from './queue.controller';
 import { SSEModule } from 'sse/sse.module';
 import { QueueService } from './queue.service';
@@ -10,7 +10,8 @@ import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueInviteController } from './queue-invite.controller';
 import { QueueCleanService } from './queue-clean/queue-clean.service';
-import { QueueCleanModule } from './queue-clean/queue-clean.module';
+import { QuestionModule } from 'question/question.module';
+import { QuestionService } from 'question/question.service';
 
 @Module({
   controllers: [QueueController, QueueInviteController],
@@ -22,13 +23,22 @@ import { QueueCleanModule } from './queue-clean/queue-clean.module';
     AlertsService,
     RedisQueueService,
     QueueCleanService,
+    QuestionService,
   ],
-  exports: [QueueSSEService, ApplicationConfigService],
+  exports: [
+    QueueSSEService,
+    QueueCleanService,
+    ApplicationConfigService,
+    AlertsService,
+    QuestionService,
+    QueueService,
+    RedisQueueService,
+  ],
   imports: [
     ApplicationConfigService,
     SSEModule,
     AlertsModule,
-    QueueCleanModule,
+    forwardRef(() => QuestionModule),
   ],
 })
 export class QueueModule {}

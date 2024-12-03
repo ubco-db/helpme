@@ -10,6 +10,7 @@ import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { QueueModel } from '../queue/queue.entity';
 import { AlertModel } from '../alerts/alerts.entity';
 import { AlertType } from '@koh/common';
+import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 
 describe('CalendarService', () => {
   let service: CalendarService;
@@ -23,6 +24,12 @@ describe('CalendarService', () => {
         CalendarService,
         QuestionService,
         NotificationService,
+        {
+          provide: QueueCleanService,
+          useValue: {
+            promptStudentsToLeaveQueue: jest.fn(),
+          },
+        },
         {
           provide: SchedulerRegistry,
           useValue: {

@@ -114,12 +114,12 @@ export class QueueCleanService {
       a.resolved = new Date();
     });
 
+    await QuestionModel.save(questions);
+    await AlertModel.save(alerts);
+
     // update redis
     const queueQuestions = await this.queueService.getQuestions(queueId);
     await this.redisQueueService.setQuestions(`q:${queueId}`, queueQuestions);
-
-    await QuestionModel.save(questions);
-    await AlertModel.save(alerts);
   }
 
   /**
@@ -169,7 +169,6 @@ export class QueueCleanService {
       })
       .getRawMany<{ studentId: number; courseId: number }>();
 
-    console.log('students', students);
     // filter out duplicate students (if they have multiple questions in the queue). We only need to send them 1 alert
     students = students.filter(
       (student, index, self) =>
@@ -180,7 +179,6 @@ export class QueueCleanService {
             t.courseId === student.courseId,
         ),
     );
-    console.log('students2', students);
 
     // create an alert for each student
     students.forEach(async (student) => {
@@ -268,8 +266,8 @@ export class QueueCleanService {
           ...Object.values(OpenQuestionStatus),
           ...Object.values(LimboQuestionStatus),
         ]).getMany();
-        questions.forEach((q: QuestionModel) => {
-          this.questionService.changeStatus(
+        questions.forEach(async (q: QuestionModel) => {
+          await this.questionService.changeStatus(
             ClosedQuestionStatus.Stale,
             q,
             userId,
@@ -315,8 +313,9 @@ export class QueueCleanService {
     // note that this has to be done this way.
     // Doing schedularRegistry.getCronJob(jobName) will error if the job is not found
     // same with doing schedulerRegistry.deleteCronJob(jobName)
-    for (const jobName in jobs) {
+    for (const [jobName, job] of jobs) {
       if (jobName === `prompt-student-to-leave-queue-${queueId}-${studentId}`) {
+        job.stop();
         this.schedulerRegistry.deleteCronJob(jobName);
       }
     }
@@ -324,8 +323,9 @@ export class QueueCleanService {
 
   public deleteAllLeaveQueueCronJobsForQueue(queueId: number): void {
     const jobs = this.schedulerRegistry.getCronJobs();
-    for (const jobName in jobs) {
+    for (const [jobName, job] of jobs) {
       if (jobName.startsWith(`prompt-student-to-leave-queue-${queueId}-`)) {
+        job.stop();
         this.schedulerRegistry.deleteCronJob(jobName);
       }
     }

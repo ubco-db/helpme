@@ -11,6 +11,9 @@ import { TestTypeOrmModule } from '../../../test/util/testUtils';
 import { QuestionModel } from '../../question/question.entity';
 import { QueueCleanService } from './queue-clean.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
+import { QuestionService } from 'question/question.service';
+import { RedisQueueService } from 'redisQueue/redis-queue.service';
+import { QueueService } from 'queue/queue.service';
 
 describe('QueueService', () => {
   let service: QueueCleanService;
@@ -19,13 +22,33 @@ describe('QueueService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [TestTypeOrmModule],
       providers: [
         QueueCleanService,
         {
+          provide: QuestionService,
+          useValue: {
+            changeStatus: jest.fn(), // TODO: actually mock this method so it changes the status in db
+          },
+        },
+        {
+          provide: RedisQueueService,
+          useValue: {
+            setQuestions: jest.fn(),
+          },
+        },
+        {
+          provide: QueueService,
+          useValue: {
+            getQuestions: jest.fn(),
+          },
+        },
+        {
           provide: SchedulerRegistry,
           useValue: {
-            getCronJobs: jest.fn(),
+            addCronJob: jest.fn(),
             deleteCronJob: jest.fn(),
+            getCronJobs: jest.fn(),
           },
         },
       ],
@@ -33,6 +56,7 @@ describe('QueueService', () => {
 
     service = module.get<QueueCleanService>(QueueCleanService);
     schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
+    conn = module.get<Connection>(Connection);
   });
 
   afterAll(async () => {
@@ -160,16 +184,18 @@ describe('QueueService', () => {
   describe('deleteAllLeaveQueueCronJobsForQueue', () => {
     it('should delete all cron jobs for the specified queue', () => {
       const queueId = 1;
+      const mockJob = { stop: jest.fn() };
       const cronJobs = new Map<string, any>();
-      cronJobs.set('prompt-student-to-leave-queue-1-1', {});
-      cronJobs.set('prompt-student-to-leave-queue-1-2', {});
-      cronJobs.set('prompt-student-to-leave-queue-2-1', {});
-      cronJobs.set('some-other-job', {});
+      cronJobs.set('prompt-student-to-leave-queue-1-1', mockJob);
+      cronJobs.set('prompt-student-to-leave-queue-1-2', mockJob);
+      cronJobs.set('prompt-student-to-leave-queue-2-1', mockJob);
+      cronJobs.set('some-other-job', mockJob);
 
       jest.spyOn(schedulerRegistry, 'getCronJobs').mockReturnValue(cronJobs);
 
       service.deleteAllLeaveQueueCronJobsForQueue(queueId);
 
+      expect(mockJob.stop).toHaveBeenCalledTimes(2);
       expect(schedulerRegistry.deleteCronJob).toHaveBeenCalledTimes(2);
       expect(schedulerRegistry.deleteCronJob).toHaveBeenCalledWith(
         'prompt-student-to-leave-queue-1-1',
@@ -181,14 +207,16 @@ describe('QueueService', () => {
 
     it('should not delete cron jobs for other queues', () => {
       const queueId = 1;
+      const mockJob = { stop: jest.fn() };
       const cronJobs = new Map<string, any>();
-      cronJobs.set('prompt-student-to-leave-queue-2-1', {});
-      cronJobs.set('some-other-job', {});
+      cronJobs.set('prompt-student-to-leave-queue-2-1', mockJob);
+      cronJobs.set('some-other-job', mockJob);
 
       jest.spyOn(schedulerRegistry, 'getCronJobs').mockReturnValue(cronJobs);
 
       service.deleteAllLeaveQueueCronJobsForQueue(queueId);
 
+      expect(mockJob.stop).not.toHaveBeenCalled();
       expect(schedulerRegistry.deleteCronJob).not.toHaveBeenCalledWith(
         'prompt-student-to-leave-queue-2-1',
       );
