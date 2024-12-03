@@ -36,6 +36,7 @@ import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { BackupModule } from 'backup/backup.module';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { RateLimitExceptionFilter } from 'exception_filters/429-exception.filter';
+import { QueueCleanModule } from 'queue/queue-clean/queue-clean.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { RateLimitExceptionFilter } from 'exception_filters/429-exception.filter
     StudentTaskProgressModule,
     RedisQueueModule,
     BackupModule,
+    QueueCleanModule,
     // no more than 30 calls per 1 second
     ThrottlerModule.forRoot([
       {

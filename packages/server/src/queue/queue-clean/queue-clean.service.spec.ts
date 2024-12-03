@@ -10,18 +10,29 @@ import {
 import { TestTypeOrmModule } from '../../../test/util/testUtils';
 import { QuestionModel } from '../../question/question.entity';
 import { QueueCleanService } from './queue-clean.service';
+import { SchedulerRegistry } from '@nestjs/schedule';
 
 describe('QueueService', () => {
   let service: QueueCleanService;
   let conn: Connection;
+  let schedulerRegistry: SchedulerRegistry;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule],
-      providers: [QueueCleanService],
+      providers: [
+        QueueCleanService,
+        {
+          provide: SchedulerRegistry,
+          useValue: {
+            getCronJobs: jest.fn(),
+            deleteCronJob: jest.fn(),
+          },
+        },
+      ],
     }).compile();
+
     service = module.get<QueueCleanService>(QueueCleanService);
-    conn = module.get<Connection>(Connection);
+    schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
   });
 
   afterAll(async () => {
@@ -143,6 +154,47 @@ describe('QueueService', () => {
 
       await service.cleanAllQueues();
       expect(cleanQueueSpy).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe('deleteAllLeaveQueueCronJobsForQueue', () => {
+    it('should delete all cron jobs for the specified queue', () => {
+      const queueId = 1;
+      const cronJobs = new Map<string, any>();
+      cronJobs.set('prompt-student-to-leave-queue-1-1', {});
+      cronJobs.set('prompt-student-to-leave-queue-1-2', {});
+      cronJobs.set('prompt-student-to-leave-queue-2-1', {});
+      cronJobs.set('some-other-job', {});
+
+      jest.spyOn(schedulerRegistry, 'getCronJobs').mockReturnValue(cronJobs);
+
+      service.deleteAllLeaveQueueCronJobsForQueue(queueId);
+
+      expect(schedulerRegistry.deleteCronJob).toHaveBeenCalledTimes(2);
+      expect(schedulerRegistry.deleteCronJob).toHaveBeenCalledWith(
+        'prompt-student-to-leave-queue-1-1',
+      );
+      expect(schedulerRegistry.deleteCronJob).toHaveBeenCalledWith(
+        'prompt-student-to-leave-queue-1-2',
+      );
+    });
+
+    it('should not delete cron jobs for other queues', () => {
+      const queueId = 1;
+      const cronJobs = new Map<string, any>();
+      cronJobs.set('prompt-student-to-leave-queue-2-1', {});
+      cronJobs.set('some-other-job', {});
+
+      jest.spyOn(schedulerRegistry, 'getCronJobs').mockReturnValue(cronJobs);
+
+      service.deleteAllLeaveQueueCronJobsForQueue(queueId);
+
+      expect(schedulerRegistry.deleteCronJob).not.toHaveBeenCalledWith(
+        'prompt-student-to-leave-queue-2-1',
+      );
+      expect(schedulerRegistry.deleteCronJob).not.toHaveBeenCalledWith(
+        'some-other-job',
+      );
     });
   });
 });

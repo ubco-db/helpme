@@ -65,6 +65,7 @@ import { Not, getManager } from 'typeorm';
 import { pick } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -74,6 +75,7 @@ export class CourseController {
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
     private courseService: CourseService,
+    private queueCleanService: QueueCleanService,
     private redisQueueService: RedisQueueService,
     private readonly appConfig: ApplicationConfigService,
   ) {}
@@ -522,21 +524,21 @@ export class CourseController {
     @User() user: UserModel,
   ): Promise<QueuePartial> {
     // First ensure user is not checked into another queue
-    const queues = await QueueModel.find({
-      where: {
-        courseId: courseId,
-      },
-      relations: ['staffList'],
-    });
+    // const queues = await QueueModel.find({
+    //   where: {
+    //     courseId: courseId,
+    //   },
+    //   relations: ['staffList'],
+    // });
 
-    if (
-      queues &&
-      queues.some((q) => q.staffList.some((staff) => staff.id === user.id))
-    ) {
-      throw new UnauthorizedException(
-        ERROR_MESSAGES.courseController.checkIn.cannotCheckIntoMultipleQueues,
-      );
-    }
+    // if (
+    //   queues &&
+    //   queues.some((q) => q.staffList.some((staff) => staff.id === user.id))
+    // ) {
+    //   throw new UnauthorizedException(
+    //     ERROR_MESSAGES.courseController.checkIn.cannotCheckIntoMultipleQueues,
+    //   );
+    // }
 
     const queue = await QueueModel.findOne(
       {
@@ -575,6 +577,10 @@ export class CourseController {
 
     if (queue.staffList.length === 0) {
       queue.allowQuestions = true;
+      this.queueCleanService.deleteAllLeaveQueueCronJobsForQueue(queue.id);
+      await this.queueCleanService.resolvePromptStudentToLeaveQueueAlerts(
+        queue.id,
+      );
     }
 
     queue.staffList.push(user);
@@ -654,7 +660,9 @@ export class CourseController {
     // Do nothing if user not already in stafflist
     if (!queue.staffList.find((e) => e.id === user.id)) return;
 
+    // remove user from stafflist
     queue.staffList = queue.staffList.filter((e) => e.id !== user.id);
+    // if no more staff in queue, disallow questions (idk what that does exactly)
     if (queue.staffList.length === 0) {
       queue.allowQuestions = false;
     }
@@ -670,6 +678,10 @@ export class CourseController {
         ERROR_MESSAGES.courseController.saveQueueError,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+    // if no more staff in queue and prompt students to leave queue (this needs to be after the saving of the queue since this service also checks if the stafflist is empty)
+    if (queue.staffList.length === 0) {
+      await this.queueCleanService.promptStudentsToLeaveQueue(queue.id);
     }
 
     try {

@@ -8,6 +8,7 @@ import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueService } from '../queue/queue.service';
 import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from '../config/application_config.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Module({
   controllers: [QuestionController],
@@ -18,8 +19,9 @@ import { ApplicationConfigService } from '../config/application_config.service';
     AlertsService,
     QuestionService,
     RedisQueueService,
+    NotificationService,
   ],
   imports: [NotificationModule, QueueModule],
-  exports: [QuestionService],
+  exports: [QuestionService, QueueService, AlertsService, NotificationService],
 })
 export class QuestionModule {}

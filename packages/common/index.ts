@@ -512,6 +512,7 @@ export enum ClosedQuestionStatus {
   DeletedDraft = 'DeletedDraft',
   ConfirmedDeleted = 'ConfirmedDeleted',
   Stale = 'Stale',
+  LeftDueToNoStaff = 'LeftDueToNoStaff',
 }
 
 /** waitingStatuses are statuses where the student waiting to be helped */
@@ -1334,6 +1335,7 @@ export class TACheckinPair {
 export enum AlertType {
   REPHRASE_QUESTION = 'rephraseQuestion',
   EVENT_ENDED_CHECKOUT_STAFF = 'eventEndedCheckoutStaff',
+  PROMPT_STUDENT_TO_LEAVE_QUEUE = 'promptStudentToLeaveQueue',
 }
 
 export class AlertPayload {}
@@ -1361,6 +1363,10 @@ export class RephraseQuestionPayload extends AlertPayload {
 
   @IsInt()
   courseId!: number
+}
+
+export class PromptStudentToLeaveQueuePayload extends AlertPayload {
+  queueId!: number
 }
 
 export class OrganizationCourseResponse {

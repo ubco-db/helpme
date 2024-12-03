@@ -16,12 +16,14 @@ import { EventModel, EventType } from '../profile/event-model.entity';
 import { CronJob } from 'cron';
 import * as Sentry from '@sentry/browser';
 import { QuestionService } from '../question/question.service';
+import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 
 @Injectable()
 export class CalendarService implements OnModuleInit {
   constructor(
     private schedulerRegistry: SchedulerRegistry,
     public questionService: QuestionService, // needed to make public for jest testing purposes
+    private queueCleanService: QueueCleanService,
   ) {}
 
   async onModuleInit() {
@@ -324,6 +326,10 @@ export class CalendarService implements OnModuleInit {
             Sentry.captureException(err);
             return;
           }
+          // prompt students with questions to leave the queue
+          await this.queueCleanService.promptStudentsToLeaveQueue(
+            queue.queueId,
+          );
           // create a TA_CHECKED_OUT_EVENT_END event
           try {
             await EventModel.create({
