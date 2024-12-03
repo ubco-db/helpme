@@ -5,7 +5,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 import * as Sentry from '@sentry/browser';
-import archiver from 'archiver';
+
+/*
+ * NOTE: all paths here are relative to package/server
+ */
 
 const execPromise = promisify(exec);
 
@@ -102,86 +105,35 @@ export class BackupService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT) //tentative
   async handleDailyUploadsBackup() {
     try {
       const date = new Date().toISOString().split('T')[0];
-      const uploadsDir = '../../uploads';
-      const backupFile = `uploads_backup-${date}.zip`;
+      const uploadsDir = './uploads';
+      const backupFile = `uploads_backup-${date}.tar.gz`;
       const backupDir = '../../backups/uploads-daily';
 
+      // Ensure enough disk space in the backup directory
       const hasSpace = await this.checkDiskSpace(backupDir);
-
-      if (hasSpace) {
-        const zipStream = fs.createWriteStream(`${backupDir}/${backupFile}`);
-        const archive = archiver('zip', {
-          zlib: { level: 9 },
-        });
-
-        zipStream.on('close', () => {
-          // Delete last one if there are more than 10 backups
-          const files = fs.readdirSync(backupDir);
-
-          if (files.length > 10) {
-            const sortedFiles = files
-              .map((file) => ({
-                name: file,
-                time: new Date(file.split('-')[1].split('.')[0]).getTime(),
-              }))
-              .sort((a, b) => b.time - a.time); // Sort by time in descending order
-
-            fs.rmdirSync(
-              path.join(backupDir, sortedFiles[sortedFiles.length - 1].name),
-              { recursive: true },
-            ); // Delete the oldest backup
-            console.log('Deleted oldest uploads backup successfully!');
-          }
-
-          console.log(
-            `Uploads backup zipped successfully! Total bytes: ${archive.pointer() / 1024}kB`,
-          );
-        });
-
-        archive.on('error', (err: any) => {
-          throw err;
-        });
-
-        archive.pipe(zipStream);
-
-        const appendFilesToArchive = (dir: string, callback: () => void) => {
-          fs.readdir(dir, { withFileTypes: true }, (err, entries) => {
-            if (err) throw err;
-
-            let pending = entries.length;
-            if (!pending) return callback();
-
-            entries.forEach((entry) => {
-              const fullPath = path.join(dir, entry.name);
-
-              if (entry.isDirectory()) {
-                // Recursively append subdirectories
-                appendFilesToArchive(fullPath, () => {
-                  if (!--pending) callback();
-                });
-              } else {
-                // Append files
-                archive.file(fullPath, {
-                  name: path.relative(uploadsDir, fullPath),
-                });
-                if (!--pending) callback();
-              }
-            });
-          });
-        };
-
-        appendFilesToArchive(uploadsDir, () => {
-          // Finalize the archive after processing the directory
-          archive.finalize();
-        });
-      } else {
+      if (!hasSpace) {
         console.error('Insufficient disk space for uploads backup.');
         Sentry.captureMessage('Insufficient disk space for uploads backup.');
+        return;
       }
+
+      // Use `tar` to compress the uploads directory
+      const compressCommand = `tar -czf ${backupDir}/${backupFile} -C ${uploadsDir} .`;
+
+      exec(compressCommand, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Uploads backup failed: ${stderr}`);
+          Sentry.captureMessage(`Uploads backup failed: ${stderr}`);
+        } else {
+          console.log(`Uploads backup saved: ${backupFile}`);
+          // Retain only the last 5 backups
+          this.deleteOldBackups(backupDir, 5); //tentative
+        }
+      });
     } catch (error) {
       console.error('Error backing up uploads:', error);
       Sentry.captureMessage('Error backing up uploads:', error);

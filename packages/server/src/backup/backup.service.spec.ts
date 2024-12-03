@@ -3,7 +3,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BackupService, baseBackupCommand } from './backup.service';
 import * as fs from 'fs';
 import { exec } from 'child_process';
-import { promisify } from 'util';
+import { Stats } from 'fs';
+import path from 'path';
 
 jest.mock('fs');
 jest.mock('child_process', () => ({
@@ -197,24 +198,23 @@ describe('BackupService', () => {
   });
 
   describe('handleDailyUploadsBackup', () => {
-    const mockFiles = [
-      'uploads_backup-2023-01-01.zip',
-      'uploads_backup-2023-01-02.zip',
-    ];
-    const uploadsDir = '../../uploads';
     const backupDir = '../../backups/uploads-daily';
+    const uploadsDir = './uploads';
     const todayFormatted = new Date().toISOString().split('T')[0];
-    const backupFile = `uploads_backup-${todayFormatted}.zip`;
+    const backupFile = `uploads_backup-${todayFormatted}.tar.gz`;
 
     beforeEach(() => {
-      jest.spyOn(fs, 'createWriteStream').mockReturnValue({
-        on: jest.fn().mockReturnThis(),
-        end: jest.fn(),
-      } as unknown as fs.WriteStream);
+      jest.spyOn(service, 'checkDiskSpace').mockResolvedValue(true);
 
-      jest.spyOn(fs, 'readdir').mockImplementation((_, options, callback) => {
-        const dirents = mockFiles.map((file) => ({
-          name: file,
+      // Mock exec to simulate tar command execution
+      execMock.mockImplementation((command, callback) => {
+        callback(null, { stdout: 'success' }); // Simulate successful tar execution
+      });
+
+      // mocks for readdirSync and statSync from fs
+      jest.spyOn(fs, 'readdirSync').mockReturnValue([
+        {
+          name: 'uploads_backup-2023-01-01.tar.gz',
           isFile: () => true,
           isDirectory: () => false,
           isBlockDevice: () => false,
@@ -222,84 +222,82 @@ describe('BackupService', () => {
           isSymbolicLink: () => false,
           isFIFO: () => false,
           isSocket: () => false,
-        }));
-        callback(null, dirents as unknown as fs.Dirent[]);
-      });
-
-      jest.spyOn(fs, 'stat').mockImplementation((_, options, callback) => {
-        const stats = {
-          mtime: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // Mock a file last modified 10 days ago
+        },
+        {
+          name: 'uploads_backup-2023-01-02.tar.gz',
           isFile: () => true,
           isDirectory: () => false,
-        };
-        callback(null, stats as unknown as fs.Stats);
+          isBlockDevice: () => false,
+          isCharacterDevice: () => false,
+          isSymbolicLink: () => false,
+          isFIFO: () => false,
+          isSocket: () => false,
+        },
+      ] as fs.Dirent[]);
+
+      jest.spyOn(fs, 'statSync').mockImplementation((filePath: string) => {
+        const mockStats = {
+          isFile: jest.fn(() => true),
+          isDirectory: jest.fn(() => false),
+          isBlockDevice: jest.fn(() => false),
+          isCharacterDevice: jest.fn(() => false),
+          isSymbolicLink: jest.fn(() => false),
+          isFIFO: jest.fn(() => false),
+          isSocket: jest.fn(() => false),
+          mtime: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // Mocked modification time
+          atime: new Date(),
+          ctime: new Date(),
+          birthtime: new Date(),
+        } as Partial<Stats>;
+
+        return mockStats as Stats;
       });
 
-      jest.spyOn(fs, 'rmdirSync').mockImplementation(() => {});
-      jest.spyOn(service, 'checkDiskSpace').mockResolvedValue(true);
-      jest
-        .spyOn(fs, 'readdir')
-        .mockImplementation((_, options, callback) => callback(null, []));
+      jest.spyOn(fs, 'unlinkSync').mockImplementation(() => {});
+    });
 
-      const zipStreamOnMock = jest.fn().mockReturnThis();
-      const archiveFinalizeMock = jest.fn();
-      const archiveFileMock = jest.fn();
-
-      jest.mock('archiver', () => () => ({
-        pipe: jest.fn(),
-        on: zipStreamOnMock,
-        finalize: archiveFinalizeMock,
-        file: archiveFileMock,
-      }));
+    afterEach(() => {
+      jest.clearAllMocks();
     });
 
     it('should create an uploads backup when there is sufficient disk space', async () => {
-      jest.spyOn(service, 'checkDiskSpace').mockResolvedValue(true);
-      jest
-        .spyOn(fs, 'readdir')
-        .mockImplementation((_, options, callback) => callback(null, []));
-
-      const zipStreamOnMock = jest.fn().mockReturnThis();
-      const archiveFinalizeMock = jest.fn();
-      const archiveFileMock = jest.fn();
-
-      jest.mock('archiver', () => () => ({
-        pipe: jest.fn(),
-        on: zipStreamOnMock,
-        finalize: archiveFinalizeMock,
-        file: archiveFileMock,
-      }));
-
       await service.handleDailyUploadsBackup();
 
-      expect(fs.createWriteStream).toHaveBeenCalledWith(
-        `${backupDir}/${backupFile}`,
+      expect(execMock).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `tar -czf ${backupDir}/${backupFile} -C ${uploadsDir} .`,
+        ),
+        expect.any(Function),
+      );
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        expect.stringContaining(`Uploads backup saved: ${backupFile}`),
       );
     });
 
-    it('should log an error if insufficient disk space', async () => {
+    it('should log an error if there is insufficient disk space', async () => {
       jest.spyOn(service, 'checkDiskSpace').mockResolvedValue(false);
 
       await service.handleDailyUploadsBackup();
 
+      expect(execMock).not.toHaveBeenCalled();
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Insufficient disk space for uploads backup.'),
       );
     });
 
-    it('should handle errors during file reading', async () => {
-      jest.spyOn(service, 'checkDiskSpace').mockResolvedValue(true);
-      jest
-        .spyOn(fs, 'readdir')
-        .mockImplementationOnce((_, options, callback) => {
-          callback(new Error('Failed to read directory'), []);
+    it('should handle errors during the tar command execution', async () => {
+      execMock.mockImplementationOnce((command, callback) => {
+        callback(new Error('Tar command failed'), {
+          stdout: '',
+          stderr: 'Mock Error Message from stderr',
         });
+      });
 
       await service.handleDailyUploadsBackup();
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Error backing up uploads:'),
-        expect.any(Error),
+        expect.stringContaining('Uploads backup failed:'),
       );
     });
   });
