@@ -105,6 +105,7 @@ export class BackupService {
     }
   }
 
+  // Daily Uploads Backup Task - Keeps rolling backups for 5 days
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT) //tentative
   async handleDailyUploadsBackup() {
     try {
@@ -113,7 +114,6 @@ export class BackupService {
       const backupFile = `uploads_backup-${date}.tar.gz`;
       const backupDir = '../../backups/uploads-daily';
 
-      // Ensure enough disk space in the backup directory
       const hasSpace = await this.checkDiskSpace(backupDir);
       if (!hasSpace) {
         console.error('Insufficient disk space for uploads backup.');
