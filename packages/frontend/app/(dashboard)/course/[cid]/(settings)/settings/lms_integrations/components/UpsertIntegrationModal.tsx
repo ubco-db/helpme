@@ -170,10 +170,10 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
             label={'API Key'}
             tooltip={'The API key to access the LMS with'}
           >
-            <Input
+            <Input.Password
               placeholder={
                 baseIntegration != undefined
-                  ? '**************************'
+                  ? '*******************************************'
                   : undefined
               }
               value={apiKey}

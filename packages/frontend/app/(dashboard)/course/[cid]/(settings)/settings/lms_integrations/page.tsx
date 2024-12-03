@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Descriptions,
+  Divider,
   List,
   message,
   Modal,
@@ -183,7 +184,7 @@ export default function CourseLMSIntegrationPage({
       <Card title={'Learning Management System'}>
         <div
           className={
-            'flex flex-col justify-start gap-2 text-lg md:flex-row md:justify-between'
+            'flex flex-col items-center justify-start gap-2 text-center text-lg'
           }
         >
           <div className={'flex flex-col'}>
@@ -208,13 +209,12 @@ export default function CourseLMSIntegrationPage({
               </p>
             )}
           </div>
+          <Divider className={'my-2'} />
           {lmsIntegrations.length > 0 && (
             <>
               <List
-                className={'p-4'}
-                bordered={true}
                 header={
-                  <p className={'text-center text-xl'}>
+                  <p className={'text-center text-lg'}>
                     Organization LMS Integrations
                   </p>
                 }
