@@ -1061,4 +1061,24 @@ export class CourseController {
     res.status(200).send(queueInvites);
     return;
   }
+
+  @Post(':id/get_unread_async_count')
+  @UseGuards(JwtAuthGuard)
+  async getUnreadAsyncCount(
+    @Param('id', ParseIntPipe) courseId: number,
+    @User() user: UserModel,
+  ): Promise<{ count: number }> {
+    const userCourse = await UserCourseModel.findOne({
+      where: {
+        user,
+        courseId,
+      },
+    });
+
+    if (!userCourse) {
+      throw new NotFoundException('UserCourse not found');
+    }
+
+    return { count: userCourse.unreadAsyncQuestions };
+  }
 }
