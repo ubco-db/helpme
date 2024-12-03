@@ -1,6 +1,15 @@
 'use client'
 
-import { Button, Card, Descriptions, List, message, Modal, Table } from 'antd'
+import {
+  Badge,
+  Button,
+  Card,
+  Descriptions,
+  List,
+  message,
+  Modal,
+  Table,
+} from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   LMSApiResponseStatus,
@@ -15,7 +24,7 @@ import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import CourseRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/components/CourseRosterTable'
 import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal'
-import { PenBoxIcon, TrashIcon } from 'lucide-react'
+import { PenBoxIcon, RefreshCwIcon, TrashIcon } from 'lucide-react'
 
 export default function CourseLMSIntegrationPage({
   params,
@@ -43,6 +52,7 @@ export default function CourseLMSIntegrationPage({
   const [delModalOpen, setDelModalOpen] = useState<boolean>(false)
   const [isTesting, setIsTesting] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isAPIKeyExpired, setIsAPIKeyExpired] = useState<boolean>(false)
 
   const [course, setCourse] = useState<LMSCourseAPIResponse>(
     {} as LMSCourseAPIResponse,
@@ -60,6 +70,15 @@ export default function CourseLMSIntegrationPage({
     setLmsIntegration(response)
 
     if (response != undefined) {
+      if (
+        response.apiKeyExpiry != undefined &&
+        (response.apiKeyExpiry as unknown as string).trim() != '' &&
+        new Date(response.apiKeyExpiry).getTime() < new Date().getTime()
+      ) {
+        setIsAPIKeyExpired(true)
+        return
+      }
+      setIsAPIKeyExpired(false)
       setIsLoading(true)
       setCourse(await API.lmsIntegration.getCourse(courseId))
       setLmsStudents(await API.lmsIntegration.getStudents(courseId))
@@ -231,7 +250,7 @@ export default function CourseLMSIntegrationPage({
       </Card>
     )
   } else {
-    return (
+    const card = (
       <Card title={'Learning Management System'}>
         <div className={'flex flex-col gap-4'}>
           <div
@@ -243,7 +262,7 @@ export default function CourseLMSIntegrationPage({
             <div className={'grid grid-cols-2 gap-2'}>
               <Button
                 className={
-                  'border-helpmeblue text-helpmeblue md:hover:bg-helpmeblue md:hover:border-helpmeblue border-2 bg-white p-4 transition-all md:hover:text-white'
+                  'border-helpmeblue md:hover:bg-helpmeblue md:hover:border-helpmeblue border-2 bg-white p-4 transition-all md:hover:text-white'
                 }
                 onClick={() => {
                   setSelectedIntegration(
@@ -254,7 +273,23 @@ export default function CourseLMSIntegrationPage({
                   setModalOpen(true)
                 }}
               >
-                Edit <PenBoxIcon />
+                {!isAPIKeyExpired ? (
+                  <span
+                    className={
+                      'text-helpmeblue flex w-full justify-between md:hover:text-white'
+                    }
+                  >
+                    <p>Edit</p> <PenBoxIcon />
+                  </span>
+                ) : (
+                  <span
+                    className={
+                      'text-helpmeblue flex w-full justify-between md:hover:text-white'
+                    }
+                  >
+                    <p>Update</p> <RefreshCwIcon />
+                  </span>
+                )}
               </Button>
               <Button
                 className={
@@ -264,59 +299,66 @@ export default function CourseLMSIntegrationPage({
                   setDelModalOpen(true)
                 }}
               >
-                Delete <TrashIcon />
+                <p>Delete</p> <TrashIcon />
               </Button>
             </div>
           </div>
-          <Descriptions layout={'vertical'} bordered={true}>
-            <Descriptions.Item label={'API Course ID'}>
-              {lmsIntegration.apiCourseId}
-            </Descriptions.Item>
-            <Descriptions.Item label={'Course Name (Course Code)'}>
-              {course.name} ({course.code})
-            </Descriptions.Item>
-            <Descriptions.Item label={'Student Count'}>
-              {course.studentCount}
-            </Descriptions.Item>
-          </Descriptions>
-          <CourseRosterTable
-            courseId={courseId}
-            role={Role.STUDENT}
-            listTitle={'Course Students'}
-            displaySearchBar={true}
-            searchPlaceholder={'Search for Students'}
-            disableRoleChange={true}
-            onRoleChange={() => undefined}
-            updateFlag={false}
-            lmsStudents={lmsStudents}
-            lmsPlatform={lmsIntegration.apiPlatform}
-            loadingLMSData={isLoading}
-          />
-          {assignments.length > 0 && (
+          {!isAPIKeyExpired && (
             <>
-              <div
-                className={'text-lg font-semibold'}
-              >{`Course Assignments`}</div>
-              <Table dataSource={assignments} loading={isLoading} bordered>
-                <Table.Column dataIndex={'name'} title={'Assignment Name'} />
-                <Table.Column dataIndex={'id'} title={'ID'} />
-                <Table.Column
-                  dataIndex={'modified'}
-                  title={'Modified'}
-                  render={(modified: string) => (
-                    <span>{new Date(modified).toLocaleDateString()}</span>
-                  )}
-                />
-                <Table.Column
-                  dataIndex={'description'}
-                  title={'Description'}
-                  render={(description: string) => (
-                    <div
-                      dangerouslySetInnerHTML={{ __html: description }}
-                    ></div>
-                  )}
-                />
-              </Table>
+              <Descriptions layout={'vertical'} bordered={true}>
+                <Descriptions.Item label={'API Course ID'}>
+                  {lmsIntegration.apiCourseId}
+                </Descriptions.Item>
+                <Descriptions.Item label={'Course Name (Course Code)'}>
+                  {course.name} ({course.code})
+                </Descriptions.Item>
+                <Descriptions.Item label={'Student Count'}>
+                  {course.studentCount}
+                </Descriptions.Item>
+              </Descriptions>
+              <CourseRosterTable
+                courseId={courseId}
+                role={Role.STUDENT}
+                listTitle={'Course Students'}
+                displaySearchBar={true}
+                searchPlaceholder={'Search for Students'}
+                disableRoleChange={true}
+                onRoleChange={() => undefined}
+                updateFlag={false}
+                lmsStudents={lmsStudents}
+                lmsPlatform={lmsIntegration.apiPlatform}
+                loadingLMSData={isLoading}
+              />
+              {assignments.length > 0 && (
+                <>
+                  <div
+                    className={'text-lg font-semibold'}
+                  >{`Course Assignments`}</div>
+                  <Table dataSource={assignments} loading={isLoading} bordered>
+                    <Table.Column
+                      dataIndex={'name'}
+                      title={'Assignment Name'}
+                    />
+                    <Table.Column dataIndex={'id'} title={'ID'} />
+                    <Table.Column
+                      dataIndex={'modified'}
+                      title={'Modified'}
+                      render={(modified: string) => (
+                        <span>{new Date(modified).toLocaleDateString()}</span>
+                      )}
+                    />
+                    <Table.Column
+                      dataIndex={'description'}
+                      title={'Description'}
+                      render={(description: string) => (
+                        <div
+                          dangerouslySetInnerHTML={{ __html: description }}
+                        ></div>
+                      )}
+                    />
+                  </Table>
+                </>
+              )}
             </>
           )}
           <UpsertIntegrationModal
@@ -351,6 +393,13 @@ export default function CourseLMSIntegrationPage({
           </Modal>
         </div>
       </Card>
+    )
+    return isAPIKeyExpired ? (
+      <Badge.Ribbon color={'red'} text={'API Key Expired'}>
+        {card}
+      </Badge.Ribbon>
+    ) : (
+      card
     )
   }
 }
