@@ -16,6 +16,7 @@ import {
   TACheckinTimesResponse,
   TACheckoutResponse,
   UBCOuserParam,
+  UnreadAsyncQuestionsResponse,
   UserTiny,
   validateQueueConfigInput,
 } from '@koh/common';
@@ -1062,12 +1063,12 @@ export class CourseController {
     return;
   }
 
-  @Post(':id/get_unread_async_count')
+  @Get(':id/unread_async_count')
   @UseGuards(JwtAuthGuard)
   async getUnreadAsyncCount(
     @Param('id', ParseIntPipe) courseId: number,
     @User() user: UserModel,
-  ): Promise<{ count: number }> {
+  ): Promise<UnreadAsyncQuestionsResponse> {
     const userCourse = await UserCourseModel.findOne({
       where: {
         user,
@@ -1080,5 +1081,28 @@ export class CourseController {
     }
 
     return { count: userCourse.unreadAsyncQuestions };
+  }
+
+  @Patch(':id/unread_async_count')
+  @UseGuards(JwtAuthGuard)
+  async updateUnreadAsyncCount(
+    @Param('id', ParseIntPipe) courseId: number,
+    @User() user: UserModel,
+  ): Promise<void> {
+    const userCourse = await UserCourseModel.findOne({
+      where: {
+        user,
+        courseId,
+      },
+    });
+
+    if (!userCourse) {
+      throw new NotFoundException('UserCourse not found');
+    }
+
+    userCourse.unreadAsyncQuestions = 0;
+    await userCourse.save();
+
+    return;
   }
 }

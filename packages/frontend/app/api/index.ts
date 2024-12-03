@@ -62,6 +62,7 @@ import {
   QueueInvite,
   InsightDashboardPartial,
   InsightDetail,
+  UnreadAsyncQuestionsResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -280,6 +281,12 @@ class APIClient {
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
     getAllQueueInvites: async (courseId: number): Promise<QueueInvite[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/queue_invites`),
+    getUnreadAsyncCount: async (
+      courseId: number,
+    ): Promise<UnreadAsyncQuestionsResponse> =>
+      this.req('GET', `/api/v1/courses/${courseId}/unread_async_count`),
+    updateUnreadAsyncCount: async (courseId: number): Promise<void> =>
+      this.req('PATCH', `/api/v1/courses/${courseId}/unread_async_count`),
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>
