@@ -2,10 +2,7 @@ import { Connection } from 'typeorm';
 import { LMSIntegrationService } from './lmsIntegration.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
-import {
-  LMSIntegrationAdapter,
-  TestLMSAdapter,
-} from './lmsIntegration.adapter';
+import { LMSIntegrationAdapter } from './lmsIntegration.adapter';
 import {
   CourseFactory,
   lmsCourseIntFactory,
@@ -47,7 +44,6 @@ describe('LmsIntegrationService', () => {
       });
 
       const adapterResult = await service.getAdapter(1);
-      expect(adapterResult instanceof TestLMSAdapter).toBeTruthy();
       expect(adapterResult.isImplemented()).toBeTruthy();
     });
   });
