@@ -235,6 +235,7 @@ export const lmsOrgIntFactory = new Factory(LMSOrganizationIntegrationModel)
 export const lmsCourseIntFactory = new Factory(LMSCourseIntegrationModel)
   .attr('apiKeyExpiry', new Date())
   .attr('apiKey', 'abcdef')
+  .attr('apiCourseId', 'abcdef')
   .assocOne('course', CourseFactory)
   .assocOne('orgIntegration', lmsOrgIntFactory);
 
