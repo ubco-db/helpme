@@ -14,9 +14,7 @@ export class LMSIntegrationService {
     private integrationAdapter: LMSIntegrationAdapter,
   ) {}
 
-  private async getAdapter(
-    courseId: number,
-  ): Promise<AbstractLMSAdapter | undefined> {
+  async getAdapter(courseId: number): Promise<AbstractLMSAdapter | undefined> {
     const integration = await LMSCourseIntegrationModel.findOne(
       { courseId },
       { relations: ['orgIntegration'] },

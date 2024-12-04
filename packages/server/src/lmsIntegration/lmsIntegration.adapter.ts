@@ -12,6 +12,14 @@ export class LMSIntegrationAdapter {
     switch (integration.orgIntegration.apiPlatform) {
       case 'Canvas':
         return new CanvasLMSAdapter(integration);
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      case 'Test_Success':
+        return new TestLMSAdapter(integration, LMSApiResponseStatus.Success);
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      case 'Test_Failure':
+        return new TestLMSAdapter(integration, LMSApiResponseStatus.Error);
     }
     return new BaseLMSAdapter(integration);
   }
@@ -59,7 +67,37 @@ abstract class ImplementedLMSAdapter extends AbstractLMSAdapter {
   }
 }
 
-class BaseLMSAdapter extends AbstractLMSAdapter {}
+export class BaseLMSAdapter extends AbstractLMSAdapter {}
+
+export class TestLMSAdapter extends ImplementedLMSAdapter {
+  constructor(
+    protected integration: LMSCourseIntegrationModel,
+    protected responseStatus: LMSApiResponseStatus,
+  ) {
+    super(integration);
+  }
+
+  async getCourse(): Promise<{
+    status: LMSApiResponseStatus;
+    course: LMSCourseAPIResponse;
+  }> {
+    return { status: this.responseStatus, course: {} as any };
+  }
+
+  async getStudents(): Promise<{
+    status: LMSApiResponseStatus;
+    students: string[];
+  }> {
+    return { status: this.responseStatus, students: [] };
+  }
+
+  async getAssignments(): Promise<{
+    status: LMSApiResponseStatus;
+    assignments: LMSAssignmentAPIResponse[];
+  }> {
+    return { status: this.responseStatus, assignments: [] };
+  }
+}
 
 class CanvasLMSAdapter extends ImplementedLMSAdapter {
   async Get(
