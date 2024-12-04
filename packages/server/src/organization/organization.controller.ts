@@ -32,6 +32,10 @@ import {
   CourseSettingsRequestBody,
   OrganizationProfessor,
   CourseResponse,
+  LMSOrganizationIntegrationPartial,
+  LMSCourseIntegrationPartial,
+  CoursePartial,
+  LMSIntegration,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -58,10 +62,9 @@ import { CourseSettingsModel } from 'course/course_settings.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
-import _, { isNumber } from 'lodash';
-import { MailServiceModel } from 'mail/mail-services.entity';
 import * as sharp from 'sharp';
-import { User, UserId } from 'decorators/user.decorator';
+import { UserId } from 'decorators/user.decorator';
+import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 
 @Controller('organization')
 export class OrganizationController {
@@ -987,6 +990,95 @@ export class OrganizationController {
       .catch((err) => {
         res.status(500).send({ message: err });
       });
+  }
+
+  @Get(':oid/lms_integration')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN)
+  async getLmsIntegrations(
+    @Param('oid', ParseIntPipe) oid: number,
+  ): Promise<LMSOrganizationIntegrationPartial[]> {
+    const lmsIntegrations = await LMSOrganizationIntegrationModel.find({
+      where: { organizationId: oid },
+      relations: ['courseIntegrations', 'courseIntegrations.course'],
+    });
+
+    if (lmsIntegrations.length <= 0) {
+      return [];
+    }
+
+    return lmsIntegrations.map((int) => {
+      return {
+        organizationId: int.organizationId,
+        apiPlatform: int.apiPlatform,
+        rootUrl: int.rootUrl,
+        courseIntegrations:
+          int.courseIntegrations?.map((cint) => {
+            return {
+              courseId: cint.courseId,
+              apiPlatform: int.apiPlatform,
+              course: {
+                id: cint.courseId,
+                name: cint.course?.name,
+              } satisfies CoursePartial,
+              apiCourseId: cint.apiCourseId,
+              apiKeyExpiry: cint.apiKeyExpiry,
+            } satisfies LMSCourseIntegrationPartial;
+          }) ?? [],
+      } satisfies LMSOrganizationIntegrationPartial;
+    });
+  }
+
+  @Post(':oid/lms_integration/upsert')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN)
+  async upsertLMSIntegration(
+    @Param('oid', ParseIntPipe) oid: number,
+    @Body() props: any,
+  ): Promise<any> {
+    if (!Object.keys(LMSIntegration).includes(props.apiPlatform))
+      return ERROR_MESSAGES.organizationController
+        .lmsIntegrationInvalidPlatform;
+    if (props.rootUrl == undefined)
+      return ERROR_MESSAGES.organizationController.lmsIntegrationUrlRequired;
+    if (props.rootUrl.startsWith('https') || props.rootUrl.startsWith('http'))
+      return ERROR_MESSAGES.organizationController
+        .lmsIntegrationProtocolIncluded;
+
+    return await this.organizationService.upsertLMSIntegration(oid, props);
+  }
+
+  @Delete(':oid/lms_integration/remove')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN)
+  async removeLMSIntegration(
+    @Param('oid', ParseIntPipe) oid: number,
+    @Body() body: any,
+  ): Promise<any> {
+    const exists = await LMSOrganizationIntegrationModel.findOne({
+      where: { organizationId: oid, apiPlatform: body.apiPlatform },
+    });
+    if (!exists) {
+      return ERROR_MESSAGES.organizationController.lmsIntegrationNotFound;
+    }
+    const platform = exists.apiPlatform;
+    await LMSOrganizationIntegrationModel.remove(exists);
+    return `Successfully deleted LMS integration for ${platform}`;
   }
 
   @Patch(':oid/update_user_role')
