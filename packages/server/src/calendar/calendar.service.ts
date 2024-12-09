@@ -54,7 +54,12 @@ export class CalendarService implements OnModuleInit {
     await transactionalEntityManager.delete(CalendarStaffModel, { calendarId });
   }
 
-  /** Creates a new Cron job with name based on the userId and calendarId */
+  /**
+  Creates a new Cron job with name based on the userId and calendarId.
+
+  Note that there is an image in docs/diagrams called TA_Auto_Checkout_Logic_flowchart.png
+  that describes the logic of this.
+  */
   async createAutoCheckoutCronJob(
     userId: number,
     calendarId: number,
