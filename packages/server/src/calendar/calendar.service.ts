@@ -310,7 +310,7 @@ export class CalendarService implements OnModuleInit {
 
       // if the alert is not resolved, check out the user and stop helping any questions
       if (alert.resolved === null) {
-        myCheckedInQueues.forEach(async (queue) => {
+        for (const queue of myCheckedInQueues) {
           // convert any helping questions to resolved
           try {
             await this.questionService.resolveQuestions(queue.queueId, userId);
@@ -352,7 +352,7 @@ export class CalendarService implements OnModuleInit {
             Sentry.captureException(err);
             return;
           }
-        });
+        }
         // resolve the alert
         try {
           alert.resolved = new Date();
