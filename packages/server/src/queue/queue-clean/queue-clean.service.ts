@@ -26,10 +26,11 @@ import { QueueService } from 'queue/queue.service';
 @Injectable()
 export class QueueCleanService {
   constructor(
-    private questionService: QuestionService,
-    private schedulerRegistry: SchedulerRegistry,
-    private queueService: QueueService,
-    private redisQueueService: RedisQueueService,
+    // all made public for testing purposes
+    public questionService: QuestionService,
+    public schedulerRegistry: SchedulerRegistry,
+    public queueService: QueueService,
+    public redisQueueService: RedisQueueService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -181,7 +182,7 @@ export class QueueCleanService {
     );
 
     // create an alert for each student
-    students.forEach(async (student) => {
+    for (const student of students) {
       try {
         // first, make sure they don't already have an unresolved PROMPT_STUDENT_TO_LEAVE_QUEUE alert with this courseId
         const existingAlert = await AlertModel.findOne({
@@ -224,10 +225,11 @@ export class QueueCleanService {
         Sentry.captureException(err);
         return;
       }
-    });
+    }
   }
 
-  private async autoLeaveQueue(
+  // made public for testing purposes
+  public async autoLeaveQueue(
     userId: number,
     queueId: number,
     courseId: number,

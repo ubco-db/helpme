@@ -72,7 +72,7 @@ const PromptStudentToLeaveQueueModal: React.FC<
           size="large"
           className=""
         >
-          I&apos;ll Stay Thanks
+          I&apos;ll Stay, Thanks
         </Button>,
       ]}
       closable={false}
