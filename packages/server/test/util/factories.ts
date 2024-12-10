@@ -35,6 +35,7 @@ import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgres
 import { CalendarModel } from 'calendar/calendar.entity';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
 import { InsightDashboardModel } from '../../src/insights/dashboard.entity';
+import { CalendarStaffModel } from 'calendar/calendar-staff.entity';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)
@@ -205,6 +206,10 @@ export const userSubscriptionFactory = new Factory(UserSubscriptionModel)
   .assocOne('user', UserFactory)
   .assocOne('service', mailServiceFactory);
 
+export const CalendarStaffFactory = new Factory(CalendarStaffModel)
+  .assocOne('user', UserFactory)
+  .assocOne('calendar', null);
+
 export const calendarFactory = new Factory(CalendarModel)
   .attr('title', 'Zoom Meeting')
   .attr('start', new Date())
@@ -216,6 +221,7 @@ export const calendarFactory = new Factory(CalendarModel)
   .attr('locationOnline', 'https://zoom.us/j/example')
   .attr('allDay', false)
   .attr('daysOfWeek', [])
+  .assocMany('staff', CalendarStaffFactory, 0)
   .assocOne('course', CourseFactory);
 
 export const dashboardPresetFactory = new Factory(InsightDashboardModel)

@@ -18,6 +18,7 @@ export enum EventType {
   TA_CHECKED_IN = 'taCheckedIn',
   TA_CHECKED_OUT = 'taCheckedOut',
   TA_CHECKED_OUT_FORCED = 'taCheckedOutForced',
+  TA_CHECKED_OUT_EVENT_END = 'taCheckedOutEventEnd',
 }
 
 @Entity('event_model')

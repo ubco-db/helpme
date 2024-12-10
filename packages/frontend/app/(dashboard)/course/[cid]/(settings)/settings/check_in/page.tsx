@@ -148,10 +148,11 @@ export default function TACheckInCheckOutTimes({
               </p>
             ))}
             <p className="mt-3">
-              Please remind course staff to check out at the end of their
-              session. This way students don&apos;t join a queue thinking that
-              there is still an ongoing session when the course staff has
-              already left
+              Please consider creating some events on the Schedule page and
+              assigning staff to them so that they will automatically be checked
+              out at the end of their session. This way students don&apos;t join
+              a queue thinking that there is still an ongoing session when the
+              course staff has already left
             </p>
           </div>
         ) : null}

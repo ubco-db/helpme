@@ -25,3 +25,5 @@ This will restore any deleted databases. Any non-deleted database will just tell
 Don't forget to enter the redis container ("Exec" tab), run `redis-cli` and run `flushall` so that redis doesn't have the old data!
 
 Note: You might want to restart the server since routing can get a little messed up after restoring?
+
+Prod's postgres docker container is called `helpme_2024_03_18-postgresql-1`
