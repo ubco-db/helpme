@@ -191,7 +191,7 @@ describe('CourseService', () => {
 
     it('returns all professors for fundies', async () => {
       const courseId = 1;
-      const role = Role.PROFESSOR;
+      const role = [Role.PROFESSOR];
       const resp = await service.getUserInfo(
         courseId,
         page,
@@ -207,7 +207,7 @@ describe('CourseService', () => {
 
     it('returns all tas for fundies', async () => {
       const courseId = 1;
-      const role = Role.TA;
+      const role = [Role.TA];
       const resp = await service.getUserInfo(
         courseId,
         page,
@@ -224,7 +224,7 @@ describe('CourseService', () => {
 
     it('returns all students for fundies', async () => {
       const courseId = 1;
-      const role = Role.STUDENT;
+      const role = [Role.STUDENT];
       const resp = await service.getUserInfo(
         courseId,
         page,
@@ -240,7 +240,7 @@ describe('CourseService', () => {
 
     it('returns all professors for algo', async () => {
       const courseId = 2;
-      const role = Role.PROFESSOR;
+      const role = [Role.PROFESSOR];
       const resp = await service.getUserInfo(
         courseId,
         page,
@@ -253,7 +253,7 @@ describe('CourseService', () => {
 
     it('returns all tas for algo', async () => {
       const courseId = 2;
-      const role = Role.TA;
+      const role = [Role.TA];
       const resp = await service.getUserInfo(
         courseId,
         page,
@@ -266,7 +266,7 @@ describe('CourseService', () => {
 
     it('returns all students for algo', async () => {
       const courseId = 2;
-      const role = Role.STUDENT;
+      const role = [Role.STUDENT];
       const resp = await service.getUserInfo(
         courseId,
         page,
@@ -294,7 +294,7 @@ describe('CourseService', () => {
 
     it('returns danish when search term is danish', async () => {
       const courseId = 1;
-      const role = Role.PROFESSOR;
+      const role = [Role.PROFESSOR];
       search = 'danish';
       const user = (
         await await service.getUserInfo(courseId, page, pageSize, search, role)
@@ -304,7 +304,7 @@ describe('CourseService', () => {
 
     it('returns danish when search term is farooq', async () => {
       const courseId = 1;
-      const role = Role.PROFESSOR;
+      const role = [Role.PROFESSOR];
       search = 'farooq';
       const user = (
         await await service.getUserInfo(courseId, page, pageSize, search, role)
@@ -314,7 +314,7 @@ describe('CourseService', () => {
 
     it('returns danish when search term is the whole name', async () => {
       const courseId = 1;
-      const role = Role.PROFESSOR;
+      const role = [Role.PROFESSOR];
       search = 'Danish Farooq';
       const user = (
         await service.getUserInfo(courseId, page, pageSize, search, role)
