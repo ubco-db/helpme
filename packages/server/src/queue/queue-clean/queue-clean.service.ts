@@ -126,7 +126,7 @@ export class QueueCleanService {
   /**
    * Prompts students to leave the queue if there are no staff checked in.
    * They are given 10mins to respond. They can either click "leave queue" or "stay"
-   * If they do not respond in that 10mins, their questions are automatically marked as "stale".
+   * If they do not respond in that 10mins, their questions are automatically marked as "LeftDueToNoStaff".
    * If they click "stay" in that first 10mins, they are given another 10 mins (for a total of 20) before this checks if there are staff checked in.
    * If there are still no staff checked in, the student will be prompted again with 10mins to respond (thus completing a loop).
    * This makes it so that even if they click "I'll stay" and forget, the system will clear their question.
@@ -184,13 +184,14 @@ export class QueueCleanService {
     // create an alert for each student
     for (const student of students) {
       try {
-        // first, make sure they don't already have an unresolved PROMPT_STUDENT_TO_LEAVE_QUEUE alert with this courseId
+        // first, make sure they don't already have an unresolved PROMPT_STUDENT_TO_LEAVE_QUEUE alert with this courseId and queueId
         const existingAlert = await AlertModel.findOne({
           where: {
             alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
             resolved: null,
             userId: student.studentId,
             courseId: student.courseId,
+            payload: { queueId },
           },
         });
         if (existingAlert) {
@@ -203,7 +204,7 @@ export class QueueCleanService {
           courseId: student.courseId,
           payload: { queueId },
         }).save();
-        // if the student does not respond in 10 minutes, resolve the alert and mark the question as stale
+        // if the student does not respond in 10 minutes, resolve the alert and mark the question as LeftDueToNoStaff
         const jobName = `prompt-student-to-leave-queue-${queueId}-${student.studentId}`;
         const now = new Date();
         const nowPlus10Mins = new Date(now.getTime() + 10 * 60 * 1000);
@@ -248,7 +249,7 @@ export class QueueCleanService {
       Sentry.captureException(err);
       return;
     }
-    // if the alert is not resolved, resolve the alert and mark the question as stale
+    // if the alert is not resolved, resolve the alert and mark the question as LeftDueToNoStaff
     if (alert.resolved === null) {
       // resolve the alert
       try {
@@ -262,20 +263,20 @@ export class QueueCleanService {
         Sentry.captureException(err);
         return;
       }
-      // mark the questions as stale
+      // mark the questions as LeftDueToNoStaff
       try {
         const questions = await QuestionModel.inQueueWithStatus(queueId, [
           ...Object.values(OpenQuestionStatus),
           ...Object.values(LimboQuestionStatus),
         ]).getMany();
-        questions.forEach(async (q: QuestionModel) => {
+        for (const q of questions) {
           await this.questionService.changeStatus(
-            ClosedQuestionStatus.Stale,
+            ClosedQuestionStatus.LeftDueToNoStaff,
             q,
             userId,
             Role.STUDENT,
           );
-        });
+        }
         // update redis
         const queueQuestions = await this.queueService.getQuestions(queueId);
         await this.redisQueueService.setQuestions(
@@ -283,7 +284,10 @@ export class QueueCleanService {
           queueQuestions,
         );
       } catch (err) {
-        console.error('Error marking question as stale in cron job', err);
+        console.error(
+          'Error marking question as LeftDueToNoStaff in cron job',
+          err,
+        );
         Sentry.captureException(err);
         return;
       }
