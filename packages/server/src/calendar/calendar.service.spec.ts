@@ -11,6 +11,7 @@ import { QueueModel } from '../queue/queue.entity';
 import { AlertModel } from '../alerts/alerts.entity';
 import { AlertType } from '@koh/common';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
+import { EventModel } from 'profile/event-model.entity';
 
 describe('CalendarService', () => {
   let service: CalendarService;
@@ -22,7 +23,12 @@ describe('CalendarService', () => {
       imports: [TestTypeOrmModule, TestConfigModule],
       providers: [
         CalendarService,
-        QuestionService,
+        {
+          provide: QuestionService,
+          useValue: {
+            resolveQuestions: jest.fn(),
+          },
+        },
         NotificationService,
         {
           provide: QueueCleanService,
@@ -342,8 +348,22 @@ describe('CalendarService', () => {
       const alertId = 1;
 
       const mockCheckedInQueues = [{ queueId: 1 }];
-      jest.spyOn(QueueModel, 'query').mockResolvedValue(mockCheckedInQueues);
 
+      // Mock QueueModel.query for SELECT and DELETE
+      const queueQuerySpy = jest
+        .spyOn(QueueModel, 'query')
+        .mockImplementation((query, params) => {
+          if (query.trim().startsWith('SELECT')) {
+            // First call: SELECT query
+            return Promise.resolve(mockCheckedInQueues);
+          } else if (query.trim().startsWith('DELETE')) {
+            // Second call: DELETE query
+            return Promise.resolve();
+          }
+          return Promise.resolve();
+        });
+
+      // Mock AlertModel.findOneOrFail
       const mockAlert = {
         id: alertId,
         resolved: null,
@@ -351,12 +371,26 @@ describe('CalendarService', () => {
       } as unknown as AlertModel;
       jest.spyOn(AlertModel, 'findOneOrFail').mockResolvedValue(mockAlert);
 
+      // Mock resolveQuestions
       const resolveQuestionsSpy = jest
         .spyOn(service.questionService, 'resolveQuestions')
         .mockResolvedValue();
 
+      // Mock queueCleanService.promptStudentsToLeaveQueue
+      jest
+        .spyOn(service.queueCleanService, 'promptStudentsToLeaveQueue')
+        .mockResolvedValue();
+
+      // Mock EventModel.create().save()
+      const mockEvent = {
+        save: jest.fn().mockResolvedValue({}),
+      } as unknown as EventModel;
+      jest.spyOn(EventModel, 'create').mockReturnValue(mockEvent);
+
+      // Call the method under test
       await service.autoCheckout(userId, calendarId, courseId, alertId);
 
+      // Assertions
       expect(QueueModel.query).toHaveBeenCalledWith(expect.any(String), [
         userId,
       ]);
@@ -364,6 +398,10 @@ describe('CalendarService', () => {
         where: { id: alertId },
       });
       expect(resolveQuestionsSpy).toHaveBeenCalledWith(1, userId);
+      expect(
+        service.queueCleanService.promptStudentsToLeaveQueue,
+      ).toHaveBeenCalledWith(1);
+      expect(mockEvent.save).toHaveBeenCalled();
       expect(mockAlert.save).toHaveBeenCalled();
     });
 

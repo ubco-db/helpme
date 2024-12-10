@@ -25,10 +25,16 @@ import { UserModel } from 'profile/user.entity';
 import { QuestionModel } from './question.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
+import { QueueService } from '../queue/queue.service';
+import { RedisQueueService } from '../redisQueue/redis-queue.service';
 
 @Injectable()
 export class QuestionService {
-  constructor(private notifService: NotificationService) {}
+  constructor(
+    private notifService: NotificationService,
+    public queueService: QueueService,
+    public redisQueueService: RedisQueueService,
+  ) {}
 
   async changeStatus(
     status: QuestionStatus,
@@ -319,5 +325,8 @@ export class QuestionService {
         Role.TA,
       );
     }
+    // update redis
+    const queueQuestions = await this.queueService.getQuestions(queueId);
+    await this.redisQueueService.setQuestions(`q:${queueId}`, queueQuestions);
   }
 }

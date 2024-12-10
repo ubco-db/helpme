@@ -461,7 +461,6 @@ describe('Course Integration', () => {
       });
 
       const events = await EventModel.find();
-      console.log(events);
       expect(events.length).toBe(2);
       expect(events[0].eventType).toBe(EventType.TA_CHECKED_OUT);
       expect(events[0].queueId).toBe(queue1.id);

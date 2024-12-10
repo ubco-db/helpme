@@ -10,8 +10,8 @@ import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueInviteController } from './queue-invite.controller';
 import { QueueCleanService } from './queue-clean/queue-clean.service';
-import { QuestionModule } from 'question/question.module';
-import { QuestionService } from 'question/question.service';
+import { QuestionModule } from '../question/question.module';
+import { QuestionService } from '../question/question.service';
 
 @Module({
   controllers: [QueueController, QueueInviteController],

@@ -22,6 +22,12 @@ import { NotificationService } from '../notification/notification.service';
     NotificationService,
   ],
   imports: [NotificationModule, forwardRef(() => QueueModule)],
-  exports: [QuestionService, AlertsService, NotificationService],
+  exports: [
+    QuestionService,
+    AlertsService,
+    NotificationService,
+    QueueService,
+    RedisQueueService,
+  ],
 })
 export class QuestionModule {}

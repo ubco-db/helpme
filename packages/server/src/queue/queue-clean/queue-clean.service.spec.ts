@@ -352,7 +352,7 @@ describe('QueueService', () => {
     afterEach(() => {
       consoleErrorSpy.mockRestore();
     });
-    it('should resolve the alert and mark questions as stale if the alert is not resolved', async () => {
+    it('should resolve the alert and mark questions as LeftDueToNoStaff if the alert is not resolved', async () => {
       const userId = 1;
       const queueId = 1;
       const courseId = 1;
@@ -385,7 +385,7 @@ describe('QueueService', () => {
 
       expect(mockAlert.save).toHaveBeenCalled();
       expect(service.questionService.changeStatus).toHaveBeenCalledWith(
-        ClosedQuestionStatus.Stale,
+        ClosedQuestionStatus.LeftDueToNoStaff,
         mockQuestions[0],
         userId,
         Role.STUDENT,
@@ -467,7 +467,7 @@ describe('QueueService', () => {
       );
     });
 
-    it('should log an error and capture exception if marking questions as stale fails', async () => {
+    it('should log an error and capture exception if marking questions as LeftDueToNoStaff fails', async () => {
       const userId = 1;
       const queueId = 1;
       const courseId = 1;
@@ -491,7 +491,7 @@ describe('QueueService', () => {
         ...Object.values(LimboQuestionStatus),
       ]);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error marking question as stale in cron job',
+        'Error marking question as LeftDueToNoStaff in cron job',
         expect.any(Error),
       );
     });

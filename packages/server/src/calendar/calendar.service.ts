@@ -23,7 +23,7 @@ export class CalendarService implements OnModuleInit {
   constructor(
     private schedulerRegistry: SchedulerRegistry,
     public questionService: QuestionService, // needed to make public for jest testing purposes
-    private queueCleanService: QueueCleanService,
+    public queueCleanService: QueueCleanService,
   ) {}
 
   async onModuleInit() {
