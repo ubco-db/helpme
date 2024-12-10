@@ -71,6 +71,8 @@ export class QuestionService {
     const isBecomingHelped =
       oldStatus !== OpenQuestionStatus.Helping &&
       newStatus === OpenQuestionStatus.Helping;
+    const isBecomingClosedFromWaiting =
+      waitingStatuses.includes(oldStatus) && newStatus in ClosedQuestionStatus;
     const isDoneBeingHelped =
       oldStatus === OpenQuestionStatus.Helping &&
       newStatus !== OpenQuestionStatus.Helping &&
@@ -83,7 +85,7 @@ export class QuestionService {
       waitingStatuses.includes(newStatus);
 
     const now = new Date();
-    if (isBecomingHelped) {
+    if (isBecomingHelped || isBecomingClosedFromWaiting) {
       question.taHelped = await UserModel.findOne({ where: { id: userId } });
       question.helpedAt = now;
       if (!question.lastReadyAt) {
