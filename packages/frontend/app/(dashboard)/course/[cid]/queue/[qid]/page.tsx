@@ -213,12 +213,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     }
   }, [queueConfig, configTasks, isStaff, queueQuestions, questionTypes])
 
-  const staffCheckedIntoAnotherQueue = course?.queues?.some(
-    (q) =>
-      q.id !== qid &&
-      q.staffList.some((staffMember) => staffMember.id === userInfo.id),
-  )
-
   const studentQuestionId = studentQuestion?.id
   const studentQuestionStatus = studentQuestion?.status
   const studentDemoId = studentDemo?.id
@@ -575,8 +569,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               <Tooltip
                 title={
                   (queue.isDisabled && 'Cannot check into a disabled queue!') ||
-                  (staffCheckedIntoAnotherQueue &&
-                    'You are already checked into another queue') ||
                   (helpingQuestions &&
                     helpingQuestions.length > 0 &&
                     'You cannot check out while helping a student') ||
@@ -590,7 +582,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                     courseId={cid}
                     queueId={qid}
                     disabled={
-                      staffCheckedIntoAnotherQueue ||
                       (helpingQuestions && helpingQuestions.length > 0) ||
                       (queue.isProfessorQueue && role !== Role.PROFESSOR) ||
                       queue.isDisabled

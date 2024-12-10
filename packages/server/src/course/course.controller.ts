@@ -523,23 +523,6 @@ export class CourseController {
     @Param('qid', ParseIntPipe) qid: number,
     @User() user: UserModel,
   ): Promise<QueuePartial> {
-    // First ensure user is not checked into another queue
-    // const queues = await QueueModel.find({
-    //   where: {
-    //     courseId: courseId,
-    //   },
-    //   relations: ['staffList'],
-    // });
-
-    // if (
-    //   queues &&
-    //   queues.some((q) => q.staffList.some((staff) => staff.id === user.id))
-    // ) {
-    //   throw new UnauthorizedException(
-    //     ERROR_MESSAGES.courseController.checkIn.cannotCheckIntoMultipleQueues,
-    //   );
-    // }
-
     const queue = await QueueModel.findOne(
       {
         id: qid,
