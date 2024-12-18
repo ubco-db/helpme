@@ -261,6 +261,7 @@ describe('QueueService', () => {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         getRawMany: jest.fn().mockResolvedValue([{ studentId, courseId }]),
+        getOne: jest.fn().mockResolvedValue(null),
       } as any;
       (createQueryBuilder as jest.Mock).mockReturnValue(mockQueryBuilder);
 
@@ -268,7 +269,6 @@ describe('QueueService', () => {
       jest
         .spyOn(createQueryBuilder(QueueModel), 'getRawMany')
         .mockResolvedValue([{ studentId, courseId }]);
-      jest.spyOn(AlertModel, 'findOne').mockResolvedValue(null);
       jest.spyOn(AlertModel, 'create').mockImplementation((alert) => ({
         ...alert,
         save: jest.fn().mockResolvedValue(alert),
@@ -328,14 +328,16 @@ describe('QueueService', () => {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         getRawMany: jest.fn().mockResolvedValue([{ studentId, courseId }]),
+        getOne: jest.fn().mockResolvedValue(existingAlert),
       } as any;
+      (createQueryBuilder as jest.Mock).mockReturnValue(mockQueryBuilder);
+
       (createQueryBuilder as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       jest.spyOn(QueueModel, 'query').mockResolvedValue([]);
       jest
         .spyOn(createQueryBuilder(QueueModel), 'getRawMany')
         .mockResolvedValue([{ studentId, courseId }]);
-      jest.spyOn(AlertModel, 'findOne').mockResolvedValue(existingAlert);
 
       await service.promptStudentsToLeaveQueue(queueId);
 
