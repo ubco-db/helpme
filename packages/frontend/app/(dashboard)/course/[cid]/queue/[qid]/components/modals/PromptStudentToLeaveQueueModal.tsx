@@ -13,9 +13,9 @@ type PromptStudentToLeaveQueueModalProps = {
 const PromptStudentToLeaveQueueModal: React.FC<
   PromptStudentToLeaveQueueModalProps
 > = ({ qid, handleClose }) => {
-  // TODO: disable buttons for 1s upon the modal loading
   const [isStayLoading, setIsStayLoading] = useState(false)
   const [isLeaveLoading, setIsLeaveLoading] = useState(false)
+  const [modalJustOpened, setModalJustOpened] = useState(true)
 
   const closeAllQuestions = async () => {
     const questions = await API.questions.index(qid)
@@ -34,6 +34,11 @@ const PromptStudentToLeaveQueueModal: React.FC<
     }
   }
 
+  // after 1s, set modalJustOpened to false
+  setTimeout(() => {
+    setModalJustOpened(false)
+  }, 1000)
+
   return (
     <Modal
       open={true}
@@ -51,7 +56,7 @@ const PromptStudentToLeaveQueueModal: React.FC<
             setIsLeaveLoading(false)
           }}
           loading={isLeaveLoading}
-          disabled={isStayLoading}
+          disabled={isStayLoading || modalJustOpened}
           icon={<DoorOpen />}
           size="large"
           className="hover:border-red-500 hover:text-red-500"
@@ -67,7 +72,7 @@ const PromptStudentToLeaveQueueModal: React.FC<
             setIsStayLoading(false)
           }}
           loading={isStayLoading}
-          disabled={isLeaveLoading}
+          disabled={isLeaveLoading || modalJustOpened}
           icon={<PersonStanding />}
           size="large"
           className=""
@@ -76,6 +81,7 @@ const PromptStudentToLeaveQueueModal: React.FC<
         </Button>,
       ]}
       closable={false}
+      destroyOnClose
     >
       <div className="flex flex-col items-center">
         <p className="text-lg">The last TA just checked out.</p>

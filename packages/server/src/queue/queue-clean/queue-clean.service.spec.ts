@@ -45,7 +45,7 @@ describe('QueueService', () => {
         {
           provide: QuestionService,
           useValue: {
-            changeStatus: jest.fn(), // TODO: actually mock this method so it changes the status in db
+            changeStatus: jest.fn(),
           },
         },
         {
