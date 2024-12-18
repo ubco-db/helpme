@@ -64,6 +64,7 @@ import { useChatbotContext } from '../../components/chatbot/ChatbotProvider'
 import CircleButton from './components/CircleButton'
 import JoinZoomNowModal from './components/modals/JoinZoomNowModal'
 import JoinZoomButton from './components/JoinZoomButton'
+import { useUpdateAlertsWhenLastStaffChecksOut } from '@/app/hooks/useUpdateAlertsWhenLastStaffChecksOut'
 
 type QueuePageProps = {
   params: { cid: string; qid: string }
@@ -111,6 +112,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       isStaff,
     )
   const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree)
+  useUpdateAlertsWhenLastStaffChecksOut(cid, queue?.staffList, isStaff)
   const [isJoiningQuestion, setIsJoiningQuestion] = useState(
     queueQuestions &&
       studentQuestions &&
