@@ -335,8 +335,6 @@ export class ProfileController {
     }
   }
 
-  // PAT TODO: Find better place for this route
-
   @Patch('/read_changelog')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async readChangelogs(
