@@ -107,7 +107,7 @@ export class QuestionService {
         question.firstHelpedAt = question.helpedAt;
       }
       await this.notifService.notifyUser(
-        question.creator.id,
+        question.creatorId,
         NotifMsgs.queue.TA_HIT_HELPED(question.taHelped.name),
       );
     }
@@ -124,7 +124,7 @@ export class QuestionService {
         question.taHelped = await UserModel.findOne({ where: { id: userId } });
       }
       await this.notifService.notifyUser(
-        question.creator.id,
+        question.creatorId,
         NotifMsgs.queue.PAUSED(question.taHelped.name),
       );
     }

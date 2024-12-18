@@ -185,15 +185,19 @@ export class QueueCleanService {
     for (const student of students) {
       try {
         // first, make sure they don't already have an unresolved PROMPT_STUDENT_TO_LEAVE_QUEUE alert with this courseId and queueId
-        const existingAlert = await AlertModel.findOne({
-          where: {
-            alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
-            resolved: null,
-            userId: student.studentId,
+        const existingAlert = await createQueryBuilder(AlertModel, 'alert')
+          .where('alert.userId = :userId', { userId: student.studentId })
+          .andWhere('alert.courseId = :courseId', {
             courseId: student.courseId,
-            payload: { queueId },
-          },
-        });
+          })
+          .andWhere('alert.alertType = :alertType', {
+            alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
+          })
+          .andWhere('alert.resolved IS NULL')
+          .andWhere('alert.payload::jsonb @> :payload', {
+            payload: JSON.stringify({ queueId }),
+          })
+          .getOne();
         if (existingAlert) {
           return;
         }
