@@ -32,12 +32,12 @@ const FooterBar: React.FC = () => {
   return (
     // Hide footer on mobile since screen space is more valuable
     <footer
-      className="mt-auto hidden w-full justify-between bg-[#ebebeb] px-6 py-1.5 text-xs md:flex"
+      className="mt-auto hidden w-full justify-between bg-[#ebebeb] px-6 py-[0.3rem] text-xs md:flex"
       aria-hidden="true"
     >
       <div>
         <a
-          className="ml-1 cursor-pointer "
+          className="cursor-pointer "
           onClick={() => {
             setIsChangelogOpen(true)
             IReadTheChangelog()
