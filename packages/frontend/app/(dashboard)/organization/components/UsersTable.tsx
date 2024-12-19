@@ -2,32 +2,23 @@
 
 import { API } from '@/app/api'
 import UserAvatar from '@/app/components/UserAvatar'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 import { SearchOutlined } from '@ant-design/icons'
 import {
   GetOrganizationResponse,
   OrganizationRole,
+  OrgUser,
   User,
   UserRole,
 } from '@koh/common'
-import { Button, Input, List, Pagination, Select, Spin } from 'antd'
+import { Button, Input, List, message, Pagination, Select, Spin } from 'antd'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import useSWR, { mutate } from 'swr'
+import { useCallback, useEffect, useState } from 'react'
 
 interface UsersTableProps {
   organization: GetOrganizationResponse
-  prepareAndShowConfirmationModal: (user: UserData) => (newRole: string) => void
+  prepareAndShowConfirmationModal: (user: OrgUser) => (newRole: string) => void
   profile: User
-}
-
-interface UserData {
-  userId: number
-  firstName: string
-  lastName: string
-  email: string
-  photoUrl: string
-  userRole: string
-  organizationRole: string
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({
@@ -39,27 +30,38 @@ const UsersTable: React.FC<UsersTableProps> = ({
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
   const router = useRouter()
-  const handleInput = (event: any) => {
-    event.preventDefault()
-    setInput(event.target.value)
-  }
+  const [users, setUsers] = useState<OrgUser[]>([])
 
-  const handleSearch = (event: any) => {
-    event.preventDefault()
-    setSearch(event.target.value)
-    setPage(1)
-  }
+  const updateUsers = useCallback(async () => {
+    await API.organizations
+      .getUsers(organization.id, page, search)
+      .then((response) => {
+        setUsers(response)
+      })
+      .catch((error) => {
+        const errorMessage = getErrorMessage(error)
+        message.error(errorMessage)
+      })
+  }, [organization.id, page, search])
+
+  const handleSearch = useCallback(
+    (value: string) => {
+      const handler = setTimeout(() => {
+        setSearch(value)
+        setPage(1)
+        updateUsers()
+      }, 500)
+
+      return () => {
+        clearTimeout(handler)
+      }
+    },
+    [updateUsers],
+  )
 
   useEffect(() => {
-    return () => {
-      mutate(`users/${page}/${search}`)
-    }
+    updateUsers()
   }, [page, search])
-
-  const { data: users } = useSWR(
-    `users/${page}/${search}`,
-    async () => await API.organizations.getUsers(organization.id, page, search),
-  )
 
   if (!users) {
     return (
@@ -74,17 +76,16 @@ const UsersTable: React.FC<UsersTableProps> = ({
       <>
         <div className="bg-white">
           <Input
-            placeholder="Search Users"
+            placeholder="Search Users (press enter to search)"
             prefix={<SearchOutlined />}
             value={input}
-            onChange={handleInput}
-            onPressEnter={handleSearch}
+            onChange={(e) => setInput(e.target.value)}
+            onPressEnter={() => handleSearch(input)}
           />
-
           <List
             style={{ marginTop: 20 }}
             dataSource={users}
-            renderItem={(item: UserData) => (
+            renderItem={(item: OrgUser) => (
               <>
                 <List.Item
                   className="border-b-2 p-3"
@@ -134,7 +135,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
                     avatar={
                       <UserAvatar
                         username={item.firstName + ' ' + item.lastName}
-                        photoURL={item.photoUrl}
+                        photoURL={item.photoUrl ?? undefined}
                       />
                     }
                     title={item.firstName + ' ' + (item.lastName ?? '')}
@@ -145,16 +146,16 @@ const UsersTable: React.FC<UsersTableProps> = ({
             )}
           />
         </div>
-        {users.total > 50 && (
-          <Pagination
-            className="float-right"
-            current={page}
-            pageSize={50}
-            total={users.total}
-            onChange={(page) => setPage(page)}
-            showSizeChanger={false}
-          />
-        )}
+        <Pagination
+          className="float-right"
+          current={page}
+          pageSize={50}
+          showQuickJumper
+          // set the total number of users very high so that it shows enough pages
+          total={5000}
+          onChange={(page) => setPage(page)}
+          showSizeChanger={false}
+        />
       </>
     )
   }

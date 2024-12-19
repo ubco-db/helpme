@@ -1,6 +1,7 @@
 import { Role, User } from '@koh/common'
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import * as Sentry from '@sentry/nextjs'
 
 /**
  * A utility function to merge Tailwind CSS classes with clsx. "cn" stands for className.
@@ -124,6 +125,10 @@ export function getRoleInCourse(userInfo: User, courseId: number): Role {
  * @returns an error message (or object)
  */
 export function getErrorMessage(e: any): any {
+  if (e.response && e.response.status && e.response.status >= 500) {
+    // Handle Axios errors with status code >= 500
+    Sentry.captureException(e)
+  }
   return (
     e.response?.data?.message ?? // e.response.data is from axios
     e.response?.data?.error ??

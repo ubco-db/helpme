@@ -25,10 +25,16 @@ import { UserModel } from 'profile/user.entity';
 import { QuestionModel } from './question.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
+import { QueueService } from '../queue/queue.service';
+import { RedisQueueService } from '../redisQueue/redis-queue.service';
 
 @Injectable()
 export class QuestionService {
-  constructor(private notifService: NotificationService) {}
+  constructor(
+    private notifService: NotificationService,
+    public queueService: QueueService,
+    public redisQueueService: RedisQueueService,
+  ) {}
 
   async changeStatus(
     status: QuestionStatus,
@@ -39,7 +45,11 @@ export class QuestionService {
     const oldStatus = question.status;
     const newStatus = status;
     // If the taHelped is already set, make sure the same ta updates the status
-    if (myRole === Role.TA && question.taHelped?.id !== userId) {
+    if (
+      myRole === Role.TA &&
+      question.taHelped &&
+      question.taHelped.id !== userId
+    ) {
       if (oldStatus === OpenQuestionStatus.Helping) {
         throw new UnauthorizedException(
           ERROR_MESSAGES.questionController.updateQuestion.otherTAHelping,
@@ -67,6 +77,8 @@ export class QuestionService {
     const isBecomingHelped =
       oldStatus !== OpenQuestionStatus.Helping &&
       newStatus === OpenQuestionStatus.Helping;
+    const isBecomingClosedFromWaiting =
+      waitingStatuses.includes(oldStatus) && newStatus in ClosedQuestionStatus;
     const isDoneBeingHelped =
       oldStatus === OpenQuestionStatus.Helping &&
       newStatus !== OpenQuestionStatus.Helping &&
@@ -79,7 +91,7 @@ export class QuestionService {
       waitingStatuses.includes(newStatus);
 
     const now = new Date();
-    if (isBecomingHelped) {
+    if (isBecomingHelped || isBecomingClosedFromWaiting) {
       question.taHelped = await UserModel.findOne({ where: { id: userId } });
       question.helpedAt = now;
       if (!question.lastReadyAt) {
@@ -95,7 +107,7 @@ export class QuestionService {
         question.firstHelpedAt = question.helpedAt;
       }
       await this.notifService.notifyUser(
-        question.creator.id,
+        question.creatorId,
         NotifMsgs.queue.TA_HIT_HELPED(question.taHelped.name),
       );
     }
@@ -112,7 +124,7 @@ export class QuestionService {
         question.taHelped = await UserModel.findOne({ where: { id: userId } });
       }
       await this.notifService.notifyUser(
-        question.creator.id,
+        question.creatorId,
         NotifMsgs.queue.PAUSED(question.taHelped.name),
       );
     }
@@ -290,5 +302,31 @@ export class QuestionService {
         }
       }
     }
+  }
+
+  async resolveQuestions(queueId: number, helperId: number): Promise<void> {
+    const queue = await QueueModel.findOneOrFail(queueId);
+    const questions = await QuestionModel.find({
+      where: {
+        queueId,
+        taHelpedId: helperId,
+        status: OpenQuestionStatus.Helping,
+      },
+    });
+    for (const question of questions) {
+      if (question.isTaskQuestion) {
+        await this.checkIfValidTaskQuestion(question, queue);
+        await this.markTasksDone(question, question.creatorId);
+      }
+      await this.changeStatus(
+        ClosedQuestionStatus.Resolved,
+        question,
+        helperId,
+        Role.TA,
+      );
+    }
+    // update redis
+    const queueQuestions = await this.queueService.getQuestions(queueId);
+    await this.redisQueueService.setQuestions(`q:${queueId}`, queueQuestions);
   }
 }
