@@ -469,6 +469,12 @@ export class Question {
   isTaskQuestion?: boolean
 }
 
+// Used in displaying the number of unread questions for a course and user pair
+export class UnreadAsyncQuestionsResponse {
+  @IsInt()
+  count!: number
+}
+
 // Type of async question events
 export enum asyncQuestionEventType {
   answered = 'answered',
