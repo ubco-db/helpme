@@ -34,6 +34,15 @@ export function getInitialsFromName(name: string): string {
   return ''
 }
 
+/**
+ * Checks a single name against a series of names for similarity
+ * @param name
+ * @param others
+ */
+export function checkNameAgainst(name: string, others: string[]) {
+  return others.map((o) => o.toLowerCase()).includes(name.toLowerCase())
+}
+
 const colorsToBeChosenFromForName = [
   '#1abc9c',
   '#2ecc71',
