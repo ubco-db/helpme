@@ -3,7 +3,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BackupService, baseBackupCommand } from './backup.service';
 import * as fs from 'fs';
 import { exec } from 'child_process';
-import { promisify } from 'util';
 
 jest.mock('fs');
 jest.mock('child_process', () => ({

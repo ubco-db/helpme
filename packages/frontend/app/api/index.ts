@@ -60,6 +60,7 @@ import {
   QueueInviteParams,
   PublicQueueInvite,
   QueueInvite,
+  GetQueueChatResponse,
   InsightDashboardPartial,
   InsightDetail,
 } from '@koh/common'
@@ -491,6 +492,30 @@ class APIClient {
       code: string,
     ): Promise<GetQueueResponse> =>
       this.req('GET', `/api/v1/queueInvites/${queueId}/${code}/queue`),
+  }
+
+  queueChats = {
+    index: async (
+      queueId: number,
+      studentId: number,
+    ): Promise<GetQueueChatResponse> =>
+      this.req(
+        'GET',
+        `/api/v1/queueChats/${queueId}/${studentId}`,
+        GetQueueChatResponse,
+      ),
+    sendMessage: async (
+      queueId: number,
+      studentId: number,
+      message: string,
+    ): Promise<void> => {
+      this.req(
+        'PATCH',
+        `/api/v1/queueChats/${queueId}/${studentId}`,
+        undefined,
+        { message },
+      )
+    },
   }
 
   notif = {

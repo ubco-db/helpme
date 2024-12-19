@@ -18,12 +18,7 @@ import {
 } from '@koh/common'
 import { Tooltip, message, notification, Button, Divider } from 'antd'
 import { mutate } from 'swr'
-import {
-  EditOutlined,
-  LoginOutlined,
-  PhoneOutlined,
-  PlusOutlined,
-} from '@ant-design/icons'
+import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
 import { CheckCheck, ListChecks, ListTodoIcon } from 'lucide-react'
 import { useQueue } from '@/app/hooks/useQueue'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -62,6 +57,7 @@ import AssignmentReportModal from './components/modals/AssignmentReportModal'
 import CantFindModal from './components/modals/CantFindModal'
 import { useChatbotContext } from '../../components/chatbot/ChatbotProvider'
 import CircleButton from './components/CircleButton'
+import QueueChat from '../../components/QueueChat'
 import JoinZoomNowModal from './components/modals/JoinZoomNowModal'
 import JoinZoomButton from './components/JoinZoomButton'
 
@@ -139,7 +135,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     'isFirstQuestion',
     true,
   )
-  const { helpingQuestions } = getHelpingQuestions(
+  const { helpingQuestions, isHelping } = getHelpingQuestions(
     queueQuestions,
     userInfo.id,
     role,
@@ -916,6 +912,21 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 onClose={() => setAssignmentReportModalOpen(false)}
               />
             )}
+            <div className="fixed bottom-8 right-0 box-border md:right-2">
+              <div className="flex flex-row items-end justify-end gap-2">
+                {helpingQuestions.map((question) => {
+                  return (
+                    <QueueChat
+                      key={question.id}
+                      queueId={qid}
+                      studentId={question.creatorId}
+                      role={role}
+                      fixed={false}
+                    />
+                  )
+                })}
+              </div>
+            </div>
           </>
         ) : (
           <>
@@ -1040,6 +1051,18 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   setRequeuing={() => setRequeuing(false)}
                 />
               </>
+            )}
+            {((studentQuestion &&
+              studentQuestion.status == OpenQuestionStatus.Helping) ||
+              (studentDemo &&
+                studentDemo.status == OpenQuestionStatus.Helping) ||
+              isHelping) && (
+              <QueueChat
+                queueId={qid}
+                studentId={userInfo.id}
+                role={role}
+                fixed={true}
+              />
             )}
           </>
         )}
