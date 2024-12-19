@@ -56,6 +56,7 @@ exports[`Profile Integration GET /profile returns the logged-in user profile 1`]
     "organizationRole": "member",
   },
   "photoURL": null,
+  "readChangeLog": false,
   "sid": null,
   "userRole": "user",
 }
