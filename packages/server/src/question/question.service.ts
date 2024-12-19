@@ -39,7 +39,11 @@ export class QuestionService {
     const oldStatus = question.status;
     const newStatus = status;
     // If the taHelped is already set, make sure the same ta updates the status
-    if (myRole === Role.TA && question.taHelped?.id !== userId) {
+    if (
+      myRole === Role.TA &&
+      question.taHelped &&
+      question.taHelped.id !== userId
+    ) {
       if (oldStatus === OpenQuestionStatus.Helping) {
         throw new UnauthorizedException(
           ERROR_MESSAGES.questionController.updateQuestion.otherTAHelping,
@@ -289,6 +293,29 @@ export class QuestionService {
           );
         }
       }
+    }
+  }
+
+  async resolveQuestions(queueId: number, helperId: number): Promise<void> {
+    const queue = await QueueModel.findOneOrFail(queueId);
+    const questions = await QuestionModel.find({
+      where: {
+        queueId,
+        taHelpedId: helperId,
+        status: OpenQuestionStatus.Helping,
+      },
+    });
+    for (const question of questions) {
+      if (question.isTaskQuestion) {
+        await this.checkIfValidTaskQuestion(question, queue);
+        await this.markTasksDone(question, question.creatorId);
+      }
+      await this.changeStatus(
+        ClosedQuestionStatus.Resolved,
+        question,
+        helperId,
+        Role.TA,
+      );
     }
   }
 }
