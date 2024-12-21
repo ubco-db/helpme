@@ -106,7 +106,7 @@ export class BackupService {
   }
 
   // Daily Uploads Backup Task - Keeps rolling backups for 5 days
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT) //tentative
+  @Cron('0 0 */4 * *')
   async handleDailyUploadsBackup() {
     try {
       const date = new Date().toISOString().split('T')[0];
@@ -130,8 +130,8 @@ export class BackupService {
           Sentry.captureMessage(`Uploads backup failed: ${stderr}`);
         } else {
           console.log(`Uploads backup saved: ${backupFile}`);
-          // Retain only the last 5 backups
-          this.deleteOldBackups(backupDir, 5); //tentative
+          // Retain only the last 3 backups (the last 12 days)
+          this.deleteOldBackups(backupDir, 2);
         }
       });
     } catch (error) {
