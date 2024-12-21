@@ -9,7 +9,7 @@ There are three types of database backups and one for the uploads directory in t
   - **Daily**: Every day at midnight. These are rolling (we only keep 1 month of these)
   - **Monthly**: The first of every month at midnight. These are kept indefinitely.
 - Uploads
-  - **Daily**: Every day at midnight. These are rolling (we keep the last 5 days worth)
+  - **Every 4 Days**: Every day at midnight. These are rolling (we keep the last 12 days worth / the last 3 backups)
 
 All of these can be adjusted easily in backup.service.ts
 
@@ -36,5 +36,4 @@ Prod's postgres docker container is called `helpme_2024_03_18-postgresql-1`
 
 ## Restoring an Uploads Backup
 
-To avoid filename conflicts, delete all files in the uploads folder before beginning the data restoration process. You can do this through an available GUI or through the command: `tar -xzf ../../backups/uploads-daily/uploads_backup-YYYY-MM-DD.tar.gz -C ./uploads/`. Bear in mind that this should be run from the ```./packages/server``` directory.
-
+To avoid filename conflicts, delete all files in the uploads folder before beginning the data restoration process. You can do this through an available GUI (decompress the backup) or through the command: `tar -xzf ../../backups/uploads-daily/uploads_backup-YYYY-MM-DD.tar.gz -C ./uploads/`. Bear in mind that this should be run from the ```./packages/server``` directory.
