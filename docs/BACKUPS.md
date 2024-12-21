@@ -32,6 +32,9 @@ Don't forget to enter the redis container ("Exec" tab), run `redis-cli` and run 
 
 Note: You might want to restart the server since routing can get a little messed up after restoring?
 
+Prod's postgres docker container is called `helpme_2024_03_18-postgresql-1`
+
 ## Restoring an Uploads Backup
 
 To avoid filename conflicts, delete all files in the uploads folder before beginning the data restoration process. You can do this through an available GUI or through the command: `tar -xzf ../../backups/uploads-daily/uploads_backup-YYYY-MM-DD.tar.gz -C ./uploads/`. Bear in mind that this should be run from the ```./packages/server``` directory.
+
