@@ -97,11 +97,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
     if (userInfo.chat_token) {
       setQuestionsLeft(userInfo.chat_token.max_uses - userInfo.chat_token.used)
     }
-    return () => {
-      setHelpmeQuestionId(undefined)
-      setInteractionId(undefined)
-      setPreDeterminedQuestions([])
-    }
   }, [
     userInfo,
     cid,

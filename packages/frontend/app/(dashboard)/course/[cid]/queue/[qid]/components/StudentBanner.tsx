@@ -97,7 +97,7 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
           {getTitle(studentQuestion?.status, studentDemo?.status)}
         </div>
       </div>
-      <div className="rounded-b-md bg-[#ABD4F3] px-2 py-4 md:p-[0.4rem]">
+      <div className="flex flex-col gap-y-2 rounded-b-md bg-[#ABD4F3] px-2 py-4 md:block md:p-[0.4rem]">
         <QuestionDetailCard
           question={studentQuestion}
           spot={
