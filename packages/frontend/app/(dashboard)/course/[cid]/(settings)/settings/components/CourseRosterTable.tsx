@@ -3,13 +3,11 @@ import UserAvatar from '@/app/components/UserAvatar'
 import { useUserInfo } from '@/app/contexts/userContext'
 import {
   DownOutlined,
-  LoadingOutlined,
   SearchOutlined,
   UserDeleteOutlined,
 } from '@ant-design/icons'
-import { LMSIntegration, Role, UserPartial } from '@koh/common'
+import { Role, UserPartial } from '@koh/common'
 import {
-  Badge,
   Button,
   Dropdown,
   Input,
@@ -21,7 +19,7 @@ import {
   Spin,
 } from 'antd'
 import { useEffect, useState } from 'react'
-import { checkNameAgainst, cn } from '@/app/utils/generalUtils'
+import { cn } from '@/app/utils/generalUtils'
 
 type CourseRosterTableProps = {
   courseId: number
@@ -29,13 +27,9 @@ type CourseRosterTableProps = {
   listTitle: string
   displaySearchBar: boolean
   searchPlaceholder: string
-  disableRoleChange?: boolean
   onRoleChange: () => void
   updateFlag: boolean
   hideSensitiveInformation?: boolean
-  lmsStudents?: string[]
-  lmsPlatform?: LMSIntegration
-  loadingLMSData?: boolean
 }
 
 const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
@@ -44,13 +38,9 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
   listTitle,
   displaySearchBar,
   searchPlaceholder,
-  disableRoleChange,
   onRoleChange,
   updateFlag,
   hideSensitiveInformation = false,
-  lmsStudents,
-  lmsPlatform,
-  loadingLMSData = false,
 }) => {
   const [page, setPage] = useState(1)
   const [input, setInput] = useState('')
@@ -128,58 +118,53 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
         ) : (
           <span className="flex-grow">{item.email}</span>
         )}
-        {!disableRoleChange && (
-          <Dropdown
-            overlay={
-              <Menu
-                onClick={(e) => {
-                  const confirmRoleChange = () => {
-                    handleRoleChange(item.id, e.key as Role, item.name ?? '')
-                  }
+        <Dropdown
+          overlay={
+            <Menu
+              onClick={(e) => {
+                const confirmRoleChange = () => {
+                  handleRoleChange(item.id, e.key as Role, item.name ?? '')
+                }
 
-                  Modal.confirm({
-                    title: <div className="font-bold">Warning</div>,
-                    content: (
-                      <div>
-                        You are about to change role of{' '}
-                        <span className="font-bold">{item.name}</span> to{' '}
-                        <span className="font-bold">{e.key.toUpperCase()}</span>
-                        .
-                        <br />
-                        <br />
-                        Are you sure you want to proceed?
-                      </div>
-                    ),
-                    okText: 'Yes',
-                    okType: 'danger',
-                    cancelText: 'No',
-                    onOk() {
-                      confirmRoleChange()
-                    },
-                  })
-                }}
-              >
-                {role !== Role.PROFESSOR ? (
-                  <Menu.Item key={Role.PROFESSOR}>Professor</Menu.Item>
-                ) : null}
-                {role !== Role.TA ? (
-                  <Menu.Item key={Role.TA}>Teaching Assistant</Menu.Item>
-                ) : null}
-                {role !== Role.STUDENT ? (
-                  <Menu.Item key={Role.STUDENT}>Student</Menu.Item>
-                ) : null}
-              </Menu>
-            }
-            className="flex-grow-0"
-          >
-            <a
-              className="ant-dropdown-link"
-              onClick={(e) => e.preventDefault()}
+                Modal.confirm({
+                  title: <div className="font-bold">Warning</div>,
+                  content: (
+                    <div>
+                      You are about to change role of{' '}
+                      <span className="font-bold">{item.name}</span> to{' '}
+                      <span className="font-bold">{e.key.toUpperCase()}</span>
+                      .
+                      <br />
+                      <br />
+                      Are you sure you want to proceed?
+                    </div>
+                  ),
+                  okText: 'Yes',
+                  okType: 'danger',
+                  cancelText: 'No',
+                  onOk() {
+                    confirmRoleChange()
+                  },
+                })
+              }}
             >
-              Change Role <DownOutlined />
-            </a>
-          </Dropdown>
-        )}
+              {role !== Role.PROFESSOR ? (
+                <Menu.Item key={Role.PROFESSOR}>Professor</Menu.Item>
+              ) : null}
+              {role !== Role.TA ? (
+                <Menu.Item key={Role.TA}>Teaching Assistant</Menu.Item>
+              ) : null}
+              {role !== Role.STUDENT ? (
+                <Menu.Item key={Role.STUDENT}>Student</Menu.Item>
+              ) : null}
+            </Menu>
+          }
+          className="flex-grow-0"
+        >
+          <a className="ant-dropdown-link" onClick={(e) => e.preventDefault()}>
+            Change Role <DownOutlined />
+          </a>
+        </Dropdown>
         {userInfo.id !== item.id && (
           <Button
             icon={<UserDeleteOutlined />}
@@ -261,38 +246,7 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
           <List
             dataSource={users}
             size="small"
-            renderItem={(item: UserPartial) =>
-              role == Role.STUDENT && lmsStudents != undefined ? (
-                <Badge.Ribbon
-                  text={
-                    checkNameAgainst(item.name ?? '', lmsStudents) ? (
-                      `Enrolled in ${lmsPlatform ?? 'LMS'} Course`
-                    ) : loadingLMSData ? (
-                      <span className={'flex items-center gap-2'}>
-                        <Spin
-                          indicator={<LoadingOutlined spin />}
-                          size="small"
-                        />
-                        {`Loading ${lmsPlatform ?? 'LMS'} Data...`}
-                      </span>
-                    ) : (
-                      `Not enrolled in ${lmsPlatform ?? 'LMS'} Course`
-                    )
-                  }
-                  color={
-                    checkNameAgainst(item.name ?? '', lmsStudents)
-                      ? 'rgb(0,220,120)'
-                      : loadingLMSData
-                        ? 'cyan'
-                        : 'red'
-                  }
-                >
-                  <RosterItem item={item} className={'py-8'} />
-                </Badge.Ribbon>
-              ) : (
-                <RosterItem item={item} />
-              )
-            }
+            renderItem={(item: UserPartial) => <RosterItem item={item} />}
             bordered
           />
         </div>

@@ -9,7 +9,7 @@ import {
   List,
   message,
   Modal,
-  Table,
+  Tabs,
 } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
@@ -19,13 +19,13 @@ import {
   LMSCourseIntegrationPartial,
   LMSIntegration,
   LMSOrganizationIntegrationPartial,
-  Role,
 } from '@koh/common'
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
-import CourseRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/components/CourseRosterTable'
 import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal'
 import { PenBoxIcon, RefreshCwIcon, TrashIcon } from 'lucide-react'
+import LMSRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSRosterTable'
+import LMSAssignmentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSAssignmentList'
 
 export default function CourseLMSIntegrationPage({
   params,
@@ -181,75 +181,110 @@ export default function CourseLMSIntegrationPage({
 
   if (lmsIntegration == undefined) {
     return (
-      <Card title={'Learning Management System'}>
-        <div
-          className={
-            'flex flex-col items-center justify-start gap-2 text-center text-lg'
+      <div
+        className={'flex h-full w-full flex-col items-center justify-center'}
+      >
+        <Card
+          title={
+            <span className={'text-center'}>Learning Management System</span>
           }
+          className={'w-2/3'}
         >
-          <div className={'flex flex-col'}>
-            <p>
-              This course is not integrated with a learning management system.
-            </p>
-            {lmsIntegrations.length == 0 ? (
-              <>
-                <p>
-                  The organization this course belongs to does not contain any
-                  learning management system configurations.
-                </p>
-                <p className={'font-semibold'}>
-                  If you wish to integrate this course with a learning
-                  management system, contact your organization administrator.
-                </p>
-              </>
-            ) : (
-              <p className={'font-semibold'}>
-                You can integrate this course with any of the listed learning
-                management systems.
+          <div
+            className={
+              'flex flex-col items-center justify-start gap-2 text-center text-lg'
+            }
+          >
+            <div className={'flex flex-col'}>
+              <p>
+                This course is not integrated with a learning management system.
               </p>
-            )}
-          </div>
-          <Divider className={'my-2'} />
-          {lmsIntegrations.length > 0 && (
-            <>
-              <List
-                header={
-                  <p className={'text-center text-lg'}>
-                    Organization LMS Integrations
+              {lmsIntegrations.length == 0 ? (
+                <>
+                  <p>
+                    The organization this course belongs to does not contain any
+                    learning management system configurations.
                   </p>
-                }
-                dataSource={lmsIntegrations}
-                renderItem={(
-                  orgIntegration: LMSOrganizationIntegrationPartial,
-                ) => (
-                  <Button
-                    className={'w-full'}
-                    onClick={() => {
-                      setSelectedIntegration(orgIntegration)
-                      setModalOpen(true)
-                    }}
-                  >
-                    {orgIntegration.apiPlatform}
-                  </Button>
-                )}
-              ></List>
-              <UpsertIntegrationModal
-                isOpen={modalOpen}
-                setIsOpen={setModalOpen}
-                courseId={courseId}
-                integrationOptions={lmsIntegrations}
-                selectedIntegration={selectedIntegration}
-                setSelectedIntegration={setSelectedIntegration}
-                isTesting={isTesting}
-                testLMSConnection={testLMSConnection}
-                onCreate={fetchDataAsync}
-              />
-            </>
-          )}
-        </div>
-      </Card>
+                  <p className={'font-semibold'}>
+                    If you wish to integrate this course with a learning
+                    management system, contact your organization administrator.
+                  </p>
+                </>
+              ) : (
+                <p className={'font-semibold'}>
+                  You can integrate this course with any of the listed learning
+                  management systems:
+                </p>
+              )}
+            </div>
+            <Divider className={'my-2'} />
+            {lmsIntegrations.length > 0 && (
+              <>
+                <List
+                  className={'w-1/2'}
+                  dataSource={lmsIntegrations}
+                  renderItem={(
+                    orgIntegration: LMSOrganizationIntegrationPartial,
+                    index,
+                  ) => (
+                    <Button
+                      className={'flex w-full justify-start'}
+                      onClick={() => {
+                        setSelectedIntegration(orgIntegration)
+                        setModalOpen(true)
+                      }}
+                    >
+                      <span className={'text-left'}>{index + 1}.</span>
+                      <div className={'flex-1 text-center'}>
+                        {orgIntegration.apiPlatform}
+                      </div>
+                    </Button>
+                  )}
+                ></List>
+              </>
+            )}
+            <UpsertIntegrationModal
+              isOpen={modalOpen}
+              setIsOpen={setModalOpen}
+              courseId={courseId}
+              integrationOptions={lmsIntegrations}
+              selectedIntegration={selectedIntegration}
+              setSelectedIntegration={setSelectedIntegration}
+              isTesting={isTesting}
+              testLMSConnection={testLMSConnection}
+              onCreate={fetchDataAsync}
+            />
+          </div>
+        </Card>
+      </div>
     )
   } else {
+    const tabItems = [
+      {
+        key: 'roster',
+        label: 'Course Roster',
+        children: (
+          <LMSRosterTable
+            courseId={courseId}
+            lmsStudents={lmsStudents}
+            lmsPlatform={lmsIntegration.apiPlatform}
+            loadingLMSData={isLoading}
+          />
+        ),
+      },
+    ]
+    if (assignments.length > 0) {
+      tabItems.push({
+        key: 'assignments',
+        label: 'Course Assignments',
+        children: (
+          <LMSAssignmentList
+            assignments={assignments}
+            loadingLMSData={isLoading}
+          />
+        ),
+      })
+    }
     const card = (
       <Card title={'Learning Management System'}>
         <div className={'flex flex-col gap-4'}>
@@ -316,49 +351,7 @@ export default function CourseLMSIntegrationPage({
                   {course.studentCount}
                 </Descriptions.Item>
               </Descriptions>
-              <CourseRosterTable
-                courseId={courseId}
-                role={Role.STUDENT}
-                listTitle={'Course Students'}
-                displaySearchBar={true}
-                searchPlaceholder={'Search for Students'}
-                disableRoleChange={true}
-                onRoleChange={() => undefined}
-                updateFlag={false}
-                lmsStudents={lmsStudents}
-                lmsPlatform={lmsIntegration.apiPlatform}
-                loadingLMSData={isLoading}
-              />
-              {assignments.length > 0 && (
-                <>
-                  <div
-                    className={'text-lg font-semibold'}
-                  >{`Course Assignments`}</div>
-                  <Table dataSource={assignments} loading={isLoading} bordered>
-                    <Table.Column
-                      dataIndex={'name'}
-                      title={'Assignment Name'}
-                    />
-                    <Table.Column dataIndex={'id'} title={'ID'} />
-                    <Table.Column
-                      dataIndex={'modified'}
-                      title={'Modified'}
-                      render={(modified: string) => (
-                        <span>{new Date(modified).toLocaleDateString()}</span>
-                      )}
-                    />
-                    <Table.Column
-                      dataIndex={'description'}
-                      title={'Description'}
-                      render={(description: string) => (
-                        <div
-                          dangerouslySetInnerHTML={{ __html: description }}
-                        ></div>
-                      )}
-                    />
-                  </Table>
-                </>
-              )}
+              <Tabs defaultActiveKey={'roster'} items={tabItems} />
             </>
           )}
           <UpsertIntegrationModal
