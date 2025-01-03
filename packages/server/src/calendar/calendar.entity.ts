@@ -6,10 +6,15 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { calendarEventLocationType } from '@koh/common';
+import { CalendarStaffModel } from './calendar-staff.entity';
 
+/**
+ * Note that by "calendar", it's not really a calendar and should be called an "event" imo, though we already have a different thing called "event"
+ */
 @Entity('calendar_model')
 export class CalendarModel extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -52,4 +57,7 @@ export class CalendarModel extends BaseEntity {
 
   @Column({ length: 7, nullable: true, default: '#3788d8' })
   color: string;
+
+  @OneToMany((type) => CalendarStaffModel, (csm) => csm.calendar)
+  staff: CalendarStaffModel[];
 }

@@ -7,6 +7,9 @@ import {
   Radio,
   message,
   TimePicker,
+  Select,
+  ColorPickerProps,
+  GetProp,
 } from 'antd'
 import { useEffect, useState } from 'react'
 import { API } from '@/app/api'
@@ -15,14 +18,34 @@ import { dayToIntMapping } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import dayjs from 'dayjs'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
+import { useStaff } from '@/app/hooks/useStaff'
+import { useLocalStorage } from '@/app/hooks/useLocalStorage'
 
 const { RangePicker } = TimePicker
+type Color = Extract<
+  GetProp<ColorPickerProps, 'value'>,
+  string | { cleared: any }
+>
 
 type CreateEventModalProps = {
   visible: boolean
   onClose: () => void
   courseId: number
   event: { start: Date; end: Date } | undefined
+}
+
+interface FormValues {
+  title: string
+  color: string | Color
+  date: dayjs.Dayjs
+  time: [dayjs.Dayjs, dayjs.Dayjs]
+  locationType: number | calendarEventLocationType
+  locationInPerson?: string
+  locationOnline?: string
+  startDate?: dayjs.Dayjs
+  endDate?: dayjs.Dayjs
+  daysOfWeek?: string[]
+  staffIds: number[]
 }
 
 const CreateEventModal: React.FC<CreateEventModalProps> = ({
@@ -34,28 +57,21 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [form] = Form.useForm()
   const [isRepeating, setIsRepeating] = useState(false)
   const [locationType, setLocationType] = useState(0)
-  const [selectedDays, setSelectedDays] = useState<string[]>([])
+  const staff = useStaff(courseId)
+  // saving the last set endDate to local storage to make creating a lot of events easier
+  const [lastSetEndDate, setLastSetEndDate] = useLocalStorage<
+    dayjs.Dayjs | string | null
+  >('lastSetEndDate', null)
 
   useEffect(() => {
     // reset the form to its default state when modal is closed
     if (!visible) {
       setIsRepeating(false)
       setLocationType(0)
-      setSelectedDays([])
     }
   }, [visible])
 
-  useEffect(() => {
-    //default to the day of the event(create event object)
-    setSelectedDays([dayjs(event?.start).format('dddd')])
-  }, [event])
-  const handleDaysChange = (checkedValues: any) => {
-    if (!checkedValues.includes(dayjs(event?.start).format('dddd'))) {
-      checkedValues.push(dayjs(event?.start).format('dddd'))
-    }
-    setSelectedDays(checkedValues)
-  }
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: FormValues) => {
     try {
       // Remove the `time` and `date` attribute from `values`
       const { date, time, ...restValues } = values
@@ -70,7 +86,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         .set('hour', time[1].hour())
         .set('minute', time[1].minute())
 
-      const eventObject = {
+      const eventObject: any = {
         ...restValues,
         cid: courseId,
         title: values.title,
@@ -103,8 +119,8 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       // Logic for repeating events
       if (isRepeating) {
-        if (values.startDate && values.endDate && selectedDays) {
-          eventObject.daysOfWeek = selectedDays.map(
+        if (values.startDate && values.endDate && values.daysOfWeek) {
+          eventObject.daysOfWeek = values.daysOfWeek.map(
             (day) => dayToIntMapping[day],
           )
           eventObject.startDate = values.startDate.toDate()
@@ -159,6 +175,18 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
             locationType: 0,
             date: dayjs(event?.start),
             time: [dayjs(event?.start), dayjs(event?.end)],
+            daysOfWeek: [dayjs(event?.start).format('dddd')],
+            startDate: dayjs(event?.start),
+            staffIds: [],
+            // end date is lastSetEndDate.
+            // if lastSetEndDate is null, set it to be start date + 4 months
+            endDate:
+              dayjs(lastSetEndDate) || dayjs(event?.start).add(4, 'month'),
+          }}
+          onValuesChange={(changedValues, allValues) => {
+            if (changedValues.endDate) {
+              setLastSetEndDate(changedValues.endDate)
+            }
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
@@ -214,6 +242,43 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           className="w-36"
         />
       </Form.Item>
+      <Form.Item
+        label="Staff"
+        name="staffIds"
+        tooltip={{
+          title: (
+            <div className="flex flex-col gap-y-2">
+              <p>
+                Select staff members that should be checked into a queue at this
+                time.
+              </p>
+              <p>
+                At the end, staff will have an option to stay a bit longer or
+                will otherwise be auto-checked out after 10mins.
+              </p>
+              <p>
+                This also will keep track if staff are checking in late (or
+                completely miss their session), shown on the TA Check In/Out
+                Times page in Course Settings.
+              </p>
+            </div>
+          ),
+          overlayStyle: { maxWidth: '25rem' },
+        }}
+      >
+        <Select
+          placeholder="Select Staff"
+          mode="multiple"
+          options={staff?.map((staff) => ({
+            label: staff.name,
+            value: staff.id,
+          }))}
+          loading={staff === null}
+          style={{ width: '100%' }}
+          optionFilterProp="label"
+          allowClear
+        />
+      </Form.Item>
       <Form.Item>
         <Checkbox
           checked={isRepeating}
@@ -225,18 +290,69 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       {isRepeating && (
         <>
-          <Form.Item label="Start Date" name="startDate">
+          <Form.Item
+            label="Start Date"
+            name="startDate"
+            dependencies={['endDate']}
+            rules={[
+              {
+                required: true,
+                message: 'Please select the start date of this repeating event',
+              },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || !getFieldValue('endDate')) {
+                    return Promise.resolve()
+                  }
+                  if (value.isBefore(getFieldValue('endDate'))) {
+                    return Promise.resolve()
+                  }
+                  return Promise.reject(
+                    new Error('Start date must be before end date!'),
+                  )
+                },
+              }),
+            ]}
+          >
             <DatePicker picker="date" />
           </Form.Item>
-          <Form.Item label="End Date" name="endDate">
+          <Form.Item
+            label="End Date"
+            name="endDate"
+            dependencies={['startDate']}
+            rules={[
+              {
+                required: true,
+                message: 'Please select the end date of this repeating event',
+              },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || !getFieldValue('startDate')) {
+                    return Promise.resolve()
+                  }
+                  if (value.isAfter(getFieldValue('startDate'))) {
+                    return Promise.resolve()
+                  }
+                  return Promise.reject(
+                    new Error('End date must be after start date!'),
+                  )
+                },
+              }),
+            ]}
+          >
             <DatePicker picker="date" />
           </Form.Item>
-          <Form.Item label="Repeat on">
-            <Checkbox.Group
-              name="repeatDays"
-              value={selectedDays}
-              onChange={handleDaysChange}
-            >
+          <Form.Item
+            label="Repeat on"
+            name="daysOfWeek"
+            rules={[
+              {
+                required: true,
+                message: 'Please select at least one day to repeat on',
+              },
+            ]}
+          >
+            <Checkbox.Group>
               {Object.keys(dayToIntMapping).map((day) => (
                 <Checkbox key={day} value={day}>
                   {day}

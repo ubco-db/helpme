@@ -1019,6 +1019,7 @@ describe('Question Integration', () => {
       expect(question.waitTime).toBeLessThanOrEqual(184);
       jest.useRealTimers();
     });
+
     it('as student creator, edit a question', async () => {
       const course = await CourseFactory.create();
       const ta = await TACourseFactory.create({
