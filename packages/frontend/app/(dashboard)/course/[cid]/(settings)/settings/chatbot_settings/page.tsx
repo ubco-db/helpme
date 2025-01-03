@@ -439,7 +439,7 @@ export default function ChatbotSettings({
                     Parse document as slides{' '}
                     <Tooltip
                       title={
-                        'toggle this ON if the provided document is a slide deck'
+                        'This will generate descriptions for images, which is particularly useful if the document is a slide deck or another image-heavy component'
                       }
                     >
                       <QuestionCircleOutlined className="ml-2" />
