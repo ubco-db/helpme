@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
-import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
+import { AsyncQuestion, asyncQuestionStatus, UserPartial } from '@koh/common'
 import {
   CheckCircleOutlined,
   DownOutlined,
@@ -19,6 +19,7 @@ import Markdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import MarkdownCustom from '@/app/components/Markdown'
+import CommentSection from './CommentSection'
 
 const statusDisplayMap = {
   // if the question has no answer text, it will say "awaiting answer"
@@ -46,6 +47,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   courseId,
   mutateAsyncQuestions,
 }) => {
+  const [isLockedExpanded, setIsLockedExpanded] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [truncateText, setTruncateText] = useState(true) // after the max-height transition is finished on expanding the text, truncate it to show a `...`
   const [voteCount, setVoteCount] = useState(question.votesSum)
@@ -56,7 +58,8 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     question.status === asyncQuestionStatus.AIAnswered &&
     userId === question.creatorId
 
-  const showUser = (isStaff || userId == question.creatorId) && question.creator
+  const showUser: UserPartial | null =
+    isStaff || userId == question.creatorId ? question.creator : null
 
   const handleFeedback = async (resolved: boolean) => {
     const newstatus = resolved
@@ -78,6 +81,12 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
       })
   }
 
+  const setLockedExpanded = (isLockedExpanded: boolean) => {
+    setIsLockedExpanded(isLockedExpanded)
+    setIsExpanded(isLockedExpanded)
+    setTruncateText(!isLockedExpanded)
+  }
+
   const handleVote = async (questionId: number, vote: number) => {
     const resp = await API.asyncQuestions.vote(questionId, vote)
     setVoteCount(resp.questionSumVotes)
@@ -95,6 +104,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
           : '',
       )}
       onClick={() => {
+        if (isLockedExpanded) return
         setIsExpanded(!isExpanded)
         // after the max-height transition is finished on expanding the text, truncate it to show a `...`
         // truncating the questionText before the animation is finished will cause the animation to jump
@@ -275,6 +285,11 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   </>
                 )}
               </div>
+              <CommentSection
+                isStaff={isStaff}
+                question={question}
+                setLockedExpanded={setLockedExpanded}
+              />
             </div>
             <div className="flex flex-wrap">
               {question.questionTypes?.map((questionType, index) => (
@@ -316,9 +331,11 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             )}
         </Col>
       </Row>
-      <Row className="justify-center">
-        {isExpanded ? <UpOutlined /> : <DownOutlined />}
-      </Row>
+      {!isLockedExpanded && (
+        <Row className="justify-center">
+          {isExpanded ? <UpOutlined /> : <DownOutlined />}
+        </Row>
+      )}
     </div>
   )
 }

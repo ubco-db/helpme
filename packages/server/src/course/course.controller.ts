@@ -65,6 +65,7 @@ import { Not, getManager } from 'typeorm';
 import { pick } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { createHash } from 'crypto';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -134,14 +135,21 @@ export class CourseController {
     );
     let all: AsyncQuestionModel[] = [];
 
-    if (Object.keys(asyncQuestionKeys).length === 0) {
+    if (true) {
       console.log('Fetching from Database');
       all = await AsyncQuestionModel.find({
         where: {
           courseId: cid,
           status: Not(asyncQuestionStatus.StudentDeleted),
         },
-        relations: ['creator', 'taHelped', 'votes'],
+        relations: [
+          'creator',
+          'taHelped',
+          'votes',
+          'comments',
+          'comments.creator',
+          'comments.creator.courses',
+        ],
         order: {
           createdAt: 'DESC',
         },
@@ -197,10 +205,44 @@ export class CourseController {
         'visible',
         'verified',
         'votes',
+        'comments',
         'questionTypes',
         'votesSum',
         'isTaskQuestion',
       ]);
+
+      const filteredComments = question.comments?.map((comment) => {
+        const temp = { ...comment };
+
+        const userRole =
+          comment.creator.courses.find(
+            (course) => course.courseId === question.courseId,
+          )?.role || 'student';
+
+        temp.creator =
+          isStaff || comment.creator.id === user.id || userRole !== 'student'
+            ? {
+                id: comment.creator.id,
+                name: comment.creator.name,
+                photoURL: comment.creator.photoURL,
+                userRole: userRole,
+              }
+            : {
+                id: parseInt(
+                  createHash('sha256')
+                    .update(comment.creator.id.toString())
+                    .digest('hex')
+                    .slice(0, 8),
+                  16,
+                ),
+                name: 'Anonymous',
+                photoURL: null,
+                userRole: userRole,
+              };
+
+        return temp;
+      });
+      temp.comments = filteredComments;
 
       Object.assign(temp, {
         creator:
@@ -210,7 +252,17 @@ export class CourseController {
                 name: question.creator.name,
                 photoURL: question.creator.photoURL,
               }
-            : null,
+            : {
+                id: parseInt(
+                  createHash('sha256')
+                    .update(question.creator.id.toString())
+                    .digest('hex')
+                    .slice(0, 8),
+                  16,
+                ),
+                name: 'Anonymous',
+                photoURL: null,
+              },
       });
 
       return temp;

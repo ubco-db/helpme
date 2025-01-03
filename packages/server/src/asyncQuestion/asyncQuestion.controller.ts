@@ -35,6 +35,7 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { MailServiceModel } from 'mail/mail-services.entity';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
+import { AsyncQuestionCommentsModel } from './asyncQuestionComments.entity';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -43,6 +44,62 @@ export class asyncQuestionController {
     private readonly redisQueueService: RedisQueueService,
     private mailService: MailService,
   ) {}
+
+  @Post('comment')
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+  async replyToQuestion(
+    @Body() body: any,
+    @User() user: UserModel,
+    @Res() res: Response,
+  ): Promise<Response> {
+    const { questionId, commentText } = body;
+    const question = await AsyncQuestionModel.findOne({
+      where: { id: questionId },
+      relations: ['course', 'creator'],
+    });
+
+    if (!question) {
+      res
+        .status(HttpStatus.NOT_FOUND)
+        .send({ message: ERROR_MESSAGES.questionController.notFound });
+      return;
+    }
+
+    // check if user has commented within 2 minutes
+    const lastComment = await AsyncQuestionCommentsModel.findOne({
+      where: { creator: user, question },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (lastComment) {
+      const timeDiff = new Date().getTime() - lastComment.createdAt.getTime();
+      if (timeDiff < 30000) {
+        res.status(HttpStatus.BAD_REQUEST).send({
+          message: ERROR_MESSAGES.questionController.createQuestion.tooFast,
+        });
+        return;
+      }
+    }
+
+    const comment = await AsyncQuestionCommentsModel.create({
+      commentText,
+      creator: user,
+      question,
+      createdAt: new Date(),
+    }).save();
+
+    const updatedQuestion = await AsyncQuestionModel.findOne({
+      where: { id: questionId },
+      relations: ['creator', 'taHelped', 'votes', 'comments'],
+    });
+
+    await this.redisQueueService.updateAsyncQuestion(
+      `c:${question.course.id}:aq`,
+      updatedQuestion,
+    );
+
+    res.status(HttpStatus.CREATED).send(comment);
+  }
 
   @Post(':qid/:vote')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
