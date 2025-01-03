@@ -24,6 +24,7 @@ import { UserTokenModel } from './user-token.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
+import { CalendarStaffModel } from 'calendar/calendar-staff.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -131,7 +132,8 @@ export class UserModel extends BaseEntity {
 
   @AfterLoad()
   setFullNames(): void {
-    this.name = this.firstName + ' ' + this.lastName;
+    // it is possible that lastname is null
+    this.name = this.firstName + ' ' + (this.lastName || '');
   }
 
   @OneToMany(
@@ -140,4 +142,8 @@ export class UserModel extends BaseEntity {
   )
   @Exclude()
   taskProgress: StudentTaskProgressModel[];
+
+  @OneToMany((type) => CalendarStaffModel, (csm) => csm.user)
+  @Exclude()
+  calendarEvents: CalendarStaffModel[];
 }

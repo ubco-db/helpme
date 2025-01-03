@@ -192,6 +192,7 @@ export default function AsyncCentrePage({
             return null
           }
         }}
+        optionFilterProp="label"
         options={questionTypes.map((tag) => ({
           label: tag.name,
           value: tag.id,

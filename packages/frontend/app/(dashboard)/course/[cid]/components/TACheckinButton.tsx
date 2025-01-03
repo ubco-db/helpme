@@ -14,20 +14,22 @@ type CheckInButtonState =
 
 interface TACheckinButtonProps {
   courseId: number
-  room: string // name of queue room to check into
+  queueId?: number
   state: CheckInButtonState // State of the button
   preventDefaultAction?: boolean
   disabled?: boolean
   onClick?: () => void
+  onSuccess?: () => void
   className?: string
 }
 const TACheckinButton: React.FC<TACheckinButtonProps> = ({
   courseId,
-  room,
+  queueId,
   state,
   preventDefaultAction,
   disabled = false,
   onClick,
+  onSuccess,
   className,
 }) => {
   const router = useRouter()
@@ -52,10 +54,11 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
             if (preventDefaultAction) return
             setLoading(true)
             await API.taStatus
-              .checkOut(courseId, room)
+              .checkMeOut(courseId, queueId)
               .then(() => {
                 mutateCourse()
                 setIsSuccessfullyCheckedOut(true)
+                onSuccess?.()
               })
               .catch((err) => {
                 const errorMessage = getErrorMessage(err)
@@ -78,12 +81,17 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
           size="large"
           loading={loading || isSuccessfullyCheckedIn}
           onClick={() => {
+            if (!queueId) {
+              message.error('Queue ID not found')
+              return
+            }
             onClick?.()
             if (preventDefaultAction) return
             setLoading(true)
-            checkInTA(courseId, room, mutateCourse, router)
+            checkInTA(courseId, queueId, mutateCourse, router)
               .then(() => {
                 setIsSuccessfullyCheckedIn(true)
+                onSuccess?.()
               })
               .catch((err) => {
                 const errorMessage = getErrorMessage(err)
