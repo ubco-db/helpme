@@ -1,8 +1,13 @@
-## Version 1.1.1 - Dec 17, 2024
+## Version 1.1.1 - Jan 3, 2024
 
 #### New Features
 - ***General***
   - Added a changelog
+    - If there are new changes, it will auto-open if you are a professor
+
+#### Improvements
+- Revamped the "You're question was deleted by a TA, would you like to rejoin?" popup modal
+- Various small bug fixes
 
 ***
 
