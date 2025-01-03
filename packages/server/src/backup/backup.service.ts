@@ -6,6 +6,10 @@ import * as path from 'path';
 import { promisify } from 'util';
 import * as Sentry from '@sentry/browser';
 
+/*
+ * NOTE: all paths here are relative to package/server
+ */
+
 const execPromise = promisify(exec);
 
 export const baseBackupCommand =
@@ -98,6 +102,41 @@ export class BackupService {
     } else {
       console.error('Insufficient disk space for backup.');
       Sentry.captureMessage('Insufficient disk space for backup.');
+    }
+  }
+
+  // Daily Uploads Backup Task - Keeps rolling backups for 5 days
+  @Cron('0 0 */4 * *')
+  async handleDailyUploadsBackup() {
+    try {
+      const date = new Date().toISOString().split('T')[0];
+      const uploadsDir = './uploads';
+      const backupFile = `uploads_backup-${date}.tar.gz`;
+      const backupDir = '../../backups/uploads-daily';
+
+      const hasSpace = await this.checkDiskSpace(backupDir);
+      if (!hasSpace) {
+        console.error('Insufficient disk space for uploads backup.');
+        Sentry.captureMessage('Insufficient disk space for uploads backup.');
+        return;
+      }
+
+      // Use `tar` to compress the uploads directory
+      const compressCommand = `tar -czf ${backupDir}/${backupFile} -C ${uploadsDir} .`;
+
+      exec(compressCommand, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Uploads backup failed: ${stderr}`);
+          Sentry.captureMessage(`Uploads backup failed: ${stderr}`);
+        } else {
+          console.log(`Uploads backup saved: ${backupFile}`);
+          // Retain only the last 3 backups (the last 12 days)
+          this.deleteOldBackups(backupDir, 2);
+        }
+      });
+    } catch (error) {
+      console.error('Error backing up uploads:', error);
+      Sentry.captureMessage('Error backing up uploads:', error);
     }
   }
 
