@@ -140,4 +140,7 @@ export class UserModel extends BaseEntity {
   )
   @Exclude()
   taskProgress: StudentTaskProgressModel[];
+
+  @Column({ type: 'boolean', default: false })
+  readChangeLog: boolean;
 }
