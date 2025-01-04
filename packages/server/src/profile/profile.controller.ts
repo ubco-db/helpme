@@ -107,6 +107,7 @@ export class ProfileController {
       'accountType',
       'emailVerified',
       'chat_token',
+      'readChangeLog',
     ]);
 
     if (userResponse === null || userResponse === undefined) {
@@ -331,6 +332,25 @@ export class ProfileController {
           }
         },
       );
+    }
+  }
+
+  @Patch('/read_changelog')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  async readChangelogs(
+    @User() user: UserModel,
+    @Res() res: Response,
+  ): Promise<Response> {
+    try {
+      user.readChangeLog = true;
+      await user.save();
+      return res
+        .status(HttpStatus.OK)
+        .send({ message: 'Changelogs read successfully' });
+    } catch (error) {
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .send({ message: 'Error reading changelogs' });
     }
   }
 }

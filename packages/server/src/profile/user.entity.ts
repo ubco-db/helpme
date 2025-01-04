@@ -143,7 +143,12 @@ export class UserModel extends BaseEntity {
   @Exclude()
   taskProgress: StudentTaskProgressModel[];
 
+
   @OneToMany((type) => CalendarStaffModel, (csm) => csm.user)
   @Exclude()
   calendarEvents: CalendarStaffModel[];
+
+  @Column({ type: 'boolean', default: false })
+  readChangeLog: boolean;
+
 }

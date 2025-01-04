@@ -215,8 +215,15 @@ export class QuestionController {
     @Body() body: CreateQuestionParams,
     @User() user: UserModel,
   ): Promise<CreateQuestionResponse> {
-    const { text, questionTypes, groupable, isTaskQuestion, queueId, force } =
-      body;
+    const {
+      text,
+      questionTypes,
+      groupable,
+      location,
+      isTaskQuestion,
+      queueId,
+      force,
+    } = body;
 
     const queue = await QueueModel.findOne({
       where: { id: queueId },
@@ -305,6 +312,7 @@ export class QuestionController {
       isTaskQuestion,
       status: QuestionStatusKeys.Drafting,
       createdAt: new Date(),
+      location,
     });
     // check to make sure all tasks are in the config
     if (text != '' && isTaskQuestion) {
