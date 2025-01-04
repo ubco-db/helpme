@@ -3,6 +3,7 @@
 import {
   BellOutlined,
   DownloadOutlined,
+  LinkOutlined,
   QrcodeOutlined,
   RobotOutlined,
   ScheduleOutlined,
@@ -22,6 +23,7 @@ enum CourseAdminOptions {
   QUEUE_INVITES = 'QUEUE_INVITES',
   EDIT_QUESTIONS = 'EDIT_QUESTIONS',
   SETTINGS = 'SETTINGS',
+  LMS_SETTINGS = 'LMS_SETTINGS',
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
   CHATBOT_DOCUMENTS = 'CHATBOT_DOCUMENTS',
   CHATBOT_QUESTIONS = 'CHATBOT_QUESTIONS',
@@ -61,6 +63,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
         break
       case CourseAdminOptions.EDIT_QUESTIONS:
         router.push(`${basePath}/edit_questions`)
+        break
+      case CourseAdminOptions.LMS_SETTINGS:
+        router.push(`${basePath}/lms_integrations`)
         break
       case CourseAdminOptions.CHATBOT_SETTINGS:
         router.push(`${basePath}/chatbot_settings`)
@@ -128,6 +133,11 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       key: CourseAdminOptions.ROSTER,
       icon: <BellOutlined />,
       label: 'Course Roster',
+    },
+    {
+      key: CourseAdminOptions.LMS_SETTINGS,
+      icon: <LinkOutlined />,
+      label: 'LMS Integrations',
     },
   ]
 

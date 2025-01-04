@@ -19,6 +19,7 @@ import {
   Spin,
 } from 'antd'
 import { useEffect, useState } from 'react'
+import { cn } from '@/app/utils/generalUtils'
 
 type CourseRosterTableProps = {
   courseId: number
@@ -91,6 +92,129 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
     }
   }
 
+  const RosterItem: React.FC<{ item: UserPartial; className?: string }> = ({
+    item,
+    className,
+  }) => {
+    return (
+      <List.Item
+        key={item.id}
+        className={cn('flex items-center justify-between', className ?? '')}
+      >
+        <List.Item.Meta
+          avatar={
+            <UserAvatar photoURL={item.photoURL} username={item.name ?? ''} />
+          }
+          title={<span className="mr-2">{item.name}</span>}
+          className="flex flex-grow items-center"
+        />
+        {isSensitiveInfoHidden ? (
+          <span className="flex-grow">
+            {item.email
+              ?.substring(0, item.email?.indexOf('@'))
+              .replace(/./g, '*')}
+            {item.email?.substring(item.email?.indexOf('@'))}
+          </span>
+        ) : (
+          <span className="flex-grow">{item.email}</span>
+        )}
+        <Dropdown
+          overlay={
+            <Menu
+              onClick={(e) => {
+                const confirmRoleChange = () => {
+                  handleRoleChange(item.id, e.key as Role, item.name ?? '')
+                }
+
+                Modal.confirm({
+                  title: <div className="font-bold">Warning</div>,
+                  content: (
+                    <div>
+                      You are about to change role of{' '}
+                      <span className="font-bold">{item.name}</span> to{' '}
+                      <span className="font-bold">{e.key.toUpperCase()}</span>
+                      .
+                      <br />
+                      <br />
+                      Are you sure you want to proceed?
+                    </div>
+                  ),
+                  okText: 'Yes',
+                  okType: 'danger',
+                  cancelText: 'No',
+                  onOk() {
+                    confirmRoleChange()
+                  },
+                })
+              }}
+            >
+              {role !== Role.PROFESSOR ? (
+                <Menu.Item key={Role.PROFESSOR}>Professor</Menu.Item>
+              ) : null}
+              {role !== Role.TA ? (
+                <Menu.Item key={Role.TA}>Teaching Assistant</Menu.Item>
+              ) : null}
+              {role !== Role.STUDENT ? (
+                <Menu.Item key={Role.STUDENT}>Student</Menu.Item>
+              ) : null}
+            </Menu>
+          }
+          className="flex-grow-0"
+        >
+          <a className="ant-dropdown-link" onClick={(e) => e.preventDefault()}>
+            Change Role <DownOutlined />
+          </a>
+        </Dropdown>
+        {userInfo.id !== item.id && (
+          <Button
+            icon={<UserDeleteOutlined />}
+            danger
+            className="ml-2"
+            onClick={() => {
+              Modal.confirm({
+                title: <div className="font-bold text-red-600">Warning</div>,
+                content: (
+                  <div>
+                    You are about to{' '}
+                    <span className="text-red-600">remove</span>{' '}
+                    <span className="font-bold">{item.name}</span> from the
+                    course.
+                    <br />
+                    <br />
+                    Are you sure you want to proceed?
+                  </div>
+                ),
+                okText: 'Yes',
+                okType: 'danger',
+                cancelText: 'No',
+
+                onOk() {
+                  API.organizations
+                    .dropUserCourses(
+                      userInfo.organization?.orgId ?? -1,
+                      item.id,
+                      [courseId],
+                    )
+                    .then(() => {
+                      message.success(
+                        `${item.name} successfully removed from the course`,
+                      )
+                      onRoleChange()
+                    })
+                    .catch(() => {
+                      message.error(
+                        `Failed to remove ${item.name} from the course`,
+                      )
+                    })
+                },
+              })
+            }}
+          />
+        )}
+      </List.Item>
+    )
+  }
+
   if (!users) {
     return <Spin tip="Loading..." size="large" />
   } else {
@@ -122,138 +246,7 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
           <List
             dataSource={users}
             size="small"
-            renderItem={(item: UserPartial) => (
-              <List.Item
-                key={item.id}
-                className="flex items-center justify-between"
-              >
-                <List.Item.Meta
-                  avatar={
-                    <UserAvatar
-                      photoURL={item.photoURL}
-                      username={item.name ?? ''}
-                    />
-                  }
-                  title={<span className="mr-2">{item.name}</span>}
-                  className="flex flex-grow items-center"
-                />
-                {isSensitiveInfoHidden ? (
-                  <span className="flex-grow">
-                    {item.email
-                      ?.substring(0, item.email?.indexOf('@'))
-                      .replace(/./g, '*')}
-                    {item.email?.substring(item.email?.indexOf('@'))}
-                  </span>
-                ) : (
-                  <span className="flex-grow">{item.email}</span>
-                )}
-
-                <Dropdown
-                  overlay={
-                    <Menu
-                      onClick={(e) => {
-                        const confirmRoleChange = () => {
-                          handleRoleChange(
-                            item.id,
-                            e.key as Role,
-                            item.name ?? '',
-                          )
-                        }
-
-                        Modal.confirm({
-                          title: <div className="font-bold">Warning</div>,
-                          content: (
-                            <div>
-                              You are about to change role of{' '}
-                              <span className="font-bold">{item.name}</span> to{' '}
-                              <span className="font-bold">
-                                {e.key.toUpperCase()}
-                              </span>
-                              .
-                              <br />
-                              <br />
-                              Are you sure you want to proceed?
-                            </div>
-                          ),
-                          okText: 'Yes',
-                          okType: 'danger',
-                          cancelText: 'No',
-                          onOk() {
-                            confirmRoleChange()
-                          },
-                        })
-                      }}
-                    >
-                      {role !== Role.PROFESSOR ? (
-                        <Menu.Item key={Role.PROFESSOR}>Professor</Menu.Item>
-                      ) : null}
-                      {role !== Role.TA ? (
-                        <Menu.Item key={Role.TA}>Teaching Assistant</Menu.Item>
-                      ) : null}
-                      {role !== Role.STUDENT ? (
-                        <Menu.Item key={Role.STUDENT}>Student</Menu.Item>
-                      ) : null}
-                    </Menu>
-                  }
-                  className="flex-grow-0"
-                >
-                  <a
-                    className="ant-dropdown-link"
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    Change Role <DownOutlined />
-                  </a>
-                </Dropdown>
-                {userInfo.id !== item.id && (
-                  <Button
-                    icon={<UserDeleteOutlined />}
-                    danger
-                    className="ml-2"
-                    onClick={() => {
-                      Modal.confirm({
-                        title: (
-                          <div className="font-bold text-red-600">Warning</div>
-                        ),
-                        content: (
-                          <div>
-                            You are about to{' '}
-                            <span className="text-red-600">remove</span>{' '}
-                            <span className="font-bold">{item.name}</span> from
-                            the course.
-                            <br />
-                            <br />
-                            Are you sure you want to proceed?
-                          </div>
-                        ),
-                        okText: 'Yes',
-                        okType: 'danger',
-                        cancelText: 'No',
-
-                        onOk() {
-                          API.organizations
-                            .dropUserCourses(
-                              userInfo.organization?.orgId ?? -1,
-                              item.id,
-                              [courseId],
-                            )
-                            .then(() => {
-                              message.success(
-                                `${item.name} successfully removed from the course`,
-                              )
-                              onRoleChange()
-                            })
-                            .catch(() => {
-                              message.error(
-                                `Failed to remove ${item.name} from the course`,
-                              )
-                            })
-                        },
-                      })
-                    }}
-                  />
-                )}
-              </List.Item>
-            )}
+            renderItem={(item: UserPartial) => <RosterItem item={item} />}
             bordered
           />
         </div>
