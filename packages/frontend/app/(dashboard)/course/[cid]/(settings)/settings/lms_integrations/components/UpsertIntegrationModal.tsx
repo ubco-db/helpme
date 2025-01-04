@@ -101,7 +101,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
         API.course
           .upsertIntegration(courseId, body as any)
           .then((result) => {
-            if (result == undefined) {
+            if (!result) {
               message.error(
                 `Unknown error occurred, could not link the LMS integration`,
               )

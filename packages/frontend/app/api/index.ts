@@ -119,7 +119,6 @@ class APIClient {
   ): Promise<T> {
     const res = (await this.axios.request({ method, url, data: body, params }))
       .data
-    if (res == '') return undefined as T
     return responseClass ? plainToClass(responseClass, res) : res
   }
 

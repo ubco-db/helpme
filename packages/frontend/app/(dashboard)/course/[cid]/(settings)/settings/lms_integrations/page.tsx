@@ -66,7 +66,7 @@ export default function CourseLMSIntegrationPage({
     await API.organizations
       .getIntegrations(organizationId)
       .then((response) => {
-        if (response != undefined) setLmsIntegrations(response)
+        if (response) setLmsIntegrations(response)
         else setLmsIntegrations([])
       })
       .catch((error) => {
@@ -79,15 +79,16 @@ export default function CourseLMSIntegrationPage({
     const response = await API.course
       .getIntegration(courseId)
       .then((response) => {
-        if (response != undefined) setLmsIntegration(response)
+        if (response) setLmsIntegration(response)
         return response
       })
       .catch((error) => {
         const errorMessage = getErrorMessage(error)
         message.error(errorMessage)
+        return undefined
       })
 
-    if (response != undefined) {
+    if (response) {
       if (
         response.apiKeyExpiry != undefined &&
         (response.apiKeyExpiry as unknown as string).trim() != '' &&
@@ -180,7 +181,7 @@ export default function CourseLMSIntegrationPage({
     API.course
       .removeIntegration(courseId, { apiPlatform: lmsIntegration.apiPlatform })
       .then((result) => {
-        if (result == undefined) {
+        if (!result) {
           message.error(
             `Unknown error occurred, could not delete the LMS integration`,
           )

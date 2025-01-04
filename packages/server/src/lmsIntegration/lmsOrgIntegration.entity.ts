@@ -29,6 +29,7 @@ export class LMSOrganizationIntegrationModel extends BaseEntity {
   @OneToMany(
     (type) => LMSCourseIntegrationModel,
     (integration) => integration.orgIntegration,
+    { onDelete: 'CASCADE' },
   )
   courseIntegrations: LMSCourseIntegrationModel[];
 
