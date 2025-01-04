@@ -256,7 +256,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           text: text || '',
           questionTypes: questionTypes,
           queueId: qid,
-          location: location ?? isQueueHybrid ? 'Unselected' : undefined,
+          location: location ?? (isQueueHybrid ? 'Unselected' : undefined),
           force: force,
           groupable: false,
           isTaskQuestion,
@@ -296,7 +296,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   )
 
   const joinQueueAfterDeletion = useCallback(
-    (isTaskQuestion: boolean) => {
+    async (isTaskQuestion: boolean) => {
       const question = isTaskQuestion ? studentDemo : studentQuestion
       const id = isTaskQuestion ? studentDemoId : studentQuestionId
       if (id === undefined || question === undefined) {
@@ -304,7 +304,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       }
       // delete the old question and create a new one
       updateQuestionStatus(id, ClosedQuestionStatus.ConfirmedDeleted)
-      createQuestion(
+      await createQuestion(
         question.text,
         question.questionTypes ?? [],
         true,
