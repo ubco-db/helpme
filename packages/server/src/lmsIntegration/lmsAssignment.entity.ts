@@ -21,6 +21,7 @@ export class LMSAssignmentModel {
   @ManyToOne(
     (type) => LMSCourseIntegrationModel,
     (integration) => integration.assignments,
+    { onDelete: 'CASCADE' },
   )
   @JoinColumn()
   course: LMSCourseIntegrationModel;

@@ -32,7 +32,11 @@ export class LMSOrganizationIntegrationModel extends BaseEntity {
   )
   courseIntegrations: LMSCourseIntegrationModel[];
 
-  @ManyToOne((type) => OrganizationModel, (org) => org.organizationIntegrations)
+  @ManyToOne(
+    (type) => OrganizationModel,
+    (org) => org.organizationIntegrations,
+    { onDelete: 'CASCADE' },
+  )
   @JoinColumn({ referencedColumnName: 'id' })
   organization: OrganizationModel;
 }

@@ -404,8 +404,8 @@ export class CourseService {
     integration.apiKey = apiKey ?? integration.apiKey;
     integration.apiCourseId = apiCourseId ?? integration.apiCourseId;
     integration.apiKeyExpiry = apiKeyExpiryDeleted
-      ? undefined
-      : apiKeyExpiry ?? integration.apiKeyExpiry;
+      ? null
+      : (apiKeyExpiry ?? integration.apiKeyExpiry);
 
     await LMSCourseIntegrationModel.upsert(integration, ['courseId']);
     return `Successfully updated link with ${integration.orgIntegration.apiPlatform}`;

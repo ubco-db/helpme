@@ -1117,6 +1117,7 @@ export class CourseController {
     const courseIntegration = await LMSCourseIntegrationModel.findOne({
       where: { courseId: courseId },
     });
+
     if (courseIntegration != undefined) {
       return await this.courseService.updateLMSIntegration(
         courseIntegration,

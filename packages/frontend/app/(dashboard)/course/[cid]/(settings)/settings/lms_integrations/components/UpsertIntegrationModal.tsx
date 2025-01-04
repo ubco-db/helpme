@@ -130,8 +130,6 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
     setIsOpen(false)
   }
 
-  console.log(isOpen)
-
   return (
     <Modal
       title={

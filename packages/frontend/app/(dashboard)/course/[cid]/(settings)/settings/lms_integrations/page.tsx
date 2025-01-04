@@ -26,6 +26,7 @@ import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/se
 import { PenBoxIcon, RefreshCwIcon, TrashIcon } from 'lucide-react'
 import LMSRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSRosterTable'
 import LMSAssignmentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSAssignmentList'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 export default function CourseLMSIntegrationPage({
   params,
@@ -62,13 +63,29 @@ export default function CourseLMSIntegrationPage({
   const [assignments, setAssignments] = useState<LMSAssignmentAPIResponse[]>([])
 
   const fetchOrgIntegrationsAsync = useCallback(async () => {
-    const response = await API.organizations.getIntegrations(organizationId)
-    setLmsIntegrations(response)
+    await API.organizations
+      .getIntegrations(organizationId)
+      .then((response) => {
+        if (response != undefined) setLmsIntegrations(response)
+        else setLmsIntegrations([])
+      })
+      .catch((error) => {
+        const errorMessage = getErrorMessage(error)
+        message.error(errorMessage)
+      })
   }, [organizationId])
 
   const fetchDataAsync = useCallback(async () => {
-    const response = await API.course.getIntegration(courseId)
-    setLmsIntegration(response)
+    const response = await API.course
+      .getIntegration(courseId)
+      .then((response) => {
+        if (response != undefined) setLmsIntegration(response)
+        return response
+      })
+      .catch((error) => {
+        const errorMessage = getErrorMessage(error)
+        message.error(errorMessage)
+      })
 
     if (response != undefined) {
       if (
