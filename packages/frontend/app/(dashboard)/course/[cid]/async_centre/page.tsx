@@ -32,7 +32,7 @@ import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { useChatbotContext } from '../components/chatbot/ChatbotProvider'
 import ConvertChatbotQToAnytimeQModal from './components/modals/ConvertChatbotQToAnytimeQModal'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 type AsyncCentrePageProps = {
   params: { cid: string }
@@ -42,6 +42,8 @@ export default function AsyncCentrePage({
   params,
 }: AsyncCentrePageProps): ReactElement {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
   const courseId = Number(params.cid)
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
@@ -372,10 +374,12 @@ export default function AsyncCentrePage({
           courseId={courseId}
           open={convertChatbotQModalOpen}
           onCancel={() => {
+            router.replace(pathname)
             setConvertChatbotQModalOpen(false)
           }}
           onCreateOrUpdateQuestion={() => {
             mutateAsyncQuestions()
+            router.replace(pathname)
             setConvertChatbotQModalOpen(false)
           }}
           chatbotQ={{ messages: messages }}
