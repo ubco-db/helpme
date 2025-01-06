@@ -53,6 +53,7 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
   const [isloading, setIsLoading] = useState(false)
   //studentState stores all students
   const [studentsState, setStudentsState] = useState<UserTiny[]>()
+  const [studentsLoading, setStudentsLoading] = useState(true)
   const [selectedStudent, setSelectedStudent] = useState<UserTiny>()
   const [addingDemo, setAddingDemo] = useState(false)
   const [
@@ -60,23 +61,28 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
     setCurrentStudentsAssignmentProgress,
   ] = useState<StudentAssignmentProgress | undefined>(undefined)
 
-  const populateStudents = useCallback(async () => {
-    await API.course
-      .getAllStudentsNotInQueue(courseId)
-      .then((students) => {
-        setStudentsState(students)
-      })
-      .catch((err) => {
-        const errorMessage = getErrorMessage(err)
-        message.error(errorMessage)
-      })
-  }, [courseId])
+  const populateStudents = useCallback(
+    async (courseId: number, withATaskQuestion: boolean) => {
+      setStudentsLoading(true)
+      await API.course
+        .getAllStudentsNotInQueue(courseId, withATaskQuestion)
+        .then((students) => {
+          setStudentsState(students)
+          setStudentsLoading(false)
+        })
+        .catch((err) => {
+          const errorMessage = getErrorMessage(err)
+          message.error(errorMessage)
+        })
+    },
+    [setStudentsState],
+  )
 
   useEffect(() => {
     if (open) {
-      populateStudents()
+      populateStudents(courseId, addingDemo)
     }
-  }, [populateStudents, open])
+  }, [populateStudents, courseId, open, addingDemo])
 
   const onFinish = async (values: FormValues) => {
     if (studentsState?.length == 0) {
@@ -235,6 +241,7 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
               showSearch
               placeholder="Select Student"
               optionFilterProp="label"
+              loading={studentsLoading}
               options={studentsState?.map((student) => ({
                 value: student.id,
                 label: student.name,
