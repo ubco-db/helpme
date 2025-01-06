@@ -9,9 +9,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
-  DownSquareOutlined,
   ReloadOutlined,
-  UpSquareOutlined,
 } from '@ant-design/icons'
 import { API } from '@/app/api'
 import UserAvatar from '@/app/components/UserAvatar'
