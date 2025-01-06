@@ -899,6 +899,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               queueId={qid}
               courseId={cid}
               isQueueHybrid={queue.type === 'hybrid'}
+              isDemoQueue={isDemoQueue}
+              configTasks={configTasks}
+              assignmentId={queueConfig?.assignment_id}
               open={addStudentsModalOpen}
               onAddStudent={() => {
                 mutateQuestions()
