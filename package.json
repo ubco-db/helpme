@@ -70,7 +70,8 @@
     "pm2": "^4.4.0",
     "prettier-plugin-tailwindcss": "^0.5.6",
     "reflect-metadata": "^0.2.2",
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "tsx": "^4.19.2"
   },
   "percy": {
     "snapshot": {

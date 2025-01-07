@@ -47,8 +47,8 @@ const PromptStudentToLeaveQueueModal: React.FC<
       }}
       footer={[
         <Button
-          type={'default'}
-          key={'leave'}
+          type="default"
+          key="leave"
           onClick={async () => {
             setIsLeaveLoading(true)
             await closeAllQuestions()
@@ -64,8 +64,8 @@ const PromptStudentToLeaveQueueModal: React.FC<
           Leave Queue
         </Button>,
         <Button
-          type={'default'}
-          key={'stay'}
+          type="default"
+          key="stay"
           onClick={async () => {
             setIsStayLoading(true)
             await handleClose()

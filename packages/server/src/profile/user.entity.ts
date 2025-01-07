@@ -146,4 +146,7 @@ export class UserModel extends BaseEntity {
   @OneToMany((type) => CalendarStaffModel, (csm) => csm.user)
   @Exclude()
   calendarEvents: CalendarStaffModel[];
+
+  @Column({ type: 'boolean', default: false })
+  readChangeLog: boolean;
 }
