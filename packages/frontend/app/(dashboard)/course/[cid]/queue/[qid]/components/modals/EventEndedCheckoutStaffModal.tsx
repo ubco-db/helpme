@@ -47,7 +47,7 @@ const EventEndedCheckoutStaffModal: React.FC<
           The queue session has ended. Would you like to check out?
         </p>
         <p className="text-gray-500">
-          You will be auto-checked out in 10 minutes.
+          You will be automatically checked out in 10 minutes.
         </p>
       </div>
     </Modal>

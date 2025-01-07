@@ -133,7 +133,7 @@ export class UserModel extends BaseEntity {
   @AfterLoad()
   setFullNames(): void {
     // it is possible that lastname is null
-    this.name = this.firstName + ' ' + (this.lastName || '');
+    this.name = this.firstName + ' ' + (this.lastName ?? '');
   }
 
   @OneToMany(
@@ -143,12 +143,10 @@ export class UserModel extends BaseEntity {
   @Exclude()
   taskProgress: StudentTaskProgressModel[];
 
-
   @OneToMany((type) => CalendarStaffModel, (csm) => csm.user)
   @Exclude()
   calendarEvents: CalendarStaffModel[];
 
   @Column({ type: 'boolean', default: false })
   readChangeLog: boolean;
-
 }

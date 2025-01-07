@@ -152,6 +152,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
           pageSize={50}
           showQuickJumper
           // set the total number of users very high so that it shows enough pages
+          // TODO: change the endpoint so it actually returns the total number of users
           total={5000}
           onChange={(page) => setPage(page)}
           showSizeChanger={false}
