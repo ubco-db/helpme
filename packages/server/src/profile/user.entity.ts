@@ -133,7 +133,7 @@ export class UserModel extends BaseEntity {
   @AfterLoad()
   setFullNames(): void {
     // it is possible that lastname is null
-    this.name = this.firstName + ' ' + (this.lastName || '');
+    this.name = this.firstName + ' ' + (this.lastName ?? '');
   }
 
   @OneToMany(
