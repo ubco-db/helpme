@@ -108,6 +108,19 @@ export class DesktopNotifPartial {
 }
 
 /**
+ * Given by get_users endpoint that returns all users
+ */
+export interface OrgUser {
+  userId: number
+  firstName: string
+  lastName: string
+  email: string
+  photoUrl: string | null
+  userRole: string
+  organizationRole: string
+}
+
+/**
  * Contains the partial user info needed by the frontend when nested in a response
  * @param id - The unique id of the user in our db.
  * @param name - The full name of this user: First Last.
@@ -836,6 +849,10 @@ export class Calendar {
   @IsOptional()
   @MaxLength(7)
   color?: string
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  staffIds?: number[]
 }
 
 export class questions {
@@ -1317,6 +1334,7 @@ export class TACheckinPair {
 
 export enum AlertType {
   REPHRASE_QUESTION = 'rephraseQuestion',
+  EVENT_ENDED_CHECKOUT_STAFF = 'eventEndedCheckoutStaff',
 }
 
 export class AlertPayload {}
@@ -1726,6 +1744,16 @@ export class CourseSettingsRequestBody {
  */
 export interface setQueueConfigResponse {
   questionTypeMessages: string[]
+}
+
+export type CronJob = {
+  id: string
+  cronTime: string | Date
+  running: boolean
+  nextDates: Date[]
+  lastDate?: Date
+  lastExecution?: Date
+  runOnce: boolean
 }
 
 /**
@@ -2283,6 +2311,13 @@ export const ERROR_MESSAGES = {
   questionService: {
     getDBClient: 'Error getting DB client',
   },
+  calendarEvent: {
+    invalidEvent:
+      'Invalid calendar event: Events must either have daysOfWeek.length > 0 and startDate and endDate or have daysOfWeek.length === 0 and startDate and endDate are both null',
+    dateInPast:
+      'Event date is in the past. No AutoCheckout will occur. Please unassign staff from event.',
+    invalidRecurringEvent: 'Recurring events must have a start and end date',
+  },
   organizationController: {
     notEnoughDiskSpace: 'Not enough disk space to upload file',
     userAlreadyInOrganization: 'User is already in organization',
@@ -2304,6 +2339,7 @@ export const ERROR_MESSAGES = {
         'Cannot check into multiple queues at the same time',
     },
     queueLimitReached: 'Queue limit per course reached',
+    roleInvalid: 'Role must be a valid role',
     semesterYearInvalid: 'Semester year must be a valid year',
     semesterNameFormat:
       'Semester must be in the format "season,year". E.g. Fall,2021',

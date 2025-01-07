@@ -3,6 +3,7 @@ import useSWR from 'swr'
 import { useRouter } from 'next/navigation'
 import StudentRephraseModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/StudentRephraseModal'
 import { API } from '../api'
+import EventEndedCheckoutStaffModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/EventEndedCheckoutStaffModal'
 
 type AlertsContainerProps = {
   courseId: number
@@ -18,7 +19,7 @@ const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
   )
   const alerts = data?.alerts
 
-  const handleClose = async (
+  const handleCloseRephrase = async (
     alertId: number,
     courseId: number,
     queueId: number,
@@ -36,8 +37,18 @@ const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
           <StudentRephraseModal
             payload={alert.payload as RephraseQuestionPayload}
             handleClose={async (courseId, queueId) =>
-              await handleClose(alert.id, courseId, queueId)
+              await handleCloseRephrase(alert.id, courseId, queueId)
             }
+          />
+        )
+      case AlertType.EVENT_ENDED_CHECKOUT_STAFF:
+        return (
+          <EventEndedCheckoutStaffModal
+            courseId={courseId}
+            handleClose={async () => {
+              await API.alerts.close(alert.id)
+              await mutateAlerts()
+            }}
           />
         )
     }

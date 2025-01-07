@@ -38,7 +38,7 @@ export class QueueCleanService {
     await async.mapLimit(
       queuesWithOpenQuestions,
       1,
-      async (queue) => await this.cleanQueue(queue.id),
+      async (queue) => await this.cleanQueue(queue.id, true),
     );
   }
 

@@ -62,6 +62,8 @@ import {
   QueueInvite,
   InsightDashboardPartial,
   InsightDetail,
+  CronJob,
+  OrgUser,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -202,7 +204,7 @@ class APIClient {
     getUserInfo: async (
       courseId: number,
       page: number,
-      role?: Role,
+      role?: Role | 'staff',
       search?: string,
     ): Promise<GetCourseUserInfoResponse> =>
       this.req(
@@ -323,16 +325,21 @@ class APIClient {
       this.req('GET', `/api/v1/studentTaskProgress/course/${courseId}`),
   }
   taStatus = {
-    checkIn: async (
+    checkMeIn: async (
       courseId: number,
-      room: string,
+      qid: number,
     ): Promise<TAUpdateStatusResponse> =>
-      this.req('POST', `/api/v1/courses/${courseId}/ta_location/${room}`),
-    checkOut: async (
+      this.req('POST', `/api/v1/courses/${courseId}/checkin/${qid}`),
+    checkMeOut: async (
       courseId: number,
-      room: string,
-    ): Promise<TACheckoutResponse> =>
-      this.req('DELETE', `/api/v1/courses/${courseId}/ta_location/${room}`),
+      qid?: number,
+    ): Promise<TACheckoutResponse> => {
+      if (qid) {
+        return this.req('DELETE', `/api/v1/courses/${courseId}/checkout/${qid}`)
+      } else {
+        return this.req('DELETE', `/api/v1/courses/${courseId}/checkout_all`)
+      }
+    },
   }
   asyncQuestions = {
     create: async (body: CreateAsyncQuestions, cid: number) =>
@@ -442,6 +449,8 @@ class APIClient {
       cid: number,
     ): Promise<Calendar> =>
       this.req('PATCH', `/api/v1/calendar/${eventId}/${cid}`, undefined, body),
+    resetCronJobs: async (orgId: number): Promise<void> =>
+      this.req('POST', `/api/v1/calendar/reset_cron_jobs/${orgId}`),
   }
 
   queues = {
@@ -707,7 +716,7 @@ class APIClient {
       organizationId: number,
       page: number,
       search?: string,
-    ): Promise<any> =>
+    ): Promise<OrgUser[]> =>
       this.req(
         'GET',
         `/api/v1/organization/${organizationId}/get_users/${page}${
@@ -733,6 +742,8 @@ class APIClient {
         'GET',
         `/api/v1/organization/${organizationId}/get_professors/${courseId ?? '0'}`,
       ),
+    getCronJobs: async (organizationId: number): Promise<CronJob[]> =>
+      this.req('GET', `/api/v1/organization/${organizationId}/cronjobs`),
   }
 
   constructor(baseURL = '') {
