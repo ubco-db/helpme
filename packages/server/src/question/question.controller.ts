@@ -16,11 +16,9 @@ import {
   Body,
   ClassSerializerInterceptor,
   Controller,
-  forwardRef,
   Get,
   HttpException,
   HttpStatus,
-  Inject,
   NotFoundException,
   Param,
   ParseIntPipe,
@@ -60,7 +58,6 @@ export class QuestionController {
   constructor(
     private notifService: NotificationService,
     private questionService: QuestionService,
-    // @Inject(forwardRef(() => QueueService))
     private queueService: QueueService,
     private redisQueueService: RedisQueueService,
   ) {}
