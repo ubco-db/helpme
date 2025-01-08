@@ -19,6 +19,7 @@ import { ChatbotQuestionModel } from './src/chatbot/question.entity';
 import { InteractionModel } from './src/chatbot/interaction.entity';
 import { QuestionDocumentModel } from './src/chatbot/questionDocument.entity';
 import { CalendarModel } from './src/calendar/calendar.entity';
+import { CalendarStaffModel } from './src/calendar/calendar-staff.entity';
 import { OrganizationUserModel } from './src/organization/organization-user.entity';
 import { OrganizationModel } from './src/organization/organization.entity';
 import { MailServiceModel } from './src/mail/mail-services.entity';
@@ -72,6 +73,7 @@ const typeorm = {
     QuestionGroupModel,
     AlertModel,
     CalendarModel,
+    CalendarStaffModel,
     LastRegistrationModel,
     ProfSectionGroupsModel,
     QuestionDocumentModel,

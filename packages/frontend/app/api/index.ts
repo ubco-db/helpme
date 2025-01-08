@@ -67,6 +67,8 @@ import {
   LMSAssignmentAPIResponse,
   LMSApiResponseStatus,
   LMSCourseAPIResponse,
+  CronJob,
+  OrgUser,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -135,6 +137,8 @@ class APIClient {
       this.req('PATCH', `/api/v1/profile`, undefined, body),
     deleteProfilePicture: async (): Promise<void> =>
       this.req('DELETE', `/api/v1/profile/delete_profile_picture`),
+    readChangelog: async (): Promise<void> =>
+      this.req('PATCH', `/api/v1/profile/read_changelog`, undefined),
   }
 
   chatbot = {
@@ -205,7 +209,7 @@ class APIClient {
     getUserInfo: async (
       courseId: number,
       page: number,
-      role?: Role,
+      role?: Role | 'staff',
       search?: string,
     ): Promise<GetCourseUserInfoResponse> =>
       this.req(
@@ -356,16 +360,21 @@ class APIClient {
       this.req('GET', `/api/v1/studentTaskProgress/course/${courseId}`),
   }
   taStatus = {
-    checkIn: async (
+    checkMeIn: async (
       courseId: number,
-      room: string,
+      qid: number,
     ): Promise<TAUpdateStatusResponse> =>
-      this.req('POST', `/api/v1/courses/${courseId}/ta_location/${room}`),
-    checkOut: async (
+      this.req('POST', `/api/v1/courses/${courseId}/checkin/${qid}`),
+    checkMeOut: async (
       courseId: number,
-      room: string,
-    ): Promise<TACheckoutResponse> =>
-      this.req('DELETE', `/api/v1/courses/${courseId}/ta_location/${room}`),
+      qid?: number,
+    ): Promise<TACheckoutResponse> => {
+      if (qid) {
+        return this.req('DELETE', `/api/v1/courses/${courseId}/checkout/${qid}`)
+      } else {
+        return this.req('DELETE', `/api/v1/courses/${courseId}/checkout_all`)
+      }
+    },
   }
   asyncQuestions = {
     create: async (body: CreateAsyncQuestions, cid: number) =>
@@ -475,6 +484,8 @@ class APIClient {
       cid: number,
     ): Promise<Calendar> =>
       this.req('PATCH', `/api/v1/calendar/${eventId}/${cid}`, undefined, body),
+    resetCronJobs: async (orgId: number): Promise<void> =>
+      this.req('POST', `/api/v1/calendar/reset_cron_jobs/${orgId}`),
   }
 
   queues = {
@@ -740,7 +751,7 @@ class APIClient {
       organizationId: number,
       page: number,
       search?: string,
-    ): Promise<any> =>
+    ): Promise<OrgUser[]> =>
       this.req(
         'GET',
         `/api/v1/organization/${organizationId}/get_users/${page}${
@@ -788,6 +799,8 @@ class APIClient {
         undefined,
         props,
       ),
+    getCronJobs: async (organizationId: number): Promise<CronJob[]> =>
+      this.req('GET', `/api/v1/organization/${organizationId}/cronjobs`),
   }
 
   lmsIntegration = {

@@ -37,12 +37,7 @@ const CoursePageCheckInButton: React.FC<CoursePageCheckInButtonProps> = ({
         <CheckInModal
           visible={checkInModalVisible}
           onSubmit={async (queueId: number) => {
-            checkInTA(
-              courseId,
-              availableQueues[queueId].room,
-              mutateCourse,
-              router,
-            )
+            checkInTA(courseId, queueId, mutateCourse, router)
           }}
           onCancel={() => setCheckInModalVisible(false)}
           queues={availableQueues}
@@ -53,14 +48,13 @@ const CoursePageCheckInButton: React.FC<CoursePageCheckInButtonProps> = ({
           {queueCheckedIn ? (
             <TACheckinButton
               courseId={courseId}
-              room={queueCheckedIn.room}
+              queueId={queueCheckedIn.id}
               state="CheckedIn"
               className="w-fit"
             />
           ) : (
             <TACheckinButton
               courseId={courseId}
-              room=""
               state="CheckedOut"
               className="w-fit"
               preventDefaultAction={true}

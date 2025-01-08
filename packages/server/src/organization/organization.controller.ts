@@ -36,6 +36,7 @@ import {
   LMSCourseIntegrationPartial,
   CoursePartial,
   LMSIntegration,
+  OrgUser,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -48,7 +49,6 @@ import { Roles } from 'decorators/roles.decorator';
 import {
   OrganizationCourseResponse,
   OrganizationService,
-  UserResponse,
 } from './organization.service';
 import { OrganizationGuard } from 'guards/organization.guard';
 import * as checkDiskSpace from 'check-disk-space';
@@ -62,13 +62,20 @@ import { CourseSettingsModel } from 'course/course_settings.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
+import _ from 'lodash';
 import * as sharp from 'sharp';
 import { UserId } from 'decorators/user.decorator';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
+import { UserId } from 'decorators/user.decorator';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { CronJob } from 'cron';
 
 @Controller('organization')
 export class OrganizationController {
-  constructor(private organizationService: OrganizationService) {}
+  constructor(
+    private organizationService: OrganizationService,
+    private schedulerRegistry: SchedulerRegistry,
+  ) {}
 
   @Post(':oid/reset_chat_token_limit')
   @UseGuards(
@@ -80,7 +87,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async resetChatTokenLimit(
     @Res() res: Response,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     // Reset chat token limit for the organization
     await ChatTokenModel.query(
@@ -109,6 +116,30 @@ export class OrganizationController {
     return res.sendStatus(200);
   }
 
+  /**
+   * Gets all cron jobs for the system. The :oid is just to verify that they are an admin
+   */
+  @Get(':oid/cronjobs')
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
+  @Roles(OrganizationRole.ADMIN)
+  async getAllCronJobs(
+    @Param('oid', ParseIntPipe) oid: number,
+  ): Promise<any[] | CronJob[]> {
+    const jobs = this.schedulerRegistry.getCronJobs();
+    const jobsArray = Array.from(jobs.entries()).map(([key, job]) => {
+      const nextDates = job.running ? job.nextDates(10) : [];
+      return {
+        id: key,
+        cronTime: job.cronTime.source,
+        running: job.running,
+        nextDates: nextDates,
+        lastExecution: job.lastExecution,
+        runOnce: job.runOnce,
+      };
+    });
+    return jobsArray;
+  }
+
   @Post(':oid/populate_subscription_table')
   @UseGuards(
     JwtAuthGuard,
@@ -119,7 +150,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async populateSubscriptionTable(
     @Res() res: Response,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     try {
       const entityManager = getManager();
@@ -216,7 +247,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async populateChatTokenTable(
     @Res() res: Response,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     const organizationUsers = await OrganizationUserModel.find({
       where: {
@@ -259,7 +290,7 @@ export class OrganizationController {
   )
   @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async createCourse(
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
     @Res() res: Response,
   ): Promise<Response<void>> {
@@ -423,8 +454,8 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async updateCourse(
     @Res() res: Response,
-    @Param('oid') oid: number,
-    @Param('cid') cid: number,
+    @Param('oid', ParseIntPipe) oid: number,
+    @Param('cid', ParseIntPipe) cid: number,
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
   ): Promise<Response<void>> {
     const courseInfo = await OrganizationCourseModel.findOne({
@@ -624,8 +655,8 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async updateCourseAccess(
     @Res() res: Response,
-    @Param('oid') oid: number,
-    @Param('cid') cid: number,
+    @Param('oid', ParseIntPipe) oid: number,
+    @Param('cid', ParseIntPipe) cid: number,
   ): Promise<Response<void>> {
     const courseInfo: OrganizationCourseResponse =
       await this.organizationService.getOrganizationCourse(oid, cid);
@@ -657,8 +688,8 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async getOrganizationCourse(
     @Res() res: Response,
-    @Param('oid') oid: number,
-    @Param('cid') cid: number,
+    @Param('oid', ParseIntPipe) oid: number,
+    @Param('cid', ParseIntPipe) cid: number,
   ): Promise<Response<OrganizationCourseResponse>> {
     const course = await this.organizationService.getOrganizationCourse(
       oid,
@@ -678,7 +709,7 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async getBannerImage(
     @Param('photoUrl') photoUrl: string,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
     @Res() res: Response,
   ): Promise<void> {
     fs.stat(
@@ -710,7 +741,7 @@ export class OrganizationController {
   @Get(':oid/get_logo/:photoUrl')
   async getLogoImage(
     @Param('photoUrl') photoUrl: string,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
     @Res() res: Response,
   ): Promise<void> {
     fs.stat(
@@ -758,7 +789,7 @@ export class OrganizationController {
   async uploadBanner(
     @UploadedFile() file: Express.Multer.File,
     @Res() res: Response,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     const organization = await OrganizationModel.findOne({
       where: {
@@ -844,7 +875,7 @@ export class OrganizationController {
   async uploadLogo(
     @UploadedFile() file: Express.Multer.File,
     @Res() res: Response,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     const organization = await OrganizationModel.findOne({
       where: {
@@ -923,7 +954,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async updateUserAccountAccess(
     @Res() res: Response,
-    @Param('uid') uid: number,
+    @Param('uid', ParseIntPipe) uid: number,
   ): Promise<Response<void>> {
     const userInfo = await OrganizationUserModel.findOne({
       where: {
@@ -1516,7 +1547,7 @@ export class OrganizationController {
     @Param('oid', ParseIntPipe) oid: number,
     @Param('page', ParseIntPipe) page: number,
     @Query('search') search: string,
-  ): Promise<UserResponse[]> {
+  ): Promise<OrgUser[]> {
     const pageSize = 50;
 
     if (!search) {

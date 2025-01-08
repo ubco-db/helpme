@@ -7,22 +7,13 @@ import { CourseModel } from 'course/course.entity';
 import {
   CourseResponse,
   GetOrganizationUserResponse,
+  OrgUser,
   LMSOrganizationIntegrationPartial,
   Role,
   UserRole,
 } from '@koh/common';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
-
-export interface UserResponse {
-  userId: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  photoUrl: string | null;
-  userRole: string;
-  organizationRole: string;
-}
 
 export interface FlattenedOrganizationResponse {
   id: number;
@@ -146,7 +137,7 @@ export class OrganizationService {
     page: number,
     pageSize: number,
     search?: string,
-  ): Promise<UserResponse[]> {
+  ): Promise<OrgUser[]> {
     const organizationUsers = await getRepository(OrganizationUserModel)
       .createQueryBuilder()
       .leftJoin(
@@ -184,8 +175,8 @@ export class OrganizationService {
 
     const usersSubset = await users
       .orderBy('UserModel.lastName')
-      .skip((page - 1) * pageSize)
-      .take(pageSize)
+      .offset((page - 1) * pageSize)
+      .limit(pageSize)
       // .getMany() wouldn't work here because relations are not working well with getMany()
       .getRawMany();
 

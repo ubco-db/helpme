@@ -226,7 +226,7 @@ export class CourseService {
     page: number,
     pageSize: number,
     search?: string,
-    role?: Role,
+    roles?: Role[],
   ): Promise<GetCourseUserInfoResponse> {
     const query = await getRepository(UserModel)
       .createQueryBuilder()
@@ -238,8 +238,13 @@ export class CourseService {
       .where('"UserCourseModel"."courseId" = :courseId', { courseId });
 
     // check if searching for specific role and ensure it is a valid role
-    if (role && Object.values(Role).includes(role)) {
-      query.andWhere('"UserCourseModel".role = :role', { role });
+    if (roles) {
+      if (roles.some((role) => !Object.values(Role).includes(role))) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.courseController.roleInvalid,
+        );
+      }
+      query.andWhere('"UserCourseModel".role IN (:...roles)', { roles });
     }
     // check if searching for specific name
     if (search) {

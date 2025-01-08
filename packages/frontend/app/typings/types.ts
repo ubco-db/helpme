@@ -22,6 +22,7 @@ export interface Event {
   backgroundColor?: string
   borderColor?: string
   textColor?: string
+  staffIds?: number[]
 }
 
 /**
