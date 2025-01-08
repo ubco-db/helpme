@@ -66,7 +66,6 @@ import _ from 'lodash';
 import * as sharp from 'sharp';
 import { UserId } from 'decorators/user.decorator';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
-import { UserId } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 
