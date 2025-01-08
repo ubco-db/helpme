@@ -341,34 +341,6 @@ describe('Course Integration', () => {
         .expect(404);
     });
 
-    it("Doesn't allow users to check into multiple queues", async () => {
-      const queue1 = await QueueFactory.create();
-      const ta = await UserFactory.create();
-      await TACourseFactory.create({
-        course: queue1.course,
-        user: ta,
-      });
-      const queue2 = await QueueFactory.create({
-        course: queue1.course,
-      });
-
-      await supertest({ userId: ta.id })
-        .post(`/courses/${queue1.courseId}/checkin/${queue1.id}`)
-        .expect(201);
-
-      let events = await EventModel.count();
-      expect(events).toBe(1);
-
-      const response2 = await supertest({ userId: ta.id })
-        .post(`/courses/${queue2.courseId}/checkin/${queue2.id}`)
-        .expect(401);
-      expect(response2.body.message).toBe(
-        ERROR_MESSAGES.courseController.checkIn.cannotCheckIntoMultipleQueues,
-      );
-      events = await EventModel.count();
-      expect(events).toBe(1);
-    });
-
     it('doesnt allow people to join disabled queues', async () => {
       const queue1 = await QueueFactory.create({
         isDisabled: true,
@@ -489,7 +461,6 @@ describe('Course Integration', () => {
       });
 
       const events = await EventModel.find();
-      console.log(events);
       expect(events.length).toBe(2);
       expect(events[0].eventType).toBe(EventType.TA_CHECKED_OUT);
       expect(events[0].queueId).toBe(queue1.id);

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { NotificationModule } from '../notification/notification.module';
 import { QueueModule } from '../queue/queue.module';
 import { QuestionController } from './question.controller';
@@ -8,6 +8,7 @@ import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueService } from '../queue/queue.service';
 import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from '../config/application_config.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Module({
   controllers: [QuestionController],
@@ -18,8 +19,15 @@ import { ApplicationConfigService } from '../config/application_config.service';
     AlertsService,
     QuestionService,
     RedisQueueService,
+    NotificationService,
   ],
-  imports: [NotificationModule, QueueModule],
-  exports: [QuestionService],
+  imports: [NotificationModule, forwardRef(() => QueueModule)],
+  exports: [
+    QuestionService,
+    AlertsService,
+    NotificationService,
+    QueueService,
+    RedisQueueService,
+  ],
 })
 export class QuestionModule {}

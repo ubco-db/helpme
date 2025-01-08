@@ -25,10 +25,16 @@ import { UserModel } from 'profile/user.entity';
 import { QuestionModel } from './question.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
+import { QueueService } from '../queue/queue.service';
+import { RedisQueueService } from '../redisQueue/redis-queue.service';
 
 @Injectable()
 export class QuestionService {
-  constructor(private notifService: NotificationService) {}
+  constructor(
+    private notifService: NotificationService,
+    public queueService: QueueService,
+    public redisQueueService: RedisQueueService,
+  ) {}
 
   async changeStatus(
     status: QuestionStatus,
@@ -71,6 +77,8 @@ export class QuestionService {
     const isBecomingHelped =
       oldStatus !== OpenQuestionStatus.Helping &&
       newStatus === OpenQuestionStatus.Helping;
+    const isBecomingClosedFromWaiting =
+      waitingStatuses.includes(oldStatus) && newStatus in ClosedQuestionStatus;
     const isDoneBeingHelped =
       oldStatus === OpenQuestionStatus.Helping &&
       newStatus !== OpenQuestionStatus.Helping &&
@@ -83,7 +91,7 @@ export class QuestionService {
       waitingStatuses.includes(newStatus);
 
     const now = new Date();
-    if (isBecomingHelped) {
+    if (isBecomingHelped || isBecomingClosedFromWaiting) {
       question.taHelped = await UserModel.findOne({ where: { id: userId } });
       question.helpedAt = now;
       if (!question.lastReadyAt) {
@@ -99,7 +107,7 @@ export class QuestionService {
         question.firstHelpedAt = question.helpedAt;
       }
       await this.notifService.notifyUser(
-        question.creator.id,
+        question.creatorId,
         NotifMsgs.queue.TA_HIT_HELPED(question.taHelped.name),
       );
     }
@@ -116,7 +124,7 @@ export class QuestionService {
         question.taHelped = await UserModel.findOne({ where: { id: userId } });
       }
       await this.notifService.notifyUser(
-        question.creator.id,
+        question.creatorId,
         NotifMsgs.queue.PAUSED(question.taHelped.name),
       );
     }
@@ -317,5 +325,8 @@ export class QuestionService {
         Role.TA,
       );
     }
+    // update redis
+    const queueQuestions = await this.queueService.getQuestions(queueId);
+    await this.redisQueueService.setQuestions(`q:${queueId}`, queueQuestions);
   }
 }

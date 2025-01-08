@@ -16,12 +16,14 @@ import { EventModel, EventType } from '../profile/event-model.entity';
 import { CronJob } from 'cron';
 import * as Sentry from '@sentry/browser';
 import { QuestionService } from '../question/question.service';
+import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 
 @Injectable()
 export class CalendarService implements OnModuleInit {
   constructor(
     private schedulerRegistry: SchedulerRegistry,
     public questionService: QuestionService, // needed to make public for jest testing purposes
+    public queueCleanService: QueueCleanService,
   ) {}
 
   async onModuleInit() {
@@ -52,7 +54,12 @@ export class CalendarService implements OnModuleInit {
     await transactionalEntityManager.delete(CalendarStaffModel, { calendarId });
   }
 
-  /** Creates a new Cron job with name based on the userId and calendarId */
+  /**
+  Creates a new Cron job with name based on the userId and calendarId.
+
+  Note that there is an image in docs/diagrams called TA_Auto_Checkout_Logic_flowchart.png
+  that describes the logic of this.
+  */
   async createAutoCheckoutCronJob(
     userId: number,
     calendarId: number,
@@ -303,7 +310,7 @@ export class CalendarService implements OnModuleInit {
 
       // if the alert is not resolved, check out the user and stop helping any questions
       if (alert.resolved === null) {
-        myCheckedInQueues.forEach(async (queue) => {
+        for (const queue of myCheckedInQueues) {
           // convert any helping questions to resolved
           try {
             await this.questionService.resolveQuestions(queue.queueId, userId);
@@ -324,6 +331,10 @@ export class CalendarService implements OnModuleInit {
             Sentry.captureException(err);
             return;
           }
+          // prompt students with questions to leave the queue
+          await this.queueCleanService.promptStudentsToLeaveQueue(
+            queue.queueId,
+          );
           // create a TA_CHECKED_OUT_EVENT_END event
           try {
             await EventModel.create({
@@ -341,7 +352,7 @@ export class CalendarService implements OnModuleInit {
             Sentry.captureException(err);
             return;
           }
-        });
+        }
         // resolve the alert
         try {
           alert.resolved = new Date();
