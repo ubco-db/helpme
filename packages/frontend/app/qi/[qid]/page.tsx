@@ -333,8 +333,12 @@ export default function QueueInvitePage({
                   {queueInviteInfo.staffList.map((ta) => (
                     <StatusCard
                       key={ta.id}
+                      courseId={queueInviteInfo.courseId}
+                      isStaff={false}
+                      taId={ta.id}
                       taName={ta.name}
                       taPhotoURL={ta.photoURL}
+                      taNotes=""
                       helpedAt={ta.questionHelpedAt}
                     />
                   ))}

@@ -286,7 +286,6 @@ export class CourseController {
     }
 
     // Use raw query for performance (avoid entity instantiation and serialization)
-
     try {
       course.heatmap = await this.heatmapService.getCachedHeatmapFor(id);
     } catch (err) {
@@ -1133,5 +1132,23 @@ export class CourseController {
 
     res.status(200).send(queueInvites);
     return;
+  }
+
+  @Patch(':id/set_ta_notes/:uid')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
+  @Roles(Role.PROFESSOR)
+  async setTAsNotes(
+    @Param('id', ParseIntPipe) courseId: number,
+    @Param('uid', ParseIntPipe) userId: number,
+    @Body() body: { notes: string },
+  ): Promise<void> {
+    const userCourse = await UserCourseModel.findOne({
+      where: { courseId, userId },
+    });
+    if (!userCourse) {
+      throw new NotFoundException('TA not found');
+    }
+    userCourse.TANotes = body.notes;
+    await userCourse.save();
   }
 }

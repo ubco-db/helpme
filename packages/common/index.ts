@@ -320,6 +320,13 @@ export interface Queue {
 // Queue location/type for different queues within each course
 export type QueueTypes = 'online' | 'hybrid' | 'inPerson'
 
+export interface StaffMember {
+  id: number
+  name: string
+  photoURL?: string
+  TANotes?: string
+}
+
 /**
  * A Queue partial to be shown on the course page. It's like the full Queue object but without the questions.
  * @param id - The unique id number for a Queue.
@@ -335,7 +342,7 @@ export class QueuePartial {
   room!: string
 
   @Type(() => UserPartial)
-  staffList!: UserPartial[]
+  staffList!: StaffMember[]
 
   queueSize!: number
   notes?: string

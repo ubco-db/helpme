@@ -43,4 +43,8 @@ export class UserCourseModel extends BaseEntity {
     (insightDashboard) => insightDashboard.userCourse,
   )
   insightDashboard?: InsightDashboardModel;
+
+  /* This represents the notes that professors can put on their TA's profiles*/
+  @Column({ type: 'text', nullable: true })
+  TANotes: string;
 }

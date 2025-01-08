@@ -284,6 +284,15 @@ class APIClient {
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
     getAllQueueInvites: async (courseId: number): Promise<QueueInvite[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/queue_invites`),
+    updateTANotes: async (courseId: number, TAid: number, notes: string) =>
+      this.req(
+        'PATCH',
+        `/api/v1/courses/${courseId}/set_ta_notes/${TAid}`,
+        undefined,
+        {
+          notes,
+        },
+      ),
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>
