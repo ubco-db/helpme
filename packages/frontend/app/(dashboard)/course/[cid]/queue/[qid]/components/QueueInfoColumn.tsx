@@ -130,7 +130,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
           <p> No staff checked in</p>
         </div>
       ) : !staffListHidden ? (
-        <StaffList queueId={queueId} courseId={cid} isStaff />
+        <StaffList queueId={queueId} courseId={cid} />
       ) : null}
 
       {/* buttons for staff on mobile */}

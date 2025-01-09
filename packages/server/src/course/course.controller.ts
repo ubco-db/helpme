@@ -65,6 +65,7 @@ import { Not, getManager } from 'typeorm';
 import { pick } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { CourseRole } from 'decorators/course-role.decorator';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -1136,12 +1137,17 @@ export class CourseController {
 
   @Patch(':id/set_ta_notes/:uid')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
-  @Roles(Role.PROFESSOR)
-  async setTAsNotes(
+  @Roles(Role.PROFESSOR, Role.TA)
+  async setTANotes(
     @Param('id', ParseIntPipe) courseId: number,
     @Param('uid', ParseIntPipe) userId: number,
+    @User() myUser: UserModel,
+    @CourseRole() myRole: Role,
     @Body() body: { notes: string },
   ): Promise<void> {
+    if (myRole === Role.TA && myUser.id !== userId) {
+      throw new UnauthorizedException('You can only set notes for yourself');
+    }
     const userCourse = await UserCourseModel.findOne({
       where: { courseId, userId },
     });

@@ -1,4 +1,4 @@
-import { OpenQuestionStatus, Question } from '@koh/common'
+import { OpenQuestionStatus, Question, Role } from '@koh/common'
 import { Badge, Button, Col, message, Popover, Row, Tooltip } from 'antd'
 import { useQuestions } from '@/app/hooks/useQuestions'
 import { useQueue } from '@/app/hooks/useQueue'
@@ -8,24 +8,23 @@ import { formatWaitTime } from '@/app/utils/timeFormatUtils'
 import TextArea from 'antd/es/input/TextArea'
 import { useState } from 'react'
 import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
 import { QuestionCircleOutlined } from '@ant-design/icons'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 interface StaffListProps {
   queueId: number
   courseId: number
-  isStaff: boolean
 }
 /**
  * Row of ta statuses
  */
-const StaffList: React.FC<StaffListProps> = ({
-  queueId,
-  courseId,
-  isStaff,
-}) => {
+const StaffList: React.FC<StaffListProps> = ({ queueId, courseId }) => {
   const { queueQuestions } = useQuestions(queueId)
   const { queue } = useQueue(queueId)
+  const { userInfo } = useUserInfo()
+  const role = getRoleInCourse(userInfo, courseId)
+
   const staffList = queue?.staffList ?? []
   if (!queueQuestions) {
     return null
@@ -54,8 +53,9 @@ const StaffList: React.FC<StaffListProps> = ({
       {staffList.map((ta) => (
         <Col key={ta.id}>
           <StatusCard
+            myId={userInfo.id}
+            myRole={role}
             courseId={courseId}
-            isStaff
             taId={ta.id}
             taName={ta.name}
             taPhotoURL={ta.photoURL}
@@ -76,8 +76,9 @@ const StaffList: React.FC<StaffListProps> = ({
 
 interface StatusCardProps {
   courseId: number
-  isStaff: boolean
   taId: number
+  myRole?: Role
+  myId?: number
   taName?: string
   taPhotoURL?: string
   studentName?: string
@@ -90,8 +91,9 @@ interface StatusCardProps {
  */
 const StatusCard: React.FC<StatusCardProps> = ({
   courseId,
-  isStaff,
   taId,
+  myRole,
+  myId,
   taName,
   taPhotoURL,
   taNotes,
@@ -103,17 +105,22 @@ const StatusCard: React.FC<StatusCardProps> = ({
   const [tempTaNotes, setTempTaNotes] = useState<string | undefined>(taNotes)
   const [saveSuccessful, setSaveSuccessful] = useState(false)
 
-  // TODO: instead of isStaff, need isProf
+  // you can edit the notes if it's you or if you're a professor
+  const shouldShowEdit =
+    myRole === Role.PROFESSOR || (myRole === Role.TA && myId === taId)
+
   return (
     <Popover
-      mouseLeaveDelay={isStaff ? 0.5 : 0.1}
+      mouseLeaveDelay={shouldShowEdit ? 0.5 : 0.1}
       overlayClassName="min-w-80"
       content={
-        // if you're not staff and the TA doesn't have notes, don't show anything
-        !isStaff && !taNotes ? null : (
+        // if you can't edit it and the TA doesn't have notes, don't show anything
+        !shouldShowEdit && !taNotes ? null : (
           <div className="flex flex-col gap-y-2">
-            {!isStaff ? (
-              <div>{taNotes}</div>
+            {!shouldShowEdit ? (
+              <div className="max-h-40 overflow-y-auto whitespace-pre-wrap">
+                {taNotes}
+              </div>
             ) : (
               <>
                 <TextArea
@@ -160,22 +167,27 @@ const StatusCard: React.FC<StatusCardProps> = ({
         )
       }
       title={
-        <div className="flex items-center">
-          <div>{taName} - TA Notes</div>
-          <div>
-            <Tooltip
-              title={
-                !isStaff
-                  ? 'These are notes set by the professor on this TA.'
-                  : 'Here you can set notes on your TAs (e.g. the types of questions a TA can answer). Other users can then hover the TA to see these notes. You can also change these on the Roster page in Course Settings'
-              }
-            >
-              <span className="ml-2 text-gray-500">
-                <QuestionCircleOutlined />
-              </span>
-            </Tooltip>
+        // if you can't edit it and the TA doesn't have notes, don't show anything
+        !shouldShowEdit && !taNotes ? null : (
+          <div className="flex items-center">
+            <div>{taName} - TA Notes</div>
+            <div>
+              <Tooltip
+                title={
+                  myRole === Role.PROFESSOR
+                    ? 'Here you can set notes on your TAs (e.g. the types of questions a TA can answer). Other users can then hover the TA to see these notes. You can also change these on the Roster page in Course Settings. TAs are able to modify their own notes'
+                    : myRole === Role.TA && myId === taId
+                      ? 'Here you can give yourself notes that anyone can see if they hover you. For example, you could write the types of questions you can answer. Professors can also change these notes'
+                      : 'These are notes for this TA. They are written by them or set by the professor.'
+                }
+              >
+                <span className="ml-2 text-gray-500">
+                  <QuestionCircleOutlined />
+                </span>
+              </Tooltip>
+            </div>
           </div>
-        </div>
+        )
       }
     >
       <div className="flex rounded-md bg-white p-3 shadow-md md:mb-4 md:p-4">

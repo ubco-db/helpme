@@ -1,5 +1,126 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`Course Integration GET /courses/:id cant get office hours if not a member of the course 1`] = `
+{
+  "allowQuestions": false,
+  "config": {},
+  "id": 2,
+  "isDisabled": false,
+  "isOpen": true,
+  "isProfessorQueue": false,
+  "notes": null,
+  "queueSize": 0,
+  "room": "room 2",
+  "staffList": [],
+  "type": "hybrid",
+  "zoomLink": null,
+}
+`;
+
+exports[`Course Integration GET /courses/:id cant get office hours if not a member of the course 2`] = `
+{
+  "allowQuestions": false,
+  "config": {},
+  "id": 3,
+  "isDisabled": false,
+  "isOpen": true,
+  "isProfessorQueue": false,
+  "notes": null,
+  "queueSize": 0,
+  "room": "room 3",
+  "staffList": [
+    {
+      "accountDeactivated": false,
+      "accountType": "legacy",
+      "defaultMessage": null,
+      "email": "user@ubc.ca",
+      "emailVerified": true,
+      "firstName": "User",
+      "id": 2,
+      "includeDefaultMessage": true,
+      "insights": [
+        "TotalStudents",
+        "TotalQuestionsAsked",
+        "MedianWaitTime",
+        "QuestionTypeBreakdown",
+        "MostActiveStudents",
+        "QuestionToStudentRatio",
+        "MedianHelpingTime",
+        "AverageTimesByWeekDay",
+        "HumanVsChatbot",
+        "HumanVsChatbotVotes",
+        "MostActiveTimes",
+        "HelpSeekingOverTime",
+        "StaffEfficiency",
+        "StaffTotalHelped",
+        "StaffQuestionTimesByDay",
+        "StaffWorkload",
+      ],
+      "lastName": "Person",
+      "name": "User Person",
+      "photoURL": null,
+      "readChangeLog": false,
+      "sid": null,
+      "userRole": "user",
+    },
+  ],
+  "type": "hybrid",
+  "zoomLink": null,
+}
+`;
+
+exports[`Course Integration GET /courses/:id cant get office hours if not a member of the course 3`] = `
+{
+  "allowQuestions": false,
+  "config": {},
+  "id": 4,
+  "isDisabled": false,
+  "isOpen": true,
+  "isProfessorQueue": true,
+  "notes": null,
+  "queueSize": 0,
+  "room": "room 4",
+  "staffList": [
+    {
+      "accountDeactivated": false,
+      "accountType": "legacy",
+      "defaultMessage": null,
+      "email": "user@ubc.ca",
+      "emailVerified": true,
+      "firstName": "User",
+      "id": 2,
+      "includeDefaultMessage": true,
+      "insights": [
+        "TotalStudents",
+        "TotalQuestionsAsked",
+        "MedianWaitTime",
+        "QuestionTypeBreakdown",
+        "MostActiveStudents",
+        "QuestionToStudentRatio",
+        "MedianHelpingTime",
+        "AverageTimesByWeekDay",
+        "HumanVsChatbot",
+        "HumanVsChatbotVotes",
+        "MostActiveTimes",
+        "HelpSeekingOverTime",
+        "StaffEfficiency",
+        "StaffTotalHelped",
+        "StaffQuestionTimesByDay",
+        "StaffWorkload",
+      ],
+      "lastName": "Person",
+      "name": "User Person",
+      "photoURL": null,
+      "readChangeLog": false,
+      "sid": null,
+      "userRole": "user",
+    },
+  ],
+  "type": "hybrid",
+  "zoomLink": null,
+}
+`;
+
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 1`] = `
 {
   "allowQuestions": false,
