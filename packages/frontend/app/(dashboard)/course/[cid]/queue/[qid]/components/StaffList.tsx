@@ -109,52 +109,55 @@ const StatusCard: React.FC<StatusCardProps> = ({
       mouseLeaveDelay={isStaff ? 0.5 : 0.1}
       overlayClassName="min-w-80"
       content={
-        <div className="flex flex-col gap-y-2">
-          {!isStaff ? (
-            <div>{taNotes}</div>
-          ) : (
-            <>
-              <TextArea
-                placeholder="Add TA Notes..."
-                autoSize={{ minRows: 4, maxRows: 7 }}
-                value={tempTaNotes}
-                onChange={(e) => setTempTaNotes(e.target.value)}
-              />
-              <div className="flex items-center justify-start">
-                <Button
-                  onClick={async () => {
-                    await API.course
-                      .updateTANotes(courseId, taId, tempTaNotes ?? '')
-                      .then(() => {
-                        setSaveSuccessful(true)
-                        // saved goes away after 1s
-                        setTimeout(() => {
-                          setSaveSuccessful(false)
-                        }, 1000)
-                      })
-                      .catch((e) => {
-                        const errorMessage = getErrorMessage(e)
-                        message.error(errorMessage)
-                      })
-                  }}
-                >
-                  Save
-                </Button>
-                <div>
-                  {
-                    <span
-                      className={`ml-2 text-green-500 transition-opacity duration-300 ${
-                        saveSuccessful ? 'opacity-100' : 'opacity-0'
-                      }`}
-                    >
-                      Saved!
-                    </span>
-                  }
+        // if you're not staff and the TA doesn't have notes, don't show anything
+        !isStaff && !taNotes ? null : (
+          <div className="flex flex-col gap-y-2">
+            {!isStaff ? (
+              <div>{taNotes}</div>
+            ) : (
+              <>
+                <TextArea
+                  placeholder="Add TA Notes..."
+                  autoSize={{ minRows: 4, maxRows: 7 }}
+                  value={tempTaNotes}
+                  onChange={(e) => setTempTaNotes(e.target.value)}
+                />
+                <div className="flex items-center justify-start">
+                  <Button
+                    onClick={async () => {
+                      await API.course
+                        .updateTANotes(courseId, taId, tempTaNotes ?? '')
+                        .then(() => {
+                          setSaveSuccessful(true)
+                          // saved goes away after 1s
+                          setTimeout(() => {
+                            setSaveSuccessful(false)
+                          }, 1000)
+                        })
+                        .catch((e) => {
+                          const errorMessage = getErrorMessage(e)
+                          message.error(errorMessage)
+                        })
+                    }}
+                  >
+                    Save
+                  </Button>
+                  <div>
+                    {
+                      <span
+                        className={`ml-2 text-green-500 transition-opacity duration-300 ${
+                          saveSuccessful ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      >
+                        Saved!
+                      </span>
+                    }
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
-        </div>
+              </>
+            )}
+          </div>
+        )
       }
       title={
         <div className="flex items-center">
@@ -164,7 +167,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
               title={
                 !isStaff
                   ? 'These are notes set by the professor on this TA.'
-                  : "Here you can set notes on your TAs (e.g. a TA's schedule). Other users can then hover the TA to see these notes. You can also change these on the Roster page in Course Settings"
+                  : 'Here you can set notes on your TAs (e.g. the types of questions a TA can answer). Other users can then hover the TA to see these notes. You can also change these on the Roster page in Course Settings'
               }
             >
               <span className="ml-2 text-gray-500">

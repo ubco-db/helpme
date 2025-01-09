@@ -145,6 +145,10 @@ export class UserPartial {
   @IsInt()
   @IsOptional()
   sid?: number
+
+  @IsOptional()
+  @IsString()
+  TANotes?: string
 }
 
 /**
