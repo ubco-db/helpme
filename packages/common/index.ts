@@ -524,6 +524,7 @@ export enum ClosedQuestionStatus {
   DeletedDraft = 'DeletedDraft',
   ConfirmedDeleted = 'ConfirmedDeleted',
   Stale = 'Stale',
+  LeftDueToNoStaff = 'LeftDueToNoStaff',
 }
 
 /** waitingStatuses are statuses where the student waiting to be helped */
@@ -998,6 +999,44 @@ export class GetOrganizationResponse {
   ssoUrl?: string
 }
 
+export class LMSOrganizationIntegrationPartial {
+  organizationId!: number
+  apiPlatform!: LMSIntegration
+  rootUrl!: string
+  courseIntegrations!: LMSCourseIntegrationPartial[]
+}
+
+export class LMSCourseIntegrationPartial {
+  courseId!: number
+  course!: CoursePartial
+  apiPlatform!: LMSIntegration
+  apiCourseId!: string
+  apiKeyExpiry!: Date
+}
+
+export type LMSCourseAPIResponse = {
+  name: string
+  code: string
+  studentCount: number
+}
+
+export type LMSAssignmentAPIResponse = {
+  id: number
+  name: string
+  description: string
+  modified: Date
+}
+
+export enum LMSApiResponseStatus {
+  None,
+  InvalidPlatform,
+  InvalidKey,
+  InvalidCourseId,
+  InvalidConfiguration,
+  Error,
+  Success,
+}
+
 export interface CourseResponse {
   courseId: number
   courseName: string
@@ -1346,6 +1385,7 @@ export class TACheckinPair {
 export enum AlertType {
   REPHRASE_QUESTION = 'rephraseQuestion',
   EVENT_ENDED_CHECKOUT_STAFF = 'eventEndedCheckoutStaff',
+  PROMPT_STUDENT_TO_LEAVE_QUEUE = 'promptStudentToLeaveQueue',
 }
 
 export class AlertPayload {}
@@ -1373,6 +1413,10 @@ export class RephraseQuestionPayload extends AlertPayload {
 
   @IsInt()
   courseId!: number
+}
+
+export class PromptStudentToLeaveQueuePayload extends AlertPayload {
+  queueId!: number
 }
 
 export class OrganizationCourseResponse {
@@ -2315,6 +2359,10 @@ export function decodeBase64(str: string) {
   return Buffer.from(str, 'base64').toString('utf-8')
 }
 
+export enum LMSIntegration {
+  Canvas = 'Canvas',
+}
+
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
@@ -2343,6 +2391,12 @@ export const ERROR_MESSAGES = {
     userNotFoundInOrganization: 'User not found in organization',
     cannotRemoveAdminRole: 'Cannot remove admin role from user',
     cannotGetAdminUser: 'Information about this user account is restricted',
+    lmsIntegrationNotFound:
+      'Learning Management System integration was not found',
+    lmsIntegrationInvalidPlatform: 'The specified API platform was invalid',
+    lmsIntegrationUrlRequired: 'Root URL is required for LMS integrations',
+    lmsIntegrationProtocolIncluded:
+      'Root URL should not include protocol (https/http)',
   },
   courseController: {
     checkIn: {
@@ -2389,6 +2443,9 @@ export const ERROR_MESSAGES = {
       'You are unauthorized to submit an application. Please email help@khouryofficehours.com for the correct URL.',
     crnAlreadyRegistered: (crn: number, courseId: number): string =>
       `The CRN ${crn} already exists for another course with course id ${courseId}`,
+    organizationNotFound: 'Course has no related organization',
+    orgIntegrationNotFound: 'Course organization has no LMS integrations',
+    lmsIntegrationNotFound: 'Course has no related LMS integrations',
   },
   questionController: {
     createQuestion: {

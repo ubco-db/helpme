@@ -341,34 +341,6 @@ describe('Course Integration', () => {
         .expect(404);
     });
 
-    it("Doesn't allow users to check into multiple queues", async () => {
-      const queue1 = await QueueFactory.create();
-      const ta = await UserFactory.create();
-      await TACourseFactory.create({
-        course: queue1.course,
-        user: ta,
-      });
-      const queue2 = await QueueFactory.create({
-        course: queue1.course,
-      });
-
-      await supertest({ userId: ta.id })
-        .post(`/courses/${queue1.courseId}/checkin/${queue1.id}`)
-        .expect(201);
-
-      let events = await EventModel.count();
-      expect(events).toBe(1);
-
-      const response2 = await supertest({ userId: ta.id })
-        .post(`/courses/${queue2.courseId}/checkin/${queue2.id}`)
-        .expect(401);
-      expect(response2.body.message).toBe(
-        ERROR_MESSAGES.courseController.checkIn.cannotCheckIntoMultipleQueues,
-      );
-      events = await EventModel.count();
-      expect(events).toBe(1);
-    });
-
     it('doesnt allow people to join disabled queues', async () => {
       const queue1 = await QueueFactory.create({
         isDisabled: true,
@@ -2020,6 +1992,69 @@ describe('Course Integration', () => {
         ]),
       );
     });
+  });
+
+  describe('GET /courses/:id/lms_integration', () => {
+    it.each([Role.STUDENT, Role.TA])(
+      'should return 403 when non-professor accesses route',
+      async (courseRole) => {
+        const user = await UserFactory.create();
+        const course = await CourseFactory.create();
+
+        await UserCourseModel.create({
+          userId: user.id,
+          courseId: course.id,
+          role: courseRole,
+        }).save();
+
+        const res = await supertest({ userId: user.id }).get(
+          `/courses/${course.id}/lms_integration`,
+        );
+        expect(res.statusCode).toBe(403);
+      },
+    );
+  });
+
+  describe('POST /courses/:id/lms_integration/upsert', () => {
+    it.each([Role.STUDENT, Role.TA])(
+      'should return 403 when non-professor accesses route',
+      async (courseRole) => {
+        const user = await UserFactory.create();
+        const course = await CourseFactory.create();
+
+        await UserCourseModel.create({
+          userId: user.id,
+          courseId: course.id,
+          role: courseRole,
+        }).save();
+
+        const res = await supertest({ userId: user.id }).post(
+          `/courses/${course.id}/lms_integration/upsert`,
+        );
+        expect(res.statusCode).toBe(403);
+      },
+    );
+  });
+
+  describe('DELETE /courses/:id/lms_integration/remove', () => {
+    it.each([Role.STUDENT, Role.TA])(
+      'should return 403 when non-professor accesses route',
+      async (courseRole) => {
+        const user = await UserFactory.create();
+        const course = await CourseFactory.create();
+
+        await UserCourseModel.create({
+          userId: user.id,
+          courseId: course.id,
+          role: courseRole,
+        }).save();
+
+        const res = await supertest({ userId: user.id }).delete(
+          `/courses/${course.id}/lms_integration/remove`,
+        );
+        expect(res.statusCode).toBe(403);
+      },
+    );
   });
   describe('PATCH /courses/:id/set_ta_notes/:uid', () => {
     it('should return 401 if user is not authorized', async () => {

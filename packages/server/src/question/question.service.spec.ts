@@ -21,6 +21,10 @@ import { QuestionGroupModel } from './question-group.entity';
 import { QuestionModel } from './question.entity';
 import { QuestionService } from './question.service';
 import { QueueModel } from 'queue/queue.entity';
+import { RedisQueueService } from 'redisQueue/redis-queue.service';
+import { QueueService } from 'queue/queue.service';
+import { AlertsService } from 'alerts/alerts.service';
+import { ApplicationConfigService } from 'config/application_config.service';
 
 describe('QuestionService', () => {
   let service: QuestionService;
@@ -30,7 +34,24 @@ describe('QuestionService', () => {
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [TestTypeOrmModule, TestConfigModule],
-      providers: [QuestionService, NotificationService],
+      providers: [
+        {
+          provide: QueueService,
+          useValue: {
+            getQuestions: jest.fn(),
+          },
+        },
+        QuestionService,
+        {
+          provide: RedisQueueService,
+          useValue: {
+            setQuestions: jest.fn(),
+          },
+        },
+        NotificationService,
+        AlertsService,
+        ApplicationConfigService,
+      ],
     }).compile();
 
     service = module.get<QuestionService>(QuestionService);
@@ -114,6 +135,9 @@ describe('QuestionService', () => {
         taHelped: ta,
         status: OpenQuestionStatus.Helping,
       });
+      jest
+        .spyOn(service.queueService, 'getQuestions')
+        .mockResolvedValue([question1, question2] as any);
 
       await service.resolveQuestions(queue.id, ta.id);
 
@@ -122,6 +146,12 @@ describe('QuestionService', () => {
 
       expect(resolvedQuestion1.status).toEqual(ClosedQuestionStatus.Resolved);
       expect(resolvedQuestion2.status).toEqual(ClosedQuestionStatus.Resolved);
+
+      expect(service.queueService.getQuestions).toHaveBeenCalledWith(queue.id);
+      expect(service.redisQueueService.setQuestions).toHaveBeenCalledWith(
+        `q:${queue.id}`,
+        [question1, question2], // note that these should be the updated questions, but I would need to somehow mock getQuestions to return the updated questions before they were updated and I'm good thanks
+      );
     });
 
     it('should mark tasks done for task questions', async () => {
@@ -167,6 +197,9 @@ describe('QuestionService', () => {
       jest.spyOn(service, 'checkIfValidTaskQuestion').mockResolvedValue();
       jest.spyOn(service, 'markTasksDone').mockResolvedValue();
 
+      jest
+        .spyOn(service.queueService, 'getQuestions')
+        .mockResolvedValue([taskQuestion] as any);
       await service.resolveQuestions(queue.id, ta.id);
 
       const updatedQuestion = await QuestionModel.findOne(taskQuestion.id);
@@ -180,6 +213,12 @@ describe('QuestionService', () => {
       expect(service.markTasksDone).toHaveBeenCalledWith(
         updatedQuestion,
         taskQuestion.creatorId,
+      );
+
+      expect(service.queueService.getQuestions).toHaveBeenCalledWith(queue.id);
+      expect(service.redisQueueService.setQuestions).toHaveBeenCalledWith(
+        `q:${queue.id}`,
+        [taskQuestion], // note that these should be the updated questions, but I would need to somehow mock getQuestions to return the updated questions before they were updated and I'm good thanks
       );
     });
 

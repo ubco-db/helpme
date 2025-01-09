@@ -6,10 +6,16 @@ import { CalendarController } from './calendar.controller';
 import { QuestionService } from '../question/question.service';
 import { NotificationService } from '../notification/notification.service';
 import { ScheduleModule } from '@nestjs/schedule';
+import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 
 @Module({
   controllers: [CalendarController],
   imports: [QueueModule, LoginModule, ScheduleModule.forRoot()],
-  providers: [CalendarService, QuestionService, NotificationService],
+  providers: [
+    CalendarService,
+    QuestionService,
+    NotificationService,
+    QueueCleanService,
+  ],
 })
 export class CalendarModule {}

@@ -6,6 +6,7 @@ import {
   ExperimentOutlined,
   SettingOutlined,
   CodeOutlined,
+  InteractionOutlined,
 } from '@ant-design/icons'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -31,6 +32,12 @@ const items = [
     label: 'Settings',
     icon: <SettingOutlined />,
     url: '/organization/settings',
+  },
+  {
+    key: 'lms_integrations',
+    label: 'LMS Integrations',
+    icon: <InteractionOutlined />,
+    url: '/organization/lms_integrations',
   },
   {
     key: 'dev',

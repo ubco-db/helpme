@@ -4,7 +4,6 @@ import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import {
   DownOutlined,
-  EditOutlined,
   QuestionCircleOutlined,
   SearchOutlined,
   UserDeleteOutlined,
@@ -26,6 +25,7 @@ import {
 import TextArea from 'antd/es/input/TextArea'
 import { Notebook, NotebookText } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { cn } from '@/app/utils/generalUtils'
 
 type CourseRosterTableProps = {
   courseId: number
@@ -100,7 +100,7 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
 
   const renderItem = (item: UserPartial) => {
     return (
-      <UserListItem
+      <RosterItem
         item={item}
         courseId={courseId}
         userInfo={userInfo}
@@ -162,15 +162,7 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
   }
 }
 
-const UserListItem = ({
-  item,
-  courseId,
-  role,
-  isSensitiveInfoHidden,
-  userInfo,
-  handleRoleChange,
-  onRoleChange,
-}: {
+const RosterItem: React.FC<{
   item: UserPartial
   courseId: number
   role: Role
@@ -178,6 +170,16 @@ const UserListItem = ({
   userInfo: User
   handleRoleChange: (userId: number, newRole: Role, userName: string) => void
   onRoleChange: () => void
+  className?: string
+}> = ({
+  item,
+  courseId,
+  role,
+  isSensitiveInfoHidden,
+  userInfo,
+  handleRoleChange,
+  onRoleChange,
+  className,
 }) => {
   const [tempTaNotes, setTempTaNotes] = useState(item.TANotes ?? '')
   const [canSave, setCanSave] = useState(false)
@@ -185,7 +187,10 @@ const UserListItem = ({
   const [saveSuccessful, setSaveSuccessful] = useState(false)
 
   return (
-    <List.Item key={item.id} className="flex items-center justify-between">
+    <List.Item
+      key={item.id}
+      className={cn('flex items-center justify-between', className ?? '')}
+    >
       <List.Item.Meta
         avatar={
           <UserAvatar photoURL={item.photoURL} username={item.name ?? ''} />

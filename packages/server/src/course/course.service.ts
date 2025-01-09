@@ -28,6 +28,8 @@ import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { CourseModel } from './course.entity';
 import { UserModel } from 'profile/user.entity';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
+import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
+import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 
 @Injectable()
 export class CourseService {
@@ -272,7 +274,10 @@ export class CourseService {
     `;
 
     // make the query
-    const rawUsers = (await UserCourseModel.query(query, params)) as UserPartial &
+    const rawUsers = (await UserCourseModel.query(
+      query,
+      params,
+    )) as UserPartial &
       {
         total: number;
       }[];
@@ -384,5 +389,41 @@ export class CourseService {
     } else {
       return `/courses?err=notInCourse`;
     }
+  }
+
+  public async createLMSIntegration(
+    orgIntegration: LMSOrganizationIntegrationModel,
+    courseId: number,
+    apiCourseId: string,
+    apiKey: string,
+    apiKeyExpiry?: Date,
+  ) {
+    const integration = new LMSCourseIntegrationModel();
+    integration.orgIntegration = orgIntegration;
+    integration.courseId = courseId;
+    integration.apiKey = apiKey;
+    integration.apiCourseId = apiCourseId;
+    integration.apiKeyExpiry = apiKeyExpiry;
+    await LMSCourseIntegrationModel.upsert(integration, ['courseId']);
+    return `Successfully linked course with ${orgIntegration.apiPlatform}`;
+  }
+
+  public async updateLMSIntegration(
+    integration: LMSCourseIntegrationModel,
+    orgIntegration: LMSOrganizationIntegrationModel,
+    apiKeyExpiryDeleted = false,
+    apiCourseId?: string,
+    apiKey?: string,
+    apiKeyExpiry?: Date,
+  ) {
+    integration.orgIntegration = orgIntegration;
+    integration.apiKey = apiKey ?? integration.apiKey;
+    integration.apiCourseId = apiCourseId ?? integration.apiCourseId;
+    integration.apiKeyExpiry = apiKeyExpiryDeleted
+      ? null
+      : (apiKeyExpiry ?? integration.apiKeyExpiry);
+
+    await LMSCourseIntegrationModel.upsert(integration, ['courseId']);
+    return `Successfully updated link with ${integration.orgIntegration.apiPlatform}`;
   }
 }

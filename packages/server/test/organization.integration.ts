@@ -2885,4 +2885,26 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(200);
     });
   });
+
+  describe('GET /organization/:oid/lms_integration', () => {
+    it.each([OrganizationRole.PROFESSOR, OrganizationRole.MEMBER])(
+      'should return 401 when org non-administrator calls route',
+      async (orgRole: OrganizationRole) => {
+        const user = await UserFactory.create();
+        const organization = await OrganizationFactory.create();
+
+        await OrganizationUserModel.create({
+          userId: user.id,
+          organizationId: organization.id,
+          role: orgRole,
+        }).save();
+
+        const res = await supertest({ userId: user.id }).get(
+          `/organization/${organization.id}/lms_integration`,
+        );
+
+        expect(res.status).toBe(401);
+      },
+    );
+  });
 });
