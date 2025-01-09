@@ -241,6 +241,9 @@ export class CourseService {
     // check if searching for specific role and ensure it is a valid role
     let roleCondition = '';
     if (roles && roles.length > 0) {
+      if (search === 'd') {
+        console.log(roles);
+      }
       if (roles.some((role) => !Object.values(Role).includes(role))) {
         throw new BadRequestException(
           ERROR_MESSAGES.courseController.roleInvalid,
