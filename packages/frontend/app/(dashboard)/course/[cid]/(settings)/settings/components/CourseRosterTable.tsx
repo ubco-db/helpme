@@ -284,7 +284,6 @@ const RosterItem: React.FC<{
                       .then(() => {
                         setSaveSuccessful(true)
                         setCanSave(false)
-                        setSaveLoading(false)
                         item.TANotes = tempTaNotes
                         // saved goes away after 1s
                         setTimeout(() => {
@@ -294,6 +293,9 @@ const RosterItem: React.FC<{
                       .catch((e) => {
                         const errorMessage = getErrorMessage(e)
                         message.error(errorMessage)
+                      })
+                      .finally(() => {
+                        setSaveLoading(false)
                       })
                   }}
                 >

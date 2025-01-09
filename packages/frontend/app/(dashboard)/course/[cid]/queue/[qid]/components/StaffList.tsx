@@ -146,7 +146,6 @@ const StatusCard: React.FC<StatusCardProps> = ({
                         .then(() => {
                           setSaveSuccessful(true)
                           setCanSave(false)
-                          setSaveLoading(false)
                           // saved goes away after 1s
                           setTimeout(() => {
                             setSaveSuccessful(false)
@@ -155,6 +154,9 @@ const StatusCard: React.FC<StatusCardProps> = ({
                         .catch((e) => {
                           const errorMessage = getErrorMessage(e)
                           message.error(errorMessage)
+                        })
+                        .finally(() => {
+                          setSaveLoading(false)
                         })
                     }}
                   >
