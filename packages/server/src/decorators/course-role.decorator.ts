@@ -1,17 +1,26 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { UserModel } from 'profile/user.entity';
+import {
+  createParamDecorator,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { UserCourseModel } from 'profile/user-course.entity';
 
 export const CourseRole = createParamDecorator(
   async (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
-    const courseId = request.params.courseId;
-    const user = await UserModel.findOne(request.user.userId, {
-      relations: ['courses'],
+    const courseId =
+      request.params.courseId ??
+      request.params.cid ??
+      request.params.id ??
+      null;
+    const userCourse = await UserCourseModel.findOne({
+      where: { userId: request.user.userId, courseId },
     });
 
-    const userCourse = user.courses.find((course) => {
-      return Number(course.courseId) === Number(courseId);
-    });
+    if (!userCourse) {
+      throw new UnauthorizedException('User is not enrolled in this course');
+    }
+
     return userCourse.role;
   },
 );
