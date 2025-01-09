@@ -283,8 +283,9 @@ describe('CourseService', () => {
     it('returns name, email, and photoURL for user', async () => {
       const courseId = 1;
       search = 'tingwei';
-      const user = (await service.getUserInfo(courseId, page, pageSize, search))
-        .users[0] as UserPartial;
+      const user = (
+        await service.getUserInfo(courseId, page, pageSize, search, [])
+      ).users[0] as UserPartial;
       expect(user.name).toEqual('Tingwei Shi');
       expect(user.email).toEqual('tshi@northeastern.edu');
       expect(user.photoURL).toEqual(
@@ -325,7 +326,13 @@ describe('CourseService', () => {
     it('returns danish and sumit when search term is d', async () => {
       const courseId = 1;
       search = 'd';
-      const resp = await service.getUserInfo(courseId, page, pageSize, search);
+      const resp = await service.getUserInfo(
+        courseId,
+        page,
+        pageSize,
+        search,
+        [],
+      );
       expect(resp.users.map((info) => info.name)).toEqual([
         'Danish Farooq',
         'Sumit De',
