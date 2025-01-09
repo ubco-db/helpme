@@ -180,6 +180,8 @@ const UserListItem = ({
   onRoleChange: () => void
 }) => {
   const [tempTaNotes, setTempTaNotes] = useState(item.TANotes ?? '')
+  const [canSave, setCanSave] = useState(false)
+  const [saveLoading, setSaveLoading] = useState(false)
   const [saveSuccessful, setSaveSuccessful] = useState(false)
 
   return (
@@ -251,24 +253,33 @@ const UserListItem = ({
       </Dropdown>
 
       {(role === Role.TA || role === Role.PROFESSOR) && (
+        // NOTE: if you modify this popover, you may also want to make changes to the popover in StaffList
         <Popover
           trigger="click"
           overlayClassName="min-w-80"
           content={
             <div className="flex flex-col gap-y-2">
               <TextArea
-                placeholder="Add TA Notes..."
+                placeholder="Can answer questions about MATH 101, PHYS 102..."
                 autoSize={{ minRows: 4, maxRows: 7 }}
                 value={tempTaNotes}
-                onChange={(e) => setTempTaNotes(e.target.value)}
+                onChange={(e) => {
+                  setCanSave(e.target.value !== item.TANotes)
+                  setTempTaNotes(e.target.value)
+                }}
               />
               <div className="flex items-center justify-start">
                 <Button
+                  disabled={!canSave}
+                  loading={saveLoading}
                   onClick={async () => {
+                    setSaveLoading(true)
                     await API.course
                       .updateTANotes(courseId, item.id, tempTaNotes ?? '')
                       .then(() => {
                         setSaveSuccessful(true)
+                        setCanSave(false)
+                        setSaveLoading(false)
                         item.TANotes = tempTaNotes
                         // saved goes away after 1s
                         setTimeout(() => {
@@ -301,7 +312,7 @@ const UserListItem = ({
             <div className="flex items-center">
               <div>{item.name} - TA Notes</div>
               <div>
-                <Tooltip title="Here you can set notes on your TAs (e.g. the types of questions a TA can answer). Other users can then hover the TA to see these notes.">
+                <Tooltip title="Here you can set notes on your TAs (e.g. the types of questions a TA can answer). Other users can then hover the TA to see these notes. TAs are able to modify their own notes.">
                   <span className="ml-2 text-gray-500">
                     <QuestionCircleOutlined />
                   </span>

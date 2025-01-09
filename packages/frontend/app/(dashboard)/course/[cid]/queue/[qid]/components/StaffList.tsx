@@ -103,12 +103,15 @@ const StatusCard: React.FC<StatusCardProps> = ({
 }) => {
   const isBusy = !!helpedAt
   const [tempTaNotes, setTempTaNotes] = useState<string | undefined>(taNotes)
+  const [canSave, setCanSave] = useState(false)
+  const [saveLoading, setSaveLoading] = useState(false)
   const [saveSuccessful, setSaveSuccessful] = useState(false)
 
   // you can edit the notes if it's you or if you're a professor
   const shouldShowEdit =
     myRole === Role.PROFESSOR || (myRole === Role.TA && myId === taId)
 
+  // NOTE: if you modify this popover, you might also want to make changes to the popover on the courseRosterTable
   return (
     <Popover
       mouseLeaveDelay={shouldShowEdit ? 0.5 : 0.1}
@@ -124,18 +127,26 @@ const StatusCard: React.FC<StatusCardProps> = ({
             ) : (
               <>
                 <TextArea
-                  placeholder="Add TA Notes..."
+                  placeholder="Can answer questions about MATH 101, PHYS 102..."
                   autoSize={{ minRows: 4, maxRows: 7 }}
                   value={tempTaNotes}
-                  onChange={(e) => setTempTaNotes(e.target.value)}
+                  onChange={(e) => {
+                    setCanSave(e.target.value !== taNotes)
+                    setTempTaNotes(e.target.value)
+                  }}
                 />
                 <div className="flex items-center justify-start">
                   <Button
+                    disabled={!canSave}
+                    loading={saveLoading}
                     onClick={async () => {
+                      setSaveLoading(true)
                       await API.course
                         .updateTANotes(courseId, taId, tempTaNotes ?? '')
                         .then(() => {
                           setSaveSuccessful(true)
+                          setCanSave(false)
+                          setSaveLoading(false)
                           // saved goes away after 1s
                           setTimeout(() => {
                             setSaveSuccessful(false)
@@ -175,9 +186,9 @@ const StatusCard: React.FC<StatusCardProps> = ({
               <Tooltip
                 title={
                   myRole === Role.PROFESSOR
-                    ? 'Here you can set notes on your TAs (e.g. the types of questions a TA can answer). Other users can then hover the TA to see these notes. You can also change these on the Roster page in Course Settings. TAs are able to modify their own notes'
+                    ? 'Here you can set notes on your TAs (e.g. the types of questions a TA can answer). Other users can then hover the TA to see these notes. You can also change these on the Roster page in Course Settings. TAs are able to modify their own notes.'
                     : myRole === Role.TA && myId === taId
-                      ? 'Here you can give yourself notes that anyone can see if they hover you. For example, you could write the types of questions you can answer. Professors can also change these notes'
+                      ? 'Here you can give yourself notes that anyone can see if they hover you. For example, you could write the types of questions you can answer. Professors can also change these notes.'
                       : 'These are notes for this TA. They are written by them or set by the professor.'
                 }
               >
