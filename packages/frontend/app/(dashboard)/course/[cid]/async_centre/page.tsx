@@ -300,19 +300,20 @@ export default function AsyncCentrePage({
         <title>{`HelpMe | ${userInfo.courses.find((e) => e.course.id === courseId)?.course.name ?? ''} - Anytime Questions`}</title>
         <AsyncCentreInfoColumn
           buttons={
-            isStaff ? (
-              <EditQueueButton
-                onClick={() => setEditAsyncCentreModalOpen(true)}
-              >
-                Settings
-              </EditQueueButton>
-            ) : (
+            <>
+              {isStaff && (
+                <EditQueueButton
+                  onClick={() => setEditAsyncCentreModalOpen(true)}
+                >
+                  Settings
+                </EditQueueButton>
+              )}
               <JoinQueueButton
                 onClick={() => setCreateAsyncQuestionModalOpen(true)}
               >
                 Post Question
               </JoinQueueButton>
-            )
+            </>
           }
         />
         <VerticalDivider />
@@ -385,7 +386,7 @@ export default function AsyncCentrePage({
           }}
           chatbotQ={{ messages: messages }}
         />
-        {isStaff ? (
+        {isStaff && (
           <>
             {/* Note: these are not all of the modals. TAAsyncQuestionCardButtons contains PostResponseModal and StudentAsyncQuestionButtons contains a second CreateAsyncQuestionModal */}
             <EditAsyncCentreModal
@@ -398,19 +399,16 @@ export default function AsyncCentrePage({
               }}
             />
           </>
-        ) : (
-          <>
-            <CreateAsyncQuestionModal
-              courseId={courseId}
-              open={createAsyncQuestionModalOpen}
-              onCancel={() => setCreateAsyncQuestionModalOpen(false)}
-              onCreateOrUpdateQuestion={() => {
-                mutateAsyncQuestions()
-                setCreateAsyncQuestionModalOpen(false)
-              }}
-            />
-          </>
         )}
+        <CreateAsyncQuestionModal
+          courseId={courseId}
+          open={createAsyncQuestionModalOpen}
+          onCancel={() => setCreateAsyncQuestionModalOpen(false)}
+          onCreateOrUpdateQuestion={() => {
+            mutateAsyncQuestions()
+            setCreateAsyncQuestionModalOpen(false)
+          }}
+        />
       </div>
     )
   }

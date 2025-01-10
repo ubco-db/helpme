@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Modal, Input, Form, message, Checkbox, Tooltip } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
