@@ -7,8 +7,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Get } from '@nestjs/common/decorators';
-import { LMSApiResponseStatus, LMSAssignment, Role } from '@koh/common';
-import { LMSIntegrationService } from './lmsIntegration.service';
+import {
+  LMSAnnouncement,
+  LMSApiResponseStatus,
+  LMSAssignment,
+  Role,
+} from '@koh/common';
+import {
+  LMSGet,
+  LMSIntegrationService,
+  LMSSave,
+} from './lmsIntegration.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
 import { Roles } from '../decorators/roles.decorator';
@@ -23,21 +32,31 @@ export class LMSIntegrationController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async getCourse(@Param('courseId', ParseIntPipe) courseId: number) {
-    return this.integrationService.getCourse(courseId);
+    return await this.integrationService.getItems(courseId, LMSGet.Course);
   }
 
   @Get(':courseId/students')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async getStudents(@Param('courseId', ParseIntPipe) courseId: number) {
-    return this.integrationService.getStudents(courseId);
+    return await this.integrationService.getItems(courseId, LMSGet.Students);
   }
 
   @Get(':courseId/assignments')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async getAssignments(@Param('courseId', ParseIntPipe) courseId: number) {
-    return this.integrationService.getAssignments(courseId);
+    return await this.integrationService.getItems(courseId, LMSGet.Assignments);
+  }
+
+  @Get(':courseId/announcements')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async getAnnouncements(@Param('courseId', ParseIntPipe) courseId: number) {
+    return await this.integrationService.getItems(
+      courseId,
+      LMSGet.Announcements,
+    );
   }
 
   @Post(':courseId/test')
@@ -76,7 +95,28 @@ export class LMSIntegrationController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() props: any,
   ): Promise<{ status: LMSApiResponseStatus; assignments: LMSAssignment[] }> {
-    return await this.integrationService.saveAssignments(props.ids);
+    return await this.integrationService.saveItems(
+      courseId,
+      LMSSave.Assignments,
+      props.ids,
+    );
+  }
+
+  @Post(':courseId/announcements/save')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async saveAnnouncements(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() props: any,
+  ): Promise<{
+    status: LMSApiResponseStatus;
+    announcements: LMSAnnouncement[];
+  }> {
+    return await this.integrationService.saveItems(
+      courseId,
+      LMSSave.Announcements,
+      props.ids,
+    );
   }
 
   @Post(':courseId/assignments/upload')
@@ -87,5 +127,15 @@ export class LMSIntegrationController {
     @Body() props: any,
   ): Promise<any> {
     return await this.integrationService.uploadAssignments(props.ids);
+  }
+
+  @Post(':courseId/announcements/upload')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async uploadAnnouncements(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() props: any,
+  ): Promise<any> {
+    return await this.integrationService.uploadAnnouncements(props.ids);
   }
 }

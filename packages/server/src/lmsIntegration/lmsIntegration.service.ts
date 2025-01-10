@@ -9,12 +9,44 @@ import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { In } from 'typeorm';
 
+export enum LMSGet {
+  Course,
+  Students,
+  Assignments,
+  Announcements,
+}
+
+export enum LMSSave {
+  Assignments,
+  Announcements,
+}
+
+export enum LMSUpload {
+  Assignments,
+  Announcements,
+}
+
 @Injectable()
 export class LMSIntegrationService {
   constructor(
     @Inject(LMSIntegrationAdapter)
     private integrationAdapter: LMSIntegrationAdapter,
   ) {}
+
+  lmsStatusToHttpStatus(status: LMSApiResponseStatus): HttpStatus {
+    switch (status) {
+      case LMSApiResponseStatus.InvalidKey:
+        return HttpStatus.UNAUTHORIZED;
+      case LMSApiResponseStatus.InvalidPlatform:
+        return HttpStatus.NOT_FOUND;
+      case LMSApiResponseStatus.None:
+      case LMSApiResponseStatus.Error:
+      case LMSApiResponseStatus.InvalidCourseId:
+      case LMSApiResponseStatus.InvalidConfiguration:
+      default:
+        return HttpStatus.BAD_REQUEST;
+    }
+  }
 
   async getAdapter(courseId: number): Promise<AbstractLMSAdapter | undefined> {
     const integration = await LMSCourseIntegrationModel.findOne(
@@ -42,24 +74,76 @@ export class LMSIntegrationService {
     return (await adapter.getCourse()).status;
   }
 
-  async getCourse(courseId: number) {
+  async getItems(courseId: number, type: LMSGet) {
     const adapter = await this.getAdapter(courseId);
-    return (await adapter.getCourse()).course;
+    let retrieved: any = null;
+    let retrievalStatus: LMSApiResponseStatus = LMSApiResponseStatus.None;
+
+    switch (type) {
+      case LMSGet.Students: {
+        const { status, students } = await adapter.getStudents();
+        retrieved = students;
+        retrievalStatus = status;
+        break;
+      }
+      case LMSGet.Assignments: {
+        const { status, assignments } = await adapter.getAssignments();
+        retrieved = assignments;
+        retrievalStatus = status;
+        break;
+      }
+      case LMSGet.Announcements: {
+        const { status, announcements } = await adapter.getAnnouncements();
+        retrieved = announcements;
+        retrievalStatus = status;
+        break;
+      }
+      case LMSGet.Course: {
+        const { status, course } = await adapter.getCourse();
+        retrieved = course;
+        retrievalStatus = status;
+        break;
+      }
+    }
+
+    if (retrievalStatus != LMSApiResponseStatus.Success) {
+      throw new HttpException(
+        retrievalStatus,
+        this.lmsStatusToHttpStatus(retrievalStatus),
+      );
+    }
+
+    return retrieved;
   }
 
-  async getStudents(courseId: number) {
+  async saveItems(courseId: number, type: LMSSave, ids?: number[]) {
     const adapter = await this.getAdapter(courseId);
-    return (await adapter.getStudents()).students;
-  }
+    let saveStatus: LMSApiResponseStatus = LMSApiResponseStatus.None;
+    let data: any = null;
 
-  async getAssignments(courseId: number) {
-    const adapter = await this.getAdapter(courseId);
-    return (await adapter.getAssignments()).assignments;
-  }
+    switch (type) {
+      case LMSSave.Announcements: {
+        const { status, announcements } = await adapter.saveAnnouncements(ids);
+        saveStatus = status;
+        data = announcements;
+        break;
+      }
+      case LMSSave.Assignments: {
+        const { status, assignments } = await adapter.saveAssignments(ids);
+        saveStatus = status;
+        data = assignments;
+        break;
+      }
+    }
 
-  async saveAssignments(courseId: number, ids?: number[]) {
-    const adapter = await this.getAdapter(courseId);
-    return await adapter.saveAssignments(ids);
+    if (saveStatus != LMSApiResponseStatus.Success) {
+      throw new HttpException(
+        saveStatus,
+        this.lmsStatusToHttpStatus(saveStatus),
+      );
+    }
+
+    return data;
   }
 
   async uploadAssignments(courseId: number, ids?: number[]) {
@@ -89,5 +173,9 @@ export class LMSIntegrationService {
     );
 
     return;
+  }
+
+  async uploadAnnouncements(courseId: number, ids?: number[]) {
+    // TODO: Like all of this
   }
 }

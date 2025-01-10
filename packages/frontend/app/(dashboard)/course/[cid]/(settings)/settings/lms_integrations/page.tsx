@@ -89,11 +89,7 @@ export default function CourseLMSIntegrationPage({
       })
 
     if (response) {
-      if (
-        response.apiKeyExpiry != undefined &&
-        (response.apiKeyExpiry as unknown as string).trim() != '' &&
-        new Date(response.apiKeyExpiry).getTime() < new Date().getTime()
-      ) {
+      if (response.isExpired) {
         setIsAPIKeyExpired(true)
         return
       }
@@ -132,35 +128,20 @@ export default function CourseLMSIntegrationPage({
         apiKey: apiKey,
         apiCourseId: apiCourseId,
       })
-      .catch(() => {
+      .catch((error) => {
+        message.error(error)
         return LMSApiResponseStatus.Error
       })
 
-    const text = (() => {
-      switch (response) {
-        case LMSApiResponseStatus.InvalidCourseId:
-          return 'Specified API course ID was invalid.'
-        case LMSApiResponseStatus.InvalidPlatform:
-          return 'Specified API platform was invalid.'
-        case LMSApiResponseStatus.InvalidKey:
-          return 'Specified API key was invalid.'
-        case LMSApiResponseStatus.InvalidConfiguration:
-          return 'Specified LMS Configuration was invalid.'
-        case LMSApiResponseStatus.Success:
-          return 'Successfully connected to LMS.'
-        case LMSApiResponseStatus.Error:
-          return 'Error occurred. LMS connection failed.'
-      }
-    })()
     switch (response) {
       case LMSApiResponseStatus.Success:
-        message.success(text)
+        message.success(response)
         break
       case LMSApiResponseStatus.Error:
-        message.error(text)
+        message.error(response)
         break
       default:
-        message.warning(text)
+        message.warning(response)
         break
     }
     setIsTesting(false)

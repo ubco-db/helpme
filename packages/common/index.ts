@@ -1001,6 +1001,7 @@ export class LMSCourseIntegrationPartial {
   apiPlatform!: LMSIntegration
   apiCourseId!: string
   apiKeyExpiry!: Date
+  isExpired!: boolean
 }
 
 export type LMSCourseAPIResponse = {
@@ -1017,6 +1018,13 @@ export type LMSAssignmentAPIResponse = {
   modified: Date
 }
 
+export type LMSAnnouncementAPIResponse = {
+  id: number
+  title: string
+  message: string
+  posted: Date
+}
+
 export type LMSAssignment = {
   id: number
   name: string
@@ -1026,14 +1034,21 @@ export type LMSAssignment = {
   trackedAt: Date
 }
 
+export type LMSAnnouncement = {
+  id: number
+  title: string
+  message: string
+  posted: Date
+}
+
 export enum LMSApiResponseStatus {
-  None,
-  InvalidPlatform,
-  InvalidKey,
-  InvalidCourseId,
-  InvalidConfiguration,
-  Error,
-  Success,
+  None = '',
+  InvalidPlatform = 'The specified LMS platform is not registered with the HelpMe system.',
+  InvalidKey = 'The specified API key was not valid.',
+  InvalidCourseId = 'The specified LMS API course identifier was not valid.',
+  InvalidConfiguration = 'The specified LMS configuration was not valid.',
+  Error = 'An error occurred, operation with or connection to the LMS API failed.',
+  Success = 'Successfully contacted LMS API.',
 }
 
 export interface CourseResponse {

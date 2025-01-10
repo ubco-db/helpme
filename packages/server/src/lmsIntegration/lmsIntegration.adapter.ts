@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 import {
+  LMSAnnouncement,
+  LMSAnnouncementAPIResponse,
   LMSApiResponseStatus,
   LMSAssignment,
   LMSAssignmentAPIResponse,
   LMSCourseAPIResponse,
 } from '@koh/common';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
+import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 
 @Injectable()
 export class LMSIntegrationAdapter {
@@ -47,6 +50,13 @@ export abstract class AbstractLMSAdapter {
     return null;
   }
 
+  async getAnnouncements(): Promise<{
+    status: LMSApiResponseStatus;
+    announcements: LMSAnnouncementAPIResponse[];
+  }> {
+    return null;
+  }
+
   async getAssignments(): Promise<{
     status: LMSApiResponseStatus;
     assignments: LMSAssignmentAPIResponse[];
@@ -57,6 +67,15 @@ export abstract class AbstractLMSAdapter {
   async saveAssignments(
     ids?: number[],
   ): Promise<{ status: LMSApiResponseStatus; assignments: LMSAssignment[] }> {
+    return null;
+  }
+
+  async saveAnnouncements(
+    ids?: number[],
+  ): Promise<{
+    status: LMSApiResponseStatus;
+    announcements: LMSAnnouncement[];
+  }> {
     return null;
   }
 }
@@ -173,6 +192,30 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     };
   }
 
+  async getAnnouncements(): Promise<{
+    status: LMSApiResponseStatus;
+    announcements: LMSAnnouncementAPIResponse[];
+  }> {
+    const { status, data } = await this.GetPaginated(
+      `announcements?context_codes[]=${this.integration.apiCourseId}&active_only=true`,
+    );
+
+    if (status != LMSApiResponseStatus.Success)
+      return { status, announcements: [] };
+
+    return {
+      status: LMSApiResponseStatus.Success,
+      announcements: data.map((announcement: any) => {
+        return {
+          id: announcement.id,
+          title: announcement.title,
+          message: announcement.message,
+          posted: new Date(announcement.posted),
+        } satisfies LMSAnnouncementAPIResponse;
+      }),
+    };
+  }
+
   async getAssignments(): Promise<{
     status: LMSApiResponseStatus;
     assignments: LMSAssignmentAPIResponse[];
@@ -236,6 +279,46 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
           modified: a.modified,
           trackedAt: a.trackedAt,
         } as LMSAssignment;
+      }),
+    };
+  }
+
+  async saveAnnouncements(
+    ids?: number[],
+  ): Promise<{
+    status: LMSApiResponseStatus;
+    announcements: LMSAnnouncement[];
+  }> {
+    const { status, announcements } = await this.getAnnouncements();
+    if (status != LMSApiResponseStatus.Success)
+      return { status, announcements: [] };
+
+    let toSave = [...announcements];
+    if (ids != undefined) {
+      toSave = toSave.filter((v) => ids.includes(v.id));
+    }
+
+    const ann = await LMSAnnouncementModel.save(
+      toSave.map((a) => {
+        const announcement = new LMSAnnouncementModel();
+        announcement.courseId = this.integration.courseId;
+        announcement.id = a.id;
+        announcement.title = a.title;
+        announcement.message = a.message;
+        announcement.posted = a.posted;
+        return announcement;
+      }),
+    );
+
+    return {
+      status: LMSApiResponseStatus.Success,
+      announcements: ann.map((a) => {
+        return {
+          id: a.id,
+          title: a.title,
+          message: a.message,
+          posted: a.posted,
+        } as LMSAnnouncement;
       }),
     };
   }

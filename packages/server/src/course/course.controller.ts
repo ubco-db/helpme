@@ -1155,6 +1155,10 @@ export class CourseController {
       } satisfies CoursePartial,
       apiCourseId: lmsIntegration.apiCourseId,
       apiKeyExpiry: lmsIntegration.apiKeyExpiry,
+      isExpired:
+        lmsIntegration.apiKeyExpiry != undefined &&
+        (lmsIntegration.apiKeyExpiry as unknown as string).trim() != '' &&
+        new Date(lmsIntegration.apiKeyExpiry).getTime() < new Date().getTime(),
     } satisfies LMSCourseIntegrationPartial;
   }
 
