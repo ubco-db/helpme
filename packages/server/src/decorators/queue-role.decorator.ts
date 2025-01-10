@@ -1,7 +1,7 @@
 import {
   createParamDecorator,
   ExecutionContext,
-  UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { QueueModel } from '../queue/queue.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -16,7 +16,7 @@ export const QueueRole = createParamDecorator(
     });
 
     if (!userCourse) {
-      throw new UnauthorizedException('User is not enrolled in this course');
+      throw new ForbiddenException('User is not enrolled in this course');
     }
 
     return userCourse.role;

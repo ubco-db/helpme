@@ -41,6 +41,7 @@ import {
   UseGuards,
   UseInterceptors,
   ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import async from 'async';
 import { Response, Request } from 'express';
@@ -1250,7 +1251,7 @@ export class CourseController {
     @Body() body: { notes: string },
   ): Promise<void> {
     if (myRole === Role.TA && myUser.id !== userId) {
-      throw new UnauthorizedException('You can only set notes for yourself');
+      throw new ForbiddenException('You can only set notes for yourself');
     }
     const userCourse = await UserCourseModel.findOne({
       where: { courseId, userId },

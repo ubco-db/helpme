@@ -1,7 +1,7 @@
 import {
   createParamDecorator,
   ExecutionContext,
-  UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UserCourseModel } from 'profile/user-course.entity';
 
@@ -18,7 +18,7 @@ export const CourseRole = createParamDecorator(
     });
 
     if (!userCourse) {
-      throw new UnauthorizedException('User is not enrolled in this course');
+      throw new ForbiddenException('User is not enrolled in this course');
     }
 
     return userCourse.role;
