@@ -1,6 +1,6 @@
 import { GetQueueResponse, QueuePartial, SSEQueueResponse } from '@koh/common'
 import useSWR, { mutate, SWRResponse, useSWRConfig } from 'swr'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useEventSource } from './useEventSource'
 import { plainToClass } from 'class-transformer'
 import { API } from '../api'
@@ -33,6 +33,9 @@ function callOnUpdates(key: string) {
 }
 
 export function useQueue(qid: number, onUpdate?: OnUpdate): UseQueueReturn {
+  const [queueState, setQueueState] = useState<QueuePartial | undefined>(
+    undefined,
+  )
   const key = `/api/v1/queues/${qid}`
 
   // Access SWR's global cache
@@ -71,7 +74,7 @@ export function useQueue(qid: number, onUpdate?: OnUpdate): UseQueueReturn {
         const currentQueue = cache.get(key)
 
         // Only mutate if something actually changed
-        if (!isEqual(currentQueue, newQueue)) {
+        if (!isEqual(currentQueue?.data, newQueue)) {
           mutate(key, newQueue, false)
           REFRESH_INFO[key].lastUpdated = new Date()
           callOnUpdates(key)
@@ -98,7 +101,7 @@ export function useQueue(qid: number, onUpdate?: OnUpdate): UseQueueReturn {
         const currentQueue = cache.get(swrKey)
 
         // Only mutate if something actually changed
-        if (!isEqual(currentQueue, newQueue)) {
+        if (!isEqual(currentQueue?.data, newQueue)) {
           mutate(swrKey, newQueue, false)
           REFRESH_INFO[swrKey].lastUpdated = new Date()
           callOnUpdates(swrKey)
@@ -107,13 +110,18 @@ export function useQueue(qid: number, onUpdate?: OnUpdate): UseQueueReturn {
     },
   )
 
-  // log when queue changes
   useEffect(() => {
-    console.log('Queue changed', queue)
+    if (!isEqual(queue, queueState)) {
+      setQueueState(queue)
+    }
   }, [queue])
 
+  useEffect(() => {
+    console.log('queue changed', queueState)
+  }, [queueState])
+
   return {
-    queue,
+    queue: queueState,
     queueError,
     mutateQueue,
     isLive,

@@ -1,10 +1,11 @@
 import { ListQuestionsResponse, SSEQueueResponse } from '@koh/common'
 import { plainToClass } from 'class-transformer'
 import { useCallback, useEffect, useMemo } from 'react'
-import useSWR, { mutate, SWRResponse } from 'swr'
+import useSWR, { mutate, SWRResponse, useSWRConfig } from 'swr'
 import { useEventSource } from './useEventSource'
 import { API } from '../api'
 import { updateWaitTime } from '../utils/timeFormatUtils'
+import isEqual from 'lodash/isEqual'
 
 type questionsResponse = SWRResponse<ListQuestionsResponse, any>
 
@@ -15,22 +16,39 @@ interface UseQuestionReturn {
 }
 
 export function useQuestions(qid: number): UseQuestionReturn {
+  // log when qid changes
+  useEffect(() => {
+    console.log('QID changed', qid)
+  }, [qid])
   const key = `/api/v1/queues/${qid}/questions`
-  // Subscribe to sse
+
+  // Access SWR's global cache
+  const { cache } = useSWRConfig()
+
+  // Subscribe to SSE
   const isLive = useEventSource(
     `/api/v1/queues/${qid}/sse`,
     'question',
     useCallback(
       (data: SSEQueueResponse) => {
-        if (data.queueQuestions) {
-          mutate(
-            key,
-            plainToClass(ListQuestionsResponse, data.queueQuestions),
-            false,
-          )
+        if (!data.queueQuestions) return
+
+        // Convert incoming SSE data
+        const newQuestions = plainToClass(
+          ListQuestionsResponse,
+          data.queueQuestions,
+        )
+
+        // Compare against current cache
+        const current = cache.get(key)
+        if (!isEqual(current?.data, newQuestions)) {
+          console.log("It's changed!")
+          console.log(current)
+          console.log(newQuestions)
+          mutate(key, newQuestions, false)
         }
       },
-      [key],
+      [key, cache],
     ),
   )
 
@@ -38,8 +56,19 @@ export function useQuestions(qid: number): UseQuestionReturn {
     data: queueQuestions,
     error: questionsError,
     mutate: mutateQuestions,
-  } = useSWR(key, async () => API.questions.index(qid), {
-    refreshInterval: isLive ? 0 : 10 * 1000,
+  } = useSWR<ListQuestionsResponse>(key, async () => API.questions.index(qid), {
+    refreshInterval: isLive ? 0 : 10_000,
+    // Optional: compare on fetch success too
+    onSuccess: async (fetchedData, swrKey) => {
+      const newQuestions = plainToClass(ListQuestionsResponse, fetchedData)
+      const current = cache.get(swrKey)
+      if (!isEqual(current?.data, newQuestions)) {
+        console.log("It's changed!")
+        console.log(current)
+        console.log(newQuestions)
+        mutate(swrKey, newQuestions, false)
+      }
+    },
   })
 
   //

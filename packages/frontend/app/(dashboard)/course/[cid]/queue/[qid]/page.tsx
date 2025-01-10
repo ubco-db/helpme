@@ -1,6 +1,13 @@
 'use client'
 
-import { ReactElement, useCallback, useState, useEffect, useRef } from 'react'
+import {
+  ReactElement,
+  useCallback,
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+} from 'react'
 import {
   QuestionTypeParams,
   ClosedQuestionStatus,
@@ -71,8 +78,8 @@ type QueuePageProps = {
 }
 
 export default function QueuePage({ params }: QueuePageProps): ReactElement {
-  const cid = Number(params.cid)
-  const qid = Number(params.qid)
+  const cid = useMemo(() => Number(params.cid), [params.cid])
+  const qid = useMemo(() => Number(params.qid), [params.qid])
   const router = useRouter()
   const { queue } = useQueue(qid)
   const isQueueHybrid = queue?.type == 'hybrid'

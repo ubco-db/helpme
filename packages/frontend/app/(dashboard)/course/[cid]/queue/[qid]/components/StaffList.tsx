@@ -5,7 +5,7 @@ import UserAvatar from '@/app/components/UserAvatar'
 import RenderEvery from '@/app/components/RenderEvery'
 import { formatWaitTime } from '@/app/utils/timeFormatUtils'
 import TextArea from 'antd/es/input/TextArea'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { API } from '@/app/api'
 import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
 import { QuestionCircleOutlined } from '@ant-design/icons'
@@ -20,7 +20,11 @@ interface StaffListProps {
  * Row of ta statuses
  */
 const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
-  const { queueQuestions } = useQuestions(queueId)
+  const qid = useMemo(() => queueId, [queueId])
+  useEffect(() => {
+    console.log('AHHHH changed', qid)
+  }, [qid])
+  const { queueQuestions } = useQuestions(qid)
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
 
