@@ -1,6 +1,6 @@
 import { ListQuestionsResponse, SSEQueueResponse } from '@koh/common'
 import { plainToClass } from 'class-transformer'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import useSWR, { mutate, SWRResponse } from 'swr'
 import { useEventSource } from './useEventSource'
 import { API } from '../api'
@@ -89,6 +89,11 @@ export function useQuestions(qid: number): UseQuestionReturn {
     groups: queueQuestions?.groups || [],
     unresolvedAlerts: queueQuestions?.unresolvedAlerts || [],
   }
+
+  // log when queue changes
+  useEffect(() => {
+    console.log('Queuequestuions changed', newQueueQuestions)
+  }, [newQueueQuestions])
 
   return { queueQuestions: newQueueQuestions, questionsError, mutateQuestions }
 }

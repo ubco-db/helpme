@@ -1,7 +1,6 @@
-import { OpenQuestionStatus, Question, Role } from '@koh/common'
+import { OpenQuestionStatus, Question, QueuePartial, Role } from '@koh/common'
 import { Badge, Button, Col, message, Popover, Row, Tooltip } from 'antd'
 import { useQuestions } from '@/app/hooks/useQuestions'
-import { useQueue } from '@/app/hooks/useQueue'
 import UserAvatar from '@/app/components/UserAvatar'
 import RenderEvery from '@/app/components/RenderEvery'
 import { formatWaitTime } from '@/app/utils/timeFormatUtils'
@@ -13,15 +12,15 @@ import { QuestionCircleOutlined } from '@ant-design/icons'
 import { useUserInfo } from '@/app/contexts/userContext'
 
 interface StaffListProps {
+  queue: QueuePartial
   queueId: number
   courseId: number
 }
 /**
  * Row of ta statuses
  */
-const StaffList: React.FC<StaffListProps> = ({ queueId, courseId }) => {
+const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
   const { queueQuestions } = useQuestions(queueId)
-  const { queue } = useQueue(queueId)
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
 
@@ -106,6 +105,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
   const [canSave, setCanSave] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveSuccessful, setSaveSuccessful] = useState(false)
+  const [popoverOpen, setPopoverOpen] = useState(false)
 
   // you can edit the notes if it's you or if you're a professor
   const shouldShowEdit =
@@ -114,6 +114,10 @@ const StatusCard: React.FC<StatusCardProps> = ({
   // NOTE: if you modify this popover, you might also want to make changes to the popover on the courseRosterTable
   return (
     <Popover
+      open={popoverOpen || canSave}
+      destroyTooltipOnHide={false}
+      onOpenChange={(open) => setPopoverOpen(open)}
+      trigger={shouldShowEdit ? 'click' : 'hover'}
       mouseLeaveDelay={shouldShowEdit ? 0.5 : 0.1}
       overlayClassName="min-w-80"
       content={
@@ -135,44 +139,56 @@ const StatusCard: React.FC<StatusCardProps> = ({
                     setTempTaNotes(e.target.value)
                   }}
                 />
-                <div className="flex items-center justify-start">
-                  <Button
-                    disabled={!canSave}
-                    loading={saveLoading}
-                    onClick={async () => {
-                      setSaveLoading(true)
-                      await API.course
-                        .updateTANotes(courseId, taId, tempTaNotes ?? '')
-                        .then(() => {
-                          setSaveSuccessful(true)
-                          setCanSave(false)
-                          // saved goes away after 1s
-                          setTimeout(() => {
-                            setSaveSuccessful(false)
-                          }, 1000)
-                        })
-                        .catch((e) => {
-                          const errorMessage = getErrorMessage(e)
-                          message.error(errorMessage)
-                        })
-                        .finally(() => {
-                          setSaveLoading(false)
-                        })
-                    }}
-                  >
-                    Save
-                  </Button>
-                  <div>
-                    {
-                      <span
-                        className={`ml-2 text-green-500 transition-opacity duration-300 ${
-                          saveSuccessful ? 'opacity-100' : 'opacity-0'
-                        }`}
-                      >
-                        Saved!
-                      </span>
-                    }
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-start">
+                    <Button
+                      disabled={!canSave}
+                      loading={saveLoading}
+                      onClick={async () => {
+                        setSaveLoading(true)
+                        await API.course
+                          .updateTANotes(courseId, taId, tempTaNotes ?? '')
+                          .then(() => {
+                            setSaveSuccessful(true)
+                            setCanSave(false)
+                            // saved goes away after 1s
+                            setTimeout(() => {
+                              setSaveSuccessful(false)
+                            }, 1000)
+                          })
+                          .catch((e) => {
+                            const errorMessage = getErrorMessage(e)
+                            message.error(errorMessage)
+                          })
+                          .finally(() => {
+                            setSaveLoading(false)
+                          })
+                      }}
+                    >
+                      Save
+                    </Button>
+                    <div>
+                      {
+                        <span
+                          className={`ml-2 text-green-500 transition-opacity duration-300 ${
+                            saveSuccessful ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        >
+                          Saved!
+                        </span>
+                      }
+                    </div>
                   </div>
+                  <Button
+                    onClick={() => {
+                      setTempTaNotes(taNotes)
+                      setCanSave(false)
+                      setPopoverOpen(false)
+                    }}
+                    danger={canSave}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </>
             )}
@@ -203,7 +219,9 @@ const StatusCard: React.FC<StatusCardProps> = ({
         )
       }
     >
-      <div className="flex rounded-md bg-white p-3 shadow-md md:mb-4 md:p-4">
+      <div
+        className={`flex rounded-md bg-white p-3 shadow-md md:mb-4 md:p-4 ${shouldShowEdit ? 'cursor-pointer' : ''}`}
+      >
         <UserAvatar
           size={48}
           username={taName}

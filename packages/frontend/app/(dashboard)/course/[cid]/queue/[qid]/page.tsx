@@ -558,6 +558,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     return (
       <QueueInfoColumn
         cid={cid}
+        queue={queue}
         queueId={qid}
         isStaff={isStaff}
         tagGroupsEnabled={tagGroupsEnabled}

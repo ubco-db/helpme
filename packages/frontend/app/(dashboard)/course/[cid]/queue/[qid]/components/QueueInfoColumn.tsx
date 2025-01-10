@@ -15,7 +15,7 @@ import moment from 'moment'
 import React, { ReactNode, useState } from 'react'
 import { useQueue } from '@/app/hooks/useQueue'
 import Linkify from '@/app/components/Linkify'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import {
   clearQueue,
   confirmDisable,
@@ -28,10 +28,12 @@ import RenderEvery from '@/app/components/RenderEvery'
 import TagGroupSwitch from './TagGroupSwitch'
 import StaffList from './StaffList'
 import { getQueueTypeLabel } from '../utils/commonQueueFunctions'
+import { QueuePartial } from '@koh/common'
 
 interface QueueInfoColumnProps {
   cid: number
   queueId: number
+  queue: QueuePartial
   isStaff: boolean
   buttons: ReactNode
   hasDemos: boolean
@@ -44,6 +46,7 @@ interface QueueInfoColumnProps {
 const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
   cid,
   queueId,
+  queue,
   isStaff,
   buttons,
   hasDemos,
@@ -52,7 +55,6 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
   staffListHidden,
   setStaffListHidden,
 }) => {
-  const { queue } = useQueue(queueId)
   const router = useRouter()
 
   // const [away, setAway] = useState(false);
@@ -130,7 +132,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
           <p> No staff checked in</p>
         </div>
       ) : !staffListHidden ? (
-        <StaffList queueId={queueId} courseId={cid} />
+        <StaffList queue={queue} queueId={queueId} courseId={cid} />
       ) : null}
 
       {/* buttons for staff on mobile */}
