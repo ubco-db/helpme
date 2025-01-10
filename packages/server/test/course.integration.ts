@@ -293,7 +293,7 @@ describe('Course Integration', () => {
   });
 
   //TODO: make a DSL for testing auth points using Hack your own Language
-  describe('POST /courses/:id/ta_location/:room', () => {
+  describe('POST /courses/:id/checkin/:qid', () => {
     it('checks a TA into an existing queue', async () => {
       const queue = await QueueFactory.create();
       const ta = await UserFactory.create();
@@ -303,7 +303,7 @@ describe('Course Integration', () => {
       });
 
       const response = await supertest({ userId: ta.id })
-        .post(`/courses/${queue.course.id}/ta_location/${queue.room}`)
+        .post(`/courses/${queue.course.id}/checkin/${queue.id}`)
         .expect(201);
 
       expect(response.body).toMatchSnapshot();
@@ -323,62 +323,22 @@ describe('Course Integration', () => {
       });
 
       await supertest({ userId: student.id })
-        .post(`/courses/${queue.course.id}/ta_location/${queue.room}`)
+        .post(`/courses/${queue.course.id}/checkin/${queue.id}`)
         .expect(403);
 
       const events = await EventModel.find();
       expect(events.length).toBe(0);
     });
 
-    it('TA cannot create a new queue while checking in', async () => {
+    it('Cannot checkin to non-existent queues', async () => {
       const ta = await UserFactory.create();
       const tcf = await TACourseFactory.create({
         course: await CourseFactory.create(),
         user: ta,
       });
       await supertest({ userId: ta.id })
-        .post(`/courses/${tcf.courseId}/ta_location/WVH 404`)
+        .post(`/courses/${tcf.courseId}/checkin/999`)
         .expect(404);
-    });
-
-    it('Professors cannot create a new queue while checking in', async () => {
-      const professor = await UserFactory.create();
-      const pcf = await UserCourseFactory.create({
-        course: await CourseFactory.create(),
-        user: professor,
-        role: Role.PROFESSOR,
-      });
-      await supertest({ userId: professor.id })
-        .post(`/courses/${pcf.courseId}/ta_location/The Alamo`)
-        .expect(404);
-    });
-
-    it("Doesn't allow users to check into multiple queues", async () => {
-      const queue1 = await QueueFactory.create();
-      const ta = await UserFactory.create();
-      await TACourseFactory.create({
-        course: queue1.course,
-        user: ta,
-      });
-      const queue2 = await QueueFactory.create({
-        course: queue1.course,
-      });
-
-      await supertest({ userId: ta.id })
-        .post(`/courses/${queue1.courseId}/ta_location/${queue1.room}`)
-        .expect(201);
-
-      let events = await EventModel.count();
-      expect(events).toBe(1);
-
-      const response2 = await supertest({ userId: ta.id })
-        .post(`/courses/${queue2.courseId}/ta_location/${queue2.room}`)
-        .expect(401);
-      expect(response2.body.message).toBe(
-        ERROR_MESSAGES.courseController.checkIn.cannotCheckIntoMultipleQueues,
-      );
-      events = await EventModel.count();
-      expect(events).toBe(1);
     });
 
     it('doesnt allow people to join disabled queues', async () => {
@@ -391,34 +351,12 @@ describe('Course Integration', () => {
         user: ta,
       });
       await supertest({ userId: ta.id })
-        .post(`/courses/${queue1.courseId}/ta_location/${queue1.room}`)
+        .post(`/courses/${queue1.courseId}/checkin/${queue1.id}`)
         .expect(404);
-    });
-
-    it('correctly checks-in to the right queue (name-collision)', async () => {
-      const queue1 = await QueueFactory.create({
-        isDisabled: true,
-      });
-      await QueueFactory.create({
-        course: queue1.course,
-        isDisabled: false,
-      });
-      const ta = await UserFactory.create();
-      await TACourseFactory.create({
-        course: queue1.course,
-        user: ta,
-      });
-
-      // should log us into the second one.
-      const q = await supertest({ userId: ta.id })
-        .post(`/courses/${queue1.courseId}/ta_location/${queue1.room}`)
-        .expect(201);
-
-      expect(q.body.isDisabled).toBeFalsy();
     });
   });
 
-  describe('DELETE /courses/:id/ta_location/:room', () => {
+  describe('DELETE /courses/:id/checkout/:qid', () => {
     it('tests TA is checked out from queue if exists', async () => {
       const ta = await UserFactory.create();
       const queue = await QueueFactory.create({
@@ -436,7 +374,7 @@ describe('Course Integration', () => {
       ).toEqual(1);
 
       await supertest({ userId: ta.id })
-        .delete(`/courses/${tcf.courseId}/ta_location/The Alamo`)
+        .delete(`/courses/${tcf.courseId}/checkout/${queue.id}`)
         .expect(200);
 
       expect(
@@ -462,7 +400,7 @@ describe('Course Integration', () => {
       });
 
       await supertest({ userId: student.id })
-        .delete(`/courses/${scf.courseId}/ta_location/The Alamo`)
+        .delete(`/courses/${scf.courseId}/checkout/${queue.id}`)
         .expect(403);
     });
 
@@ -475,7 +413,7 @@ describe('Course Integration', () => {
       });
 
       await supertest({ userId: ta.id })
-        .delete(`/courses/${tcf.courseId}/ta_location/The Alamo`)
+        .delete(`/courses/${tcf.courseId}/checkout/${queue.id}`)
         .expect(200);
 
       expect(
@@ -490,37 +428,111 @@ describe('Course Integration', () => {
 
       expect(events.length).toBe(0);
     });
+  });
 
-    it('correctly checks out when two queues have same location, but one is disabled ', async () => {
+  // checks me out of all queues
+  describe('DELETE /courses/:id/checkout_all', () => {
+    it('checks out a TA from all queues', async () => {
       const ta = await UserFactory.create();
-      const queue = await QueueFactory.create({
-        room: 'room1',
-        isDisabled: true,
+      const course = await CourseFactory.create();
+      const tcf = await TACourseFactory.create({
+        course: course,
+        user: ta,
       });
+      const queue1 = await QueueFactory.create({
+        room: 'queue1',
+        staffList: [ta],
+        course: course,
+      });
+      const queue2 = await QueueFactory.create({
+        room: 'queue2',
+        staffList: [ta],
+        course: course,
+      });
+
+      await supertest({ userId: ta.id })
+        .delete(`/courses/${tcf.courseId}/checkout_all`)
+        .expect(200);
+
+      expect(
+        await QueueModel.findOne({}, { relations: ['staffList'] }),
+      ).toMatchObject({
+        staffList: [],
+      });
+
+      const events = await EventModel.find();
+      expect(events.length).toBe(2);
+      expect(events[0].eventType).toBe(EventType.TA_CHECKED_OUT);
+      expect(events[0].queueId).toBe(queue1.id);
+      expect(events[1].eventType).toBe(EventType.TA_CHECKED_OUT);
+      expect(events[1].queueId).toBe(queue2.id);
+    });
+    it('if multiple TAs are checked in, it only checks out the one TA that called the endpoint', async () => {
+      const ta1 = await UserFactory.create();
+      const ta2 = await UserFactory.create();
+      const queue1 = await QueueFactory.create({
+        room: 'queue1',
+        staffList: [ta1, ta2],
+      });
+      const tcf = await TACourseFactory.create({
+        course: queue1.course,
+        user: ta1,
+      });
+
+      await supertest({ userId: ta1.id })
+        .delete(`/courses/${tcf.courseId}/checkout_all`)
+        .expect(200);
+
+      expect(
+        await QueueModel.findOne({}, { relations: ['staffList'] }),
+      ).toMatchObject({
+        staffList: [ta2],
+      });
+
+      const events = await EventModel.find();
+      expect(events.length).toBe(1);
+      expect(events[0].eventType).toBe(EventType.TA_CHECKED_OUT);
+      expect(events[0].queueId).toBe(queue1.id);
+    });
+
+    it('tests student cant checkout from queue', async () => {
+      const student = await UserFactory.create();
+      const queue = await QueueFactory.create({
+        room: 'The Alamo',
+      });
+      const scf = await StudentCourseFactory.create({
+        course: queue.course,
+        user: student,
+      });
+
+      await supertest({ userId: student.id })
+        .delete(`/courses/${scf.courseId}/checkout_all`)
+        .expect(403);
+    });
+
+    it('tests nothing happens if ta not in queue', async () => {
+      const ta = await UserFactory.create();
+      const queue = await QueueFactory.create({ room: 'The Alamo' });
       const tcf = await TACourseFactory.create({
         course: queue.course,
         user: ta,
       });
 
-      await QueueFactory.create({
-        course: queue.course,
-        room: queue.room,
-        isDisabled: false,
-        staffList: [ta],
+      await supertest({ userId: ta.id })
+        .delete(`/courses/${tcf.courseId}/checkout_all`)
+        .expect(200);
+
+      expect(
+        await QueueModel.findOne({}, { relations: ['staffList'] }),
+      ).toMatchObject({
+        staffList: [],
       });
 
-      await supertest({ userId: ta.id })
-        .delete(`/courses/${tcf.courseId}/ta_location/${queue.room}`)
-        .expect(200);
-      const q3 = await QueueModel.findOne(
-        {
-          room: queue.room,
-          isDisabled: false,
-        },
-        { relations: ['staffList'] },
-      );
+      const events = await EventModel.find({
+        where: { userId: ta.id },
+      });
 
-      expect(q3.staffList.length).toBe(0);
+      expect(events.length).toBe(0);
     });
   });
 
@@ -1980,5 +1992,68 @@ describe('Course Integration', () => {
         ]),
       );
     });
+  });
+
+  describe('GET /courses/:id/lms_integration', () => {
+    it.each([Role.STUDENT, Role.TA])(
+      'should return 403 when non-professor accesses route',
+      async (courseRole) => {
+        const user = await UserFactory.create();
+        const course = await CourseFactory.create();
+
+        await UserCourseModel.create({
+          userId: user.id,
+          courseId: course.id,
+          role: courseRole,
+        }).save();
+
+        const res = await supertest({ userId: user.id }).get(
+          `/courses/${course.id}/lms_integration`,
+        );
+        expect(res.statusCode).toBe(403);
+      },
+    );
+  });
+
+  describe('POST /courses/:id/lms_integration/upsert', () => {
+    it.each([Role.STUDENT, Role.TA])(
+      'should return 403 when non-professor accesses route',
+      async (courseRole) => {
+        const user = await UserFactory.create();
+        const course = await CourseFactory.create();
+
+        await UserCourseModel.create({
+          userId: user.id,
+          courseId: course.id,
+          role: courseRole,
+        }).save();
+
+        const res = await supertest({ userId: user.id }).post(
+          `/courses/${course.id}/lms_integration/upsert`,
+        );
+        expect(res.statusCode).toBe(403);
+      },
+    );
+  });
+
+  describe('DELETE /courses/:id/lms_integration/remove', () => {
+    it.each([Role.STUDENT, Role.TA])(
+      'should return 403 when non-professor accesses route',
+      async (courseRole) => {
+        const user = await UserFactory.create();
+        const course = await CourseFactory.create();
+
+        await UserCourseModel.create({
+          userId: user.id,
+          courseId: course.id,
+          role: courseRole,
+        }).save();
+
+        const res = await supertest({ userId: user.id }).delete(
+          `/courses/${course.id}/lms_integration/remove`,
+        );
+        expect(res.statusCode).toBe(403);
+      },
+    );
   });
 });

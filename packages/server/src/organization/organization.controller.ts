@@ -32,6 +32,11 @@ import {
   CourseSettingsRequestBody,
   OrganizationProfessor,
   CourseResponse,
+  LMSOrganizationIntegrationPartial,
+  LMSCourseIntegrationPartial,
+  CoursePartial,
+  LMSIntegration,
+  OrgUser,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -44,7 +49,6 @@ import { Roles } from 'decorators/roles.decorator';
 import {
   OrganizationCourseResponse,
   OrganizationService,
-  UserResponse,
 } from './organization.service';
 import { OrganizationGuard } from 'guards/organization.guard';
 import * as checkDiskSpace from 'check-disk-space';
@@ -58,14 +62,19 @@ import { CourseSettingsModel } from 'course/course_settings.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
-import _, { isNumber } from 'lodash';
-import { MailServiceModel } from 'mail/mail-services.entity';
+import _ from 'lodash';
 import * as sharp from 'sharp';
-import { User, UserId } from 'decorators/user.decorator';
+import { UserId } from 'decorators/user.decorator';
+import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { CronJob } from 'cron';
 
 @Controller('organization')
 export class OrganizationController {
-  constructor(private organizationService: OrganizationService) {}
+  constructor(
+    private organizationService: OrganizationService,
+    private schedulerRegistry: SchedulerRegistry,
+  ) {}
 
   @Post(':oid/reset_chat_token_limit')
   @UseGuards(
@@ -77,7 +86,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async resetChatTokenLimit(
     @Res() res: Response,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     // Reset chat token limit for the organization
     await ChatTokenModel.query(
@@ -106,6 +115,30 @@ export class OrganizationController {
     return res.sendStatus(200);
   }
 
+  /**
+   * Gets all cron jobs for the system. The :oid is just to verify that they are an admin
+   */
+  @Get(':oid/cronjobs')
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
+  @Roles(OrganizationRole.ADMIN)
+  async getAllCronJobs(
+    @Param('oid', ParseIntPipe) oid: number,
+  ): Promise<any[] | CronJob[]> {
+    const jobs = this.schedulerRegistry.getCronJobs();
+    const jobsArray = Array.from(jobs.entries()).map(([key, job]) => {
+      const nextDates = job.running ? job.nextDates(10) : [];
+      return {
+        id: key,
+        cronTime: job.cronTime.source,
+        running: job.running,
+        nextDates: nextDates,
+        lastExecution: job.lastExecution,
+        runOnce: job.runOnce,
+      };
+    });
+    return jobsArray;
+  }
+
   @Post(':oid/populate_subscription_table')
   @UseGuards(
     JwtAuthGuard,
@@ -116,7 +149,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async populateSubscriptionTable(
     @Res() res: Response,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     try {
       const entityManager = getManager();
@@ -213,7 +246,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async populateChatTokenTable(
     @Res() res: Response,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     const organizationUsers = await OrganizationUserModel.find({
       where: {
@@ -256,7 +289,7 @@ export class OrganizationController {
   )
   @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async createCourse(
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
     @Res() res: Response,
   ): Promise<Response<void>> {
@@ -420,8 +453,8 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async updateCourse(
     @Res() res: Response,
-    @Param('oid') oid: number,
-    @Param('cid') cid: number,
+    @Param('oid', ParseIntPipe) oid: number,
+    @Param('cid', ParseIntPipe) cid: number,
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
   ): Promise<Response<void>> {
     const courseInfo = await OrganizationCourseModel.findOne({
@@ -621,8 +654,8 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async updateCourseAccess(
     @Res() res: Response,
-    @Param('oid') oid: number,
-    @Param('cid') cid: number,
+    @Param('oid', ParseIntPipe) oid: number,
+    @Param('cid', ParseIntPipe) cid: number,
   ): Promise<Response<void>> {
     const courseInfo: OrganizationCourseResponse =
       await this.organizationService.getOrganizationCourse(oid, cid);
@@ -654,8 +687,8 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async getOrganizationCourse(
     @Res() res: Response,
-    @Param('oid') oid: number,
-    @Param('cid') cid: number,
+    @Param('oid', ParseIntPipe) oid: number,
+    @Param('cid', ParseIntPipe) cid: number,
   ): Promise<Response<OrganizationCourseResponse>> {
     const course = await this.organizationService.getOrganizationCourse(
       oid,
@@ -675,7 +708,7 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async getBannerImage(
     @Param('photoUrl') photoUrl: string,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
     @Res() res: Response,
   ): Promise<void> {
     fs.stat(
@@ -707,7 +740,7 @@ export class OrganizationController {
   @Get(':oid/get_logo/:photoUrl')
   async getLogoImage(
     @Param('photoUrl') photoUrl: string,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
     @Res() res: Response,
   ): Promise<void> {
     fs.stat(
@@ -755,7 +788,7 @@ export class OrganizationController {
   async uploadBanner(
     @UploadedFile() file: Express.Multer.File,
     @Res() res: Response,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     const organization = await OrganizationModel.findOne({
       where: {
@@ -841,7 +874,7 @@ export class OrganizationController {
   async uploadLogo(
     @UploadedFile() file: Express.Multer.File,
     @Res() res: Response,
-    @Param('oid') oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     const organization = await OrganizationModel.findOne({
       where: {
@@ -920,7 +953,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async updateUserAccountAccess(
     @Res() res: Response,
-    @Param('uid') uid: number,
+    @Param('uid', ParseIntPipe) uid: number,
   ): Promise<Response<void>> {
     const userInfo = await OrganizationUserModel.findOne({
       where: {
@@ -987,6 +1020,95 @@ export class OrganizationController {
       .catch((err) => {
         res.status(500).send({ message: err });
       });
+  }
+
+  @Get(':oid/lms_integration')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN)
+  async getLmsIntegrations(
+    @Param('oid', ParseIntPipe) oid: number,
+  ): Promise<LMSOrganizationIntegrationPartial[]> {
+    const lmsIntegrations = await LMSOrganizationIntegrationModel.find({
+      where: { organizationId: oid },
+      relations: ['courseIntegrations', 'courseIntegrations.course'],
+    });
+
+    if (lmsIntegrations.length <= 0) {
+      return [];
+    }
+
+    return lmsIntegrations.map((int) => {
+      return {
+        organizationId: int.organizationId,
+        apiPlatform: int.apiPlatform,
+        rootUrl: int.rootUrl,
+        courseIntegrations:
+          int.courseIntegrations?.map((cint) => {
+            return {
+              courseId: cint.courseId,
+              apiPlatform: int.apiPlatform,
+              course: {
+                id: cint.courseId,
+                name: cint.course?.name,
+              } satisfies CoursePartial,
+              apiCourseId: cint.apiCourseId,
+              apiKeyExpiry: cint.apiKeyExpiry,
+            } satisfies LMSCourseIntegrationPartial;
+          }) ?? [],
+      } satisfies LMSOrganizationIntegrationPartial;
+    });
+  }
+
+  @Post(':oid/lms_integration/upsert')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN)
+  async upsertLMSIntegration(
+    @Param('oid', ParseIntPipe) oid: number,
+    @Body() props: any,
+  ): Promise<any> {
+    if (!Object.keys(LMSIntegration).includes(props.apiPlatform))
+      return ERROR_MESSAGES.organizationController
+        .lmsIntegrationInvalidPlatform;
+    if (props.rootUrl == undefined)
+      return ERROR_MESSAGES.organizationController.lmsIntegrationUrlRequired;
+    if (props.rootUrl.startsWith('https') || props.rootUrl.startsWith('http'))
+      return ERROR_MESSAGES.organizationController
+        .lmsIntegrationProtocolIncluded;
+
+    return await this.organizationService.upsertLMSIntegration(oid, props);
+  }
+
+  @Delete(':oid/lms_integration/remove')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN)
+  async removeLMSIntegration(
+    @Param('oid', ParseIntPipe) oid: number,
+    @Body() body: any,
+  ): Promise<any> {
+    const exists = await LMSOrganizationIntegrationModel.findOne({
+      where: { organizationId: oid, apiPlatform: body.apiPlatform },
+    });
+    if (!exists) {
+      return ERROR_MESSAGES.organizationController.lmsIntegrationNotFound;
+    }
+    const platform = exists.apiPlatform;
+    await LMSOrganizationIntegrationModel.remove(exists);
+    return `Successfully deleted LMS integration for ${platform}`;
   }
 
   @Patch(':oid/update_user_role')
@@ -1424,7 +1546,7 @@ export class OrganizationController {
     @Param('oid', ParseIntPipe) oid: number,
     @Param('page', ParseIntPipe) page: number,
     @Query('search') search: string,
-  ): Promise<UserResponse[]> {
+  ): Promise<OrgUser[]> {
     const pageSize = 50;
 
     if (!search) {

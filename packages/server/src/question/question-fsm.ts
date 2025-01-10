@@ -13,7 +13,11 @@ interface AllowableTransitions {
 
 const QUEUE_TRANSITIONS: AllowableTransitions = {
   ta: [OpenQuestionStatus.Helping, LimboQuestionStatus.TADeleted],
-  student: [ClosedQuestionStatus.ConfirmedDeleted],
+  student: [
+    ClosedQuestionStatus.ConfirmedDeleted,
+    ClosedQuestionStatus.LeftDueToNoStaff,
+    ClosedQuestionStatus.Stale,
+  ],
 };
 
 const HELPING_TRANSITIONS: AllowableTransitions = {
@@ -27,12 +31,19 @@ const HELPING_TRANSITIONS: AllowableTransitions = {
   student: [
     ClosedQuestionStatus.ConfirmedDeleted,
     LimboQuestionStatus.ReQueueing,
+    ClosedQuestionStatus.LeftDueToNoStaff,
+    ClosedQuestionStatus.Stale,
   ],
 };
 
 export const QUESTION_STATES: Record<QuestionStatus, AllowableTransitions> = {
   [OpenQuestionStatus.Drafting]: {
-    student: [OpenQuestionStatus.Queued, ClosedQuestionStatus.ConfirmedDeleted],
+    student: [
+      OpenQuestionStatus.Queued,
+      ClosedQuestionStatus.ConfirmedDeleted,
+      ClosedQuestionStatus.LeftDueToNoStaff,
+      ClosedQuestionStatus.Stale,
+    ],
     ta: [OpenQuestionStatus.Helping, ClosedQuestionStatus.DeletedDraft],
   },
   [OpenQuestionStatus.Queued]: QUEUE_TRANSITIONS,
@@ -50,6 +61,8 @@ export const QUESTION_STATES: Record<QuestionStatus, AllowableTransitions> = {
       OpenQuestionStatus.PriorityQueued,
       OpenQuestionStatus.Queued,
       ClosedQuestionStatus.ConfirmedDeleted,
+      ClosedQuestionStatus.LeftDueToNoStaff,
+      ClosedQuestionStatus.Stale,
     ],
   },
   [LimboQuestionStatus.ReQueueing]: {
@@ -57,15 +70,22 @@ export const QUESTION_STATES: Record<QuestionStatus, AllowableTransitions> = {
       OpenQuestionStatus.PriorityQueued,
       OpenQuestionStatus.Queued,
       ClosedQuestionStatus.ConfirmedDeleted,
+      ClosedQuestionStatus.LeftDueToNoStaff,
+      ClosedQuestionStatus.Stale,
     ],
   },
   [LimboQuestionStatus.TADeleted]: {
-    student: [ClosedQuestionStatus.ConfirmedDeleted],
+    student: [
+      ClosedQuestionStatus.ConfirmedDeleted,
+      ClosedQuestionStatus.LeftDueToNoStaff,
+      ClosedQuestionStatus.Stale,
+    ],
   },
   [ClosedQuestionStatus.Resolved]: {},
   [ClosedQuestionStatus.ConfirmedDeleted]: {},
   [ClosedQuestionStatus.Stale]: {},
   [ClosedQuestionStatus.DeletedDraft]: {},
+  [ClosedQuestionStatus.LeftDueToNoStaff]: {},
 };
 
 export function canChangeQuestionStatus(

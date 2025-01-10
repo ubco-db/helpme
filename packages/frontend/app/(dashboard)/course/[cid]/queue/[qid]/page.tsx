@@ -64,6 +64,7 @@ import { useChatbotContext } from '../../components/chatbot/ChatbotProvider'
 import CircleButton from './components/CircleButton'
 import JoinZoomNowModal from './components/modals/JoinZoomNowModal'
 import JoinZoomButton from './components/JoinZoomButton'
+import { useUpdateAlertsWhenLastStaffChecksOut } from '@/app/hooks/useUpdateAlertsWhenLastStaffChecksOut'
 
 type QueuePageProps = {
   params: { cid: string; qid: string }
@@ -111,6 +112,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       isStaff,
     )
   const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree)
+  useUpdateAlertsWhenLastStaffChecksOut(cid, queue?.staffList, isStaff)
   const [isJoiningQuestion, setIsJoiningQuestion] = useState(
     queueQuestions &&
       studentQuestions &&
@@ -212,12 +214,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       hasDefaultsBeenInitializedRef.current = true
     }
   }, [queueConfig, configTasks, isStaff, queueQuestions, questionTypes])
-
-  const staffCheckedIntoAnotherQueue = course?.queues?.some(
-    (q) =>
-      q.id !== qid &&
-      q.staffList.some((staffMember) => staffMember.id === userInfo.id),
-  )
 
   const studentQuestionId = studentQuestion?.id
   const studentQuestionStatus = studentQuestion?.status
@@ -575,8 +571,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               <Tooltip
                 title={
                   (queue.isDisabled && 'Cannot check into a disabled queue!') ||
-                  (staffCheckedIntoAnotherQueue &&
-                    'You are already checked into another queue') ||
                   (helpingQuestions &&
                     helpingQuestions.length > 0 &&
                     'You cannot check out while helping a student') ||
@@ -588,9 +582,8 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 <span>
                   <TACheckinButton
                     courseId={cid}
-                    room={queue.room}
+                    queueId={qid}
                     disabled={
-                      staffCheckedIntoAnotherQueue ||
                       (helpingQuestions && helpingQuestions.length > 0) ||
                       (queue.isProfessorQueue && role !== Role.PROFESSOR) ||
                       queue.isDisabled
