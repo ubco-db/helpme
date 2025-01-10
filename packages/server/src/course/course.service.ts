@@ -256,7 +256,7 @@ export class CourseService {
       const searchString = search.replace(' ', '').toUpperCase();
       searchCondition = `
         AND CONCAT(UPPER(user_model."firstName"), UPPER(user_model."lastName"))
-          LIKE '%' || $5 || '%'
+          LIKE '%' || ${roleCondition ? '$5' : '$4'} || '%'
       `;
       params.push(searchString);
     }
