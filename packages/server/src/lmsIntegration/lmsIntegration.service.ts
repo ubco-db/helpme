@@ -3,9 +3,11 @@ import {
   AbstractLMSAdapter,
   LMSIntegrationAdapter,
 } from './lmsIntegration.adapter';
-import { LMSApiResponseStatus } from '@koh/common';
-import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_MESSAGES, LMSApiResponseStatus } from '@koh/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
+import { LMSAssignmentModel } from './lmsAssignment.entity';
+import { In } from 'typeorm';
 
 @Injectable()
 export class LMSIntegrationService {
@@ -53,5 +55,39 @@ export class LMSIntegrationService {
   async getAssignments(courseId: number) {
     const adapter = await this.getAdapter(courseId);
     return (await adapter.getAssignments()).assignments;
+  }
+
+  async saveAssignments(courseId: number, ids?: number[]) {
+    const adapter = await this.getAdapter(courseId);
+    return await adapter.saveAssignments(ids);
+  }
+
+  async uploadAssignments(courseId: number, ids?: number[]) {
+    const adapter = await this.getAdapter(courseId);
+    if (!adapter.isImplemented()) {
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.noLMSIntegration,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const findOptions = ids != undefined ? { id: In(ids ?? []) } : {};
+
+    const assignments = await LMSAssignmentModel.find({
+      where: {
+        courseId,
+        ...findOptions,
+      },
+    });
+
+    /**
+     * TODO: Actually get these formatted into documents and into the Chatbot I guess?
+     */
+    const asRawText = assignments.map(
+      (a) =>
+        `Assignment: ${a.name}\nDue Date: ${a.due.toLocaleDateString()}\nDescription: ${a.description}`,
+    );
+
+    return;
   }
 }

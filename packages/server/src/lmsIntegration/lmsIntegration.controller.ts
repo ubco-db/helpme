@@ -7,7 +7,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Get } from '@nestjs/common/decorators';
-import { LMSApiResponseStatus, Role } from '@koh/common';
+import { LMSApiResponseStatus, LMSAssignment, Role } from '@koh/common';
 import { LMSIntegrationService } from './lmsIntegration.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
@@ -67,5 +67,25 @@ export class LMSIntegrationController {
       props.apiKey,
       props.apiCourseId,
     );
+  }
+
+  @Post(':courseId/assignments/save')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async saveAssignments(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() props: any,
+  ): Promise<{ status: LMSApiResponseStatus; assignments: LMSAssignment[] }> {
+    return await this.integrationService.saveAssignments(props.ids);
+  }
+
+  @Post(':courseId/assignments/upload')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async uploadAssignments(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() props: any,
+  ): Promise<any> {
+    return await this.integrationService.uploadAssignments(props.ids);
   }
 }

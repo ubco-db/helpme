@@ -34,10 +34,9 @@ export class LMSCourseIntegrationModel extends BaseEntity {
   orgIntegration: LMSOrganizationIntegrationModel;
 
   @OneToOne((type) => CourseModel, (course) => course.lmsIntegration)
-  @JoinColumn()
+  @JoinColumn({ name: 'courseId', referencedColumnName: 'id' })
   course: CourseModel;
 
   @OneToMany((type) => LMSAssignmentModel, (assignment) => assignment.course)
-  @JoinColumn({ referencedColumnName: 'courseId' })
   assignments: LMSAssignmentModel[];
 }

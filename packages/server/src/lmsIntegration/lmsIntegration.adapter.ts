@@ -2,9 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 import {
   LMSApiResponseStatus,
+  LMSAssignment,
   LMSAssignmentAPIResponse,
   LMSCourseAPIResponse,
 } from '@koh/common';
+import { LMSAssignmentModel } from './lmsAssignment.entity';
 
 @Injectable()
 export class LMSIntegrationAdapter {
@@ -49,6 +51,12 @@ export abstract class AbstractLMSAdapter {
     status: LMSApiResponseStatus;
     assignments: LMSAssignmentAPIResponse[];
   }> {
+    return null;
+  }
+
+  async saveAssignments(
+    ids?: number[],
+  ): Promise<{ status: LMSApiResponseStatus; assignments: LMSAssignment[] }> {
     return null;
   }
 }
@@ -185,9 +193,50 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
             id: assignment.id,
             name: assignment.name,
             description: assignment.description,
+            due: new Date(assignment.due_at),
             modified: new Date(assignment.updated_at),
           } satisfies LMSAssignmentAPIResponse;
         }),
+    };
+  }
+
+  async saveAssignments(
+    ids?: number[],
+  ): Promise<{ status: LMSApiResponseStatus; assignments: LMSAssignment[] }> {
+    const { status, assignments } = await this.getAssignments();
+    if (status != LMSApiResponseStatus.Success)
+      return { status, assignments: [] };
+
+    let toSave = [...assignments];
+    if (ids != undefined) {
+      toSave = toSave.filter((v) => ids.includes(v.id));
+    }
+
+    const assgn = await LMSAssignmentModel.save(
+      toSave.map((a) => {
+        const assignment = new LMSAssignmentModel();
+        assignment.trackedAt = new Date();
+        assignment.description = a.description;
+        assignment.name = a.name;
+        assignment.due = a.due;
+        assignment.courseId = this.integration.courseId;
+        assignment.id = a.id;
+        return assignment;
+      }),
+    );
+
+    return {
+      status: LMSApiResponseStatus.Success,
+      assignments: assgn.map((a) => {
+        return {
+          id: a.id,
+          name: a.name,
+          description: a.description,
+          due: a.due,
+          modified: a.modified,
+          trackedAt: a.trackedAt,
+        } as LMSAssignment;
+      }),
     };
   }
 }

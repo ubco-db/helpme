@@ -38,6 +38,6 @@ export class LMSOrganizationIntegrationModel extends BaseEntity {
     (org) => org.organizationIntegrations,
     { onDelete: 'CASCADE' },
   )
-  @JoinColumn({ referencedColumnName: 'id' })
+  @JoinColumn({ name: 'organizationId', referencedColumnName: 'id' })
   organization: OrganizationModel;
 }

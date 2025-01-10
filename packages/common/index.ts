@@ -1013,7 +1013,17 @@ export type LMSAssignmentAPIResponse = {
   id: number
   name: string
   description: string
+  due: Date
   modified: Date
+}
+
+export type LMSAssignment = {
+  id: number
+  name: string
+  description: string
+  due: Date
+  modified: Date
+  trackedAt: Date
 }
 
 export enum LMSApiResponseStatus {
@@ -2575,5 +2585,11 @@ export const ERROR_MESSAGES = {
   },
   questionType: {
     questionTypeNotFound: 'Question type not found',
+  },
+  lmsController: {
+    noLMSIntegration:
+      'The course has no registered LMS integration, or its registered LMS integration is invalid.',
+    noAssignmentsSaved:
+      'There are no assignments from the course LMS that have been persisted to the database.',
   },
 }

@@ -23,6 +23,7 @@ import { UserModel } from 'profile/user.entity';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
+import { LMSAssignmentModel } from '../lmsIntegration/lmsAssignment.entity';
 
 @Injectable()
 export class CourseService {
@@ -405,6 +406,14 @@ export class CourseService {
     apiKey?: string,
     apiKeyExpiry?: Date,
   ) {
+    if (integration.orgIntegration.apiPlatform != orgIntegration.apiPlatform) {
+      // If the integration changes to another platform, clear out the previously saved assignments
+      await LMSAssignmentModel.remove(
+        await LMSAssignmentModel.find({
+          where: { courseId: integration.courseId },
+        }),
+      );
+    }
     integration.orgIntegration = orgIntegration;
     integration.apiKey = apiKey ?? integration.apiKey;
     integration.apiCourseId = apiCourseId ?? integration.apiCourseId;
