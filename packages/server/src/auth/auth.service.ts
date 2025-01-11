@@ -16,6 +16,7 @@ import { MailServiceModel } from 'mail/mail-services.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
+// import { QueryBuilder, SelectQueryBuilder } from 'typeorm';
 
 @Injectable()
 export class AuthService {
@@ -63,6 +64,21 @@ export class AuthService {
   ): Promise<number> {
     try {
       const user = await UserModel.findOne({ email: mail });
+
+      /*
+      I don't think we need to worry about the Shibboleth auth being case insensitive,
+      as the account is created directly from the credentials supplied by the third-party,
+      and later log-in attempts use those precise credentials from the third party
+
+      Leaving the code regardless!
+       */
+
+      /*
+      const user = await new SelectQueryBuilder<UserModel>(UserModel.createQueryBuilder('UserModel'))
+        .select()
+        .where('LOWER(`UserModel`.email) = :mail', { mail: mail.toLowerCase() })
+        .getOne();
+      */
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -265,7 +281,7 @@ export class AuthService {
       where: { sid },
       relations: ['organizationUser'],
     });
-    return user && user.organizationUser.organizationId === oid ? true : false;
+    return user && user.organizationUser.organizationId === oid;
   }
 
   async createPasswordResetToken(user: UserModel): Promise<string> {

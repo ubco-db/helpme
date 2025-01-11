@@ -53,8 +53,16 @@ export class LoginController {
       }
     }
 
+    // An unfortunate double-query so that we can check the email in a case-insensitive way
+    const userId = await UserModel.createQueryBuilder('UserModel')
+      .select('id')
+      .where('LOWER("UserModel"."email") = :email', {
+        email: body.email.toLowerCase(),
+      })
+      .getRawOne<{ id: number }>();
+
     const user = await UserModel.findOne({
-      where: { email: body.email },
+      where: { id: userId?.id ?? -1 },
       relations: ['organizationUser', 'organizationUser.organization'],
     });
 
