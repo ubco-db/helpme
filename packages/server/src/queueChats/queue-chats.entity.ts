@@ -43,6 +43,7 @@ export class QueueChatsModel extends BaseEntity {
   @Exclude()
   student: UserModel;
 
+  // User Id of entry in user table (not student number)
   @Column({ nullable: true })
   studentId: number;
 

@@ -131,7 +131,7 @@ const TaskMarkingSelector: React.FC<TaskMarkingSelectorProps> = ({
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
       style={{
-        zIndex: 1,
+        zIndex: 0,
         position: 'relative',
       }}
     >

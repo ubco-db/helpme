@@ -1,8 +1,4 @@
-import {
-  GetQueueChatResponse,
-  SSEQueueChatResponse,
-  SSEQueueResponse,
-} from '@koh/common'
+import { GetQueueChatResponse, SSEQueueChatResponse } from '@koh/common'
 import { plainToClass } from 'class-transformer'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import useSWR, { mutate, SWRResponse } from 'swr'
@@ -23,6 +19,9 @@ export function useQueueChat(
   studentId: number,
 ): useQueueChatReturn {
   const key = `/api/v1/queueChats/${qid}/${studentId}`
+
+  // On desktop, this is used to know when to auto-open the chat
+  // On mobile, this is used to pulse the chat icon
   const previousMessageCount = useRef<number>(0)
   const [hasNewMessages, setHasNewMessages] = useState<boolean>(false)
 
@@ -50,6 +49,7 @@ export function useQueueChat(
     refreshInterval: isLive ? 0 : 10 * 1000,
   })
 
+  // To update the hasNewMessages state
   useEffect(() => {
     if (queueChatData?.messages) {
       const newMessageCount = queueChatData.messages.length

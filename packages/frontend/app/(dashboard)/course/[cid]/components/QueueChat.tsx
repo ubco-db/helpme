@@ -12,6 +12,7 @@ interface QueueChatProps {
   role: Role
   queueId: number
   studentId: number
+  isMobile: boolean
   fixed?: boolean
 }
 
@@ -19,9 +20,10 @@ const QueueChat: React.FC<QueueChatProps> = ({
   role,
   queueId,
   studentId,
+  isMobile,
   fixed = true,
 }): ReactElement => {
-  const [isOpen, setIsOpen] = useState<boolean>(true)
+  const [isOpen, setIsOpen] = useState<boolean>(isMobile ? false : true)
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const { queueChatData, mutateQueueChat, hasNewMessages } = useQueueChat(
@@ -30,7 +32,13 @@ const QueueChat: React.FC<QueueChatProps> = ({
   )
 
   useEffect(() => {
-    if (hasNewMessages) {
+    if (!hasNewMessages) {
+      return
+    }
+
+    if (isMobile) {
+      //pulse
+    } else {
       setIsOpen(true)
     }
   }, [hasNewMessages, setIsOpen])
@@ -55,7 +63,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   if (!queueChatData && isOpen) {
     return (
       <Alert
-        className={`${fixed ? 'fixed ' : ' '}bottom-8 right-0 box-border md:right-2`}
+        className={`${fixed ? 'fixed ' : ''}bottom-8 right-0 box-border md:right-2`}
         message="Chat data is not available."
         description="Please try again later or contact support if the issue persists."
         type="warning"
@@ -66,14 +74,16 @@ const QueueChat: React.FC<QueueChatProps> = ({
 
   return isOpen ? (
     <div
-      className={`${fixed ? 'fixed ' : ' '} bottom-8 right-0 box-border max-h-[70vh] w-screen md:right-2 md:max-w-[400px]`}
+      className={`${fixed ? 'fixed ' : ' '} bottom-8 right-0 z-50 box-border max-h-[70vh] w-screen md:right-2 md:max-w-[400px]`}
       style={{ zIndex: 1050 }}
     >
       <Card
         title={
-          isStaff
-            ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName}`
-            : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName}`
+          queueChatData && queueChatData.staff && queueChatData.student
+            ? isStaff
+              ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName}`
+              : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName}`
+            : 'Loading...'
         }
         classNames={{
           header: 'pr-3',
@@ -210,9 +220,11 @@ const QueueChat: React.FC<QueueChatProps> = ({
         icon={<MessageCircleMore />}
         onClick={() => setIsOpen(true)}
       >
-        {isStaff
-          ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName}`
-          : `Queue Chat`}
+        {queueChatData && queueChatData.staff && queueChatData.student
+          ? isStaff
+            ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName}`
+            : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName}`
+          : 'Loading...'}
       </Button>
     </div>
   )

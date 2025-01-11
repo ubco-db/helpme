@@ -44,7 +44,7 @@ export class QueueSSEService {
   updateQueue = this.throttleUpdate(async (queueId) => {
     const queue = await this.queueService.getQueue(queueId);
     if (queue) {
-      this.sendToRoom(queueId, async () => ({ queue }));
+      await this.sendToRoom(queueId, async () => ({ queue }));
     }
   });
 
@@ -52,19 +52,12 @@ export class QueueSSEService {
     queueId: number,
     data: (metadata: QueueClientMetadata) => Promise<SSEQueueResponse>,
   ) {
-    await this.sseService.sendEvent(
-      idToRoom(queueId),
-      (metadata: QueueClientMetadata) => {
-        return data(metadata);
-      },
-    );
+    await this.sseService.sendEvent(idToRoom(queueId), data);
   }
 
-  private throttleUpdate(
-    updateFunction: (queueId: number, studentId?: number) => Promise<void>,
-  ) {
+  private throttleUpdate(updateFunction: (queueId: number) => Promise<void>) {
     return throttle(
-      async (queueId: number, studentId?: number) => {
+      async (queueId: number) => {
         try {
           await updateFunction(queueId);
         } catch (e) {}

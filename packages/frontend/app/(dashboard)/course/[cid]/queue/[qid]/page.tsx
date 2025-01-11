@@ -60,12 +60,14 @@ import CircleButton from './components/CircleButton'
 import QueueChat from '../../components/QueueChat'
 import JoinZoomNowModal from './components/modals/JoinZoomNowModal'
 import JoinZoomButton from './components/JoinZoomButton'
+import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 
 type QueuePageProps = {
   params: { cid: string; qid: string }
 }
 
 export default function QueuePage({ params }: QueuePageProps): ReactElement {
+  const isMobile = useMediaQuery('(max-width: 768px)')
   const cid = Number(params.cid)
   const qid = Number(params.qid)
   const router = useRouter()
@@ -912,15 +914,17 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 onClose={() => setAssignmentReportModalOpen(false)}
               />
             )}
-            <div className="fixed bottom-8 right-0 box-border md:right-2">
+            <div className="fixed bottom-8 right-0 box-border overflow-auto md:right-2">
               <div className="flex flex-row items-end justify-end gap-2">
                 {helpingQuestions.map((question) => {
+                  console.log('CreatorId: ', question.creatorId)
                   return (
                     <QueueChat
                       key={question.id}
                       queueId={qid}
                       studentId={question.creatorId}
                       role={role}
+                      isMobile={isMobile}
                       fixed={false}
                     />
                   )
@@ -1061,6 +1065,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 queueId={qid}
                 studentId={userInfo.id}
                 role={role}
+                isMobile={isMobile}
                 fixed={true}
               />
             )}
