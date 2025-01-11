@@ -1,3 +1,24 @@
+## Version 1.2.0 - Jan 11, 2024
+
+#### New Features
+- ***General***
+  - When the last TA checks out of a queue, students with questions will now be prompted whether they would like to leave the queue or stay
+    - If they don't respond in 10 minutes, the question will automatically be closed
+- ***Staff-only***
+  - Staff can now be assigned to events (on the schedule page)! When you do so, said staff will be prompted to check-out of the queue when the event ends (they can select if they need 10 more minutes). 
+    - It is now ***strongly*** recommended that professors set this up as this will solve the problem of TAs forgetting to check out. 
+  - Added LMS integration (currently just supports Canvas)
+    - Currently, this just allows you to verify if students in your HelpMe course are the same as the ones in your Canvas course, but will be expanded in the future
+    - You can access this on the Course Settings page
+
+#### Improvements
+- When you create a recurring event, it will temporarily save what you made the end date and make it so your next events you create are automatically set to this end date (this should speed up creating several recurring events at say the start of the semester)
+- Queues now properly get cleaned at midnight
+- Fixed the search and pagination of the organization users table
+- Various bug fixes
+
+***
+
 ## Version 1.1.1 - Jan 3, 2024
 
 #### New Features
