@@ -281,7 +281,7 @@ export class AuthService {
       where: { sid },
       relations: ['organizationUser'],
     });
-    return user && user.organizationUser.organizationId === oid ? true : false;
+    return user?.organizationUser?.organizationId == oid;
   }
 
   async createPasswordResetToken(user: UserModel): Promise<string> {
