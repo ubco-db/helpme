@@ -19,6 +19,9 @@ import { khourySemesterCodes } from './last-registration-model.entity';
 export class LoginCourseService {
   constructor(private connection: Connection) {}
 
+  /* TODO: Adam, this is deprecated from the Northeastern code base, correct?
+      We should remove it, yes or no?
+   */
   public async addUserFromKhoury(info: KhouryDataParams): Promise<UserModel> {
     let user: UserModel;
     const neuEmail = info.email.replace('@husky.neu.edu', '@northeastern.edu');

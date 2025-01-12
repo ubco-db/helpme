@@ -9,17 +9,21 @@ import { OrganizationModule } from 'organization/organization.module';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueCleanService } from '../queue/queue-clean/queue-clean.service';
+import { AuthModule } from '../auth/auth.module';
+import { AuthService } from '../auth/auth.service';
 
 @Module({
   controllers: [CourseController],
   imports: [
     QueueModule,
     LoginModule,
+    AuthModule,
     CacheModule.register(),
     OrganizationModule,
     RedisQueueService,
   ],
   providers: [
+    AuthService,
     LoginCourseService,
     HeatmapService,
     CourseService,

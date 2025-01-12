@@ -70,11 +70,13 @@ import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
+import { AuthService } from '../auth/auth.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
 export class CourseController {
   constructor(
+    private authService: AuthService,
     private configService: ConfigService,
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
@@ -848,13 +850,13 @@ export class CourseController {
     @Body() body: UBCOuserParam,
     @Res() res: Response,
   ): Promise<Response<void>> {
-    const user = await UserModel.findOne({
-      where: {
-        email: body.email,
-        organizationUser: { organizationId: body.organizationId },
-      },
-      relations: ['organizationUser', 'courses'],
-    });
+    const user = await this.authService
+      .getUserByEmailQuery(body.email)
+      .andWhere('organizationUser.organizationId = :organizationId', {
+        organizationId: body.organizationId,
+      })
+      .leftJoinAndSelect('UserModel.courses', 'course')
+      .getOne();
 
     if (!user) {
       res.status(HttpStatus.NOT_FOUND).send({ message: 'User not found' });

@@ -16,7 +16,7 @@ import { MailServiceModel } from 'mail/mail-services.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
-// import { QueryBuilder, SelectQueryBuilder } from 'typeorm';
+import { SelectQueryBuilder } from 'typeorm';
 
 @Injectable()
 export class AuthService {
@@ -63,22 +63,7 @@ export class AuthService {
     organizationId: number,
   ): Promise<number> {
     try {
-      const user = await UserModel.findOne({ email: mail });
-
-      /*
-      I don't think we need to worry about the Shibboleth auth being case insensitive,
-      as the account is created directly from the credentials supplied by the third-party,
-      and later log-in attempts use those precise credentials from the third party
-
-      Leaving the code regardless!
-       */
-
-      /*
-      const user = await new SelectQueryBuilder<UserModel>(UserModel.createQueryBuilder('UserModel'))
-        .select()
-        .where('LOWER(`UserModel`.email) = :mail', { mail: mail.toLowerCase() })
-        .getOne();
-      */
+      const user = await this.getUserByEmailQuery(mail).getOne();
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -146,15 +131,11 @@ export class AuthService {
         throw new BadRequestException('Email not verified');
       }
 
-      const user = await UserModel.findOne({
-        where: {
-          email: payload.email,
-          organizationUser: {
-            organizationId: organizationId,
-          },
-        },
-        relations: ['organizationUser'],
-      });
+      const user = await this.getUserByEmailQuery(payload.email)
+        .andWhere('organizationUser.organizationId = :organizationId', {
+          organizationId,
+        })
+        .getOne();
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -213,7 +194,7 @@ export class AuthService {
     organizationId: number,
   ): Promise<number> {
     try {
-      const user = await UserModel.findOne({ email });
+      const user = await UserModel.findOne({ email: email });
 
       if (user) {
         throw new BadRequestException('Email already exists');
@@ -307,5 +288,16 @@ export class AuthService {
       token += characters.charAt(randomIndex);
     }
     return token;
+  }
+
+  getUserByEmailQuery(
+    email: string,
+  ): SelectQueryBuilder<UserModel | undefined> {
+    return UserModel.createQueryBuilder('UserModel')
+      .select()
+      .leftJoinAndSelect('UserModel.organizationUser', 'organizationUser')
+      .where('LOWER("UserModel"."email") = :email', {
+        email: email.toLowerCase(),
+      });
   }
 }

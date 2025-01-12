@@ -24,7 +24,6 @@ import {
 } from '@koh/common';
 import { JwtService } from '@nestjs/jwt';
 import { OrganizationModel } from 'organization/organization.entity';
-import { UserModel } from 'profile/user.entity';
 import * as request from 'superagent';
 import { MailService } from 'mail/mail.service';
 import {
@@ -283,14 +282,15 @@ export class AuthController {
       });
     }
 
-    const user = await UserModel.findOne({
-      where: {
-        email,
-        organizationUser: { organizationId },
+    const user = await this.authService
+      .getUserByEmailQuery(email)
+      .andWhere('organizationUser.organizationId = :orgId', {
+        orgId: organizationId,
+      })
+      .andWhere('UserModel.accountType = :accountType', {
         accountType: AccountType.LEGACY,
-      },
-      relations: ['organizationUser'],
-    });
+      })
+      .getOne();
 
     if (!user) {
       return res
@@ -388,7 +388,7 @@ export class AuthController {
         .send({ message: 'Organization not found' });
     }
 
-    const user = await UserModel.findOne({ where: { email } });
+    const user = await this.authService.getUserByEmailQuery(email).getOne();
 
     if (user) {
       return res

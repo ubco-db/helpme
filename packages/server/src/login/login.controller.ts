@@ -15,11 +15,11 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import * as bcrypt from 'bcrypt';
-import { UserModel } from 'profile/user.entity';
 import * as request from 'superagent';
 import { getCookie } from 'common/helpers';
 import { CourseService } from 'course/course.service';
 import { minutes, Throttle } from '@nestjs/throttler';
+import { AuthService } from '../auth/auth.service';
 
 // Only 7 attempts per minute
 @Throttle({ default: { limit: 7, ttl: minutes(1) } })
@@ -29,6 +29,7 @@ export class LoginController {
     private jwtService: JwtService,
     private configService: ConfigService,
     private courseService: CourseService,
+    private authService: AuthService,
   ) {}
 
   @Post('/ubc_login')
@@ -53,18 +54,10 @@ export class LoginController {
       }
     }
 
-    // An unfortunate double-query so that we can check the email in a case-insensitive way
-    const userId = await UserModel.createQueryBuilder('UserModel')
-      .select('id')
-      .where('LOWER("UserModel"."email") = :email', {
-        email: body.email.toLowerCase(),
-      })
-      .getRawOne<{ id: number }>();
-
-    const user = await UserModel.findOne({
-      where: { id: userId?.id ?? -1 },
-      relations: ['organizationUser', 'organizationUser.organization'],
-    });
+    const user = await this.authService
+      .getUserByEmailQuery(body.email)
+      .leftJoinAndSelect('organizationUser.organization', 'org')
+      .getOne();
 
     if (!user) {
       return res
