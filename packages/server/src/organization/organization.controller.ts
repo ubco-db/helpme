@@ -1052,6 +1052,9 @@ export class OrganizationController {
             return {
               courseId: cint.courseId,
               apiPlatform: int.apiPlatform,
+              isExpired:
+                cint.apiKeyExpiry != undefined &&
+                new Date(cint.apiKeyExpiry).getTime() < new Date().getTime(),
               course: {
                 id: cint.courseId,
                 name: cint.course?.name,
