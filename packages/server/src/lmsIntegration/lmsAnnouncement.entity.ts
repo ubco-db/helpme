@@ -25,8 +25,14 @@ export class LMSAnnouncementModel extends BaseEntity {
   @Column({ type: 'timestamp' })
   posted: Date;
 
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  modified: Date;
+
   @Column({ type: 'string', nullable: true })
   chatbotDocumentId: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  uploaded: Date;
 
   @ManyToOne(
     (type) => LMSCourseIntegrationModel,

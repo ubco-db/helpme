@@ -25,14 +25,14 @@ export class LMSAssignmentModel extends BaseEntity {
   @Column({ type: 'timestamp' })
   due: Date;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   modified: Date;
-
-  @Column({ type: 'timestamp' })
-  trackedAt: Date;
 
   @Column({ type: 'string', nullable: true })
   chatbotDocumentId: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  uploaded: Date;
 
   @ManyToOne(
     (type) => LMSCourseIntegrationModel,

@@ -1041,6 +1041,18 @@ export type LMSAnnouncement = {
   posted: Date
 }
 
+export type LMSFileUploadResponse = {
+  id: number
+  type: 'Assignment' | 'Announcement'
+  success: boolean
+  documentId?: string
+}
+
+export type LMSFileUploadResult = {
+  id: number
+  success: boolean
+}
+
 export enum LMSApiResponseStatus {
   None = '',
   InvalidPlatform = 'The specified LMS platform is not registered with the HelpMe system.',
@@ -2606,5 +2618,8 @@ export const ERROR_MESSAGES = {
       'The course has no registered LMS integration, or its registered LMS integration is invalid.',
     noAssignmentsSaved:
       'There are no assignments from the course LMS that have been persisted to the database.',
+    invalidDocumentType:
+      'Failed to upload any LMS documents to the chatbot, invalid document type specified.',
+    failedToUpload: 'Failed to upload any LMS documents to the chatbot.',
   },
 }

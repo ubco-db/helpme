@@ -3,11 +3,19 @@ import {
   AbstractLMSAdapter,
   LMSIntegrationAdapter,
 } from './lmsIntegration.adapter';
-import { ERROR_MESSAGES, LMSApiResponseStatus } from '@koh/common';
+import {
+  ERROR_MESSAGES,
+  LMSApiResponseStatus,
+  LMSFileUploadResponse,
+  LMSFileUploadResult,
+} from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
-import { In } from 'typeorm';
+import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
+import { ChatTokenModel } from '../chatbot/chat-token.entity';
+import { v4 } from 'uuid';
+import { UserModel } from '../profile/user.entity';
 
 export enum LMSGet {
   Course,
@@ -146,7 +154,12 @@ export class LMSIntegrationService {
     return data;
   }
 
-  async uploadAssignments(courseId: number, ids?: number[]) {
+  async uploadDocuments(
+    user: UserModel,
+    courseId: number,
+    type: LMSUpload,
+    ids?: number[],
+  ) {
     const adapter = await this.getAdapter(courseId);
     if (!adapter.isImplemented()) {
       throw new HttpException(
@@ -155,27 +168,190 @@ export class LMSIntegrationService {
       );
     }
 
-    const findOptions = ids != undefined ? { id: In(ids ?? []) } : {};
+    const model = (() => {
+      switch (type) {
+        case LMSUpload.Announcements:
+          return LMSAnnouncementModel;
+        case LMSUpload.Assignments:
+          return LMSAssignmentModel;
+      }
+    })();
 
-    const assignments = await LMSAssignmentModel.find({
-      where: {
-        courseId,
-        ...findOptions,
-      },
+    if (!model.find) {
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.invalidDocumentType,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const qb = model
+      .createQueryBuilder('aModel')
+      .select()
+      .where('aModel.courseId = :courseId', { courseId });
+
+    if (ids != undefined) {
+      qb.andWhere('aModel.id IN :...ids', { ids });
+    }
+    const items = await qb.getMany();
+
+    const metadata: any = {
+      name: 'Manually Inserted Information',
+      type: 'inserted_document',
+    };
+
+    const converted = items.map((i) => {
+      switch (type) {
+        case LMSUpload.Announcements: {
+          const a = i as any as LMSAnnouncementModel;
+          return {
+            id: a.id,
+            documentId: a.chatbotDocumentId,
+            documentText: `(Announcement) Title: ${a.title}\nContent: ${a.message}\nPosted: ${a.posted.getTime()}${a.modified != undefined ? `\nModified: ${a.modified.getTime()}` : ''}`,
+            metadata,
+          };
+        }
+        case LMSUpload.Assignments: {
+          const a = i as any as LMSAssignmentModel;
+          return {
+            id: a.id,
+            documentId: a.chatbotDocumentId,
+            documentText: `Assignment: ${a.name}\nDue Date: ${a.due.toLocaleDateString()}\nDescription: ${a.description}`,
+            metadata,
+          };
+        }
+        default: {
+          return {
+            id: -1,
+            documentId: undefined,
+            documentText: '',
+            metadata,
+          };
+        }
+      }
     });
 
-    /**
-     * TODO: Actually get these formatted into documents and into the Chatbot I guess?
-     */
-    const asRawText = assignments.map(
-      (a) =>
-        `Assignment: ${a.name}\nDue Date: ${a.due.toLocaleDateString()}\nDescription: ${a.description}`,
+    const token = await ChatTokenModel.create({
+      user: user,
+      token: v4(),
+      max_uses: converted.length,
+    }).save();
+
+    const statuses: LMSFileUploadResponse[] = [];
+    for (const item of converted) {
+      if (!item.documentText) {
+        statuses.push({
+          id: item.id,
+          type: type == LMSUpload.Announcements ? 'Announcement' : 'Assignment',
+          success: false,
+        });
+        continue;
+      }
+
+      const reqOptions = {
+        body: JSON.stringify({
+          documentText: item.documentText,
+          metadata: item.metadata,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+          HMS_API_TOKEN: token.token,
+        },
+      };
+
+      const thenFx = (response: Response) => {
+        if (response.ok) {
+          if (item.documentId != undefined) {
+            statuses.push({
+              id: item.id,
+              type:
+                type == LMSUpload.Announcements ? 'Announcement' : 'Assignment',
+              success: true,
+              documentId: item.documentId,
+            });
+            return { completed: true };
+          } else {
+            return response.json();
+          }
+        } else {
+          statuses.push({
+            id: item.id,
+            type:
+              type == LMSUpload.Announcements ? 'Announcement' : 'Assignment',
+            success: false,
+          });
+          throw new Error();
+        }
+      };
+
+      if (item.documentId != undefined) {
+        await fetch(
+          `/chat/${courseId}/${item.documentId}/documentChunk`,
+          reqOptions,
+        )
+          .then(thenFx)
+          .catch((_) =>
+            console.log('Failed to update uploaded document in the Chatbot'),
+          );
+      } else {
+        await fetch(`/chat/${courseId}/documentChunk`, reqOptions)
+          .then(thenFx)
+          .then((json) => {
+            if (json.completed == true) return;
+            const persistedDoc = json as {
+              id: string;
+              pageContent: string;
+              metadata: any;
+            };
+            statuses.push({
+              id: item.id,
+              type:
+                type == LMSUpload.Announcements ? 'Announcement' : 'Assignment',
+              success: true,
+              documentId: persistedDoc.id,
+            });
+          })
+          .catch((_) =>
+            console.log('Failed to upload a document to the Chatbot'),
+          );
+      }
+    }
+
+    await ChatTokenModel.remove(token);
+
+    const successful = statuses.filter(
+      (s) => s.success && s.documentId != undefined,
     );
+    if (successful.length == 0) {
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.failedToUpload,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
-    return;
-  }
+    for (const status of successful) {
+      const result = await model
+        .createQueryBuilder('aModel')
+        .update()
+        .set({
+          chatbotDocumentId: status.documentId,
+          uploaded: new Date(),
+        })
+        .where('aModel.id = :id', { id: status.id })
+        .execute();
 
-  async uploadAnnouncements(courseId: number, ids?: number[]) {
-    // TODO: Like all of this
+      if (result.affected < 1) {
+        status.success = false;
+      }
+    }
+
+    return {
+      status: LMSApiResponseStatus.Success,
+      results: statuses.map((a) => {
+        return {
+          id: a.id,
+          success: a.success,
+        } as LMSFileUploadResult;
+      }),
+    };
   }
 }

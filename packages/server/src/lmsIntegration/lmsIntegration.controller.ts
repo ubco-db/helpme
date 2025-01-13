@@ -17,12 +17,15 @@ import {
   LMSGet,
   LMSIntegrationService,
   LMSSave,
+  LMSUpload,
 } from './lmsIntegration.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { OrganizationCourseModel } from '../organization/organization-course.entity';
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
+import { User } from '../decorators/user.decorator';
+import { UserModel } from '../profile/user.entity';
 
 @Controller('lms_integration')
 export class LMSIntegrationController {
@@ -123,19 +126,31 @@ export class LMSIntegrationController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async uploadAssignments(
+    @User() user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() props: any,
   ): Promise<any> {
-    return await this.integrationService.uploadAssignments(props.ids);
+    return await this.integrationService.uploadDocuments(
+      user,
+      courseId,
+      LMSUpload.Assignments,
+      props.ids,
+    );
   }
 
   @Post(':courseId/announcements/upload')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async uploadAnnouncements(
+    @User() user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() props: any,
   ): Promise<any> {
-    return await this.integrationService.uploadAnnouncements(props.ids);
+    return await this.integrationService.uploadDocuments(
+      user,
+      courseId,
+      LMSUpload.Announcements,
+      props.ids,
+    );
   }
 }
