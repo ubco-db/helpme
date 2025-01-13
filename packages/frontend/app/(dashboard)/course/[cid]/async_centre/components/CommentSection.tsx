@@ -95,39 +95,41 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         }
       }),
     )
-  }, [question.comments, userInfo])
+  }, [
+    getAnimalNameForUser,
+    isStaff,
+    question.comments,
+    question.creator.id,
+    userInfo,
+  ])
 
   const handleCommentOnPost = async (
     questionId: number,
     commentText: string,
   ) => {
-    try {
-      const res: Response = await API.asyncQuestions.comment(
-        questionId,
-        userInfo.id,
-        commentText,
-      )
-      if (res.status !== 200) throw new Error('Failed to post comment')
-
-      message.success('Comment posted successfully')
-      setComments([
-        ...(comments || []),
-        {
-          author: userInfo.name,
-          avatar: userInfo.photoURL,
-          content: commentText,
-          datetime: (
-            <Tooltip title={new Date().toLocaleString()}>
-              {moment().fromNow()}
-            </Tooltip>
-          ),
-          authorType: 'you',
-        },
-      ])
-      setShowAllComments(true)
-    } catch (e) {
-      message.error('Failed to post reply: ' + getErrorMessage(e))
-    }
+    await API.asyncQuestions
+      .comment(questionId, userInfo.id, commentText)
+      .then(() => {
+        message.success('Comment posted successfully')
+        setComments([
+          ...(comments || []),
+          {
+            author: userInfo.name,
+            avatar: userInfo.photoURL,
+            content: commentText,
+            datetime: (
+              <Tooltip title={new Date().toLocaleString()}>
+                {moment().fromNow()}
+              </Tooltip>
+            ),
+            authorType: 'you',
+          },
+        ])
+        setShowAllComments(true)
+      })
+      .catch((e) => {
+        message.error('Failed to post reply: ' + getErrorMessage(e))
+      })
   }
 
   return (

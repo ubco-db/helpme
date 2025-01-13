@@ -598,7 +598,7 @@ export type AsyncQuestion = {
   visible?: boolean
   verified: boolean
   votes?: AsyncQuestionVotes[]
-  comments?: AsyncQuestionComment[]
+  comments: AsyncQuestionComment[]
   votesSum: number
 }
 
@@ -678,22 +678,12 @@ export class AsyncQuestionVotes {
   vote!: number
 }
 
-export class AsyncQuestionComment {
-  @IsOptional()
-  @IsInt()
-  id?: number
-
-  @IsInt()
-  questionId!: number
-
-  @Type(() => UserPartial)
-  creator!: UserPartial
-
-  @IsString()
-  commentText!: string
-
-  @IsDate()
-  createdAt!: Date
+export type AsyncQuestionComment = {
+  id: number
+  questionId: number
+  creator: UserPartial
+  commentText: string
+  createdAt: Date
 }
 
 export class Image {
@@ -2407,7 +2397,6 @@ export const ERROR_MESSAGES = {
       oneQuestionAtATime: "You can't create more than one question at a time.",
       oneDemoAtATime: "You can't create more than one demo at a time.",
       invalidQuestionType: 'Invalid question type',
-      tooFast: 'You are posting too quickly',
     },
     updateQuestion: {
       fsmViolation: (

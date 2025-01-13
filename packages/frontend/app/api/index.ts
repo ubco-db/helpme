@@ -417,7 +417,7 @@ class APIClient {
         commentText,
       })
     },
-    getComments: async (questionId: number): Promise<AsyncQuestionComment> =>
+    getComments: async (questionId: number): Promise<AsyncQuestionComment[]> =>
       this.req(
         'GET',
         `/api/v1/asyncQuestions/comment/${questionId}`,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
 import { AsyncQuestion, asyncQuestionStatus, UserPartial } from '@koh/common'
 import {
@@ -15,9 +15,6 @@ import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
 import TAAsyncQuestionCardButtons from './TAAsyncQuestionCardButtons'
 import StudentAsyncQuestionCardButtons from './StudentAsyncQuestionCardButtons'
 import { ArrowBigDown, ArrowBigUp } from 'lucide-react'
-import Markdown from 'react-markdown'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import MarkdownCustom from '@/app/components/Markdown'
 import CommentSection from './CommentSection'
 
@@ -58,7 +55,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     question.status === asyncQuestionStatus.AIAnswered &&
     userId === question.creatorId
 
-  const showUser: UserPartial | null =
+  const showUser =
     isStaff || userId == question.creatorId ? question.creator : null
 
   const handleFeedback = async (resolved: boolean) => {
@@ -84,7 +81,13 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   const setLockedExpanded = (isLockedExpanded: boolean) => {
     setIsLockedExpanded(isLockedExpanded)
     setIsExpanded(isLockedExpanded)
-    setTruncateText(!isLockedExpanded)
+    if (!isLockedExpanded) {
+      setTimeout(() => {
+        setTruncateText(true)
+      }, 300)
+    } else {
+      setTruncateText(false)
+    }
   }
 
   const handleVote = async (questionId: number, vote: number) => {

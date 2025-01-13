@@ -70,7 +70,6 @@ import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
-import { createHash } from 'crypto';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)

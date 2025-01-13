@@ -2,7 +2,6 @@ import MarkdownCustom from '@/app/components/Markdown'
 import UserAvatar from '@/app/components/UserAvatar'
 import { cn } from '@/app/utils/generalUtils'
 import { Role } from '@koh/common'
-import React from 'react'
 
 interface CommentProps {
   author: string
@@ -78,7 +77,9 @@ const Comment: React.FC<CommentProps> = ({
         </div>
 
         {/* Comment body */}
-        <MarkdownCustom>{content}</MarkdownCustom>
+        <div className="childrenMarkdownFormatted">
+          <MarkdownCustom>{content}</MarkdownCustom>
+        </div>
       </div>
     </div>
   )
