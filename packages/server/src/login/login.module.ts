@@ -3,7 +3,6 @@ import { LoginController } from './login.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { LoginCourseService } from './login-course.service';
 import { CourseService } from 'course/course.service';
 import { AuthModule } from '../auth/auth.module';
 import { AuthService } from '../auth/auth.service';
@@ -20,6 +19,6 @@ import { AuthService } from '../auth/auth.service';
     AuthModule,
   ],
   controllers: [LoginController],
-  providers: [JwtStrategy, LoginCourseService, CourseService, AuthService],
+  providers: [JwtStrategy, CourseService, AuthService],
 })
 export class LoginModule {}

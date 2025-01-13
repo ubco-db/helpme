@@ -33,7 +33,6 @@ import * as sharp from 'sharp';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from './user.entity';
-import { ProfileService } from './profile.service';
 import { OrganizationService } from '../organization/organization.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { minutes, SkipThrottle, Throttle } from '@nestjs/throttler';
@@ -43,7 +42,6 @@ import { OrganizationUserModel } from '../organization/organization-user.entity'
 @Controller('profile')
 export class ProfileController {
   constructor(
-    private profileService: ProfileService,
     private organizationService: OrganizationService,
     private authService: AuthService,
   ) {}
