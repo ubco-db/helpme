@@ -1379,11 +1379,11 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async deleteUserProfilePicture(
     @Res() res: Response,
-    @Param('uid', ParseIntPipe) oid: number,
+    @Param('uid', ParseIntPipe) uid: number,
   ): Promise<Response<void>> {
     const userInfo = await OrganizationUserModel.findOne({
       where: {
-        userId: oid,
+        userId: uid,
       },
       relations: ['organizationUser'],
     });

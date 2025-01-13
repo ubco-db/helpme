@@ -38,6 +38,7 @@ import { OrganizationService } from '../organization/organization.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { minutes, SkipThrottle, Throttle } from '@nestjs/throttler';
 import { AuthService } from '../auth/auth.service';
+import { OrganizationUserModel } from '../organization/organization-user.entity';
 
 @Controller('profile')
 export class ProfileController {
@@ -173,9 +174,17 @@ export class ProfileController {
     }
 
     if (userPatch.sid && userPatch.sid !== user.sid) {
+      // this may need to be altered if user -> orguser relation is changed to one-to-many
+      const orgUser = await OrganizationUserModel.findOne({
+        userId: user.id,
+      });
+
       const sid = await UserModel.findOne({
         where: {
           sid: userPatch.sid,
+          organizationUser: {
+            organizationId: orgUser.organizationId,
+          },
         },
       });
 

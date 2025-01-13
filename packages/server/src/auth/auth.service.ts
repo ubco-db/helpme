@@ -63,7 +63,11 @@ export class AuthService {
     organizationId: number,
   ): Promise<number> {
     try {
-      const user = await this.getUserByEmailQuery(mail).getOne();
+      const user = await this.getUserByEmailQuery(mail)
+        .andWhere('organizationUser.organizationId = :organizationId', {
+          organizationId,
+        })
+        .getOne();
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -194,7 +198,14 @@ export class AuthService {
     organizationId: number,
   ): Promise<number> {
     try {
-      const user = await UserModel.findOne({ email: email });
+      // tentative change; allow same email if not part of the same organization
+      // may want to instead collapse this and identify accounts purely by email
+      // but specifically search for organization affiliation where necessary
+      const user = await this.getUserByEmailQuery(email)
+        .andWhere('organizationUser.organizationId = :organizationId', {
+          organizationId,
+        })
+        .getOne();
 
       if (user) {
         throw new BadRequestException('Email already exists');
