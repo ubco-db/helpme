@@ -1,4 +1,4 @@
-import { Fragment, ReactElement, useEffect, useState } from 'react'
+import { Fragment, ReactElement, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Card, Space } from 'antd'
 import { Role } from '@koh/common'
 import UserAvatar from '@/app/components/UserAvatar'
@@ -30,6 +30,13 @@ const QueueChat: React.FC<QueueChatProps> = ({
     queueId,
     studentId,
   )
+  const messagesEndRef = useRef<HTMLDivElement | null>(null) //This handles auto scrolling
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [queueChatData])
 
   useEffect(() => {
     if (!hasNewMessages) {
@@ -37,7 +44,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     }
 
     if (isMobile) {
-      //pulse
+      // PAT TODO: pulse
     } else {
       setIsOpen(true)
     }
@@ -177,6 +184,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
                   </Fragment>
                 )
               })}
+            <div ref={messagesEndRef} />
           </div>
           <div>
             <Space.Compact block size="large">
@@ -220,6 +228,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
         icon={<MessageCircleMore />}
         onClick={() => setIsOpen(true)}
       >
+        {/* PAT TODO: Shorten to just first or last name or initials for mobile view */}
         {queueChatData && queueChatData.staff && queueChatData.student
           ? isStaff
             ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName}`

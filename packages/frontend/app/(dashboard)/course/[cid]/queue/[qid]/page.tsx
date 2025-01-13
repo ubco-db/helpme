@@ -914,10 +914,15 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 onClose={() => setAssignmentReportModalOpen(false)}
               />
             )}
+
+            {/* PAT TODO: add mobile view and maybe a way to minimize it to the right side */}
             <div className="fixed bottom-8 right-0 box-border overflow-auto md:right-2">
-              <div className="flex flex-row items-end justify-end gap-2">
+              <div
+                className={
+                  'flex flex-col items-end justify-end gap-2 rounded-md bg-slate-200 p-2 md:rounded-none md:bg-transparent md:p-0'
+                }
+              >
                 {helpingQuestions.map((question) => {
-                  console.log('CreatorId: ', question.creatorId)
                   return (
                     <QueueChat
                       key={question.id}
