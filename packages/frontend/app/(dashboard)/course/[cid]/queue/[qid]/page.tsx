@@ -14,10 +14,16 @@ import {
   TaskTree,
   QuestionType,
   LimboQuestionStatus,
+  QuestionLocations,
 } from '@koh/common'
-import { Tooltip, message, notification, Button } from 'antd'
+import { Tooltip, message, notification, Button, Divider } from 'antd'
 import { mutate } from 'swr'
-import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
+import {
+  EditOutlined,
+  LoginOutlined,
+  PhoneOutlined,
+  PlusOutlined,
+} from '@ant-design/icons'
 import { CheckCheck, ListChecks, ListTodoIcon } from 'lucide-react'
 import { useQueue } from '@/app/hooks/useQueue'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -35,7 +41,10 @@ import { useStudentAssignmentProgress } from '@/app/hooks/useStudentAssignmentPr
 import QuestionCard from './components/QuestionCard'
 import { useStudentQuestion } from '@/app/hooks/useStudentQuestion'
 import { isCheckedIn } from '../../utils/commonCourseFunctions'
-import { getHelpingQuestions } from './utils/commonQueueFunctions'
+import {
+  getHelpingQuestions,
+  getPausedQuestions,
+} from './utils/commonQueueFunctions'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { useLocalStorage } from '@/app/hooks/useLocalStorage'
 import QueueInfoColumn from './components/QueueInfoColumn'
@@ -53,6 +62,9 @@ import AssignmentReportModal from './components/modals/AssignmentReportModal'
 import CantFindModal from './components/modals/CantFindModal'
 import { useChatbotContext } from '../../components/chatbot/ChatbotProvider'
 import CircleButton from './components/CircleButton'
+import JoinZoomNowModal from './components/modals/JoinZoomNowModal'
+import JoinZoomButton from './components/JoinZoomButton'
+import { useUpdateAlertsWhenLastStaffChecksOut } from '@/app/hooks/useUpdateAlertsWhenLastStaffChecksOut'
 
 type QueuePageProps = {
   params: { cid: string; qid: string }
@@ -63,12 +75,13 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const qid = Number(params.qid)
   const router = useRouter()
   const { queue } = useQueue(qid)
-  const isQueueOnline = queue?.room.startsWith('Online')
+  const isQueueHybrid = queue?.type == 'hybrid'
   const { queueQuestions, mutateQuestions } = useQuestions(qid)
   const [queueSettingsModalOpen, setQueueSettingsModalOpen] = useState(false)
   const [addStudentsModalOpen, setAddStudentsModalOpen] = useState(false)
   const [assignmentReportModalOpen, setAssignmentReportModalOpen] =
     useState(false)
+  const [clickedZoomModal, setClickedZoomModal] = useState(false)
   const [staffListHidden, setStaffListHidden] = useState(false)
   const [isFinishAllHelpingButtonLoading, setIsFinishAllHelpingButtonLoading] =
     useState(false)
@@ -99,6 +112,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       isStaff,
     )
   const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree)
+  useUpdateAlertsWhenLastStaffChecksOut(cid, queue?.staffList, isStaff)
   const [isJoiningQuestion, setIsJoiningQuestion] = useState(
     queueQuestions &&
       studentQuestions &&
@@ -132,6 +146,17 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     userInfo.id,
     role,
   )
+  const { pausedQuestions } = getPausedQuestions(queueQuestions, role)
+
+  const resetClickedZoomModal = useCallback(() => {
+    if (studentQuestion?.status !== OpenQuestionStatus.Helping) {
+      setClickedZoomModal(false)
+    }
+  }, [clickedZoomModal, studentQuestion])
+
+  useEffect(() => {
+    resetClickedZoomModal()
+  }, [resetClickedZoomModal, clickedZoomModal, studentQuestion])
 
   // chatbot
   const { setCid, setRenderSmallChatbot } = useChatbotContext()
@@ -190,12 +215,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     }
   }, [queueConfig, configTasks, isStaff, queueQuestions, questionTypes])
 
-  const staffCheckedIntoAnotherQueue = course?.queues?.some(
-    (q) =>
-      q.id !== qid &&
-      q.staffList.some((staffMember) => staffMember.id === userInfo.id),
-  )
-
   const studentQuestionId = studentQuestion?.id
   const studentQuestionStatus = studentQuestion?.status
   const studentDemoId = studentDemo?.id
@@ -226,14 +245,14 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       questionTypes: QuestionType[],
       force: boolean,
       isTaskQuestion: boolean,
-      location?: string,
+      location?: QuestionLocations,
     ) => {
       await API.questions
         .create({
           text: text || '',
           questionTypes: questionTypes,
           queueId: qid,
-          location: location ?? isQueueOnline ? 'Online' : 'In Person',
+          location: location ?? (isQueueHybrid ? 'Unselected' : undefined),
           force: force,
           groupable: false,
           isTaskQuestion,
@@ -247,7 +266,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           throw e
         })
     },
-    [isQueueOnline, qid, updateQuestionStatus],
+    [isQueueHybrid, qid, updateQuestionStatus],
   )
 
   const rejoinQueue = useCallback(
@@ -261,8 +280,19 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     [studentDemoId, studentQuestionId, updateQuestionStatus],
   )
 
+  const setRequeuing = useCallback(
+    async (isTaskQuestion: boolean) => {
+      const id = isTaskQuestion ? studentDemoId : studentQuestionId
+      if (id === undefined) {
+        return
+      }
+      await updateQuestionStatus(id, LimboQuestionStatus.ReQueueing)
+    },
+    [studentDemoId, studentQuestionId, updateQuestionStatus],
+  )
+
   const joinQueueAfterDeletion = useCallback(
-    (isTaskQuestion: boolean) => {
+    async (isTaskQuestion: boolean) => {
       const question = isTaskQuestion ? studentDemo : studentQuestion
       const id = isTaskQuestion ? studentDemoId : studentQuestionId
       if (id === undefined || question === undefined) {
@@ -270,7 +300,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       }
       // delete the old question and create a new one
       updateQuestionStatus(id, ClosedQuestionStatus.ConfirmedDeleted)
-      createQuestion(
+      await createQuestion(
         question.text,
         question.questionTypes ?? [],
         true,
@@ -390,7 +420,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       questionTypes: QuestionTypeParams[],
       groupable: boolean,
       isTaskQuestion: boolean,
-      location: string,
+      location: QuestionLocations,
     ) => {
       const status = isTaskQuestion ? studentDemoStatus : studentQuestionStatus
       const id = isTaskQuestion ? studentDemoId : studentQuestionId
@@ -475,6 +505,30 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     [isFirstQuestion, router, setIsFirstQuestion],
   )
 
+  const finishHelpingAllStudents = useCallback(async () => {
+    setIsFinishAllHelpingButtonLoading(true)
+    const promises = helpingQuestions
+      .filter((q) => q.status !== OpenQuestionStatus.Paused)
+      .map(async (question) => {
+        return API.questions
+          .update(question.id, {
+            status: ClosedQuestionStatus.Resolved,
+          })
+          .catch((e) => {
+            const errorMessage = getErrorMessage(e)
+            message.error(errorMessage)
+            throw e
+          })
+      })
+    Promise.all(promises)
+      .catch((e) => {
+        message.error('One or more status updates failed:' + e)
+      })
+      .finally(() => {
+        setIsFinishAllHelpingButtonLoading(false)
+      })
+  }, [helpingQuestions])
+
   // used for the "Join" button on the tag groups feature (specifically, for the tasks)
   useEffect(() => {
     // only re-calculate the taskTree and everything if tagGroups is enabled and the user is a student
@@ -517,8 +571,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               <Tooltip
                 title={
                   (queue.isDisabled && 'Cannot check into a disabled queue!') ||
-                  (staffCheckedIntoAnotherQueue &&
-                    'You are already checked into another queue') ||
                   (helpingQuestions &&
                     helpingQuestions.length > 0 &&
                     'You cannot check out while helping a student') ||
@@ -530,9 +582,8 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 <span>
                   <TACheckinButton
                     courseId={cid}
-                    room={queue.room}
+                    queueId={qid}
                     disabled={
-                      staffCheckedIntoAnotherQueue ||
                       (helpingQuestions && helpingQuestions.length > 0) ||
                       (queue.isProfessorQueue && role !== Role.PROFESSOR) ||
                       queue.isDisabled
@@ -542,15 +593,17 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   />
                 </span>
               </Tooltip>
-              <EditQueueButton
-                onClick={() => setQueueSettingsModalOpen(true)}
-                icon={<EditOutlined />}
-              >
-                {/* only show the "Details" part on desktop to keep button small on mobile */}
-                <span>
-                  Edit Queue <span className="hidden sm:inline">Details</span>
-                </span>
-              </EditQueueButton>
+              <span>
+                <EditQueueButton
+                  onClick={() => setQueueSettingsModalOpen(true)}
+                  icon={<EditOutlined />}
+                >
+                  <span>
+                    <span className="hidden md:inline">Edit Queue Details</span>
+                    <span className="inline md:hidden">Edit Queue</span>
+                  </span>
+                </EditQueueButton>
+              </span>
               <Tooltip
                 title={
                   !isUserCheckedIn
@@ -566,8 +619,10 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   >
                     {/* "+ Add Students to Queue" on desktop, "+ Students" on mobile */}
                     <span>
-                      <span className="hidden sm:inline">Add</span> Students{' '}
-                      <span className="hidden sm:inline">to Queue</span>
+                      <span className="hidden md:inline">
+                        Add Students to Queue
+                      </span>
+                      <span className="inline md:hidden">Students</span>
                     </span>
                   </EditQueueButton>
                 </span>
@@ -577,16 +632,31 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   onClick={() => setAssignmentReportModalOpen(true)}
                   icon={<ListChecks className="mr-1" />}
                 >
-                  {/* "View Students {lab} Progress" on desktop, "{lab} Progress" on mobile */}
                   <span>
-                    <span className="hidden sm:inline">View Students </span>
-                    {queueConfig?.assignment_id} Progress
+                    <span className="hidden md:inline">
+                      View Students {queueConfig?.assignment_id} Progress
+                    </span>
+                    <span className="inline md:hidden">
+                      {queueConfig?.assignment_id} Progress
+                    </span>
                   </span>
                 </EditQueueButton>
               )}
             </>
           ) : (
             <>
+              {((queue.type === 'hybrid' && // Show the "Join Zoom" button if staff is ready and student already clicked on the modal
+                studentQuestion?.location === 'Online') ||
+                queue.type === 'online') &&
+                clickedZoomModal &&
+                studentQuestion?.status === OpenQuestionStatus.Helping && (
+                  <JoinZoomButton
+                    zoomLink={queue.zoomLink ?? course?.zoomLink}
+                    textSize="sm"
+                  >
+                    Join Zoom
+                  </JoinZoomButton>
+                )}
               <Tooltip
                 title={
                   studentQuestion
@@ -596,32 +666,31 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       : ''
                 }
               >
-                <div>
-                  <JoinQueueButton
-                    id="join-queue-button"
-                    loading={isJoinQueueModalLoading}
-                    disabled={
-                      !queue?.allowQuestions ||
-                      queue?.isDisabled ||
-                      isCreateDemoModalLoading ||
-                      queue.staffList.length < 1 ||
-                      !!studentQuestion
-                    }
-                    onClick={() => {
-                      setIsJoinQueueModalLoading(true)
-                      joinQueueOpenModal(false, false)
-                      // fallback: After 3s, if the modal hasn't opened, stop the loading state
-                      setTimeout(() => {
-                        if (isJoinQueueModalLoading) {
-                          setIsJoinQueueModalLoading(false)
-                        }
-                      }, 3000)
-                    }}
-                    icon={<LoginOutlined aria-hidden="true" />}
-                  >
-                    {isDemoQueue ? 'Create Question' : 'Join Queue'}
-                  </JoinQueueButton>
-                </div>
+                <JoinQueueButton
+                  id="join-queue-button"
+                  loading={isJoinQueueModalLoading}
+                  className={!isDemoQueue ? 'w-[90%] md:w-full' : 'mx-2'}
+                  disabled={
+                    !queue?.allowQuestions ||
+                    queue?.isDisabled ||
+                    isCreateDemoModalLoading ||
+                    queue.staffList.length < 1 ||
+                    !!studentQuestion
+                  }
+                  onClick={() => {
+                    setIsJoinQueueModalLoading(true)
+                    joinQueueOpenModal(false, false)
+                    // fallback: After 3s, if the modal hasn't opened, stop the loading state
+                    setTimeout(() => {
+                      if (isJoinQueueModalLoading) {
+                        setIsJoinQueueModalLoading(false)
+                      }
+                    }, 3000)
+                  }}
+                  icon={<LoginOutlined aria-hidden="true" />}
+                >
+                  {isDemoQueue ? 'Create Question' : 'Join Queue'}
+                </JoinQueueButton>
               </Tooltip>
               {isDemoQueue && (
                 <Tooltip
@@ -633,32 +702,31 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                         : ''
                   }
                 >
-                  <div>
-                    <JoinQueueButton
-                      id="join-queue-button-demo"
-                      loading={isCreateDemoModalLoading}
-                      disabled={
-                        !queue?.allowQuestions ||
-                        queue?.isDisabled ||
-                        isJoinQueueModalLoading ||
-                        queue.staffList.length < 1 ||
-                        !!studentDemo
-                      }
-                      onClick={() => {
-                        setIsCreateDemoModalLoading(true)
-                        joinQueueOpenModal(false, true)
-                        // fallback: After 3s, if the modal hasn't opened, stop the loading state
-                        setTimeout(() => {
-                          if (isCreateDemoModalLoading) {
-                            setIsCreateDemoModalLoading(false)
-                          }
-                        }, 3000)
-                      }}
-                      icon={<ListTodoIcon aria-hidden="true" />}
-                    >
-                      Create Demo
-                    </JoinQueueButton>
-                  </div>
+                  <JoinQueueButton
+                    id="join-queue-button-demo"
+                    loading={isCreateDemoModalLoading}
+                    className="mx-2"
+                    disabled={
+                      !queue?.allowQuestions ||
+                      queue?.isDisabled ||
+                      isJoinQueueModalLoading ||
+                      queue.staffList.length < 1 ||
+                      !!studentDemo
+                    }
+                    onClick={() => {
+                      setIsCreateDemoModalLoading(true)
+                      joinQueueOpenModal(false, true)
+                      // fallback: After 3s, if the modal hasn't opened, stop the loading state
+                      setTimeout(() => {
+                        if (isCreateDemoModalLoading) {
+                          setIsCreateDemoModalLoading(false)
+                        }
+                      }, 3000)
+                    }}
+                    icon={<ListTodoIcon aria-hidden="true" />}
+                  >
+                    Create Demo
+                  </JoinQueueButton>
                 </Tooltip>
               )}
             </>
@@ -680,80 +748,90 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
         <title>{`HelpMe | ${course.name} - ${queue.room}`}</title>
         <RenderQueueInfoCol />
         <VerticalDivider />
-        <div className="flex-grow md:mt-8">
-          {isStaff && helpingQuestions && helpingQuestions.length > 0 ? (
+        <div className="flex-grow">
+          {isStaff ? (
             <>
-              <div className="flex items-center justify-between">
-                <QueueHeader
-                  text="You are Currently Helping"
-                  visibleOnDesktopOrMobile="both"
-                />
-                {helpingQuestions.length >= 2 && (
-                  <Tooltip
-                    title={
-                      helpingQuestions.some(
-                        (question) => question.isTaskQuestion,
-                      )
-                        ? 'You cannot finish helping all while checking demos (for your safety)'
-                        : 'Finish helping all questions'
-                    }
-                  >
-                    <span>
-                      <CircleButton
-                        className="mr-[1.2rem]"
-                        variant="green"
-                        icon={
-                          <CheckCheck size={22} className="shrink-0 pl-1" />
-                        }
-                        loading={isFinishAllHelpingButtonLoading}
-                        // disable this button if any of the questions isTaskQuestion (since it is rare that you would want to click this in that case)
-                        disabled={helpingQuestions.some(
-                          (question) => question.isTaskQuestion,
-                        )}
-                        onClick={() => {
-                          setIsFinishAllHelpingButtonLoading(true)
-                          const promises = helpingQuestions.map(
-                            async (question) => {
-                              return API.questions
-                                .update(question.id, {
-                                  status: ClosedQuestionStatus.Resolved,
-                                })
-                                .catch((e) => {
-                                  const errorMessage = getErrorMessage(e)
-                                  message.error(errorMessage)
-                                  throw e
-                                })
-                            },
+              {helpingQuestions.length > 0 && (
+                <>
+                  <div className="flex items-center justify-between md:mt-2">
+                    <QueueHeader
+                      text="You are Currently Helping"
+                      visibleOnDesktopOrMobile="desktop"
+                    />
+                    {helpingQuestions.filter(
+                      (q) => q.status !== OpenQuestionStatus.Paused,
+                    ).length >= 2 && (
+                      <Tooltip
+                        title={
+                          helpingQuestions.some(
+                            (question) => question.isTaskQuestion,
                           )
-                          Promise.all(promises)
-                            .catch((e) => {
-                              message.error(
-                                'One or more status updates failed:' + e,
-                              )
-                            })
-                            .finally(() => {
-                              setIsFinishAllHelpingButtonLoading(false)
-                            })
-                        }}
+                            ? 'You cannot finish helping all while checking demos (for your safety)'
+                            : 'Finish helping all questions'
+                        }
+                      >
+                        <span>
+                          <CircleButton
+                            className="mr-[1.2rem] hidden md:block"
+                            customVariant="green"
+                            icon={
+                              <CheckCheck size={22} className="shrink-0 pl-1" />
+                            }
+                            loading={isFinishAllHelpingButtonLoading}
+                            // disable this button if any of the questions isTaskQuestion (since it is rare that you would want to click this in that case)
+                            disabled={helpingQuestions.some(
+                              (question) => question.isTaskQuestion,
+                            )}
+                            onClick={finishHelpingAllStudents}
+                          />
+                        </span>
+                      </Tooltip>
+                    )}
+                  </div>
+                  {helpingQuestions.map((question: Question) => {
+                    return (
+                      <QuestionCard
+                        key={question.id}
+                        question={question}
+                        cid={cid}
+                        queueType={queue.type}
+                        qid={qid}
+                        configTasks={configTasks}
+                        studentAssignmentProgress={studentAssignmentProgress}
+                        isStaff={isStaff}
+                        isBeingHelped={true}
                       />
-                    </span>
-                  </Tooltip>
-                )}
-              </div>
-              {helpingQuestions.map((question: Question) => {
-                return (
-                  <QuestionCard
-                    key={question.id}
-                    question={question}
-                    cid={cid}
-                    qid={qid}
-                    configTasks={configTasks}
-                    studentAssignmentProgress={studentAssignmentProgress}
-                    isStaff={isStaff}
-                    isBeingHelped={true}
-                  />
-                )
-              })}
+                    )
+                  })}
+                  <Divider className={'my-2 hidden md:block'} />
+                </>
+              )}
+              {pausedQuestions && pausedQuestions.length > 0 && (
+                <>
+                  <div className="hidden items-center justify-between md:flex">
+                    <QueueHeader
+                      text="Paused Questions"
+                      visibleOnDesktopOrMobile="desktop"
+                    />
+                  </div>
+                  {pausedQuestions.map((question: Question) => (
+                    <QuestionCard
+                      className={'bg-amber-50'}
+                      key={question.id}
+                      question={question}
+                      cid={cid}
+                      qid={qid}
+                      configTasks={configTasks}
+                      queueType={queue.type}
+                      studentAssignmentProgress={studentAssignmentProgress}
+                      isStaff={isStaff}
+                      isBeingHelped={true}
+                      isPaused={true}
+                    />
+                  ))}
+                  <Divider className={'my-3 hidden md:block'} />
+                </>
+              )}
             </>
           ) : !isStaff ? (
             <StudentBanner
@@ -763,15 +841,23 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               leaveQueueQuestion={() => leaveQueue(false)}
               leaveQueueDemo={() => leaveQueue(true)}
               configTasks={configTasks}
-              zoomLink={course?.zoomLink}
-              isQueueOnline={isQueueOnline}
+              isQueueHybrid={isQueueHybrid}
             />
           ) : null}
           <QueueQuestions
             questions={queueQuestions.questions}
-            questionsGettingHelp={queueQuestions.questionsGettingHelp}
+            /*
+              The reason there are filters here is because students need to be able to see these too
+            */
+            questionsGettingHelp={queueQuestions.questionsGettingHelp.filter(
+              (q) => q.status == 'Helping',
+            )}
+            pausedQuestions={queueQuestions.questionsGettingHelp.filter(
+              (q) => q.status == 'Paused',
+            )}
             cid={cid}
             qid={qid}
+            queueType={queue.type}
             isStaff={isStaff}
             studentAssignmentProgress={studentAssignmentProgress}
             studentQuestionId={studentQuestionId}
@@ -805,6 +891,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             <AddStudentsToQueueModal
               queueId={qid}
               courseId={cid}
+              isQueueHybrid={queue.type === 'hybrid'}
               open={addStudentsModalOpen}
               onAddStudent={() => {
                 mutateQuestions()
@@ -828,6 +915,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             <CreateQuestionModal
               queueId={qid}
               courseId={cid}
+              isQueueHybrid={queue?.type === 'hybrid'}
               open={
                 (!studentQuestion && isJoiningQuestion) || editQuestionModalOpen
               }
@@ -868,6 +956,22 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               open={studentQuestion?.status === LimboQuestionStatus.CantFind}
               leaveQueue={() => leaveQueue(false)}
               rejoinQueue={() => rejoinQueue(false)}
+            />
+            <JoinZoomNowModal
+              taName={studentQuestion?.taHelped?.name}
+              open={
+                ((queue.type === 'hybrid' &&
+                  studentQuestion?.location === 'Online') ||
+                  queue.type === 'online') &&
+                !clickedZoomModal &&
+                studentQuestion?.status === OpenQuestionStatus.Helping
+              }
+              notes={queue?.notes}
+              zoomLink={queue.zoomLink ?? course?.zoomLink}
+              onJoin={() => {
+                setClickedZoomModal(true)
+              }}
+              setRequeuing={() => setRequeuing(false)}
             />
 
             {isDemoQueue && (
@@ -913,6 +1017,20 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   open={studentDemo?.status === LimboQuestionStatus.CantFind}
                   leaveQueue={() => leaveQueue(true)}
                   rejoinQueue={() => rejoinQueue(true)}
+                />
+                <JoinZoomNowModal
+                  taName={studentQuestion?.taHelped?.name}
+                  open={
+                    ((queue.type === 'hybrid' && // Forces student to join zoom or requeue themselves if they are not ready
+                      studentQuestion?.location === 'Online') || // Modal closes in either case
+                      queue.type === 'online') &&
+                    !clickedZoomModal &&
+                    studentQuestion?.status === OpenQuestionStatus.Helping
+                  }
+                  notes={queue?.notes}
+                  zoomLink={queue.zoomLink ?? course?.zoomLink}
+                  onJoin={() => setClickedZoomModal(true)}
+                  setRequeuing={() => setRequeuing(false)}
                 />
               </>
             )}

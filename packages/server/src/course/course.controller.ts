@@ -1,5 +1,6 @@
 import {
   asyncQuestionStatus,
+  CoursePartial,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
   EditCourseInfoParams,
@@ -7,10 +8,12 @@ import {
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
+  LMSCourseIntegrationPartial,
   QuestionStatusKeys,
   QueueConfig,
   QueueInvite,
   QueuePartial,
+  QueueTypes,
   Role,
   TACheckinTimesResponse,
   TACheckoutResponse,
@@ -64,6 +67,9 @@ import { Not, getManager } from 'typeorm';
 import { pick } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
+import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
+import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { createHash } from 'crypto';
 
 @Controller('courses')
@@ -74,6 +80,7 @@ export class CourseController {
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
     private courseService: CourseService,
+    private queueCleanService: QueueCleanService,
     private redisQueueService: RedisQueueService,
     private readonly appConfig: ApplicationConfigService,
   ) {}
@@ -447,122 +454,6 @@ export class CourseController {
     await this.courseService.editCourse(courseId, coursePatch);
   }
 
-  @Post(':id/ta_location/:room')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
-  @Roles(Role.PROFESSOR, Role.TA)
-  async checkIn(
-    @Param('id', ParseIntPipe) courseId: number,
-    @Param('room') room: string,
-    @User() user: UserModel,
-  ): Promise<QueuePartial> {
-    // First ensure user is not checked into another queue
-    const queues = await QueueModel.find({
-      where: {
-        courseId: courseId,
-      },
-      relations: ['staffList'],
-    });
-
-    if (
-      queues &&
-      queues.some((q) => q.staffList.some((staff) => staff.id === user.id))
-    ) {
-      throw new UnauthorizedException(
-        ERROR_MESSAGES.courseController.checkIn.cannotCheckIntoMultipleQueues,
-      );
-    }
-
-    const queue = await QueueModel.findOne(
-      {
-        room,
-        courseId,
-        isDisabled: false,
-      },
-      { relations: ['staffList'] },
-    );
-
-    const userCourseModel = await UserCourseModel.findOne({
-      where: {
-        user,
-        courseId,
-      },
-    });
-
-    if (!queue) {
-      if (userCourseModel === null || userCourseModel === undefined) {
-        throw new HttpException(
-          ERROR_MESSAGES.courseController.courseModelError,
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.queueNotFound,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    if (userCourseModel.role === Role.TA && queue.isProfessorQueue) {
-      throw new UnauthorizedException(
-        ERROR_MESSAGES.courseController.queueNotAuthorized,
-      );
-    }
-
-    if (queue.staffList.length === 0) {
-      queue.allowQuestions = true;
-    }
-
-    queue.staffList.push(user);
-    try {
-      await queue.save();
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.saveQueueError +
-          '\nError message: ' +
-          err,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.saveQueueError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    try {
-      await EventModel.create({
-        time: new Date(),
-        eventType: EventType.TA_CHECKED_IN,
-        user,
-        courseId,
-        queueId: queue.id,
-      }).save();
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.createEventError +
-          '\nError message: ' +
-          err,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.createEventError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    try {
-      await this.queueSSEService.updateQueue(queue.id);
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.createEventError +
-          '\nError message: ' +
-          err,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.updatedQueueError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-    return queue;
-  }
-
   @Post(':id/create_queue/:room')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
@@ -573,6 +464,7 @@ export class CourseController {
     @Body()
     body: {
       notes: string;
+      type: QueueTypes;
       isProfessorQueue: boolean;
       config: QueueConfig;
     },
@@ -638,6 +530,7 @@ export class CourseController {
             .create(QueueModel, {
               room,
               courseId,
+              type: body.type,
               staffList: [],
               questions: [],
               allowQuestions: true,
@@ -678,18 +571,119 @@ export class CourseController {
     }
   }
 
-  @Delete(':id/ta_location/:room')
+  @Post(':id/checkin/:qid')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
-  async checkOut(
+  async checkMeIn(
     @Param('id', ParseIntPipe) courseId: number,
-    @Param('room') room: string,
+    @Param('qid', ParseIntPipe) qid: number,
+    @User() user: UserModel,
+  ): Promise<QueuePartial> {
+    const queue = await QueueModel.findOne(
+      {
+        id: qid,
+        isDisabled: false,
+      },
+      { relations: ['staffList'] },
+    );
+
+    const userCourseModel = await UserCourseModel.findOne({
+      where: {
+        user,
+        courseId,
+      },
+    });
+
+    if (!queue) {
+      if (userCourseModel === null || userCourseModel === undefined) {
+        throw new HttpException(
+          ERROR_MESSAGES.courseController.courseModelError,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.queueNotFound,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    if (userCourseModel.role === Role.TA && queue.isProfessorQueue) {
+      throw new UnauthorizedException(
+        ERROR_MESSAGES.courseController.queueNotAuthorized,
+      );
+    }
+
+    if (queue.staffList.length === 0) {
+      queue.allowQuestions = true;
+      this.queueCleanService.deleteAllLeaveQueueCronJobsForQueue(queue.id);
+      await this.queueCleanService.resolvePromptStudentToLeaveQueueAlerts(
+        queue.id,
+      );
+    }
+
+    queue.staffList.push(user);
+    try {
+      await queue.save();
+    } catch (err) {
+      console.error(
+        ERROR_MESSAGES.courseController.saveQueueError +
+          '\nError message: ' +
+          err,
+      );
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.saveQueueError,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    try {
+      await EventModel.create({
+        time: new Date(),
+        eventType: EventType.TA_CHECKED_IN,
+        user,
+        courseId,
+        queueId: queue.id,
+      }).save();
+    } catch (err) {
+      console.error(
+        ERROR_MESSAGES.courseController.createEventError +
+          '\nError message: ' +
+          err,
+      );
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.createEventError,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    try {
+      await this.queueSSEService.updateQueue(queue.id);
+    } catch (err) {
+      console.error(
+        ERROR_MESSAGES.courseController.createEventError +
+          '\nError message: ' +
+          err,
+      );
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.updatedQueueError,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+    return queue;
+  }
+
+  @Delete(':id/checkout/:qid')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async checkMeOut(
+    @Param('id', ParseIntPipe) courseId: number,
+    @Param('qid') qid: number,
     @User() user: UserModel,
   ): Promise<TACheckoutResponse> {
     const queue = await QueueModel.findOne(
       {
-        room,
-        courseId,
+        id: qid,
         isDisabled: false,
       },
       { relations: ['staffList'] },
@@ -705,7 +699,9 @@ export class CourseController {
     // Do nothing if user not already in stafflist
     if (!queue.staffList.find((e) => e.id === user.id)) return;
 
+    // remove user from stafflist
     queue.staffList = queue.staffList.filter((e) => e.id !== user.id);
+    // if no more staff in queue, disallow questions (idk what that does exactly)
     if (queue.staffList.length === 0) {
       queue.allowQuestions = false;
     }
@@ -721,6 +717,10 @@ export class CourseController {
         ERROR_MESSAGES.courseController.saveQueueError,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+    // if no more staff in queue and prompt students to leave queue (this needs to be after the saving of the queue since this service also checks if the stafflist is empty)
+    if (queue.staffList.length === 0) {
+      await this.queueCleanService.promptStudentsToLeaveQueue(queue.id);
     }
 
     try {
@@ -757,6 +757,80 @@ export class CourseController {
       );
     }
     return { queueId: queue.id };
+  }
+
+  @Delete(':id/checkout_all')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async checkMeOutAll(
+    @Param('id', ParseIntPipe) courseId: number,
+    @User() user: UserModel,
+  ): Promise<void> {
+    const queues = await QueueModel.find({
+      where: {
+        courseId,
+        isDisabled: false,
+      },
+      relations: ['staffList'],
+    });
+
+    for (const queue of queues) {
+      // if you are in a queue
+      if (queue.staffList.find((e) => e.id === user.id)) {
+        // remove yourself from the queue
+        queue.staffList = queue.staffList.filter((e) => e.id !== user.id);
+        if (queue.staffList.length === 0) {
+          queue.allowQuestions = false;
+        }
+        try {
+          await queue.save();
+        } catch (err) {
+          console.error(
+            ERROR_MESSAGES.courseController.saveQueueError +
+              '\nError Message: ' +
+              err,
+          );
+          throw new HttpException(
+            ERROR_MESSAGES.courseController.saveQueueError,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+
+        try {
+          await EventModel.create({
+            time: new Date(),
+            eventType: EventType.TA_CHECKED_OUT,
+            user,
+            courseId,
+            queueId: queue.id,
+          }).save();
+        } catch (err) {
+          console.error(
+            ERROR_MESSAGES.courseController.createEventError +
+              '\nError message: ' +
+              err,
+          );
+          throw new HttpException(
+            ERROR_MESSAGES.courseController.createEventError,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+
+        try {
+          await this.queueSSEService.updateQueue(queue.id);
+        } catch (err) {
+          console.error(
+            ERROR_MESSAGES.courseController.createEventError +
+              '\nError message: ' +
+              err,
+          );
+          throw new HttpException(
+            ERROR_MESSAGES.courseController.updatedQueueError,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      }
+    }
   }
 
   @Delete(':id/withdraw_course')
@@ -801,19 +875,20 @@ export class CourseController {
   async getUserInfo(
     @Param('id', ParseIntPipe) courseId: number,
     @Param('page', ParseIntPipe) page: number,
-    @Param('role') role?: Role,
+    @Param('role') role?: Role | 'staff',
     @Query('search') search?: string,
   ): Promise<GetCourseUserInfoResponse> {
-    const pageSize = 50;
+    const pageSize = role === 'staff' ? 100 : 50;
     if (!search) {
       search = '';
     }
+    const roles = role === 'staff' ? [Role.TA, Role.PROFESSOR] : [role];
     const users = await this.courseService.getUserInfo(
       courseId,
       page,
       pageSize,
       search,
-      role,
+      roles,
     );
     return users;
   }
@@ -1109,5 +1184,110 @@ export class CourseController {
 
     res.status(200).send(queueInvites);
     return;
+  }
+
+  @Get(':id/lms_integration')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async getLmsIntegration(
+    @Param('id', ParseIntPipe) courseId: number,
+  ): Promise<LMSCourseIntegrationPartial | undefined> {
+    const lmsIntegration = await LMSCourseIntegrationModel.findOne({
+      where: { courseId: courseId },
+      relations: ['orgIntegration', 'course'],
+    });
+    if (lmsIntegration == undefined) return undefined;
+
+    return {
+      apiPlatform: lmsIntegration.orgIntegration.apiPlatform,
+      courseId: lmsIntegration.courseId,
+      course: {
+        id: lmsIntegration.courseId,
+        name: lmsIntegration.course.name,
+      } satisfies CoursePartial,
+      apiCourseId: lmsIntegration.apiCourseId,
+      apiKeyExpiry: lmsIntegration.apiKeyExpiry,
+    } satisfies LMSCourseIntegrationPartial;
+  }
+
+  @Post(':id/lms_integration/upsert')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async upsertLMSIntegration(
+    @Param('id', ParseIntPipe) courseId: number,
+    @Body() props: any,
+  ): Promise<any> {
+    const orgCourse = await OrganizationCourseModel.findOne({
+      courseId: courseId,
+    });
+    if (!orgCourse) {
+      return ERROR_MESSAGES.courseController.organizationNotFound;
+    }
+
+    const orgIntegration = await LMSOrganizationIntegrationModel.findOne({
+      where: {
+        organizationId: orgCourse.organizationId,
+        apiPlatform: props.apiPlatform,
+      },
+    });
+    if (!orgIntegration) {
+      return ERROR_MESSAGES.courseController.orgIntegrationNotFound;
+    }
+
+    const courseIntegration = await LMSCourseIntegrationModel.findOne({
+      where: { courseId: courseId },
+    });
+
+    if (courseIntegration != undefined) {
+      return await this.courseService.updateLMSIntegration(
+        courseIntegration,
+        orgIntegration,
+        props.apiKeyExpiryDeleted,
+        props.apiCourseId,
+        props.apiKey,
+        props.apiKeyExpiry,
+      );
+    } else {
+      return await this.courseService.createLMSIntegration(
+        orgIntegration,
+        courseId,
+        props.apiCourseId,
+        props.apiKey,
+        props.apiKeyExpiry,
+      );
+    }
+  }
+
+  @Delete(':id/lms_integration/remove')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async removeLMSIntegration(
+    @Param('id', ParseIntPipe) courseId: number,
+    @Body() props: any,
+  ): Promise<any> {
+    const orgCourse = await OrganizationCourseModel.findOne({
+      courseId: courseId,
+    });
+    if (!orgCourse) {
+      return ERROR_MESSAGES.courseController.organizationNotFound;
+    }
+
+    const orgIntegration = await LMSOrganizationIntegrationModel.findOne({
+      organizationId: orgCourse.organizationId,
+      apiPlatform: props.apiPlatform,
+    });
+    if (!orgIntegration) {
+      return ERROR_MESSAGES.courseController.orgIntegrationNotFound;
+    }
+
+    const exists = await LMSCourseIntegrationModel.findOne({
+      where: { courseId: courseId, orgIntegration: orgIntegration },
+    });
+    if (!exists) {
+      return ERROR_MESSAGES.courseController.lmsIntegrationNotFound;
+    }
+
+    await LMSCourseIntegrationModel.remove(exists);
+    return `Successfully disconnected LMS integration`;
   }
 }

@@ -1,7 +1,9 @@
 import {
   ClosedQuestionStatus,
   ERROR_MESSAGES,
+  LimboQuestionStatus,
   OpenQuestionStatus,
+  QuestionStatus,
   QuestionStatusKeys,
 } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
@@ -10,6 +12,7 @@ import supertest from 'supertest';
 import { QuestionModel } from '../src/question/question.entity';
 import { QuestionModule } from '../src/question/question.module';
 import {
+  AlertFactory,
   CourseFactory,
   QuestionFactory,
   QuestionTypeFactory,
@@ -17,6 +20,7 @@ import {
   StudentCourseFactory,
   StudentTaskProgressFactory,
   TACourseFactory,
+  UserCourseFactory,
   UserFactory,
 } from './util/factories';
 import {
@@ -27,6 +31,7 @@ import {
 import { forEach } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
+import { QUESTION_STATES } from '../src/question/question-fsm';
 
 describe('Question Integration', () => {
   const supertest = setupIntegrationTest(QuestionModule, modifyMockNotifs);
@@ -797,6 +802,224 @@ describe('Question Integration', () => {
   });
 
   describe('PATCH /questions/:id', () => {
+    it('will accurately set waitTime and helpTime when going from Drafting -> Queued -> Helping -> Paused -> Helping -> Requeueing -> Queued -> Helping -> Resolved', async () => {
+      // Create an alert to hopefully avoid create alert table error?
+      await AlertFactory.create(); // I cannot BELIEVE this actually works LMAO
+      // for context, this test uses jest.advanceTimersByTime to simulate time passing in order to see if waitTime and helpTime are increasing correctly.
+      // For some reason, jest's fakeTimers break dates for typeorm/postgres in certain cases.
+      // And typeorm seems to only create tables as they are needed.
+      // So, when the status changes on one of these questions, an alert is made (e.g. Queued -> Helping "You are now being helped!"),
+      // and since it's the first alert, typeorm attempts to create a table with a Date column, but that fails because jest's fakeTimers broke the dates.
+      // Hence, by doing await AlertFactory.create(), it ensures that the alert table is already created before jest breaks the dates.
+      // Or at least that's what I think is happening.
+      // To those reading this, I hope you enjoyed this little gem <3
+      jest.useFakeTimers({
+        doNotFake: [
+          'hrtime',
+          'nextTick',
+          'performance',
+          'queueMicrotask',
+          'requestAnimationFrame',
+          'cancelAnimationFrame',
+          'requestIdleCallback',
+          'cancelIdleCallback',
+          'setImmediate',
+          'clearImmediate',
+          'setInterval',
+          'clearInterval',
+          'setTimeout',
+          'clearTimeout',
+        ],
+        // set time to be 12pm (midday) so that hopefully no cron jobs or something weird runs
+        now: new Date('2024-01-01T12:00:00Z'),
+        advanceTimers: true,
+      });
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ course: course, user: ta });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+      });
+      const student = await UserFactory.create();
+      await StudentCourseFactory.create({
+        user: student,
+        courseId: queue.courseId,
+      });
+      const q = await QuestionFactory.create({
+        text: 'Help pls',
+        status: QuestionStatusKeys.Drafting,
+        queue: queue,
+        creator: student,
+      });
+
+      // simulate 1 minute passing
+      jest.advanceTimersByTime(60 * 1000);
+      // Drafting -> Queued
+      const response1 = await supertest({ userId: student.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          status: QuestionStatusKeys.Queued,
+        })
+        .expect(200);
+      expect(response1.body).toMatchObject({
+        id: q.id,
+        status: QuestionStatusKeys.Queued,
+      });
+      expect(await QuestionModel.findOne({ id: q.id })).toMatchObject({
+        status: QuestionStatusKeys.Queued,
+        waitTime: 0, // wait time doesn't increase while being drafted
+        helpTime: 0, // help time doesn't increase while being drafted
+      });
+
+      // simulate 1 minute passing
+      jest.advanceTimersByTime(60 * 1000);
+      // // Queued -> Helping
+      const response2 = await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          status: QuestionStatusKeys.Helping,
+        })
+        .expect(200);
+      expect(response2.body).toMatchObject({
+        id: q.id,
+        status: QuestionStatusKeys.Helping,
+      });
+      let question = await QuestionModel.findOne({ id: q.id });
+      // help time doesn't increase while being queued
+      expect(question.helpTime).toBe(0);
+      // wait time increases while being queued
+      expect(question.waitTime).toBeGreaterThanOrEqual(58);
+      expect(question.waitTime).toBeLessThanOrEqual(62);
+
+      // simulate 1 minute passing
+      jest.advanceTimersByTime(60 * 1000);
+      // Helping -> Paused
+      const response3 = await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          status: QuestionStatusKeys.Paused,
+        })
+        .expect(200);
+      expect(response3.body).toMatchObject({
+        id: q.id,
+        status: QuestionStatusKeys.Paused,
+      });
+      question = await QuestionModel.findOne({ id: q.id });
+      // help time increases while being helped
+      expect(question.helpTime).toBeGreaterThanOrEqual(58);
+      expect(question.helpTime).toBeLessThanOrEqual(62);
+      // wait time doesn't increase while being helped
+      expect(question.waitTime).toBeGreaterThanOrEqual(58);
+      expect(question.waitTime).toBeLessThanOrEqual(62);
+
+      // simulate 1 minute passing
+      jest.advanceTimersByTime(60 * 1000);
+      // Paused -> Helping
+      const response4 = await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          status: QuestionStatusKeys.Helping,
+        })
+        .expect(200);
+      expect(response4.body).toMatchObject({
+        id: q.id,
+        status: QuestionStatusKeys.Helping,
+      });
+      question = await QuestionModel.findOne({ id: q.id });
+      // help time doesn't increase while being paused
+      expect(question.helpTime).toBeGreaterThanOrEqual(58);
+      expect(question.helpTime).toBeLessThanOrEqual(62);
+      // wait time increases while being paused
+      expect(question.waitTime).toBeGreaterThanOrEqual(118);
+      expect(question.waitTime).toBeLessThanOrEqual(122);
+
+      // simulate 1 minute passing
+      jest.advanceTimersByTime(60 * 1000);
+      // Helping -> Requeueing
+      const response5 = await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          status: QuestionStatusKeys.ReQueueing,
+        })
+        .expect(200);
+      expect(response5.body).toMatchObject({
+        id: q.id,
+        status: QuestionStatusKeys.ReQueueing,
+      });
+      question = await QuestionModel.findOne({ id: q.id });
+      // again, help time increases while being helped
+      expect(question.helpTime).toBeGreaterThanOrEqual(118);
+      expect(question.helpTime).toBeLessThanOrEqual(122);
+      // again, waitTime doesn't increase while being helped
+      expect(question.waitTime).toBeGreaterThanOrEqual(118);
+      expect(question.waitTime).toBeLessThanOrEqual(122);
+
+      // simulate 1 minute passing
+      jest.advanceTimersByTime(60 * 1000);
+      // Requeueing -> Queued
+      const response6 = await supertest({ userId: student.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          status: QuestionStatusKeys.Queued,
+        })
+        .expect(200);
+      expect(response6.body).toMatchObject({
+        id: q.id,
+        status: QuestionStatusKeys.Queued,
+      });
+      question = await QuestionModel.findOne({ id: q.id });
+      // help time doesn't increase while being requeued
+      expect(question.helpTime).toBeGreaterThanOrEqual(118);
+      expect(question.helpTime).toBeLessThanOrEqual(122);
+      // wait time doesn't increase while being requeued
+      expect(question.waitTime).toBeGreaterThanOrEqual(118);
+      expect(question.waitTime).toBeLessThanOrEqual(122);
+
+      // simulate 1 minute passing
+      jest.advanceTimersByTime(60 * 1000);
+      // Queued -> Helping
+      const response7 = await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          status: QuestionStatusKeys.Helping,
+        })
+        .expect(200);
+      expect(response7.body).toMatchObject({
+        id: q.id,
+        status: QuestionStatusKeys.Helping,
+      });
+      question = await QuestionModel.findOne({ id: q.id });
+      // again, help time doesn't increase while being queued
+      expect(question.helpTime).toBeGreaterThanOrEqual(118);
+      expect(question.helpTime).toBeLessThanOrEqual(122);
+      // again, wait time increases while being queued
+      expect(question.waitTime).toBeGreaterThanOrEqual(178);
+      expect(question.waitTime).toBeLessThanOrEqual(184);
+
+      // simulate 1 minute passing
+      jest.advanceTimersByTime(60 * 1000);
+      // Helping -> Resolved
+      const response8 = await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          status: QuestionStatusKeys.Resolved,
+        })
+        .expect(200);
+      expect(response8.body).toMatchObject({
+        id: q.id,
+        status: QuestionStatusKeys.Resolved,
+      });
+      question = await QuestionModel.findOne({ id: q.id });
+      // again, help time increases while being helped
+      expect(question.helpTime).toBeGreaterThanOrEqual(178);
+      expect(question.helpTime).toBeLessThanOrEqual(184);
+      // again, wait time doesn't increase while being helped
+      expect(question.waitTime).toBeGreaterThanOrEqual(178);
+      expect(question.waitTime).toBeLessThanOrEqual(184);
+      jest.useRealTimers();
+    });
+
     it('as student creator, edit a question', async () => {
       const course = await CourseFactory.create();
       const ta = await TACourseFactory.create({
@@ -1015,6 +1238,7 @@ describe('Question Integration', () => {
         queueId: qt.queueId,
       });
     });
+
     it('PATCH invalid state transition not allowed', async () => {
       const q = await QuestionFactory.create({ text: 'Help pls' });
       const ta = await UserFactory.create();
@@ -1029,7 +1253,7 @@ describe('Question Integration', () => {
           status: ClosedQuestionStatus.ConfirmedDeleted,
         })
         .expect(401);
-      expect(res.body?.message).toContain('TA cannot change status from ');
+      expect(res.body?.message).toContain('ta cannot change status from ');
     });
     it('PATCH question fails when you are not the question creator', async () => {
       const q = await QuestionFactory.create({ text: 'Help pls' });
@@ -1801,6 +2025,43 @@ describe('Question Integration', () => {
       expect(response.body.message).toBe(
         ERROR_MESSAGES.questionController.studentTaskProgress.taskNotInConfig,
       );
+    });
+    it('Will set lastReadyAt when going from a waiting status to a non-waiting status (e.g. helping to queued', async () => {
+      jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ course: course, user: ta });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+      });
+      const student = await UserFactory.create();
+      await StudentCourseFactory.create({
+        user: student,
+        courseId: queue.courseId,
+      });
+      const q = await QuestionFactory.create({
+        text: 'Help pls',
+        status: QuestionStatusKeys.Helping,
+        queue: queue,
+        creator: student,
+        taHelped: ta,
+      });
+
+      const response = await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          status: QuestionStatusKeys.Paused,
+        })
+        .expect(200);
+      expect(response.body).toMatchObject({
+        id: q.id,
+        status: QuestionStatusKeys.Paused,
+      });
+      expect(await QuestionModel.findOne({ id: q.id })).toMatchObject({
+        status: QuestionStatusKeys.Paused,
+        lastReadyAt: expect.any(Date),
+      });
     });
   });
 });

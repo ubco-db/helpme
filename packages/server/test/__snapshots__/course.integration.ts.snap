@@ -12,6 +12,8 @@ exports[`Course Integration GET /courses/:id gets all queues that are not disabl
   "queueSize": 0,
   "room": "room 2",
   "staffList": [],
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -49,14 +51,21 @@ exports[`Course Integration GET /courses/:id gets all queues that are not disabl
         "HumanVsChatbotVotes",
         "MostActiveTimes",
         "HelpSeekingOverTime",
+        "StaffEfficiency",
+        "StaffTotalHelped",
+        "StaffQuestionTimesByDay",
+        "StaffWorkload",
       ],
       "lastName": "Person",
       "name": "User Person",
       "photoURL": null,
+      "readChangeLog": false,
       "sid": null,
       "userRole": "user",
     },
   ],
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -94,14 +103,21 @@ exports[`Course Integration GET /courses/:id gets all queues that are not disabl
         "HumanVsChatbotVotes",
         "MostActiveTimes",
         "HelpSeekingOverTime",
+        "StaffEfficiency",
+        "StaffTotalHelped",
+        "StaffQuestionTimesByDay",
+        "StaffWorkload",
       ],
       "lastName": "Person",
       "name": "User Person",
       "photoURL": null,
+      "readChangeLog": false,
       "sid": null,
       "userRole": "user",
     },
   ],
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -140,6 +156,8 @@ exports[`Course Integration GET /courses/:id gets queues that are not disabled (
   "queueSize": 0,
   "room": "room 2",
   "staffList": [],
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -177,14 +195,21 @@ exports[`Course Integration GET /courses/:id gets queues that are not disabled (
         "HumanVsChatbotVotes",
         "MostActiveTimes",
         "HelpSeekingOverTime",
+        "StaffEfficiency",
+        "StaffTotalHelped",
+        "StaffQuestionTimesByDay",
+        "StaffWorkload",
       ],
       "lastName": "Person",
       "name": "User Person",
       "photoURL": null,
+      "readChangeLog": false,
       "sid": null,
       "userRole": "user",
     },
   ],
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
@@ -222,57 +247,25 @@ exports[`Course Integration GET /courses/:id gets queues that are not disabled (
         "HumanVsChatbotVotes",
         "MostActiveTimes",
         "HelpSeekingOverTime",
+        "StaffEfficiency",
+        "StaffTotalHelped",
+        "StaffQuestionTimesByDay",
+        "StaffWorkload",
       ],
       "lastName": "Person",
       "name": "User Person",
       "photoURL": null,
+      "readChangeLog": false,
       "sid": null,
       "userRole": "user",
     },
   ],
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;
 
-exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 1`] = `
-{
-  "allowQuestions": true,
-  "config": {},
-  "courseId": Any<Number>,
-  "id": Any<Number>,
-  "isDisabled": false,
-  "isProfessorQueue": false,
-  "notes": "example note 1",
-  "room": "abcd1",
-}
-`;
-
-exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 2`] = `
-{
-  "allowQuestions": true,
-  "config": {},
-  "courseId": Any<Number>,
-  "id": Any<Number>,
-  "isDisabled": false,
-  "isProfessorQueue": true,
-  "notes": "example note 7",
-  "room": "abcd2",
-}
-`;
-
-exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 3`] = `
-{
-  "allowQuestions": true,
-  "config": {},
-  "courseId": Any<Number>,
-  "id": Any<Number>,
-  "isDisabled": false,
-  "isProfessorQueue": false,
-  "notes": "ta queue",
-  "room": "abcd3",
-}
-`;
-
-exports[`Course Integration POST /courses/:id/ta_location/:room checks a TA into an existing queue 1`] = `
+exports[`Course Integration POST /courses/:id/checkin/:qid checks a TA into an existing queue 1`] = `
 {
   "allowQuestions": true,
   "config": {},
@@ -304,13 +297,65 @@ exports[`Course Integration POST /courses/:id/ta_location/:room checks a TA into
         "HumanVsChatbotVotes",
         "MostActiveTimes",
         "HelpSeekingOverTime",
+        "StaffEfficiency",
+        "StaffTotalHelped",
+        "StaffQuestionTimesByDay",
+        "StaffWorkload",
       ],
       "lastName": "Person",
       "name": "User Person",
       "photoURL": null,
+      "readChangeLog": false,
       "sid": null,
       "userRole": "user",
     },
   ],
+  "type": "hybrid",
+  "zoomLink": null,
+}
+`;
+
+exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 1`] = `
+{
+  "allowQuestions": true,
+  "config": {},
+  "courseId": Any<Number>,
+  "id": Any<Number>,
+  "isDisabled": false,
+  "isProfessorQueue": false,
+  "notes": "example note 1",
+  "room": "abcd1",
+  "type": "hybrid",
+  "zoomLink": null,
+}
+`;
+
+exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 2`] = `
+{
+  "allowQuestions": true,
+  "config": {},
+  "courseId": Any<Number>,
+  "id": Any<Number>,
+  "isDisabled": false,
+  "isProfessorQueue": true,
+  "notes": "example note 7",
+  "room": "abcd2",
+  "type": "hybrid",
+  "zoomLink": null,
+}
+`;
+
+exports[`Course Integration POST /courses/:id/create_queue/:room correctly propagates notes,profq,and name 3`] = `
+{
+  "allowQuestions": true,
+  "config": {},
+  "courseId": Any<Number>,
+  "id": Any<Number>,
+  "isDisabled": false,
+  "isProfessorQueue": false,
+  "notes": "ta queue",
+  "room": "abcd3",
+  "type": "hybrid",
+  "zoomLink": null,
 }
 `;

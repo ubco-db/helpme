@@ -27,6 +27,7 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
+  const [errorGettingOrgs, setErrorGettingOrgs] = useState(false)
 
   const {
     invitedOrgId,
@@ -37,8 +38,14 @@ export default function LoginPage() {
 
   useEffect(() => {
     async function getOrganizations() {
-      const organizations = await organizationApi.getOrganizations()
-      setOrganizations(organizations)
+      try {
+        const organizations = await organizationApi.getOrganizations()
+        setOrganizations(organizations)
+      } catch (error: any) {
+        message.error(error)
+        setErrorGettingOrgs(true)
+        return
+      }
     }
     getOrganizations()
   }, [])
@@ -78,7 +85,9 @@ export default function LoginPage() {
     if (isProd()) {
       const token = (await recaptchaRef?.current?.executeAsync()) ?? ''
       if (organization && !organization.legacyAuthEnabled) {
-        message.error('Organization does not support legacy authentication')
+        message.error(
+          'Organization does not support login with username/password',
+        )
         return
       }
       loginData = {
@@ -107,11 +116,14 @@ export default function LoginPage() {
           case 404:
             message.error('User Not Found')
             break
+          case 429:
+            message.error('Too many requests. Please try again after 1min')
+            break
           default:
             message.error(error)
             break
         }
-        return Promise.reject(error)
+        return
       } else {
         router.push(`/api/v1/login/entry?token=${data.token}`)
       }
@@ -152,7 +164,20 @@ export default function LoginPage() {
     smartlySetOrganization()
   }, [invitedOrgId, organizations, showLoginMenu])
 
-  if (organizations.length === 0) {
+  if (errorGettingOrgs) {
+    return (
+      <main>
+        <title>HelpMe | Error</title>
+        <div className="container mx-auto h-auto w-full pt-10 text-center">
+          <Alert
+            message="Error"
+            description="There was an error getting the organizations. Please refresh the page or try again later."
+            type="error"
+          />
+        </div>
+      </main>
+    )
+  } else if (organizations.length === 0 || !organizations) {
     return (
       <main>
         <CenteredSpinner tip="Loading Organizations..." />
@@ -201,7 +226,7 @@ export default function LoginPage() {
           <Card className="mx-auto max-w-md sm:px-2 md:px-6">
             <h2 className="mb-4 text-left">Login</h2>
 
-            {!loginMenu && (
+            {!loginMenu && organizations && organizations.map && (
               <div>
                 <p className="text-left text-stone-400">
                   Select your organization.

@@ -4,6 +4,11 @@ import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
+import * as Sentry from '@sentry/browser';
+
+/*
+ * NOTE: all paths here are relative to package/server
+ */
 
 const execPromise = promisify(exec);
 
@@ -30,6 +35,7 @@ export class BackupService {
         (error, stdout, stderr) => {
           if (error) {
             console.error(`Backup failed: ${stderr}`);
+            Sentry.captureMessage(`Backup failed: ${stderr}`);
           } else {
             console.log(`Daily backup saved: ${backupFile}`);
             this.deleteOldBackups(backupDir, 30);
@@ -38,6 +44,7 @@ export class BackupService {
       );
     } else {
       console.error('Insufficient disk space for backup.');
+      Sentry.captureMessage('Insufficient disk space for backup.');
     }
   }
 
@@ -58,6 +65,7 @@ export class BackupService {
         (error, stdout, stderr) => {
           if (error) {
             console.error(`Semi-hourly backup failed: ${stderr}`);
+            Sentry.captureMessage(`Semi-hourly backup failed: ${stderr}`);
           } else {
             console.log(`Semi-hourly backup saved: ${backupFile}`);
             this.deleteOldBackups(backupDir, 5);
@@ -66,6 +74,7 @@ export class BackupService {
       );
     } else {
       console.error('Insufficient disk space for backup.');
+      Sentry.captureMessage('Insufficient disk space for backup.');
     }
   }
 
@@ -84,6 +93,7 @@ export class BackupService {
         (error, stdout, stderr) => {
           if (error) {
             console.error(`Monthly backup failed: ${stderr}`);
+            Sentry.captureMessage(`Monthly backup failed: ${stderr}`);
           } else {
             console.log(`Monthly backup saved: ${backupFile}`);
           }
@@ -91,6 +101,42 @@ export class BackupService {
       );
     } else {
       console.error('Insufficient disk space for backup.');
+      Sentry.captureMessage('Insufficient disk space for backup.');
+    }
+  }
+
+  // Daily Uploads Backup Task - Keeps rolling backups for 5 days
+  @Cron('0 0 */4 * *')
+  async handleDailyUploadsBackup() {
+    try {
+      const date = new Date().toISOString().split('T')[0];
+      const uploadsDir = './uploads';
+      const backupFile = `uploads_backup-${date}.tar.gz`;
+      const backupDir = '../../backups/uploads-daily';
+
+      const hasSpace = await this.checkDiskSpace(backupDir);
+      if (!hasSpace) {
+        console.error('Insufficient disk space for uploads backup.');
+        Sentry.captureMessage('Insufficient disk space for uploads backup.');
+        return;
+      }
+
+      // Use `tar` to compress the uploads directory
+      const compressCommand = `tar -czf ${backupDir}/${backupFile} -C ${uploadsDir} .`;
+
+      exec(compressCommand, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Uploads backup failed: ${stderr}`);
+          Sentry.captureMessage(`Uploads backup failed: ${stderr}`);
+        } else {
+          console.log(`Uploads backup saved: ${backupFile}`);
+          // Retain only the last 3 backups (the last 12 days)
+          this.deleteOldBackups(backupDir, 2);
+        }
+      });
+    } catch (error) {
+      console.error('Error backing up uploads:', error);
+      Sentry.captureMessage('Error backing up uploads:', error);
     }
   }
 
@@ -126,6 +172,7 @@ export class BackupService {
       return freeSpaceMb > this.MINIMUM_FREE_SPACE_MB;
     } catch (error) {
       console.error('Error checking disk space:', error);
+      Sentry.captureMessage('Error checking disk space:', error);
       return false;
     }
   }

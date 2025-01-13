@@ -1,9 +1,12 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { QuestionType } from '@koh/common'
 import { getBrightness } from '@/app/utils/generalUtils'
 import tinycolor from 'tinycolor2'
+import { Button, Form, Input, Popover } from 'antd'
+import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
+import { DeleteOutlined, UndoOutlined } from '@ant-design/icons'
 
 interface QuestionTagElementProps {
   tagName: string
@@ -53,8 +56,11 @@ interface CheckableQuestionTagProps {
   tagColor: string
   tagID?: number
   onChangeWithID?: (tagID: number, checked: boolean) => void
-  onChangeWithName?: (tagName: string) => void
   checked: boolean
+  onMouseEnter?: (e: React.MouseEvent<HTMLDivElement>) => void
+  onMouseLeave?: (e: React.MouseEvent<HTMLDivElement>) => void
+  onFocus?: (e: React.FocusEvent<HTMLDivElement>) => void
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void
   checkStyle?: 'default' | 'delete'
 }
 
@@ -67,8 +73,12 @@ const CheckableQuestionTag: React.FC<CheckableQuestionTagProps> = ({
   tagColor,
   tagID,
   onChangeWithID,
-  onChangeWithName,
   checked,
+  // Note that all of these are needed for antd's Popover to work.
+  onMouseEnter,
+  onMouseLeave,
+  onFocus,
+  onClick,
   checkStyle = 'default',
 }) => {
   // if checkStyle is delete, text color is dark or light red when checked and normal when unchecked.
@@ -90,12 +100,12 @@ const CheckableQuestionTag: React.FC<CheckableQuestionTagProps> = ({
             : 'black'
         : 'gray'
 
-  const handleClick = () => {
+  const handleClick = (e?: React.MouseEvent<HTMLDivElement>) => {
     if (onChangeWithID && tagID) {
       onChangeWithID(tagID, !checked)
     }
-    if (onChangeWithName) {
-      onChangeWithName(tagName)
+    if (onClick && e) {
+      onClick(e)
     }
   }
 
@@ -108,14 +118,23 @@ const CheckableQuestionTag: React.FC<CheckableQuestionTagProps> = ({
 
   // for applying hover and focus styles
   const [isHovered, setIsHovered] = useState(false)
-  const handleMouseEnter = () => {
+  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
     setIsHovered(true)
+    if (onMouseEnter) {
+      onMouseEnter(e)
+    }
   }
-  const handleMouseLeave = () => {
+  const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
     setIsHovered(false)
+    if (onMouseLeave) {
+      onMouseLeave(e)
+    }
   }
-  const handleFocus = () => {
+  const handleFocus = (e: React.FocusEvent<HTMLDivElement>) => {
     setIsHovered(true)
+    if (onFocus) {
+      onFocus(e)
+    }
   }
   const handleBlur = () => {
     setIsHovered(false)
@@ -219,10 +238,21 @@ const QuestionTagSelector: React.FC<QuestionTagSelectorProps> = ({
   )
 }
 
-interface QuestionTagDeleteSelectorProps {
+/** These are stored inside QuestionTagEditor and are used purely for visual purposes */
+type LocalQuestionTag = QuestionType & {
+  markedForDeletion?: boolean
+}
+
+/** These are what QuestionTagEditor "returns" */
+export type EditedQuestionTag = {
+  markedForDeletion?: boolean
+  newValues?: QuestionType
+}
+
+interface QuestionTagEditorProps {
   currentTags: QuestionType[]
-  onChange?: (newSelectedTags: number[]) => void
-  value?: number[]
+  onChange?: (newEditedTags: EditedQuestionTag[]) => void
+  value?: EditedQuestionTag[]
   className?: string
   [key: string]: any
 }
@@ -233,46 +263,258 @@ interface QuestionTagDeleteSelectorProps {
  * @param value - Tag IDs that the TA has marked for deletion but are not yet saved. Will be automatically used by antd's Form.Item
  * @param onChange - the function to call when the tags marked for deletion change. Will be automatically used by antd's Form.Item
  */
-const QuestionTagDeleteSelector: React.FC<QuestionTagDeleteSelectorProps> = ({
+const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
   currentTags,
   onChange,
   value,
   className,
   ...props
 }) => {
-  const [selectedTags, setSelectedTags] = useState(value || [])
+  const [localQuestionTags, setLocalQuestionTags] =
+    useState<LocalQuestionTag[]>(currentTags)
+  const [editedTags, setEditedTags] = useState(value || [])
 
-  const handleCurrentTagClick = (tagID: number, checked: boolean) => {
-    const newSelectedTags = checked
-      ? [...selectedTags, tagID]
-      : selectedTags.filter((id) => id !== tagID)
+  // if the currentTags change (like from an outside source), update the localQuestionTags
+  useEffect(() => {
+    setLocalQuestionTags(currentTags)
+  }, [currentTags])
 
-    setSelectedTags(newSelectedTags)
+  // whenever editedTags changes, do onChange
+  useEffect(() => {
     if (onChange) {
-      onChange(newSelectedTags)
+      onChange(editedTags)
     }
-  }
+  }, [editedTags, onChange])
 
   const sortedQuestionTags = useMemo(() => {
     // setting numeric: true will essentially perform a natural sort, where 10 is treated one number, thus making it appear after 2
-    return [...currentTags].sort((a, b) =>
+    return [...localQuestionTags].sort((a, b) =>
       a.name.localeCompare(b.name, undefined, { numeric: true }),
     )
-  }, [currentTags])
+  }, [localQuestionTags])
 
   return (
     <div className={className} role="group" {...props}>
       {sortedQuestionTags.map((tag) => (
-        <CheckableQuestionTag
-          key={tag.id}
-          tagName={tag.name}
-          tagColor={tag.color}
-          tagID={tag.id}
-          // "checked" tasks are tasks that are marked for deletion for this component
-          checked={selectedTags.includes(tag.id)}
-          onChangeWithID={handleCurrentTagClick}
-          checkStyle="delete"
-        />
+        <Popover
+          key={'Popover' + tag.id}
+          content={
+            <div className="flex flex-col gap-y-0">
+              {/* Mini popup for editing the question tag */}
+              <Form.Item
+                label="Name"
+                rules={[
+                  { required: true, message: 'Please input a tag name' },
+                  {
+                    max: 20,
+                    message: 'Tag name must be less than 20 characters',
+                  },
+                  {
+                    validator: (_, value) => {
+                      // make sure there are no duplicate tag names
+                      // The reason we check for 2 is because it includes the current tag
+                      const duplicateCount = localQuestionTags.filter(
+                        (t) => t.name === value,
+                      ).length
+                      if (duplicateCount >= 2) {
+                        return Promise.reject('Duplicate Tag Name')
+                      }
+                      return Promise.resolve()
+                    },
+                  },
+                ]}
+              >
+                <Input
+                  allowClear={true}
+                  placeholder="Tag Name"
+                  maxLength={20}
+                  className="w-48"
+                  onChange={(e) => {
+                    const newName = e.target.value
+                    // update the change locally
+                    setLocalQuestionTags((prev) =>
+                      prev.map((t) =>
+                        t.id === tag.id ? { ...t, name: e.target.value } : t,
+                      ),
+                    )
+                    // Update editedTags
+                    setEditedTags((prev) => {
+                      const existingTag = prev.find(
+                        (t) => t.newValues?.id === tag.id,
+                      )
+                      if (existingTag) {
+                        // If it's already in editedTags, update it
+                        return prev.map((t) =>
+                          t.newValues?.id === tag.id
+                            ? {
+                                ...t,
+                                newValues: { ...t.newValues, name: newName },
+                              }
+                            : t,
+                        )
+                      } else {
+                        // If it's not already in editedTags, add it
+                        return [
+                          ...prev,
+                          { newValues: { ...tag, name: newName } },
+                        ]
+                      }
+                    })
+                  }}
+                  value={tag.name}
+                />
+              </Form.Item>
+              <Form.Item label="Color" layout="horizontal">
+                <ColorPickerWithPresets
+                  value={tag.color}
+                  format="hex"
+                  defaultFormat="hex"
+                  disabledAlpha
+                  onChange={(color) => {
+                    const newColor =
+                      typeof color === 'string' ? color : color.toHexString()
+
+                    // update the change locally
+                    setLocalQuestionTags((prev) =>
+                      prev.map((t) =>
+                        t.id === tag.id ? { ...t, color: newColor } : t,
+                      ),
+                    )
+                    // Update editedTags
+                    setEditedTags((prev) => {
+                      const existingTag = prev.find(
+                        (t) => t.newValues?.id === tag.id,
+                      )
+                      if (existingTag) {
+                        // If it's already in editedTags, update it
+                        return prev.map((t) =>
+                          t.newValues?.id === tag.id
+                            ? {
+                                ...t,
+                                newValues: { ...t.newValues, color: newColor },
+                              }
+                            : t,
+                        )
+                      } else {
+                        // If it's not already in editedTags, add it
+                        return [
+                          ...prev,
+                          { newValues: { ...tag, color: newColor } },
+                        ]
+                      }
+                    })
+                  }}
+                />
+              </Form.Item>
+
+              <div className="flex gap-1">
+                <Button
+                  disabled={!editedTags.find((t) => t.newValues?.id === tag.id)}
+                  icon={<UndoOutlined />}
+                  onClick={() => {
+                    // remove this tag from editedTags and reset the one in localQuestionTags back to currentTags
+                    setEditedTags((prev) =>
+                      prev.filter((t) => t.newValues?.id !== tag.id),
+                    )
+                    setLocalQuestionTags((prev) =>
+                      prev.map((t) =>
+                        t.id === tag.id
+                          ? (currentTags.find((ct) => ct.id === tag.id) ?? t)
+                          : t,
+                      ),
+                    )
+                  }}
+                >
+                  Reset
+                </Button>
+
+                {tag.markedForDeletion ? (
+                  <Button
+                    onClick={() => {
+                      // update the change locally
+                      setLocalQuestionTags((prev) =>
+                        prev.map((t) =>
+                          t.id === tag.id
+                            ? { ...t, markedForDeletion: false }
+                            : t,
+                        ),
+                      )
+                      // Update editedTags
+                      setEditedTags((prev) => {
+                        const existingTag = prev.find(
+                          (t) => t.newValues?.id === tag.id,
+                        )
+                        if (existingTag) {
+                          // If it's already in editedTags, update it
+                          return prev.map((t) =>
+                            t.newValues?.id === tag.id
+                              ? { ...t, markedForDeletion: false }
+                              : t,
+                          )
+                        } else {
+                          // If it's not already in editedTags, add it
+                          return [
+                            ...prev,
+                            { markedForDeletion: false, newValues: tag },
+                          ]
+                        }
+                      })
+                    }}
+                  >
+                    Unmark for Deletion
+                  </Button>
+                ) : (
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => {
+                      // update the change locally
+                      setLocalQuestionTags((prev) =>
+                        prev.map((t) =>
+                          t.id === tag.id
+                            ? { ...t, markedForDeletion: true }
+                            : t,
+                        ),
+                      )
+                      // Update editedTags
+                      setEditedTags((prev) => {
+                        const existingTag = prev.find(
+                          (t) => t.newValues?.id === tag.id,
+                        )
+                        if (existingTag) {
+                          // If it's already in editedTags, update it
+                          return prev.map((t) =>
+                            t.newValues?.id === tag.id
+                              ? { ...t, markedForDeletion: true }
+                              : t,
+                          )
+                        } else {
+                          // If it's not already in editedTags, add it
+                          return [
+                            ...prev,
+                            { markedForDeletion: true, newValues: tag },
+                          ]
+                        }
+                      })
+                    }}
+                  >
+                    Mark for Deletion
+                  </Button>
+                )}
+              </div>
+            </div>
+          }
+          trigger="click"
+        >
+          <CheckableQuestionTag
+            key={tag.id}
+            tagName={tag.name}
+            tagColor={tag.color}
+            // "checked" tasks are tasks that are marked for deletion for this component
+            checked={!!tag.markedForDeletion}
+            checkStyle="delete"
+          />
+        </Popover>
       ))}
     </div>
   )
@@ -282,5 +524,5 @@ export {
   QuestionTagElement,
   QuestionTagSelector,
   CheckableQuestionTag,
-  QuestionTagDeleteSelector,
+  QuestionTagEditor,
 }

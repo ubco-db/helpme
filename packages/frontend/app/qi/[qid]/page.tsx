@@ -14,6 +14,8 @@ import { ReactElement, useCallback, useEffect, useRef, useState } from 'react'
 import {
   decodeBase64,
   encodeBase64,
+  LimboQuestionStatus,
+  OpenQuestionStatus,
   parseTaskIdsFromQuestionText,
   PublicQueueInvite,
   Question,
@@ -153,6 +155,7 @@ export default function QueueInvitePage({
 
   // if the user is already logged in, is a student, and is in the course, redirect them to the queue page
   // The reason why it's only students is so that professors can easily show this page (to show the QR code)
+  // don't redirect if they hit the back button
   useEffect(() => {
     if (
       queueInviteInfo &&
@@ -163,7 +166,7 @@ export default function QueueInvitePage({
           course.role === Role.STUDENT,
       )
     ) {
-      router.push(
+      router.replace(
         `/course/${queueInviteInfo.courseId}/queue/${queueInviteInfo.queueId}`,
       )
     }
@@ -247,6 +250,19 @@ export default function QueueInvitePage({
       setTaskTree(transformIntoTaskTree(configTasksCopy)) // transformIntoTaskTree changes each precondition to carry a reference to the actual task object instead of just a string
     }
   }, [tagGroupsEnabled, configTasks])
+
+  const renderQuestion = (question: Question) => {
+    return (
+      <QuestionCardSimple
+        key={question.id}
+        question={question}
+        configTasks={configTasks}
+        isBeingHelped={question.status == OpenQuestionStatus.Helping}
+        isPaused={question.status == OpenQuestionStatus.Paused}
+        isBeingReQueued={question.status === LimboQuestionStatus.ReQueueing}
+      />
+    )
+  }
 
   if (pageLoading) {
     return <CenteredSpinner tip="Loading..." />
@@ -450,15 +466,9 @@ export default function QueueInvitePage({
                                 </div>
                               }
                             >
-                              {filteredQuestions.map((question: Question) => {
-                                return (
-                                  <QuestionCardSimple
-                                    key={question.id}
-                                    question={question}
-                                    configTasks={configTasks}
-                                  />
-                                )
-                              })}
+                              {filteredQuestions.map((question: Question) =>
+                                renderQuestion(question),
+                              )}
                             </Panel>
                           )
                         )
@@ -505,15 +515,9 @@ export default function QueueInvitePage({
                                 </div>
                               }
                             >
-                              {filteredQuestions.map((question: Question) => {
-                                return (
-                                  <QuestionCardSimple
-                                    key={question.id}
-                                    question={question}
-                                    configTasks={configTasks}
-                                  />
-                                )
-                              })}
+                              {filteredQuestions.map((question: Question) =>
+                                renderQuestion(question),
+                              )}
                             </Panel>
                           )
                         )
@@ -528,20 +532,22 @@ export default function QueueInvitePage({
                             key={question.id}
                             question={question}
                             configTasks={configTasks}
-                            isBeingHelped={true}
+                            isBeingHelped={
+                              question.status === OpenQuestionStatus.Helping
+                            }
+                            isPaused={
+                              question.status === OpenQuestionStatus.Paused
+                            }
+                            isBeingReQueued={
+                              question.status === LimboQuestionStatus.ReQueueing
+                            }
                           />
                         )
                       },
                     )}
-                    {queueQuestions.questions.map((question: Question) => {
-                      return (
-                        <QuestionCardSimple
-                          key={question.id}
-                          question={question}
-                          configTasks={configTasks}
-                        />
-                      )
-                    })}
+                    {queueQuestions.questions.map((question: Question) =>
+                      renderQuestion(question),
+                    )}
                   </>
                 )}
               </div>

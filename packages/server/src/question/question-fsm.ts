@@ -13,30 +13,56 @@ interface AllowableTransitions {
 
 const QUEUE_TRANSITIONS: AllowableTransitions = {
   ta: [OpenQuestionStatus.Helping, LimboQuestionStatus.TADeleted],
-  student: [ClosedQuestionStatus.ConfirmedDeleted],
+  student: [
+    ClosedQuestionStatus.ConfirmedDeleted,
+    ClosedQuestionStatus.LeftDueToNoStaff,
+    ClosedQuestionStatus.Stale,
+  ],
 };
 
-const QUESTION_STATES: Record<QuestionStatus, AllowableTransitions> = {
+const HELPING_TRANSITIONS: AllowableTransitions = {
+  ta: [
+    LimboQuestionStatus.CantFind,
+    LimboQuestionStatus.ReQueueing,
+    ClosedQuestionStatus.Resolved,
+    OpenQuestionStatus.Paused,
+    LimboQuestionStatus.TADeleted,
+  ],
+  student: [
+    ClosedQuestionStatus.ConfirmedDeleted,
+    LimboQuestionStatus.ReQueueing,
+    ClosedQuestionStatus.LeftDueToNoStaff,
+    ClosedQuestionStatus.Stale,
+  ],
+};
+
+export const QUESTION_STATES: Record<QuestionStatus, AllowableTransitions> = {
   [OpenQuestionStatus.Drafting]: {
-    student: [OpenQuestionStatus.Queued, ClosedQuestionStatus.ConfirmedDeleted],
+    student: [
+      OpenQuestionStatus.Queued,
+      ClosedQuestionStatus.ConfirmedDeleted,
+      ClosedQuestionStatus.LeftDueToNoStaff,
+      ClosedQuestionStatus.Stale,
+    ],
     ta: [OpenQuestionStatus.Helping, ClosedQuestionStatus.DeletedDraft],
   },
   [OpenQuestionStatus.Queued]: QUEUE_TRANSITIONS,
   [OpenQuestionStatus.PriorityQueued]: QUEUE_TRANSITIONS,
-  [OpenQuestionStatus.Helping]: {
+  [OpenQuestionStatus.Paused]: {
     ta: [
-      LimboQuestionStatus.CantFind,
-      LimboQuestionStatus.ReQueueing,
-      ClosedQuestionStatus.Resolved,
-      LimboQuestionStatus.TADeleted,
+      ...HELPING_TRANSITIONS.ta.filter((t) => t != OpenQuestionStatus.Paused),
+      OpenQuestionStatus.Helping,
     ],
-    student: [ClosedQuestionStatus.ConfirmedDeleted],
+    student: HELPING_TRANSITIONS.student,
   },
+  [OpenQuestionStatus.Helping]: HELPING_TRANSITIONS,
   [LimboQuestionStatus.CantFind]: {
     student: [
       OpenQuestionStatus.PriorityQueued,
       OpenQuestionStatus.Queued,
       ClosedQuestionStatus.ConfirmedDeleted,
+      ClosedQuestionStatus.LeftDueToNoStaff,
+      ClosedQuestionStatus.Stale,
     ],
   },
   [LimboQuestionStatus.ReQueueing]: {
@@ -44,15 +70,22 @@ const QUESTION_STATES: Record<QuestionStatus, AllowableTransitions> = {
       OpenQuestionStatus.PriorityQueued,
       OpenQuestionStatus.Queued,
       ClosedQuestionStatus.ConfirmedDeleted,
+      ClosedQuestionStatus.LeftDueToNoStaff,
+      ClosedQuestionStatus.Stale,
     ],
   },
   [LimboQuestionStatus.TADeleted]: {
-    student: [ClosedQuestionStatus.ConfirmedDeleted],
+    student: [
+      ClosedQuestionStatus.ConfirmedDeleted,
+      ClosedQuestionStatus.LeftDueToNoStaff,
+      ClosedQuestionStatus.Stale,
+    ],
   },
   [ClosedQuestionStatus.Resolved]: {},
   [ClosedQuestionStatus.ConfirmedDeleted]: {},
   [ClosedQuestionStatus.Stale]: {},
   [ClosedQuestionStatus.DeletedDraft]: {},
+  [ClosedQuestionStatus.LeftDueToNoStaff]: {},
 };
 
 export function canChangeQuestionStatus(

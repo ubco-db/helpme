@@ -1,19 +1,60 @@
-import { AsyncQuestion, Question, QueuePartial } from '@koh/common'
+import {
+  AsyncQuestion,
+  OpenQuestionStatus,
+  Question,
+  QueuePartial,
+  waitingStatuses,
+} from '@koh/common'
+
+export function updateWaitTime(question: Question): Question {
+  const now = new Date()
+  const lastReadyDate = question.lastReadyAt
+    ? typeof question.lastReadyAt === 'string'
+      ? new Date(Date.parse(question.lastReadyAt))
+      : question.lastReadyAt
+    : question.createdAt
+      ? typeof question.createdAt === 'string'
+        ? new Date(Date.parse(question.createdAt))
+        : question.createdAt
+      : null
+  if (!lastReadyDate) {
+    return { ...question, waitTime: 0 }
+  }
+  // if the question's status is not waiting, the wait time is not moving up, so it stays at whatever it was set at in the database
+  // if the question is not being helped, then the wait time in the database is outdated, so it becomes the time since the last time the question was ready
+  const actualWaitTimeSecs = !waitingStatuses.includes(question.status)
+    ? question.waitTime
+    : question.waitTime +
+      Math.round((now.getTime() - lastReadyDate.getTime()) / 1000)
+  return { ...question, waitTime: actualWaitTimeSecs }
+}
 
 export function getWaitTime(question: Question): string {
-  if (!question.createdAt) {
+  return formatWaitTime(question.waitTime / 60)
+}
+
+export function getWaitTimeOld(question: Question): string {
+  const lastReadyDate = question.lastReadyAt
+    ? typeof question.lastReadyAt === 'string'
+      ? new Date(Date.parse(question.lastReadyAt))
+      : question.lastReadyAt
+    : question.createdAt
+      ? typeof question.createdAt === 'string'
+        ? new Date(Date.parse(question.createdAt))
+        : question.createdAt
+      : null
+  if (!lastReadyDate) {
     return formatWaitTime(0)
   }
-  // A dirty fix until we can get the serializer working properly again (i renamed `questions` in SSEQueueResponse to `queueQuestions` and renamed `queue` in ListQuestionsResponse to `questions` and stuff broke for some reason)
-  if (typeof question.createdAt === 'string') {
-    const now = new Date()
-    const tempDate = new Date(Date.parse(question.createdAt))
-    const difference = now.getTime() - tempDate.getTime()
-    return formatWaitTime(difference / 60000)
-  }
   const now = new Date()
-  const difference = now.getTime() - question.createdAt.getTime()
-  return formatWaitTime(difference / 60000)
+  // if the question's status is not waiting, the wait time is not moving up, so it stays at whatever it was set at in the database
+  // if the question is not being helped, then the wait time in the database is outdated, so it becomes the time since the last time the question was ready
+  const actualWaitTimeSecs = !waitingStatuses.includes(question.status)
+    ? question.waitTime
+    : question.waitTime +
+      Math.round((now.getTime() - lastReadyDate.getTime()) / 1000)
+
+  return formatWaitTime(actualWaitTimeSecs / 60)
 }
 
 export function getAsyncWaitTime(question: AsyncQuestion): string {
@@ -45,18 +86,25 @@ export function formatWaitTime(minutes: number): string {
 }
 
 export function getServedTime(question: Question): string {
-  if (!question.helpedAt || !question.createdAt) {
+  if (!question.helpedAt) {
     return ''
   }
   const now = new Date()
+  let actualServeTimeSecs = 0
   // A dirty fix until we can get the serializer working properly again (i renamed `questions` in SSEQueueResponse to `queueQuestions` and renamed `queue` in ListQuestionsResponse to `questions` and stuff broke for some reason)
-  if (typeof question.helpedAt === 'string') {
+  if (question.status === OpenQuestionStatus.Paused) {
+    actualServeTimeSecs = question.helpTime
+  } else if (typeof question.helpedAt === 'string') {
     const tempDate = new Date(Date.parse(question.helpedAt))
-    const difference = now.getTime() - tempDate.getTime()
-    return formatServeTime(difference / 1000)
+    actualServeTimeSecs =
+      question.helpTime +
+      Math.round((now.getTime() - tempDate.getTime()) / 1000)
+  } else {
+    actualServeTimeSecs =
+      question.helpTime +
+      Math.round((now.getTime() - question.helpedAt.getTime()) / 1000)
   }
-  const difference = now.getTime() - question.helpedAt.getTime()
-  return formatServeTime(difference / 1000)
+  return formatServeTime(actualServeTimeSecs)
 }
 
 /**
@@ -97,7 +145,7 @@ export function formatDateAndTimeForExcel(date: Date | undefined): string {
   if (date === undefined) return ''
 
   const validDate = typeof date === 'string' ? new Date(date) : date
-  if (!validDate || isNaN(validDate.getTime())) return ''
+  if (!validDate || !validDate.getTime || isNaN(validDate.getTime())) return ''
   // Convert to local time and extract parts
   const localDate = new Date(
     validDate.getTime() - validDate.getTimezoneOffset() * 60_000,

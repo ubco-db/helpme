@@ -7,20 +7,13 @@ import { CourseModel } from 'course/course.entity';
 import {
   CourseResponse,
   GetOrganizationUserResponse,
+  OrgUser,
+  LMSOrganizationIntegrationPartial,
   Role,
   UserRole,
 } from '@koh/common';
 import { UserCourseModel } from 'profile/user-course.entity';
-
-export interface UserResponse {
-  userId: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  photoUrl: string | null;
-  userRole: string;
-  organizationRole: string;
-}
+import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 
 export interface FlattenedOrganizationResponse {
   id: number;
@@ -144,7 +137,7 @@ export class OrganizationService {
     page: number,
     pageSize: number,
     search?: string,
-  ): Promise<UserResponse[]> {
+  ): Promise<OrgUser[]> {
     const organizationUsers = await getRepository(OrganizationUserModel)
       .createQueryBuilder()
       .leftJoin(
@@ -182,8 +175,8 @@ export class OrganizationService {
 
     const usersSubset = await users
       .orderBy('UserModel.lastName')
-      .skip((page - 1) * pageSize)
-      .take(pageSize)
+      .offset((page - 1) * pageSize)
+      .limit(pageSize)
       // .getMany() wouldn't work here because relations are not working well with getMany()
       .getRawMany();
 
@@ -317,5 +310,31 @@ export class OrganizationService {
     };
 
     return flattenedOrganization;
+  }
+
+  public async upsertLMSIntegration(
+    organizationId: number,
+    props: LMSOrganizationIntegrationPartial,
+  ) {
+    let integration = await LMSOrganizationIntegrationModel.findOne({
+      where: { organizationId: organizationId, apiPlatform: props.apiPlatform },
+    });
+    let isUpdate = false;
+    if (integration) {
+      integration.rootUrl = props.rootUrl;
+      isUpdate = true;
+    } else {
+      integration = new LMSOrganizationIntegrationModel();
+      integration.organizationId = organizationId;
+      integration.apiPlatform = props.apiPlatform;
+      integration.rootUrl = props.rootUrl;
+    }
+    await LMSOrganizationIntegrationModel.upsert(integration, [
+      'organizationId',
+      'apiPlatform',
+    ]);
+    return isUpdate
+      ? `Successfully updated integration for ${integration.apiPlatform}`
+      : `Successfully created integration for ${integration.apiPlatform}`;
   }
 }

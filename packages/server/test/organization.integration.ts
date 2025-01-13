@@ -17,7 +17,6 @@ import { CourseSettingsModel } from 'course/course_settings.entity';
 import { CourseModel } from 'course/course.entity';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
-import { MailServiceModel } from 'mail/mail-services.entity';
 
 describe('Organization Integration', () => {
   const supertest = setupIntegrationTest(OrganizationModule);
@@ -1051,33 +1050,6 @@ describe('Organization Integration', () => {
         'Section group name must be at least 1 character',
       );
 
-      expect(res.status).toBe(400);
-    });
-
-    it('should return 400 when zoomLink is too short', async () => {
-      const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
-      const course = await CourseFactory.create({ zoomLink: 'test' });
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-      await OrganizationCourseModel.create({
-        courseId: course.id,
-        organizationId: organization.id,
-      }).save();
-
-      const res = await supertest({ userId: user.id })
-        .patch(`/organization/${organization.id}/update_course/${course.id}`)
-        .send({
-          name: 'newName',
-          zoomLink: '        ',
-          sectionGroupName: 'test',
-        });
-
-      expect(res.body.message).toBe('Zoom link must be at least 1 character');
       expect(res.status).toBe(400);
     });
 
@@ -2627,33 +2599,6 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(400);
     });
 
-    it('should return 400 when zoomLink is too short', async () => {
-      const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
-      const course = await CourseFactory.create({ zoomLink: 'test' });
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-      await OrganizationCourseModel.create({
-        courseId: course.id,
-        organizationId: organization.id,
-      }).save();
-
-      const res = await supertest({ userId: user.id })
-        .post(`/organization/${organization.id}/create_course`)
-        .send({
-          name: 'newName',
-          zoomLink: '        ',
-          sectionGroupName: 'test',
-        });
-
-      expect(res.body.message).toBe('Zoom link must be at least 1 character');
-      expect(res.status).toBe(400);
-    });
-
     it('should return 400 when course timezone is not valid', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
@@ -2898,5 +2843,68 @@ describe('Organization Integration', () => {
       expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(false);
       expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(true);
     });
+  });
+
+  describe('GET /organization/:oid/cronjobs', () => {
+    it('should return 401 when user is not logged in', async () => {
+      const res = await supertest().get('/organization/1/cronjobs');
+
+      expect(res.status).toBe(401);
+    });
+
+    it('should return 401 when user is not admin', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+      }).save();
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/cronjobs`,
+      );
+
+      expect(res.status).toBe(401);
+    });
+
+    it('should return 200 when user is admin', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+        role: OrganizationRole.ADMIN,
+      }).save();
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/cronjobs`,
+      );
+
+      expect(res.status).toBe(200);
+    });
+  });
+
+  describe('GET /organization/:oid/lms_integration', () => {
+    it.each([OrganizationRole.PROFESSOR, OrganizationRole.MEMBER])(
+      'should return 401 when org non-administrator calls route',
+      async (orgRole: OrganizationRole) => {
+        const user = await UserFactory.create();
+        const organization = await OrganizationFactory.create();
+
+        await OrganizationUserModel.create({
+          userId: user.id,
+          organizationId: organization.id,
+          role: orgRole,
+        }).save();
+
+        const res = await supertest({ userId: user.id }).get(
+          `/organization/${organization.id}/lms_integration`,
+        );
+
+        expect(res.status).toBe(401);
+      },
+    );
   });
 });

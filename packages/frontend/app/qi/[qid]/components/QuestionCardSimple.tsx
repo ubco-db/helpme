@@ -12,6 +12,8 @@ import { cn } from '@/app/utils/generalUtils'
 interface QuestionCardSimpleProps {
   question: Question
   isBeingHelped?: boolean
+  isPaused?: boolean
+  isBeingReQueued?: boolean
   configTasks?: ConfigTasks
   className?: string // used to highlight questions or add other classes
 }
@@ -22,6 +24,8 @@ interface QuestionCardSimpleProps {
 const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
   question,
   isBeingHelped,
+  isPaused,
+  isBeingReQueued,
   configTasks,
   className,
 }) => {
@@ -30,21 +34,27 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
     : [] // gives an array of "part1","part2",etc.
 
   const [servedTime, setServedTime] = useState(getServedTime(question))
-
   useEffect(() => {
-    if (isBeingHelped && question.helpedAt) {
+    if (isBeingHelped && question.helpedAt && !isPaused) {
       const interval = setInterval(() => {
         setServedTime(getServedTime(question))
       }, 1000)
       return () => clearInterval(interval)
+    } else if (isPaused) {
+      setServedTime(getServedTime(question))
     }
-  }, [isBeingHelped, question])
+  }, [isBeingHelped, question, isPaused])
 
   return (
     <Card
       className={cn(
-        'my-1 w-full rounded-md bg-white px-2 text-gray-600 shadow-md',
-        isBeingHelped ? 'border border-green-600/40' : '',
+        'my-1 w-full rounded-md bg-white px-2 text-gray-600 shadow-md ',
+        isBeingHelped ? 'border' : '',
+        isBeingHelped && !isPaused ? 'border-green-600/40 bg-green-50' : '',
+        isPaused ? 'border-amber-600/40 bg-amber-50' : '',
+        isBeingReQueued
+          ? 'greyscale mt-3 border-gray-300 bg-gray-200/20 text-gray-400 md:mt-2'
+          : '',
         className,
       )}
       classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
@@ -105,27 +115,56 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
             <QuestionTagElement
               key={index}
               tagName={questionType.name}
-              tagColor={questionType.color}
+              tagColor={!isBeingReQueued ? questionType.color : '#f0f0f0'}
             />
           ))}
         </Col>
-        {isBeingHelped && question.helpedAt && (
-          <Col flex="0 0 3rem">
-            <div className="text-sm font-medium text-green-700">
-              {servedTime}
-            </div>
-          </Col>
-        )}
-        <Col flex="0 0 3rem">
-          <div className="text-sm text-gray-600">{getWaitTime(question)}</div>
-        </Col>
-        <div
-          className={`absolute left-auto right-1 ${question.text && question.questionTypes && question.questionTypes.length > 0 ? '-mt-16' : '-mt-12'}`}
-        >
-          {isBeingHelped && (
-            <div className="text-sm text-green-700">Currently Being Served</div>
+        <Col flex={'0.1 1 auto'}>
+          {(isBeingHelped || isPaused || isBeingReQueued) && (
+            <Row justify={'end'}>
+              <div
+                className={cn(
+                  'text-sm',
+                  isPaused ? 'mr-6 text-amber-400' : '',
+                  isBeingHelped ? 'text-green-700' : '',
+                  isBeingReQueued ? 'italic' : '',
+                )}
+              >
+                {isPaused && 'Paused'}
+                {isBeingHelped && 'Being Served'}
+                {isBeingReQueued && 'Not Ready'}
+              </div>
+            </Row>
           )}
-        </div>
+          <Row
+            justify={'end'}
+            className={cn(
+              !isBeingHelped && !isPaused && !isBeingReQueued
+                ? 'h-[2.5rem]'
+                : '',
+              'gap-1',
+            )}
+          >
+            <Col flex="1 0 2rem">
+              {(isBeingHelped || isPaused) && (
+                <div
+                  className={cn(
+                    isBeingHelped ? 'text-green-700' : '',
+                    isPaused ? 'text-amber-400' : '',
+                    'flex justify-end text-sm font-medium',
+                  )}
+                >
+                  {(isBeingHelped || isPaused) && servedTime}
+                </div>
+              )}
+            </Col>
+            <Col flex="0 0 2rem">
+              <div className="flex justify-end text-nowrap text-sm text-gray-600">
+                {getWaitTime(question)}
+              </div>
+            </Col>
+          </Row>
+        </Col>
       </Row>
     </Card>
   )
