@@ -126,32 +126,14 @@ export class LMSIntegrationService {
 
   async saveItems(courseId: number, type: LMSSave, ids?: number[]) {
     const adapter = await this.getAdapter(courseId);
-    let saveStatus: LMSApiResponseStatus = LMSApiResponseStatus.None;
-    let data: any = null;
 
-    switch (type) {
-      case LMSSave.Announcements: {
-        const { status, announcements } = await adapter.saveAnnouncements(ids);
-        saveStatus = status;
-        data = announcements;
-        break;
-      }
-      case LMSSave.Assignments: {
-        const { status, assignments } = await adapter.saveAssignments(ids);
-        saveStatus = status;
-        data = assignments;
-        break;
-      }
+    const { status, items } = await adapter.saveItems(type, ids);
+
+    if (status != LMSApiResponseStatus.Success) {
+      throw new HttpException(status, this.lmsStatusToHttpStatus(status));
     }
 
-    if (saveStatus != LMSApiResponseStatus.Success) {
-      throw new HttpException(
-        saveStatus,
-        this.lmsStatusToHttpStatus(saveStatus),
-      );
-    }
-
-    return data;
+    return items;
   }
 
   async uploadDocuments(
@@ -344,14 +326,11 @@ export class LMSIntegrationService {
       }
     }
 
-    return {
-      status: LMSApiResponseStatus.Success,
-      results: statuses.map((a) => {
-        return {
-          id: a.id,
-          success: a.success,
-        } as LMSFileUploadResult;
-      }),
-    };
+    return statuses.map((a) => {
+      return {
+        id: a.id,
+        success: a.success,
+      } as LMSFileUploadResult;
+    });
   }
 }

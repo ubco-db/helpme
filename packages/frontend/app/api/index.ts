@@ -64,11 +64,13 @@ import {
   InsightDetail,
   LMSIntegration,
   LMSCourseIntegrationPartial,
-  LMSAssignmentAPIResponse,
+  LMSAssignment,
   LMSApiResponseStatus,
   LMSCourseAPIResponse,
   CronJob,
   OrgUser,
+  LMSAnnouncement,
+  LMSFileUploadResult,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -808,10 +810,50 @@ class APIClient {
       this.req('GET', `/api/v1/lms_integration/${courseId}`),
     getStudents: async (courseId: number): Promise<string[]> =>
       this.req('GET', `/api/v1/lms_integration/${courseId}/students`),
-    getAssignments: async (
-      courseId: number,
-    ): Promise<LMSAssignmentAPIResponse[]> =>
+    getAssignments: async (courseId: number): Promise<LMSAssignment[]> =>
       this.req('GET', `/api/v1/lms_integration/${courseId}/assignments`),
+    getAnnouncements: async (courseId: number): Promise<LMSAnnouncement[]> =>
+      this.req('GET', `/api/v1/lms_integration/${courseId}/announcements`),
+    saveAssignments: async (
+      courseId: number,
+      ids?: number[],
+    ): Promise<LMSAssignment[]> =>
+      this.req(
+        'GET',
+        `/api/v1/lms_integration/${courseId}/assignments/save`,
+        undefined,
+        { ids },
+      ),
+    saveAnnouncements: async (
+      courseId: number,
+      ids?: number[],
+    ): Promise<LMSAnnouncement[]> =>
+      this.req(
+        'GET',
+        `/api/v1/lms_integration/${courseId}/announcements/save`,
+        undefined,
+        { ids },
+      ),
+    uploadAssignments: async (
+      courseId: number,
+      ids?: number[],
+    ): Promise<LMSFileUploadResult[]> =>
+      this.req(
+        'GET',
+        `/api/v1/lms_integration/${courseId}/assignments/upload`,
+        undefined,
+        { ids },
+      ),
+    uploadAnnouncements: async (
+      courseId: number,
+      ids?: number[],
+    ): Promise<LMSFileUploadResult[]> =>
+      this.req(
+        'GET',
+        `/api/v1/lms_integration/${courseId}/announcements/upload`,
+        undefined,
+        { ids },
+      ),
     testIntegration: async (
       courseId: number,
       props: {

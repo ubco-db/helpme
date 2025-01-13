@@ -1010,28 +1010,14 @@ export type LMSCourseAPIResponse = {
   studentCount: number
 }
 
-export type LMSAssignmentAPIResponse = {
-  id: number
-  name: string
-  description: string
-  due: Date
-  modified: Date
-}
-
-export type LMSAnnouncementAPIResponse = {
-  id: number
-  title: string
-  message: string
-  posted: Date
-}
-
 export type LMSAssignment = {
   id: number
   name: string
   description: string
   due: Date
   modified: Date
-  trackedAt: Date
+  saved?: boolean
+  uploaded?: Date
 }
 
 export type LMSAnnouncement = {
@@ -1039,6 +1025,9 @@ export type LMSAnnouncement = {
   title: string
   message: string
   posted: Date
+  modified?: Date
+  saved?: boolean
+  uploaded?: Date
 }
 
 export type LMSFileUploadResponse = {

@@ -13,10 +13,9 @@ import {
 } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  LMSAnnouncement,
   LMSApiResponseStatus,
-  LMSAssignmentAPIResponse,
-  LMSCourseAPIResponse,
-  LMSCourseIntegrationPartial,
+  LMSAssignment,
   LMSIntegration,
   LMSOrganizationIntegrationPartial,
 } from '@koh/common'
@@ -27,6 +26,8 @@ import { PenBoxIcon, RefreshCwIcon, TrashIcon } from 'lucide-react'
 import LMSRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSRosterTable'
 import LMSAssignmentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSAssignmentList'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useCourseLmsIntegration } from '@/app/hooks/useCourseLmsIntegration'
+import LMSAnnouncementList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSAnnouncementList'
 
 export default function CourseLMSIntegrationPage({
   params,
@@ -40,12 +41,21 @@ export default function CourseLMSIntegrationPage({
     [userInfo?.organization?.orgId],
   )
 
+  const [updateFlag, setUpdateFlag] = useState<boolean>(false)
+  const {
+    integration,
+    course,
+    assignments,
+    setAssignments,
+    announcements,
+    setAnnouncements,
+    students,
+    isLoading,
+  } = useCourseLmsIntegration(courseId, updateFlag)
+
   const [lmsIntegrations, setLmsIntegrations] = useState<
     LMSOrganizationIntegrationPartial[]
   >([])
-  const [lmsIntegration, setLmsIntegration] = useState<
-    LMSCourseIntegrationPartial | undefined
-  >(undefined)
   const [selectedIntegration, setSelectedIntegration] = useState<
     LMSOrganizationIntegrationPartial | undefined
   >(undefined)
@@ -53,14 +63,6 @@ export default function CourseLMSIntegrationPage({
   const [modalOpen, setModalOpen] = useState<boolean>(false)
   const [delModalOpen, setDelModalOpen] = useState<boolean>(false)
   const [isTesting, setIsTesting] = useState<boolean>(false)
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [isAPIKeyExpired, setIsAPIKeyExpired] = useState<boolean>(false)
-
-  const [course, setCourse] = useState<LMSCourseAPIResponse>(
-    {} as LMSCourseAPIResponse,
-  )
-  const [lmsStudents, setLmsStudents] = useState<string[]>([])
-  const [assignments, setAssignments] = useState<LMSAssignmentAPIResponse[]>([])
 
   const fetchOrgIntegrationsAsync = useCallback(async () => {
     await API.organizations
@@ -74,37 +76,6 @@ export default function CourseLMSIntegrationPage({
         message.error(errorMessage)
       })
   }, [organizationId])
-
-  const fetchDataAsync = useCallback(async () => {
-    const response = await API.course
-      .getIntegration(courseId)
-      .then((response) => {
-        if (response) setLmsIntegration(response)
-        return response
-      })
-      .catch((error) => {
-        const errorMessage = getErrorMessage(error)
-        message.error(errorMessage)
-        return undefined
-      })
-
-    if (response) {
-      if (response.isExpired) {
-        setIsAPIKeyExpired(true)
-        return
-      }
-      setIsAPIKeyExpired(false)
-      setIsLoading(true)
-      setCourse(await API.lmsIntegration.getCourse(courseId))
-      setLmsStudents(await API.lmsIntegration.getStudents(courseId))
-      setAssignments(await API.lmsIntegration.getAssignments(courseId))
-      setIsLoading(false)
-    } else {
-      setCourse({} as any)
-      setLmsStudents([])
-      setAssignments([])
-    }
-  }, [courseId])
 
   const testLMSConnection = async (
     apiKey: string,
@@ -150,17 +121,16 @@ export default function CourseLMSIntegrationPage({
 
   useEffect(() => {
     fetchOrgIntegrationsAsync()
-    fetchDataAsync()
-  }, [fetchOrgIntegrationsAsync, fetchDataAsync])
+  }, [fetchOrgIntegrationsAsync])
 
   const deleteIntegration = async () => {
-    if (lmsIntegration == undefined) {
+    if (integration == undefined) {
       message.error('No integration was specified')
       return
     }
 
     API.course
-      .removeIntegration(courseId, { apiPlatform: lmsIntegration.apiPlatform })
+      .removeIntegration(courseId, { apiPlatform: integration.apiPlatform })
       .then((result) => {
         if (!result) {
           message.error(
@@ -174,11 +144,11 @@ export default function CourseLMSIntegrationPage({
         }
       })
       .finally(() => {
-        fetchDataAsync()
+        setUpdateFlag(!updateFlag)
       })
   }
 
-  if (lmsIntegration == undefined) {
+  if (integration == undefined || course == undefined) {
     return (
       <div
         className={'flex h-full w-full flex-col items-center justify-center'}
@@ -251,7 +221,7 @@ export default function CourseLMSIntegrationPage({
               setSelectedIntegration={setSelectedIntegration}
               isTesting={isTesting}
               testLMSConnection={testLMSConnection}
-              onCreate={fetchDataAsync}
+              onCreate={() => setUpdateFlag(!updateFlag)}
             />
           </div>
         </Card>
@@ -265,8 +235,8 @@ export default function CourseLMSIntegrationPage({
         children: (
           <LMSRosterTable
             courseId={courseId}
-            lmsStudents={lmsStudents}
-            lmsPlatform={lmsIntegration.apiPlatform}
+            lmsStudents={students}
+            lmsPlatform={integration.apiPlatform}
             loadingLMSData={isLoading}
           />
         ),
@@ -278,8 +248,54 @@ export default function CourseLMSIntegrationPage({
         label: 'Course Assignments',
         children: (
           <LMSAssignmentList
+            courseId={courseId}
             assignments={assignments}
             loadingLMSData={isLoading}
+            updateCallback={(new_assignments: LMSAssignment[]) => {
+              setAssignments((prev) => {
+                const updated: LMSAssignment[] = []
+                for (const a of prev) {
+                  const corresponding = new_assignments.find(
+                    (a0) => a0.id == a.id,
+                  )
+                  if (corresponding == undefined) {
+                    updated.push(a)
+                  } else {
+                    updated.push(corresponding)
+                  }
+                }
+                return updated
+              })
+            }}
+          />
+        ),
+      })
+    }
+    if (announcements.length > 0) {
+      tabItems.push({
+        key: 'announcements',
+        label: 'Course Announcements',
+        children: (
+          <LMSAnnouncementList
+            courseId={courseId}
+            announcements={announcements}
+            loadingLMSData={isLoading}
+            updateCallback={(new_announcements: LMSAnnouncement[]) => {
+              setAnnouncements((prev) => {
+                const updated: LMSAnnouncement[] = []
+                for (const a of prev) {
+                  const corresponding = new_announcements.find(
+                    (a0) => a0.id == a.id,
+                  )
+                  if (corresponding == undefined) {
+                    updated.push(a)
+                  } else {
+                    updated.push(corresponding)
+                  }
+                }
+                return updated
+              })
+            }}
           />
         ),
       })
@@ -292,7 +308,7 @@ export default function CourseLMSIntegrationPage({
               'flex flex-col text-lg font-semibold md:flex-row md:justify-between'
             }
           >
-            <div>{`${lmsIntegration.apiPlatform} API Connection`}</div>
+            <div>{`${integration.apiPlatform} API Connection`}</div>
             <div className={'grid grid-cols-2 gap-2'}>
               <Button
                 className={
@@ -301,13 +317,13 @@ export default function CourseLMSIntegrationPage({
                 onClick={() => {
                   setSelectedIntegration(
                     lmsIntegrations.find(
-                      (i) => i.apiPlatform == lmsIntegration?.apiPlatform,
+                      (i) => i.apiPlatform == integration?.apiPlatform,
                     ),
                   )
                   setModalOpen(true)
                 }}
               >
-                {!isAPIKeyExpired ? (
+                {!integration.isExpired ? (
                   <span
                     className={
                       'text-helpmeblue flex w-full justify-between md:hover:text-white'
@@ -337,11 +353,11 @@ export default function CourseLMSIntegrationPage({
               </Button>
             </div>
           </div>
-          {!isAPIKeyExpired && (
+          {!integration.isExpired && (
             <>
               <Descriptions layout={'vertical'} bordered={true}>
                 <Descriptions.Item label={'API Course ID'}>
-                  {lmsIntegration.apiCourseId}
+                  {integration.apiCourseId}
                 </Descriptions.Item>
                 <Descriptions.Item label={'Course Name (Course Code)'}>
                   {course.name} ({course.code})
@@ -357,13 +373,13 @@ export default function CourseLMSIntegrationPage({
             isOpen={modalOpen}
             setIsOpen={setModalOpen}
             courseId={courseId}
-            baseIntegration={lmsIntegration}
+            baseIntegration={integration}
             integrationOptions={lmsIntegrations}
             selectedIntegration={selectedIntegration}
             setSelectedIntegration={setSelectedIntegration}
             isTesting={isTesting}
             testLMSConnection={testLMSConnection}
-            onCreate={fetchDataAsync}
+            onCreate={() => setUpdateFlag(!updateFlag)}
           />
           <Modal
             title={'Are you sure you want to delete this LMS integration?'}
@@ -386,7 +402,7 @@ export default function CourseLMSIntegrationPage({
         </div>
       </Card>
     )
-    return isAPIKeyExpired ? (
+    return integration.isExpired ? (
       <Badge.Ribbon color={'red'} text={'API Key Expired'}>
         {card}
       </Badge.Ribbon>

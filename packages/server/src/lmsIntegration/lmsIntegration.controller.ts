@@ -11,6 +11,7 @@ import {
   LMSAnnouncement,
   LMSApiResponseStatus,
   LMSAssignment,
+  LMSFileUploadResult,
   Role,
 } from '@koh/common';
 import {
@@ -97,12 +98,12 @@ export class LMSIntegrationController {
   async saveAssignments(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() props: any,
-  ): Promise<{ status: LMSApiResponseStatus; assignments: LMSAssignment[] }> {
-    return await this.integrationService.saveItems(
+  ): Promise<LMSAssignment[]> {
+    return (await this.integrationService.saveItems(
       courseId,
       LMSSave.Assignments,
       props.ids,
-    );
+    )) as LMSAssignment[];
   }
 
   @Post(':courseId/announcements/save')
@@ -111,15 +112,12 @@ export class LMSIntegrationController {
   async saveAnnouncements(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() props: any,
-  ): Promise<{
-    status: LMSApiResponseStatus;
-    announcements: LMSAnnouncement[];
-  }> {
-    return await this.integrationService.saveItems(
+  ): Promise<LMSAnnouncement[]> {
+    return (await this.integrationService.saveItems(
       courseId,
       LMSSave.Announcements,
       props.ids,
-    );
+    )) as LMSAnnouncement[];
   }
 
   @Post(':courseId/assignments/upload')
@@ -129,7 +127,7 @@ export class LMSIntegrationController {
     @User() user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() props: any,
-  ): Promise<any> {
+  ): Promise<LMSFileUploadResult[]> {
     return await this.integrationService.uploadDocuments(
       user,
       courseId,
@@ -145,7 +143,7 @@ export class LMSIntegrationController {
     @User() user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() props: any,
-  ): Promise<any> {
+  ): Promise<LMSFileUploadResult[]> {
     return await this.integrationService.uploadDocuments(
       user,
       courseId,

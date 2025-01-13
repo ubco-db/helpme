@@ -1,33 +1,27 @@
 import { SearchOutlined } from '@ant-design/icons'
-import { LMSAssignment } from '@koh/common'
+import { LMSAnnouncement } from '@koh/common'
 import { Collapse, Input, List, message, Pagination, Radio, Spin } from 'antd'
 import { useMemo, useState } from 'react'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 
-type LMSAssignmentListProps = {
+type LMSAnnouncementListProps = {
   courseId: number
-  assignments: LMSAssignment[]
-  updateCallback: (assignments: LMSAssignment[]) => void
+  announcements: LMSAnnouncement[]
   loadingLMSData?: boolean
+  updateCallback: (announcements: LMSAnnouncement[]) => void
 }
 
-const LMSAssignmentList: React.FC<LMSAssignmentListProps> = ({
+const LMSAnnouncementList: React.FC<LMSAnnouncementListProps> = ({
   courseId,
-  assignments,
-  updateCallback,
+  announcements,
   loadingLMSData = false,
+  updateCallback,
 }) => {
   const [page, setPage] = useState(1)
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<number[]>([])
-
-  const toggleSelect = (id: number) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((i) => i != id) : [id, ...prev],
-    )
-  }
 
   const handleInput = (event: any) => {
     event.preventDefault()
@@ -40,22 +34,33 @@ const LMSAssignmentList: React.FC<LMSAssignmentListProps> = ({
     setPage(1)
   }
 
-  const matchingAssignments = useMemo(
-    () =>
-      assignments.filter((assignment) =>
-        assignment.name.toLowerCase().includes(search.toLowerCase()),
-      ),
-    [assignments, search],
+  const matchingAnnouncements = useMemo(() => {
+    const srchLow = search.toLowerCase()
+    return announcements.filter(
+      (announcement) =>
+        announcement.title.toLowerCase().includes(srchLow) ||
+        announcement.message.toLowerCase().includes(srchLow) ||
+        announcement.posted
+          .toLocaleDateString()
+          .toLowerCase()
+          .includes(srchLow),
+    )
+  }, [announcements, search])
+
+  const paginatedAnnouncements = useMemo(
+    () => matchingAnnouncements.slice((page - 1) * 20, page * 20),
+    [matchingAnnouncements, page],
   )
 
-  const paginatedAssignments = useMemo(
-    () => matchingAssignments.slice((page - 1) * 20, page * 20),
-    [matchingAssignments, page],
-  )
+  const toggleSelect = (id: number) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((i) => i != id) : [id, ...prev],
+    )
+  }
 
   const _saveItems = async () => {
     API.lmsIntegration
-      .saveAssignments(courseId, selected.length > 0 ? selected : undefined)
+      .saveAnnouncements(courseId, selected.length > 0 ? selected : undefined)
       .then((response) => {
         if (response != undefined) {
           updateCallback(response)
@@ -70,7 +75,7 @@ const LMSAssignmentList: React.FC<LMSAssignmentListProps> = ({
     return
   }
 
-  const getStatusCell = (item: LMSAssignment) => {
+  const getStatusCell = (item: LMSAnnouncement) => {
     return (
       <div className={'flex flex-col gap-2'}>
         {item.saved && (
@@ -98,7 +103,7 @@ const LMSAssignmentList: React.FC<LMSAssignmentListProps> = ({
     )
   }
 
-  if (!assignments) {
+  if (!announcements) {
     return <Spin tip="Loading..." size="large" />
   } else {
     return (
@@ -116,67 +121,62 @@ const LMSAssignmentList: React.FC<LMSAssignmentListProps> = ({
               onChange={handleInput}
               onPressEnter={handleSearch}
             />
-            {matchingAssignments.length > 20 && (
+            {matchingAnnouncements.length > 20 && (
               <Pagination
                 style={{ float: 'right' }}
                 current={page}
                 pageSize={20}
-                total={matchingAssignments.length}
+                total={matchingAnnouncements.length}
                 onChange={(page) => setPage(page)}
                 showSizeChanger={false}
               />
             )}
           </div>
           <List
-            dataSource={paginatedAssignments}
+            dataSource={paginatedAnnouncements}
             loading={loadingLMSData}
             size="small"
             header={
               <div
-                className={'-my-3 grid grid-cols-9 bg-gray-100 font-semibold'}
+                className={'-my-3 grid grid-cols-8 bg-gray-100 font-semibold'}
               >
-                <div className={'border border-gray-200 p-4'}>
-                  Assignment ID
-                </div>
                 <div className={'col-span-2 border border-gray-200 p-4'}>
-                  Assignment Name
+                  Title
                 </div>
-                <div className={'border border-gray-200 p-4'}>Due</div>
+                <div className={'border border-gray-200 p-4'}>Posted</div>
                 <div className={'col-span-4 border border-gray-200 p-4'}>
-                  Description
+                  Message
                 </div>
                 <div className={'border border-gray-200 p-4'}>Status</div>
               </div>
             }
-            renderItem={(item: LMSAssignment) => (
+            renderItem={(item: LMSAnnouncement) => (
               <div className={'grid grid-cols-8'}>
-                <div className={'border border-gray-100 p-4'}>{item.id}</div>
                 <div className={'col-span-2 border border-gray-100 p-4'}>
                   <Radio
                     checked={selected.includes(item.id)}
                     onClick={() => toggleSelect(item.id)}
                   ></Radio>
-                  {item.name}
+                  {item.title}
                 </div>
                 <div className={'border border-gray-100 p-4'}>
-                  {new Date(item.due).toLocaleDateString()}
+                  {new Date(item.posted).toLocaleDateString()}
                 </div>
                 <div className={'col-span-4 border border-gray-100 p-4'}>
-                  {(item.description != undefined &&
-                    item.description.length > 0 && (
-                      <Collapse>
-                        <Collapse.Panel
-                          key={'def'}
-                          header={'Assignment Description'}
-                        >
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: item.description,
-                            }}
-                          ></div>
-                        </Collapse.Panel>
-                      </Collapse>
-                    )) || <i>No description</i>}
+                  {(item.message != undefined && item.message.length > 0 && (
+                    <Collapse>
+                      <Collapse.Panel
+                        key={'def'}
+                        header={'Assignment Description'}
+                      >
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: item.message,
+                          }}
+                        ></div>
+                      </Collapse.Panel>
+                    </Collapse>
+                  )) || <i>No message</i>}
                 </div>
                 <div className={'border border-gray-100 p-4'}>
                   {getStatusCell(item)}
@@ -190,4 +190,4 @@ const LMSAssignmentList: React.FC<LMSAssignmentListProps> = ({
   }
 }
 
-export default LMSAssignmentList
+export default LMSAnnouncementList
