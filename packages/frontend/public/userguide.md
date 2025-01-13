@@ -11,8 +11,23 @@ There are 3 main features of the system:
 - Course Chatbot
 - Anytime Question Hub
 
-For the queues:
-- There are many advantages to having a virtual queueing system, the key one being that it enables a much more fairer and more manageable queue if there are many students in the queue.
+**Queues**: This is essentially a virtual queue. Some of the use cases where this can be really useful is for online/hybrid office hours/labs, or for really busy in-person labs (where there can be 3+ more students with their hand up at one time). 
+
+Some of the benefits include:
+- data collection (so professors know what questions are being asked or what TAs don't check-in or answer questions or what sessions are the busiest)
+- fairness (staff can pre-assess and prioritize high-priority questions, staff can see how long students have been waiting and prioritize ones that have been waiting a while, and selfless students can feel more comfortable asking questions without worry that they will take time away from other students)
+- students don't need to hold their hand up (for in-person)
+- improved organization (especially for virtual/hybrid sessions)
+
+Additionally, for the use case where students have to do demonstrations and have items that need to be checked off (e.g. in a chemistry lab that has multiple parts to the experiment that need to be looked at before they can continue) the professor can set an assignment ID and create tasks, which will allow students to create either a regular question or a demo for what tasks they want checked off.
+
+**Course Chatbot**: Unlike something like ChatGPT, this course chatbot allows professors to upload their course documents (e.g. syllabus, lab files, slides, etc.) which the chatbot can then use and cite when students ask it questions using a sophisticated RAG system. 
+
+Additionally, staff members can see what questions are being asked to gauge student understanding which can help professors improve their courses, which is data that would otherwise be lost if they use something like ChatGPT.
+
+**Anytime Question Hub**: Students can post questions here, get an immediate AI answer, and can then say if they are satisfied or not with their answer, which will send an email notification to all staff signed up for it that there's a new question and can come and answer it. You can think of it like an "email 2.0". It becomes especially useful for classes with large amount of students, notably because unlike email, any TA can answer the student. Initially only the student that created the question and staff can see the question, but if a staff member likes the question enough, they can make it public so that any student can see it (but the student will still remain anonymous). 
+
+Note that professors can turn off any of these major features in the course settings.
 
 ### How can I navigate/go to X page? 
 
