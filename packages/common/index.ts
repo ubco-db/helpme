@@ -67,7 +67,6 @@ export class User {
   sid?: number
   includeDefaultMessage!: boolean
   courses!: UserCourse[]
-  pendingCourses?: KhouryProfCourse[]
   desktopNotifsEnabled!: boolean
   @Type(() => DesktopNotifPartial)
   desktopNotifs!: DesktopNotifPartial[]
@@ -754,63 +753,6 @@ export class UBCOuserParam {
 
   @IsInt()
   organizationId!: number
-}
-export class KhouryDataParams {
-  @IsString()
-  email!: string
-
-  @IsString()
-  password!: string
-
-  @IsString()
-  first_name!: string
-
-  @IsString()
-  last_name!: string
-
-  @IsInt()
-  campus!: number
-
-  @IsOptional()
-  @IsString()
-  photo_url!: string
-
-  @IsOptional()
-  @IsDefined() // TODO: use ValidateNested instead, for some reason it's crunked
-  courses!: KhouryCourse[] | KhouryProfCourse[]
-}
-
-export class KhouryCourse {
-  @IsInt()
-  crn!: number
-
-  @IsString()
-  semester!: string
-
-  @IsEnum(String)
-  role!: 'TA' | 'Student'
-}
-
-export class KhouryProfCourse {
-  // List of CRN's in the section group
-  @IsArray()
-  crns!: number[]
-
-  @IsString()
-  semester!: string
-
-  // Section group name
-  @IsString()
-  name!: string
-}
-
-export function isKhouryCourse(
-  c: KhouryCourse | KhouryProfCourse,
-): c is KhouryCourse {
-  return (
-    (c as KhouryCourse).role !== undefined &&
-    (c as KhouryCourse).crn !== undefined
-  )
 }
 
 export enum calendarEventLocationType {
