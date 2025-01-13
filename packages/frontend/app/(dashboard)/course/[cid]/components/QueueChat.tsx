@@ -81,7 +81,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
 
   return isOpen ? (
     <div
-      className={`${fixed ? 'fixed ' : ' '} bottom-8 right-0 z-50 box-border max-h-[70vh] w-screen md:right-2 md:max-w-[400px]`}
+      className={`${fixed ? 'fixed ' : ' '} bottom-8 right-0 z-50 box-border max-h-[70vh] w-full md:right-2 md:max-w-[400px]`}
       style={{ zIndex: 1050 }}
     >
       <Card
@@ -216,6 +216,21 @@ const QueueChat: React.FC<QueueChatProps> = ({
         </div>
       </Card>
     </div>
+  ) : isMobile ? (
+    <div style={{ zIndex: 1050, width: '100%' }}>
+      <Button
+        type="primary"
+        size="large"
+        className="w-full rounded-md"
+        onClick={() => setIsOpen(true)}
+      >
+        {queueChatData && queueChatData.staff && queueChatData.student
+          ? isStaff
+            ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName}`
+            : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName}`
+          : 'Loading...'}
+      </Button>
+    </div>
   ) : (
     <div
       className={`${fixed ? `fixed ` : ''}bottom-8 right-3 flex justify-end md:left-2`}
@@ -228,7 +243,6 @@ const QueueChat: React.FC<QueueChatProps> = ({
         icon={<MessageCircleMore />}
         onClick={() => setIsOpen(true)}
       >
-        {/* PAT TODO: Shorten to just first or last name or initials for mobile view */}
         {queueChatData && queueChatData.staff && queueChatData.student
           ? isStaff
             ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName}`

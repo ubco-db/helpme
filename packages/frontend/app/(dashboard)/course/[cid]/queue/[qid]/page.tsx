@@ -16,10 +16,15 @@ import {
   LimboQuestionStatus,
   QuestionLocations,
 } from '@koh/common'
-import { Tooltip, message, notification, Button, Divider } from 'antd'
+import { Tooltip, message, notification, Button, Divider, Drawer } from 'antd'
 import { mutate } from 'swr'
 import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
-import { CheckCheck, ListChecks, ListTodoIcon } from 'lucide-react'
+import {
+  CheckCheck,
+  ListChecks,
+  ListTodoIcon,
+  MessageCircleMore,
+} from 'lucide-react'
 import { useQueue } from '@/app/hooks/useQueue'
 import { useUserInfo } from '@/app/contexts/userContext'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
@@ -94,6 +99,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const { course } = useCourse(cid)
   const [editQuestionModalOpen, setEditQuestionModalOpen] = useState(false)
   const [editDemoModalOpen, setEditDemoModalOpen] = useState(false)
+  const [mobileQueueChatOpen, setMobileQueueChatOpen] = useState(false)
   const role = getRoleInCourse(userInfo, cid)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
   const [questionTypes] = useQuestionTypes(cid, qid)
@@ -916,26 +922,71 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             )}
 
             {/* PAT TODO: add mobile view and maybe a way to minimize it to the right side */}
-            <div className="fixed bottom-8 right-0 box-border overflow-auto md:right-2">
-              <div
-                className={
-                  'flex flex-col items-end justify-end gap-2 rounded-md bg-slate-200 p-2 md:rounded-none md:bg-transparent md:p-0'
-                }
-              >
-                {helpingQuestions.map((question) => {
-                  return (
-                    <QueueChat
-                      key={question.id}
-                      queueId={qid}
-                      studentId={question.creatorId}
-                      role={role}
-                      isMobile={isMobile}
-                      fixed={false}
-                    />
-                  )
-                })}
+            {isMobile ? (
+              mobileQueueChatOpen ? (
+                <Drawer
+                  placement="bottom"
+                  open={mobileQueueChatOpen}
+                  className="flex w-screen flex-col justify-end"
+                  onClose={() => setMobileQueueChatOpen(false)}
+                >
+                  <div
+                    className={
+                      'relative flex w-full flex-col items-center justify-start gap-2 overflow-y-auto'
+                    }
+                  >
+                    {helpingQuestions.map((question) => {
+                      return (
+                        <QueueChat
+                          key={question.id}
+                          queueId={qid}
+                          studentId={question.creatorId}
+                          role={role}
+                          isMobile={isMobile}
+                          fixed={false}
+                        />
+                      )
+                    })}
+                  </div>
+                </Drawer>
+              ) : (
+                <div
+                  className={`fixed bottom-8 right-3 flex justify-end md:left-2`}
+                  style={{ zIndex: 1050 }}
+                >
+                  <Button
+                    type="primary"
+                    size="large"
+                    className="rounded-sm"
+                    icon={<MessageCircleMore />}
+                    onClick={() => setMobileQueueChatOpen(true)}
+                  >
+                    View Chat
+                  </Button>
+                </div>
+              )
+            ) : (
+              <div className="fixed bottom-8 right-0 box-border md:right-2">
+                <div
+                  className={
+                    'flex flex-row items-end justify-end gap-2 overflow-y-auto'
+                  }
+                >
+                  {helpingQuestions.map((question) => {
+                    return (
+                      <QueueChat
+                        key={question.id}
+                        queueId={qid}
+                        studentId={question.creatorId}
+                        role={role}
+                        isMobile={isMobile}
+                        fixed={false}
+                      />
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </>
         ) : (
           <>
