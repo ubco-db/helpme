@@ -1,6 +1,6 @@
 import { ListQuestionsResponse, SSEQueueResponse } from '@koh/common'
 import { plainToClass } from 'class-transformer'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import useSWR, { mutate, SWRResponse, useSWRConfig } from 'swr'
 import { useEventSource } from './useEventSource'
 import { API } from '../api'
@@ -16,6 +16,9 @@ interface UseQuestionReturn {
 }
 
 export function useQuestions(qid: number): UseQuestionReturn {
+  const [questionsState, setQuestionsState] = useState<
+    ListQuestionsResponse | undefined
+  >(undefined)
   // log when qid changes
   useEffect(() => {
     console.log('QID changed', qid)
@@ -109,20 +112,34 @@ export function useQuestions(qid: number): UseQuestionReturn {
   //   })
   // }, [queueQuestions])
 
-  const newQueueQuestions: ListQuestionsResponse = {
-    ...queueQuestions,
-    questions: sortedQuestions,
-    questionsGettingHelp: questionsGettingHelpWithWaitTime,
-    yourQuestions: yourQuestionsWithWaitTime,
-    priorityQueue: queueQuestions?.priorityQueue || [],
-    groups: queueQuestions?.groups || [],
-    unresolvedAlerts: queueQuestions?.unresolvedAlerts || [],
-  }
+  const newQueueQuestions: ListQuestionsResponse = useMemo(
+    () => ({
+      ...queueQuestions,
+      questions: sortedQuestions,
+      questionsGettingHelp: questionsGettingHelpWithWaitTime,
+      yourQuestions: yourQuestionsWithWaitTime,
+      priorityQueue: queueQuestions?.priorityQueue || [],
+      groups: queueQuestions?.groups || [],
+      unresolvedAlerts: queueQuestions?.unresolvedAlerts || [],
+    }),
+    [
+      queueQuestions,
+      sortedQuestions,
+      questionsGettingHelpWithWaitTime,
+      yourQuestionsWithWaitTime,
+    ],
+  )
+
+  useEffect(() => {
+    if (!isEqual(newQueueQuestions, questionsState)) {
+      setQuestionsState(newQueueQuestions)
+    }
+  }, [newQueueQuestions])
 
   // log when queue changes
   useEffect(() => {
-    console.log('Queuequestuions changed', newQueueQuestions)
-  }, [newQueueQuestions])
+    console.log('Queuequestuions changed', questionsState)
+  }, [questionsState])
 
   return { queueQuestions: newQueueQuestions, questionsError, mutateQuestions }
 }

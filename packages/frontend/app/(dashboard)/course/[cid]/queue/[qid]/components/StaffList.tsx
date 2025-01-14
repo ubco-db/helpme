@@ -20,11 +20,7 @@ interface StaffListProps {
  * Row of ta statuses
  */
 const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
-  const qid = useMemo(() => queueId, [queueId])
-  useEffect(() => {
-    console.log('AHHHH changed', qid)
-  }, [qid])
-  const { queueQuestions } = useQuestions(qid)
+  const { queueQuestions } = useQuestions(queueId)
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
 

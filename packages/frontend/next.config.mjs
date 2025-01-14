@@ -1,12 +1,15 @@
 import {withSentryConfig} from "@sentry/nextjs";
+
+import injectWhyDidYouRender from './scripts/why-did-you-render';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false,
+  reactStrictMode: true,
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
     },
-    missingSuspenseWithCSRBailout: false,
+    missingSuspenseWithCSRBailout: true,
   },
   images: {
     remotePatterns: [
@@ -16,6 +19,11 @@ const nextConfig = {
       },
     ],
   },
+  webpack: (config, context) => {
+		injectWhyDidYouRender(config, context)
+
+		return config;
+	}
 };
 
 export default withSentryConfig(nextConfig, {
