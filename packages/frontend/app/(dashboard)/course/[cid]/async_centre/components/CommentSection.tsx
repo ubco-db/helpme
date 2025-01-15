@@ -108,7 +108,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     commentText: string,
   ) => {
     await API.asyncQuestions
-      .comment(questionId, userInfo.id, commentText)
+      .comment(questionId, { commentText })
       .then(() => {
         message.success('Comment posted successfully')
         setComments([

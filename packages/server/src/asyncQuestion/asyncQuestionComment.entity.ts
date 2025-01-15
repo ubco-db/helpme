@@ -1,7 +1,6 @@
 import { Exclude } from 'class-transformer';
 import { UserModel } from '../profile/user.entity';
 import {
-  AfterLoad,
   BaseEntity,
   Column,
   Entity,
@@ -11,8 +10,8 @@ import {
 } from 'typeorm';
 import { AsyncQuestionModel } from './asyncQuestion.entity';
 
-@Entity('async_question_comments_model')
-export class AsyncQuestionCommentsModel extends BaseEntity {
+@Entity('async_question_comment_model')
+export class AsyncQuestionCommentModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -22,12 +21,14 @@ export class AsyncQuestionCommentsModel extends BaseEntity {
   @Column()
   createdAt: Date;
 
-  @ManyToOne((type) => UserModel, { onDelete: 'CASCADE', eager: true })
+  @ManyToOne((type) => UserModel, (user) => user.asyncQuestionComments, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'creatorId' })
+  @Exclude()
   creator: UserModel;
 
-  @Column({ nullable: false })
-  @Exclude()
+  @Column()
   creatorId: number;
 
   @ManyToOne(() => AsyncQuestionModel, (question) => question.comments, {
@@ -36,7 +37,7 @@ export class AsyncQuestionCommentsModel extends BaseEntity {
   @JoinColumn({ name: 'questionId' })
   question: AsyncQuestionModel;
 
-  @Column({ nullable: false })
+  @Column()
   @Exclude()
   questionId: number;
 }

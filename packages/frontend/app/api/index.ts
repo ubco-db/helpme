@@ -70,6 +70,7 @@ import {
   CronJob,
   OrgUser,
   AsyncQuestionComment,
+  AsyncQuestionCommentParams,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -408,15 +409,14 @@ class APIClient {
       }),
     comment: async (
       questionId: number,
-      userId: number,
-      commentText: string,
-    ): Promise<Response> => {
-      return this.req('POST', `/api/v1/asyncQuestions/comment`, Response, {
-        questionId,
-        userId,
-        commentText,
-      })
-    },
+      body: AsyncQuestionCommentParams,
+    ): Promise<AsyncQuestionComment> =>
+      this.req(
+        'POST',
+        `/api/v1/asyncQuestions/${questionId}/comment`,
+        AsyncQuestionComment,
+        body,
+      ),
     getComments: async (questionId: number): Promise<AsyncQuestionComment[]> =>
       this.req(
         'GET',

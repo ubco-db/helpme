@@ -678,12 +678,23 @@ export class AsyncQuestionVotes {
   vote!: number
 }
 
-export type AsyncQuestionComment = {
-  id: number
-  questionId: number
-  creator: UserPartial
-  commentText: string
-  createdAt: Date
+export class AsyncQuestionComment {
+  id!: number
+
+  questionId!: number
+
+  @Type(() => UserPartial)
+  creator!: UserPartial
+
+  commentText!: string
+
+  @Type(() => Date)
+  createdAt!: Date
+}
+
+export class AsyncQuestionCommentParams {
+  @IsString()
+  commentText!: string
 }
 
 export class Image {

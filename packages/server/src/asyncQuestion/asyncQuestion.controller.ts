@@ -7,6 +7,7 @@ import {
   UpdateAsyncQuestions,
   OrganizationRole,
   MailServiceType,
+  AsyncQuestionCommentParams,
 } from '@koh/common';
 import {
   Body,
@@ -33,9 +34,10 @@ import { MailService } from 'mail/mail.service';
 import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
-import { MailServiceModel } from 'mail/mail-services.entity';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
-import { AsyncQuestionCommentsModel } from './asyncQuestionComments.entity';
+import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
+import { CourseRolesGuard } from 'guards/course-roles.guard';
+import { AsyncQuestionRolesGuard } from 'guards/async-question-roles.guard';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -45,16 +47,18 @@ export class asyncQuestionController {
     private mailService: MailService,
   ) {}
 
-  @Post('comment')
+  @Post(':qid/comment')
+  @UseGuards(AsyncQuestionRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async replyToQuestion(
-    @Body() body: any,
+    @Param('qid', ParseIntPipe) qid: number,
+    @Body() body: AsyncQuestionCommentParams,
     @User() user: UserModel,
     @Res() res: Response,
   ): Promise<Response> {
-    const { questionId, commentText } = body;
+    const { commentText } = body;
     const question = await AsyncQuestionModel.findOne({
-      where: { id: questionId },
+      where: { id: qid },
       relations: ['course', 'creator'],
     });
 
@@ -65,23 +69,7 @@ export class asyncQuestionController {
       return;
     }
 
-    // check if user has commented within 2 minutes
-    const lastComment = await AsyncQuestionCommentsModel.findOne({
-      where: { creator: user, question },
-      order: { createdAt: 'DESC' },
-    });
-
-    if (lastComment) {
-      const timeDiff = new Date().getTime() - lastComment.createdAt.getTime();
-      if (timeDiff < 30000) {
-        res.status(HttpStatus.BAD_REQUEST).send({
-          message: ERROR_MESSAGES.questionController.createQuestion.tooFast,
-        });
-        return;
-      }
-    }
-
-    const comment = await AsyncQuestionCommentsModel.create({
+    const comment = await AsyncQuestionCommentModel.create({
       commentText,
       creator: user,
       question,
@@ -89,7 +77,7 @@ export class asyncQuestionController {
     }).save();
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
-      where: { id: questionId },
+      where: { id: qid },
       relations: ['creator', 'taHelped', 'votes', 'comments'],
     });
 
@@ -102,6 +90,7 @@ export class asyncQuestionController {
   }
 
   @Post(':qid/:vote')
+  @UseGuards(AsyncQuestionRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async voteQuestion(
     @Param('qid', ParseIntPipe) qid: number,
@@ -188,7 +177,8 @@ export class asyncQuestionController {
   }
 
   @Post(':cid')
-  @Roles(Role.STUDENT)
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR) // we let staff post questions too since they might want to use the system for demonstration purposes
   async createQuestion(
     @Body() body: CreateAsyncQuestions,
     @Param('cid', ParseIntPipe) cid: number,
@@ -244,6 +234,8 @@ export class asyncQuestionController {
   }
 
   @Patch('student/:questionId')
+  @UseGuards(AsyncQuestionRolesGuard)
+  @Roles(Role.STUDENT)
   async updateStudentQuestion(
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
@@ -347,6 +339,8 @@ export class asyncQuestionController {
   }
 
   @Patch('faculty/:questionId')
+  @UseGuards(AsyncQuestionRolesGuard)
+  @Roles(Role.TA, Role.PROFESSOR)
   async updateTAQuestion(
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
