@@ -14,6 +14,8 @@ interface QueueChatProps {
   studentId: number
   isMobile: boolean
   fixed?: boolean
+  onOpen?: () => void
+  onClose?: () => void
 }
 
 const QueueChat: React.FC<QueueChatProps> = ({
@@ -22,6 +24,12 @@ const QueueChat: React.FC<QueueChatProps> = ({
   studentId,
   isMobile,
   fixed = true,
+  onOpen = () => {
+    return
+  },
+  onClose = () => {
+    return
+  },
 }): ReactElement => {
   const [isOpen, setIsOpen] = useState<boolean>(isMobile ? false : true)
   const [input, setInput] = useState<string>('')
@@ -43,10 +51,10 @@ const QueueChat: React.FC<QueueChatProps> = ({
       return
     }
 
-    if (isMobile) {
-      // PAT TODO: pulse
-    } else {
+    if (!isMobile) {
+      // This is for desktop's default behaviour (auto open the chat) -- mobile has css to handle this
       setIsOpen(true)
+      onOpen()
     }
   }, [hasNewMessages, setIsOpen])
 
@@ -81,15 +89,15 @@ const QueueChat: React.FC<QueueChatProps> = ({
 
   return isOpen ? (
     <div
-      className={`${fixed ? 'fixed ' : ' '} bottom-8 right-0 z-50 box-border max-h-[70vh] w-full md:right-2 md:max-w-[400px]`}
+      className={`${fixed ? 'fixed ' : ''}bottom-8 right-0 z-50 box-border h-full w-full md:right-2 md:h-fit md:max-h-[70vh] md:max-w-[400px]`}
       style={{ zIndex: 1050 }}
     >
       <Card
         title={
           queueChatData && queueChatData.staff && queueChatData.student
             ? isStaff
-              ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName}`
-              : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName}`
+              ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName ?? ''}`
+              : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName ?? ''}`
             : 'Loading...'
         }
         classNames={{
@@ -99,14 +107,17 @@ const QueueChat: React.FC<QueueChatProps> = ({
         className="flex w-full flex-auto flex-col"
         extra={
           <Button
-            onClick={() => setIsOpen(false)}
+            onClick={() => {
+              setIsOpen(false)
+              onClose()
+            }}
             type="text"
             icon={<CloseOutlined />}
           />
         }
       >
         <div className="flex flex-auto flex-col justify-between">
-          <div className="no-scrollbar max-h-[40vh] overflow-y-auto">
+          <div className="no-scrollbar overflow-y-auto">
             <div className="mb-2 w-full text-center text-xs italic text-gray-500">
               Your chat messages will not be recorded for your privacy but
               please remain respectful
@@ -221,19 +232,22 @@ const QueueChat: React.FC<QueueChatProps> = ({
       <Button
         type="primary"
         size="large"
-        className="w-full rounded-md"
-        onClick={() => setIsOpen(true)}
+        className={`${hasNewMessages ?? 'animate-bounce '}${isStaff ? `${fixed ? `fixed ` : ''}bottom-8 right-3 ` : 'w-full '}rounded-sm`}
+        onClick={() => {
+          setIsOpen(true)
+          onOpen()
+        }}
       >
         {queueChatData && queueChatData.staff && queueChatData.student
           ? isStaff
-            ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName}`
-            : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName}`
+            ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName ?? ''}`
+            : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName ?? ''}`
           : 'Loading...'}
       </Button>
     </div>
   ) : (
     <div
-      className={`${fixed ? `fixed ` : ''}bottom-8 right-3 flex justify-end md:left-2`}
+      className={`${fixed ? `fixed ` : ''}bottom-8 left-2 right-3 flex justify-end`}
       style={{ zIndex: 1050 }}
     >
       <Button
@@ -241,12 +255,15 @@ const QueueChat: React.FC<QueueChatProps> = ({
         size="large"
         className="rounded-sm"
         icon={<MessageCircleMore />}
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setIsOpen(true)
+          onOpen()
+        }}
       >
         {queueChatData && queueChatData.staff && queueChatData.student
           ? isStaff
-            ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName}`
-            : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName}`
+            ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
+            : `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
           : 'Loading...'}
       </Button>
     </div>

@@ -99,7 +99,8 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const { course } = useCourse(cid)
   const [editQuestionModalOpen, setEditQuestionModalOpen] = useState(false)
   const [editDemoModalOpen, setEditDemoModalOpen] = useState(false)
-  const [mobileQueueChatOpen, setMobileQueueChatOpen] = useState(false)
+  const [mobileQueueChatOpen, setMobileQueueChatOpen] = useState(false) // To store the state of the mobile queue chat drawer
+  const [currentChatQuestionId, setCurrentChatQuestionId] = useState<number>(-1) // To store the currently opened chat via the question id
   const role = getRoleInCourse(userInfo, cid)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
   const [questionTypes] = useQuestionTypes(cid, qid)
@@ -927,49 +928,63 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 <Drawer
                   placement="bottom"
                   open={mobileQueueChatOpen}
-                  className="flex w-screen flex-col justify-end"
+                  className="box-border flex h-full flex-col justify-end overflow-hidden"
+                  title="Queue Chats"
+                  styles={{
+                    body: { padding: '0.5rem' },
+                    wrapper: { height: 'min-content', maxHeight: '70vh' },
+                  }}
                   onClose={() => setMobileQueueChatOpen(false)}
                 >
                   <div
                     className={
-                      'relative flex w-full flex-col items-center justify-start gap-2 overflow-y-auto'
+                      'flex h-full w-full flex-col items-center justify-center gap-2 md:h-fit'
                     }
                   >
                     {helpingQuestions.map((question) => {
-                      return (
-                        <QueueChat
-                          key={question.id}
-                          queueId={qid}
-                          studentId={question.creatorId}
-                          role={role}
-                          isMobile={isMobile}
-                          fixed={false}
-                        />
-                      )
+                      if (
+                        currentChatQuestionId == -1 ||
+                        currentChatQuestionId == question.id
+                      ) {
+                        return (
+                          <QueueChat
+                            key={question.id}
+                            queueId={qid}
+                            studentId={question.creatorId}
+                            role={role}
+                            isMobile={isMobile}
+                            fixed={false}
+                            onOpen={() => setCurrentChatQuestionId(question.id)}
+                            onClose={() => setCurrentChatQuestionId(-1)}
+                          />
+                        )
+                      }
                     })}
                   </div>
                 </Drawer>
               ) : (
-                <div
-                  className={`fixed bottom-8 right-3 flex justify-end md:left-2`}
-                  style={{ zIndex: 1050 }}
-                >
-                  <Button
-                    type="primary"
-                    size="large"
-                    className="rounded-sm"
-                    icon={<MessageCircleMore />}
-                    onClick={() => setMobileQueueChatOpen(true)}
+                helpingQuestions.length > 0 && (
+                  <div
+                    className={`fixed bottom-8 right-3 flex justify-end md:left-2`}
+                    style={{ zIndex: 1050 }}
                   >
-                    View Chat
-                  </Button>
-                </div>
+                    <Button
+                      type="primary"
+                      size="large"
+                      className="rounded-sm"
+                      icon={<MessageCircleMore />}
+                      onClick={() => setMobileQueueChatOpen(true)}
+                    >
+                      View Chats
+                    </Button>
+                  </div>
+                )
               )
             ) : (
               <div className="fixed bottom-8 right-0 box-border md:right-2">
                 <div
                   className={
-                    'flex flex-row items-end justify-end gap-2 overflow-y-auto'
+                    'box-border flex max-w-[50vw] flex-row items-start justify-end gap-2 overflow-x-auto overflow-y-hidden'
                   }
                 >
                   {helpingQuestions.map((question) => {
