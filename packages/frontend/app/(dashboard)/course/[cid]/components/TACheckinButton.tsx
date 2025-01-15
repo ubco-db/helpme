@@ -81,12 +81,12 @@ const TACheckinButton: React.FC<TACheckinButtonProps> = ({
           size="large"
           loading={loading || isSuccessfullyCheckedIn}
           onClick={() => {
+            onClick?.()
+            if (preventDefaultAction) return
             if (!queueId) {
               message.error('Queue ID not found')
               return
             }
-            onClick?.()
-            if (preventDefaultAction) return
             setLoading(true)
             checkInTA(courseId, queueId, mutateCourse, router)
               .then(() => {
