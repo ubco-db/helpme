@@ -7,7 +7,7 @@ Main features:
   - For students, they get personalized responses based on the course content that was uploaded (with citations!)
   - For instructors, they get more control and can see what questions are asked and also edit/verify the answer in case the question gets answered again
 - **Anytime Questions** that allow students to ask questions outside of labs or office hours 
-  - The questions are initially answered by AI, which can then be reviewed and edited by instructors and TAs
+  - The questions are initially answered by AI, which can then be reviewed and edited by instructors and TAs (great for large courses with lots of TAs since any TA can answer)
   - Instructors and TAs can then make the question public to allow other students to see it (good for commonly asked questions)
   - Basically like an Email 2.0
 - Built for UBC but **supports other organizations** (for more information, contact Ramon Lawrence ramon.lawrence@ubc.ca)
