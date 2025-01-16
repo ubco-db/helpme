@@ -1,3 +1,11 @@
+## Version 1.2.2 - Jan 16, 2024
+
+#### Improvements
+- Fixed a bug where end date would appear as "Invalid Date" when creating repeat events
+
+
+***
+
 ## Version 1.2.1 - Jan 15, 2024
 
 #### New Features

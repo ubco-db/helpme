@@ -180,8 +180,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
             staffIds: [],
             // end date is lastSetEndDate.
             // if lastSetEndDate is null, set it to be start date + 4 months
-            endDate:
-              dayjs(lastSetEndDate) || dayjs(event?.start).add(4, 'month'),
+            endDate: lastSetEndDate
+              ? dayjs(lastSetEndDate)
+              : dayjs(event?.start).add(4, 'month'),
           }}
           onValuesChange={(changedValues, allValues) => {
             if (changedValues.endDate) {
