@@ -191,8 +191,11 @@ export default function LMSIntegrationsPage(): ReactElement {
                       title={'API Key Expiry Date'}
                       render={(courseIntegration) => (
                         <p>
-                          {courseIntegration.apiKeyExpiry?.toLocaleDateString() ??
-                            'No expiry'}
+                          {courseIntegration.apiKeyExpiry != undefined
+                            ? new Date(
+                                courseIntegration.apiKeyExpiry,
+                              ).toLocaleDateString()
+                            : 'No expiry'}
                         </p>
                       )}
                     />

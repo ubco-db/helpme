@@ -20,7 +20,6 @@ import {
   LMSOrganizationIntegrationPartial,
 } from '@koh/common'
 import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
 import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal'
 import { PenBoxIcon, RefreshCwIcon, TrashIcon } from 'lucide-react'
 import LMSRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSRosterTable'
@@ -33,12 +32,7 @@ export default function CourseLMSIntegrationPage({
 }: {
   params: { cid: string }
 }) {
-  const { userInfo } = useUserInfo()
   const courseId = useMemo(() => Number(params.cid) ?? -1, [params.cid])
-  const organizationId = useMemo(
-    () => userInfo?.organization?.orgId ?? -1,
-    [userInfo?.organization?.orgId],
-  )
 
   const [updateFlag, setUpdateFlag] = useState<boolean>(false)
   const {
@@ -65,7 +59,7 @@ export default function CourseLMSIntegrationPage({
 
   const fetchOrgIntegrationsAsync = useCallback(async () => {
     await API.lmsIntegration
-      .getOrganizationIntegrations(organizationId)
+      .getCourseOrganizationIntegrations(courseId)
       .then((response) => {
         if (response) setLmsIntegrations(response)
         else setLmsIntegrations([])
@@ -74,7 +68,7 @@ export default function CourseLMSIntegrationPage({
         const errorMessage = getErrorMessage(error)
         message.error(errorMessage)
       })
-  }, [organizationId])
+  }, [courseId])
 
   const testLMSConnection = async (
     apiKey: string,
@@ -98,28 +92,21 @@ export default function CourseLMSIntegrationPage({
         apiKey: apiKey,
         apiCourseId: apiCourseId,
       })
+      .then((response) => {
+        if (response == LMSApiResponseStatus.Success) message.success(response)
+        else message.warning(response)
+        return response
+      })
       .catch((error) => {
         message.error(getErrorMessage(error))
         return LMSApiResponseStatus.Error
       })
-
-    switch (response) {
-      case LMSApiResponseStatus.Success:
-        message.success(response)
-        break
-      case LMSApiResponseStatus.Error:
-        message.error(response)
-        break
-      default:
-        message.warning(response)
-        break
-    }
     setIsTesting(false)
     return response
   }
 
   useEffect(() => {
-    fetchOrgIntegrationsAsync()
+    fetchOrgIntegrationsAsync().then()
   }, [fetchOrgIntegrationsAsync])
 
   const deleteIntegration = async () => {
@@ -253,22 +240,7 @@ export default function CourseLMSIntegrationPage({
             courseId={courseId}
             documents={assignments}
             loadingLMSData={isLoading}
-            updateCallback={(new_assignments: LMSAssignment[]) => {
-              setAssignments((prev) => {
-                const updated: LMSAssignment[] = []
-                for (const a of prev) {
-                  const corresponding = new_assignments.find(
-                    (a0) => a0.id == a.id,
-                  )
-                  if (corresponding == undefined) {
-                    updated.push(a)
-                  } else {
-                    updated.push(corresponding)
-                  }
-                }
-                return updated
-              })
-            }}
+            updateCallback={() => setUpdateFlag(!updateFlag)}
           />
         ),
       })
@@ -283,22 +255,7 @@ export default function CourseLMSIntegrationPage({
             courseId={courseId}
             documents={announcements}
             loadingLMSData={isLoading}
-            updateCallback={(new_announcements: LMSAnnouncement[]) => {
-              setAnnouncements((prev) => {
-                const updated: LMSAnnouncement[] = []
-                for (const a of prev) {
-                  const corresponding = new_announcements.find(
-                    (a0) => a0.id == a.id,
-                  )
-                  if (corresponding == undefined) {
-                    updated.push(a)
-                  } else {
-                    updated.push(corresponding)
-                  }
-                }
-                return updated
-              })
-            }}
+            updateCallback={() => setUpdateFlag(!updateFlag)}
           />
         ),
       })

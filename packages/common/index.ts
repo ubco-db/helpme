@@ -1014,7 +1014,7 @@ export type LMSAssignment = {
   id: number
   name: string
   description: string
-  due: Date
+  due?: Date
   modified: Date
   saved?: boolean
   uploaded?: Date
@@ -1037,7 +1037,7 @@ export type LMSFileUploadResponse = {
   documentId?: string
 }
 
-export type LMSFileUploadResult = {
+export type LMSFileResult = {
   id: number
   success: boolean
 }
@@ -2406,12 +2406,6 @@ export const ERROR_MESSAGES = {
     userNotFoundInOrganization: 'User not found in organization',
     cannotRemoveAdminRole: 'Cannot remove admin role from user',
     cannotGetAdminUser: 'Information about this user account is restricted',
-    lmsIntegrationNotFound:
-      'Learning Management System integration was not found',
-    lmsIntegrationInvalidPlatform: 'The specified API platform was invalid',
-    lmsIntegrationUrlRequired: 'Root URL is required for LMS integrations',
-    lmsIntegrationProtocolIncluded:
-      'Root URL should not include protocol (https/http)',
   },
   courseController: {
     checkIn: {
@@ -2459,8 +2453,6 @@ export const ERROR_MESSAGES = {
     crnAlreadyRegistered: (crn: number, courseId: number): string =>
       `The CRN ${crn} already exists for another course with course id ${courseId}`,
     organizationNotFound: 'Course has no related organization',
-    orgIntegrationNotFound: 'Course organization has no LMS integrations',
-    lmsIntegrationNotFound: 'Course has no related LMS integrations',
   },
   questionController: {
     createQuestion: {
@@ -2610,5 +2602,14 @@ export const ERROR_MESSAGES = {
     invalidDocumentType:
       'Failed to upload any LMS documents to the chatbot, invalid document type specified.',
     failedToUpload: 'Failed to upload any LMS documents to the chatbot.',
+    organizationCourseNotFound: 'Course has no associated organization.',
+    orgLmsIntegrationNotFound:
+      'Learning Management System integration was not found',
+    lmsIntegrationInvalidPlatform: 'The specified API platform was invalid',
+    lmsIntegrationUrlRequired: 'Root URL is required for LMS integrations',
+    lmsIntegrationProtocolIncluded:
+      'Root URL should not include protocol (https/http)',
+    orgIntegrationNotFound: 'Course organization has no LMS integrations',
+    courseLmsIntegrationNotFound: 'Course has no related LMS integration',
   },
 }

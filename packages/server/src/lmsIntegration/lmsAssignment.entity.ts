@@ -22,8 +22,8 @@ export class LMSAssignmentModel extends BaseEntity {
   @Column({ type: 'text' })
   description: string;
 
-  @Column({ type: 'timestamp' })
-  due: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  due?: Date;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   modified: Date;

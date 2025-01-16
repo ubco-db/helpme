@@ -12,11 +12,9 @@ import {
 import { Get } from '@nestjs/common/decorators';
 import {
   ERROR_MESSAGES,
-  LMSAnnouncement,
   LMSApiResponseStatus,
-  LMSAssignment,
   LMSCourseIntegrationPartial,
-  LMSFileUploadResult,
+  LMSFileResult,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   OrganizationRole,
@@ -25,7 +23,6 @@ import {
 import {
   LMSGet,
   LMSIntegrationService,
-  LMSSave,
   LMSUpload,
 } from './lmsIntegration.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -35,16 +32,96 @@ import { OrganizationCourseModel } from '../organization/organization-course.ent
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from '../profile/user.entity';
-import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 import { OrganizationRolesGuard } from '../guards/organization-roles.guard';
 import { OrganizationGuard } from '../guards/organization.guard';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
+import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 
-@Controller('lms_integration')
+@Controller('lms')
 export class LMSIntegrationController {
   constructor(private integrationService: LMSIntegrationService) {}
 
-  @Get('organization_integrations/:organizationId/lms_integration')
+  @Post('org/:oid/upsert')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN)
+  async upsertOrganizationLMSIntegration(
+    @Param('oid', ParseIntPipe) oid: number,
+    @Body() props: any,
+  ): Promise<string> {
+    if (!Object.keys(LMSIntegrationPlatform).includes(props.apiPlatform))
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.lmsIntegrationInvalidPlatform,
+        HttpStatus.BAD_REQUEST,
+      );
+
+    if (props.rootUrl == undefined)
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.lmsIntegrationUrlRequired,
+        HttpStatus.BAD_REQUEST,
+      );
+
+    if (props.rootUrl.startsWith('https') || props.rootUrl.startsWith('http'))
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.lmsIntegrationProtocolIncluded,
+        HttpStatus.BAD_REQUEST,
+      );
+
+    return await this.integrationService.upsertOrganizationLMSIntegration(
+      oid,
+      props,
+    );
+  }
+
+  @Delete('org/:oid/remove')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN)
+  async removeOrganizationLMSIntegration(
+    @User() user: UserModel,
+    @Param('oid', ParseIntPipe) oid: number,
+    @Body() body: any,
+  ): Promise<string> {
+    const exists = await LMSOrganizationIntegrationModel.findOne({
+      where: { organizationId: oid, apiPlatform: body.apiPlatform },
+    });
+
+    if (!exists)
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.orgLmsIntegrationNotFound,
+        HttpStatus.NOT_FOUND,
+      );
+
+    const courses = await LMSCourseIntegrationModel.find({
+      where: { orgIntegration: exists },
+    });
+    for (const course of courses) {
+      await this.integrationService.removeDocuments(
+        user,
+        course.courseId,
+        LMSUpload.Announcements,
+      );
+      await this.integrationService.removeDocuments(
+        user,
+        course.courseId,
+        LMSUpload.Assignments,
+      );
+    }
+
+    const platform = exists.apiPlatform;
+    await LMSOrganizationIntegrationModel.remove(exists);
+    return `Successfully deleted LMS integration for ${platform}`;
+  }
+
+  @Get('org/:oid')
   @UseGuards(
     JwtAuthGuard,
     OrganizationRolesGuard,
@@ -53,7 +130,7 @@ export class LMSIntegrationController {
   )
   @Roles(OrganizationRole.ADMIN)
   async getOrganizationLMSIntegrations(
-    @Param('organizationId', ParseIntPipe) oid: number,
+    @Param('oid', ParseIntPipe) oid: number,
   ): Promise<LMSOrganizationIntegrationPartial[]> {
     const lmsIntegrations = await LMSOrganizationIntegrationModel.find({
       where: { organizationId: oid },
@@ -69,98 +146,40 @@ export class LMSIntegrationController {
     );
   }
 
-  @Post('organization_integrations/:organizationId/upsert')
-  @UseGuards(
-    JwtAuthGuard,
-    OrganizationRolesGuard,
-    OrganizationGuard,
-    EmailVerifiedGuard,
-  )
-  @Roles(OrganizationRole.ADMIN)
-  async upsertOrganizationLMSIntegration(
-    @Param('organizationId', ParseIntPipe) oid: number,
-    @Body() props: any,
-  ): Promise<string> {
-    if (!Object.keys(LMSIntegrationPlatform).includes(props.apiPlatform))
-      throw new HttpException(
-        ERROR_MESSAGES.organizationController.lmsIntegrationInvalidPlatform,
-        HttpStatus.BAD_REQUEST,
-      );
-
-    if (props.rootUrl == undefined)
-      throw new HttpException(
-        ERROR_MESSAGES.organizationController.lmsIntegrationUrlRequired,
-        HttpStatus.BAD_REQUEST,
-      );
-
-    if (props.rootUrl.startsWith('https') || props.rootUrl.startsWith('http'))
-      throw new HttpException(
-        ERROR_MESSAGES.organizationController.lmsIntegrationProtocolIncluded,
-        HttpStatus.BAD_REQUEST,
-      );
-
-    return await this.integrationService.upsertOrganizationLMSIntegration(
-      oid,
-      props,
-    );
-  }
-
-  @Delete('organization_integrations/:organizationId/remove')
-  @UseGuards(
-    JwtAuthGuard,
-    OrganizationRolesGuard,
-    OrganizationGuard,
-    EmailVerifiedGuard,
-  )
-  @Roles(OrganizationRole.ADMIN)
-  async removeOrganizationLMSIntegration(
-    @Param('organizationId', ParseIntPipe) oid: number,
-    @Body() body: any,
-  ): Promise<string> {
-    const exists = await LMSOrganizationIntegrationModel.findOne({
-      where: { organizationId: oid, apiPlatform: body.apiPlatform },
+  @Get('course/:courseId/integrations')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async getCourseOrganizationLMSIntegrations(
+    @Param('courseId', ParseIntPipe) courseId: number,
+  ): Promise<LMSOrganizationIntegrationPartial[]> {
+    const orgCourse = await OrganizationCourseModel.findOne({
+      courseId: courseId,
     });
-
-    if (!exists)
+    if (!orgCourse)
       throw new HttpException(
-        ERROR_MESSAGES.organizationController.lmsIntegrationNotFound,
+        ERROR_MESSAGES.lmsController.organizationCourseNotFound,
         HttpStatus.NOT_FOUND,
       );
 
-    const courses = await LMSCourseIntegrationModel.find({
-      where: { orgIntegration: exists },
+    const lmsIntegrations = await LMSOrganizationIntegrationModel.find({
+      where: { organizationId: orgCourse.organizationId },
     });
-    for (const course of courses) {
-      await this.integrationService.clearLMSIntegrationData(course.courseId);
+
+    if (lmsIntegrations.length <= 0) {
+      return [];
     }
 
-    const platform = exists.apiPlatform;
-    await LMSOrganizationIntegrationModel.remove(exists);
-    return `Successfully deleted LMS integration for ${platform}`;
-  }
-
-  @Get('course_integration/:courseId')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard)
-  @Roles(Role.PROFESSOR)
-  async getCourseLMSIntegration(
-    @Param(':courseId', ParseIntPipe) courseId: number,
-  ): Promise<LMSCourseIntegrationPartial | undefined> {
-    const lmsIntegration = await LMSCourseIntegrationModel.findOne({
-      where: { courseId: courseId },
-      relations: ['orgIntegration', 'course'],
-    });
-    if (lmsIntegration == undefined) return undefined;
-
-    return this.integrationService.getPartialCourseLmsIntegration(
-      lmsIntegration,
+    return lmsIntegrations.map((int) =>
+      this.integrationService.getPartialOrgLmsIntegration(int),
     );
   }
 
-  @Post('course_integration/:courseId/upsert')
+  @Post('course/:courseId/upsert')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async upsertCourseLMSIntegration(
-    @Param(':courseId', ParseIntPipe) courseId: number,
+    @User() user: UserModel,
+    @Param('courseId', ParseIntPipe) courseId: number,
     @Body() props: any,
   ): Promise<any> {
     const orgCourse = await OrganizationCourseModel.findOne({
@@ -181,7 +200,7 @@ export class LMSIntegrationController {
     });
     if (!orgIntegration) {
       throw new HttpException(
-        ERROR_MESSAGES.courseController.orgIntegrationNotFound,
+        ERROR_MESSAGES.lmsController.orgIntegrationNotFound,
         HttpStatus.NOT_FOUND,
       );
     }
@@ -192,6 +211,7 @@ export class LMSIntegrationController {
 
     if (courseIntegration != undefined) {
       return await this.integrationService.updateCourseLMSIntegration(
+        user,
         courseIntegration,
         orgIntegration,
         props.apiKeyExpiryDeleted,
@@ -210,11 +230,12 @@ export class LMSIntegrationController {
     }
   }
 
-  @Delete('course_integration/:courseId/remove')
+  @Delete('course/:courseId/remove')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async removeCourseLMSIntegration(
-    @Param(':courseId', ParseIntPipe) courseId: number,
+    @User() user: UserModel,
+    @Param('courseId', ParseIntPipe) courseId: number,
     @Body() props: any,
   ): Promise<any> {
     const orgCourse = await OrganizationCourseModel.findOne({
@@ -233,7 +254,7 @@ export class LMSIntegrationController {
     });
     if (!orgIntegration) {
       throw new HttpException(
-        ERROR_MESSAGES.courseController.orgIntegrationNotFound,
+        ERROR_MESSAGES.lmsController.orgIntegrationNotFound,
         HttpStatus.NOT_FOUND,
       );
     }
@@ -243,14 +264,41 @@ export class LMSIntegrationController {
     });
     if (!exists) {
       throw new HttpException(
-        ERROR_MESSAGES.courseController.lmsIntegrationNotFound,
+        ERROR_MESSAGES.lmsController.courseLmsIntegrationNotFound,
         HttpStatus.NOT_FOUND,
       );
     }
 
-    await this.integrationService.clearLMSIntegrationData(courseId);
+    await this.integrationService.removeDocuments(
+      user,
+      courseId,
+      LMSUpload.Announcements,
+    );
+    await this.integrationService.removeDocuments(
+      user,
+      courseId,
+      LMSUpload.Assignments,
+    );
+
     await LMSCourseIntegrationModel.remove(exists);
     return `Successfully disconnected LMS integration`;
+  }
+
+  @Get('course/:courseId')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async getCourseLMSIntegration(
+    @Param('courseId', ParseIntPipe) courseId: number,
+  ): Promise<LMSCourseIntegrationPartial | undefined> {
+    const lmsIntegration = await LMSCourseIntegrationModel.findOne({
+      where: { courseId: courseId },
+      relations: ['orgIntegration', 'course'],
+    });
+    if (lmsIntegration == undefined) return undefined;
+
+    return this.integrationService.getPartialCourseLmsIntegration(
+      lmsIntegration,
+    );
   }
 
   @Get(':courseId')
@@ -319,34 +367,6 @@ export class LMSIntegrationController {
     );
   }
 
-  @Post(':courseId/assignments/save')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard)
-  @Roles(Role.PROFESSOR)
-  async saveAssignments(
-    @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() props: any,
-  ): Promise<LMSAssignment[]> {
-    return (await this.integrationService.saveItems(
-      courseId,
-      LMSSave.Assignments,
-      props.ids,
-    )) as LMSAssignment[];
-  }
-
-  @Post(':courseId/announcements/save')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard)
-  @Roles(Role.PROFESSOR)
-  async saveAnnouncements(
-    @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() props: any,
-  ): Promise<LMSAnnouncement[]> {
-    return (await this.integrationService.saveItems(
-      courseId,
-      LMSSave.Announcements,
-      props.ids,
-    )) as LMSAnnouncement[];
-  }
-
   @Post(':courseId/assignments/upload')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
@@ -354,7 +374,7 @@ export class LMSIntegrationController {
     @User() user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() props: any,
-  ): Promise<LMSFileUploadResult[]> {
+  ): Promise<LMSFileResult[]> {
     return await this.integrationService.uploadDocuments(
       user,
       courseId,
@@ -370,8 +390,40 @@ export class LMSIntegrationController {
     @User() user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() props: any,
-  ): Promise<LMSFileUploadResult[]> {
+  ): Promise<LMSFileResult[]> {
     return await this.integrationService.uploadDocuments(
+      user,
+      courseId,
+      LMSUpload.Announcements,
+      props.ids,
+    );
+  }
+
+  @Delete(':courseId/assignments/remove')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async removeAssignments(
+    @User() user: UserModel,
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() props: any,
+  ): Promise<LMSFileResult[]> {
+    return await this.integrationService.removeDocuments(
+      user,
+      courseId,
+      LMSUpload.Assignments,
+      props.ids,
+    );
+  }
+
+  @Delete(':courseId/announcements/remove')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async removeAnnouncements(
+    @User() user: UserModel,
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() props: any,
+  ): Promise<LMSFileResult[]> {
+    return await this.integrationService.removeDocuments(
       user,
       courseId,
       LMSUpload.Announcements,

@@ -70,7 +70,8 @@ import {
   CronJob,
   OrgUser,
   LMSAnnouncement,
-  LMSFileUploadResult,
+  LMSFileResult,
+  LMSOrganizationIntegrationPartial,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -754,35 +755,38 @@ class APIClient {
   }
 
   lmsIntegration = {
-    getOrganizationIntegrations: async (organizationId: number): Promise<any> =>
-      this.req(
-        'GET',
-        `/api/v1/lms_integration/organization_integration/${organizationId}`,
-      ),
+    getOrganizationIntegrations: async (
+      organizationId: number,
+    ): Promise<LMSOrganizationIntegrationPartial[]> =>
+      this.req('GET', `/api/v1/lms/org/${organizationId}`),
     upsertOrganizationIntegration: async (
       organizationId: number,
       props: { rootUrl: string; apiPlatform: LMSIntegrationPlatform },
-    ): Promise<string | undefined> =>
+    ): Promise<string> =>
       this.req(
         'POST',
-        `/api/v1/lms_integration/organization_integration/${organizationId}/upsert`,
+        `/api/v1/lms/org/${organizationId}/upsert`,
         undefined,
         props,
       ),
     removeOrganizationIntegration: async (
       organizationId: number,
       props: { apiPlatform: LMSIntegrationPlatform },
-    ): Promise<string | undefined> =>
+    ): Promise<string> =>
       this.req(
         'DELETE',
-        `/api/v1/lms_integration/organization_integration/${organizationId}/remove`,
+        `/api/v1/lms/org/${organizationId}/remove`,
         undefined,
         props,
       ),
+    getCourseOrganizationIntegrations: async (
+      courseId: number,
+    ): Promise<LMSOrganizationIntegrationPartial[]> =>
+      this.req('GET', `/api/v1/lms/course/${courseId}/integrations`),
     getCourseIntegration: async (
       courseId: number,
     ): Promise<LMSCourseIntegrationPartial> =>
-      this.req('GET', `/api/v1/lms_integration/course_integration/${courseId}`),
+      this.req('GET', `/api/v1/lms/course/${courseId}`),
     upsertCourseIntegration: async (
       courseId: number,
       props: {
@@ -792,10 +796,10 @@ class APIClient {
         apiKeyExpiryDeleted?: boolean
         apiCourseId: string
       },
-    ): Promise<string | undefined> =>
+    ): Promise<string> =>
       this.req(
         'POST',
-        `/api/v1/lms_integration/course_integration/${courseId}/upsert`,
+        `/api/v1/lms/course/${courseId}/upsert`,
         undefined,
         props,
       ),
@@ -805,55 +809,52 @@ class APIClient {
     ): Promise<string | undefined> =>
       this.req(
         'DELETE',
-        `/api/v1/lms_integration/course_integration/${courseId}/remove`,
+        `/api/v1/lms/course/${courseId}/remove`,
         undefined,
         props,
       ),
     getCourse: async (courseId: number): Promise<LMSCourseAPIResponse> =>
-      this.req('GET', `/api/v1/lms_integration/${courseId}`),
+      this.req('GET', `/api/v1/lms/${courseId}`),
     getStudents: async (courseId: number): Promise<string[]> =>
-      this.req('GET', `/api/v1/lms_integration/${courseId}/students`),
+      this.req('GET', `/api/v1/lms/${courseId}/students`),
     getAssignments: async (courseId: number): Promise<LMSAssignment[]> =>
-      this.req('GET', `/api/v1/lms_integration/${courseId}/assignments`),
+      this.req('GET', `/api/v1/lms/${courseId}/assignments`),
     getAnnouncements: async (courseId: number): Promise<LMSAnnouncement[]> =>
-      this.req('GET', `/api/v1/lms_integration/${courseId}/announcements`),
-    saveAssignments: async (
-      courseId: number,
-      ids?: number[],
-    ): Promise<LMSAssignment[]> =>
-      this.req(
-        'GET',
-        `/api/v1/lms_integration/${courseId}/assignments/save`,
-        undefined,
-        { ids },
-      ),
-    saveAnnouncements: async (
-      courseId: number,
-      ids?: number[],
-    ): Promise<LMSAnnouncement[]> =>
-      this.req(
-        'GET',
-        `/api/v1/lms_integration/${courseId}/announcements/save`,
-        undefined,
-        { ids },
-      ),
+      this.req('GET', `/api/v1/lms/${courseId}/announcements`),
     uploadAssignments: async (
       courseId: number,
       ids?: number[],
-    ): Promise<LMSFileUploadResult[]> =>
-      this.req(
-        'GET',
-        `/api/v1/lms_integration/${courseId}/assignments/upload`,
-        undefined,
-        { ids },
-      ),
+    ): Promise<LMSFileResult[]> =>
+      this.req('GET', `/api/v1/lms/${courseId}/assignments/upload`, undefined, {
+        ids,
+      }),
     uploadAnnouncements: async (
       courseId: number,
       ids?: number[],
-    ): Promise<LMSFileUploadResult[]> =>
+    ): Promise<LMSFileResult[]> =>
       this.req(
         'GET',
-        `/api/v1/lms_integration/${courseId}/announcements/upload`,
+        `/api/v1/lms/${courseId}/announcements/upload`,
+        undefined,
+        { ids },
+      ),
+    removeAssignments: async (
+      courseId: number,
+      ids?: number[],
+    ): Promise<LMSFileResult[]> =>
+      this.req(
+        'DELETE',
+        `/api/v1/lms/${courseId}/assignments/remove`,
+        undefined,
+        { ids },
+      ),
+    removeAnnouncements: async (
+      courseId: number,
+      ids?: number[],
+    ): Promise<LMSFileResult[]> =>
+      this.req(
+        'DELETE',
+        `/api/v1/lms/${courseId}/announcements/remove`,
         undefined,
         { ids },
       ),
@@ -865,12 +866,7 @@ class APIClient {
         apiCourseId: string
       },
     ): Promise<LMSApiResponseStatus> =>
-      this.req(
-        'POST',
-        `/api/v1/lms_integration/${courseId}/test`,
-        undefined,
-        props,
-      ),
+      this.req('POST', `/api/v1/lms/${courseId}/test`, undefined, props),
   }
 
   constructor(baseURL = '') {

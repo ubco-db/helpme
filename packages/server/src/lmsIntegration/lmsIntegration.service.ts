@@ -9,7 +9,8 @@ import {
   LMSApiResponseStatus,
   LMSCourseIntegrationPartial,
   LMSFileUploadResponse,
-  LMSFileUploadResult,
+  LMSFileResult,
+  LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
@@ -23,11 +24,6 @@ import { UserModel } from '../profile/user.entity';
 export enum LMSGet {
   Course,
   Students,
-  Assignments,
-  Announcements,
-}
-
-export enum LMSSave {
   Assignments,
   Announcements,
 }
@@ -103,6 +99,7 @@ export class LMSIntegrationService {
   }
 
   public async updateCourseLMSIntegration(
+    user: UserModel,
     integration: LMSCourseIntegrationModel,
     orgIntegration: LMSOrganizationIntegrationModel,
     apiKeyExpiryDeleted = false,
@@ -119,7 +116,16 @@ export class LMSIntegrationService {
         where: { courseId: integration.courseId },
       });
 
-      await this.clearLMSIntegrationData(integration.courseId);
+      await this.removeDocuments(
+        user,
+        integration.courseId,
+        LMSUpload.Announcements,
+      );
+      await this.removeDocuments(
+        user,
+        integration.courseId,
+        LMSUpload.Assignments,
+      );
       await LMSAssignmentModel.remove(allAssignments);
       await LMSAnnouncementModel.remove(allAnnouncements);
     }
@@ -209,32 +215,11 @@ export class LMSIntegrationService {
     return retrieved;
   }
 
-  async saveItems(courseId: number, type: LMSSave, ids?: number[]) {
-    const adapter = await this.getAdapter(courseId);
-
-    const { status, items } = await adapter.saveItems(type, ids);
-
-    if (status != LMSApiResponseStatus.Success) {
-      throw new HttpException(status, this.lmsStatusToHttpStatus(status));
-    }
-
-    return items;
-  }
-
-  async uploadDocuments(
-    user: UserModel,
+  async getDocumentModelAndItems(
     courseId: number,
     type: LMSUpload,
     ids?: number[],
   ) {
-    const adapter = await this.getAdapter(courseId);
-    if (!adapter.isImplemented()) {
-      throw new HttpException(
-        ERROR_MESSAGES.lmsController.noLMSIntegration,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
     const model = (() => {
       switch (type) {
         case LMSUpload.Announcements:
@@ -259,7 +244,35 @@ export class LMSIntegrationService {
     if (ids != undefined) {
       qb.andWhere('aModel.id IN :...ids', { ids });
     }
-    const items = await qb.getMany();
+
+    return { model, items: await qb.getMany() };
+  }
+
+  async uploadDocuments(
+    user: UserModel,
+    courseId: number,
+    type: LMSUpload,
+    ids?: number[],
+  ) {
+    const adapter = await this.getAdapter(courseId);
+    if (!adapter.isImplemented()) {
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.noLMSIntegration,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const { status } = await adapter.saveItems(type, ids);
+
+    if (status != LMSApiResponseStatus.Success) {
+      throw new HttpException(status, this.lmsStatusToHttpStatus(status));
+    }
+
+    const { model, items } = await this.getDocumentModelAndItems(
+      courseId,
+      type,
+      ids,
+    );
 
     const metadata: any = {
       name: 'Manually Inserted Information',
@@ -282,7 +295,7 @@ export class LMSIntegrationService {
           return {
             id: a.id,
             documentId: a.chatbotDocumentId,
-            documentText: `Assignment: ${a.name}\nDue Date: ${a.due.toLocaleDateString()}\nDescription: ${a.description}`,
+            documentText: `Assignment: ${a.name}\n${a.due != undefined ? `Due Date: ${a.due.toLocaleDateString()}\n` : 'Due Date: No due date\n'}Description: ${a.description}`,
             metadata,
           };
         }
@@ -315,6 +328,7 @@ export class LMSIntegrationService {
       }
 
       const reqOptions = {
+        method: 'POST',
         body: JSON.stringify({
           documentText: item.documentText,
           metadata: item.metadata,
@@ -340,12 +354,6 @@ export class LMSIntegrationService {
             return response.json();
           }
         } else {
-          statuses.push({
-            id: item.id,
-            type:
-              type == LMSUpload.Announcements ? 'Announcement' : 'Assignment',
-            success: false,
-          });
           throw new Error();
         }
       };
@@ -372,11 +380,17 @@ export class LMSIntegrationService {
             documentId: persistedDoc.id,
           });
         })
-        .catch((error) =>
+        .catch((error) => {
+          statuses.push({
+            id: item.id,
+            type:
+              type == LMSUpload.Announcements ? 'Announcement' : 'Assignment',
+            success: false,
+          });
           console.log(
             `Failed to upload a document to the Chatbot (${error.message})`,
-          ),
-        );
+          );
+        });
     }
 
     await ChatTokenModel.remove(token);
@@ -411,17 +425,75 @@ export class LMSIntegrationService {
       return {
         id: a.id,
         success: a.success,
-      } as LMSFileUploadResult;
+      } as LMSFileResult;
     });
   }
 
-  async clearLMSIntegrationData(courseId: number) {
-    const assignments = await LMSAssignmentModel.find({
-      where: { courseId: courseId },
-    });
-    const announcements = await LMSAnnouncementModel.find({
-      where: { courseId: courseId },
-    });
+  async removeDocuments(
+    user: UserModel,
+    courseId: number,
+    type: LMSUpload,
+    ids?: number[],
+  ) {
+    const { model, items } = await this.getDocumentModelAndItems(
+      courseId,
+      type,
+      ids,
+    );
+
+    const token = await ChatTokenModel.create({
+      user: user,
+      token: v4(),
+      max_uses: items.length,
+    }).save();
+
+    const statuses: LMSFileUploadResponse[] = [];
+    for (const item of items) {
+      const reqOptions = {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          HMS_API_TOKEN: token.token,
+        },
+      };
+
+      const thenFx = (response: Response) => {
+        if (response.ok) {
+          statuses.push({
+            id: item.id,
+            type:
+              type == LMSUpload.Announcements ? 'Announcement' : 'Assignment',
+            success: true,
+          });
+        } else {
+          throw new Error();
+        }
+      };
+
+      await fetch(
+        `/chat/${courseId}/documentChunk/${item.chatbotDocumentId}`,
+        reqOptions,
+      )
+        .then(thenFx)
+        .catch((error) => {
+          statuses.push({
+            id: item.id,
+            type:
+              type == LMSUpload.Announcements ? 'Announcement' : 'Assignment',
+            success: false,
+          });
+          console.log(
+            `Failed to remove a document from the Chatbot (${error.message})`,
+          );
+        });
+    }
+
+    const successfulIds = statuses.filter((s) => s.success).map((s) => s.id);
+    await model.remove(items.filter((i) => successfulIds.includes(i.id)));
+
+    await ChatTokenModel.remove(token);
+
+    return statuses;
   }
 
   getPartialOrgLmsIntegration(lmsIntegration: LMSOrganizationIntegrationModel) {
@@ -431,14 +503,20 @@ export class LMSIntegrationService {
       rootUrl: lmsIntegration.rootUrl,
       courseIntegrations:
         lmsIntegration.courseIntegrations?.map((cint) =>
-          this.getPartialCourseLmsIntegration(cint),
+          this.getPartialCourseLmsIntegration(cint, lmsIntegration.apiPlatform),
         ) ?? [],
     } satisfies LMSOrganizationIntegrationPartial;
   }
 
-  getPartialCourseLmsIntegration(lmsIntegration: LMSCourseIntegrationModel) {
+  getPartialCourseLmsIntegration(
+    lmsIntegration: LMSCourseIntegrationModel,
+    platform?: LMSIntegrationPlatform,
+  ) {
     return {
-      apiPlatform: lmsIntegration.orgIntegration.apiPlatform,
+      apiPlatform:
+        platform ??
+        lmsIntegration.orgIntegration?.apiPlatform ??
+        ('None' as LMSIntegrationPlatform),
       courseId: lmsIntegration.courseId,
       course: {
         id: lmsIntegration.courseId,
@@ -448,7 +526,6 @@ export class LMSIntegrationService {
       apiKeyExpiry: lmsIntegration.apiKeyExpiry,
       isExpired:
         lmsIntegration.apiKeyExpiry != undefined &&
-        lmsIntegration.apiKeyExpiry instanceof Date &&
         new Date(lmsIntegration.apiKeyExpiry).getTime() < new Date().getTime(),
     } satisfies LMSCourseIntegrationPartial;
   }

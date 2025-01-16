@@ -9,7 +9,7 @@ import {
 import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { In } from 'typeorm';
-import { LMSSave } from './lmsIntegration.service';
+import { LMSUpload } from './lmsIntegration.service';
 
 @Injectable()
 export class LMSIntegrationAdapter {
@@ -65,7 +65,7 @@ export abstract class AbstractLMSAdapter {
   }
 
   async saveItems(
-    type: LMSSave,
+    type: LMSUpload,
     ids?: number[],
   ): Promise<{
     status: LMSApiResponseStatus;
@@ -116,8 +116,6 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
             case 404:
               return { status: LMSApiResponseStatus.InvalidCourseId };
             default:
-              console.log(response.status);
-              response.json().then((json) => console.log(json));
               throw new Error();
           }
         } else {
@@ -189,14 +187,14 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     };
   }
 
-  private async updateItems(type: LMSSave, data: any) {
+  private async updateItems(type: LMSUpload, data: any) {
     let model: typeof LMSAssignmentModel | typeof LMSAnnouncementModel;
     switch (type) {
-      case LMSSave.Announcements: {
+      case LMSUpload.Announcements: {
         model = LMSAnnouncementModel;
         break;
       }
-      case LMSSave.Assignments: {
+      case LMSUpload.Assignments: {
         model = LMSAssignmentModel;
         break;
       }
@@ -214,7 +212,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     for (const p of persisted) {
       const a = data.find((a: any) => a.id == p.id);
       switch (type) {
-        case LMSSave.Announcements: {
+        case LMSUpload.Announcements: {
           const per = p as unknown as LMSAnnouncementModel;
           const ann = a as unknown as LMSAnnouncement;
           if (new Date(ann.posted).getTime() < new Date(per.posted).getTime()) {
@@ -225,7 +223,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
           }
           break;
         }
-        case LMSSave.Assignments: {
+        case LMSUpload.Assignments: {
           const per = p as unknown as LMSAssignmentModel;
           const asg = a as unknown as LMSAssignment;
           if (
@@ -245,8 +243,10 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     announcements: LMSAnnouncement[];
   }> {
     const { status, data } = await this.GetPaginated(
-      `announcements?context_codes[]=${this.integration.apiCourseId}&active_only=true`,
+      `announcements?context_codes[]=course_${this.integration.apiCourseId}&active_only=true`,
     );
+
+    console.log(data);
 
     if (status != LMSApiResponseStatus.Success)
       return { status, announcements: [] };
@@ -261,7 +261,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
           posted: new Date(announcement.posted),
         } as LMSAnnouncement;
       });
-    await this.updateItems(LMSSave.Announcements, announcements);
+    await this.updateItems(LMSUpload.Announcements, announcements);
 
     return {
       status: LMSApiResponseStatus.Success,
@@ -287,10 +287,13 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
           id: assignment.id,
           name: assignment.name,
           description: assignment.description,
-          due: new Date(assignment.due_at),
+          due:
+            assignment.due_at != undefined && assignment.due_at.trim() != ''
+              ? new Date(assignment.due_at)
+              : undefined,
         } as LMSAssignment;
       });
-    await this.updateItems(LMSSave.Assignments, assignments);
+    await this.updateItems(LMSUpload.Assignments, assignments);
 
     return {
       status: LMSApiResponseStatus.Success,
@@ -299,7 +302,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
   }
 
   async saveItems(
-    type: LMSSave,
+    type: LMSUpload,
     ids?: number[],
   ): Promise<{
     status: LMSApiResponseStatus;
@@ -312,11 +315,11 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     };
     let model: typeof LMSAssignmentModel | typeof LMSAnnouncementModel;
     switch (type) {
-      case LMSSave.Assignments:
+      case LMSUpload.Assignments:
         result = await this.getAssignments();
         model = LMSAssignmentModel;
         break;
-      case LMSSave.Announcements:
+      case LMSUpload.Announcements:
         result = await this.getAnnouncements();
         model = LMSAnnouncementModel;
         break;
@@ -331,10 +334,10 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
 
     let items: LMSAssignment[] | LMSAnnouncement[];
     switch (type) {
-      case LMSSave.Assignments:
+      case LMSUpload.Assignments:
         items = result.assignments;
         break;
-      case LMSSave.Announcements:
+      case LMSUpload.Announcements:
         items = result.announcements;
         break;
     }
@@ -358,7 +361,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
       status: LMSApiResponseStatus.Success,
       items: itms.map((i) => {
         switch (type) {
-          case LMSSave.Assignments: {
+          case LMSUpload.Assignments: {
             const a = i as unknown as LMSAssignmentModel;
             return {
               id: a.id,
@@ -368,7 +371,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
               modified: a.modified,
             } as LMSAssignment;
           }
-          case LMSSave.Announcements: {
+          case LMSUpload.Announcements: {
             const a = i as unknown as LMSAnnouncementModel;
             return {
               id: a.id,

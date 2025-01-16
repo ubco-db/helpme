@@ -37,8 +37,8 @@ export function useCourseLmsIntegration(
 
   useEffect(() => {
     if (courseId != undefined) {
-      API.course
-        .getIntegration(courseId)
+      API.lmsIntegration
+        .getCourseIntegration(courseId)
         .then((response) => {
           if (response) {
             setIntegration(response)

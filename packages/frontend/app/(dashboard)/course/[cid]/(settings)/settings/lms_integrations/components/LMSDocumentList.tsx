@@ -1,6 +1,16 @@
 import { SearchOutlined } from '@ant-design/icons'
-import { LMSAnnouncement, LMSAssignment } from '@koh/common'
-import { Collapse, Input, List, message, Pagination, Radio, Spin } from 'antd'
+import { LMSAnnouncement, LMSAssignment, LMSFileResult } from '@koh/common'
+import {
+  Button,
+  Collapse,
+  Input,
+  List,
+  message,
+  Modal,
+  Pagination,
+  Radio,
+  Spin,
+} from 'antd'
 import { useCallback, useMemo, useState } from 'react'
 import { API } from '@/app/api'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
@@ -9,7 +19,7 @@ type LMSDocumentListProps<T> = {
   type: 'Assignment' | 'Announcement'
   courseId: number
   documents: T[]
-  updateCallback: (documents: T[]) => void
+  updateCallback: () => void
   loadingLMSData?: boolean
 }
 
@@ -85,8 +95,10 @@ export default function LMSDocumentList<
           {
             dataIndex: 'posted',
             header: 'Posted',
-            cellFormat: (item: Date | undefined) =>
-              item?.toLocaleDateString() ?? '',
+            cellFormat: (item: string | undefined) =>
+              item != undefined && item.trim() != ''
+                ? new Date(item).toLocaleDateString()
+                : '',
             colSpan: 1,
           },
           {
@@ -120,8 +132,10 @@ export default function LMSDocumentList<
           {
             dataIndex: 'due',
             header: 'Due Date',
-            cellFormat: (item: Date | undefined) =>
-              item?.toLocaleDateString() ?? '',
+            cellFormat: (item: string | undefined) =>
+              item != undefined && item.trim() != ''
+                ? new Date(item).toLocaleDateString()
+                : '',
             colSpan: 1,
           },
           {
@@ -213,48 +227,135 @@ export default function LMSDocumentList<
     [matchingDocuments, page],
   )
 
-  const _saveItems = async () => {
-    const thenFx = (response: any[]) => {
-      if (response != undefined) {
-        updateCallback(response as T[])
-        setSelected([])
-      } else {
+  const eligibleToDelete = useMemo(
+    () => documents.filter((d) => d.uploaded != undefined),
+    [documents],
+  )
+
+  const selectedEligible = useMemo(
+    () => eligibleToDelete.filter((d) => selected.includes(d.id)),
+    [eligibleToDelete, selected],
+  )
+
+  const uploadOrDeleteFiles = async (
+    action: 'Upload' | 'Delete',
+    all?: boolean,
+  ) => {
+    const text = action == 'Upload' ? 'upload to' : 'delete from'
+    const textTo =
+      action == 'Upload'
+        ? 'uploading LMS documents to'
+        : 'deleting LMS documents from'
+
+    if (selected.length <= 0 && !all) {
+      message.warning(
+        `Must select at least one LMS document to ${text} HelpMe chatbot.`,
+      )
+    }
+
+    const thenFx = (response: LMSFileResult[]) => {
+      if (response == undefined) {
         throw new Error(
-          'Unknown error occurred when saving LMS documents to HelpMe database.',
+          `Unknown error occurred when ${textTo} HelpMe database.`,
         )
+      } else {
+        return response
       }
     }
 
-    const errorFx = (error: any) => message.error(getErrorMessage(error))
+    const errorFx = (error: any) => {
+      message.error(getErrorMessage(error))
+      return []
+    }
 
+    let results: LMSFileResult[] = []
     switch (type) {
       case 'Announcement': {
-        API.lmsIntegration
-          .saveAnnouncements(
-            courseId,
-            selected.length > 0 ? selected : undefined,
-          )
-          .then(thenFx)
-          .catch(errorFx)
+        switch (action) {
+          case 'Upload':
+            results = await API.lmsIntegration
+              .uploadAnnouncements(courseId, all ? undefined : selected)
+              .then(thenFx)
+              .catch(errorFx)
+            break
+          case 'Delete':
+            results = await API.lmsIntegration
+              .removeAnnouncements(
+                courseId,
+                all
+                  ? eligibleToDelete.map((d) => d.id)
+                  : selectedEligible.map((d) => d.id),
+              )
+              .then(thenFx)
+              .catch(errorFx)
+            break
+        }
         break
       }
       case 'Assignment': {
-        API.lmsIntegration
-          .saveAssignments(courseId, selected.length > 0 ? selected : undefined)
-          .then(thenFx)
-          .catch(errorFx)
+        switch (action) {
+          case 'Upload':
+            results = await API.lmsIntegration
+              .uploadAssignments(courseId, all ? undefined : selected)
+              .then(thenFx)
+              .catch(errorFx)
+            break
+          case 'Delete':
+            results = await API.lmsIntegration
+              .removeAssignments(
+                courseId,
+                all
+                  ? eligibleToDelete.map((d) => d.id)
+                  : selectedEligible.map((d) => d.id),
+              )
+              .then(thenFx)
+              .catch(errorFx)
+            break
+        }
         break
       }
     }
+
+    updateCallback()
+
+    if (results.length > 0) {
+      Modal.info({
+        title: `${type} Documents ${action} Result`,
+        content: (
+          <div>
+            <List
+              dataSource={results}
+              header={
+                <div className={'grid-cols-2 bg-gray-100 font-semibold'}>
+                  <div className={'border border-gray-200 p-2'}>{type} ID</div>
+                  <div>Result</div>
+                </div>
+              }
+              renderItem={(item: LMSFileResult, index: number) => (
+                <List.Item key={`list-item-${index}`}>
+                  <div className={'grid-cols-2'}>
+                    <div className={'border border-gray-100 p-2'}>
+                      {item.id}
+                    </div>
+                    <div className={'border border-gray-100 p-2'}>
+                      {item.success
+                        ? action == 'Upload'
+                          ? 'Uploaded'
+                          : 'Deleted'
+                        : 'Failure'}
+                    </div>
+                  </div>
+                </List.Item>
+              )}
+            />
+          </div>
+        ),
+        footer: null,
+      })
+    }
   }
 
-  const _uploadItems = async () => {
-    return
-  }
-
-  if (!documents) {
-    return <Spin tip="Loading..." size="large" />
-  } else {
+  const renderDocumentList = (documents: T[]) => {
     const colClassString = cn(
       'grid',
       ncols == 1 ? 'grid-cols-1' : '',
@@ -270,9 +371,138 @@ export default function LMSDocumentList<
       ncols == 11 ? 'grid-cols-11' : '',
       ncols == 12 ? 'grid-cols-12' : '',
     )
+    return (
+      <List
+        dataSource={documents}
+        loading={loadingLMSData}
+        size="small"
+        header={
+          <div
+            className={cn('-my-3 bg-gray-100 font-semibold', colClassString)}
+          >
+            {columns.map((col: LMSDocumentListColumn, index: number) => (
+              <div
+                key={`header-col-${index}`}
+                className={cn(
+                  'border border-gray-200 p-4',
+                  col.colSpan == 2 ? 'col-span-2' : '',
+                  col.colSpan == 3 ? 'col-span-3' : '',
+                  col.colSpan == 4 ? 'col-span-4' : '',
+                )}
+              >
+                {col.header}
+              </div>
+            ))}
+          </div>
+        }
+        renderItem={(item: { [key: string]: any }) => (
+          <div className={colClassString}>
+            {columns.map((col: LMSDocumentListColumn, index: number) => (
+              <div
+                key={`column-${index}`}
+                className={cn(
+                  'border border-gray-100 p-4',
+                  col.colSpan == 2 ? 'col-span-2' : '',
+                  col.colSpan == 3 ? 'col-span-3' : '',
+                  col.colSpan == 4 ? 'col-span-4' : '',
+                )}
+              >
+                {col.selectable && (
+                  <Radio
+                    checked={selected.includes(item.id)}
+                    onClick={() => toggleSelect(item.id)}
+                  ></Radio>
+                )}
+                {col.cellFormat(
+                  col.dataIndex == 'status' ? item : item[col.dataIndex],
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      ></List>
+    )
+  }
 
+  if (!documents) {
+    return <Spin tip="Loading..." size="large" />
+  } else {
     return (
       <div>
+        <Collapse>
+          <Collapse.Panel
+            key={'save'}
+            header={
+              <div className={'flex justify-between'}>
+                <div>Save/Update {type} Documents in HelpMe</div>
+              </div>
+            }
+          >
+            <div className={'flex flex-col gap-4'}>
+              <div className={'grid grid-cols-1 gap-2'}>
+                <div className={'grid grid-cols-4 gap-2'}>
+                  <Button
+                    className={cn(
+                      selected.length <= 0
+                        ? 'border-gray-400 bg-gray-300 text-white hover:cursor-not-allowed hover:border-gray-400 hover:text-white'
+                        : '',
+                    )}
+                    disabled={selected.length <= 0}
+                    onClick={async () => await uploadOrDeleteFiles('Upload')}
+                  >
+                    Upload Selected ({selected.length})
+                  </Button>
+                  <Button
+                    onClick={async () =>
+                      await uploadOrDeleteFiles('Upload', true)
+                    }
+                  >
+                    Upload All
+                  </Button>
+                  <Button
+                    className={cn(
+                      selectedEligible.length <= 0
+                        ? 'border-gray-400 bg-gray-300 text-white hover:cursor-not-allowed hover:border-gray-400 hover:text-white'
+                        : '',
+                    )}
+                    disabled={selectedEligible.length <= 0}
+                    danger={true}
+                    onClick={async () => await uploadOrDeleteFiles('Delete')}
+                  >
+                    Delete Selected ({selected.length})
+                  </Button>
+                  <Button
+                    className={cn(
+                      eligibleToDelete.length <= 0
+                        ? 'border-gray-400 bg-gray-300 text-white hover:cursor-not-allowed hover:border-gray-400 hover:text-white'
+                        : '',
+                    )}
+                    onClick={async () =>
+                      await uploadOrDeleteFiles('Delete', true)
+                    }
+                    danger={true}
+                    disabled={eligibleToDelete.length <= 0}
+                  >
+                    Delete All ({eligibleToDelete.length})
+                  </Button>
+                </div>
+                <div className={'mt-4 grid grid-cols-2 gap-2'}>
+                  <Button onClick={() => setSelected([])}>
+                    Reset Selection
+                  </Button>
+                  <Button
+                    onClick={() => setSelected(documents.map((d) => d.id))}
+                  >
+                    Select All
+                  </Button>
+                </div>
+              </div>
+              {renderDocumentList(
+                documents.filter((d) => selected.includes(d.id)),
+              )}
+            </div>
+          </Collapse.Panel>
+        </Collapse>
         <div className="bg-white">
           <div
             className={
@@ -297,58 +527,7 @@ export default function LMSDocumentList<
               />
             )}
           </div>
-          <List
-            dataSource={paginatedDocuments}
-            loading={loadingLMSData}
-            size="small"
-            header={
-              <div
-                className={cn(
-                  '-my-3 bg-gray-100 font-semibold',
-                  colClassString,
-                )}
-              >
-                {columns.map((col: LMSDocumentListColumn, index: number) => (
-                  <div
-                    key={`header-col-${index}`}
-                    className={cn(
-                      'border border-gray-200 p-4',
-                      col.colSpan == 2 ? 'col-span-2' : '',
-                      col.colSpan == 3 ? 'col-span-3' : '',
-                      col.colSpan == 4 ? 'col-span-4' : '',
-                    )}
-                  >
-                    {col.header}
-                  </div>
-                ))}
-              </div>
-            }
-            renderItem={(item: { [key: string]: any }) => (
-              <div className={colClassString}>
-                {columns.map((col: LMSDocumentListColumn, index: number) => (
-                  <div
-                    key={`column-${index}`}
-                    className={cn(
-                      'border border-gray-100 p-4',
-                      col.colSpan == 2 ? 'col-span-2' : '',
-                      col.colSpan == 3 ? 'col-span-3' : '',
-                      col.colSpan == 4 ? 'col-span-4' : '',
-                    )}
-                  >
-                    {col.selectable && (
-                      <Radio
-                        checked={selected.includes(item.id)}
-                        onClick={() => toggleSelect(item.id)}
-                      ></Radio>
-                    )}
-                    {col.cellFormat(
-                      col.dataIndex == 'status' ? item : item[col.dataIndex],
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          ></List>
+          {renderDocumentList(paginatedDocuments)}
         </div>
       </div>
     )
