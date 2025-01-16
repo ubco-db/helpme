@@ -2,6 +2,7 @@
 
 #### Improvements
 - Fixed a bug where end date would appear as "Invalid Date" when creating repeat events
+- Fixed this modal being very thin on some browsers
 
 
 ***
