@@ -28,7 +28,7 @@ export class LMSAnnouncementModel extends BaseEntity {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   modified: Date;
 
-  @Column({ type: 'string', nullable: true })
+  @Column({ type: 'text', nullable: true })
   chatbotDocumentId: string;
 
   @Column({ type: 'timestamp', nullable: true })
@@ -39,6 +39,6 @@ export class LMSAnnouncementModel extends BaseEntity {
     (integration) => integration.assignments,
     { onDelete: 'CASCADE' },
   )
-  @JoinColumn({ name: 'courseId', referencedColumnName: 'id' })
+  @JoinColumn({ name: 'courseId', referencedColumnName: 'courseId' })
   course: LMSCourseIntegrationModel;
 }

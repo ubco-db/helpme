@@ -15,12 +15,13 @@ import {
 import { PenBoxIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import {
   LMSCourseIntegrationPartial,
-  LMSIntegration,
+  LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
 } from '@koh/common'
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { BaseOptionType } from 'antd/es/select'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 export default function LMSIntegrationsPage(): ReactElement {
   const { userInfo } = useUserInfo()
@@ -28,17 +29,17 @@ export default function LMSIntegrationsPage(): ReactElement {
     LMSOrganizationIntegrationPartial[]
   >([])
   const [focusIntegration, setFocusIntegration] = useState<
-    LMSIntegration | undefined
+    LMSIntegrationPlatform | undefined
   >(undefined)
   const [selectedIntegration, setSelectedIntegration] = useState<
-    LMSIntegration | undefined
+    LMSIntegrationPlatform | undefined
   >(undefined)
   const [baseUrl, setBaseUrl] = useState<string | undefined>(undefined)
   const [modalOpen, setModalOpen] = useState<boolean>(false)
   const [delModalOpen, setDelModalOpen] = useState<boolean>(false)
 
   const fetchDataAsync = useCallback(async () => {
-    const response = await API.organizations.getIntegrations(
+    const response = await API.lmsIntegration.getOrganizationIntegrations(
       Number(userInfo?.organization?.orgId) ?? -1,
     )
     setLmsIntegrations(response)
@@ -50,8 +51,9 @@ export default function LMSIntegrationsPage(): ReactElement {
 
   const mappedLMS = useMemo(() => {
     const pairs: { [key: string]: string } = {}
-    Object.keys(LMSIntegration).map((integration: string) => {
-      pairs[integration] = LMSIntegration[integration as LMSIntegration]
+    Object.keys(LMSIntegrationPlatform).map((integration: string) => {
+      pairs[integration] =
+        LMSIntegrationPlatform[integration as LMSIntegrationPlatform]
     })
     return pairs
   }, [])
@@ -76,9 +78,9 @@ export default function LMSIntegrationsPage(): ReactElement {
 
   const upsertIntegration = (
     operation: string,
-    integration?: LMSIntegration,
+    integration?: LMSIntegrationPlatform,
   ) => {
-    if (baseUrl == undefined) {
+    if (baseUrl == undefined || baseUrl.trim() == '') {
       message.error(`Base URL is required to ${operation} an LMS integration`)
       return
     }
@@ -89,22 +91,26 @@ export default function LMSIntegrationsPage(): ReactElement {
       return
     }
 
-    API.organizations
-      .upsertIntegration(Number(userInfo?.organization?.orgId) ?? -1, {
-        rootUrl: baseUrl,
-        apiPlatform: integration,
-      })
+    API.lmsIntegration
+      .upsertOrganizationIntegration(
+        Number(userInfo?.organization?.orgId) ?? -1,
+        {
+          rootUrl: baseUrl,
+          apiPlatform: integration,
+        },
+      )
       .then((result) => {
-        if (result == undefined) {
-          message.error(
-            `Unknown error occurred, could not ${operation} the LMS integration`,
-          )
-        } else if (result.includes('Success')) {
+        if (result != undefined && result.includes('Success')) {
           message.success(result)
           modalCleanup()
         } else {
-          message.error(result)
+          throw new Error(
+            `Unknown error occurred, could not ${operation} the LMS integration`,
+          )
         }
+      })
+      .catch((error) => {
+        message.error(getErrorMessage(error))
       })
       .finally(() => {
         fetchDataAsync()
@@ -117,22 +123,26 @@ export default function LMSIntegrationsPage(): ReactElement {
       return
     }
 
-    API.organizations
-      .removeIntegration(Number(userInfo?.organization?.orgId) ?? -1, {
-        apiPlatform: focusIntegration,
-      })
+    API.lmsIntegration
+      .removeOrganizationIntegration(
+        Number(userInfo?.organization?.orgId) ?? -1,
+        {
+          apiPlatform: focusIntegration,
+        },
+      )
       .then((result) => {
-        if (result == undefined) {
-          message.error(
-            `Unknown error occurred, could not delete the LMS integration`,
-          )
-        } else if (result.includes('Success')) {
+        if (result != undefined && result.includes('Success')) {
           message.success(result)
           setDelModalOpen(false)
           setFocusIntegration(undefined)
         } else {
-          message.error(result)
+          throw new Error(
+            `Unknown error occurred, could not delete the LMS integration`,
+          )
         }
+      })
+      .catch((error) => {
+        message.error(getErrorMessage(error))
       })
       .finally(() => {
         fetchDataAsync()

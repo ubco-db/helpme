@@ -116,6 +116,8 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
             case 404:
               return { status: LMSApiResponseStatus.InvalidCourseId };
             default:
+              console.log(response.status);
+              response.json().then((json) => console.log(json));
               throw new Error();
           }
         } else {

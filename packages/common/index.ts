@@ -990,7 +990,7 @@ export class GetOrganizationResponse {
 
 export class LMSOrganizationIntegrationPartial {
   organizationId!: number
-  apiPlatform!: LMSIntegration
+  apiPlatform!: LMSIntegrationPlatform
   rootUrl!: string
   courseIntegrations!: LMSCourseIntegrationPartial[]
 }
@@ -998,7 +998,7 @@ export class LMSOrganizationIntegrationPartial {
 export class LMSCourseIntegrationPartial {
   courseId!: number
   course!: CoursePartial
-  apiPlatform!: LMSIntegration
+  apiPlatform!: LMSIntegrationPlatform
   apiCourseId!: string
   apiKeyExpiry!: Date
   isExpired!: boolean
@@ -2374,7 +2374,7 @@ export function decodeBase64(str: string) {
   return Buffer.from(str, 'base64').toString('utf-8')
 }
 
-export enum LMSIntegration {
+export enum LMSIntegrationPlatform {
   Canvas = 'Canvas',
 }
 

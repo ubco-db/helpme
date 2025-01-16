@@ -62,7 +62,7 @@ import {
   QueueInvite,
   InsightDashboardPartial,
   InsightDetail,
-  LMSIntegration,
+  LMSIntegrationPlatform,
   LMSCourseIntegrationPartial,
   LMSAssignment,
   LMSApiResponseStatus,
@@ -291,36 +291,6 @@ class APIClient {
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
     getAllQueueInvites: async (courseId: number): Promise<QueueInvite[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/queue_invites`),
-    getIntegration: async (
-      courseId: number,
-    ): Promise<LMSCourseIntegrationPartial> =>
-      this.req('GET', `/api/v1/courses/${courseId}/lms_integration`),
-    upsertIntegration: async (
-      courseId: number,
-      props: {
-        apiPlatform: LMSIntegration
-        apiKey: string
-        apiKeyExpiry?: Date
-        apiKeyExpiryDeleted?: boolean
-        apiCourseId: string
-      },
-    ): Promise<string | undefined> =>
-      this.req(
-        'POST',
-        `/api/v1/courses/${courseId}/lms_integration/upsert`,
-        undefined,
-        props,
-      ),
-    removeIntegration: async (
-      courseId: number,
-      props: { apiPlatform: LMSIntegration },
-    ): Promise<string | undefined> =>
-      this.req(
-        'DELETE',
-        `/api/v1/courses/${courseId}/lms_integration/remove`,
-        undefined,
-        props,
-      ),
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>
@@ -779,33 +749,66 @@ class APIClient {
         'GET',
         `/api/v1/organization/${organizationId}/get_professors/${courseId ?? '0'}`,
       ),
-    getIntegrations: async (organizationId: number): Promise<any> =>
-      this.req('GET', `/api/v1/organization/${organizationId}/lms_integration`),
-    upsertIntegration: async (
-      organizationId: number,
-      props: { rootUrl: string; apiPlatform: LMSIntegration },
-    ): Promise<string | undefined> =>
-      this.req(
-        'POST',
-        `/api/v1/organization/${organizationId}/lms_integration/upsert`,
-        undefined,
-        props,
-      ),
-    removeIntegration: async (
-      organizationId: number,
-      props: { apiPlatform: LMSIntegration },
-    ): Promise<string | undefined> =>
-      this.req(
-        'DELETE',
-        `/api/v1/organization/${organizationId}/lms_integration/remove`,
-        undefined,
-        props,
-      ),
     getCronJobs: async (organizationId: number): Promise<CronJob[]> =>
       this.req('GET', `/api/v1/organization/${organizationId}/cronjobs`),
   }
 
   lmsIntegration = {
+    getOrganizationIntegrations: async (organizationId: number): Promise<any> =>
+      this.req(
+        'GET',
+        `/api/v1/lms_integration/organization_integration/${organizationId}`,
+      ),
+    upsertOrganizationIntegration: async (
+      organizationId: number,
+      props: { rootUrl: string; apiPlatform: LMSIntegrationPlatform },
+    ): Promise<string | undefined> =>
+      this.req(
+        'POST',
+        `/api/v1/lms_integration/organization_integration/${organizationId}/upsert`,
+        undefined,
+        props,
+      ),
+    removeOrganizationIntegration: async (
+      organizationId: number,
+      props: { apiPlatform: LMSIntegrationPlatform },
+    ): Promise<string | undefined> =>
+      this.req(
+        'DELETE',
+        `/api/v1/lms_integration/organization_integration/${organizationId}/remove`,
+        undefined,
+        props,
+      ),
+    getCourseIntegration: async (
+      courseId: number,
+    ): Promise<LMSCourseIntegrationPartial> =>
+      this.req('GET', `/api/v1/lms_integration/course_integration/${courseId}`),
+    upsertCourseIntegration: async (
+      courseId: number,
+      props: {
+        apiPlatform: LMSIntegrationPlatform
+        apiKey: string
+        apiKeyExpiry?: Date
+        apiKeyExpiryDeleted?: boolean
+        apiCourseId: string
+      },
+    ): Promise<string | undefined> =>
+      this.req(
+        'POST',
+        `/api/v1/lms_integration/course_integration/${courseId}/upsert`,
+        undefined,
+        props,
+      ),
+    removeCourseIntegration: async (
+      courseId: number,
+      props: { apiPlatform: LMSIntegrationPlatform },
+    ): Promise<string | undefined> =>
+      this.req(
+        'DELETE',
+        `/api/v1/lms_integration/course_integration/${courseId}/remove`,
+        undefined,
+        props,
+      ),
     getCourse: async (courseId: number): Promise<LMSCourseAPIResponse> =>
       this.req('GET', `/api/v1/lms_integration/${courseId}`),
     getStudents: async (courseId: number): Promise<string[]> =>
@@ -857,7 +860,7 @@ class APIClient {
     testIntegration: async (
       courseId: number,
       props: {
-        apiPlatform: LMSIntegration
+        apiPlatform: LMSIntegrationPlatform
         apiKey: string
         apiCourseId: string
       },

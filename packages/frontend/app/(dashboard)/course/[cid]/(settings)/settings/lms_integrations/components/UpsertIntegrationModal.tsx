@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   LMSApiResponseStatus,
   LMSCourseIntegrationPartial,
-  LMSIntegration,
+  LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
 } from '@koh/common'
 import { API } from '@/app/api'
@@ -26,7 +26,7 @@ type CreateIntegrationModalProps = {
   testLMSConnection: (
     key: string,
     course: string,
-    platform: LMSIntegration,
+    platform: LMSIntegrationPlatform,
   ) => Promise<LMSApiResponseStatus>
   onCreate: () => void
 }
@@ -47,7 +47,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
   const [apiKeyExpiry, setApiKeyExpiry] = useState<Date | undefined>(undefined)
   const [apiCourseId, setApiCourseId] = useState<string>('')
   const [selectedPlatform, setSelectedPlatform] = useState<
-    LMSIntegration | undefined
+    LMSIntegrationPlatform | undefined
   >(baseIntegration?.apiPlatform)
 
   const usePlatform = useMemo(() => {
@@ -55,13 +55,14 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
       return selectedPlatform ?? baseIntegration.apiPlatform
     else if (selectedIntegration != undefined)
       return selectedIntegration.apiPlatform
-    else return 'None' as LMSIntegration
+    else return 'None' as LMSIntegrationPlatform
   }, [baseIntegration, selectedIntegration, selectedPlatform])
 
   const mappedLMS = useMemo(() => {
     const pairs: { [key: string]: string } = {}
-    Object.keys(LMSIntegration).map((integration: string) => {
-      pairs[integration] = LMSIntegration[integration as LMSIntegration]
+    Object.keys(LMSIntegrationPlatform).map((integration: string) => {
+      pairs[integration] =
+        LMSIntegrationPlatform[integration as LMSIntegrationPlatform]
     })
     return pairs
   }, [])
@@ -98,8 +99,8 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
           body['apiKeyExpiryDeleted'] = apiKeyExpiry == undefined
         }
 
-        API.course
-          .upsertIntegration(courseId, body as any)
+        API.lmsIntegration
+          .upsertCourseIntegration(courseId, body as any)
           .then((result) => {
             if (!result) {
               message.error(

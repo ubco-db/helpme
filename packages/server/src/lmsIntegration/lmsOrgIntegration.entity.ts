@@ -7,7 +7,7 @@ import {
   OneToMany,
   PrimaryColumn,
 } from 'typeorm';
-import { LMSIntegration } from '@koh/common';
+import { LMSIntegrationPlatform } from '@koh/common';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 import { OrganizationModel } from '../organization/organization.entity';
 
@@ -18,10 +18,10 @@ export class LMSOrganizationIntegrationModel extends BaseEntity {
 
   @PrimaryColumn({
     type: 'enum',
-    enum: LMSIntegration,
+    enum: LMSIntegrationPlatform,
     enumName: 'lms_api_platform_enum',
   })
-  apiPlatform: LMSIntegration;
+  apiPlatform: LMSIntegrationPlatform;
 
   @Column({ type: 'text' })
   rootUrl: string;

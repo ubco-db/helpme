@@ -4,10 +4,13 @@ import {
   LMSIntegrationAdapter,
 } from './lmsIntegration.adapter';
 import {
+  CoursePartial,
   ERROR_MESSAGES,
   LMSApiResponseStatus,
+  LMSCourseIntegrationPartial,
   LMSFileUploadResponse,
   LMSFileUploadResult,
+  LMSOrganizationIntegrationPartial,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
@@ -56,6 +59,82 @@ export class LMSIntegrationService {
     }
   }
 
+  public async upsertOrganizationLMSIntegration(
+    organizationId: number,
+    props: LMSOrganizationIntegrationPartial,
+  ) {
+    let integration = await LMSOrganizationIntegrationModel.findOne({
+      where: { organizationId: organizationId, apiPlatform: props.apiPlatform },
+    });
+    let isUpdate = false;
+    if (integration) {
+      integration.rootUrl = props.rootUrl;
+      isUpdate = true;
+    } else {
+      integration = new LMSOrganizationIntegrationModel();
+      integration.organizationId = organizationId;
+      integration.apiPlatform = props.apiPlatform;
+      integration.rootUrl = props.rootUrl;
+    }
+    await LMSOrganizationIntegrationModel.upsert(integration, [
+      'organizationId',
+      'apiPlatform',
+    ]);
+    return isUpdate
+      ? `Successfully updated integration for ${integration.apiPlatform}`
+      : `Successfully created integration for ${integration.apiPlatform}`;
+  }
+
+  public async createCourseLMSIntegration(
+    orgIntegration: LMSOrganizationIntegrationModel,
+    courseId: number,
+    apiCourseId: string,
+    apiKey: string,
+    apiKeyExpiry?: Date,
+  ) {
+    const integration = new LMSCourseIntegrationModel();
+    integration.orgIntegration = orgIntegration;
+    integration.courseId = courseId;
+    integration.apiKey = apiKey;
+    integration.apiCourseId = apiCourseId;
+    integration.apiKeyExpiry = apiKeyExpiry;
+    await LMSCourseIntegrationModel.upsert(integration, ['courseId']);
+    return `Successfully linked course with ${orgIntegration.apiPlatform}`;
+  }
+
+  public async updateCourseLMSIntegration(
+    integration: LMSCourseIntegrationModel,
+    orgIntegration: LMSOrganizationIntegrationModel,
+    apiKeyExpiryDeleted = false,
+    apiCourseId?: string,
+    apiKey?: string,
+    apiKeyExpiry?: Date,
+  ) {
+    if (integration.orgIntegration.apiPlatform != orgIntegration.apiPlatform) {
+      // If the integration changes to another platform, clear out the previously saved assignments
+      const allAssignments = await LMSAssignmentModel.find({
+        where: { courseId: integration.courseId },
+      });
+      const allAnnouncements = await LMSAnnouncementModel.find({
+        where: { courseId: integration.courseId },
+      });
+
+      await this.clearLMSIntegrationData(integration.courseId);
+      await LMSAssignmentModel.remove(allAssignments);
+      await LMSAnnouncementModel.remove(allAnnouncements);
+    }
+
+    integration.orgIntegration = orgIntegration;
+    integration.apiKey = apiKey ?? integration.apiKey;
+    integration.apiCourseId = apiCourseId ?? integration.apiCourseId;
+    integration.apiKeyExpiry = apiKeyExpiryDeleted
+      ? null
+      : (apiKeyExpiry ?? integration.apiKeyExpiry);
+
+    await LMSCourseIntegrationModel.upsert(integration, ['courseId']);
+    return `Successfully updated link with ${integration.orgIntegration.apiPlatform}`;
+  }
+
   async getAdapter(courseId: number): Promise<AbstractLMSAdapter | undefined> {
     const integration = await LMSCourseIntegrationModel.findOne(
       { courseId },
@@ -75,11 +154,17 @@ export class LMSIntegrationService {
     tempIntegration.orgIntegration = orgIntegration;
 
     const adapter = await this.integrationAdapter.getAdapter(tempIntegration);
-    if (!adapter.isImplemented()) {
-      return LMSApiResponseStatus.InvalidPlatform;
-    }
+    if (!adapter.isImplemented())
+      throw new HttpException(
+        LMSApiResponseStatus.InvalidPlatform,
+        HttpStatus.BAD_REQUEST,
+      );
 
-    return (await adapter.getCourse()).status;
+    const status = (await adapter.getCourse()).status;
+    if (status != LMSApiResponseStatus.Success)
+      throw new HttpException(status, this.lmsStatusToHttpStatus(status));
+
+    return status;
   }
 
   async getItems(courseId: number, type: LMSGet) {
@@ -265,37 +350,33 @@ export class LMSIntegrationService {
         }
       };
 
-      if (item.documentId != undefined) {
-        await fetch(
-          `/chat/${courseId}/${item.documentId}/documentChunk`,
-          reqOptions,
-        )
-          .then(thenFx)
-          .catch((_) =>
-            console.log('Failed to update uploaded document in the Chatbot'),
-          );
-      } else {
-        await fetch(`/chat/${courseId}/documentChunk`, reqOptions)
-          .then(thenFx)
-          .then((json) => {
-            if (json.completed == true) return;
-            const persistedDoc = json as {
-              id: string;
-              pageContent: string;
-              metadata: any;
-            };
-            statuses.push({
-              id: item.id,
-              type:
-                type == LMSUpload.Announcements ? 'Announcement' : 'Assignment',
-              success: true,
-              documentId: persistedDoc.id,
-            });
-          })
-          .catch((_) =>
-            console.log('Failed to upload a document to the Chatbot'),
-          );
-      }
+      await fetch(
+        item.documentId != undefined
+          ? `/chat/${courseId}/${item.documentId}/documentChunk`
+          : `/chat/${courseId}/documentChunk`,
+        reqOptions,
+      )
+        .then(thenFx)
+        .then((json) => {
+          if (json.completed == true) return;
+          const persistedDoc = json as {
+            id: string;
+            pageContent: string;
+            metadata: any;
+          };
+          statuses.push({
+            id: item.id,
+            type:
+              type == LMSUpload.Announcements ? 'Announcement' : 'Assignment',
+            success: true,
+            documentId: persistedDoc.id,
+          });
+        })
+        .catch((error) =>
+          console.log(
+            `Failed to upload a document to the Chatbot (${error.message})`,
+          ),
+        );
     }
 
     await ChatTokenModel.remove(token);
@@ -332,5 +413,43 @@ export class LMSIntegrationService {
         success: a.success,
       } as LMSFileUploadResult;
     });
+  }
+
+  async clearLMSIntegrationData(courseId: number) {
+    const assignments = await LMSAssignmentModel.find({
+      where: { courseId: courseId },
+    });
+    const announcements = await LMSAnnouncementModel.find({
+      where: { courseId: courseId },
+    });
+  }
+
+  getPartialOrgLmsIntegration(lmsIntegration: LMSOrganizationIntegrationModel) {
+    return {
+      organizationId: lmsIntegration.organizationId,
+      apiPlatform: lmsIntegration.apiPlatform,
+      rootUrl: lmsIntegration.rootUrl,
+      courseIntegrations:
+        lmsIntegration.courseIntegrations?.map((cint) =>
+          this.getPartialCourseLmsIntegration(cint),
+        ) ?? [],
+    } satisfies LMSOrganizationIntegrationPartial;
+  }
+
+  getPartialCourseLmsIntegration(lmsIntegration: LMSCourseIntegrationModel) {
+    return {
+      apiPlatform: lmsIntegration.orgIntegration.apiPlatform,
+      courseId: lmsIntegration.courseId,
+      course: {
+        id: lmsIntegration.courseId,
+        name: lmsIntegration.course.name,
+      } satisfies CoursePartial,
+      apiCourseId: lmsIntegration.apiCourseId,
+      apiKeyExpiry: lmsIntegration.apiKeyExpiry,
+      isExpired:
+        lmsIntegration.apiKeyExpiry != undefined &&
+        lmsIntegration.apiKeyExpiry instanceof Date &&
+        new Date(lmsIntegration.apiKeyExpiry).getTime() < new Date().getTime(),
+    } satisfies LMSCourseIntegrationPartial;
   }
 }

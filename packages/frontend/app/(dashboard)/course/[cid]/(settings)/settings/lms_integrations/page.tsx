@@ -16,7 +16,7 @@ import {
   LMSAnnouncement,
   LMSApiResponseStatus,
   LMSAssignment,
-  LMSIntegration,
+  LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
 } from '@koh/common'
 import { API } from '@/app/api'
@@ -24,10 +24,9 @@ import { useUserInfo } from '@/app/contexts/userContext'
 import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal'
 import { PenBoxIcon, RefreshCwIcon, TrashIcon } from 'lucide-react'
 import LMSRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSRosterTable'
-import LMSAssignmentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSAssignmentList'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useCourseLmsIntegration } from '@/app/hooks/useCourseLmsIntegration'
-import LMSAnnouncementList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSAnnouncementList'
+import LMSDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSDocumentList'
 
 export default function CourseLMSIntegrationPage({
   params,
@@ -65,8 +64,8 @@ export default function CourseLMSIntegrationPage({
   const [isTesting, setIsTesting] = useState<boolean>(false)
 
   const fetchOrgIntegrationsAsync = useCallback(async () => {
-    await API.organizations
-      .getIntegrations(organizationId)
+    await API.lmsIntegration
+      .getOrganizationIntegrations(organizationId)
       .then((response) => {
         if (response) setLmsIntegrations(response)
         else setLmsIntegrations([])
@@ -80,7 +79,7 @@ export default function CourseLMSIntegrationPage({
   const testLMSConnection = async (
     apiKey: string,
     apiCourseId: string,
-    apiPlatform: LMSIntegration,
+    apiPlatform: LMSIntegrationPlatform,
   ) => {
     if (apiKey == undefined || apiKey.trim() == '') {
       message.warning('API Key is required')
@@ -100,7 +99,7 @@ export default function CourseLMSIntegrationPage({
         apiCourseId: apiCourseId,
       })
       .catch((error) => {
-        message.error(error)
+        message.error(getErrorMessage(error))
         return LMSApiResponseStatus.Error
       })
 
@@ -129,8 +128,10 @@ export default function CourseLMSIntegrationPage({
       return
     }
 
-    API.course
-      .removeIntegration(courseId, { apiPlatform: integration.apiPlatform })
+    API.lmsIntegration
+      .removeCourseIntegration(courseId, {
+        apiPlatform: integration.apiPlatform,
+      })
       .then((result) => {
         if (!result) {
           message.error(
@@ -247,9 +248,10 @@ export default function CourseLMSIntegrationPage({
         key: 'assignments',
         label: 'Course Assignments',
         children: (
-          <LMSAssignmentList
+          <LMSDocumentList<LMSAssignment>
+            type={'Assignment'}
             courseId={courseId}
-            assignments={assignments}
+            documents={assignments}
             loadingLMSData={isLoading}
             updateCallback={(new_assignments: LMSAssignment[]) => {
               setAssignments((prev) => {
@@ -276,9 +278,10 @@ export default function CourseLMSIntegrationPage({
         key: 'announcements',
         label: 'Course Announcements',
         children: (
-          <LMSAnnouncementList
+          <LMSDocumentList<LMSAnnouncement>
+            type={'Announcement'}
             courseId={courseId}
-            announcements={announcements}
+            documents={announcements}
             loadingLMSData={isLoading}
             updateCallback={(new_announcements: LMSAnnouncement[]) => {
               setAnnouncements((prev) => {

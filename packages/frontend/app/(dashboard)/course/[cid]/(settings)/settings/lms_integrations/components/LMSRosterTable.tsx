@@ -6,7 +6,7 @@ import {
   SearchOutlined,
   UserDeleteOutlined,
 } from '@ant-design/icons'
-import { LMSIntegration, Role, UserPartial } from '@koh/common'
+import { LMSIntegrationPlatform, Role, UserPartial } from '@koh/common'
 import {
   Badge,
   Button,
@@ -23,7 +23,7 @@ import { checkNameAgainst, cn } from '@/app/utils/generalUtils'
 type LMSRosterTableProps = {
   courseId: number
   lmsStudents: string[]
-  lmsPlatform: LMSIntegration
+  lmsPlatform: LMSIntegrationPlatform
   loadingLMSData?: boolean
 }
 
