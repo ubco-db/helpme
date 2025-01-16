@@ -282,7 +282,6 @@ describe('CalendarService', () => {
         userId,
         calendarId,
         courseId,
-        false,
       );
 
       expect(schedulerRegistry.deleteCronJob).toHaveBeenCalledWith(jobName);
