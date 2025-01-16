@@ -11,6 +11,8 @@
 - Fixed a bug where all anytime questions would be marked as "Human Verified" even if the staff member did not modify the answer nor clicked the box to mark it as staff verified
 - Fixed a bug where the "Check In" button on the home course page did not work
 
+***
+
 ## Version 1.2.0 - Jan 11, 2024
 
 #### New Features
