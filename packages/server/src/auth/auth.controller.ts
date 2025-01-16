@@ -127,7 +127,7 @@ export class AuthController {
     @Req() req: Request,
     @Body() registrationTokenDetails: RegistrationTokenDetails,
   ): Promise<Response<void>> {
-    const { token } = registrationTokenDetails;
+    const token = registrationTokenDetails.token.toUpperCase();
     const userId = Number((req.user as RequestUser).userId);
 
     const emailToken = await UserTokenModel.findOne({
