@@ -207,6 +207,7 @@ export class LMSIntegrationController {
 
     const courseIntegration = await LMSCourseIntegrationModel.findOne({
       where: { courseId: courseId },
+      relations: ['orgIntegration'],
     });
 
     if (courseIntegration != undefined) {

@@ -39,9 +39,7 @@ export default function CourseLMSIntegrationPage({
     integration,
     course,
     assignments,
-    setAssignments,
     announcements,
-    setAnnouncements,
     students,
     isLoading,
   } = useCourseLmsIntegration(courseId, updateFlag)

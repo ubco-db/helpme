@@ -13,9 +13,7 @@ export type CourseLmsIntegration = {
   integration?: LMSCourseIntegrationPartial
   course?: LMSCourseAPIResponse
   assignments: LMSAssignment[]
-  setAssignments: React.Dispatch<React.SetStateAction<LMSAssignment[]>>
   announcements: LMSAnnouncement[]
-  setAnnouncements: React.Dispatch<React.SetStateAction<LMSAnnouncement[]>>
   students: string[]
   isLoading: boolean
 }
@@ -94,9 +92,7 @@ export function useCourseLmsIntegration(
     integration,
     course,
     assignments,
-    setAssignments,
     announcements,
-    setAnnouncements,
     students,
     isLoading,
   }

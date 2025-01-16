@@ -102,9 +102,16 @@ export default function LMSDocumentList<
             colSpan: 1,
           },
           {
-            dataIndex: 'Message',
+            dataIndex: 'message',
             header: 'Message',
-            cellFormat: (item: string) => item,
+            cellFormat: (item: string) =>
+              (item != undefined && item.length > 0 && (
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: item,
+                  }}
+                ></div>
+              )) || <i>No message</i>,
             colSpan: 3,
           },
           {

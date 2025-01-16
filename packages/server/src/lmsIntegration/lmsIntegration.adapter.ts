@@ -112,6 +112,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
         if (!response.ok) {
           switch (response.status) {
             case 401:
+            case 403:
               return { status: LMSApiResponseStatus.InvalidKey };
             case 404:
               return { status: LMSApiResponseStatus.InvalidCourseId };
@@ -124,7 +125,10 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
           });
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.log(
+          `Error contacting ${this.integration.orgIntegration.rootUrl}: ${error}`,
+        );
         return { status: LMSApiResponseStatus.Error };
       });
   }
@@ -243,10 +247,8 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     announcements: LMSAnnouncement[];
   }> {
     const { status, data } = await this.GetPaginated(
-      `announcements?context_codes[]=course_${this.integration.apiCourseId}&active_only=true`,
+      `announcements?context_codes[]=course_${this.integration.apiCourseId}`,
     );
-
-    console.log(data);
 
     if (status != LMSApiResponseStatus.Success)
       return { status, announcements: [] };
@@ -258,7 +260,11 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
           id: announcement.id,
           title: announcement.title,
           message: announcement.message,
-          posted: new Date(announcement.posted),
+          posted:
+            announcement.posted_at != undefined &&
+            announcement.posted_at.trim() != ''
+              ? new Date(announcement.posted_at)
+              : undefined,
         } as LMSAnnouncement;
       });
     await this.updateItems(LMSUpload.Announcements, announcements);
