@@ -9,6 +9,7 @@ import {
   List,
   message,
   Modal,
+  Spin,
   Tabs,
 } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -134,7 +135,15 @@ export default function CourseLMSIntegrationPage({
       })
   }
 
-  if (integration == undefined || course == undefined) {
+  if (isLoading) {
+    return (
+      <div className={'flex h-full w-full items-center justify-center'}>
+        <Spin tip="Loading..." size="large" />
+      </div>
+    )
+  }
+
+  if (integration == undefined) {
     return (
       <div
         className={'flex h-full w-full flex-col items-center justify-center'}
@@ -311,7 +320,7 @@ export default function CourseLMSIntegrationPage({
               </Button>
             </div>
           </div>
-          {!integration.isExpired && (
+          {!integration.isExpired && course != undefined && (
             <>
               <Descriptions layout={'vertical'} bordered={true}>
                 <Descriptions.Item label={'API Course ID'}>

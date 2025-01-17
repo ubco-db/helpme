@@ -6,10 +6,6 @@ import {
   LMSAssignment,
   LMSCourseAPIResponse,
 } from '@koh/common';
-import { LMSAssignmentModel } from './lmsAssignment.entity';
-import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
-import { In } from 'typeorm';
-import { LMSUpload } from './lmsIntegration.service';
 
 @Injectable()
 export class LMSIntegrationAdapter {
@@ -60,16 +56,6 @@ export abstract class AbstractLMSAdapter {
   async getAssignments(): Promise<{
     status: LMSApiResponseStatus;
     assignments: LMSAssignment[];
-  }> {
-    return null;
-  }
-
-  async saveItems(
-    type: LMSUpload,
-    ids?: number[],
-  ): Promise<{
-    status: LMSApiResponseStatus;
-    items: LMSAssignment[] | LMSAnnouncement[];
   }> {
     return null;
   }
@@ -191,63 +177,12 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     };
   }
 
-  private async updateItems(type: LMSUpload, data: any) {
-    let model: typeof LMSAssignmentModel | typeof LMSAnnouncementModel;
-    switch (type) {
-      case LMSUpload.Announcements: {
-        model = LMSAnnouncementModel;
-        break;
-      }
-      case LMSUpload.Assignments: {
-        model = LMSAssignmentModel;
-        break;
-      }
-      default:
-        return undefined;
-    }
-
-    const persisted = await model.find({
-      where: {
-        courseId: this.integration.apiCourseId,
-        id: In(data.map((a: any) => a.id)),
-      },
-    });
-
-    for (const p of persisted) {
-      const a = data.find((a: any) => a.id == p.id);
-      switch (type) {
-        case LMSUpload.Announcements: {
-          const per = p as unknown as LMSAnnouncementModel;
-          const ann = a as unknown as LMSAnnouncement;
-          if (new Date(ann.posted).getTime() < new Date(per.posted).getTime()) {
-            per.modified = new Date();
-            per.posted = new Date(ann.posted);
-            a.modified = per.modified;
-            await model.upsert(per, ['id']);
-          }
-          break;
-        }
-        case LMSUpload.Assignments: {
-          const per = p as unknown as LMSAssignmentModel;
-          const asg = a as unknown as LMSAssignment;
-          if (
-            new Date(asg.modified).getTime() < new Date(per.modified).getTime()
-          ) {
-            per.modified = new Date(asg.modified);
-            await model.upsert(per, ['id']);
-          }
-          break;
-        }
-      }
-    }
-  }
-
   async getAnnouncements(): Promise<{
     status: LMSApiResponseStatus;
     announcements: LMSAnnouncement[];
   }> {
     const { status, data } = await this.GetPaginated(
-      `announcements?context_codes[]=course_${this.integration.apiCourseId}`,
+      `courses/${this.integration.apiCourseId}/discussion_topics?only_announcements=true`,
     );
 
     if (status != LMSApiResponseStatus.Success)
@@ -267,7 +202,11 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
               : undefined,
         } as LMSAnnouncement;
       });
-    await this.updateItems(LMSUpload.Announcements, announcements);
+    announcements.sort((a0, a1) => {
+      if (a0.posted == undefined) return 1;
+      else if (a1.posted == undefined) return -1;
+      else return a0.posted.getTime() - a1.posted.getTime();
+    });
 
     return {
       status: LMSApiResponseStatus.Success,
@@ -299,98 +238,10 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
               : undefined,
         } as LMSAssignment;
       });
-    await this.updateItems(LMSUpload.Assignments, assignments);
 
     return {
       status: LMSApiResponseStatus.Success,
       assignments,
-    };
-  }
-
-  async saveItems(
-    type: LMSUpload,
-    ids?: number[],
-  ): Promise<{
-    status: LMSApiResponseStatus;
-    items: LMSAssignment[] | LMSAnnouncement[];
-  }> {
-    let result: {
-      status: LMSApiResponseStatus;
-      assignments?: LMSAssignment[];
-      announcements?: LMSAnnouncement[];
-    };
-    let model: typeof LMSAssignmentModel | typeof LMSAnnouncementModel;
-    switch (type) {
-      case LMSUpload.Assignments:
-        result = await this.getAssignments();
-        model = LMSAssignmentModel;
-        break;
-      case LMSUpload.Announcements:
-        result = await this.getAnnouncements();
-        model = LMSAnnouncementModel;
-        break;
-      default:
-        result = { status: LMSApiResponseStatus.Error };
-        break;
-    }
-
-    if (result.status != LMSApiResponseStatus.Success) {
-      return { status: result.status, items: [] };
-    }
-
-    let items: LMSAssignment[] | LMSAnnouncement[];
-    switch (type) {
-      case LMSUpload.Assignments:
-        items = result.assignments;
-        break;
-      case LMSUpload.Announcements:
-        items = result.announcements;
-        break;
-    }
-
-    let toSave = [...items];
-    if (ids != undefined) {
-      toSave = toSave.filter((v) => ids.includes(v.id));
-    }
-
-    const itms = await model.save(
-      toSave.map((i) =>
-        model.create({
-          ...i,
-          courseId: this.integration.courseId,
-          modified: new Date(),
-        }),
-      ),
-    );
-
-    return {
-      status: LMSApiResponseStatus.Success,
-      items: itms.map((i) => {
-        switch (type) {
-          case LMSUpload.Assignments: {
-            const a = i as unknown as LMSAssignmentModel;
-            return {
-              id: a.id,
-              name: a.name,
-              description: a.description,
-              due: a.due,
-              modified: a.modified,
-            } as LMSAssignment;
-          }
-          case LMSUpload.Announcements: {
-            const a = i as unknown as LMSAnnouncementModel;
-            return {
-              id: a.id,
-              title: a.title,
-              message: a.message,
-              posted: a.posted,
-              modified: a.modified,
-            } as LMSAnnouncement;
-          }
-          default:
-            return {} as any;
-        }
-      }),
     };
   }
 }

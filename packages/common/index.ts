@@ -1015,8 +1015,7 @@ export type LMSAssignment = {
   name: string
   description: string
   due?: Date
-  modified: Date
-  saved?: boolean
+  modified?: Date
   uploaded?: Date
 }
 
@@ -1026,7 +1025,6 @@ export type LMSAnnouncement = {
   message: string
   posted: Date
   modified?: Date
-  saved?: boolean
   uploaded?: Date
 }
 
@@ -2611,5 +2609,7 @@ export const ERROR_MESSAGES = {
       'Root URL should not include protocol (https/http)',
     orgIntegrationNotFound: 'Course organization has no LMS integrations',
     courseLmsIntegrationNotFound: 'Course has no related LMS integration',
+    noChatToken:
+      'No HelpMe Chatbot API token associated with account could be found',
   },
 }

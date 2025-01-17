@@ -19,19 +19,19 @@ export class LMSAssignmentModel extends BaseEntity {
   @Column({ type: 'text' })
   name: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', default: '' })
   description: string;
 
   @Column({ type: 'timestamp', nullable: true })
   due?: Date;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'timestamp' })
   modified: Date;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text' })
   chatbotDocumentId: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp' })
   uploaded: Date;
 
   @ManyToOne(

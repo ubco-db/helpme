@@ -34,47 +34,54 @@ export function useCourseLmsIntegration(
   }
 
   useEffect(() => {
+    ;(async () => {
+      if (integration != undefined && courseId != undefined) {
+        if (!integration.isExpired) {
+          await API.lmsIntegration
+            .getCourse(courseId)
+            .then((response) => {
+              if (response) {
+                setCourse(response)
+              }
+            })
+            .catch(errorFx)
+          await API.lmsIntegration
+            .getAssignments(courseId)
+            .then((response) => {
+              if (response) {
+                setAssignments(response)
+              }
+            })
+            .catch(errorFx)
+          await API.lmsIntegration
+            .getAnnouncements(courseId)
+            .then((response) => {
+              if (response) {
+                setAnnouncements(response)
+              }
+            })
+            .catch(errorFx)
+          await API.lmsIntegration
+            .getStudents(courseId)
+            .then((response) => {
+              if (response) {
+                setStudents(response)
+              }
+            })
+            .catch(errorFx)
+        }
+        setIsLoading(false)
+      } else setIsLoading(true)
+    })()
+  }, [courseId, integration])
+
+  useEffect(() => {
     if (courseId != undefined) {
       API.lmsIntegration
         .getCourseIntegration(courseId)
         .then((response) => {
           if (response) {
             setIntegration(response)
-            if (!response.isExpired) {
-              API.lmsIntegration
-                .getCourse(courseId)
-                .then((response) => {
-                  if (response) {
-                    setCourse(response)
-                  }
-                })
-                .catch(errorFx)
-              API.lmsIntegration
-                .getAssignments(courseId)
-                .then((response) => {
-                  if (response) {
-                    setAssignments(response)
-                  }
-                })
-                .catch(errorFx)
-              API.lmsIntegration
-                .getAnnouncements(courseId)
-                .then((response) => {
-                  if (response) {
-                    setAnnouncements(response)
-                  }
-                })
-                .catch(errorFx)
-              API.lmsIntegration
-                .getStudents(courseId)
-                .then((response) => {
-                  if (response) {
-                    setStudents(response)
-                  }
-                })
-                .catch(errorFx)
-            }
-            setIsLoading(false)
           }
         })
         .catch(errorFx)

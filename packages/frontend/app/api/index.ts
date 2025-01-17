@@ -823,24 +823,27 @@ class APIClient {
       this.req('GET', `/api/v1/lms/${courseId}/announcements`),
     uploadAssignments: async (
       courseId: number,
-      ids?: number[],
-    ): Promise<LMSFileResult[]> =>
-      this.req('GET', `/api/v1/lms/${courseId}/assignments/upload`, undefined, {
-        ids,
-      }),
-    uploadAnnouncements: async (
-      courseId: number,
-      ids?: number[],
+      ids: number[],
     ): Promise<LMSFileResult[]> =>
       this.req(
-        'GET',
+        'POST',
+        `/api/v1/lms/${courseId}/assignments/upload`,
+        undefined,
+        { ids },
+      ),
+    uploadAnnouncements: async (
+      courseId: number,
+      ids: number[],
+    ): Promise<LMSFileResult[]> =>
+      this.req(
+        'POST',
         `/api/v1/lms/${courseId}/announcements/upload`,
         undefined,
         { ids },
       ),
     removeAssignments: async (
       courseId: number,
-      ids?: number[],
+      ids: number[],
     ): Promise<LMSFileResult[]> =>
       this.req(
         'DELETE',
@@ -850,7 +853,7 @@ class APIClient {
       ),
     removeAnnouncements: async (
       courseId: number,
-      ids?: number[],
+      ids: number[],
     ): Promise<LMSFileResult[]> =>
       this.req(
         'DELETE',
