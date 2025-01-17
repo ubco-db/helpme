@@ -273,7 +273,14 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           options={staff?.map((staff) => ({
             label: staff.name,
             value: staff.id,
+            email: staff.email,
           }))}
+          optionRender={(option) => (
+            <div>
+              {option.data.label}
+              <span className="ml-2 text-gray-400">{option.data.email}</span>
+            </div>
+          )}
           loading={staff === null}
           style={{ width: '100%' }}
           optionFilterProp="label"
