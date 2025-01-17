@@ -11,6 +11,7 @@ import { addGlobalsToApp } from '../../src/bootstrap';
 import { LoginModule } from '../../src/login/login.module';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { ApplicationConfigModule } from 'config/application_config.module';
+import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
 
 export interface SupertestOptions {
   userId?: number;
@@ -36,20 +37,24 @@ export const TestConfigModule = ConfigModule.forRoot({
 export function setupIntegrationTest(
   module: Type<any>,
   modifyModule?: ModuleModifier,
+  additionalModules: Type<any>[] = [],
 ): (u?: SupertestOptions) => supertest.SuperTest<supertest.Test> {
   let app: INestApplication;
   let jwtService: JwtService;
   let conn: Connection;
   let appConfig: ApplicationConfigService;
+  let schedulerRegistry: SchedulerRegistry;
 
   beforeAll(async () => {
     let testModuleBuilder = Test.createTestingModule({
       imports: [
+        ...additionalModules,
         module,
         LoginModule,
         TestTypeOrmModule,
         TestConfigModule,
         ApplicationConfigModule,
+        ScheduleModule.forRoot(),
         RedisModule.register([
           { name: 'pub' },
           { name: 'sub' },
@@ -73,6 +78,7 @@ export function setupIntegrationTest(
 
     await appConfig.loadConfig();
     await app.init();
+    schedulerRegistry = testModule.get<SchedulerRegistry>(SchedulerRegistry);
   });
 
   afterAll(async () => {
@@ -82,6 +88,7 @@ export function setupIntegrationTest(
 
   beforeEach(async () => {
     await conn.synchronize(true);
+    await clearAllCronJobs(schedulerRegistry);
   });
 
   return (options?: SupertestOptions): supertest.SuperTest<supertest.Test> => {
@@ -106,3 +113,12 @@ export const modifyMockNotifs: ModuleModifier = (t) =>
   t.overrideProvider(NotificationService).useValue(notifMock);
 export const expectUserNotified = (userId: number): void =>
   expect(notifMock.notifyUser).toHaveBeenCalledWith(userId, expect.any(String));
+
+export async function clearAllCronJobs(
+  schedulerRegistry: SchedulerRegistry,
+): Promise<void> {
+  const cronJobs = schedulerRegistry.getCronJobs();
+  cronJobs.forEach((_, jobName) => {
+    schedulerRegistry.deleteCronJob(jobName);
+  });
+}

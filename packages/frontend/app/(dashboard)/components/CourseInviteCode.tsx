@@ -83,7 +83,14 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
           className="flex-1"
           label="Invite Code"
           name="courseInviteCode"
-          tooltip="The invite code gets added onto the invite link and is there to prevent anyone without the code from joining the course. You can set it to anything you like, though preferably not something easy to guess. Once set, you can share the invite link to your students."
+          rules={[
+            {
+              pattern: /^[a-zA-Z0-9_-]+$/,
+              message:
+                'Only letters, numbers, hyphen, and underscore allowed (restriction will be fixed and removed later)',
+            },
+          ]}
+          tooltip="The invite code gets added onto the invite link and is there to prevent anyone without the code from joining the course. You can set it to anything you like, though preferably not something easy to guess. Once set, you can share the invite link to your students. "
         >
           <Input allowClear={true} />
         </Form.Item>

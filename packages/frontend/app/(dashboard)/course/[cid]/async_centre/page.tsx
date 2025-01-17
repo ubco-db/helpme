@@ -31,6 +31,8 @@ import {
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { useChatbotContext } from '../components/chatbot/ChatbotProvider'
+import ConvertChatbotQToAnytimeQModal from './components/modals/ConvertChatbotQToAnytimeQModal'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 type AsyncCentrePageProps = {
   params: { cid: string }
@@ -39,6 +41,9 @@ type AsyncCentrePageProps = {
 export default function AsyncCentrePage({
   params,
 }: AsyncCentrePageProps): ReactElement {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
   const courseId = Number(params.cid)
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
@@ -49,8 +54,9 @@ export default function AsyncCentrePage({
   const [editAsyncCentreModalOpen, setEditAsyncCentreModalOpen] =
     useState(false)
   const [questionTypes] = useQuestionTypes(courseId, null)
+
   // chatbot
-  const { setCid, setRenderSmallChatbot } = useChatbotContext()
+  const { setCid, setRenderSmallChatbot, messages } = useChatbotContext()
   useEffect(() => {
     setCid(courseId)
   }, [courseId, setCid])
@@ -58,6 +64,16 @@ export default function AsyncCentrePage({
     setRenderSmallChatbot(true)
     return () => setRenderSmallChatbot(false) // make the chatbot inactive when the user leaves the page
   }, [setRenderSmallChatbot])
+
+  const [convertChatbotQModalOpen, setConvertChatbotQModalOpen] =
+    useState(false)
+  const convertChatbotQSearchParam = searchParams.get('convertChatbotQ')
+  useEffect(() => {
+    if (convertChatbotQSearchParam && messages.length > 1) {
+      setConvertChatbotQModalOpen(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convertChatbotQSearchParam])
 
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'verified' | 'unverified'
@@ -192,6 +208,7 @@ export default function AsyncCentrePage({
             return null
           }
         }}
+        optionFilterProp="label"
         options={questionTypes.map((tag) => ({
           label: tag.name,
           value: tag.id,
@@ -283,19 +300,20 @@ export default function AsyncCentrePage({
         <title>{`HelpMe | ${userInfo.courses.find((e) => e.course.id === courseId)?.course.name ?? ''} - Anytime Questions`}</title>
         <AsyncCentreInfoColumn
           buttons={
-            isStaff ? (
-              <EditQueueButton
-                onClick={() => setEditAsyncCentreModalOpen(true)}
-              >
-                Settings
-              </EditQueueButton>
-            ) : (
+            <>
+              {isStaff && (
+                <EditQueueButton
+                  onClick={() => setEditAsyncCentreModalOpen(true)}
+                >
+                  Settings
+                </EditQueueButton>
+              )}
               <JoinQueueButton
                 onClick={() => setCreateAsyncQuestionModalOpen(true)}
               >
                 Post Question
               </JoinQueueButton>
-            )
+            </>
           }
         />
         <VerticalDivider />
@@ -354,7 +372,21 @@ export default function AsyncCentrePage({
             />
           ))}
         </div>
-        {isStaff ? (
+        <ConvertChatbotQToAnytimeQModal
+          courseId={courseId}
+          open={convertChatbotQModalOpen}
+          onCancel={() => {
+            router.replace(pathname)
+            setConvertChatbotQModalOpen(false)
+          }}
+          onCreateOrUpdateQuestion={() => {
+            mutateAsyncQuestions()
+            router.replace(pathname)
+            setConvertChatbotQModalOpen(false)
+          }}
+          chatbotQ={{ messages: messages }}
+        />
+        {isStaff && (
           <>
             {/* Note: these are not all of the modals. TAAsyncQuestionCardButtons contains PostResponseModal and StudentAsyncQuestionButtons contains a second CreateAsyncQuestionModal */}
             <EditAsyncCentreModal
@@ -367,17 +399,16 @@ export default function AsyncCentrePage({
               }}
             />
           </>
-        ) : (
-          <CreateAsyncQuestionModal
-            courseId={courseId}
-            open={createAsyncQuestionModalOpen}
-            onCancel={() => setCreateAsyncQuestionModalOpen(false)}
-            onCreateOrUpdateQuestion={() => {
-              mutateAsyncQuestions()
-              setCreateAsyncQuestionModalOpen(false)
-            }}
-          />
         )}
+        <CreateAsyncQuestionModal
+          courseId={courseId}
+          open={createAsyncQuestionModalOpen}
+          onCancel={() => setCreateAsyncQuestionModalOpen(false)}
+          onCreateOrUpdateQuestion={() => {
+            mutateAsyncQuestions()
+            setCreateAsyncQuestionModalOpen(false)
+          }}
+        />
       </div>
     )
   }
