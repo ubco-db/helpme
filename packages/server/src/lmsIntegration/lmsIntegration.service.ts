@@ -284,14 +284,16 @@ export class LMSIntegrationService {
   ) {
     const model = await this.getDocumentModel(type);
 
-    const items = await model
+    let qb = model
       .createQueryBuilder('aModel')
       .select()
-      .where('aModel.courseId = :courseId', { courseId })
-      .andWhere('aModel.id IN (:...ids)', { ids })
-      .getMany();
+      .where('aModel.courseId = :courseId', { courseId });
 
-    return { model, items };
+    if (ids.length > 0) {
+      qb = qb.andWhere('aModel.id IN (:...ids)', { ids });
+    }
+
+    return { model, items: await qb.getMany() };
   }
 
   async uploadDocuments(
@@ -519,12 +521,12 @@ export class LMSIntegrationService {
     switch (type) {
       case LMSUpload.Announcements: {
         const a = item as LMSAnnouncement;
-        documentText = `(Announcement) Title: ${a.title}\nContent: ${a.message}\nPosted: ${a.posted.getTime()}${a.modified != undefined ? `\nModified: ${a.modified.getTime()}` : ''}`;
+        documentText = `(Course Announcement)\n Title: ${a.title}\nContent: ${a.message}\nPosted: ${a.posted.getTime()}${a.modified != undefined ? `\nModified: ${a.modified.getTime()}` : ''}`;
         break;
       }
       case LMSUpload.Assignments: {
         const a = item as any as LMSAssignment;
-        documentText = `Assignment: ${a.name}\n${a.due != undefined ? `Due Date: ${a.due.toLocaleDateString()}\n` : 'Due Date: No due date\n'}Description: ${a.description}`;
+        documentText = `(Course Assignment)\n Name: ${a.name}\n${a.due != undefined ? `Due Date: ${a.due.toLocaleDateString()}\n` : 'Due Date: No due date\n'}Description: ${a.description}`;
         break;
       }
       default:

@@ -7,7 +7,12 @@ import {
   CourseFactory,
   lmsCourseIntFactory,
   lmsOrgIntFactory,
+  OrganizationFactory,
 } from '../../test/util/factories';
+import {
+  LMSIntegrationPlatform,
+  LMSOrganizationIntegrationPartial,
+} from '@koh/common';
 
 describe('LmsIntegrationService', () => {
   let service: LMSIntegrationService;

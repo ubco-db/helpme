@@ -3,13 +3,13 @@ import { LMSAnnouncement, LMSAssignment, LMSFileResult } from '@koh/common'
 import {
   Badge,
   Button,
+  Checkbox,
   Collapse,
   Input,
   List,
   message,
   Modal,
   Pagination,
-  Radio,
   Spin,
 } from 'antd'
 import { useCallback, useMemo, useState } from 'react'
@@ -359,7 +359,7 @@ export default function LMSDocumentList<
       if (results.filter((r) => !r.success).length == results.length) {
         message.error('Failed to upload any documents to Chatbot')
       } else if (results.filter((r) => r.success).length == results.length) {
-        message.success('Uploaded all documents to Chatbot')
+        message.success(`${action}ed all documents to Chatbot`)
       } else {
         message.warning('Failed to upload some documents to Chatbot')
       }
@@ -425,7 +425,7 @@ export default function LMSDocumentList<
                 )}
               >
                 {col.selectable && (
-                  <Radio
+                  <Checkbox
                     disabled={
                       ('description' in item &&
                         item.description == undefined) ||
@@ -434,7 +434,7 @@ export default function LMSDocumentList<
                     }
                     checked={selected.includes(item.id)}
                     onClick={() => toggleSelect(item.id)}
-                  ></Radio>
+                  ></Checkbox>
                 )}
                 <div>
                   {col.cellFormat(
@@ -541,9 +541,6 @@ export default function LMSDocumentList<
                   </Button>
                 </div>
               </div>
-              {renderDocumentList(
-                documents.filter((d) => selected.includes(d.id)),
-              )}
             </div>
           </Collapse.Panel>
         </Collapse>

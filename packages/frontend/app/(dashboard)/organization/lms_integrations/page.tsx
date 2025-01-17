@@ -271,12 +271,15 @@ export default function LMSIntegrationsPage(): ReactElement {
             name={'apiPlatform'}
             tooltip={'The LMS platform to connect with this organization'}
           >
-            <Select
-              options={selectOptions as BaseOptionType[]}
-              value={focusIntegration ?? selectedIntegration}
-              onSelect={(selection) => setSelectedIntegration(selection)}
-              disabled={focusIntegration != undefined}
-            />
+            {focusIntegration != undefined ? (
+              <Input disabled={true} />
+            ) : (
+              <Select
+                options={selectOptions as BaseOptionType[]}
+                value={selectedIntegration}
+                onSelect={(selection) => setSelectedIntegration(selection)}
+              />
+            )}
           </Form.Item>
           <Form.Item
             label={'LMS Base URL'}
