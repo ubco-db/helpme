@@ -50,6 +50,9 @@ describe('CalendarService', () => {
     service = module.get<CalendarService>(CalendarService);
     schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    jest
+      .spyOn(service, 'deleteAnyExistingAutoCheckoutLoopJobs')
+      .mockImplementation(jest.fn());
   });
 
   afterEach(() => {
@@ -180,7 +183,6 @@ describe('CalendarService', () => {
         userId,
         calendarId,
         courseId,
-        true,
       );
     });
 
@@ -277,6 +279,19 @@ describe('CalendarService', () => {
         .spyOn(AlertModel.prototype, 'save')
         .mockResolvedValue(mockAlert);
       jest.spyOn(AlertModel, 'create').mockReturnValue(mockAlert);
+
+      // mock schedularRegistry.getCronJobs() to return a cron job with jobName (and a mock function of job.stop())
+      const cronJobs = new Map();
+      const mockCronJob = {
+        stop: jest.fn(),
+      };
+      cronJobs.set(jobName, mockCronJob);
+      jest.spyOn(schedulerRegistry, 'getCronJobs').mockReturnValue(cronJobs);
+
+      // restore mock to allow for deletion
+      (
+        service.deleteAnyExistingAutoCheckoutLoopJobs as jest.Mock
+      ).mockRestore();
 
       await service.sendAlertToAutoCheckout10minsFromNow(
         userId,
