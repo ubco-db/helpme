@@ -21,9 +21,7 @@ import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
-import { v4 } from 'uuid';
 import { UserModel } from '../profile/user.entity';
-import { In } from 'typeorm';
 
 export enum LMSGet {
   Course,
