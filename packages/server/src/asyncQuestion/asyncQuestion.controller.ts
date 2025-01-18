@@ -7,12 +7,14 @@ import {
   UpdateAsyncQuestions,
   MailServiceType,
   AsyncQuestionCommentParams,
+  AsyncQuestion,
 } from '@koh/common';
 import {
   Body,
   Controller,
   Delete,
   ForbiddenException,
+  Get,
   HttpException,
   HttpStatus,
   NotFoundException,
@@ -38,6 +40,10 @@ import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { AsyncQuestionRolesGuard } from 'guards/async-question-roles.guard';
+import { pick } from 'lodash';
+import { UserModel } from 'profile/user.entity';
+import { Not } from 'typeorm';
+import { ApplicationConfigService } from 'config/application_config.service';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -45,7 +51,158 @@ export class asyncQuestionController {
   constructor(
     private readonly redisQueueService: RedisQueueService,
     private mailService: MailService,
+    private readonly appConfig: ApplicationConfigService,
   ) {}
+
+  @Get(':cid')
+  @UseGuards(CourseRolesGuard)
+  async getAsyncQuestions(
+    @Param('cid', ParseIntPipe) cid: number,
+    @UserId() userId: number,
+    @Res() res: Response,
+  ): Promise<AsyncQuestion[]> {
+    const userCourse = await UserCourseModel.findOne({
+      where: {
+        userId,
+        courseId: cid,
+      },
+    });
+    if (!userCourse) {
+      throw new ForbiddenException('You are not in this course');
+    }
+
+    const asyncQuestionKeys = await this.redisQueueService.getKey(
+      `c:${cid}:aq`,
+    );
+    let all: AsyncQuestionModel[] = [];
+
+    if (Object.keys(asyncQuestionKeys).length === 0) {
+      console.log('Fetching from Database');
+      all = await AsyncQuestionModel.find({
+        where: {
+          courseId: cid,
+          status: Not(asyncQuestionStatus.StudentDeleted),
+        },
+        relations: [
+          'creator',
+          'taHelped',
+          'votes',
+          'comments',
+          'comments.creator',
+          'comments.creator.courses',
+        ],
+        order: {
+          createdAt: 'DESC',
+        },
+        take: this.appConfig.get('max_async_questions_per_course'),
+      });
+
+      if (all)
+        await this.redisQueueService.setAsyncQuestions(`c:${cid}:aq`, all);
+    } else {
+      console.log('Fetching from Redis');
+      all = Object.values(asyncQuestionKeys).map(
+        (question) => question as AsyncQuestionModel,
+      );
+    }
+
+    if (!all) {
+      res.status(HttpStatus.NOT_FOUND).send({
+        message: ERROR_MESSAGES.questionController.notFound,
+      });
+      return;
+    }
+
+    let questions;
+
+    const isStaff: boolean =
+      userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
+
+    if (isStaff) {
+      // Staff sees all questions except the ones deleted
+      questions = all.filter(
+        (question) => question.status !== asyncQuestionStatus.TADeleted,
+      );
+    } else {
+      // Students see their own questions and questions that are visible
+      questions = all.filter(
+        (question) => question.creatorId === userId || question.visible,
+      );
+    }
+
+    questions = questions.map((question: AsyncQuestionModel) => {
+      const temp = pick(question, [
+        'id',
+        'courseId',
+        'questionAbstract',
+        'questionText',
+        'aiAnswerText',
+        'answerText',
+        'creatorId',
+        'taHelpedId',
+        'createdAt',
+        'closedAt',
+        'status',
+        'visible',
+        'verified',
+        'votes',
+        'comments',
+        'questionTypes',
+        'votesSum',
+        'isTaskQuestion',
+      ]);
+
+      const filteredComments = question.comments?.map((comment) => {
+        const temp = { ...comment };
+
+        // TODO: maybe find a more performant way of doing this (ideally in the query, and maybe try to include a SELECT to eliminate the pick() above)
+        const commenterRole =
+          comment.creator.courses.find(
+            (course) => course.courseId === question.courseId,
+          )?.role || Role.STUDENT;
+
+        temp.creator =
+          isStaff ||
+          comment.creator.id === userId ||
+          commenterRole !== Role.STUDENT
+            ? ({
+                id: comment.creator.id,
+                name: comment.creator.name,
+                photoURL: comment.creator.photoURL,
+                userRole: commenterRole,
+              } as unknown as UserModel)
+            : ({
+                id: comment.creator.id,
+                name: 'Anonymous',
+                photoURL: null,
+                userRole: commenterRole,
+              } as unknown as UserModel);
+
+        return temp as unknown as AsyncQuestionCommentModel;
+      });
+      temp.comments = filteredComments;
+
+      Object.assign(temp, {
+        creator:
+          isStaff || question.creator.id == userId
+            ? {
+                id: question.creator.id,
+                name: question.creator.name,
+                photoURL: question.creator.photoURL,
+              }
+            : {
+                id: question.creator.id,
+                name: 'Anonymous',
+                photoURL: null,
+              },
+      });
+
+      return temp;
+    });
+
+    res.status(HttpStatus.OK).send(questions);
+    return;
+  }
 
   @Post(':qid/:vote')
   @UseGuards(AsyncQuestionRolesGuard)
@@ -480,22 +637,18 @@ export class asyncQuestionController {
     });
 
     if (!comment) {
-      res
-        .status(HttpStatus.NOT_FOUND)
-        .send({
-          message:
-            ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
-        });
+      res.status(HttpStatus.NOT_FOUND).send({
+        message:
+          ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
+      });
       return;
     }
 
     if (comment.creatorId !== userId) {
-      res
-        .status(HttpStatus.FORBIDDEN)
-        .send({
-          message:
-            ERROR_MESSAGES.asyncQuestionController.comments.forbiddenUpdate,
-        });
+      res.status(HttpStatus.FORBIDDEN).send({
+        message:
+          ERROR_MESSAGES.asyncQuestionController.comments.forbiddenUpdate,
+      });
       return;
     }
 
@@ -551,12 +704,10 @@ export class asyncQuestionController {
     });
 
     if (!comment) {
-      res
-        .status(HttpStatus.NOT_FOUND)
-        .send({
-          message:
-            ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
-        });
+      res.status(HttpStatus.NOT_FOUND).send({
+        message:
+          ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
+      });
       return;
     }
 
@@ -566,12 +717,10 @@ export class asyncQuestionController {
       userCourse.role !== Role.PROFESSOR &&
       userCourse.role !== Role.TA
     ) {
-      res
-        .status(HttpStatus.FORBIDDEN)
-        .send({
-          message:
-            ERROR_MESSAGES.asyncQuestionController.comments.forbiddenDelete,
-        });
+      res.status(HttpStatus.FORBIDDEN).send({
+        message:
+          ERROR_MESSAGES.asyncQuestionController.comments.forbiddenDelete,
+      });
       return;
     }
 

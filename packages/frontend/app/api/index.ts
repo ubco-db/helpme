@@ -204,8 +204,6 @@ class APIClient {
       ),
     getOrganizationCourses: async (organizationId: number) =>
       this.req('GET', `/api/v1/courses/${organizationId}/organization_courses`),
-    getAsyncQuestions: async (cid: number): Promise<AsyncQuestion[]> =>
-      this.req('GET', `/api/v1/courses/${cid}/asyncQuestions`, undefined),
     get: async (courseId: number) =>
       this.req('GET', `/api/v1/courses/${courseId}`, GetCourseResponse),
     getUserInfo: async (
@@ -379,6 +377,8 @@ class APIClient {
     },
   }
   asyncQuestions = {
+    get: async (cid: number): Promise<AsyncQuestion[]> =>
+      this.req('GET', `/api/v1/asyncQuestions/${cid}`, undefined),
     create: async (body: CreateAsyncQuestions, cid: number) =>
       this.req(
         'POST',

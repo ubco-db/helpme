@@ -1,6 +1,4 @@
 import {
-  AsyncQuestion,
-  asyncQuestionStatus,
   CoursePartial,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
@@ -19,7 +17,6 @@ import {
   TACheckinTimesResponse,
   TACheckoutResponse,
   UBCOuserParam,
-  UserPartial,
   UserTiny,
   validateQueueConfigInput,
 } from '@koh/common';
@@ -43,7 +40,6 @@ import {
   UseGuards,
   UseInterceptors,
   ParseIntPipe,
-  ForbiddenException,
 } from '@nestjs/common';
 import async from 'async';
 import { Response, Request } from 'express';
@@ -60,20 +56,16 @@ import { QueueSSEService } from '../queue/queue-sse.service';
 import { CourseService } from './course.service';
 import { HeatmapService } from './heatmap.service';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
-import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
 import { ApplicationConfigService } from '../config/application_config.service';
-import { Not, getManager } from 'typeorm';
-import { pick } from 'lodash';
+import { getManager } from 'typeorm';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
-import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
-import { AsyncQuestionCommentModel } from 'asyncQuestion/asyncQuestionComment.entity';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -84,7 +76,6 @@ export class CourseController {
     private heatmapService: HeatmapService,
     private courseService: CourseService,
     private queueCleanService: QueueCleanService,
-    private redisQueueService: RedisQueueService,
     private readonly appConfig: ApplicationConfigService,
   ) {}
 
@@ -116,156 +107,6 @@ export class CourseController {
     res.status(HttpStatus.OK).send({
       coursesPartial,
     });
-  }
-
-  @Get(':cid/asyncQuestions')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  async getAsyncQuestions(
-    @Param('cid', ParseIntPipe) cid: number,
-    @UserId() userId: number,
-    @Res() res: Response,
-  ): Promise<AsyncQuestion[]> {
-    const userCourse = await UserCourseModel.findOne({
-      where: {
-        userId,
-        courseId: cid,
-      },
-    });
-    if (!userCourse) {
-      throw new ForbiddenException('You are not in this course');
-    }
-
-    const asyncQuestionKeys = await this.redisQueueService.getKey(
-      `c:${cid}:aq`,
-    );
-    let all: AsyncQuestionModel[] = [];
-
-    if (Object.keys(asyncQuestionKeys).length === 0) {
-      console.log('Fetching from Database');
-      all = await AsyncQuestionModel.find({
-        where: {
-          courseId: cid,
-          status: Not(asyncQuestionStatus.StudentDeleted),
-        },
-        relations: [
-          'creator',
-          'taHelped',
-          'votes',
-          'comments',
-          'comments.creator',
-          'comments.creator.courses',
-        ],
-        order: {
-          createdAt: 'DESC',
-        },
-        take: this.appConfig.get('max_async_questions_per_course'),
-      });
-
-      if (all)
-        await this.redisQueueService.setAsyncQuestions(`c:${cid}:aq`, all);
-    } else {
-      console.log('Fetching from Redis');
-      all = Object.values(asyncQuestionKeys).map(
-        (question) => question as AsyncQuestionModel,
-      );
-    }
-
-    if (!all) {
-      res.status(HttpStatus.NOT_FOUND).send({
-        message: ERROR_MESSAGES.questionController.notFound,
-      });
-      return;
-    }
-
-    let questions;
-
-    const isStaff: boolean =
-      userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
-
-    if (isStaff) {
-      // Staff sees all questions except the ones deleted
-      questions = all.filter(
-        (question) => question.status !== asyncQuestionStatus.TADeleted,
-      );
-    } else {
-      // Students see their own questions and questions that are visible
-      questions = all.filter(
-        (question) => question.creatorId === userId || question.visible,
-      );
-    }
-
-    questions = questions.map((question: AsyncQuestionModel) => {
-      const temp = pick(question, [
-        'id',
-        'courseId',
-        'questionAbstract',
-        'questionText',
-        'aiAnswerText',
-        'answerText',
-        'creatorId',
-        'taHelpedId',
-        'createdAt',
-        'closedAt',
-        'status',
-        'visible',
-        'verified',
-        'votes',
-        'comments',
-        'questionTypes',
-        'votesSum',
-        'isTaskQuestion',
-      ]);
-
-      const filteredComments = question.comments?.map((comment) => {
-        const temp = { ...comment };
-
-        // TODO: maybe find a more performant way of doing this (ideally in the query, and maybe try to include a SELECT to eliminate the pick() above)
-        const commenterRole =
-          comment.creator.courses.find(
-            (course) => course.courseId === question.courseId,
-          )?.role || Role.STUDENT;
-
-        temp.creator =
-          isStaff ||
-          comment.creator.id === userId ||
-          commenterRole !== Role.STUDENT
-            ? ({
-                id: comment.creator.id,
-                name: comment.creator.name,
-                photoURL: comment.creator.photoURL,
-                userRole: commenterRole,
-              } as unknown as UserModel)
-            : ({
-                id: comment.creator.id,
-                name: 'Anonymous',
-                photoURL: null,
-                userRole: commenterRole,
-              } as unknown as UserModel);
-
-        return temp as unknown as AsyncQuestionCommentModel;
-      });
-      temp.comments = filteredComments;
-
-      Object.assign(temp, {
-        creator:
-          isStaff || question.creator.id == userId
-            ? {
-                id: question.creator.id,
-                name: question.creator.name,
-                photoURL: question.creator.photoURL,
-              }
-            : {
-                id: question.creator.id,
-                name: 'Anonymous',
-                photoURL: null,
-              },
-      });
-
-      return temp;
-    });
-
-    res.status(HttpStatus.OK).send(questions);
-    return;
   }
 
   @Get('limited/:id/:code')
