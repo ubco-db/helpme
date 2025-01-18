@@ -41,6 +41,7 @@ export class CourseService {
           EventType.TA_CHECKED_IN,
           EventType.TA_CHECKED_OUT,
           EventType.TA_CHECKED_OUT_FORCED,
+          EventType.TA_CHECKED_OUT_EVENT_END,
         ]),
         time: Between(startDateAsDate, endDateAsDate),
         courseId,

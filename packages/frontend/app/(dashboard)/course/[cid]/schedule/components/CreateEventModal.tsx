@@ -180,8 +180,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
             staffIds: [],
             // end date is lastSetEndDate.
             // if lastSetEndDate is null, set it to be start date + 4 months
-            endDate:
-              dayjs(lastSetEndDate) || dayjs(event?.start).add(4, 'month'),
+            endDate: lastSetEndDate
+              ? dayjs(lastSetEndDate)
+              : dayjs(event?.start).add(4, 'month'),
           }}
           onValuesChange={(changedValues, allValues) => {
             if (changedValues.endDate) {
@@ -272,7 +273,14 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           options={staff?.map((staff) => ({
             label: staff.name,
             value: staff.id,
+            email: staff.email,
           }))}
+          optionRender={(option) => (
+            <div>
+              {option.data.label}
+              <span className="ml-2 text-gray-400">{option.data.email}</span>
+            </div>
+          )}
           loading={staff === null}
           style={{ width: '100%' }}
           optionFilterProp="label"

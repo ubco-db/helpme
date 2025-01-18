@@ -11,7 +11,10 @@ if (isProd()) {
     dsn: 'https://02886ace32d0ae13a1bc81482aa1bdef@o4508000643252224.ingest.us.sentry.io/4508000651116544',
 
     // Add optional integrations for additional features
-    integrations: [Sentry.replayIntegration()],
+    integrations: [
+      Sentry.replayIntegration(),
+      Sentry.captureConsoleIntegration({ levels: ['warn', 'error'] }),
+    ],
 
     // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
     tracesSampleRate: 1,
