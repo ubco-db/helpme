@@ -54,17 +54,17 @@ export class asyncQuestionController {
     private readonly appConfig: ApplicationConfigService,
   ) {}
 
-  @Get(':cid')
+  @Get(':courseId')
   @UseGuards(CourseRolesGuard)
   async getAsyncQuestions(
-    @Param('cid', ParseIntPipe) cid: number,
+    @Param('courseId', ParseIntPipe) courseId: number,
     @UserId() userId: number,
     @Res() res: Response,
   ): Promise<AsyncQuestion[]> {
     const userCourse = await UserCourseModel.findOne({
       where: {
         userId,
-        courseId: cid,
+        courseId,
       },
     });
     if (!userCourse) {
@@ -72,7 +72,7 @@ export class asyncQuestionController {
     }
 
     const asyncQuestionKeys = await this.redisQueueService.getKey(
-      `c:${cid}:aq`,
+      `c:${courseId}:aq`,
     );
     let all: AsyncQuestionModel[] = [];
 
@@ -80,7 +80,7 @@ export class asyncQuestionController {
       console.log('Fetching from Database');
       all = await AsyncQuestionModel.find({
         where: {
-          courseId: cid,
+          courseId,
           status: Not(asyncQuestionStatus.StudentDeleted),
         },
         relations: [
@@ -98,7 +98,7 @@ export class asyncQuestionController {
       });
 
       if (all)
-        await this.redisQueueService.setAsyncQuestions(`c:${cid}:aq`, all);
+        await this.redisQueueService.setAsyncQuestions(`c:${courseId}:aq`, all);
     } else {
       console.log('Fetching from Redis');
       all = Object.values(asyncQuestionKeys).map(

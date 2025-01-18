@@ -7,10 +7,12 @@ import {
   UserCourseFactory,
   AsyncQuestionFactory,
   VotesFactory,
+  QuestionTypeFactory,
+  AsyncQuestionCommentFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
-import { asyncQuestionStatus, Role } from '@koh/common';
+import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common';
 
 describe('AsyncQuestion Integration', () => {
   const supertest = setupIntegrationTest(asyncQuestionModule);
@@ -543,6 +545,206 @@ describe('AsyncQuestion Integration', () => {
       await supertest({ userId: otherUser.id })
         .delete(`/asyncQuestions/comment/${comment.body.id}`)
         .expect(403);
+    });
+  });
+
+  describe('GET /asyncQuestions/:courseId', () => {
+    let asyncQuestion2: AsyncQuestionModel;
+    let asyncQuestion3: AsyncQuestionModel;
+    beforeEach(async () => {
+      //create some more questions
+      asyncQuestion2 = await AsyncQuestionFactory.create({
+        creator: studentUser,
+        course: course,
+        visible: true,
+      });
+      asyncQuestion3 = await AsyncQuestionFactory.create({
+        creator: studentUser2,
+        course: course,
+      });
+    });
+    it('allows students to view their questions in their course', async () => {
+      const response = await supertest({ userId: studentUser.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      const questions: AsyncQuestion[] = response.body;
+      expect(questions).toHaveLength(2);
+      expect(questions[0].id).toBe(asyncQuestion.id);
+      expect(questions[1].id).toBe(asyncQuestion2.id);
+      expect(questions[0].creator.id).toBe(studentUser.id);
+      expect(questions[1].creator.id).toBe(studentUser.id);
+      expect(questions[0].visible).toBe(false);
+      expect(questions[1].visible).toBe(true);
+    });
+    it('should include the questionTypes in the response', async () => {
+      const qt1 = await QuestionTypeFactory.create({
+        name: 'questionType1',
+      });
+      const qt2 = await QuestionTypeFactory.create({
+        name: 'questionType2',
+      });
+      const asyncQuestion4 = await AsyncQuestionFactory.create({
+        creator: studentUser,
+        course: course,
+        questionTypes: [qt1, qt2],
+      });
+
+      const response = await supertest({ userId: studentUser.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      const questions: AsyncQuestion[] = response.body;
+      expect(questions).toHaveLength(3);
+      expect(questions[2].id).toBe(asyncQuestion4.id);
+      expect(questions[2].questionTypes).toHaveLength(2);
+      expect(questions[2].questionTypes[0].name).toBe('questionType1');
+      expect(questions[2].questionTypes[1].name).toBe('questionType2');
+    });
+    it('should include the comments in the response', async () => {
+      const comment1 = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'comment1',
+      });
+      const comment2 = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser2,
+        commentText: 'comment2',
+      });
+      const response = await supertest({ userId: studentUser.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      const questions: AsyncQuestion[] = response.body;
+      expect(questions).toHaveLength(2);
+      expect(questions[0].comments).toHaveLength(2);
+      expect(questions[0].comments[0].commentText).toBe(comment1.commentText);
+      expect(questions[0].comments[1].commentText).toBe(comment2.commentText);
+    });
+    it('should include the votes in the response', async () => {
+      const vote1 = await VotesFactory.create({
+        question: asyncQuestion,
+        userId: studentUser.id,
+        vote: 1,
+      });
+      const vote2 = await VotesFactory.create({
+        question: asyncQuestion,
+        userId: studentUser2.id,
+        vote: -1,
+      });
+      const response = await supertest({ userId: studentUser.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      const questions: AsyncQuestion[] = response.body;
+      expect(questions).toHaveLength(2);
+      expect(questions[0].votes).toHaveLength(2);
+      expect(questions[0].votes[0].vote).toBe(vote1.vote);
+      expect(questions[0].votes[1].vote).toBe(vote2.vote);
+    });
+    it('does not allow students to view other students questions unless the question is public, and public questions are anonymous', async () => {
+      const response = await supertest({ userId: studentUser2.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      const questions: AsyncQuestion[] = response.body;
+      // this looks pretty <3
+      expect(questions).toHaveLength(2);
+      expect(questions[0].id).toBe(asyncQuestion2.id);
+      expect(questions[0].creator.id).toBe(studentUser.id);
+      expect(questions[0].visible).toBe(true);
+      expect(questions[0].creator.name).not.toBe(studentUser.name);
+      expect(questions[0].creator.email).not.toBe(studentUser.email);
+      expect(questions[0].creator.photoURL).toBeNull();
+      expect(questions[1].id).toBe(asyncQuestion3.id);
+      expect(questions[1].creator.id).toBe(studentUser2.id);
+      expect(questions[1].visible).toBe(false);
+      expect(questions[1].creator.name).toBe(studentUser2.name);
+      expect(questions[1].creator.email).toBe(studentUser2.email);
+      expect(questions[1].creator.photoURL).toBe(studentUser2.photoURL);
+    });
+    it('allows staff to view all questions in their course, regardless of visibility', async () => {
+      const response = await supertest({ userId: TAuser.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      const questions: AsyncQuestion[] = response.body;
+      expect(questions).toHaveLength(3);
+      expect(questions[0].id).toBe(asyncQuestion.id);
+      expect(questions[1].id).toBe(asyncQuestion2.id);
+      expect(questions[2].id).toBe(asyncQuestion3.id);
+      // you can see the creator's name and email and photoURL
+      expect(questions[0].creator.name).toBe(studentUser.name);
+      expect(questions[0].creator.email).toBe(studentUser.email);
+      expect(questions[0].creator.photoURL).toBe(studentUser.photoURL);
+      expect(questions[1].creator.name).toBe(studentUser.name);
+      expect(questions[1].creator.email).toBe(studentUser.email);
+      expect(questions[1].creator.photoURL).toBe(studentUser.photoURL);
+      expect(questions[2].creator.name).toBe(studentUser2.name);
+      expect(questions[2].creator.email).toBe(studentUser2.email);
+      expect(questions[2].creator.photoURL).toBe(studentUser2.photoURL);
+    });
+    it('does not show sensitive information for comments on questions unless they are the creator or staff', async () => {
+      const comment1 = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion2,
+        creator: studentUser,
+        commentText: 'comment1',
+      });
+      const comment2 = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion2,
+        creator: studentUser2,
+        commentText: 'comment2',
+      });
+      const response = await supertest({ userId: studentUser2.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      const questions: AsyncQuestion[] = response.body;
+      expect(questions).toHaveLength(2);
+      expect(questions[1].comments).toHaveLength(2);
+      expect(questions[1].comments[0].commentText).toBe(comment1.commentText);
+      expect(questions[1].comments[1].commentText).toBe(comment2.commentText);
+      expect(questions[1].comments[0].creator.name).not.toBe(studentUser.name);
+      expect(questions[1].comments[0].creator.email).not.toBe(
+        studentUser.email,
+      );
+      expect(questions[1].comments[0].creator.photoURL).toBeNull();
+      expect(questions[1].comments[1].creator.name).toBe(studentUser2.name);
+      expect(questions[1].comments[1].creator.email).toBe(studentUser2.email);
+      expect(questions[1].comments[1].creator.photoURL).toBe(
+        studentUser2.photoURL,
+      );
+      // staff can see all comments
+      const response2 = await supertest({ userId: TAuser.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response2.status).toBe(200);
+      const questions2: AsyncQuestion[] = response2.body;
+      expect(questions2).toHaveLength(2);
+      expect(questions2[1].comments).toHaveLength(2);
+      expect(questions2[1].comments[0].commentText).toBe(comment1.commentText);
+      expect(questions2[1].comments[1].commentText).toBe(comment2.commentText);
+      expect(questions2[1].comments[0].creator.name).toBe(studentUser.name);
+      expect(questions2[1].comments[0].creator.email).toBe(studentUser.email);
+      expect(questions2[1].comments[0].creator.photoURL).toBe(
+        studentUser.photoURL,
+      );
+      expect(questions2[1].comments[1].creator.name).toBe(studentUser2.name);
+      expect(questions2[1].comments[1].creator.email).toBe(studentUser2.email);
+    });
+    it('prevents users outside this course from viewing questions', async () => {
+      const otherCourse = await CourseFactory.create();
+      const otherUser = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: otherUser,
+        course: otherCourse,
+        role: Role.STUDENT,
+      });
+      const response = await supertest({ userId: otherUser.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(403);
     });
   });
 });

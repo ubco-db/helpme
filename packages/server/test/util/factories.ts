@@ -40,12 +40,14 @@ import { LMSOrganizationIntegrationModel } from '../../src/lmsIntegration/lmsOrg
 import { LMSCourseIntegrationModel } from '../../src/lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from '../../src/lmsIntegration/lmsAssignment.entity';
 import { CalendarStaffModel } from 'calendar/calendar-staff.entity';
+import { AsyncQuestionCommentModel } from 'asyncQuestion/asyncQuestionComment.entity';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)
   .attr('firstName', 'User')
   .attr('lastName', 'Person')
   .attr('emailVerified', true)
+  .attr('photoURL', 'https://example.com')
   .attr('hideInsights', []);
 
 export const StudentCourseFactory = new Factory(UserCourseModel).attr(
@@ -169,6 +171,14 @@ export const AsyncQuestionFactory = new Factory(AsyncQuestionModel)
   .attr('visible', false)
   .attr('verified', false)
   .attr('createdAt', new Date());
+
+export const AsyncQuestionCommentFactory = new Factory(
+  AsyncQuestionCommentModel,
+)
+  .attr('commentText', 'some comment')
+  .attr('createdAt', new Date())
+  .assocOne('question', AsyncQuestionFactory)
+  .assocOne('creator', UserFactory);
 
 export const OrganizationFactory = new Factory(OrganizationModel)
   .attr('name', 'UBCO')
