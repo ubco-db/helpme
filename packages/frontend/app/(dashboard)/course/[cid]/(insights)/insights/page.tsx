@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import DashboardPresetComponent from '../components/DashboardPresetComponent'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import InsightComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightComponent'
 import InsightsPageMenu from '@/app/(dashboard)/course/[cid]/(insights)/components/InsightsPageMenu'
 import { InsightContextProvider } from '@/app/(dashboard)/course/[cid]/(insights)/context/InsightsContext'
@@ -15,7 +15,6 @@ import {
   ListInsightsResponse,
 } from '@koh/common'
 import { API } from '@/app/api'
-import { NavigateOptions } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 
 export default function InsightsPage() {
   const { cid } = useParams<{ cid: string }>()
@@ -64,9 +63,11 @@ export default function InsightsPage() {
         ? Object.keys(insightDirectory).filter(
             (v) => dashboardInsights?.insights[v]?.active == true,
           )
-        : Object.keys(insightDirectory).filter(
-            (v) => insightDirectory[v].insightCategory == category,
-          )
+        : category == 'Dashboard'
+          ? Object.keys(insightDirectory)
+          : Object.keys(insightDirectory).filter(
+              (v) => insightDirectory[v].insightCategory == category,
+            )
 
       const mappedInsights: { name: string; insight: InsightDisplayInfo }[] =
         validInsights.map((v) => {
@@ -155,15 +156,8 @@ export default function InsightsPage() {
                 <>
                   {(dashboardInsights != undefined &&
                     Object.keys(dashboardInsights.insights).length > 0 &&
-                    renderInsights(dashboardInsights.insights)) || (
-                    <div className={'h-full w-full text-center'}>
-                      <h2>No insights to show!</h2>
-                      <p>
-                        Create an insight dashboard preset to view available
-                        analytics.
-                      </p>
-                    </div>
-                  )}
+                    renderInsights(dashboardInsights.insights)) ||
+                    renderInsights()}
                 </>
               ) : (
                 renderInsights()
