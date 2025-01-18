@@ -60,43 +60,7 @@ describe('AsyncQuestion Integration', () => {
     });
   });
 
-  describe('Async question comment', () => {
-    it('Student can comment on a question', async () => {
-      await supertest({ userId: studentUser.id })
-        .post(`/asyncQuestions/comment`)
-        .send({
-          questionId: asyncQuestion.id,
-          userId: studentUser.id,
-          commentText: 'Student comment 1',
-        })
-        .expect(201)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'commentText',
-            'Student comment 1',
-          );
-          expect(response.body.creator.email).toBe('justino@ubc.ca');
-          expect(response.body.questionId).toBe(asyncQuestion.id);
-        });
-    });
-    it('TA can comment on a question', async () => {
-      await supertest({ userId: TAuser.id })
-        .post(`/asyncQuestions/comment`)
-        .send({
-          questionId: asyncQuestion.id,
-          userId: TAuser.id,
-          commentText: 'TA Comment 1',
-        })
-        .expect(201)
-        .then((response) => {
-          expect(response.body).toHaveProperty('commentText', 'TA Comment 1');
-          expect(response.body.creator.email).toBe('wskksw@student.ubc.ca');
-          expect(response.body.questionId).toBe(asyncQuestion.id);
-        });
-    });
-  });
-
-  describe('Async question creation', () => {
+  describe('POST asyncQuestions/:cid', () => {
     it('Student can create a question', async () => {
       await supertest({ userId: studentUser.id })
         .post(`/asyncQuestions/${course.id}`)
@@ -113,9 +77,50 @@ describe('AsyncQuestion Integration', () => {
           expect(response.body.closedAt).toBeNull();
         });
     });
+    it('prevents users outside this course from posting questions', async () => {
+      const otherCourse = await CourseFactory.create();
+      const otherUser = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: otherUser,
+        course: otherCourse,
+        role: Role.STUDENT,
+      });
+      await supertest({ userId: otherUser.id })
+        .post(`/asyncQuestions/${course.id}`)
+        .send({
+          questionAbstract: 'abstract',
+          questionText: 'text',
+        })
+        .expect(403);
+    });
   });
 
-  describe('Async question update', () => {
+  describe('PATCH /asyncQuestions/faculty/:questionId', () => {
+    it('Prevents faculty in other courses from modifying a question', async () => {
+      const otherCourse = await CourseFactory.create();
+      const otherUser = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: otherUser,
+        course: otherCourse,
+        role: Role.PROFESSOR,
+      });
+      await supertest({ userId: otherUser.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({
+          questionAbstract: 'abstract',
+          questionText: 'text1',
+        })
+        .expect(403);
+    });
+    it('Prevents students from modifying a question', async () => {
+      await supertest({ userId: studentUser.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({
+          questionAbstract: 'abstract',
+          questionText: 'text1',
+        })
+        .expect(401);
+    });
     it('Faculty can modify any question', async () => {
       await supertest({ userId: TAuser.id })
         .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
@@ -143,7 +148,30 @@ describe('AsyncQuestion Integration', () => {
           expect(response.body.closedAt).not.toBeNull();
         });
     });
+    it('Allows staff to modify a question in their course even if they are a student in another course', async () => {
+      const otherCourse = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user: TAuser,
+        course: otherCourse,
+        role: Role.STUDENT,
+      });
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({
+          status: asyncQuestionStatus.HumanAnswered,
+        })
+        .expect(200)
+        .then((response) => {
+          expect(response.body).toHaveProperty(
+            'status',
+            asyncQuestionStatus.HumanAnswered,
+          );
+          expect(response.body.status).toBe(asyncQuestionStatus.HumanAnswered);
+        });
+    });
+  });
 
+  describe('PATCH /asyncQuestions/student/:questionId', () => {
     it('Student can modify their own question', async () => {
       await supertest({ userId: studentUser.id })
         .patch(`/asyncQuestions/student/${asyncQuestion.id}`)
@@ -168,33 +196,20 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(401);
     });
-
-    it('Allows professors to modify a question even if they are a student in another course', async () => {
-      const prof = await UserFactory.create();
+    it('Prevents students from modifying a question in another course', async () => {
       const otherCourse = await CourseFactory.create();
+      const otherUser = await UserFactory.create();
       await UserCourseFactory.create({
-        user: prof,
+        user: otherUser,
         course: otherCourse,
         role: Role.STUDENT,
       });
-      await UserCourseFactory.create({
-        user: prof,
-        course,
-        role: Role.PROFESSOR,
-      });
-      await supertest({ userId: prof.id })
-        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+      await supertest({ userId: otherUser.id })
+        .patch(`/asyncQuestions/student/${asyncQuestion.id}`)
         .send({
           status: asyncQuestionStatus.HumanAnswered,
         })
-        .expect(200)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'status',
-            asyncQuestionStatus.HumanAnswered,
-          );
-          expect(response.body.status).toBe(asyncQuestionStatus.HumanAnswered);
-        });
+        .expect(403);
     });
   });
 
@@ -263,6 +278,271 @@ describe('AsyncQuestion Integration', () => {
       );
 
       expect(response.status).toBe(404);
+    });
+    it('should prevent users from voting on questions in other courses', async () => {
+      const otherCourse = await CourseFactory.create();
+      const otherUser = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: otherUser,
+        course: otherCourse,
+        role: Role.STUDENT,
+      });
+      const question = await AsyncQuestionFactory.create({
+        createdAt: new Date('2020-03-01T05:00:00.000Z'),
+      });
+      const response = await supertest({ userId: otherUser.id }).post(
+        `/asyncQuestions/${question.id}/1`,
+      );
+
+      expect(response.status).toBe(403);
+    });
+  });
+
+  describe('POST asyncQuestions/:qid/comment', () => {
+    it('Student can comment on a question', async () => {
+      await supertest({ userId: studentUser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: studentUser.id,
+          commentText: 'Student comment 1',
+        })
+        .expect(201)
+        .then((response) => {
+          expect(response.body).toHaveProperty(
+            'commentText',
+            'Student comment 1',
+          );
+          expect(response.body.creator.email).toBe('justino@ubc.ca');
+          expect(response.body.questionId).toBe(asyncQuestion.id);
+        });
+    });
+    it('TA can comment on a question', async () => {
+      await supertest({ userId: TAuser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: TAuser.id,
+          commentText: 'TA Comment 1',
+        })
+        .expect(201)
+        .then((response) => {
+          expect(response.body).toHaveProperty('commentText', 'TA Comment 1');
+          expect(response.body.creator.email).toBe('wskksw@student.ubc.ca');
+          expect(response.body.questionId).toBe(asyncQuestion.id);
+        });
+    });
+    it('allows students and staff to comment on other students questions', async () => {
+      await supertest({ userId: studentUser2.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: studentUser2.id,
+          commentText: 'Student comment 2',
+        })
+        .expect(201)
+        .then((response) => {
+          expect(response.body).toHaveProperty(
+            'commentText',
+            'Student comment 2',
+          );
+        });
+      await supertest({ userId: TAuser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: TAuser.id,
+          commentText: 'TA Comment 2',
+        })
+        .expect(201)
+        .then((response) => {
+          expect(response.body).toHaveProperty('commentText', 'TA Comment 2');
+        });
+    });
+    it('prevents users outside this course from posting comments', async () => {
+      const otherCourse = await CourseFactory.create();
+      const otherUser = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: otherUser,
+        course: otherCourse,
+        role: Role.STUDENT,
+      });
+      await supertest({ userId: otherUser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: otherUser.id,
+          commentText: 'Student comment 3',
+        })
+        .expect(403);
+    });
+  });
+
+  describe('PATCH /asyncQuestions/comment/:commentId', () => {
+    it('Student can modify their own comment', async () => {
+      const comment = await supertest({ userId: studentUser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: studentUser.id,
+          commentText: 'Student comment 1',
+        });
+      await supertest({ userId: studentUser.id })
+        .patch(`/asyncQuestions/comment/${comment.body.id}`)
+        .send({
+          commentText: 'Student comment 1 updated',
+        })
+        .expect(200)
+        .then((response) => {
+          expect(response.body).toHaveProperty(
+            'commentText',
+            'Student comment 1 updated',
+          );
+        });
+    });
+    it('TA can modify their own comment', async () => {
+      const comment = await supertest({ userId: TAuser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: TAuser.id,
+          commentText: 'TA Comment 1',
+        });
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/comment/${comment.body.id}`)
+        .send({
+          commentText: 'TA Comment 1 updated',
+        })
+        .expect(200)
+        .then((response) => {
+          expect(response.body).toHaveProperty(
+            'commentText',
+            'TA Comment 1 updated',
+          );
+        });
+    });
+    it('does not allow students to modify other students comments', async () => {
+      const comment = await supertest({ userId: studentUser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: studentUser.id,
+          commentText: 'Student comment 1',
+        });
+      await supertest({ userId: studentUser2.id })
+        .patch(`/asyncQuestions/comment/${comment.body.id}`)
+        .send({
+          commentText: 'Student comment 1 updated',
+        })
+        .expect(403);
+    });
+    // maybe this will be changed in the future, but for now it may seem weird to allow staff to edit student comments
+    it('does not allow staff to modify students comments', async () => {
+      const comment = await supertest({ userId: studentUser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: studentUser.id,
+          commentText: 'Student comment 1',
+        });
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/comment/${comment.body.id}`)
+        .send({
+          commentText: 'Student comment 1 updated',
+        })
+        .expect(403);
+    });
+    it('prevents users outside this course from modifying comments', async () => {
+      const otherCourse = await CourseFactory.create();
+      const otherUser = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: otherUser,
+        course: otherCourse,
+        role: Role.STUDENT,
+      });
+      const comment = await supertest({ userId: otherUser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: otherUser.id,
+          commentText: 'Student comment 3',
+        });
+      await supertest({ userId: otherUser.id })
+        .patch(`/asyncQuestions/comment/${comment.body.id}`)
+        .send({
+          commentText: 'Student comment 3 updated',
+        })
+        .expect(403);
+    });
+  });
+
+  describe('DELETE /asyncQuestions/comment/:commentId', () => {
+    it('Student can delete their own comment', async () => {
+      const comment = await supertest({ userId: studentUser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: studentUser.id,
+          commentText: 'Student comment 1',
+        });
+      await supertest({ userId: studentUser.id }) // me (student)
+        .delete(`/asyncQuestions/comment/${comment.body.id}`)
+        .expect(200);
+    });
+    it('TA can delete their own comment', async () => {
+      const comment = await supertest({ userId: TAuser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: TAuser.id,
+          commentText: 'TA Comment 1',
+        });
+      await supertest({ userId: TAuser.id }) // me (staff)
+        .delete(`/asyncQuestions/comment/${comment.body.id}`)
+        .expect(200);
+    });
+    it('Allows staff to delete students comments', async () => {
+      const comment = await supertest({ userId: studentUser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: studentUser.id,
+          commentText: 'Student comment 1',
+        });
+      await supertest({ userId: TAuser.id }) // staff
+        .delete(`/asyncQuestions/comment/${comment.body.id}`)
+        .expect(200);
+    });
+    it('does not allow students to delete other students comments', async () => {
+      const comment = await supertest({ userId: studentUser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: studentUser.id,
+          commentText: 'Student comment 1',
+        });
+      await supertest({ userId: studentUser2.id }) // other student
+        .delete(`/asyncQuestions/comment/${comment.body.id}`)
+        .expect(403);
+    });
+    it('prevents users outside this course from deleting comments', async () => {
+      const otherCourse = await CourseFactory.create();
+      const otherUser = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: otherUser,
+        course: otherCourse,
+        role: Role.STUDENT,
+      });
+      const comment = await supertest({ userId: otherUser.id })
+        .post(`/asyncQuestions/comment`)
+        .send({
+          questionId: asyncQuestion.id,
+          userId: otherUser.id,
+          commentText: 'Student comment 3',
+        });
+      await supertest({ userId: otherUser.id })
+        .delete(`/asyncQuestions/comment/${comment.body.id}`)
+        .expect(403);
     });
   });
 });

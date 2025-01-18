@@ -2400,6 +2400,13 @@ export const ERROR_MESSAGES = {
     orgIntegrationNotFound: 'Course organization has no LMS integrations',
     lmsIntegrationNotFound: 'Course has no related LMS integrations',
   },
+  asyncQuestionController: {
+    comments: {
+      commentNotFound: 'Comment not found',
+      forbiddenUpdate: 'Only you can update your own comment',
+      forbiddenDelete: 'Only you can delete your own comment (or staff)',
+    },
+  },
   questionController: {
     createQuestion: {
       invalidQueue: 'Posted to an invalid queue',

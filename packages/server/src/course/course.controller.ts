@@ -1,4 +1,5 @@
 import {
+  AsyncQuestion,
   asyncQuestionStatus,
   CoursePartial,
   CourseSettingsRequestBody,
@@ -18,6 +19,7 @@ import {
   TACheckinTimesResponse,
   TACheckoutResponse,
   UBCOuserParam,
+  UserPartial,
   UserTiny,
   validateQueueConfigInput,
 } from '@koh/common';
@@ -41,6 +43,7 @@ import {
   UseGuards,
   UseInterceptors,
   ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import async from 'async';
 import { Response, Request } from 'express';
@@ -70,6 +73,7 @@ import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
+import { AsyncQuestionCommentModel } from 'asyncQuestion/asyncQuestionComment.entity';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -118,21 +122,17 @@ export class CourseController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async getAsyncQuestions(
     @Param('cid', ParseIntPipe) cid: number,
-    @User() user: UserModel,
+    @UserId() userId: number,
     @Res() res: Response,
-  ): Promise<AsyncQuestionModel[]> {
+  ): Promise<AsyncQuestion[]> {
     const userCourse = await UserCourseModel.findOne({
       where: {
-        user,
+        userId,
         courseId: cid,
       },
     });
-
     if (!userCourse) {
-      res.status(HttpStatus.NOT_FOUND).send({
-        message: ERROR_MESSAGES.profileController.userResponseNotFound,
-      });
-      return;
+      throw new ForbiddenException('You are not in this course');
     }
 
     const asyncQuestionKeys = await this.redisQueueService.getKey(
@@ -140,7 +140,7 @@ export class CourseController {
     );
     let all: AsyncQuestionModel[] = [];
 
-    if (true) {
+    if (Object.keys(asyncQuestionKeys).length === 0) {
       console.log('Fetching from Database');
       all = await AsyncQuestionModel.find({
         where: {
@@ -190,11 +190,11 @@ export class CourseController {
     } else {
       // Students see their own questions and questions that are visible
       questions = all.filter(
-        (question) => question.creatorId === user.id || question.visible,
+        (question) => question.creatorId === userId || question.visible,
       );
     }
 
-    questions = questions.map((question) => {
+    questions = questions.map((question: AsyncQuestionModel) => {
       const temp = pick(question, [
         'id',
         'courseId',
@@ -219,52 +219,43 @@ export class CourseController {
       const filteredComments = question.comments?.map((comment) => {
         const temp = { ...comment };
 
-        const userRole =
+        // TODO: maybe find a more performant way of doing this (ideally in the query, and maybe try to include a SELECT to eliminate the pick() above)
+        const commenterRole =
           comment.creator.courses.find(
             (course) => course.courseId === question.courseId,
-          )?.role || 'student';
+          )?.role || Role.STUDENT;
 
         temp.creator =
-          isStaff || comment.creator.id === user.id || userRole !== 'student'
-            ? {
+          isStaff ||
+          comment.creator.id === userId ||
+          commenterRole !== Role.STUDENT
+            ? ({
                 id: comment.creator.id,
                 name: comment.creator.name,
                 photoURL: comment.creator.photoURL,
-                userRole: userRole,
-              }
-            : {
-                id: parseInt(
-                  createHash('sha256')
-                    .update(comment.creator.id.toString())
-                    .digest('hex')
-                    .slice(0, 8),
-                  16,
-                ),
+                userRole: commenterRole,
+              } as unknown as UserModel)
+            : ({
+                id: comment.creator.id,
                 name: 'Anonymous',
                 photoURL: null,
-                userRole: userRole,
-              };
+                userRole: commenterRole,
+              } as unknown as UserModel);
 
-        return temp;
+        return temp as unknown as AsyncQuestionCommentModel;
       });
       temp.comments = filteredComments;
 
       Object.assign(temp, {
         creator:
-          isStaff || question.creator.id == user.id
+          isStaff || question.creator.id == userId
             ? {
                 id: question.creator.id,
                 name: question.creator.name,
                 photoURL: question.creator.photoURL,
               }
             : {
-                id: parseInt(
-                  createHash('sha256')
-                    .update(question.creator.id.toString())
-                    .digest('hex')
-                    .slice(0, 8),
-                  16,
-                ),
+                id: question.creator.id,
                 name: 'Anonymous',
                 photoURL: null,
               },

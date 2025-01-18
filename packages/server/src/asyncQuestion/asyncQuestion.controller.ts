@@ -5,13 +5,14 @@ import {
   AsyncQuestionParams,
   asyncQuestionStatus,
   UpdateAsyncQuestions,
-  OrganizationRole,
   MailServiceType,
   AsyncQuestionCommentParams,
 } from '@koh/common';
 import {
   Body,
   Controller,
+  Delete,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   NotFoundException,
@@ -24,8 +25,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { Roles } from '../decorators/roles.decorator';
-import { User } from '../decorators/user.decorator';
-import { UserModel } from '../profile/user.entity';
+import { UserId } from '../decorators/user.decorator';
 import { AsyncQuestionModel } from './asyncQuestion.entity';
 import { CourseModel } from '../course/course.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -47,55 +47,13 @@ export class asyncQuestionController {
     private mailService: MailService,
   ) {}
 
-  @Post(':qid/comment')
-  @UseGuards(AsyncQuestionRolesGuard)
-  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
-  async replyToQuestion(
-    @Param('qid', ParseIntPipe) qid: number,
-    @Body() body: AsyncQuestionCommentParams,
-    @User() user: UserModel,
-    @Res() res: Response,
-  ): Promise<Response> {
-    const { commentText } = body;
-    const question = await AsyncQuestionModel.findOne({
-      where: { id: qid },
-      relations: ['course', 'creator'],
-    });
-
-    if (!question) {
-      res
-        .status(HttpStatus.NOT_FOUND)
-        .send({ message: ERROR_MESSAGES.questionController.notFound });
-      return;
-    }
-
-    const comment = await AsyncQuestionCommentModel.create({
-      commentText,
-      creator: user,
-      question,
-      createdAt: new Date(),
-    }).save();
-
-    const updatedQuestion = await AsyncQuestionModel.findOne({
-      where: { id: qid },
-      relations: ['creator', 'taHelped', 'votes', 'comments'],
-    });
-
-    await this.redisQueueService.updateAsyncQuestion(
-      `c:${question.course.id}:aq`,
-      updatedQuestion,
-    );
-
-    res.status(HttpStatus.CREATED).send(comment);
-  }
-
   @Post(':qid/:vote')
   @UseGuards(AsyncQuestionRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async voteQuestion(
     @Param('qid', ParseIntPipe) qid: number,
     @Param('vote', ParseIntPipe) vote: number,
-    @User() user: UserModel,
+    @UserId() userId: number,
     @Res() res: Response,
   ): Promise<Response> {
     const question = await AsyncQuestionModel.findOne({
@@ -111,7 +69,7 @@ export class asyncQuestionController {
     }
 
     let thisUserThisQuestionVote = await AsyncQuestionVotesModel.findOne({
-      where: { userId: user.id, questionId: qid },
+      where: { userId, questionId: qid },
     });
 
     const hasVoted = thisUserThisQuestionVote !== undefined;
@@ -125,7 +83,7 @@ export class asyncQuestionController {
         thisUserThisQuestionVote.vote = newValue;
       } else {
         thisUserThisQuestionVote = new AsyncQuestionVotesModel();
-        thisUserThisQuestionVote.user = user;
+        thisUserThisQuestionVote.userId = userId;
         thisUserThisQuestionVote.question = question;
         thisUserThisQuestionVote.vote = newValue;
       }
@@ -144,7 +102,7 @@ export class asyncQuestionController {
     );
 
     // Check if the question was upvoted and send email if subscribed
-    if (vote > 0 && user.id !== question.creator.id) {
+    if (vote > 0 && userId !== question.creator.id) {
       const subscription = await UserSubscriptionModel.findOne({
         where: {
           userId: question.creator.id,
@@ -182,7 +140,7 @@ export class asyncQuestionController {
   async createQuestion(
     @Body() body: CreateAsyncQuestions,
     @Param('cid', ParseIntPipe) cid: number,
-    @User() user: UserModel,
+    @UserId() userId: number,
     @Res() res: Response,
   ): Promise<any> {
     const c = await CourseModel.findOne({
@@ -198,8 +156,7 @@ export class asyncQuestionController {
     try {
       const question = await AsyncQuestionModel.create({
         courseId: cid,
-        creator: user,
-        creatorId: user.id,
+        creatorId: userId,
         course: c,
         questionAbstract: body.questionAbstract,
         questionText: body.questionText || null,
@@ -239,7 +196,7 @@ export class asyncQuestionController {
   async updateStudentQuestion(
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
-    @User() user: UserModel,
+    @UserId() userId: number,
   ): Promise<AsyncQuestionParams> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
@@ -250,7 +207,7 @@ export class asyncQuestionController {
       throw new NotFoundException();
     }
 
-    if (question.creatorId !== user.id) {
+    if (question.creatorId !== userId) {
       throw new HttpException(
         'You can only update your own questions',
         HttpStatus.UNAUTHORIZED,
@@ -344,7 +301,7 @@ export class asyncQuestionController {
   async updateTAQuestion(
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
-    @User() user: UserModel,
+    @UserId() userId: number,
   ): Promise<AsyncQuestionParams> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
@@ -360,7 +317,7 @@ export class asyncQuestionController {
     // Verify if user is TA/PROF of the course
     const requester = await UserCourseModel.findOne({
       where: {
-        userId: user.id,
+        userId: userId,
         courseId: courseId,
       },
     });
@@ -380,7 +337,7 @@ export class asyncQuestionController {
 
     if (body.status === asyncQuestionStatus.HumanAnswered) {
       question.closedAt = new Date();
-      question.taHelpedId = user.id;
+      question.taHelpedId = userId;
       const subscription = await UserSubscriptionModel.findOne({
         where: {
           userId: question.creator.id,
@@ -449,5 +406,187 @@ export class asyncQuestionController {
     delete question.votes;
 
     return question;
+  }
+
+  @Post(':qid/comment')
+  @UseGuards(AsyncQuestionRolesGuard)
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+  async postComment(
+    @Param('qid', ParseIntPipe) qid: number,
+    @Body() body: AsyncQuestionCommentParams,
+    @UserId() userId: number,
+    @Res() res: Response,
+  ): Promise<Response> {
+    const { commentText } = body;
+    const question = await AsyncQuestionModel.findOne({
+      where: { id: qid },
+      relations: ['course', 'creator'],
+    });
+
+    if (!question) {
+      res
+        .status(HttpStatus.NOT_FOUND)
+        .send({ message: ERROR_MESSAGES.questionController.notFound });
+      return;
+    }
+
+    const comment = await AsyncQuestionCommentModel.create({
+      commentText,
+      creatorId: userId,
+      question,
+      createdAt: new Date(),
+    }).save();
+
+    const updatedQuestion = await AsyncQuestionModel.findOne({
+      where: { id: qid },
+      relations: ['creator', 'taHelped', 'votes', 'comments'],
+    });
+
+    await this.redisQueueService.updateAsyncQuestion(
+      `c:${question.course.id}:aq`,
+      updatedQuestion,
+    );
+
+    // TODO: Notify the creator of the question that a comment has been posted
+
+    res.status(HttpStatus.CREATED).send(comment);
+  }
+
+  @Patch(':qid/comment/:commentId')
+  @UseGuards(AsyncQuestionRolesGuard)
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+  async updateComment(
+    @Param('qid', ParseIntPipe) qid: number,
+    @Param('commentId', ParseIntPipe) commentId: number,
+    @Body() body: AsyncQuestionCommentParams,
+    @UserId() userId: number,
+    @Res() res: Response,
+  ): Promise<Response> {
+    const { commentText } = body;
+    const question = await AsyncQuestionModel.findOne({
+      where: { id: qid },
+      relations: ['course', 'creator'],
+    });
+
+    if (!question) {
+      res
+        .status(HttpStatus.NOT_FOUND)
+        .send({ message: ERROR_MESSAGES.questionController.notFound });
+      return;
+    }
+
+    const comment = await AsyncQuestionCommentModel.findOne({
+      where: { id: commentId, questionId: qid },
+    });
+
+    if (!comment) {
+      res
+        .status(HttpStatus.NOT_FOUND)
+        .send({
+          message:
+            ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
+        });
+      return;
+    }
+
+    if (comment.creatorId !== userId) {
+      res
+        .status(HttpStatus.FORBIDDEN)
+        .send({
+          message:
+            ERROR_MESSAGES.asyncQuestionController.comments.forbiddenUpdate,
+        });
+      return;
+    }
+
+    comment.commentText = commentText;
+    await comment.save();
+
+    const updatedQuestion = await AsyncQuestionModel.findOne({
+      where: { id: qid },
+      relations: ['creator', 'taHelped', 'votes', 'comments'],
+    });
+
+    await this.redisQueueService.updateAsyncQuestion(
+      `c:${question.course.id}:aq`,
+      updatedQuestion,
+    );
+
+    res.status(HttpStatus.OK).send(comment);
+  }
+
+  @Delete(':qid/comment/:commentId')
+  @UseGuards(AsyncQuestionRolesGuard)
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+  async deleteComment(
+    @Param('qid', ParseIntPipe) qid: number,
+    @Param('commentId', ParseIntPipe) commentId: number,
+    @UserId() userId: number,
+    @Res() res: Response,
+  ): Promise<Response> {
+    const question = await AsyncQuestionModel.findOne({
+      where: { id: qid },
+      relations: ['course', 'creator'],
+    });
+    if (!question) {
+      res
+        .status(HttpStatus.NOT_FOUND)
+        .send({ message: ERROR_MESSAGES.questionController.notFound });
+      return;
+    }
+
+    const userCourse = await UserCourseModel.findOne({
+      where: {
+        userId,
+        courseId: question.courseId,
+      },
+    });
+    if (!userCourse) {
+      // shouldn't happen since AsyncQuestionRolesGuard should catch it
+      throw new ForbiddenException('You are not in this course');
+    }
+
+    const comment = await AsyncQuestionCommentModel.findOne({
+      where: { id: commentId, questionId: qid },
+    });
+
+    if (!comment) {
+      res
+        .status(HttpStatus.NOT_FOUND)
+        .send({
+          message:
+            ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
+        });
+      return;
+    }
+
+    // staff can delete anyone's comments. students can only delete their own comments
+    if (
+      comment.creatorId !== userId &&
+      userCourse.role !== Role.PROFESSOR &&
+      userCourse.role !== Role.TA
+    ) {
+      res
+        .status(HttpStatus.FORBIDDEN)
+        .send({
+          message:
+            ERROR_MESSAGES.asyncQuestionController.comments.forbiddenDelete,
+        });
+      return;
+    }
+
+    await comment.remove();
+
+    const updatedQuestion = await AsyncQuestionModel.findOne({
+      where: { id: qid },
+      relations: ['creator', 'taHelped', 'votes', 'comments'],
+    });
+
+    await this.redisQueueService.updateAsyncQuestion(
+      `c:${question.course.id}:aq`,
+      updatedQuestion,
+    );
+
+    res.status(HttpStatus.OK).send({ message: 'Comment deleted' });
   }
 }
