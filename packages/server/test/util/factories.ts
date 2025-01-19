@@ -1,11 +1,12 @@
 import { QuestionGroupModel } from 'question/question-group.entity';
 import {
   AlertType,
+  asyncQuestionStatus,
+  calendarEventLocationType,
+  LMSIntegration,
   MailServiceType,
   OrganizationRole,
   Role,
-  asyncQuestionStatus,
-  calendarEventLocationType,
 } from '@koh/common';
 import { AlertModel } from 'alerts/alerts.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
@@ -35,6 +36,10 @@ import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgres
 import { CalendarModel } from 'calendar/calendar.entity';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
 import { InsightDashboardModel } from '../../src/insights/dashboard.entity';
+import { LMSOrganizationIntegrationModel } from '../../src/lmsIntegration/lmsOrgIntegration.entity';
+import { LMSCourseIntegrationModel } from '../../src/lmsIntegration/lmsCourseIntegration.entity';
+import { LMSAssignmentModel } from '../../src/lmsIntegration/lmsAssignment.entity';
+import { CalendarStaffModel } from 'calendar/calendar-staff.entity';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)
@@ -205,6 +210,10 @@ export const userSubscriptionFactory = new Factory(UserSubscriptionModel)
   .assocOne('user', UserFactory)
   .assocOne('service', mailServiceFactory);
 
+export const CalendarStaffFactory = new Factory(CalendarStaffModel)
+  .assocOne('user', UserFactory)
+  .assocOne('calendar', null);
+
 export const calendarFactory = new Factory(CalendarModel)
   .attr('title', 'Zoom Meeting')
   .attr('start', new Date())
@@ -216,9 +225,27 @@ export const calendarFactory = new Factory(CalendarModel)
   .attr('locationOnline', 'https://zoom.us/j/example')
   .attr('allDay', false)
   .attr('daysOfWeek', [])
+  .assocMany('staff', CalendarStaffFactory, 0)
   .assocOne('course', CourseFactory);
 
 export const dashboardPresetFactory = new Factory(InsightDashboardModel)
   .attr('name', 'Preset')
   .attr('insights', {})
   .assocOne('userCourse', UserCourseFactory);
+
+export const lmsOrgIntFactory = new Factory(LMSOrganizationIntegrationModel)
+  .attr('apiPlatform', 'Canvas' as LMSIntegration)
+  .attr('rootUrl', '')
+  .assocOne('organization', OrganizationFactory);
+
+export const lmsCourseIntFactory = new Factory(LMSCourseIntegrationModel)
+  .attr('apiKeyExpiry', new Date())
+  .attr('apiKey', 'abcdef')
+  .attr('apiCourseId', 'abcdef')
+  .assocOne('course', CourseFactory)
+  .assocOne('orgIntegration', lmsOrgIntFactory);
+
+export const lmsAssignmentFactory = new Factory(LMSAssignmentModel)
+  .attr('name', 'assignment')
+  .attr('description', 'desc')
+  .assocOne('course', lmsCourseIntFactory);

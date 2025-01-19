@@ -37,6 +37,7 @@ import { BackupModule } from 'backup/backup.module';
 import { QueueChatsModule } from 'queueChats/queue-chats.module';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { RateLimitExceptionFilter } from 'exception_filters/429-exception.filter';
+import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { RateLimitExceptionFilter } from 'exception_filters/429-exception.filter
         limit: 30,
       },
     ]),
+    LmsIntegrationModule,
   ],
   providers: [
     {

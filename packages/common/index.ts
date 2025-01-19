@@ -77,6 +77,7 @@ export class User {
   chat_token!: ChatTokenPartial
   accountType!: AccountType
   emailVerified!: boolean
+  readChangeLog!: boolean
 }
 
 export class ChatTokenPartial {
@@ -104,6 +105,19 @@ export class DesktopNotifPartial {
   name?: string
   @Type(() => Date)
   createdAt!: Date
+}
+
+/**
+ * Given by get_users endpoint that returns all users
+ */
+export interface OrgUser {
+  userId: number
+  firstName: string
+  lastName: string
+  email: string
+  photoUrl: string | null
+  userRole: string
+  organizationRole: string
 }
 
 /**
@@ -499,6 +513,7 @@ export enum ClosedQuestionStatus {
   DeletedDraft = 'DeletedDraft',
   ConfirmedDeleted = 'ConfirmedDeleted',
   Stale = 'Stale',
+  LeftDueToNoStaff = 'LeftDueToNoStaff',
 }
 
 /** waitingStatuses are statuses where the student waiting to be helped */
@@ -876,6 +891,10 @@ export class Calendar {
   @IsOptional()
   @MaxLength(7)
   color?: string
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  staffIds?: number[]
 }
 
 export class questions {
@@ -1008,6 +1027,44 @@ export class GetOrganizationResponse {
   websiteUrl?: string
   ssoEnabled?: boolean
   ssoUrl?: string
+}
+
+export class LMSOrganizationIntegrationPartial {
+  organizationId!: number
+  apiPlatform!: LMSIntegration
+  rootUrl!: string
+  courseIntegrations!: LMSCourseIntegrationPartial[]
+}
+
+export class LMSCourseIntegrationPartial {
+  courseId!: number
+  course!: CoursePartial
+  apiPlatform!: LMSIntegration
+  apiCourseId!: string
+  apiKeyExpiry!: Date
+}
+
+export type LMSCourseAPIResponse = {
+  name: string
+  code: string
+  studentCount: number
+}
+
+export type LMSAssignmentAPIResponse = {
+  id: number
+  name: string
+  description: string
+  modified: Date
+}
+
+export enum LMSApiResponseStatus {
+  None,
+  InvalidPlatform,
+  InvalidKey,
+  InvalidCourseId,
+  InvalidConfiguration,
+  Error,
+  Success,
 }
 
 export interface CourseResponse {
@@ -1359,6 +1416,8 @@ export class TACheckinPair {
 
 export enum AlertType {
   REPHRASE_QUESTION = 'rephraseQuestion',
+  EVENT_ENDED_CHECKOUT_STAFF = 'eventEndedCheckoutStaff',
+  PROMPT_STUDENT_TO_LEAVE_QUEUE = 'promptStudentToLeaveQueue',
 }
 
 export class AlertPayload {}
@@ -1386,6 +1445,10 @@ export class RephraseQuestionPayload extends AlertPayload {
 
   @IsInt()
   courseId!: number
+}
+
+export class PromptStudentToLeaveQueuePayload extends AlertPayload {
+  queueId!: number
 }
 
 export class OrganizationCourseResponse {
@@ -1772,6 +1835,16 @@ export class CourseSettingsRequestBody {
  */
 export interface setQueueConfigResponse {
   questionTypeMessages: string[]
+}
+
+export type CronJob = {
+  id: string
+  cronTime: string | Date
+  running: boolean
+  nextDates: Date[]
+  lastDate?: Date
+  lastExecution?: Date
+  runOnce: boolean
 }
 
 /**
@@ -2322,12 +2395,23 @@ export function decodeBase64(str: string) {
   return Buffer.from(str, 'base64').toString('utf-8')
 }
 
+export enum LMSIntegration {
+  Canvas = 'Canvas',
+}
+
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
   },
   questionService: {
     getDBClient: 'Error getting DB client',
+  },
+  calendarEvent: {
+    invalidEvent:
+      'Invalid calendar event: Events must either have daysOfWeek.length > 0 and startDate and endDate or have daysOfWeek.length === 0 and startDate and endDate are both null',
+    dateInPast:
+      'Event date is in the past. No AutoCheckout will occur. Please unassign staff from event.',
+    invalidRecurringEvent: 'Recurring events must have a start and end date',
   },
   organizationController: {
     notEnoughDiskSpace: 'Not enough disk space to upload file',
@@ -2343,6 +2427,12 @@ export const ERROR_MESSAGES = {
     userNotFoundInOrganization: 'User not found in organization',
     cannotRemoveAdminRole: 'Cannot remove admin role from user',
     cannotGetAdminUser: 'Information about this user account is restricted',
+    lmsIntegrationNotFound:
+      'Learning Management System integration was not found',
+    lmsIntegrationInvalidPlatform: 'The specified API platform was invalid',
+    lmsIntegrationUrlRequired: 'Root URL is required for LMS integrations',
+    lmsIntegrationProtocolIncluded:
+      'Root URL should not include protocol (https/http)',
   },
   courseController: {
     checkIn: {
@@ -2350,6 +2440,7 @@ export const ERROR_MESSAGES = {
         'Cannot check into multiple queues at the same time',
     },
     queueLimitReached: 'Queue limit per course reached',
+    roleInvalid: 'Role must be a valid role',
     semesterYearInvalid: 'Semester year must be a valid year',
     semesterNameFormat:
       'Semester must be in the format "season,year". E.g. Fall,2021',
@@ -2388,6 +2479,9 @@ export const ERROR_MESSAGES = {
       'You are unauthorized to submit an application. Please email help@khouryofficehours.com for the correct URL.',
     crnAlreadyRegistered: (crn: number, courseId: number): string =>
       `The CRN ${crn} already exists for another course with course id ${courseId}`,
+    organizationNotFound: 'Course has no related organization',
+    orgIntegrationNotFound: 'Course organization has no LMS integrations',
+    lmsIntegrationNotFound: 'Course has no related LMS integrations',
   },
   questionController: {
     createQuestion: {

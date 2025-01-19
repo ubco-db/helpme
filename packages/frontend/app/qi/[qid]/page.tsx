@@ -155,6 +155,7 @@ export default function QueueInvitePage({
 
   // if the user is already logged in, is a student, and is in the course, redirect them to the queue page
   // The reason why it's only students is so that professors can easily show this page (to show the QR code)
+  // don't redirect if they hit the back button
   useEffect(() => {
     if (
       queueInviteInfo &&
@@ -165,7 +166,7 @@ export default function QueueInvitePage({
           course.role === Role.STUDENT,
       )
     ) {
-      router.push(
+      router.replace(
         `/course/${queueInviteInfo.courseId}/queue/${queueInviteInfo.queueId}`,
       )
     }

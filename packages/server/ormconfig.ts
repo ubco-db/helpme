@@ -19,6 +19,7 @@ import { ChatbotQuestionModel } from './src/chatbot/question.entity';
 import { InteractionModel } from './src/chatbot/interaction.entity';
 import { QuestionDocumentModel } from './src/chatbot/questionDocument.entity';
 import { CalendarModel } from './src/calendar/calendar.entity';
+import { CalendarStaffModel } from './src/calendar/calendar-staff.entity';
 import { OrganizationUserModel } from './src/organization/organization-user.entity';
 import { OrganizationModel } from './src/organization/organization.entity';
 import { MailServiceModel } from './src/mail/mail-services.entity';
@@ -33,6 +34,9 @@ import { ApplicationConfigModel } from './src/config/application_config.entity';
 import { InsightDashboardModel } from './src/insights/dashboard.entity';
 import { QueueInviteModel } from './src/queue/queue-invite.entity';
 import { QueueChatsModel } from './src/queueChats/queue-chats.entity';
+import { LMSOrganizationIntegrationModel } from './src/lmsIntegration/lmsOrgIntegration.entity';
+import { LMSCourseIntegrationModel } from './src/lmsIntegration/lmsCourseIntegration.entity';
+import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';
 
 config();
 
@@ -70,6 +74,7 @@ const typeorm = {
     QuestionGroupModel,
     AlertModel,
     CalendarModel,
+    CalendarStaffModel,
     LastRegistrationModel,
     ProfSectionGroupsModel,
     QuestionDocumentModel,
@@ -85,6 +90,9 @@ const typeorm = {
     QueueInviteModel,
     QueueChatsModel,
     InsightDashboardModel,
+    LMSOrganizationIntegrationModel,
+    LMSCourseIntegrationModel,
+    LMSAssignmentModel,
   ],
   keepConnectionAlive: true,
   logging:

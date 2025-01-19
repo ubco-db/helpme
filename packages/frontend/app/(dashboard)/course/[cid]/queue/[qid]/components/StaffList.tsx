@@ -39,7 +39,7 @@ const StaffList: React.FC<StaffListProps> = ({ queueId }) => {
   }
 
   return (
-    <Col className="my-1 flex flex-col gap-4">
+    <Col className="my-1 flex flex-col gap-y-2 md:block">
       {staffList.map((ta) => (
         <Col key={ta.id}>
           <StatusCard

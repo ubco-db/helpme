@@ -28,7 +28,7 @@ import {
 } from '@/app/typings/chatbot'
 import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
-import QueueChat from '../QueueChat'
+import Link from 'next/link'
 
 const { TextArea } = Input
 
@@ -96,11 +96,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
     }
     if (userInfo.chat_token) {
       setQuestionsLeft(userInfo.chat_token.max_uses - userInfo.chat_token.used)
-    }
-    return () => {
-      setHelpmeQuestionId(undefined)
-      setInteractionId(undefined)
-      setPreDeterminedQuestions([])
     }
   }, [
     userInfo,
@@ -275,237 +270,240 @@ const Chatbot: React.FC<ChatbotProps> = ({
         )}
       >
         {isOpen ? (
-          <>
-            <Card
-              title="Course Chatbot"
-              classNames={{
-                header: 'pr-3',
-                body: cn(
-                  'px-4 pb-4',
-                  variant === 'big' || variant === 'huge'
-                    ? 'flex flex-col flex-auto'
-                    : '',
-                ),
-              }}
+          <Card
+            title="Course Chatbot"
+            classNames={{
+              header: 'pr-3',
+              body: cn(
+                'px-4 pb-4',
+                variant === 'big' || variant === 'huge'
+                  ? 'flex flex-col flex-auto'
+                  : '',
+              ),
+            }}
+            className={cn(
+              variant === 'big' || variant === 'huge'
+                ? 'flex w-full flex-auto flex-col overflow-y-auto'
+                : '',
+            )}
+            extra={
+              <>
+                <Button onClick={resetChat} danger type="link" className="mr-3">
+                  Reset Chat
+                </Button>
+                {variant === 'small' && (
+                  <Button
+                    onClick={() => setIsOpen(false)}
+                    type="text"
+                    icon={<CloseOutlined />}
+                  />
+                )}
+              </>
+            }
+          >
+            <div
               className={cn(
                 variant === 'big' || variant === 'huge'
-                  ? 'flex w-full flex-auto flex-col overflow-y-auto'
+                  ? 'flex flex-auto flex-col justify-between'
                   : '',
               )}
-              extra={
-                <>
-                  <Button
-                    onClick={resetChat}
-                    danger
-                    type="link"
-                    className="mr-3"
-                  >
-                    Reset Chat
-                  </Button>
-                  {variant === 'small' && (
-                    <Button
-                      onClick={() => setIsOpen(false)}
-                      type="text"
-                      icon={<CloseOutlined />}
-                    />
-                  )}
-                </>
-              }
             >
               <div
                 className={cn(
-                  variant === 'big' || variant === 'huge'
-                    ? 'flex flex-auto flex-col justify-between'
-                    : '',
+                  'overflow-y-auto',
+                  variant === 'small' ? 'max-h-[70vh]' : 'grow-1',
                 )}
               >
-                <div
-                  className={cn(
-                    'overflow-y-auto',
-                    variant === 'small' ? 'max-h-[70vh]' : 'grow-1',
-                  )}
-                >
-                  {messages &&
-                    messages.map((item, index) => (
-                      <Fragment key={index}>
-                        {item.type === 'userMessage' ? (
-                          <div className="align-items-start m-1 mb-3 flex justify-end">
-                            <div
-                              className={cn(
-                                'childrenMarkdownFormatted mr-2 rounded-xl bg-blue-900 px-3 py-2 text-white',
-                                variant === 'small'
-                                  ? 'max-w-[300px]'
-                                  : 'max-w-[90%]',
-                              )}
-                            >
-                              <MarkdownCustom variant="blue">
-                                {item.message ?? ''}
-                              </MarkdownCustom>
-                            </div>
-                            <Avatar
-                              size="small"
-                              className="min-w-6"
-                              icon={<UserOutlined />}
-                            />
+                {messages &&
+                  messages.map((item, index) => (
+                    <Fragment key={index}>
+                      {item.type === 'userMessage' ? (
+                        <div className="align-items-start m-1 mb-3 flex justify-end">
+                          <div
+                            className={cn(
+                              'childrenMarkdownFormatted mr-2 rounded-xl bg-blue-900 px-3 py-2 text-white',
+                              variant === 'small'
+                                ? 'max-w-[300px]'
+                                : 'max-w-[90%]',
+                            )}
+                          >
+                            <MarkdownCustom variant="blue">
+                              {item.message ?? ''}
+                            </MarkdownCustom>
                           </div>
-                        ) : (
-                          <div className="group mb-3 flex flex-grow items-start">
-                            <Avatar
-                              size="small"
-                              className="min-w-6"
-                              icon={<RobotOutlined />}
-                            />
-                            <div className="ml-2 flex flex-col gap-1">
-                              <div className="flex items-start gap-2">
-                                <div
-                                  className={cn(
-                                    'childrenMarkdownFormatted rounded-xl px-3 py-2',
-                                    item.verified
-                                      ? 'bg-green-100'
-                                      : 'bg-slate-100',
-                                    variant === 'small'
-                                      ? 'max-w-[280px]'
-                                      : 'max-w-[90%]',
-                                  )}
-                                >
-                                  <MarkdownCustom variant="lightblue">
-                                    {item.message ?? ''}
-                                  </MarkdownCustom>
-                                  {item.verified && (
-                                    <Tooltip title="A similar question has been asked before, and the answer has been verified by a faculty member">
-                                      <CheckCircleOutlined
-                                        style={{
-                                          color: 'green',
-                                          fontSize: '20px',
-                                          marginLeft: '2px',
-                                        }}
-                                      />
+                          <Avatar
+                            size="small"
+                            className="min-w-6"
+                            icon={<UserOutlined />}
+                          />
+                        </div>
+                      ) : (
+                        <div className="group mb-3 flex flex-grow items-start">
+                          <Avatar
+                            size="small"
+                            className="min-w-6"
+                            icon={<RobotOutlined />}
+                          />
+                          <div className="ml-2 flex flex-col gap-1">
+                            <div className="flex items-start gap-2">
+                              <div
+                                className={cn(
+                                  'childrenMarkdownFormatted rounded-xl px-3 py-2',
+                                  item.verified
+                                    ? 'bg-green-100'
+                                    : 'bg-slate-100',
+                                  variant === 'small'
+                                    ? 'max-w-[280px]'
+                                    : 'max-w-[90%]',
+                                )}
+                              >
+                                <MarkdownCustom variant="lightblue">
+                                  {item.message ?? ''}
+                                </MarkdownCustom>
+                                {item.verified && (
+                                  <Tooltip title="A similar question has been asked before, and the answer has been verified by a faculty member">
+                                    <CheckCircleOutlined
+                                      style={{
+                                        color: 'green',
+                                        fontSize: '20px',
+                                        marginLeft: '2px',
+                                      }}
+                                    />
+                                  </Tooltip>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              {item.sourceDocuments &&
+                                item.sourceDocuments.map(
+                                  (sourceDocument, idx) => (
+                                    <Tooltip
+                                      title={
+                                        sourceDocument.type
+                                          ? sourceDocument.content
+                                          : ''
+                                      }
+                                      key={idx}
+                                    >
+                                      <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
+                                        <p className="px-2 py-1">
+                                          {sourceDocument.docName}
+                                        </p>
+                                        {sourceDocument.pageNumbers &&
+                                          sourceDocument.pageNumbers.map(
+                                            (part) => (
+                                              <div
+                                                className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
+                                                  sourceDocument.sourceLink &&
+                                                  'hover:bg-black-300 cursor-pointer hover:text-white'
+                                                }`}
+                                                key={`${sourceDocument.docName}-${part}`}
+                                                onClick={() => {
+                                                  if (
+                                                    sourceDocument.sourceLink
+                                                  ) {
+                                                    window.open(
+                                                      sourceDocument.sourceLink,
+                                                    )
+                                                  }
+                                                }}
+                                              >
+                                                <p className="h-fit w-fit text-xs leading-4">
+                                                  {`p. ${part}`}
+                                                </p>
+                                              </div>
+                                            ),
+                                          )}
+                                      </div>
                                     </Tooltip>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                {item.sourceDocuments &&
-                                  item.sourceDocuments.map(
-                                    (sourceDocument, idx) => (
-                                      <Tooltip
-                                        title={
-                                          sourceDocument.type
-                                            ? sourceDocument.content
-                                            : ''
-                                        }
-                                        key={idx}
-                                      >
-                                        <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
-                                          <p className="px-2 py-1">
-                                            {sourceDocument.docName}
-                                          </p>
-                                          {sourceDocument.pageNumbers &&
-                                            sourceDocument.pageNumbers.map(
-                                              (part) => (
-                                                <div
-                                                  className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
-                                                    sourceDocument.sourceLink &&
-                                                    'hover:bg-black-300 cursor-pointer hover:text-white'
-                                                  }`}
-                                                  key={`${sourceDocument.docName}-${part}`}
-                                                  onClick={() => {
-                                                    if (
-                                                      sourceDocument.sourceLink
-                                                    ) {
-                                                      window.open(
-                                                        sourceDocument.sourceLink,
-                                                      )
-                                                    }
-                                                  }}
-                                                >
-                                                  <p className="h-fit w-fit text-xs leading-4">
-                                                    {`p. ${part}`}
-                                                  </p>
-                                                </div>
-                                              ),
-                                            )}
-                                        </div>
-                                      </Tooltip>
-                                    ),
-                                  )}
-                              </div>
-                              {item.type === 'apiMessage' &&
-                                index === messages.length - 1 &&
-                                index !== 0 && (
-                                  <Feedback
-                                    questionId={helpmeQuestionId ?? 0}
-                                  />
+                                  ),
                                 )}
                             </div>
+                            {item.type === 'apiMessage' &&
+                              index === messages.length - 1 &&
+                              index !== 0 && (
+                                <Feedback questionId={helpmeQuestionId ?? 0} />
+                              )}
                           </div>
-                        )}
-                      </Fragment>
-                    ))}
-
-                  {preDeterminedQuestions &&
-                    !isLoading &&
-                    preDeterminedQuestions.map((question) => (
-                      <div
-                        className="align-items-start m-1 mb-1 flex justify-end"
-                        key={question.id || question.pageContent}
-                      >
-                        <div
-                          onClick={() => answerPreDeterminedQuestion(question)}
-                          className="mr-2 max-w-[300px] cursor-pointer rounded-xl border-2 border-blue-900 bg-transparent px-3 py-2 text-blue-900 transition hover:bg-blue-900 hover:text-white"
-                        >
-                          {question.pageContent}
                         </div>
-                      </div>
-                    ))}
-                  {isLoading && (
-                    <Spin
-                      style={{
-                        display: 'block',
-                        marginBottom: '10px',
-                      }}
-                    />
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-                <div>
-                  <Space.Compact block size="large">
-                    <TextArea
-                      id="chatbot-input"
-                      autoSize={{ minRows: 1.35, maxRows: 20 }}
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      className="rounded-r-none"
-                      placeholder="Ask something... (Shift+Enter for new line)"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault()
-                          if (input.trim().length > 0 && !isLoading) {
-                            handleAsk()
-                          }
-                        }
-                      }}
-                    />
-                    <Button
-                      type="primary"
-                      onClick={handleAsk}
-                      disabled={input.trim().length === 0 || isLoading}
+                      )}
+                    </Fragment>
+                  ))}
+                {preDeterminedQuestions &&
+                  !isLoading &&
+                  preDeterminedQuestions.map((question) => (
+                    <div
+                      className="align-items-start m-1 mb-1 flex justify-end"
+                      key={question.id || question.pageContent}
                     >
-                      Ask
-                    </Button>
-                  </Space.Compact>
-                  {userInfo.chat_token && questionsLeft < 100 && (
-                    <Card.Meta
-                      description={`You can ask the chatbot ${questionsLeft} more question${
-                        questionsLeft > 1 ? 's' : ''
-                      } today`}
-                      className="mt-3"
-                    />
-                  )}
-                </div>
+                      <div
+                        onClick={() => answerPreDeterminedQuestion(question)}
+                        className="mr-2 max-w-[300px] cursor-pointer rounded-xl border-2 border-blue-900 bg-transparent px-3 py-2 text-blue-900 transition hover:bg-blue-900 hover:text-white"
+                      >
+                        {question.pageContent}
+                      </div>
+                    </div>
+                  ))}
+                {isLoading && (
+                  <Spin
+                    style={{
+                      display: 'block',
+                      marginBottom: '10px',
+                    }}
+                  />
+                )}
+                <div ref={messagesEndRef} />
+                {messages.length > 1 && (
+                  <div>
+                    Unhappy with your answer?{' '}
+                    <Link
+                      href={{
+                        pathname: `/course/${cid}/async_centre`,
+                        query: { convertChatbotQ: true },
+                      }}
+                    >
+                      Convert to anytime question
+                    </Link>
+                  </div>
+                )}
               </div>
-            </Card>
-          </>
+              <div>
+                <Space.Compact block size="large">
+                  <TextArea
+                    id="chatbot-input"
+                    autoSize={{ minRows: 1.35, maxRows: 20 }}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    className="rounded-r-none"
+                    placeholder="Ask something... (Shift+Enter for new line)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        if (input.trim().length > 0 && !isLoading) {
+                          handleAsk()
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    type="primary"
+                    onClick={handleAsk}
+                    disabled={input.trim().length === 0 || isLoading}
+                  >
+                    Ask
+                  </Button>
+                </Space.Compact>
+                {userInfo.chat_token && questionsLeft < 100 && (
+                  <Card.Meta
+                    description={`You can ask the chatbot ${questionsLeft} more question${
+                      questionsLeft > 1 ? 's' : ''
+                    } today`}
+                    className="mt-3"
+                  />
+                )}
+              </div>
+            </div>
+          </Card>
         ) : (
           <>
             <div className="md:flex md:justify-end">
