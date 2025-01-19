@@ -12,6 +12,7 @@ export interface useQueueChatReturn {
   queueChatError: queueChatResponse['error']
   mutateQueueChat: queueChatResponse['mutate']
   hasNewMessages: boolean
+  setHasNewMessagesFalse: () => void
 }
 
 export function useQueueChat(
@@ -21,8 +22,7 @@ export function useQueueChat(
   const key = `/api/v1/queueChats/${qid}/${studentId}`
 
   // On desktop, this is used to know when to auto-open the chat
-  // On mobile, this is used to pulse the chat icon
-  const previousMessageCount = useRef<number>(0)
+  // On mobile, this is used to "bounce" the chat button
   const [hasNewMessages, setHasNewMessages] = useState<boolean>(false)
 
   // Subscribe to SSE
@@ -51,16 +51,20 @@ export function useQueueChat(
 
   // To update the hasNewMessages state
   useEffect(() => {
-    if (queueChatData?.messages) {
-      const newMessageCount = queueChatData.messages.length
-      if (newMessageCount > previousMessageCount.current) {
-        setHasNewMessages(true)
-      } else {
-        setHasNewMessages(false)
-      }
-      previousMessageCount.current = newMessageCount
+    if (!queueChatData?.messages) {
+      return
     }
+    setHasNewMessages(true)
   }, [queueChatData?.messages])
 
-  return { queueChatData, queueChatError, mutateQueueChat, hasNewMessages }
+  // Reset hasNewMessages state
+  const setHasNewMessagesFalse = () => setHasNewMessages(false)
+
+  return {
+    queueChatData,
+    queueChatError,
+    mutateQueueChat,
+    hasNewMessages,
+    setHasNewMessagesFalse,
+  }
 }

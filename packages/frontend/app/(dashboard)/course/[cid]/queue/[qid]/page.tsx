@@ -922,43 +922,47 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               />
             )}
 
-            {/* PAT TODO: add mobile view and maybe a way to minimize it to the right side */}
             {isMobile ? (
               mobileQueueChatOpen ? (
                 <Drawer
                   placement="bottom"
                   open={mobileQueueChatOpen}
-                  className="box-border flex h-full flex-col justify-end overflow-hidden"
+                  className="box-border flex h-full flex-col justify-end overflow-auto"
                   title="Queue Chats"
                   styles={{
-                    body: { padding: '0.5rem' },
-                    wrapper: { height: 'min-content', maxHeight: '70vh' },
+                    body: {
+                      padding: '0.5rem',
+                      overflow: 'hidden',
+                      height: '100%',
+                    },
+                    wrapper: { height: 'min-content' },
                   }}
+                  forceRender
+                  destroyOnClose={false}
                   onClose={() => setMobileQueueChatOpen(false)}
                 >
                   <div
                     className={
-                      'flex h-full w-full flex-col items-center justify-center gap-2 md:h-fit'
+                      'flex h-full w-full flex-col items-center justify-center gap-2'
                     }
                   >
                     {helpingQuestions.map((question) => {
-                      if (
-                        currentChatQuestionId == -1 ||
-                        currentChatQuestionId == question.id
-                      ) {
-                        return (
-                          <QueueChat
-                            key={question.id}
-                            queueId={qid}
-                            studentId={question.creatorId}
-                            role={role}
-                            isMobile={isMobile}
-                            fixed={false}
-                            onOpen={() => setCurrentChatQuestionId(question.id)}
-                            onClose={() => setCurrentChatQuestionId(-1)}
-                          />
-                        )
-                      }
+                      return (
+                        <QueueChat
+                          key={question.id}
+                          queueId={qid}
+                          studentId={question.creatorId}
+                          role={role}
+                          isMobile={isMobile}
+                          fixed={false}
+                          onOpen={() => setCurrentChatQuestionId(question.id)}
+                          onClose={() => setCurrentChatQuestionId(-1)}
+                          hidden={
+                            currentChatQuestionId != question.id &&
+                            currentChatQuestionId != -1
+                          }
+                        />
+                      )
                     })}
                   </div>
                 </Drawer>
@@ -981,10 +985,10 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 )
               )
             ) : (
-              <div className="fixed bottom-8 right-0 box-border md:right-2">
+              <div className="fixed bottom-8 right-0 box-border max-h-[70vh] md:right-2">
                 <div
                   className={
-                    'box-border flex max-w-[50vw] flex-row items-start justify-end gap-2 overflow-x-auto overflow-y-hidden'
+                    'box-border flex h-full max-w-[50vw] flex-row items-end justify-end gap-2 overflow-x-auto overflow-y-hidden'
                   }
                 >
                   {helpingQuestions.map((question) => {
@@ -996,6 +1000,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                         role={role}
                         isMobile={isMobile}
                         fixed={false}
+                        hidden={false}
                       />
                     )
                   })}
@@ -1138,6 +1143,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 role={role}
                 isMobile={isMobile}
                 fixed={true}
+                hidden={false}
               />
             )}
           </>

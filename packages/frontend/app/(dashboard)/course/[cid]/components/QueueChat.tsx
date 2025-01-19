@@ -1,5 +1,5 @@
 import { Fragment, ReactElement, useEffect, useRef, useState } from 'react'
-import { Alert, Button, Card, Space } from 'antd'
+import { Alert, Badge, Button, Card, Space } from 'antd'
 import { Role } from '@koh/common'
 import UserAvatar from '@/app/components/UserAvatar'
 import { MessageCircleMore } from 'lucide-react'
@@ -13,6 +13,7 @@ interface QueueChatProps {
   queueId: number
   studentId: number
   isMobile: boolean
+  hidden: boolean
   fixed?: boolean
   onOpen?: () => void
   onClose?: () => void
@@ -23,6 +24,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   queueId,
   studentId,
   isMobile,
+  hidden,
   fixed = true,
   onOpen = () => {
     return
@@ -34,26 +36,28 @@ const QueueChat: React.FC<QueueChatProps> = ({
   const [isOpen, setIsOpen] = useState<boolean>(isMobile ? false : true)
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
-  const { queueChatData, mutateQueueChat, hasNewMessages } = useQueueChat(
-    queueId,
-    studentId,
-  )
-  const messagesEndRef = useRef<HTMLDivElement | null>(null) //This handles auto scrolling
+  const {
+    queueChatData,
+    mutateQueueChat,
+    hasNewMessages,
+    setHasNewMessagesFalse,
+  } = useQueueChat(queueId, studentId)
+  const messagesEndRef = useRef<HTMLDivElement | null>(null) // This handles auto scrolling
 
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (messagesEndRef.current && isOpen) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [queueChatData])
+  }, [isOpen])
 
   useEffect(() => {
     if (!hasNewMessages) {
       return
     }
-
     if (!isMobile) {
       // This is for desktop's default behaviour (auto open the chat) -- mobile has css to handle this
       setIsOpen(true)
+      setHasNewMessagesFalse()
       onOpen()
     }
   }, [hasNewMessages, setIsOpen])
@@ -78,7 +82,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   if (!queueChatData && isOpen) {
     return (
       <Alert
-        className={`${fixed ? 'fixed ' : ''}bottom-8 right-0 box-border md:right-2`}
+        className={`${fixed ? 'fixed ' : ''}bottom-8 right-0 box-border overflow-y-auto md:right-2`}
         message="Chat data is not available."
         description="Please try again later or contact support if the issue persists."
         type="warning"
@@ -89,7 +93,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
 
   return isOpen ? (
     <div
-      className={`${fixed ? 'fixed ' : ''}bottom-8 right-0 z-50 box-border h-full w-full md:right-2 md:h-fit md:max-h-[70vh] md:max-w-[400px]`}
+      className={`${fixed ? 'fixed ' : ''}bottom-8 right-2 z-50 box-border w-full md:max-w-[400px]`}
       style={{ zIndex: 1050 }}
     >
       <Card
@@ -102,13 +106,14 @@ const QueueChat: React.FC<QueueChatProps> = ({
         }
         classNames={{
           header: 'pr-3',
-          body: 'px-4 pb-4 flex flex-col flex-auto',
+          body: 'px-4 pb-4 pt-1 flex flex-col flex-auto',
         }}
-        className="flex w-full flex-auto flex-col"
+        className="flex max-h-[70vh] min-h-[70vh] w-full flex-auto flex-col md:min-h-[20vh]"
         extra={
           <Button
             onClick={() => {
               setIsOpen(false)
+              setHasNewMessagesFalse()
               onClose()
             }}
             type="text"
@@ -116,9 +121,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
           />
         }
       >
-        <div className="flex flex-auto flex-col justify-between">
-          <div className="no-scrollbar overflow-y-auto">
-            <div className="mb-2 w-full text-center text-xs italic text-gray-500">
+        <div className="flex flex-auto flex-col justify-between md:h-full">
+          <div className="no-scrollbar max-h-[50vh] overflow-y-auto">
+            <div className="mb-2 w-full pt-1 text-center text-xs italic text-gray-500">
               Your chat messages will not be recorded for your privacy but
               please remain respectful
             </div>
@@ -229,21 +234,26 @@ const QueueChat: React.FC<QueueChatProps> = ({
     </div>
   ) : isMobile ? (
     <div style={{ zIndex: 1050, width: '100%' }}>
-      <Button
-        type="primary"
-        size="large"
-        className={`${hasNewMessages ?? 'animate-bounce '}${isStaff ? `${fixed ? `fixed ` : ''}bottom-8 right-3 ` : 'w-full '}rounded-sm`}
-        onClick={() => {
-          setIsOpen(true)
-          onOpen()
-        }}
+      <Badge
+        dot={hasNewMessages}
+        className={`${hidden ? 'hidden ' : ''}${hasNewMessages ? 'animate-bounce ' : ''}w-full`}
       >
-        {queueChatData && queueChatData.staff && queueChatData.student
-          ? isStaff
-            ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName ?? ''}`
-            : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName ?? ''}`
-          : 'Loading...'}
-      </Button>
+        <Button
+          type="primary"
+          size="large"
+          className={`${isStaff ? 'w-full ' : `${fixed ? `fixed ` : ''}bottom-8 right-3 `}rounded-sm`}
+          onClick={() => {
+            setIsOpen(true)
+            onOpen()
+          }}
+        >
+          {queueChatData && queueChatData.staff && queueChatData.student
+            ? isStaff
+              ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName ?? ''}`
+              : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName ?? ''}`
+            : 'Loading...'}
+        </Button>
+      </Badge>
     </div>
   ) : (
     <div
@@ -257,6 +267,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
         icon={<MessageCircleMore />}
         onClick={() => {
           setIsOpen(true)
+          setHasNewMessagesFalse()
           onOpen()
         }}
       >
