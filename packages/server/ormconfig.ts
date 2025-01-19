@@ -12,7 +12,6 @@ import { QuestionGroupModel } from './src/question/question-group.entity';
 import { QueueModel } from './src/queue/queue.entity';
 import { AlertModel } from './src/alerts/alerts.entity';
 import { LastRegistrationModel } from './src/login/last-registration-model.entity';
-import { ProfSectionGroupsModel } from './src/login/prof-section-groups.entity';
 import { QuestionTypeModel } from './src/questionType/question-type.entity';
 import { AsyncQuestionModel } from './src/asyncQuestion/asyncQuestion.entity';
 import { ChatbotQuestionModel } from './src/chatbot/question.entity';
@@ -36,7 +35,7 @@ import { QueueInviteModel } from './src/queue/queue-invite.entity';
 import { LMSOrganizationIntegrationModel } from './src/lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from './src/lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';
-import { AsyncQuestionCommentsModel } from 'asyncQuestion/asyncQuestionComment.entity';
+import { AsyncQuestionCommentModel } from 'asyncQuestion/asyncQuestionComment.entity';
 
 config();
 
@@ -76,14 +75,13 @@ const typeorm = {
     CalendarModel,
     CalendarStaffModel,
     LastRegistrationModel,
-    ProfSectionGroupsModel,
     QuestionDocumentModel,
     OrganizationUserModel,
     OrganizationModel,
     OrganizationCourseModel,
     CourseSettingsModel,
     AsyncQuestionVotesModel,
-    AsyncQuestionCommentsModel,
+    AsyncQuestionCommentModel,
     UserTokenModel,
     ChatTokenModel,
     StudentTaskProgressModel,

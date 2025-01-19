@@ -19,7 +19,6 @@ import { UserModel } from '../../src/profile/user.entity';
 import { QuestionModel } from '../../src/question/question.entity';
 import { QueueModel } from '../../src/queue/queue.entity';
 import { LastRegistrationModel } from 'login/last-registration-model.entity';
-import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
 import { OrganizationModel } from '../../src/organization/organization.entity';
 import { InteractionModel } from '../../src/chatbot/interaction.entity';
 import { OrganizationCourseModel } from '../../src/organization/organization-course.entity';
@@ -142,10 +141,6 @@ export const EventFactory = new Factory(EventModel)
 export const LastRegistrationFactory = new Factory(LastRegistrationModel)
   .attr('lastRegisteredSemester', '202210') // Fall 2022
   .assocOne('prof', UserFactory);
-
-export const ProfSectionGroupsFactory = new Factory(ProfSectionGroupsModel)
-  .assocOne('prof', UserFactory)
-  .attr('sectionGroups', []);
 
 export const AlertFactory = new Factory(AlertModel)
   .attr('alertType', AlertType.REPHRASE_QUESTION)
