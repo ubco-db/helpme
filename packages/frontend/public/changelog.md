@@ -1,9 +1,11 @@
-## Version 1.2.2 - Jan 17, 2024
+## Version 1.2.2 - Jan 19, 2024
 
 #### Improvements
 - Fixed a bug where end date would appear as "Invalid Date" when creating repeat events
 - Fixed this modal being very thin on some browsers
 - Fixed bug where verifying your email would not work when manually typing in the code
+- Hopefully fixed issue with randomly being logged out
+- The insights page now shows all insights by default
 - Misc bug fixes and improvements
 
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { userApi } from './app/api/userApi'
 import { OrganizationRole } from './app/typings/user'
 import { isProd, User } from './middlewareType'
+import * as Sentry from '@sentry/nextjs'
+import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies'
 
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
 const publicPages = [
@@ -50,29 +52,50 @@ export async function middleware(request: NextRequest) {
       // If the auth token is invalid, redirect to /login
       if (data.status === 401) {
         // I have no clue if the session is actually expired or what exactly.
-        const response = NextResponse.redirect(
-          new URL('/login?error=sessionExpired', url),
-        )
-        response.cookies.delete('auth_token')
-        return response
+        return await handleRetry(
+          cookies,
+          () => {
+            const response = NextResponse.redirect(
+              new URL('/login?error=sessionExpired', url),
+            )
+            response.cookies.delete('auth_token')
+            return response
+          },
+          1,
+        ) // retry only once
       } else if (data.status === 429) {
         // Too many requests (somehow. This should never happen since the getUser api has no throttler, but i'm leaving this here in case that changes).
         // Ideally, we would just do an antd message.error, but we can't do that in middelware since it's server-side.
         // The best solution we have right now is just sending them to the /429 page, which has a back button.
-        return NextResponse.redirect(new URL('/error_pages/429', url))
-      } else if (data.status >= 400) {
+        return await handleRetry(cookies, () => {
+          return NextResponse.redirect(new URL('/error_pages/429', url))
+        })
+      } else if (data.status >= 400 || (!data.ok && data.status !== 304)) {
         // this really is not meant to happen
-        const response = NextResponse.redirect(
-          new URL(
-            `/login?error=errorCode${data.status}${encodeURIComponent(data.statusText)}`,
-            url,
-          ),
-        )
-        response.cookies.delete('auth_token')
-        return response
-      } else if (!data.ok && data.status !== 304) {
-        // do be warned that if it gets to this stage, infinite redirects will happen until the browser stops it TODO: pls fix
-        throw new Error(data.status + ': ' + data.statusText)
+        const userData: User = await data.json()
+        Sentry.captureEvent({
+          message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
+          level: 'error',
+          extra: {
+            requestedRoute: nextUrl.pathname,
+            statusText: data.statusText,
+            statusCode: data.status,
+            userId: userData.id,
+            userEmail: userData.email,
+            userRole: userData.organization?.organizationRole,
+          },
+        })
+        return await handleRetry(cookies, () => {
+          const response = NextResponse.redirect(
+            new URL(
+              `/login?error=errorCode${data.status}${encodeURIComponent(data.statusText)}`,
+              url,
+            ),
+          )
+          response.cookies.delete('retry_attempts')
+          response.cookies.delete('auth_token')
+          return response
+        })
       }
 
       const userData: User = await data.json()
@@ -106,8 +129,18 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/courses', url))
       }
     } catch (error) {
-      console.error('Error fetching user data in middleware:', error)
-      return NextResponse.redirect(new URL('/login?error=redirect', url))
+      return await handleRetry(cookies, () => {
+        console.error('Error fetching user data in middleware:', error)
+        Sentry.captureEvent({
+          message: `Unknown error in middleware`,
+          level: 'error',
+          extra: {
+            requestedRoute: nextUrl.pathname,
+            error,
+          },
+        })
+        return NextResponse.redirect(new URL('/login?error=redirect', url))
+      })
     }
   }
 
@@ -123,6 +156,41 @@ export async function middleware(request: NextRequest) {
   }
 
   return NextResponse.next()
+}
+
+/**
+ * Handles retry logic for failed requests.
+ * On 1st retry wait 0.25s, on 2nd retry add a 1s delay, on 3rd retry add a 2s delay
+ *  */
+async function handleRetry(
+  cookies: RequestCookies,
+  failureCallback: () => NextResponse,
+  maxRetries = 3,
+) {
+  const retryCookie = cookies.get('retry_attempts')?.value ?? '0'
+  const currentRetries = Number(retryCookie)
+
+  // 1st retry → 250ms, 2nd → 1000ms, 3rd → 2000ms
+  const WAIT_TIMES = [250, 1000, 2000]
+
+  if (currentRetries < maxRetries) {
+    const waitTime = WAIT_TIMES[currentRetries] ?? 2000
+    await sleep(waitTime)
+
+    const response = NextResponse.next()
+    response.cookies.set('retry_attempts', (currentRetries + 1).toString())
+    return response // try again
+  } else {
+    // Exceeded retry attempts
+    return failureCallback()
+  }
+}
+
+/**
+ * Small helper to pause execution in middleware.
+ */
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export const config = {
