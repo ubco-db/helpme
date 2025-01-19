@@ -169,13 +169,13 @@ export class asyncQuestionController {
                 id: comment.creator.id,
                 name: comment.creator.name,
                 photoURL: comment.creator.photoURL,
-                userRole: commenterRole,
+                courseRole: commenterRole,
               } as unknown as UserModel)
             : ({
                 id: comment.creator.id,
                 name: 'Anonymous',
                 photoURL: null,
-                userRole: commenterRole,
+                courseRole: commenterRole,
               } as unknown as UserModel);
 
         return temp as unknown as AsyncQuestionCommentModel;

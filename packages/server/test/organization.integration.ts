@@ -2293,7 +2293,7 @@ describe('Organization Integration', () => {
 
     it('should return 400 when user has no profile picture', async () => {
       const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
+      const userTwo = await UserFactory.create({ photoURL: null });
       const organization = await OrganizationFactory.create();
 
       await OrganizationUserModel.create({

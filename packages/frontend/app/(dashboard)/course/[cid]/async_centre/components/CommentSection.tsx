@@ -69,8 +69,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         const isSelf = userInfo.id === comment.creator.id
         const isAuthor = question.creator.id === comment.creator.id
         const isCommentedByStaff =
-          comment.creator.userRole === Role.TA ||
-          comment.creator.userRole === Role.PROFESSOR
+          comment.creator.courseRole === Role.TA ||
+          comment.creator.courseRole === Role.PROFESSOR
 
         return {
           author:
@@ -91,7 +91,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             ? 'you'
             : isAuthor
               ? 'author'
-              : comment.creator.userRole,
+              : comment.creator.courseRole,
         }
       }),
     )

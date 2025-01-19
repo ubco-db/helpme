@@ -67,7 +67,7 @@ exports[`Organization Integration GET /organization/:oid/get_user/:uid should re
     "globalRole": "user",
     "id": 2,
     "lastName": "Person",
-    "photoUrl": null,
+    "photoUrl": "https://example.com",
     "sid": null,
   },
 }
@@ -80,7 +80,7 @@ exports[`Organization Integration GET /organization/:oid/get_users/:page? should
     "firstName": "User",
     "lastName": "Person",
     "organizationRole": "admin",
-    "photoUrl": null,
+    "photoUrl": "https://example.com",
     "userId": 1,
     "userRole": "user",
   },
