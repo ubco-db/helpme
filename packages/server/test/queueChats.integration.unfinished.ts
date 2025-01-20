@@ -1,41 +1,26 @@
-// PAT TODO: finish this
-//
-// import { CACHE_MANAGER } from '@nestjs/common';
-// import { Cache } from 'cache-manager';
 // import { Test, TestingModule } from '@nestjs/testing';
+// import { CACHE_MANAGER } from '@nestjs/common';
 // import { QueueChatsModule } from '../src/queueChats/queue-chats.module';
 // import supertest from 'supertest';
-
-// interface RedisMockCache extends Cache {
-//   lpush: jest.Mock<Promise<number>, [string, ...string[]]>;
-// }
+// import RedisMock from 'ioredis-mock';
+// import { setupIntegrationTest } from './util/testUtils';
 
 // describe('QueueChat Integration', () => {
-//   let cache: RedisMockCache;
+//   jest.mock('ioredis', () => require('ioredis-mock/jest'));
 
-//   const mockCache: RedisMockCache = {
-//     get: jest.fn().mockResolvedValue(null),
-//     set: jest.fn().mockResolvedValue(undefined),
-//     lpush: jest.fn().mockResolvedValue(1),
-//     del: jest.fn().mockResolvedValue(undefined),
-//   } as unknown as RedisMockCache;
+//   const supertest = setupIntegrationTest(QueueChatsModule);
+//   const redisClient = new RedisMock({
+//     port: 6759, // PAT TODO: redis port and address here
+//     host: 'localhost',
+//     data: {},
+//   });
 
 //   beforeEach(async () => {
-//     const moduleRef: TestingModule = await Test.createTestingModule({
-//       imports: [QueueChatsModule],
-//       providers: [
-//         {
-//           provide: CACHE_MANAGER,
-//           useValue: mockCache, // Inject mock cache into CACHE_MANAGER
-//         },
-//       ],
-//     }).compile();
 
-//     cache = moduleRef.get<Cache>(CACHE_MANAGER);
 //   });
 
 //   afterEach(() => {
-//     jest.clearAllMocks(); // Clear all mocks after each test
+//     redisClient.flushall(); // Reset the mock Redis instance after each test
 //   });
 
 //   describe('GET /queueChats/:queueId/:studentId', () => {

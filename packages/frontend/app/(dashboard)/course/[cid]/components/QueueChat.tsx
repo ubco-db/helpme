@@ -239,7 +239,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
       </Card>
     </div>
   ) : isMobile ? (
-    <div style={{ zIndex: 1050, width: '100%' }}>
+    <div style={{ zIndex: 50, width: '100%' }}>
       <Badge
         dot={hasNewMessages}
         className={`${hidden ? 'hidden ' : ''}${hasNewMessages ? 'animate-bounce ' : ''}w-full`}

@@ -66,9 +66,9 @@ const ChangeLogModal: React.FC<ChangeLogModalProps> = ({
       classNames={{
         header: 'flex items-center justify-center',
       }}
-      className="box-border flex flex-col items-center justify-center overflow-y-auto"
+      className="box-border flex flex-col items-center justify-center"
     >
-      <div className="childrenMarkdownFormatted box-border h-[75vh] w-full overflow-y-auto px-4">
+      <div className="childrenMarkdownFormatted box-border h-[60vh] w-full overflow-y-auto px-4">
         {currentChangeLog === '' ? (
           <CenteredSpinner tip="Fetching Changelog..." />
         ) : (
