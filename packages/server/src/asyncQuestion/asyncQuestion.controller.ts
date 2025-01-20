@@ -29,7 +29,6 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { UserId } from '../decorators/user.decorator';
 import { AsyncQuestionModel } from './asyncQuestion.entity';
-import { CourseModel } from '../course/course.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Response } from 'express';
 import { MailService } from 'mail/mail.service';
@@ -54,157 +53,7 @@ export class asyncQuestionController {
     private readonly appConfig: ApplicationConfigService,
   ) {}
 
-  @Get(':courseId')
-  @UseGuards(CourseRolesGuard)
-  async getAsyncQuestions(
-    @Param('courseId', ParseIntPipe) courseId: number,
-    @UserId() userId: number,
-    @Res() res: Response,
-  ): Promise<AsyncQuestion[]> {
-    const userCourse = await UserCourseModel.findOne({
-      where: {
-        userId,
-        courseId,
-      },
-    });
-    if (!userCourse) {
-      throw new ForbiddenException('You are not in this course');
-    }
-
-    const asyncQuestionKeys = await this.redisQueueService.getKey(
-      `c:${courseId}:aq`,
-    );
-    let all: AsyncQuestionModel[] = [];
-
-    if (Object.keys(asyncQuestionKeys).length === 0) {
-      console.log('Fetching from Database');
-      all = await AsyncQuestionModel.find({
-        where: {
-          courseId,
-          status: Not(asyncQuestionStatus.StudentDeleted),
-        },
-        relations: [
-          'creator',
-          'taHelped',
-          'votes',
-          'comments',
-          'comments.creator',
-          'comments.creator.courses',
-        ],
-        order: {
-          createdAt: 'DESC',
-        },
-        take: this.appConfig.get('max_async_questions_per_course'),
-      });
-
-      if (all)
-        await this.redisQueueService.setAsyncQuestions(`c:${courseId}:aq`, all);
-    } else {
-      console.log('Fetching from Redis');
-      all = Object.values(asyncQuestionKeys).map(
-        (question) => question as AsyncQuestionModel,
-      );
-    }
-
-    if (!all) {
-      res.status(HttpStatus.NOT_FOUND).send({
-        message: ERROR_MESSAGES.questionController.notFound,
-      });
-      return;
-    }
-
-    let questions;
-
-    const isStaff: boolean =
-      userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
-
-    if (isStaff) {
-      // Staff sees all questions except the ones deleted
-      questions = all.filter(
-        (question) => question.status !== asyncQuestionStatus.TADeleted,
-      );
-    } else {
-      // Students see their own questions and questions that are visible
-      questions = all.filter(
-        (question) => question.creatorId === userId || question.visible,
-      );
-    }
-
-    questions = questions.map((question: AsyncQuestionModel) => {
-      const temp = pick(question, [
-        'id',
-        'courseId',
-        'questionAbstract',
-        'questionText',
-        'aiAnswerText',
-        'answerText',
-        'creatorId',
-        'taHelpedId',
-        'createdAt',
-        'closedAt',
-        'status',
-        'visible',
-        'verified',
-        'votes',
-        'comments',
-        'questionTypes',
-        'votesSum',
-        'isTaskQuestion',
-      ]);
-
-      const filteredComments = question.comments?.map((comment) => {
-        const temp = { ...comment };
-
-        // TODO: maybe find a more performant way of doing this (ideally in the query, and maybe try to include a SELECT to eliminate the pick() above)
-        const commenterRole =
-          comment.creator.courses.find(
-            (course) => course.courseId === question.courseId,
-          )?.role || Role.STUDENT;
-
-        temp.creator =
-          isStaff ||
-          comment.creator.id === userId ||
-          commenterRole !== Role.STUDENT
-            ? ({
-                id: comment.creator.id,
-                name: comment.creator.name,
-                photoURL: comment.creator.photoURL,
-                courseRole: commenterRole,
-              } as unknown as UserModel)
-            : ({
-                id: comment.creator.id,
-                name: 'Anonymous',
-                photoURL: null,
-                courseRole: commenterRole,
-              } as unknown as UserModel);
-
-        return temp as unknown as AsyncQuestionCommentModel;
-      });
-      temp.comments = filteredComments;
-
-      Object.assign(temp, {
-        creator:
-          isStaff || question.creator.id == userId
-            ? {
-                id: question.creator.id,
-                name: question.creator.name,
-                photoURL: question.creator.photoURL,
-              }
-            : {
-                id: question.creator.id,
-                name: 'Anonymous',
-                photoURL: null,
-              },
-      });
-
-      return temp;
-    });
-
-    res.status(HttpStatus.OK).send(questions);
-    return;
-  }
-
-  @Post(':qid/:vote')
+  @Post('vote/:qid/:vote')
   @UseGuards(AsyncQuestionRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async voteQuestion(
@@ -215,7 +64,6 @@ export class asyncQuestionController {
   ): Promise<Response> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
-      relations: ['course', 'creator'],
     });
 
     if (!question) {
@@ -250,19 +98,26 @@ export class asyncQuestionController {
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
       where: { id: qid },
-      relations: ['creator', 'taHelped', 'votes'],
+      relations: [
+        'creator',
+        'taHelped',
+        'votes',
+        'comments',
+        'comments.creator',
+        'comments.creator.courses',
+      ],
     });
 
     await this.redisQueueService.updateAsyncQuestion(
-      `c:${question.course.id}:aq`,
+      `c:${updatedQuestion.courseId}:aq`,
       updatedQuestion,
     );
 
     // Check if the question was upvoted and send email if subscribed
-    if (vote > 0 && userId !== question.creator.id) {
+    if (vote > 0 && userId !== updatedQuestion.creator.id) {
       const subscription = await UserSubscriptionModel.findOne({
         where: {
-          userId: question.creator.id,
+          userId: updatedQuestion.creator.id,
           isSubscribed: true,
           service: {
             serviceType: MailServiceType.ASYNC_QUESTION_UPVOTED,
@@ -274,13 +129,13 @@ export class asyncQuestionController {
       if (subscription) {
         const service = subscription.service;
         await this.mailService.sendEmail({
-          receiver: question.creator.email,
+          receiver: updatedQuestion.creator.email,
           type: service.serviceType,
           subject: 'HelpMe - Your Anytime Question Has Been Upvoted',
           content: `<br> <b>Your question on the anytime question hub has received an upvote:</b> 
-          <br> Question: ${question.questionText}
+          <br> Question: ${updatedQuestion.questionText}
           <br> Current votes: ${updatedQuestion.votesSum}
-          <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
+          <br> <a href="${process.env.DOMAIN}/course/${updatedQuestion.courseId}/async_centre">View Here</a> <br>`,
         });
       }
     }
@@ -300,21 +155,10 @@ export class asyncQuestionController {
     @UserId() userId: number,
     @Res() res: Response,
   ): Promise<any> {
-    const c = await CourseModel.findOne({
-      where: { id: cid },
-    });
-
-    if (!c) {
-      res
-        .status(HttpStatus.NOT_FOUND)
-        .send({ message: ERROR_MESSAGES.questionController.notFound });
-      return;
-    }
     try {
       const question = await AsyncQuestionModel.create({
         courseId: cid,
         creatorId: userId,
-        course: c,
         questionAbstract: body.questionAbstract,
         questionText: body.questionText || null,
         answerText: body.answerText || null,
@@ -331,12 +175,19 @@ export class asyncQuestionController {
           courseId: cid,
           id: question.id,
         },
-        relations: ['creator', 'taHelped', 'votes'],
+        relations: [
+          'creator',
+          'taHelped',
+          'votes',
+          'comments',
+          'comments.creator',
+          'comments.creator.courses',
+        ],
       });
 
       await this.redisQueueService.addAsyncQuestion(`c:${cid}:aq`, newQuestion);
 
-      res.status(HttpStatus.CREATED).send(question);
+      res.status(HttpStatus.CREATED).send(newQuestion);
       return;
     } catch (err) {
       console.error(err);
@@ -357,7 +208,13 @@ export class asyncQuestionController {
   ): Promise<AsyncQuestionParams> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
-      relations: ['course', 'creator', 'votes'],
+      relations: [
+        'creator',
+        'votes',
+        'comments',
+        'comments.creator',
+        'comments.creator.courses',
+      ],
     });
 
     if (!question) {
@@ -384,7 +241,7 @@ export class asyncQuestionController {
       body.status === asyncQuestionStatus.AIAnsweredNeedsAttention &&
       question.status != asyncQuestionStatus.AIAnsweredNeedsAttention
     ) {
-      const courseId = question.course.id;
+      const courseId = question.courseId;
 
       // Step 1: Get all users in the course
       const usersInCourse = await UserCourseModel.createQueryBuilder(
@@ -420,7 +277,8 @@ export class asyncQuestionController {
             <br> <b>Question Abstract:</b> ${question.questionAbstract}
             <br> <b>Question Types:</b> ${question.questionTypes.map((qt) => qt.name).join(', ')}
             <br> <b>Question Text:</b> ${question.questionText}
-            <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
+            <br>
+            <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
           }),
         ),
       );
@@ -437,12 +295,12 @@ export class asyncQuestionController {
 
     if (body.status === asyncQuestionStatus.StudentDeleted) {
       await this.redisQueueService.deleteAsyncQuestion(
-        `c:${question.course.id}:aq`,
+        `c:${question.courseId}:aq`,
         updatedQuestion,
       );
     } else {
       await this.redisQueueService.updateAsyncQuestion(
-        `c:${question.course.id}:aq`,
+        `c:${question.courseId}:aq`,
         updatedQuestion,
       );
     }
@@ -462,14 +320,21 @@ export class asyncQuestionController {
   ): Promise<AsyncQuestionParams> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
-      relations: ['course', 'creator', 'taHelped', 'votes'],
+      relations: [
+        'creator',
+        'taHelped',
+        'votes',
+        'comments',
+        'comments.creator',
+        'comments.creator.courses',
+      ],
     });
 
     if (!question) {
       throw new NotFoundException();
     }
 
-    const courseId = question.course.id;
+    const courseId = question.courseId;
 
     // Verify if user is TA/PROF of the course
     const requester = await UserCourseModel.findOne({
@@ -565,7 +430,7 @@ export class asyncQuestionController {
     return question;
   }
 
-  @Post(':qid/comment')
+  @Post('comment/:qid')
   @UseGuards(AsyncQuestionRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async postComment(
@@ -577,7 +442,6 @@ export class asyncQuestionController {
     const { commentText } = body;
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
-      relations: ['course', 'creator'],
     });
 
     if (!question) {
@@ -596,11 +460,18 @@ export class asyncQuestionController {
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
       where: { id: qid },
-      relations: ['creator', 'taHelped', 'votes', 'comments'],
+      relations: [
+        'creator',
+        'taHelped',
+        'votes',
+        'comments',
+        'comments.creator',
+        'comments.creator.courses',
+      ],
     });
 
     await this.redisQueueService.updateAsyncQuestion(
-      `c:${question.course.id}:aq`,
+      `c:${question.courseId}:aq`,
       updatedQuestion,
     );
 
@@ -609,7 +480,7 @@ export class asyncQuestionController {
     res.status(HttpStatus.CREATED).send(comment);
   }
 
-  @Patch(':qid/comment/:commentId')
+  @Patch('comment/:qid/:commentId')
   @UseGuards(AsyncQuestionRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async updateComment(
@@ -622,7 +493,6 @@ export class asyncQuestionController {
     const { commentText } = body;
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
-      relations: ['course', 'creator'],
     });
 
     if (!question) {
@@ -657,18 +527,25 @@ export class asyncQuestionController {
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
       where: { id: qid },
-      relations: ['creator', 'taHelped', 'votes', 'comments'],
+      relations: [
+        'creator',
+        'taHelped',
+        'votes',
+        'comments',
+        'comments.creator',
+        'comments.creator.courses',
+      ],
     });
 
     await this.redisQueueService.updateAsyncQuestion(
-      `c:${question.course.id}:aq`,
+      `c:${question.courseId}:aq`,
       updatedQuestion,
     );
 
     res.status(HttpStatus.OK).send(comment);
   }
 
-  @Delete(':qid/comment/:commentId')
+  @Delete('comment/:qid/:commentId')
   @UseGuards(AsyncQuestionRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async deleteComment(
@@ -679,7 +556,6 @@ export class asyncQuestionController {
   ): Promise<Response> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
-      relations: ['course', 'creator'],
     });
     if (!question) {
       res
@@ -728,14 +604,168 @@ export class asyncQuestionController {
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
       where: { id: qid },
-      relations: ['creator', 'taHelped', 'votes', 'comments'],
+      relations: [
+        'creator',
+        'taHelped',
+        'votes',
+        'comments',
+        'comments.creator',
+        'comments.creator.courses',
+      ],
     });
 
     await this.redisQueueService.updateAsyncQuestion(
-      `c:${question.course.id}:aq`,
+      `c:${question.courseId}:aq`,
       updatedQuestion,
     );
 
     res.status(HttpStatus.OK).send({ message: 'Comment deleted' });
+  }
+
+  @Get(':courseId')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+  async getAsyncQuestions(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @UserId() userId: number,
+    @Res() res: Response,
+  ): Promise<AsyncQuestion[]> {
+    const userCourse = await UserCourseModel.findOne({
+      where: {
+        userId,
+        courseId,
+      },
+    });
+    if (!userCourse) {
+      throw new ForbiddenException('You are not in this course');
+    }
+
+    const asyncQuestionKeys = await this.redisQueueService.getKey(
+      `c:${courseId}:aq`,
+    );
+    let all: AsyncQuestionModel[] = [];
+
+    if (asyncQuestionKeys.length === 0) {
+      console.log('Fetching from Database');
+      all = await AsyncQuestionModel.find({
+        where: {
+          courseId,
+          status: Not(asyncQuestionStatus.StudentDeleted),
+        },
+        relations: [
+          'creator',
+          'taHelped',
+          'votes',
+          'comments',
+          'comments.creator',
+          'comments.creator.courses',
+        ],
+        order: {
+          createdAt: 'DESC',
+        },
+        take: this.appConfig.get('max_async_questions_per_course'),
+      });
+
+      if (all)
+        await this.redisQueueService.setAsyncQuestions(`c:${courseId}:aq`, all);
+    } else {
+      console.log('Fetching from Redis');
+      all = Object.values(asyncQuestionKeys).map(
+        (question) => question as AsyncQuestionModel,
+      );
+    }
+
+    if (!all) {
+      throw new NotFoundException('No questions found');
+    }
+
+    let questions;
+
+    const isStaff: boolean =
+      userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
+
+    if (isStaff) {
+      // Staff sees all questions except the ones deleted
+      questions = all.filter(
+        (question) => question.status !== asyncQuestionStatus.TADeleted,
+      );
+    } else {
+      // Students see their own questions and questions that are visible
+      questions = all.filter(
+        (question) => question.creatorId === userId || question.visible,
+      );
+    }
+
+    questions = questions.map((question: AsyncQuestionModel) => {
+      const temp = pick(question, [
+        'id',
+        'courseId',
+        'questionAbstract',
+        'questionText',
+        'aiAnswerText',
+        'answerText',
+        'creatorId',
+        'taHelpedId',
+        'createdAt',
+        'closedAt',
+        'status',
+        'visible',
+        'verified',
+        'votes',
+        'comments',
+        'questionTypes',
+        'votesSum',
+        'isTaskQuestion',
+      ]);
+
+      const filteredComments = question.comments?.map((comment) => {
+        const temp = { ...comment };
+        // TODO: maybe find a more performant way of doing this (ideally in the query, and maybe try to include a SELECT to eliminate the pick() above)
+        const commenterRole =
+          comment.creator.courses.find(
+            (course) => course.courseId === question.courseId,
+          )?.role || Role.STUDENT;
+
+        temp.creator =
+          isStaff ||
+          comment.creator.id === userId ||
+          commenterRole !== Role.STUDENT
+            ? ({
+                id: comment.creator.id,
+                name: comment.creator.name,
+                photoURL: comment.creator.photoURL,
+                courseRole: commenterRole,
+              } as unknown as UserModel)
+            : ({
+                id: comment.creator.id,
+                name: 'Anonymous',
+                photoURL: null,
+                courseRole: commenterRole,
+              } as unknown as UserModel);
+
+        return temp as unknown as AsyncQuestionCommentModel;
+      });
+      temp.comments = filteredComments;
+
+      Object.assign(temp, {
+        creator:
+          isStaff || question.creator.id == userId
+            ? {
+                id: question.creator.id,
+                name: question.creator.name,
+                photoURL: question.creator.photoURL,
+              }
+            : {
+                id: question.creator.id,
+                name: 'Anonymous',
+                photoURL: null,
+              },
+      });
+
+      return temp;
+    });
+
+    res.status(HttpStatus.OK).send(questions);
+    return;
   }
 }

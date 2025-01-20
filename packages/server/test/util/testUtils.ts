@@ -12,6 +12,7 @@ import { LoginModule } from '../../src/login/login.module';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { ApplicationConfigModule } from 'config/application_config.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
+import { RedisQueueService } from 'redisQueue/redis-queue.service';
 
 export interface SupertestOptions {
   userId?: number;
@@ -122,3 +123,16 @@ export async function clearAllCronJobs(
     schedulerRegistry.deleteCronJob(jobName);
   });
 }
+
+export const mockRedisQueueService = {
+  setAsyncQuestions: jest.fn(),
+  setQuestions: jest.fn(),
+  updateAsyncQuestion: jest.fn(),
+  deleteAsyncQuestion: jest.fn(),
+  addAsyncQuestion: jest.fn(),
+  getKey: jest.fn().mockResolvedValue([]),
+  deleteKey: jest.fn(),
+};
+
+export const overrideRedisQueue: ModuleModifier = (builder) =>
+  builder.overrideProvider(RedisQueueService).useValue(mockRedisQueueService);

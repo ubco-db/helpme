@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { RolesGuard } from './role.guard';
 import { UserModel } from '../profile/user.entity';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
@@ -21,9 +21,13 @@ export class AsyncQuestionRolesGuard extends RolesGuard {
 
     // get the courseId from the async question
     const aq = await createQueryBuilder(AsyncQuestionModel)
-      .select('courseId')
+      .select('"courseId"')
       .where('id = :questionId', { questionId })
       .getRawOne<{ courseId: number }>();
+
+    if (!aq) {
+      throw new NotFoundException('Async question not found');
+    }
 
     return { courseId: aq.courseId, user };
   }
