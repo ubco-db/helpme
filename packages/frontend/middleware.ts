@@ -58,6 +58,7 @@ export async function middleware(request: NextRequest) {
             const response = NextResponse.redirect(
               new URL('/login?error=sessionExpired', url),
             )
+            response.cookies.delete('retry_attempts')
             response.cookies.delete('auth_token')
             return response
           },
@@ -68,7 +69,11 @@ export async function middleware(request: NextRequest) {
         // Ideally, we would just do an antd message.error, but we can't do that in middelware since it's server-side.
         // The best solution we have right now is just sending them to the /429 page, which has a back button.
         return await handleRetry(cookies, () => {
-          return NextResponse.redirect(new URL('/error_pages/429', url))
+          const response = NextResponse.redirect(
+            new URL('/error_pages/429', url),
+          )
+          response.cookies.delete('retry_attempts')
+          return response
         })
       } else if (data.status >= 400 || (!data.ok && data.status !== 304)) {
         // this really is not meant to happen
@@ -109,14 +114,20 @@ export async function middleware(request: NextRequest) {
         nextUrl.pathname.startsWith('/verify') &&
         !isEmailVerified(userData)
       ) {
-        return NextResponse.next()
+        const response = NextResponse.next()
+        response.cookies.delete('retry_attempts')
+        return response
       } else if (
         nextUrl.pathname.startsWith('/verify') &&
         isEmailVerified(userData)
       ) {
-        return NextResponse.redirect(new URL('/courses', url))
+        const response = NextResponse.redirect(new URL('/courses', url))
+        response.cookies.delete('retry_attempts')
+        return response
       } else if (!isEmailVerified(userData)) {
-        return NextResponse.redirect(new URL('/verify', url))
+        const response = NextResponse.redirect(new URL('/verify', url))
+        response.cookies.delete('retry_attempts')
+        return response
       }
 
       // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by organization admin (or professor)
@@ -126,7 +137,9 @@ export async function middleware(request: NextRequest) {
         userData.organization.organizationRole !== OrganizationRole.ADMIN &&
         userData.organization.organizationRole !== OrganizationRole.PROFESSOR
       ) {
-        return NextResponse.redirect(new URL('/courses', url))
+        const response = NextResponse.redirect(new URL('/courses', url))
+        response.cookies.delete('retry_attempts')
+        return response
       }
     } catch (error) {
       return await handleRetry(cookies, () => {
@@ -139,7 +152,11 @@ export async function middleware(request: NextRequest) {
             error,
           },
         })
-        return NextResponse.redirect(new URL('/login?error=redirect', url))
+        const response = NextResponse.redirect(
+          new URL('/login?error=fetchError', url),
+        )
+        response.cookies.delete('retry_attempts')
+        return response
       })
     }
   }
@@ -152,10 +169,14 @@ export async function middleware(request: NextRequest) {
     !nextUrl.pathname.startsWith('/qi/') &&
     !nextUrl.pathname.startsWith('/error_pages')
   ) {
-    return NextResponse.redirect(new URL('/courses', url))
+    const response = NextResponse.redirect(new URL('/courses', url))
+    response.cookies.delete('retry_attempts')
+    return response
   }
 
-  return NextResponse.next()
+  const response = NextResponse.next()
+  response.cookies.delete('retry_attempts')
+  return response
 }
 
 /**
