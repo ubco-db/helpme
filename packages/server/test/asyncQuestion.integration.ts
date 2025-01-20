@@ -532,12 +532,21 @@ describe('AsyncQuestion Integration', () => {
       expect(response.status).toBe(200);
       const questions: AsyncQuestion[] = response.body;
       expect(questions).toHaveLength(2);
-      expect(questions[0].id).toBe(asyncQuestion.id);
-      expect(questions[1].id).toBe(asyncQuestion2.id);
-      expect(questions[0].creator.id).toBe(studentUser.id);
-      expect(questions[1].creator.id).toBe(studentUser.id);
-      expect(questions[0].visible).toBe(false);
-      expect(questions[1].visible).toBe(true);
+      expect(questions).toMatchSnapshot();
+      expect(questions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: asyncQuestion.id,
+            creator: expect.objectContaining({ id: studentUser.id }),
+            visible: false,
+          }),
+          expect.objectContaining({
+            id: asyncQuestion2.id,
+            creator: expect.objectContaining({ id: studentUser.id }),
+            visible: true,
+          }),
+        ]),
+      );
     });
     it('should include the questionTypes in the response', async () => {
       const qt1 = await QuestionTypeFactory.create({
@@ -559,10 +568,17 @@ describe('AsyncQuestion Integration', () => {
       expect(response.status).toBe(200);
       const questions: AsyncQuestion[] = response.body;
       expect(questions).toHaveLength(3);
-      expect(questions[1].questionTypes).toHaveLength(2);
-      expect(questions[1].id).toBe(asyncQuestion4.id);
-      expect(questions[1].questionTypes[1].name).toBe('questionType1');
-      expect(questions[1].questionTypes[0].name).toBe('questionType2');
+      expect(questions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: asyncQuestion4.id,
+            questionTypes: expect.arrayContaining([
+              expect.objectContaining({ name: 'questionType1' }),
+              expect.objectContaining({ name: 'questionType2' }),
+            ]),
+          }),
+        ]),
+      );
     });
     it('should include the comments in the response', async () => {
       const comment1 = await AsyncQuestionCommentFactory.create({
@@ -581,9 +597,17 @@ describe('AsyncQuestion Integration', () => {
       expect(response.status).toBe(200);
       const questions: AsyncQuestion[] = response.body;
       expect(questions).toHaveLength(2);
-      expect(questions[0].comments).toHaveLength(2);
-      expect(questions[0].comments[0].commentText).toBe(comment1.commentText);
-      expect(questions[0].comments[1].commentText).toBe(comment2.commentText);
+      expect(questions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: asyncQuestion.id,
+            comments: expect.arrayContaining([
+              expect.objectContaining({ commentText: comment1.commentText }),
+              expect.objectContaining({ commentText: comment2.commentText }),
+            ]),
+          }),
+        ]),
+      );
     });
     it('should include the votes in the response', async () => {
       const vote1 = await VotesFactory.create({
@@ -602,10 +626,17 @@ describe('AsyncQuestion Integration', () => {
       expect(response.status).toBe(200);
       const questions: AsyncQuestion[] = response.body;
       expect(questions).toHaveLength(2);
-      expect(questions[1].id).toBe(asyncQuestion.id);
-      expect(questions[1].votes).toHaveLength(2);
-      expect(questions[1].votes[1].vote).toBe(vote1.vote);
-      expect(questions[1].votes[0].vote).toBe(vote2.vote);
+      expect(questions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: asyncQuestion.id,
+            votes: expect.arrayContaining([
+              expect.objectContaining({ vote: vote1.vote }),
+              expect.objectContaining({ vote: vote2.vote }),
+            ]),
+          }),
+        ]),
+      );
     });
     it('does not allow students to view other students questions unless the question is public, and public questions are anonymous', async () => {
       const response = await supertest({ userId: studentUser2.id }).get(
@@ -613,22 +644,37 @@ describe('AsyncQuestion Integration', () => {
       );
       expect(response.status).toBe(200);
       const questions: AsyncQuestion[] = response.body;
-      // this looks pretty <3
-      expect(questions).toHaveLength(2);
-      expect(questions[1].id).toBe(asyncQuestion2.id);
-      expect(questions[1].creator.id).toBe(studentUser.id);
-      expect(questions[1].visible).toBe(true);
-      expect(questions[1].creator.name).not.toBe(
-        studentUser.firstName + ' ' + studentUser.lastName,
+      expect(questions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: asyncQuestion2.id,
+            creator: expect.not.objectContaining({
+              email: expect.anything(), // email should not be visible
+            }),
+          }),
+          expect.objectContaining({
+            id: asyncQuestion2.id,
+            visible: true,
+            creator: expect.objectContaining({
+              id: studentUser.id,
+              // redacted name, photoURL
+              name: expect.not.stringContaining(
+                `${studentUser.firstName} ${studentUser.lastName}`,
+              ),
+              photoURL: null,
+            }),
+          }),
+          expect.objectContaining({
+            id: asyncQuestion3.id,
+            visible: false,
+            creator: expect.objectContaining({
+              id: studentUser2.id,
+              name: `${studentUser2.firstName} ${studentUser2.lastName}`,
+              photoURL: studentUser2.photoURL,
+            }),
+          }),
+        ]),
       );
-      expect(questions[1].creator.photoURL).toBeNull();
-      expect(questions[0].id).toBe(asyncQuestion3.id);
-      expect(questions[0].creator.id).toBe(studentUser2.id);
-      expect(questions[0].visible).toBe(false);
-      expect(questions[0].creator.name).toBe(
-        studentUser2.firstName + ' ' + studentUser2.lastName,
-      );
-      expect(questions[0].creator.photoURL).toBe(studentUser2.photoURL);
     });
     it('allows staff to view all questions in their course, regardless of visibility', async () => {
       const response = await supertest({ userId: TAuser.id }).get(
@@ -637,22 +683,34 @@ describe('AsyncQuestion Integration', () => {
       expect(response.status).toBe(200);
       const questions: AsyncQuestion[] = response.body;
       expect(questions).toHaveLength(3);
-      expect(questions[1].id).toBe(asyncQuestion.id);
-      expect(questions[2].id).toBe(asyncQuestion2.id);
-      expect(questions[0].id).toBe(asyncQuestion3.id);
-      // you can see the creator's name and email and photoURL
-      expect(questions[1].creator.name).toBe(
-        studentUser.firstName + ' ' + studentUser.lastName,
+      expect(questions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: asyncQuestion.id,
+            creator: expect.objectContaining({
+              id: studentUser.id,
+              name: `${studentUser.firstName} ${studentUser.lastName}`,
+              photoURL: studentUser.photoURL,
+            }),
+          }),
+          expect.objectContaining({
+            id: asyncQuestion2.id,
+            creator: expect.objectContaining({
+              id: studentUser.id,
+              name: `${studentUser.firstName} ${studentUser.lastName}`,
+              photoURL: studentUser.photoURL,
+            }),
+          }),
+          expect.objectContaining({
+            id: asyncQuestion3.id,
+            creator: expect.objectContaining({
+              id: studentUser2.id,
+              name: `${studentUser2.firstName} ${studentUser2.lastName}`,
+              photoURL: studentUser2.photoURL,
+            }),
+          }),
+        ]),
       );
-      expect(questions[1].creator.photoURL).toBe(studentUser.photoURL);
-      expect(questions[2].creator.name).toBe(
-        studentUser.firstName + ' ' + studentUser.lastName,
-      );
-      expect(questions[2].creator.photoURL).toBe(studentUser.photoURL);
-      expect(questions[0].creator.name).toBe(
-        studentUser2.firstName + ' ' + studentUser2.lastName,
-      );
-      expect(questions[0].creator.photoURL).toBe(studentUser2.photoURL);
     });
     it('does not show sensitive information for comments on questions unless they are the creator or staff', async () => {
       const comment1 = await AsyncQuestionCommentFactory.create({
@@ -671,21 +729,37 @@ describe('AsyncQuestion Integration', () => {
       expect(response.status).toBe(200);
       const questions: AsyncQuestion[] = response.body;
       expect(questions).toHaveLength(2);
-      expect(questions[0].comments).toHaveLength(2);
-      expect(questions[0].comments[0].commentText).toBe(comment1.commentText);
-      expect(questions[0].comments[1].commentText).toBe(comment2.commentText);
-      expect(questions[0].comments[0].creator.name).not.toBe(
-        studentUser.firstName + ' ' + studentUser.lastName,
-      );
-      expect(questions[0].comments[0].creator.email).not.toBe(
-        studentUser.email,
-      );
-      expect(questions[0].comments[0].creator.photoURL).toBeNull();
-      expect(questions[0].comments[1].creator.name).toBe(
-        studentUser2.firstName + ' ' + studentUser2.lastName,
-      );
-      expect(questions[0].comments[1].creator.photoURL).toBe(
-        studentUser2.photoURL,
+      expect(questions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            comments: expect.arrayContaining([
+              expect.objectContaining({
+                commentText: comment1.commentText,
+                creator: expect.not.objectContaining({
+                  email: expect.anything(), // email should not be visible
+                }),
+              }),
+              expect.objectContaining({
+                commentText: comment1.commentText,
+                creator: expect.objectContaining({
+                  id: studentUser.id,
+                  name: expect.not.stringContaining(
+                    `${studentUser.firstName} ${studentUser.lastName}`,
+                  ),
+                  photoURL: null,
+                }),
+              }),
+              expect.objectContaining({
+                commentText: comment2.commentText,
+                creator: expect.objectContaining({
+                  id: studentUser2.id,
+                  name: `${studentUser2.firstName} ${studentUser2.lastName}`,
+                  photoURL: studentUser2.photoURL,
+                }),
+              }),
+            ]),
+          }),
+        ]),
       );
       // staff can see all comments
       const response2 = await supertest({ userId: TAuser.id }).get(
@@ -694,18 +768,35 @@ describe('AsyncQuestion Integration', () => {
       expect(response2.status).toBe(200);
       const questions2: AsyncQuestion[] = response2.body;
       expect(questions2).toHaveLength(3);
-      expect(questions2[0].comments).toHaveLength(2);
-      expect(questions2[0].comments[0].commentText).toBe(comment1.commentText);
-      expect(questions2[0].comments[1].commentText).toBe(comment2.commentText);
-      expect(questions2[0].comments[0].creator.name).toBe(
-        studentUser.firstName + ' ' + studentUser.lastName,
+      expect(questions2).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            comments: expect.arrayContaining([
+              expect.objectContaining({
+                commentText: comment1.commentText,
+                creator: expect.objectContaining({
+                  id: studentUser.id,
+                  name: `${studentUser.firstName} ${studentUser.lastName}`,
+                  photoURL: studentUser.photoURL,
+                }),
+              }),
+              expect.objectContaining({
+                commentText: comment2.commentText,
+                creator: expect.objectContaining({
+                  id: studentUser2.id,
+                  name: `${studentUser2.firstName} ${studentUser2.lastName}`,
+                  photoURL: studentUser2.photoURL,
+                }),
+              }),
+            ]),
+          }),
+        ]),
       );
-      expect(questions2[0].comments[0].creator.photoURL).toBe(
-        studentUser.photoURL,
-      );
-      expect(questions2[0].comments[1].creator.name).toBe(
-        studentUser2.firstName + ' ' + studentUser2.lastName,
-      );
+      const allQuestions = {
+        student: questions,
+        staff: questions2,
+      };
+      expect(allQuestions).toMatchSnapshot();
     });
     it('prevents users outside this course from viewing questions', async () => {
       const otherCourse = await CourseFactory.create();

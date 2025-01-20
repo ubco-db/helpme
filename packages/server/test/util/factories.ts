@@ -165,13 +165,13 @@ export const AsyncQuestionFactory = new Factory(AsyncQuestionModel)
   .attr('status', asyncQuestionStatus.AIAnswered)
   .attr('visible', false)
   .attr('verified', false)
-  .attr('createdAt', new Date());
+  .attr('createdAt', new Date('2025-01-01T00:00:00.000Z'));
 
 export const AsyncQuestionCommentFactory = new Factory(
   AsyncQuestionCommentModel,
 )
   .attr('commentText', 'some comment')
-  .attr('createdAt', new Date())
+  .attr('createdAt', new Date('2025-01-02T00:00:00.000Z'))
   .assocOne('question', AsyncQuestionFactory)
   .assocOne('creator', UserFactory);
 
