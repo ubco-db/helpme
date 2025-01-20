@@ -1,5 +1,5 @@
 import { Fragment, ReactElement, useEffect, useRef, useState } from 'react'
-import { Alert, Badge, Button, Card, Space } from 'antd'
+import { Alert, Badge, Button, Card, message, Space } from 'antd'
 import { Role } from '@koh/common'
 import UserAvatar from '@/app/components/UserAvatar'
 import { MessageCircleMore } from 'lucide-react'
@@ -15,6 +15,7 @@ interface QueueChatProps {
   isMobile: boolean
   hidden: boolean
   fixed?: boolean
+  announceNewMessage?: () => void
   onOpen?: () => void
   onClose?: () => void
 }
@@ -26,6 +27,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
   isMobile,
   hidden,
   fixed = true,
+  announceNewMessage = () => {
+    return
+  },
   onOpen = () => {
     return
   },
@@ -48,7 +52,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     if (messagesEndRef.current && isOpen) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [isOpen])
+  }, [isOpen, queueChatData, queueChatData?.messages])
 
   useEffect(() => {
     if (!hasNewMessages) {
@@ -59,6 +63,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
       setIsOpen(true)
       setHasNewMessagesFalse()
       onOpen()
+    } else {
+      announceNewMessage() // For mobile "view chats" button in queue page to know there are new messages
     }
   }, [hasNewMessages, setIsOpen])
 
@@ -108,7 +114,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
           header: 'pr-3',
           body: 'px-4 pb-4 pt-1 flex flex-col flex-auto',
         }}
-        className="flex max-h-[70vh] min-h-[70vh] w-full flex-auto flex-col md:min-h-[20vh]"
+        className="grow-1 flex min-h-[20vh] w-full flex-auto flex-col"
         extra={
           <Button
             onClick={() => {

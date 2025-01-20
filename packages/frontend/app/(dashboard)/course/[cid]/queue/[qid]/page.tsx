@@ -16,7 +16,15 @@ import {
   LimboQuestionStatus,
   QuestionLocations,
 } from '@koh/common'
-import { Tooltip, message, notification, Button, Divider, Drawer } from 'antd'
+import {
+  Tooltip,
+  message,
+  notification,
+  Button,
+  Divider,
+  Drawer,
+  Badge,
+} from 'antd'
 import { mutate } from 'swr'
 import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
 import {
@@ -102,6 +110,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const [editDemoModalOpen, setEditDemoModalOpen] = useState(false)
   const [mobileQueueChatOpen, setMobileQueueChatOpen] = useState(false) // To store the state of the mobile queue chat drawer
   const [currentChatQuestionId, setCurrentChatQuestionId] = useState<number>(-1) // To store the currently opened chat via the question id
+  const [newMessagesInQueueChat, setNewMessagesInQueueChat] = useState(false)
   const role = getRoleInCourse(userInfo, cid)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
   const [questionTypes] = useQuestionTypes(cid, qid)
@@ -916,7 +925,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             )}
 
             {isMobile ? (
-              mobileQueueChatOpen ? (
+              <>
                 <Drawer
                   placement="bottom"
                   open={mobileQueueChatOpen}
@@ -930,9 +939,10 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                     },
                     wrapper: { height: 'min-content' },
                   }}
-                  forceRender
-                  destroyOnClose={false}
-                  onClose={() => setMobileQueueChatOpen(false)}
+                  onClose={() => {
+                    setMobileQueueChatOpen(false)
+                    setNewMessagesInQueueChat(false)
+                  }}
                 >
                   <div
                     className={
@@ -948,6 +958,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                           role={role}
                           isMobile={isMobile}
                           fixed={false}
+                          announceNewMessage={() =>
+                            setNewMessagesInQueueChat(true)
+                          }
                           onOpen={() => setCurrentChatQuestionId(question.id)}
                           onClose={() => setCurrentChatQuestionId(-1)}
                           hidden={
@@ -959,24 +972,33 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                     })}
                   </div>
                 </Drawer>
-              ) : (
-                helpingQuestions.length > 0 && (
+                {helpingQuestions.length > 0 && (
                   <div
-                    className={`fixed bottom-8 right-3 flex justify-end md:left-2`}
+                    className={`${mobileQueueChatOpen ? 'hidden ' : ''}fixed bottom-8 right-3 flex justify-end transition-all duration-500 ease-in-out md:left-2`}
                     style={{ zIndex: 1050 }}
                   >
-                    <Button
-                      type="primary"
-                      size="large"
-                      className="rounded-sm"
-                      icon={<MessageCircleMore />}
-                      onClick={() => setMobileQueueChatOpen(true)}
+                    <Badge
+                      dot={newMessagesInQueueChat}
+                      className={
+                        newMessagesInQueueChat ? 'animate-bounce ' : ''
+                      }
                     >
-                      View Chats
-                    </Button>
+                      <Button
+                        type="primary"
+                        size="large"
+                        className={`rounded-sm`}
+                        icon={<MessageCircleMore />}
+                        onClick={() => {
+                          setMobileQueueChatOpen(true)
+                          setNewMessagesInQueueChat(false)
+                        }}
+                      >
+                        View Chats
+                      </Button>
+                    </Badge>
                   </div>
-                )
-              )
+                )}
+              </>
             ) : (
               <div className="fixed bottom-8 right-0 box-border max-h-[70vh] md:right-2">
                 <div

@@ -20,10 +20,10 @@ export function useQueueChat(
   studentId: number,
 ): useQueueChatReturn {
   const key = `/api/v1/queueChats/${qid}/${studentId}`
-
-  // On desktop, this is used to know when to auto-open the chat
-  // On mobile, this is used to "bounce" the chat button
   const [hasNewMessages, setHasNewMessages] = useState<boolean>(false)
+
+  // Ref to track the previous length of the messages array in case of updates
+  const previousMessageCountRef = useRef<number>(0)
 
   // Subscribe to SSE
   const isLive = useEventSource(
@@ -49,15 +49,22 @@ export function useQueueChat(
     refreshInterval: isLive ? 0 : 10 * 1000,
   })
 
-  // To update the hasNewMessages state
+  // To update the hasNewMessages state only when new messages are added
   useEffect(() => {
     if (!queueChatData?.messages) {
       return
     }
-    setHasNewMessages(true)
+
+    const currentMessageCount = queueChatData.messages.length
+    const previousMessageCount = previousMessageCountRef.current
+
+    if (currentMessageCount > previousMessageCount) {
+      setHasNewMessages(true)
+    }
+
+    previousMessageCountRef.current = currentMessageCount
   }, [queueChatData?.messages])
 
-  // Reset hasNewMessages state
   const setHasNewMessagesFalse = () => setHasNewMessages(false)
 
   return {
