@@ -1,3 +1,31 @@
+## Version 1.2.2 - Jan 19, 2024
+
+#### Improvements
+- Fixed a bug where end date would appear as "Invalid Date" when creating repeat events
+- Fixed this modal being very thin on some browsers
+- Fixed bug where verifying your email would not work when manually typing in the code
+- Hopefully fixed issue with randomly being logged out
+- The insights page now shows all insights by default
+- Misc bug fixes and improvements
+
+
+***
+
+## Version 1.2.1 - Jan 15, 2024
+
+#### New Features
+- ***General***
+  - Users using the chatbot now have the option convert their question into an Anytime question
+    - This is useful if the chatbot gave an unsatisfactory answer, as a staff member can then review the Anytime question
+
+#### Improvements
+- Staff can now create anytime questions 
+  - While this isn't really intended, this was enabled so that staff can better learn the system or if they want to demo the system to students
+- Fixed a bug where all anytime questions would be marked as "Human Verified" even if the staff member did not modify the answer nor clicked the box to mark it as staff verified
+- Fixed a bug where the "Check In" button on the home course page did not work
+
+***
+
 ## Version 1.2.0 - Jan 11, 2024
 
 #### New Features

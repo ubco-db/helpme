@@ -15,6 +15,7 @@ import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useLoginRedirectInfoProvider } from './components/LoginRedirectInfoProvider'
 import { isProd } from '@koh/common'
 import { cn } from '@/app/utils/generalUtils'
+import * as Sentry from '@sentry/nextjs'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -57,6 +58,20 @@ export default function LoginPage() {
   const onEmailChange = (e: { target: { value: SetStateAction<string> } }) => {
     setEmail(e.target.value)
   }
+
+  // capture error from the query params in sentry
+  useEffect(() => {
+    if (error) {
+      if (error === 'sessionExpired') {
+        Sentry.captureEvent({
+          message: 'Session Expired',
+          level: 'info',
+        })
+      } else {
+        Sentry.captureException(error)
+      }
+    }
+  }, [error])
 
   const showLoginMenu = useCallback(
     (value: number) => {

@@ -617,12 +617,12 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                     onClick={() => setAddStudentsModalOpen(true)}
                     icon={<PlusOutlined />}
                   >
-                    {/* "+ Add Students to Queue" on desktop, "+ Students" on mobile */}
+                    {/* "+ Add Students to Queue" on desktop, "+ Student" on mobile */}
                     <span>
                       <span className="hidden md:inline">
-                        Add Students to Queue
+                        Add Student to Queue
                       </span>
-                      <span className="inline md:hidden">Students</span>
+                      <span className="inline md:hidden">Student</span>
                     </span>
                   </EditQueueButton>
                 </span>

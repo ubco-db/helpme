@@ -204,12 +204,7 @@ export class CalendarService implements OnModuleInit {
     // - send an alert to ask them if they want to check out
     // - then create a new cron job to be 10mins from now that checks if they have responded to the alert
     if (myCheckedInQueues && myCheckedInQueues.length > 0) {
-      this.sendAlertToAutoCheckout10minsFromNow(
-        userId,
-        calendarId,
-        courseId,
-        true,
-      );
+      this.sendAlertToAutoCheckout10minsFromNow(userId, calendarId, courseId);
     }
   }
 
@@ -217,12 +212,12 @@ export class CalendarService implements OnModuleInit {
     userId: number,
     calendarId: number,
     courseId: number,
-    firstTime = false,
   ) {
     const now = new Date();
     const tenMinutes = 10 * 60 * 1000;
     const nowPlus10Mins = new Date(now.getTime() + tenMinutes);
     const jobName = `auto-checkout-loop-${userId}-${calendarId}`;
+    this.deleteAnyExistingAutoCheckoutLoopJobs(userId, calendarId);
     // send an alert
     let alert: AlertModel | null = null;
     try {
@@ -249,9 +244,6 @@ export class CalendarService implements OnModuleInit {
         'Error creating EVENT_ENDED_CHECKOUT_STAFF alert in cron job',
       );
       return;
-    }
-    if (!firstTime) {
-      this.schedulerRegistry.deleteCronJob(jobName);
     }
     const job = new CronJob(nowPlus10Mins, async () => {
       this.autoCheckout(userId, calendarId, courseId, alert.id);
@@ -382,7 +374,7 @@ export class CalendarService implements OnModuleInit {
         // create a new cron job
         const jobName = `auto-checkout-loop-${userId}-${calendarId}`;
         // delete the current cron job and add a new one
-        this.schedulerRegistry.deleteCronJob(jobName);
+        this.deleteAnyExistingAutoCheckoutLoopJobs(userId, calendarId);
         // this cron job runs 10mins from the resolve date
         const job = new CronJob(nextRun, async () => {
           // initiate logic to auto-checkout 10mins from the resolve date
@@ -436,5 +428,21 @@ export class CalendarService implements OnModuleInit {
     console.log('Cleared all auto-checkout jobs');
     await this.retroactivelyCreateAutoCheckoutJobs();
     console.log('Retroactively created auto-checkout jobs');
+  }
+
+  async deleteAnyExistingAutoCheckoutLoopJobs(
+    userId: number,
+    calendarId: number,
+  ) {
+    const jobs = this.schedulerRegistry.getCronJobs();
+    // note that this has to be done this way.
+    // Doing schedularRegistry.getCronJob(jobName) will error if the job is not found
+    // same with doing schedulerRegistry.deleteCronJob(jobName)
+    for (const [jobName, job] of jobs) {
+      if (jobName === `auto-checkout-loop-${userId}-${calendarId}`) {
+        job.stop();
+        this.schedulerRegistry.deleteCronJob(jobName);
+      }
+    }
   }
 }

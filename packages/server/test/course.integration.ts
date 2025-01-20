@@ -869,6 +869,97 @@ describe('Course Integration', () => {
         },
       ]);
     });
+    it('should properly get the start and end time if end event is EventType.TA_CHECKED_OUT_EVENT_END', async () => {
+      const now = new Date();
+      const yesterday = new Date();
+      yesterday.setUTCHours(now.getUTCHours() - 24);
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      const professor = await UserFactory.create();
+
+      await UserCourseFactory.create({
+        user: ta,
+        role: Role.TA,
+        course,
+      });
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course,
+      });
+
+      await EventFactory.create({
+        user: ta,
+        course: course,
+        time: yesterday,
+        eventType: EventType.TA_CHECKED_IN,
+      });
+
+      const yesterdayPlusTwoHours = new Date(yesterday);
+      yesterdayPlusTwoHours.setUTCHours(yesterday.getUTCHours() + 2);
+
+      await EventFactory.create({
+        user: ta,
+        course: course,
+        time: new Date(yesterdayPlusTwoHours),
+        eventType: EventType.TA_CHECKED_OUT,
+      });
+
+      const thenThreeMoreHours = new Date(yesterdayPlusTwoHours);
+      thenThreeMoreHours.setUTCHours(yesterdayPlusTwoHours.getUTCHours() + 3);
+
+      await EventFactory.create({
+        user: ta,
+        course: course,
+        time: thenThreeMoreHours,
+        eventType: EventType.TA_CHECKED_IN,
+      });
+
+      const twelveHoursAFter = new Date(thenThreeMoreHours);
+      twelveHoursAFter.setUTCHours(thenThreeMoreHours.getUTCHours() + 12);
+
+      await EventFactory.create({
+        user: ta,
+        course: course,
+        time: twelveHoursAFter,
+        eventType: EventType.TA_CHECKED_OUT_EVENT_END,
+      });
+
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setUTCDate(twoDaysAgo.getUTCDate() - 2);
+
+      const dateNow = new Date();
+      const data = await supertest({ userId: professor.id })
+        .get(`/courses/${course.id}/ta_check_in_times`)
+        .query({
+          startDate: twoDaysAgo,
+          endDate: dateNow,
+        })
+        .expect(200);
+
+      const checkinTimes = (data.body as unknown as TACheckinTimesResponse)
+        .taCheckinTimes;
+
+      const taName = ta.firstName + ' ' + ta.lastName;
+      expect(checkinTimes).toStrictEqual([
+        {
+          checkinTime: yesterday.toISOString(),
+          checkoutTime: yesterdayPlusTwoHours.toISOString(),
+          forced: false,
+          inProgress: false,
+          name: taName,
+          numHelped: 0,
+        },
+        {
+          checkinTime: thenThreeMoreHours.toISOString(),
+          checkoutTime: twelveHoursAFter.toISOString(),
+          forced: false,
+          inProgress: false,
+          name: taName,
+          numHelped: 0,
+        },
+      ]);
+    });
   });
 
   describe('DELETE /courses/:id/withdraw_course', () => {
