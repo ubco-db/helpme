@@ -27,6 +27,7 @@ import { QueueModel } from '../queue/queue.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 import { QueueService } from '../queue/queue.service';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { QueueChatService } from 'queueChats/queue-chats.service';
 
 @Injectable()
 export class QuestionService {
@@ -34,6 +35,7 @@ export class QuestionService {
     private notifService: NotificationService,
     public queueService: QueueService,
     public redisQueueService: RedisQueueService,
+    public queueChatService: QueueChatService,
   ) {}
 
   async changeStatus(
@@ -89,6 +91,8 @@ export class QuestionService {
     const isBecomingWaiting =
       !waitingStatuses.includes(oldStatus) &&
       waitingStatuses.includes(newStatus);
+    const isResolving = newStatus === ClosedQuestionStatus.Resolved;
+    const isFirstHelped = isBecomingHelped && !question.firstHelpedAt;
 
     const now = new Date();
     if (isBecomingHelped || isBecomingClosedFromWaiting) {
@@ -137,6 +141,26 @@ export class QuestionService {
       if (question.group) question.group = null;
       else question.groupId = null;
     }
+
+    // For Queue Chats
+    if (isResolving) {
+      await this.queueChatService.endChat(question.queueId, question.creatorId); // Save chat metadata in database
+    } else if (isBecomingClosedFromWaiting) {
+      await this.queueChatService.clearChat(
+        question.queueId,
+        question.creatorId,
+      ); // Don't save chat metadata in database
+    } else if (isFirstHelped) {
+      const user = await UserModel.findOne({
+        where: { id: userId },
+      });
+      await this.queueChatService.createChat(
+        question.queueId,
+        question.creator,
+        user,
+      ); // Create chat metadata in Redis
+    }
+
     try {
       await question.save();
     } catch (err) {

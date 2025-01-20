@@ -99,7 +99,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
 
   return isOpen ? (
     <div
-      className={`${fixed ? 'fixed ' : ''}bottom-8 right-2 z-50 box-border w-full md:max-w-[400px]`}
+      className={`${fixed ? 'fixed ' : ''}bottom-0 right-0 z-50 box-border w-full md:max-w-[400px]`}
       style={{ zIndex: 1050 }}
     >
       <Card
@@ -131,7 +131,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
           <div className="no-scrollbar max-h-[50vh] overflow-y-auto">
             <div className="mb-2 w-full pt-1 text-center text-xs italic text-gray-500">
               Your chat messages will not be recorded for your privacy but
-              please remain respectful
+              please remain respectful. Chat messages will remain until your
+              question is resolved.
             </div>
             {queueChatData!.messages &&
               queueChatData!.messages.map((message, index) => {
@@ -242,12 +243,12 @@ const QueueChat: React.FC<QueueChatProps> = ({
     <div style={{ zIndex: 1050, width: '100%' }}>
       <Badge
         dot={hasNewMessages}
-        className={`${hidden ? 'hidden ' : ''}${hasNewMessages ? 'animate-bounce ' : ''}w-full`}
+        className={`${hidden ? 'hidden ' : ''}${hasNewMessages ? 'animate-bounce ' : ''}${isStaff ? 'w-full ' : `${fixed ? `fixed ` : ''}bottom-8 right-3 `}`}
       >
         <Button
           type="primary"
           size="large"
-          className={`${isStaff ? 'w-full ' : `${fixed ? `fixed ` : ''}bottom-8 right-3 `}rounded-sm`}
+          className={`w-full rounded-sm`}
           onClick={() => {
             setIsOpen(true)
             onOpen()

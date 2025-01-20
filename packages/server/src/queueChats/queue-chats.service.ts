@@ -34,7 +34,7 @@ export class QueueChatService {
   ): Promise<void> {
     const key = `${ChatMetadataRedisKey}:${queueId}:${student.id}`;
 
-    // Remove any existing chat metadata and messages
+    // Remove any existing chat metadata and messages (in case of mismanagement; to protect previous chat history)
     await this.redis.del(key);
     await this.redis.del(`${ChatMessageRedisKey}:${queueId}:${student.id}`);
 
@@ -57,7 +57,7 @@ export class QueueChatService {
       } as QueueChatPartial),
     );
 
-    await this.redis.expire(key, 86400); // 24 hours = 24 * 60 * 60 = 86400 seconds
+    await this.redis.expire(key, 604800); // 1 week = 7 * 24 * 60 * 60 = 604800 seconds
   }
 
   /**
@@ -172,6 +172,19 @@ export class QueueChatService {
         await this.redis.del(messageKey);
       });
     }
+  }
+
+  /**
+   * Clear a chat from Redis (without saving metadata to database -- for unresolved but closed chats)
+   * @param queueId The ID of the queue
+   * @param studentId The ID of the student
+   */
+  async clearChat(queueId: number, studentId: number): Promise<void> {
+    const metaKey = `${ChatMetadataRedisKey}:${queueId}:${studentId}`;
+    const messageKey = `${ChatMessageRedisKey}:${queueId}:${studentId}`;
+
+    await this.redis.del(metaKey);
+    await this.redis.del(messageKey);
   }
 
   /**
