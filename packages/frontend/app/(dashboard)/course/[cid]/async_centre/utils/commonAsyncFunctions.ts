@@ -2,6 +2,7 @@ import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { asyncQuestionStatus } from '@koh/common'
 import { message } from 'antd'
+import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
 
 /**
  * This function used to make more sense when students and staff called the same endpoint.
@@ -41,4 +42,19 @@ export async function deleteAsyncQuestion(
         message.error('Error deleting question:' + errorMessage)
       })
   }
+}
+
+/**
+ * Takes in a userId and questionId and hashes them to return a random animal from ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
+ */
+export function getAnonAnimal(userId: number, questionId: number) {
+  const hash = userId + questionId
+  return ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES[
+    hash % ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES.length
+  ]
+}
+
+export function getAnonNumber(userId: number, questionId: number) {
+  const hash = userId + questionId
+  return (hash % 99) + 1
 }

@@ -395,6 +395,7 @@ export class asyncQuestionController {
         relations: ['service'],
       });
 
+      // TODO: add tests in asyncQuestion.integration to test to make sure it is sending the emails
       if (statusChangeSubscription) {
         const service = statusChangeSubscription.service;
         await this.mailService.sendEmail({
