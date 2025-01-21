@@ -42,6 +42,7 @@ interface AsyncQuestionCardProps {
   userId: number
   courseId: number
   mutateAsyncQuestions: () => void
+  showStudents: boolean
 }
 
 const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
@@ -50,6 +51,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   userId,
   courseId,
   mutateAsyncQuestions,
+  showStudents,
 }) => {
   const [isLockedExpanded, setIsLockedExpanded] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -65,12 +67,11 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   const isStaff =
     userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
 
-  const showUser =
-    isStaff || userId == question.creatorId ? question.creator : null
+  const shownUser = isStaff && showStudents ? question.creator : null
 
   const anonId = useMemo(
-    () => getAnonId(userId, question.id),
-    [userId, question.id],
+    () => getAnonId(question.creator.id, question.id),
+    [question.creator.id, question.id],
   )
 
   const handleFeedback = async (resolved: boolean) => {
@@ -118,7 +119,6 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     setThisUserThisQuestionVote(resp.vote)
   }
 
-  console.log(anonId)
   return (
     <div
       className={cn(
@@ -194,52 +194,48 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
           <div className="mb-1 flex flex-col md:mb-4">
             <div className="mb-1 flex justify-between">
               <div className="flex flex-grow">
-                {showUser && (
-                  <>
-                    <UserAvatar
-                      size={40}
-                      username={
-                        isStaff
-                          ? question.creator.name
-                          : `Anonymous ${getAnonAnimal(anonId)}`
-                      }
-                      photoURL={
-                        isStaff
-                          ? question.creator.photoURL
-                          : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}`
-                      }
-                      className="mr-2 hidden md:flex"
-                      anonymous
-                    />
-                    <UserAvatar
-                      size={34}
-                      username={
-                        isStaff
-                          ? question.creator.name
-                          : `Anonymous ${getAnonAnimal(anonId)}`
-                      }
-                      photoURL={
-                        isStaff
-                          ? question.creator.photoURL
-                          : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}`
-                      }
-                      className="mr-2 flex md:hidden"
-                      anonymous
-                    />
-                  </>
-                )}
+                <UserAvatar
+                  size={40}
+                  username={
+                    isStaff && showStudents
+                      ? question.creator.name
+                      : `Anonymous ${getAnonAnimal(anonId)}`
+                  }
+                  photoURL={
+                    isStaff && showStudents
+                      ? question.creator.photoURL
+                      : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}`
+                  }
+                  className="mr-2 hidden md:flex"
+                  anonymous
+                />
+                <UserAvatar
+                  size={34}
+                  username={
+                    isStaff && showStudents
+                      ? question.creator.name
+                      : `Anonymous ${getAnonAnimal(anonId)}`
+                  }
+                  photoURL={
+                    isStaff && showStudents
+                      ? question.creator.photoURL
+                      : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}`
+                  }
+                  className="mr-2 flex md:hidden"
+                  anonymous
+                />
                 <div className="flex flex-grow flex-col justify-between md:flex-row">
                   <div
-                    className={`flex-grow text-sm italic text-gray-500 ${showUser && 'md:pt-2.5'}`}
+                    className={`flex-grow text-sm italic text-gray-500 ${shownUser && 'md:pt-2.5'}`}
                   >
                     <span className="mr-2 font-semibold">
-                      {isStaff ? (
+                      {isStaff && showStudents ? (
                         question.creator.name
                       ) : (
                         <span>
                           Anonymous {getAnonAnimal(anonId)}
                           <span className="font-normal not-italic text-green-500">
-                            {showUser ? ' (You)' : ''}{' '}
+                            {userId == question.creatorId ? ' (You)' : ''}{' '}
                           </span>
                         </span>
                       )}
@@ -253,7 +249,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                         title={
                           isStaff
                             ? question.visible
-                              ? 'This question was marked public by a staff member and can be seen by all students'
+                              ? 'This question was marked public by a staff member and can be seen by all students (they still appear anonymous)'
                               : 'Only you and the question creator can see this question'
                             : question.visible
                               ? "A Staff member liked your question and decided to make it publicly visible. Don't worry! Your name and picture are hidden and you appear as an anonymous student."
@@ -343,6 +339,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 question={question}
                 setLockedExpanded={setLockedExpanded}
                 showAllComments={showAllComments}
+                showStudents={showStudents}
               />
             </div>
             <div className="flex flex-wrap">

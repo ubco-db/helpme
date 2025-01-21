@@ -18,6 +18,7 @@ interface CommentSectionProps {
   question: AsyncQuestion
   setLockedExpanded: (isLocked: boolean) => void
   showAllComments: boolean
+  showStudents: boolean
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({
@@ -25,6 +26,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   question,
   setLockedExpanded,
   showAllComments,
+  showStudents,
 }) => {
   const [showCommentTextInput, setShowCommentTextInput] = useState(false)
   const [commentInputValue, setCommentInputValue] = useState('')
@@ -45,6 +47,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       question.creator.id,
       userInfo,
       isStaff,
+      showStudents,
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -53,6 +56,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     question.creator.id,
     userInfo,
     isStaff,
+    showStudents,
     // this is just to get the useMemo to re-run when handleCommentOnPost finishes posting the comment (since updating question.comments does not re-run the useMemo because its a prop i think. And no re-assigning question.comments to a new array with the new comment does not trigger a re-run either unfortunately)
     isPostCommentLoading,
   ])
@@ -213,6 +217,7 @@ function generateCommentData(
   questionCreatorId: number,
   userInfo: User,
   IAmStaff: boolean,
+  showStudents: boolean,
 ): CommentProps[] | undefined {
   // first sort the comments by createdAt DESC (so oldest comments appear first)
   comments.sort((a, b) => moment(a.createdAt).diff(moment(b.createdAt)))
@@ -244,11 +249,11 @@ function generateCommentData(
       authorId: comment.creator.id,
       authorAnonId: anonId,
       authorName:
-        IAmStaff || isStaffComment
+        (IAmStaff && showStudents) || isStaffComment
           ? comment.creator.name
           : `Anonymous ${getAnonAnimal(anonId)}`,
       avatar:
-        IAmStaff || isStaffComment
+        (IAmStaff && showStudents) || isStaffComment
           ? comment.creator.photoURL
           : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}`,
       content: comment.commentText,
