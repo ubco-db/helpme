@@ -293,6 +293,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 isStaff={isStaff}
                 question={question}
                 setLockedExpanded={setLockedExpanded}
+                showAllComments={showAllComments}
               />
             </div>
             <div className="flex flex-wrap">

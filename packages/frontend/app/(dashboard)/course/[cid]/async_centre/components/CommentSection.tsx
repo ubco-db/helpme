@@ -17,16 +17,17 @@ interface CommentSectionProps {
   isStaff: boolean
   question: AsyncQuestion
   setLockedExpanded: (isLocked: boolean) => void
+  showAllComments: boolean
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({
   isStaff,
   question,
   setLockedExpanded,
+  showAllComments,
 }) => {
   const [showCommentTextInput, setShowCommentTextInput] = useState(false)
   const [commentInputValue, setCommentInputValue] = useState('')
-  const [showAllComments, setShowAllComments] = useState(false)
   const [commentsHeight, setCommentsHeight] = useState<string | undefined>(
     undefined,
   )
@@ -73,7 +74,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       .then((newComment) => {
         message.success('Comment posted successfully')
         question.comments.push(newComment)
-        setShowAllComments(true)
         setIsPostCommentLoading(false)
       })
       .catch((e) => {
@@ -81,42 +81,36 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       })
   }
 
+  if (!showAllComments) {
+    return null
+  }
   return (
     <>
-      {comments && comments?.length > 0 && (
-        <>
-          <div
-            className={`mt-2`}
-            ref={commentsRef}
-            style={{
-              maxHeight: commentsHeight,
-              overflow: 'hidden',
-              transition: 'max-height 0.4s ease-in-out',
-            }}
-          >
-            <strong>Comments: </strong>
-            <List
-              className="overflow-hidden"
-              dataSource={comments}
-              renderItem={(props: CommentProps, index) => (
-                <div ref={index === 0 ? firstCommentRef : undefined}>
-                  <Comment {...props} />
-                </div>
-              )}
-            />
-          </div>
-          {comments && comments.length > 1 && (
-            <Button
-              type="link"
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowAllComments(!showAllComments)
-              }}
-            >
-              {showAllComments ? 'Hide comments' : `View comments`}
-            </Button>
-          )}
-        </>
+      {comments && comments?.length > 0 ? (
+        <div
+          className={`mt-2`}
+          ref={commentsRef}
+          style={{
+            maxHeight: commentsHeight,
+            overflow: 'hidden',
+            transition: 'max-height 0.4s ease-in-out',
+          }}
+        >
+          <strong>Comments: </strong>
+          <List
+            className="overflow-hidden"
+            dataSource={comments}
+            renderItem={(props: CommentProps, index) => (
+              <div ref={index === 0 ? firstCommentRef : undefined}>
+                <Comment {...props} />
+              </div>
+            )}
+          />
+        </div>
+      ) : (
+        <div className="text-gray-500">
+          There are no comments here yet. Be the first to comment!
+        </div>
       )}
       <div>
         {!showCommentTextInput && (
@@ -129,7 +123,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             }}
             className="my-3"
           >
-            Comment on this post
+            Post Comment
           </Button>
         )}
         {showCommentTextInput && (

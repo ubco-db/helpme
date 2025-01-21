@@ -296,6 +296,7 @@ describe('AsyncQuestion Integration', () => {
             'commentText',
             'Student comment 1',
           );
+          expect(response.body).toHaveProperty('creator');
           expect(response.body.questionId).toBe(asyncQuestion.id);
         });
     });
@@ -308,6 +309,7 @@ describe('AsyncQuestion Integration', () => {
         .expect(201)
         .then((response) => {
           expect(response.body).toHaveProperty('commentText', 'TA Comment 1');
+          expect(response.body).toHaveProperty('creator');
           expect(response.body.questionId).toBe(asyncQuestion.id);
         });
     });
@@ -332,6 +334,7 @@ describe('AsyncQuestion Integration', () => {
         .expect(201)
         .then((response) => {
           expect(response.body).toHaveProperty('commentText', 'TA Comment 2');
+          expect(response.body).toHaveProperty('creator');
         });
     });
     it('prevents users outside this course from posting comments', async () => {
