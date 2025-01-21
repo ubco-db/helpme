@@ -44,17 +44,19 @@ export async function deleteAsyncQuestion(
   }
 }
 
-/**
- * Takes in a userId and questionId and hashes them to return a random animal from ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
- */
-export function getAnonAnimal(userId: number, questionId: number) {
-  const hash = userId + questionId
-  return ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES[
-    hash % ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES.length
-  ]
+export function getAnonAnimal(anonId: number) {
+  return ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES[anonId]
 }
 
-export function getAnonNumber(userId: number, questionId: number) {
+/**
+ * Takes in a userId and questionId and hashes them to return a random index from ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
+ */
+export function getAnonId(userId: number, questionId: number) {
   const hash = userId + questionId
-  return (hash % 99) + 1
+  return hash % ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES.length
 }
+
+// export function getAnonNumber(userId: number, questionId: number) {
+//   const hash = userId + questionId
+//   return (hash % 99) + 1
+// }

@@ -2,14 +2,7 @@ import MarkdownCustom from '@/app/components/Markdown'
 import UserAvatar from '@/app/components/UserAvatar'
 import { cn } from '@/app/utils/generalUtils'
 import { Role } from '@koh/common'
-
-interface CommentProps {
-  author: string
-  avatar: string | undefined
-  content: string
-  datetime: React.ReactNode
-  authorType: string | undefined
-}
+import { CommentProps } from '../utils/types'
 
 const COLOR_CODING = {
   ['you']: 'text-green-500',
@@ -24,11 +17,11 @@ const DISPLAY_TEXT_AS = {
   ['author']: '(Author)',
   [Role.STUDENT]: '',
   [Role.TA]: '(TA)',
-  [Role.PROFESSOR]: '(Professor)',
+  [Role.PROFESSOR]: '(Prof)',
 }
 
 const Comment: React.FC<CommentProps> = ({
-  author,
+  authorName,
   avatar,
   content,
   datetime,
@@ -40,14 +33,14 @@ const Comment: React.FC<CommentProps> = ({
       <>
         <UserAvatar
           size={40}
-          username={author}
+          username={authorName}
           photoURL={avatar}
           className="mr-2 hidden md:flex"
           anonymous
         />
         <UserAvatar
           size={34}
-          username={author}
+          username={authorName}
           photoURL={avatar}
           className="mr-2 flex md:hidden"
           anonymous
@@ -58,22 +51,15 @@ const Comment: React.FC<CommentProps> = ({
       <div className="flex-1">
         <div className="mb-1 flex items-center">
           {/* Author */}
-          <span className="mr-1 font-semibold text-black">{author}</span>
-          <span
-            className={cn(
-              'mr-2',
-              authorType
-                ? COLOR_CODING[authorType as keyof typeof COLOR_CODING]
-                : '',
-            )}
-          >
-            {authorType
-              ? DISPLAY_TEXT_AS[authorType as keyof typeof DISPLAY_TEXT_AS]
-              : ''}
+          <span className="mr-1 text-sm font-semibold italic text-gray-500">
+            {authorName}
+          </span>
+          <span className={cn('mr-2', COLOR_CODING[authorType])}>
+            {DISPLAY_TEXT_AS[authorType]}
           </span>
 
           {/* Datetime */}
-          <span className="text-sm text-gray-500">{datetime}</span>
+          <span className="text-xs italic text-gray-500">{datetime}</span>
         </div>
 
         {/* Comment body */}

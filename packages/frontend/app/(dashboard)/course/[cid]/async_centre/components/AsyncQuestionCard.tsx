@@ -51,6 +51,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   const [thisUserThisQuestionVote, setThisUserThisQuestionVote] = useState(
     question.votes?.find((vote) => vote.userId === userId)?.vote,
   )
+  const [showAllComments, setShowAllComments] = useState(false)
   const shouldFlash =
     question.status === asyncQuestionStatus.AIAnswered &&
     userId === question.creatorId
@@ -194,7 +195,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                     <span className="mr-2 font-semibold">
                       {showUser ? question.creator.name : 'Anonymous Student'}
                     </span>
-                    <span>{getAsyncWaitTime(question)} ago</span>
+                    <span>{getAsyncWaitTime(question.createdAt)} ago</span>
                   </div>
                   <div>
                     {/* If it's the students' question, show a tag to indicate whether it is publicly visible or not */}
@@ -335,8 +336,22 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
         </Col>
       </Row>
       {!isLockedExpanded && (
-        <Row className="justify-center">
-          {isExpanded ? <UpOutlined /> : <DownOutlined />}
+        <Row className="justify-around">
+          <Button
+            className="text-sm"
+            type="link"
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowAllComments(!showAllComments)
+            }}
+          >
+            {showAllComments
+              ? 'Hide Comments'
+              : `Comments (${question.comments.length})`}
+          </Button>
+          <div className="mr-16 flex flex-grow justify-center">
+            {isExpanded ? <UpOutlined /> : <DownOutlined />}
+          </div>
         </Row>
       )}
     </div>

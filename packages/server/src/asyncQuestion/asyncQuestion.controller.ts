@@ -27,7 +27,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { Roles } from '../decorators/roles.decorator';
-import { UserId } from '../decorators/user.decorator';
+import { User, UserId } from '../decorators/user.decorator';
 import { AsyncQuestionModel } from './asyncQuestion.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Response } from 'express';
@@ -437,7 +437,7 @@ export class asyncQuestionController {
   async postComment(
     @Param('qid', ParseIntPipe) qid: number,
     @Body() body: AsyncQuestionCommentParams,
-    @UserId() userId: number,
+    @User() user: UserModel,
     @Res() res: Response,
   ): Promise<Response> {
     const { commentText } = body;
@@ -454,7 +454,7 @@ export class asyncQuestionController {
 
     const comment = await AsyncQuestionCommentModel.create({
       commentText,
-      creatorId: userId,
+      creator: user, // do NOT change this to userId since by putting user here it will pass the full creator when sending back the comment
       question,
       createdAt: new Date(),
     }).save();

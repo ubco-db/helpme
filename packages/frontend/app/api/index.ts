@@ -404,24 +404,43 @@ class APIClient {
       qid: number,
       vote: number,
     ): Promise<{ questionSumVotes: number; vote: number }> =>
-      this.req('POST', `/api/v1/asyncQuestions/${qid}/${vote}`, undefined, {
-        vote,
-      }),
+      this.req(
+        'POST',
+        `/api/v1/asyncQuestions/vote/${qid}/${vote}`,
+        undefined,
+        {
+          vote,
+        },
+      ),
     comment: async (
       questionId: number,
       body: AsyncQuestionCommentParams,
     ): Promise<AsyncQuestionComment> =>
       this.req(
         'POST',
-        `/api/v1/asyncQuestions/${questionId}/comment`,
+        `/api/v1/asyncQuestions/comment/${questionId}`,
         AsyncQuestionComment,
         body,
       ),
-    getComments: async (questionId: number): Promise<AsyncQuestionComment[]> =>
+    deleteComment: async (
+      questionId: number,
+      commentId: number,
+    ): Promise<AsyncQuestionComment> =>
       this.req(
-        'GET',
-        `/api/v1/asyncQuestions/comment/${questionId}`,
-        undefined,
+        'DELETE',
+        `/api/v1/asyncQuestions/comment/${questionId}/${commentId}`,
+        AsyncQuestionComment,
+      ),
+    updateComment: async (
+      questionId: number,
+      commentId: number,
+      body: AsyncQuestionCommentParams,
+    ): Promise<AsyncQuestionComment> =>
+      this.req(
+        'PATCH',
+        `/api/v1/asyncQuestions/comment/${questionId}/${commentId}`,
+        AsyncQuestionComment,
+        body,
       ),
   }
   questions = {

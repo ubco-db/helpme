@@ -6,22 +6,17 @@ import TextArea from 'antd/es/input/TextArea'
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { AsyncQuestion, Role } from '@koh/common'
+import { AsyncQuestion, AsyncQuestionComment, Role, User } from '@koh/common'
 import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
 import { QuestionCircleOutlined } from '@ant-design/icons'
+import { getAnonAnimal, getAnonId } from '../utils/commonAsyncFunctions'
+import { CommentProps } from '../utils/types'
+import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
 
 interface CommentSectionProps {
   isStaff: boolean
   question: AsyncQuestion
   setLockedExpanded: (isLocked: boolean) => void
-}
-
-interface CommentProps {
-  author: string
-  avatar: string | undefined
-  content: string
-  datetime: React.ReactNode
-  authorType: string | undefined
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({
@@ -30,7 +25,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   setLockedExpanded,
 }) => {
   const [showCommentTextInput, setShowCommentTextInput] = useState(false)
-  const [comments, setComments] = useState<CommentProps[]>()
   const [commentInputValue, setCommentInputValue] = useState('')
   const [showAllComments, setShowAllComments] = useState(false)
   const [commentsHeight, setCommentsHeight] = useState<string | undefined>(
@@ -39,20 +33,26 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   const commentsRef = useRef<HTMLDivElement>(null)
   const firstCommentRef = useRef<HTMLDivElement>(null)
   const { userInfo } = useUserInfo()
+  const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
 
-  const userAnimalMap: { [key: number]: string } = {}
-
-  const getAnimalNameForUser = (userId: number) => {
-    if (!userAnimalMap[userId]) {
-      userAnimalMap[userId] =
-        ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES[
-          Math.floor(
-            Math.random() * ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES.length,
-          )
-        ]
-    }
-    return userAnimalMap[userId]
-  }
+  const comments = React.useMemo(() => {
+    return generateCommentData(
+      question.id,
+      question.comments,
+      question.creator.id,
+      userInfo,
+      isStaff,
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    question.id,
+    question.comments,
+    question.creator.id,
+    userInfo,
+    isStaff,
+    // this is just to get the useMemo to re-run when handleCommentOnPost finishes posting the comment (since updating question.comments does not re-run the useMemo because its a prop i think. And no re-assigning question.comments to a new array with the new comment does not trigger a re-run either unfortunately)
+    isPostCommentLoading,
+  ])
 
   useEffect(() => {
     if (firstCommentRef.current && !showAllComments) {
@@ -63,69 +63,18 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     }
   }, [showAllComments, comments])
 
-  useEffect(() => {
-    setComments(
-      question.comments?.map((comment) => {
-        const isSelf = userInfo.id === comment.creator.id
-        const isAuthor = question.creator.id === comment.creator.id
-        const isCommentedByStaff =
-          comment.creator.courseRole === Role.TA ||
-          comment.creator.courseRole === Role.PROFESSOR
-
-        return {
-          author:
-            isStaff || isSelf || isCommentedByStaff
-              ? comment.creator.name
-              : `Anonymous ${getAnimalNameForUser(comment.creator.id)}`,
-          avatar:
-            isStaff || isSelf || isCommentedByStaff
-              ? comment.creator.photoURL
-              : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnimalNameForUser(comment.creator.id)}`,
-          content: comment.commentText,
-          datetime: (
-            <Tooltip title={new Date(comment.createdAt).toLocaleString()}>
-              {moment(comment.createdAt).fromNow()}
-            </Tooltip>
-          ),
-          authorType: isSelf
-            ? 'you'
-            : isAuthor
-              ? 'author'
-              : comment.creator.courseRole,
-        }
-      }),
-    )
-  }, [
-    getAnimalNameForUser,
-    isStaff,
-    question.comments,
-    question.creator.id,
-    userInfo,
-  ])
-
   const handleCommentOnPost = async (
     questionId: number,
     commentText: string,
   ) => {
+    setIsPostCommentLoading(true)
     await API.asyncQuestions
       .comment(questionId, { commentText })
-      .then(() => {
+      .then((newComment) => {
         message.success('Comment posted successfully')
-        setComments([
-          ...(comments || []),
-          {
-            author: userInfo.name,
-            avatar: userInfo.photoURL,
-            content: commentText,
-            datetime: (
-              <Tooltip title={new Date().toLocaleString()}>
-                {moment().fromNow()}
-              </Tooltip>
-            ),
-            authorType: 'you',
-          },
-        ])
+        question.comments.push(newComment)
         setShowAllComments(true)
+        setIsPostCommentLoading(false)
       })
       .catch((e) => {
         message.error('Failed to post reply: ' + getErrorMessage(e))
@@ -210,10 +159,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                   </Popconfirm>
                   <Button
                     htmlType="submit"
-                    onClick={(e) => {
+                    loading={isPostCommentLoading}
+                    onClick={async (e) => {
                       e.stopPropagation()
                       if (commentInputValue) {
-                        handleCommentOnPost(question.id, commentInputValue)
+                        await handleCommentOnPost(
+                          question.id,
+                          commentInputValue,
+                        )
                         setShowCommentTextInput(false)
                         setCommentInputValue('')
                       }
@@ -255,6 +208,68 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       </div>
     </>
   )
+}
+
+function generateCommentData(
+  questionId: number,
+  comments: AsyncQuestionComment[],
+  questionCreatorId: number,
+  userInfo: User,
+  IAmStaff: boolean,
+): CommentProps[] | undefined {
+  // first sort the comments by createdAt DESC (so oldest comments appear first)
+  comments.sort((a, b) => moment(a.createdAt).diff(moment(b.createdAt)))
+
+  const newComments: CommentProps[] = []
+  for (const comment of comments) {
+    const isSelf = userInfo.id === comment.creator.id
+    const isAuthor = questionCreatorId === comment.creator.id
+    const isStaffComment =
+      comment.creator.courseRole === Role.TA ||
+      comment.creator.courseRole === Role.PROFESSOR
+    let anonId = getAnonId(comment.creator.id, questionId)
+    // if any comment already in the list has the same anonId, generate a new one
+    let retries = 0
+    while (
+      newComments.some(
+        (c) => c.authorId !== comment.creator.id && c.authorAnonId === anonId,
+      )
+    ) {
+      retries++
+      if (retries >= ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES.length) {
+        // if we have tried all possible anonIds, just use the same one
+        break
+      } else {
+        anonId = getAnonId(comment.creator.id + retries, questionId)
+      }
+    }
+    console.log('anonId', anonId)
+    newComments.push({
+      authorId: comment.creator.id,
+      authorAnonId: anonId,
+      authorName:
+        IAmStaff || isStaffComment
+          ? comment.creator.name
+          : `Anonymous ${getAnonAnimal(anonId)}`,
+      avatar:
+        IAmStaff || isStaffComment
+          ? comment.creator.photoURL
+          : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(comment.creator.id)}`,
+      content: comment.commentText,
+      datetime: (
+        <Tooltip title={new Date(comment.createdAt).toLocaleString()}>
+          {getAsyncWaitTime(comment.createdAt)} ago
+        </Tooltip>
+      ),
+      authorType: isSelf
+        ? 'you'
+        : isAuthor
+          ? 'author'
+          : (comment.creator.courseRole ?? Role.STUDENT),
+    })
+  }
+
+  return newComments
 }
 
 export default CommentSection
