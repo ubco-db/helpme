@@ -7,7 +7,7 @@ import {
   asyncQuestionStatus,
 } from '@koh/common'
 import React, { ReactElement, useCallback, useEffect, useState } from 'react'
-import { Button, Popover, Segmented, Select } from 'antd'
+import { Button, Popover, Segmented, Select, Tooltip } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getRoleInCourse } from '@/app/utils/generalUtils'
 import { useAsnycQuestions } from '@/app/hooks/useAsyncQuestions'
@@ -308,11 +308,19 @@ export default function AsyncCentrePage({
                   Settings
                 </EditQueueButton>
               )}
-              <JoinQueueButton
-                onClick={() => setCreateAsyncQuestionModalOpen(true)}
+              <Tooltip
+                title={
+                  isStaff
+                    ? 'You can post a question as a staff member for demonstration or testing purposes'
+                    : ''
+                }
               >
-                Post Question
-              </JoinQueueButton>
+                <JoinQueueButton
+                  onClick={() => setCreateAsyncQuestionModalOpen(true)}
+                >
+                  Post Question
+                </JoinQueueButton>
+              </Tooltip>
             </>
           }
         />
