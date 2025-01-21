@@ -146,10 +146,12 @@ export type UserTiny = {
  * Represents a partial course data needed on the front end when nested in a response.
  * @param id - The id number of this Course.
  * @param name - The subject and course number of this course. Ex: "CS 2500"
+ * @param unreadCount - The number of unread questions in the async centre for this course.
  */
 export type CoursePartial = {
   id: number
   name: string
+  unreadCount: number
 }
 
 export class RegistrationTokenDetails {
@@ -467,12 +469,6 @@ export class Question {
   location?: QuestionLocations
 
   isTaskQuestion?: boolean
-}
-
-// Used in displaying the number of unread questions for a course and user pair
-export class UnreadAsyncQuestionsResponse {
-  @IsInt()
-  count!: number
 }
 
 // Type of async question events

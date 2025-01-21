@@ -76,6 +76,7 @@ export class ProfileController {
               course: {
                 id: userCourse.courseId,
                 name: userCourse.course.name,
+                unreadCount: userCourse.unreadAsyncQuestions,
               },
               role: userCourse.role,
             };
