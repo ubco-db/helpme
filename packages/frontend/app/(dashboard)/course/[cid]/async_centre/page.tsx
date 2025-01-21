@@ -367,7 +367,7 @@ export default function AsyncCentrePage({
               question={question}
               userId={userInfo.id}
               mutateAsyncQuestions={mutateAsyncQuestions}
-              isStaff={isStaff}
+              userCourseRole={role}
               courseId={courseId}
             />
           ))}

@@ -478,6 +478,13 @@ export class asyncQuestionController {
 
     // TODO: Notify the creator of the question that a comment has been posted
 
+    // only put necessary info for the response's creator (otherwise it would send the password hash and a bunch of other unnecessary info)
+    comment.creator = {
+      id: user.id,
+      name: user.name,
+      photoURL: user.photoURL,
+    } as unknown as UserModel;
+
     res.status(HttpStatus.CREATED).send(comment);
   }
 

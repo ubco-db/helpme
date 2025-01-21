@@ -1,6 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
-import { AsyncQuestion, asyncQuestionStatus, UserPartial } from '@koh/common'
+import {
+  AsyncQuestion,
+  asyncQuestionStatus,
+  Role,
+  UserPartial,
+} from '@koh/common'
 import {
   CheckCircleOutlined,
   DownOutlined,
@@ -17,6 +22,8 @@ import StudentAsyncQuestionCardButtons from './StudentAsyncQuestionCardButtons'
 import { ArrowBigDown, ArrowBigUp } from 'lucide-react'
 import MarkdownCustom from '@/app/components/Markdown'
 import CommentSection from './CommentSection'
+import { getAnonAnimal, getAnonId } from '../utils/commonAsyncFunctions'
+import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
 
 const statusDisplayMap = {
   // if the question has no answer text, it will say "awaiting answer"
@@ -31,7 +38,7 @@ const statusDisplayMap = {
 
 interface AsyncQuestionCardProps {
   question: AsyncQuestion
-  isStaff: boolean
+  userCourseRole: Role
   userId: number
   courseId: number
   mutateAsyncQuestions: () => void
@@ -39,7 +46,7 @@ interface AsyncQuestionCardProps {
 
 const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   question,
-  isStaff,
+  userCourseRole,
   userId,
   courseId,
   mutateAsyncQuestions,
@@ -55,9 +62,16 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   const shouldFlash =
     question.status === asyncQuestionStatus.AIAnswered &&
     userId === question.creatorId
+  const isStaff =
+    userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
 
   const showUser =
     isStaff || userId == question.creatorId ? question.creator : null
+
+  const anonId = useMemo(
+    () => getAnonId(userId, question.id),
+    [userId, question.id],
+  )
 
   const handleFeedback = async (resolved: boolean) => {
     const newstatus = resolved
@@ -79,6 +93,13 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
       })
   }
 
+  useEffect(() => {
+    if (showAllComments) {
+      setIsExpanded(true)
+      setTruncateText(false)
+    }
+  }, [showAllComments])
+
   const setLockedExpanded = (isLockedExpanded: boolean) => {
     setIsLockedExpanded(isLockedExpanded)
     setIsExpanded(isLockedExpanded)
@@ -96,6 +117,8 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     setVoteCount(resp.questionSumVotes)
     setThisUserThisQuestionVote(resp.vote)
   }
+
+  console.log(anonId)
   return (
     <div
       className={cn(
@@ -167,7 +190,6 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             }}
           />
         </Col>
-
         <Col flex="auto" className="w-full">
           <div className="mb-1 flex flex-col md:mb-4">
             <div className="mb-1 flex justify-between">
@@ -176,15 +198,33 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   <>
                     <UserAvatar
                       size={40}
-                      username={question.creator.name}
-                      photoURL={question.creator.photoURL}
+                      username={
+                        isStaff
+                          ? question.creator.name
+                          : `Anonymous ${getAnonAnimal(anonId)}`
+                      }
+                      photoURL={
+                        isStaff
+                          ? question.creator.photoURL
+                          : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}`
+                      }
                       className="mr-2 hidden md:flex"
+                      anonymous
                     />
                     <UserAvatar
                       size={34}
-                      username={question.creator.name}
-                      photoURL={question.creator.photoURL}
+                      username={
+                        isStaff
+                          ? question.creator.name
+                          : `Anonymous ${getAnonAnimal(anonId)}`
+                      }
+                      photoURL={
+                        isStaff
+                          ? question.creator.photoURL
+                          : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}`
+                      }
                       className="mr-2 flex md:hidden"
+                      anonymous
                     />
                   </>
                 )}
@@ -193,7 +233,16 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                     className={`flex-grow text-sm italic text-gray-500 ${showUser && 'md:pt-2.5'}`}
                   >
                     <span className="mr-2 font-semibold">
-                      {showUser ? question.creator.name : 'Anonymous Student'}
+                      {isStaff ? (
+                        question.creator.name
+                      ) : (
+                        <span>
+                          Anonymous {getAnonAnimal(anonId)}
+                          <span className="font-normal not-italic text-green-500">
+                            {showUser ? ' (You)' : ''}{' '}
+                          </span>
+                        </span>
+                      )}
                     </span>
                     <span>{getAsyncWaitTime(question.createdAt)} ago</span>
                   </div>
@@ -290,7 +339,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 )}
               </div>
               <CommentSection
-                isStaff={isStaff}
+                userCourseRole={userCourseRole}
                 question={question}
                 setLockedExpanded={setLockedExpanded}
                 showAllComments={showAllComments}
@@ -351,7 +400,11 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
               : `Comments (${question.comments.length})`}
           </Button>
           <div className="mr-16 flex flex-grow justify-center">
-            {isExpanded ? <UpOutlined /> : <DownOutlined />}
+            {showAllComments ? null : isExpanded ? (
+              <UpOutlined />
+            ) : (
+              <DownOutlined />
+            )}
           </div>
         </Row>
       )}

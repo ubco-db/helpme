@@ -14,14 +14,14 @@ import { CommentProps } from '../utils/types'
 import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
 
 interface CommentSectionProps {
-  isStaff: boolean
+  userCourseRole: Role
   question: AsyncQuestion
   setLockedExpanded: (isLocked: boolean) => void
   showAllComments: boolean
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({
-  isStaff,
+  userCourseRole,
   question,
   setLockedExpanded,
   showAllComments,
@@ -35,6 +35,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   const firstCommentRef = useRef<HTMLDivElement>(null)
   const { userInfo } = useUserInfo()
   const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
+  const isStaff =
+    userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
 
   const comments = React.useMemo(() => {
     return generateCommentData(
@@ -73,6 +75,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       .comment(questionId, { commentText })
       .then((newComment) => {
         message.success('Comment posted successfully')
+        newComment.creator.courseRole = userCourseRole
         question.comments.push(newComment)
         setIsPostCommentLoading(false)
       })
@@ -237,7 +240,6 @@ function generateCommentData(
         anonId = getAnonId(comment.creator.id + retries, questionId)
       }
     }
-    console.log('anonId', anonId)
     newComments.push({
       authorId: comment.creator.id,
       authorAnonId: anonId,
@@ -248,7 +250,7 @@ function generateCommentData(
       avatar:
         IAmStaff || isStaffComment
           ? comment.creator.photoURL
-          : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(comment.creator.id)}`,
+          : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}`,
       content: comment.commentText,
       datetime: (
         <Tooltip title={new Date(comment.createdAt).toLocaleString()}>
