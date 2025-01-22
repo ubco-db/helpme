@@ -151,7 +151,6 @@ export type UserTiny = {
 export type CoursePartial = {
   id: number
   name: string
-  unreadCount: number
 }
 
 export class RegistrationTokenDetails {
@@ -186,6 +185,7 @@ export class PasswordRequestResetWithTokenBody {
 export type UserCourse = {
   course: CoursePartial
   role: Role
+  unreadCount?: number
 }
 
 export const COURSE_TIMEZONES = [
