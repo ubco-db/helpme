@@ -205,10 +205,13 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
               <div className="flex flex-grow">
                 <UserAvatar
                   size={40}
+                  // the colour of the avatar is based on the username
+                  // the name is authorId + questionId % length of ANIMAL_NAMES
+                  // while the colour is just authorId + questionId
                   username={
                     isStaff && showStudents
                       ? question.creator.name
-                      : `Anonymous ${getAnonAnimal(anonId)}`
+                      : (question.creator.id + question.id).toString()
                   }
                   photoURL={
                     isStaff && showStudents
@@ -223,7 +226,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   username={
                     isStaff && showStudents
                       ? question.creator.name
-                      : `Anonymous ${getAnonAnimal(anonId)}`
+                      : (question.creator.id + question.id).toString()
                   }
                   photoURL={
                     isStaff && showStudents

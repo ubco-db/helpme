@@ -526,7 +526,6 @@ describe('AsyncQuestion Integration', () => {
         course: course,
         aiAnswerText: 'q3',
       });
-      // flush redis cache
     });
     it('allows students to view their questions in their course', async () => {
       const response = await supertest({ userId: studentUser.id }).get(

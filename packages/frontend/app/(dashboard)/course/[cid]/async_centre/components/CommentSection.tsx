@@ -228,22 +228,23 @@ function generateCommentData(
     const isStaffComment =
       comment.creator.courseRole === Role.TA ||
       comment.creator.courseRole === Role.PROFESSOR
-    let anonId = getAnonId(comment.creator.id, questionId)
+    const anonId = getAnonId(comment.creator.id, questionId)
     // if any comment already in the list has the same anonId, generate a new one
-    let retries = 0
-    while (
-      newComments.some(
-        (c) => c.authorId !== comment.creator.id && c.authorAnonId === anonId,
-      )
-    ) {
-      retries++
-      if (retries >= ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES.length) {
-        // if we have tried all possible anonIds, just use the same one
-        break
-      } else {
-        anonId = getAnonId(comment.creator.id + retries, questionId)
-      }
-    }
+    // NOTE: instead of doing this, I have opted for just giving them a different random colour (by setting the username of the UserAvatar to just be the creatorId + questionId)
+    // let retries = 0
+    // while (
+    //   newComments.some(
+    //     (c) => c.authorId !== comment.creator.id && c.authorAnonId === anonId,
+    //   )
+    // ) {
+    //   retries++
+    //   if (retries >= ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES.length) {
+    //     // if we have tried all possible anonIds, just use the same one
+    //     break
+    //   } else {
+    //     anonId = getAnonId(comment.creator.id + retries, questionId)
+    //   }
+    // }
     newComments.push({
       commentId: comment.id,
       questionId,

@@ -34,6 +34,7 @@ const Comment: React.FC<CommentProps> = ({
   setIsLockedExpanded,
   authorName,
   avatar,
+  authorId,
   content,
   datetime,
   authorType,
@@ -50,7 +51,10 @@ const Comment: React.FC<CommentProps> = ({
         {/* Desktop Avatar */}
         <UserAvatar
           size={40}
-          username={authorName}
+          // the colour of the avatar is based on the username
+          // the name is authorId + questionId % length of ANIMAL_NAMES
+          // while the colour is just authorId + questionId
+          username={(questionId + authorId).toString()}
           photoURL={avatar}
           anonymous
         />
@@ -59,7 +63,7 @@ const Comment: React.FC<CommentProps> = ({
         {/* Mobile Avatar (a little smaller) */}
         <UserAvatar
           size={34}
-          username={authorName}
+          username={(questionId + authorId).toString()}
           photoURL={avatar}
           anonymous
         />
