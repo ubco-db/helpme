@@ -38,7 +38,7 @@ export class UserCourseModel extends BaseEntity {
   @Column({ nullable: true, default: false })
   expires: boolean;
 
-  @Column({ nullable: true, default: 0 })
+  @Column({ default: 0 })
   unreadAsyncQuestions: number;
 
   @OneToMany(
