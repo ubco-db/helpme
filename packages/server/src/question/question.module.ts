@@ -30,6 +30,7 @@ import { NotificationService } from '../notification/notification.service';
     NotificationService,
     QueueService,
     RedisQueueService,
+    QueueChatService,
   ],
 })
 export class QuestionModule {}

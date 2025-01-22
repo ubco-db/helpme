@@ -25,11 +25,21 @@ import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { QueueService } from 'queue/queue.service';
 import { AlertsService } from 'alerts/alerts.service';
 import { ApplicationConfigService } from 'config/application_config.service';
+import { QueueChatService } from 'queueChats/queue-chats.service';
+import { RedisService } from 'nestjs-redis';
 
 describe('QuestionService', () => {
   let service: QuestionService;
 
   let conn: Connection;
+
+  const mockRedisService = {
+    getClient: jest.fn(() => ({
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn(),
+    })),
+  };
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -51,6 +61,15 @@ describe('QuestionService', () => {
         NotificationService,
         AlertsService,
         ApplicationConfigService,
+        QueueChatService,
+        {
+          provide: RedisService,
+          useValue: mockRedisService,
+        },
+        {
+          provide: 'REDIS_CLIENT',
+          useValue: {},
+        },
       ],
     }).compile();
 
