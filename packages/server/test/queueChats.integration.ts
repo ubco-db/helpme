@@ -6,22 +6,35 @@ import {
   TACourseFactory,
   StudentCourseFactory,
 } from './util/factories';
+import { UserCourseModel } from 'profile/user-course.entity';
+import { QueueModel } from 'queue/queue.entity';
 
 describe('QueueChat Integration Tests', () => {
   const supertest = setupIntegrationTest(QueueChatsModule);
 
+  let student: UserCourseModel;
+  let staff: UserCourseModel;
+  let queue: QueueModel;
+
+  beforeEach(async () => {
+    queue = await QueueFactory.create();
+    staff = await TACourseFactory.create({
+      course: queue.course,
+      user: await UserFactory.create(),
+    });
+    student = await StudentCourseFactory.create({
+      course: queue.course,
+      user: await UserFactory.create(),
+    });
+  });
+
+  afterEach(async () => {
+    await UserCourseModel.delete({});
+    await QueueModel.delete({});
+  });
+
   describe('GET /queueChats/:queueId/:studentId', () => {
     it('retrieves chat metadata and messages', async () => {
-      const queue = await QueueFactory.create();
-      const staff = await TACourseFactory.create({
-        course: queue.course,
-        user: await UserFactory.create(),
-      });
-      const student = await StudentCourseFactory.create({
-        course: queue.course,
-        user: await UserFactory.create(),
-      });
-
       const metadata = {
         staff: {
           id: staff.user.id,
@@ -59,16 +72,6 @@ describe('QueueChat Integration Tests', () => {
     });
 
     it('returns 404 if no metadata exists', async () => {
-      const queue = await QueueFactory.create();
-      const staff = await TACourseFactory.create({
-        course: queue.course,
-        user: await UserFactory.create(),
-      });
-      const student = await StudentCourseFactory.create({
-        course: queue.course,
-        user: await UserFactory.create(),
-      });
-
       await supertest({ userId: staff.user.id })
         .get(`/queueChats/${queue.id}/${student.user.id}`)
         .expect(404);
@@ -77,16 +80,6 @@ describe('QueueChat Integration Tests', () => {
 
   describe('PATCH /queueChats/:queueId/:studentId', () => {
     it('stores a new message in Redis', async () => {
-      const queue = await QueueFactory.create();
-      const staff = await TACourseFactory.create({
-        course: queue.course,
-        user: await UserFactory.create(),
-      });
-      const student = await StudentCourseFactory.create({
-        course: queue.course,
-        user: await UserFactory.create(),
-      });
-
       const metadata = {
         staff: {
           id: staff.user.id,
@@ -127,16 +120,6 @@ describe('QueueChat Integration Tests', () => {
     });
 
     it('returns 403 if user is not authorized', async () => {
-      const queue = await QueueFactory.create();
-      const staff = await TACourseFactory.create({
-        course: queue.course,
-        user: await UserFactory.create(),
-      });
-      const student = await StudentCourseFactory.create({
-        course: queue.course,
-        user: await UserFactory.create(),
-      });
-
       await supertest({ userId: 999 })
         .patch(`/queueChats/${queue.id}/${student.user.id}`)
         .send({ message: 'Unauthorized' })
@@ -146,16 +129,6 @@ describe('QueueChat Integration Tests', () => {
 
   describe('POST /queueChats/:queueId/:studentId/end', () => {
     it('ends a chat and deletes Redis keys', async () => {
-      const queue = await QueueFactory.create();
-      const staff = await TACourseFactory.create({
-        course: queue.course,
-        user: await UserFactory.create(),
-      });
-      const student = await StudentCourseFactory.create({
-        course: queue.course,
-        user: await UserFactory.create(),
-      });
-
       const metadata = {
         staff: {
           id: staff.user.id,
