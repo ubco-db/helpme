@@ -974,7 +974,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 </Drawer>
                 {helpingQuestions.length > 0 && (
                   <div
-                    className={`${mobileQueueChatOpen ? 'hidden ' : ''}fixed bottom-8 right-3 flex justify-end transition-all duration-500 ease-in-out md:left-2`}
+                    className={`${mobileQueueChatOpen ? 'hidden ' : ''}fixed bottom-8 right-3 flex justify-end md:left-2`}
                     style={{ zIndex: 1050 }}
                   >
                     <Badge

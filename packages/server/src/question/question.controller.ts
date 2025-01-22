@@ -357,10 +357,10 @@ export class QuestionController {
     }
 
     const isCreator = userId === question.creatorId;
+    const oldStatus = question.status;
 
     // creating/editing your own question
     if (isCreator) {
-      const oldStatus = question.status;
       question = Object.assign(question, body);
       question.status = oldStatus; // change the status back (idk if there's a better way to do this)
       if (body.questionTypes) {
@@ -489,7 +489,7 @@ export class QuestionController {
         }
       }
       if (body.status) {
-        await this.questionService
+        await this.questionService // PAT TODO: check if status change from queued to helping, otherwise dont refresh
           .changeStatus(body.status, question, userId, Role.TA)
           .then(async () => {
             // if the question is being resolved or helped, create or end the queue chat for that question
@@ -499,7 +499,8 @@ export class QuestionController {
                   await this.QueueChatService.createChat(
                     question.queueId,
                     question.taHelped,
-                    question.creator,
+                    question.creator, // PAT TODO: move logic from service to here
+                    true, // for now!
                   );
                 } catch (error) {
                   throw new HttpException(

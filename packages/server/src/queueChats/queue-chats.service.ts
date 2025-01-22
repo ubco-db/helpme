@@ -26,17 +26,21 @@ export class QueueChatService {
    * @param queueId The ID of the queue
    * @param staff The instance of the staff member
    * @param student The instance of the student
+   * @param clear Whether to clear any existing chat data for privacy
    */
   async createChat(
     queueId: number,
     staff: UserModel,
     student: UserModel,
+    clear: boolean,
   ): Promise<void> {
     const key = `${ChatMetadataRedisKey}:${queueId}:${student.id}`;
 
-    // Remove any existing chat metadata and messages
-    await this.redis.del(key);
-    await this.redis.del(`${ChatMessageRedisKey}:${queueId}:${student.id}`);
+    // Remove any existing chat metadata and messages (in case of mismanagement; to protect previous chat history)
+    if (clear) {
+      await this.redis.del(key);
+      await this.redis.del(`${ChatMessageRedisKey}:${queueId}:${student.id}`);
+    }
 
     await this.redis.set(
       key,
@@ -57,7 +61,7 @@ export class QueueChatService {
       } as QueueChatPartial),
     );
 
-    await this.redis.expire(key, 86400); // 24 hours = 24 * 60 * 60 = 86400 seconds
+    await this.redis.expire(key, 604800); // 1 week = 7 * 24 * 60 * 60 = 604800 seconds
   }
 
   /**
@@ -123,7 +127,7 @@ export class QueueChatService {
 
         return message;
       })
-      .reverse(); // Because we used lpush, the messages are in reverse order
+      .reverse(); // Because lpush is used to "send" messages, the messages are in reverse order
   }
 
   /**
@@ -172,6 +176,19 @@ export class QueueChatService {
         await this.redis.del(messageKey);
       });
     }
+  }
+
+  /**
+   * Clear a chat from Redis (without saving metadata to database -- for unresolved but closed chats)
+   * @param queueId The ID of the queue
+   * @param studentId The ID of the student
+   */
+  async clearChat(queueId: number, studentId: number): Promise<void> {
+    const metaKey = `${ChatMetadataRedisKey}:${queueId}:${studentId}`;
+    const messageKey = `${ChatMessageRedisKey}:${queueId}:${studentId}`;
+
+    await this.redis.del(metaKey);
+    await this.redis.del(messageKey);
   }
 
   /**
