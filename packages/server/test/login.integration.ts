@@ -158,6 +158,26 @@ describe('Login Integration', () => {
         })
         .expect(401);
     });
+
+    it('returns 200 even if email has incorrect casing', async () => {
+      const salt = await bcrypt.genSalt(10);
+      const password = await bcrypt.hash('realpassword', salt);
+
+      const user = await UserFactory.create({
+        email: 'fake_email@ubc.ca',
+        password: password,
+      });
+      await mockJWT.signAsync({ userId: user.id });
+
+      await supertest()
+        .post('/ubc_login')
+        .send({
+          email: 'Fake_email@ubc.ca',
+          password: 'realpassword',
+          recaptchaToken: 'token',
+        })
+        .expect(200);
+    });
   });
 
   describe('POST /login/entry', () => {

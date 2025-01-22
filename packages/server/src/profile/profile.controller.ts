@@ -33,16 +33,17 @@ import * as sharp from 'sharp';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from './user.entity';
-import { ProfileService } from './profile.service';
 import { OrganizationService } from '../organization/organization.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { minutes, SkipThrottle, Throttle } from '@nestjs/throttler';
+import { AuthService } from '../auth/auth.service';
+import { OrganizationUserModel } from '../organization/organization-user.entity';
 
 @Controller('profile')
 export class ProfileController {
   constructor(
-    private profileService: ProfileService,
     private organizationService: OrganizationService,
+    private authService: AuthService,
   ) {}
 
   // Don't throttle this endpoint since the middleware calls this for every page (and if it prefetches like 30 pages, it will hit the throttle limit and can cause issue for the user)
@@ -155,12 +156,13 @@ export class ProfileController {
         .send({ message: ERROR_MESSAGES.profileController.cannotUpdateEmail });
     }
 
-    if (userPatch.email && userPatch.email !== user.email) {
-      const email = await UserModel.findOne({
-        where: {
-          email: userPatch.email,
-        },
-      });
+    if (
+      userPatch.email &&
+      userPatch.email.toLowerCase() !== user.email.toLowerCase()
+    ) {
+      const email = await this.authService
+        .getUserByEmailQuery(userPatch.email)
+        .getOne();
 
       if (email) {
         return res
@@ -170,9 +172,17 @@ export class ProfileController {
     }
 
     if (userPatch.sid && userPatch.sid !== user.sid) {
+      // this may need to be altered if user -> orguser relation is changed to one-to-many
+      const orgUser = await OrganizationUserModel.findOne({
+        userId: user.id,
+      });
+
       const sid = await UserModel.findOne({
         where: {
           sid: userPatch.sid,
+          organizationUser: {
+            organizationId: orgUser.organizationId,
+          },
         },
       });
 

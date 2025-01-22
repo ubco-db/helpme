@@ -20,6 +20,7 @@ import {
 } from 'profile/user-token.entity';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { ExecutionContext, Injectable } from '@nestjs/common';
+import { SelectQueryBuilder } from 'typeorm';
 
 const mockJWT = {
   signAsync: async (payload) => JSON.stringify(payload),
@@ -83,6 +84,17 @@ const mockAuthService = {
 
   createPasswordResetToken: async (_user: UserModel) => {
     return 'reset_link';
+  },
+
+  getUserByEmailQuery(
+    email: string,
+  ): SelectQueryBuilder<UserModel | undefined> {
+    return UserModel.createQueryBuilder('UserModel')
+      .select()
+      .leftJoinAndSelect('UserModel.organizationUser', 'organizationUser')
+      .where('LOWER("UserModel"."email") = :email', {
+        email: email.toLowerCase(),
+      });
   },
 };
 
