@@ -147,18 +147,21 @@ export class QuestionService {
       await this.queueChatService.endChat(question.queueId, question.creatorId); // Save chat metadata in database
     } else if (isBecomingClosedFromWaiting) {
       await this.queueChatService.clearChat(
+        // Don't save chat metadata in database
         question.queueId,
         question.creatorId,
-      ); // Don't save chat metadata in database
-    } else if (isFirstHelped) {
+      );
+    } else if (isBecomingHelped) {
       const user = await UserModel.findOne({
         where: { id: userId },
       });
       await this.queueChatService.createChat(
+        // Create chat metadata in Redis
         question.queueId,
         question.creator,
         user,
-      ); // Create chat metadata in Redis
+        isFirstHelped,
+      );
     }
 
     try {

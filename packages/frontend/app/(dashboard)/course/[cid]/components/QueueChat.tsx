@@ -85,11 +85,11 @@ const QueueChat: React.FC<QueueChatProps> = ({
     }
   }
 
-  if (!queueChatData && isOpen) {
+  if (!queueChatData) {
     return (
       <Alert
-        className={`${fixed ? 'fixed ' : ''}bottom-8 right-0 box-border overflow-y-auto md:right-2`}
-        message="Chat data is not available."
+        className={`${fixed ? 'fixed ' : ''}md:bottom-8 right-0 box-border overflow-y-auto md:right-2`}
+        message={`Chat data is not available.`}
         description="Please try again later or contact support if the issue persists."
         type="warning"
         showIcon

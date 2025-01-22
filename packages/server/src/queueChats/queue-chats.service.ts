@@ -26,17 +26,21 @@ export class QueueChatService {
    * @param queueId The ID of the queue
    * @param staff The instance of the staff member
    * @param student The instance of the student
+   * @param clear Whether to clear any existing chat data for privacy
    */
   async createChat(
     queueId: number,
     staff: UserModel,
     student: UserModel,
+    clear: boolean,
   ): Promise<void> {
     const key = `${ChatMetadataRedisKey}:${queueId}:${student.id}`;
 
     // Remove any existing chat metadata and messages (in case of mismanagement; to protect previous chat history)
-    await this.redis.del(key);
-    await this.redis.del(`${ChatMessageRedisKey}:${queueId}:${student.id}`);
+    if (clear) {
+      await this.redis.del(key);
+      await this.redis.del(`${ChatMessageRedisKey}:${queueId}:${student.id}`);
+    }
 
     await this.redis.set(
       key,
@@ -123,7 +127,7 @@ export class QueueChatService {
 
         return message;
       })
-      .reverse(); // Because we used lpush, the messages are in reverse order
+      .reverse(); // Because lpush is used to "send" messages, the messages are in reverse order
   }
 
   /**
