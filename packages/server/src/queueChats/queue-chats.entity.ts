@@ -33,7 +33,7 @@ export class QueueChatsModel extends BaseEntity {
   @Exclude()
   staff: UserModel;
 
-  @Column({ nullable: true })
+  @Column()
   staffId: number;
 
   @ManyToOne(() => UserModel, (student) => student.studentChats, {
@@ -44,7 +44,7 @@ export class QueueChatsModel extends BaseEntity {
   student: UserModel;
 
   // User Id of entry in user table (not student number)
-  @Column({ nullable: true })
+  @Column()
   studentId: number;
 
   @Column({ type: 'timestamptz', nullable: true })

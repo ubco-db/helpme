@@ -38,6 +38,7 @@ describe('QuestionService', () => {
       get: jest.fn(),
       set: jest.fn(),
       del: jest.fn(),
+      lrange: jest.fn().mockResolvedValue([]),
     })),
   };
 

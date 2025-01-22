@@ -62,6 +62,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
       {/* This flex flex-grow is needed so that the scroll bar doesn't show up on every page */}
       <main className="flex flex-grow flex-col">
+        {/* If on the queue page, do not display the chatbot */}
         {URLSegments[3] === 'queue' ? (
           <StandardPageContainer className="flex-grow">
             {children}
