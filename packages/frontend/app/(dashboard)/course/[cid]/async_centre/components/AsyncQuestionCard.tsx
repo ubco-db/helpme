@@ -101,23 +101,32 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     }
   }, [showAllComments])
 
-  const setLockedExpanded = (isLockedExpanded: boolean) => {
-    setIsLockedExpanded(isLockedExpanded)
-    setIsExpanded(isLockedExpanded)
-    if (!isLockedExpanded) {
-      setTimeout(() => {
-        setTruncateText(true)
-      }, 300)
-    } else {
-      setTruncateText(false)
-    }
-  }
+  // const setIsLockedExpanded = (isLockedExpanded: boolean) => {
+  //   setIsLockedExpanded(isLockedExpanded)
+  //   setIsExpanded(isLockedExpanded)
+  //   if (!isLockedExpanded) {
+  //     setTimeout(() => {
+  //       setTruncateText(true)
+  //     }, 300)
+  //   } else {
+  //     setTruncateText(false)
+  //   }
+  // }
 
   const handleVote = async (questionId: number, vote: number) => {
     const resp = await API.asyncQuestions.vote(questionId, vote)
     setVoteCount(resp.questionSumVotes)
     setThisUserThisQuestionVote(resp.vote)
   }
+
+  // log when lockedExpanded is true
+  useEffect(() => {
+    if (isLockedExpanded) {
+      console.log('lockedExpanded is true')
+    } else {
+      console.log('lockedExpanded is false')
+    }
+  }, [isLockedExpanded])
 
   return (
     <div
@@ -337,7 +346,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
               <CommentSection
                 userCourseRole={userCourseRole}
                 question={question}
-                setLockedExpanded={setLockedExpanded}
+                setIsLockedExpanded={setIsLockedExpanded}
                 showAllComments={showAllComments}
                 showStudents={showStudents}
               />

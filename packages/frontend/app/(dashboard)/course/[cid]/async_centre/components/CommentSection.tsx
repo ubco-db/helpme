@@ -1,22 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { List, Button, Tooltip, message, Form, Empty, Popconfirm } from 'antd'
+import { List, Button, Tooltip, message, Input, Popconfirm } from 'antd'
 import Comment from './Comment'
 import moment from 'moment'
-import TextArea from 'antd/es/input/TextArea'
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { AsyncQuestion, AsyncQuestionComment, Role, User } from '@koh/common'
 import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
-import { QuestionCircleOutlined } from '@ant-design/icons'
 import { getAnonAnimal, getAnonId } from '../utils/commonAsyncFunctions'
 import { CommentProps } from '../utils/types'
 import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
 
+const { TextArea } = Input
+
 interface CommentSectionProps {
   userCourseRole: Role
   question: AsyncQuestion
-  setLockedExpanded: (isLocked: boolean) => void
+  setIsLockedExpanded: (isLocked: boolean) => void
   showAllComments: boolean
   showStudents: boolean
 }
@@ -24,7 +24,7 @@ interface CommentSectionProps {
 const CommentSection: React.FC<CommentSectionProps> = ({
   userCourseRole,
   question,
-  setLockedExpanded,
+  setIsLockedExpanded,
   showAllComments,
   showStudents,
 }) => {
@@ -37,6 +37,9 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   const firstCommentRef = useRef<HTMLDivElement>(null)
   const { userInfo } = useUserInfo()
   const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
+  const [postCommentCancelPopoverOpen, setPostCommentCancelPopoverOpen] =
+    useState(false)
+  const [regenerateCommentsFlag, regenerateComments] = useState(false)
   const isStaff =
     userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
 
@@ -48,8 +51,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       userInfo,
       isStaff,
       showStudents,
+      setIsLockedExpanded,
+      regenerateComments,
+      regenerateCommentsFlag,
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     question.id,
     question.comments,
@@ -57,8 +62,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     userInfo,
     isStaff,
     showStudents,
-    // this is just to get the useMemo to re-run when handleCommentOnPost finishes posting the comment (since updating question.comments does not re-run the useMemo because its a prop i think. And no re-assigning question.comments to a new array with the new comment does not trigger a re-run either unfortunately)
-    isPostCommentLoading,
+    setIsLockedExpanded,
+    regenerateCommentsFlag,
   ])
 
   useEffect(() => {
@@ -82,10 +87,18 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         newComment.creator.courseRole = userCourseRole
         question.comments.push(newComment)
         setIsPostCommentLoading(false)
+        regenerateComments(!regenerateCommentsFlag)
       })
       .catch((e) => {
         message.error('Failed to post reply: ' + getErrorMessage(e))
       })
+  }
+
+  const handleCancelComment = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    setShowCommentTextInput(false)
+    setCommentInputValue('')
+    setIsLockedExpanded(false)
   }
 
   if (!showAllComments) {
@@ -115,7 +128,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
           />
         </div>
       ) : (
-        <div className="text-gray-500">
+        <div className="mt-2 text-gray-500">
           There are no comments here yet. Be the first to comment!
         </div>
       )}
@@ -126,84 +139,67 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             onClick={(e) => {
               e.stopPropagation()
               setShowCommentTextInput(!showCommentTextInput)
-              setLockedExpanded(true)
+              setIsLockedExpanded(true)
             }}
-            className="my-3"
+            className="mt-1"
           >
             Post Comment
           </Button>
         )}
         {showCommentTextInput && (
           <>
-            <Form.Item className="my-3">
-              {commentInputValue ? (
-                <>
-                  <Popconfirm
-                    title="Are you sure you want to cancel?"
-                    description="Your comment will be discarded"
-                    icon={<QuestionCircleOutlined style={{ color: 'red' }} />}
-                    onConfirm={(e) => {
-                      e?.stopPropagation()
-                      setShowCommentTextInput(!showCommentTextInput)
-                      setCommentInputValue('')
-                      setLockedExpanded(false)
-                    }}
-                    onCancel={(e) => e?.stopPropagation()}
-                  >
-                    <Button
-                      className="mr-1"
-                      onClick={(e) => e.stopPropagation()}
-                      danger
-                    >
-                      Cancel
-                    </Button>
-                  </Popconfirm>
-                  <Button
-                    htmlType="submit"
-                    loading={isPostCommentLoading}
-                    onClick={async (e) => {
-                      e.stopPropagation()
-                      if (commentInputValue) {
-                        await handleCommentOnPost(
-                          question.id,
-                          commentInputValue,
-                        )
-                        setShowCommentTextInput(false)
-                        setCommentInputValue('')
-                      }
-                    }}
-                    type="primary"
-                  >
-                    Add Comment
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  className="mr-1"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setShowCommentTextInput(!showCommentTextInput)
-                    setCommentInputValue('')
-                    setLockedExpanded(false)
-                  }}
-                  danger
-                >
-                  Cancel
-                </Button>
-              )}
-            </Form.Item>
-            <Form.Item>
-              <TextArea
-                rows={4}
-                placeholder="Enter your comment here"
-                onFocus={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation()
-                }}
-                onChange={(e) => setCommentInputValue(e.target.value)}
-                value={commentInputValue}
-              />
-            </Form.Item>
+            <TextArea
+              maxLength={10000}
+              className="my-2"
+              rows={4}
+              placeholder="Enter your comment here..."
+              onFocus={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation()
+              }}
+              onChange={(e) => setCommentInputValue(e.target.value)}
+              value={commentInputValue}
+            />
+            <Popconfirm
+              open={postCommentCancelPopoverOpen}
+              title="Are you sure you want to cancel?"
+              description="Your comment will be discarded"
+              onConfirm={handleCancelComment}
+              onOpenChange={(open) => {
+                // if the field is empty, skip showing the popover and just cancel
+                if (!commentInputValue) {
+                  handleCancelComment()
+                } else {
+                  setPostCommentCancelPopoverOpen(open)
+                }
+              }}
+              onCancel={(e) => e?.stopPropagation()}
+            >
+              <Button
+                className="mr-1"
+                onClick={(e) => e.stopPropagation()}
+                danger
+              >
+                Cancel
+              </Button>
+            </Popconfirm>
+            <Button
+              htmlType="submit"
+              className="px-6"
+              disabled={!commentInputValue}
+              loading={isPostCommentLoading}
+              onClick={async (e) => {
+                e.stopPropagation()
+                if (commentInputValue) {
+                  await handleCommentOnPost(question.id, commentInputValue)
+                  setShowCommentTextInput(false)
+                  setCommentInputValue('')
+                }
+              }}
+              type="primary"
+            >
+              Post
+            </Button>
           </>
         )}
       </div>
@@ -218,6 +214,9 @@ function generateCommentData(
   userInfo: User,
   IAmStaff: boolean,
   showStudents: boolean,
+  setIsLockedExpanded: (lockedExpanded: boolean) => void,
+  regenerateComments: (flag: boolean) => void,
+  regenerateCommentsFlag: boolean,
 ): CommentProps[] | undefined {
   // first sort the comments by createdAt DESC (so oldest comments appear first)
   comments.sort((a, b) => moment(a.createdAt).diff(moment(b.createdAt)))
@@ -246,6 +245,19 @@ function generateCommentData(
       }
     }
     newComments.push({
+      commentId: comment.id,
+      questionId,
+      onDeleteSuccess: () => {
+        // remove the comment from the question object
+        const commentIndex = comments.findIndex((c) => c.id === comment.id)
+        comments.splice(commentIndex, 1)
+        regenerateComments(!regenerateCommentsFlag)
+      },
+      onEditSuccess: (newCommentText) => {
+        // update the comment content
+        comment.commentText = newCommentText
+        regenerateComments(!regenerateCommentsFlag)
+      },
       authorId: comment.creator.id,
       authorAnonId: anonId,
       authorName:
@@ -267,6 +279,7 @@ function generateCommentData(
         : isAuthor
           ? 'author'
           : (comment.creator.courseRole ?? Role.STUDENT),
+      setIsLockedExpanded,
     })
   }
 
