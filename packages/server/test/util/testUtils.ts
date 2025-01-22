@@ -12,6 +12,7 @@ import { LoginModule } from '../../src/login/login.module';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { ApplicationConfigModule } from 'config/application_config.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
+import RedisMemoryServer from 'redis-memory-server';
 
 export interface SupertestOptions {
   userId?: number;
@@ -44,8 +45,14 @@ export function setupIntegrationTest(
   let conn: Connection;
   let appConfig: ApplicationConfigService;
   let schedulerRegistry: SchedulerRegistry;
+  let redisServer: RedisMemoryServer;
 
   beforeAll(async () => {
+    // starts a local redis server to mock real redis behaviour (closes after tests)
+    redisServer = new RedisMemoryServer();
+    const redisHost = await redisServer.getHost();
+    const redisPort = await redisServer.getPort();
+
     let testModuleBuilder = Test.createTestingModule({
       imports: [
         ...additionalModules,
@@ -56,9 +63,9 @@ export function setupIntegrationTest(
         ApplicationConfigModule,
         ScheduleModule.forRoot(),
         RedisModule.register([
-          { name: 'pub' },
-          { name: 'sub' },
-          { name: 'db' },
+          { name: 'pub', host: redisHost, port: redisPort },
+          { name: 'sub', host: redisHost, port: redisPort },
+          { name: 'db', host: redisHost, port: redisPort },
         ]),
       ],
     });
@@ -84,6 +91,9 @@ export function setupIntegrationTest(
   afterAll(async () => {
     await app.close();
     await conn.close();
+    if (redisServer) {
+      await redisServer.stop();
+    }
   });
 
   beforeEach(async () => {
