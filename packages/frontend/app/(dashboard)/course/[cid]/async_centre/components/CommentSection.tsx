@@ -176,7 +176,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               onCancel={(e) => e?.stopPropagation()}
             >
               <Button
-                className="mr-1"
+                className="mr-2"
                 onClick={(e) => e.stopPropagation()}
                 danger
               >
