@@ -62,7 +62,7 @@ describe('QueueChatService', () => {
         photoURL: 'studentPhotoURL',
       } as UserModel;
 
-      await service.createChat(123, staff, student, false);
+      await service.createChat(123, staff, student, true);
 
       const key = 'queue_chat_metadata:123:2';
       expect(redisMock.del).toHaveBeenCalledWith(key);
@@ -84,7 +84,7 @@ describe('QueueChatService', () => {
           startedAt: staticDate,
         }),
       );
-      expect(redisMock.expire).toHaveBeenCalledWith(key, 86400);
+      expect(redisMock.expire).toHaveBeenCalledWith(key, 604800); // one week in seconds
     });
   });
 

@@ -42,6 +42,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const {
     queueChatData,
+    queueChatError,
     mutateQueueChat,
     hasNewMessages,
     setHasNewMessagesFalse,
@@ -85,7 +86,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     }
   }
 
-  if (!queueChatData) {
+  if (!queueChatData || queueChatError) {
     return (
       <Alert
         className={`${fixed ? 'fixed ' : ''}md:bottom-8 right-0 box-border overflow-y-auto md:right-2`}
