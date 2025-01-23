@@ -182,7 +182,6 @@ const NavBar = ({
               className="h-12 w-full object-contain p-1 pr-4"
               alt="Organization Logo"
               src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
-              unoptimized
             />
           </NextLink>
           {course ? (
@@ -409,7 +408,6 @@ const HeaderBar: React.FC = () => {
         className="h-12 object-contain p-1"
         alt="Organization Logo"
         src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
-        unoptimized
       />
       <div className="flex h-14 grow flex-col items-center justify-center">
         <h1
@@ -461,7 +459,6 @@ const HeaderBar: React.FC = () => {
                 className="h-12 object-contain"
                 alt="Organization Logo"
                 src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
-                unoptimized
               />
               <span className="text-2xl font-semibold leading-none">
                 {userInfo?.organization?.organizationName}

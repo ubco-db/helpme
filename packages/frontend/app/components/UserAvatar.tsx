@@ -3,6 +3,7 @@ import { Avatar, AvatarProps } from 'antd'
 import React, { ReactElement } from 'react'
 import { useUserInfo } from '../contexts/userContext'
 import { cn, getInitialsFromName, nameToRGB } from '../utils/generalUtils'
+import Image from 'next/image'
 
 type SelfAvatarProps = Omit<AvatarProps, 'icon' | 'src'>
 type UserAvatarProps = Omit<AvatarProps, 'icon' | 'src'> & {
@@ -36,6 +37,7 @@ export default function UserAvatar({
 }: UserAvatarProps): ReactElement {
   const fontSize =
     props.size && Number(props.size) > 80 ? Number(props.size) / 4 : 18
+  const sizeNumber = Number(props.size) || 40
 
   return photoURL && username ? (
     <Avatar
@@ -50,12 +52,22 @@ export default function UserAvatar({
           : {}
       }
       src={
-        photoURL && photoURL.startsWith('http') ? (
-          <img src={photoURL} alt={username} loading="lazy" decoding="async" />
+        photoURL &&
+        (photoURL.startsWith('http') || photoURL.startsWith('/')) ? (
+          <Image
+            src={photoURL}
+            alt={`${username}'s PFP`}
+            loading="lazy"
+            decoding="async"
+            width={sizeNumber}
+            height={sizeNumber}
+          />
         ) : (
-          <img
-            src={`/api/v1/profile/get_picture/${photoURL}`}
-            alt={username}
+          <Image
+            src={`api/v1/profile/get_picture/${photoURL}`}
+            alt={`${username}'s PFP`}
+            width={sizeNumber}
+            height={sizeNumber}
             loading="lazy"
             decoding="async"
           />

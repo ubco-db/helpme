@@ -65,7 +65,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <ChatbotContextProvider>
           {pathname === '/courses' && (
             <Image
-              unoptimized
               src={`/api/v1/organization/${profile.organization.orgId}/get_banner/${profile.organization.organizationBannerUrl}`}
               alt="Organization Banner"
               className="h-[15vh] w-full object-cover object-center md:h-[20vh]"

@@ -1,7 +1,7 @@
 import {withSentryConfig} from "@sentry/nextjs";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false,
+  // reactStrictMode: false,
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
@@ -9,11 +9,23 @@ const nextConfig = {
     missingSuspenseWithCSRBailout: false,
   },
   images: {
+    loader: 'custom',
+    loaderFile: './loader.js',
+    // remotePatterns is a list of where all of our images can come from. It is needed otherwise malicious users can use our server to optimize their own images
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "**",
+        // allow images from the same host
+        protocol: process.env.NEXT_PUBLIC_HOST_PROTOCOL,
+        hostname: process.env.NEXT_PUBLIC_HOSTNAME,
+        port: process.env.NEXT_PUBLIC_HOSTNAME === 'localhost' ? process.env.NEXT_PUBLIC_DEV_PORT : '',
       },
+      {
+        // allow images from google
+        protocol: 'https',
+        port: '',
+        hostname: '*.googleusercontent.com',
+        pathname: '**'
+      }
     ],
   },
 };
