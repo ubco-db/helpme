@@ -15,7 +15,7 @@ interface QueueChatProps {
   isMobile: boolean
   hidden: boolean
   fixed?: boolean
-  announceNewMessage?: () => void
+  announceNewMessage?: (newCount: number) => void
   onOpen?: () => void
   onClose?: () => void
 }
@@ -27,7 +27,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   isMobile,
   hidden,
   fixed = true,
-  announceNewMessage = () => {
+  announceNewMessage = (newCount: number) => {
     return
   },
   onOpen = () => {
@@ -44,30 +44,32 @@ const QueueChat: React.FC<QueueChatProps> = ({
     queueChatData,
     queueChatError,
     mutateQueueChat,
-    hasNewMessages,
-    setHasNewMessagesFalse,
+    newMessageCount,
+    resetNewMessageCount,
   } = useQueueChat(queueId, studentId)
   const messagesEndRef = useRef<HTMLDivElement | null>(null) // This handles auto scrolling
 
+  // To always auto scroll to the bottom of the page when new messages are added
   useEffect(() => {
     if (messagesEndRef.current && isOpen) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [isOpen, queueChatData, queueChatData?.messages])
 
+  // To handle new message events
   useEffect(() => {
-    if (!hasNewMessages) {
+    if (newMessageCount == 0) {
       return
     }
     if (!isMobile) {
       // This is for desktop's default behaviour (auto open the chat) -- mobile has css to handle this
       setIsOpen(true)
-      setHasNewMessagesFalse()
+      resetNewMessageCount()
       onOpen()
     } else {
-      announceNewMessage() // For mobile "view chats" button in queue page to know there are new messages
+      announceNewMessage(newMessageCount) // For mobile "view chats" button in queue page to know there are new messages
     }
-  }, [hasNewMessages, setIsOpen])
+  }, [newMessageCount, setIsOpen])
 
   const isStaff = role === Role.PROFESSOR || role === Role.TA
 
@@ -120,7 +122,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
           <Button
             onClick={() => {
               setIsOpen(false)
-              setHasNewMessagesFalse()
+              resetNewMessageCount()
               onClose()
             }}
             type="text"
@@ -241,10 +243,10 @@ const QueueChat: React.FC<QueueChatProps> = ({
       </Card>
     </div>
   ) : isMobile ? (
-    <div style={{ zIndex: 50, width: '100%' }}>
+    <div style={{ zIndex: 1050, width: '100%', padding: '0.5rem' }}>
       <Badge
-        dot={hasNewMessages}
-        className={`${hidden ? 'hidden ' : ''}${hasNewMessages ? 'animate-bounce ' : ''}${isStaff ? 'w-full ' : `${fixed ? `fixed ` : ''}bottom-8 right-3 `}`}
+        count={newMessageCount}
+        className={`${hidden ? 'hidden ' : ''}${isStaff ? 'w-full ' : `${fixed ? `fixed ` : ''}bottom-8 right-3 `}`}
       >
         <Button
           type="primary"
@@ -275,7 +277,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
         icon={<MessageCircleMore />}
         onClick={() => {
           setIsOpen(true)
-          setHasNewMessagesFalse()
+          resetNewMessageCount()
           onOpen()
         }}
       >

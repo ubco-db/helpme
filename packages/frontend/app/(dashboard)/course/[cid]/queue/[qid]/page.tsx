@@ -110,7 +110,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const [editDemoModalOpen, setEditDemoModalOpen] = useState(false)
   const [mobileQueueChatOpen, setMobileQueueChatOpen] = useState(false) // To store the state of the mobile queue chat drawer
   const [currentChatQuestionId, setCurrentChatQuestionId] = useState<number>(-1) // To store the currently opened chat via the question id
-  const [newMessagesInQueueChat, setNewMessagesInQueueChat] = useState(false)
+  const [newMessagesInQueueChats, setNewMessagesInQueueChats] = useState(0)
   const role = getRoleInCourse(userInfo, cid)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
   const [questionTypes] = useQuestionTypes(cid, qid)
@@ -931,6 +931,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   open={mobileQueueChatOpen}
                   className="box-border flex h-full flex-col justify-end overflow-auto"
                   title="Queue Chats"
+                  forceRender
                   styles={{
                     body: {
                       padding: '0.5rem',
@@ -941,7 +942,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   }}
                   onClose={() => {
                     setMobileQueueChatOpen(false)
-                    setNewMessagesInQueueChat(false)
+                    setNewMessagesInQueueChats(0)
                   }}
                 >
                   <div
@@ -958,8 +959,10 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                           role={role}
                           isMobile={isMobile}
                           fixed={false}
-                          announceNewMessage={() =>
-                            setNewMessagesInQueueChat(true)
+                          announceNewMessage={(newCount: number) =>
+                            setNewMessagesInQueueChats(
+                              (prevCount) => prevCount + newCount,
+                            )
                           }
                           onOpen={() => setCurrentChatQuestionId(question.id)}
                           onClose={() => setCurrentChatQuestionId(-1)}
@@ -977,24 +980,17 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                     className={`${mobileQueueChatOpen ? 'hidden ' : ''}fixed bottom-8 right-3 flex justify-end md:left-2`}
                     style={{ zIndex: 1050 }}
                   >
-                    <Badge
-                      dot={newMessagesInQueueChat}
-                      className={
-                        newMessagesInQueueChat ? 'animate-bounce ' : ''
-                      }
-                    >
+                    <Badge count={newMessagesInQueueChats} offset={[-4, 4]}>
                       <Button
                         type="primary"
                         size="large"
-                        className={`rounded-sm`}
+                        className={`box-border rounded-full p-6 shadow-lg`}
                         icon={<MessageCircleMore />}
                         onClick={() => {
                           setMobileQueueChatOpen(true)
-                          setNewMessagesInQueueChat(false)
+                          setNewMessagesInQueueChats(0)
                         }}
-                      >
-                        View Chats
-                      </Button>
+                      ></Button>
                     </Badge>
                   </div>
                 )}

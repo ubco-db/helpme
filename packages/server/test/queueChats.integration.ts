@@ -8,9 +8,12 @@ import {
 } from './util/factories';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { QueueModel } from 'queue/queue.entity';
+import { QuestionModule } from 'question/question.module';
 
 describe('QueueChat Integration Tests', () => {
-  const supertest = setupIntegrationTest(QueueChatsModule);
+  const supertest = setupIntegrationTest(QueueChatsModule, undefined, [
+    QuestionModule,
+  ]);
 
   let student: UserCourseModel;
   let staff: UserCourseModel;

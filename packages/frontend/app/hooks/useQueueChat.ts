@@ -11,8 +11,8 @@ export interface useQueueChatReturn {
   queueChatData?: queueChatResponse['data']
   queueChatError: queueChatResponse['error']
   mutateQueueChat: queueChatResponse['mutate']
-  hasNewMessages: boolean
-  setHasNewMessagesFalse: () => void
+  newMessageCount: number
+  resetNewMessageCount: () => void
 }
 
 export function useQueueChat(
@@ -20,7 +20,7 @@ export function useQueueChat(
   studentId: number,
 ): useQueueChatReturn {
   const key = `/api/v1/queueChats/${qid}/${studentId}`
-  const [hasNewMessages, setHasNewMessages] = useState<boolean>(false)
+  const [newMessageCount, setNewMessageCount] = useState(0)
 
   // Ref to track the previous length of the messages array in case of updates
   const previousMessageCountRef = useRef<number>(0)
@@ -57,21 +57,22 @@ export function useQueueChat(
 
     const currentMessageCount = queueChatData.messages.length
     const previousMessageCount = previousMessageCountRef.current
+    const newMessageCount = currentMessageCount - previousMessageCount
 
-    if (currentMessageCount > previousMessageCount) {
-      setHasNewMessages(true)
+    if (newMessageCount > 0) {
+      setNewMessageCount((prev) => prev + newMessageCount)
     }
 
     previousMessageCountRef.current = currentMessageCount
   }, [queueChatData?.messages])
 
-  const setHasNewMessagesFalse = () => setHasNewMessages(false)
+  const resetNewMessageCount = () => setNewMessageCount(0)
 
   return {
     queueChatData,
     queueChatError,
     mutateQueueChat,
-    hasNewMessages,
-    setHasNewMessagesFalse,
+    newMessageCount,
+    resetNewMessageCount,
   }
 }
