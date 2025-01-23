@@ -268,7 +268,7 @@ function generateCommentData(
       avatar:
         (IAmStaff && showStudents) || isStaffComment
           ? comment.creator.photoURL
-          : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}`,
+          : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}.png`,
       content: comment.commentText,
       datetime: (
         <Tooltip title={new Date(comment.createdAt).toLocaleString()}>

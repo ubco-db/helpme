@@ -1,5 +1,5 @@
 export const ANONYMOUS_ANIMAL_AVATAR = {
-  URL: 'https://anonymous-animals.azurewebsites.net/animal',
+  URL: '/anon_animals',
   ANIMAL_NAMES: [
     'Alligator',
     'Chipmunk',

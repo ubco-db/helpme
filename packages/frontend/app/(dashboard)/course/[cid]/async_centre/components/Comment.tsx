@@ -54,7 +54,11 @@ const Comment: React.FC<CommentProps> = ({
           // the colour of the avatar is based on the username
           // the name is authorId + questionId % length of ANIMAL_NAMES
           // while the colour is just authorId + questionId
-          username={(questionId + authorId).toString()}
+          username={
+            authorType === Role.TA || authorType === Role.PROFESSOR
+              ? authorName
+              : (questionId + authorId).toString()
+          }
           photoURL={avatar}
           anonymous
         />
@@ -63,7 +67,11 @@ const Comment: React.FC<CommentProps> = ({
         {/* Mobile Avatar (a little smaller) */}
         <UserAvatar
           size={34}
-          username={(questionId + authorId).toString()}
+          username={
+            authorType === Role.TA || authorType === Role.PROFESSOR
+              ? authorName
+              : (questionId + authorId).toString()
+          }
           photoURL={avatar}
           anonymous
         />

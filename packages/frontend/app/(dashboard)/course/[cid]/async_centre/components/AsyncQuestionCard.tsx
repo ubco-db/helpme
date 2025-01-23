@@ -216,7 +216,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   photoURL={
                     isStaff && showStudents
                       ? question.creator.photoURL
-                      : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}`
+                      : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}.png`
                   }
                   className="mr-2 hidden md:flex"
                   anonymous
@@ -231,7 +231,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   photoURL={
                     isStaff && showStudents
                       ? question.creator.photoURL
-                      : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}`
+                      : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}.png`
                   }
                   className="mr-2 flex md:hidden"
                   anonymous
