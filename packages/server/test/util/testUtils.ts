@@ -1,7 +1,7 @@
 import { INestApplication, Type } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Test, TestingModuleBuilder } from '@nestjs/testing';
+import { Test, TestingModule, TestingModuleBuilder } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from 'nestjs-redis';
 import { NotificationService } from 'notification/notification.service';
@@ -39,20 +39,33 @@ export function setupIntegrationTest(
   module: Type<any>,
   modifyModule?: ModuleModifier,
   additionalModules: Type<any>[] = [],
-): (u?: SupertestOptions) => supertest.SuperTest<supertest.Test> {
+): {
+  supertest: (u?: SupertestOptions) => supertest.SuperTest<supertest.Test>;
+  getTestModule: () => TestingModule;
+} {
   let app: INestApplication;
   let jwtService: JwtService;
   let conn: Connection;
   let appConfig: ApplicationConfigService;
   let schedulerRegistry: SchedulerRegistry;
+  let testModule: TestingModule;
+
   let redisServer: RedisMemoryServer;
+  let redisHost: string;
+  let redisPort: number;
 
   beforeAll(async () => {
-    // starts a local redis server to mock real redis behaviour (closes after tests)
-    redisServer = new RedisMemoryServer();
-    const redisHost = await redisServer.getHost();
-    const redisPort = await redisServer.getPort();
+    // Start Redis in-memory server
+    try {
+      redisServer = new RedisMemoryServer();
+      redisHost = await redisServer.getHost();
+      redisPort = await redisServer.getPort();
+    } catch (err) {
+      console.error('Error initializing RedisMemoryServer:', err);
+      throw err;
+    }
 
+    // Create the testing module
     let testModuleBuilder = Test.createTestingModule({
       imports: [
         ...additionalModules,
@@ -73,8 +86,9 @@ export function setupIntegrationTest(
     if (modifyModule) {
       testModuleBuilder = modifyModule(testModuleBuilder);
     }
-    const testModule = await testModuleBuilder.compile();
+    testModule = await testModuleBuilder.compile();
 
+    // Create and configure the application
     app = testModule.createNestApplication();
     addGlobalsToApp(app);
     jwtService = testModule.get<JwtService>(JwtService);
@@ -101,13 +115,28 @@ export function setupIntegrationTest(
     await clearAllCronJobs(schedulerRegistry);
   });
 
-  return (options?: SupertestOptions): supertest.SuperTest<supertest.Test> => {
-    const agent = supertest.agent(app.getHttpServer());
-    if (options?.userId) {
-      const token = jwtService.sign({ userId: options.userId });
-      agent.set('Cookie', [`auth_token=${token}`]);
-    }
-    return agent;
+  return {
+    // Supertest agent
+    supertest: (
+      options?: SupertestOptions,
+    ): supertest.SuperTest<supertest.Test> => {
+      const agent = supertest.agent(app.getHttpServer());
+      if (options?.userId) {
+        const token = jwtService.sign({ userId: options.userId });
+        agent.set('Cookie', [`auth_token=${token}`]);
+      }
+      return agent;
+    },
+
+    // Lazy getter for the test module since it is initialized in beforeAll block
+    getTestModule: () => {
+      if (!testModule) {
+        throw new Error(
+          'TestModule has not been initialized yet. Ensure `beforeAll` has run.',
+        );
+      }
+      return testModule;
+    },
   };
 }
 

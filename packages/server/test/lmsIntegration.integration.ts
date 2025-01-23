@@ -5,7 +5,7 @@ import { setupIntegrationTest } from './util/testUtils';
 import { LmsIntegrationModule } from '../src/lmsIntegration/lmsIntegration.module';
 
 describe('Lms Integration Integrations', () => {
-  const supertest = setupIntegrationTest(LmsIntegrationModule);
+  const { supertest } = setupIntegrationTest(LmsIntegrationModule);
 
   describe('GET /lms_integration/:courseId/*', () => {
     it.each([

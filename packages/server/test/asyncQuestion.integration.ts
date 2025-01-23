@@ -13,7 +13,7 @@ import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
 import { asyncQuestionStatus, Role } from '@koh/common';
 
 describe('AsyncQuestion Integration', () => {
-  const supertest = setupIntegrationTest(asyncQuestionModule);
+  const { supertest } = setupIntegrationTest(asyncQuestionModule);
   let course: CourseModel;
   let TAuser: UserModel;
   let studentUser: UserModel;

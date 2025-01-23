@@ -32,7 +32,7 @@ import { CourseSettingsModel } from 'course/course_settings.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 
 describe('Course Integration', () => {
-  const supertest = setupIntegrationTest(CourseModule);
+  const { supertest } = setupIntegrationTest(CourseModule);
 
   describe('GET /courses/:id', () => {
     it('gets office hours no queues, since no queue is happening right now', async () => {

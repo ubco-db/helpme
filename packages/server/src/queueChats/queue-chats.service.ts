@@ -27,12 +27,14 @@ export class QueueChatService {
    * @param staff The instance of the staff member
    * @param student The instance of the student
    * @param clear Whether to clear any existing chat data for privacy
+   * @param startedAt The time the chat was started (defaults to now)
    */
   async createChat(
     queueId: number,
     staff: UserModel,
     student: UserModel,
     clear: boolean,
+    startedAt?: Date,
   ): Promise<void> {
     const key = `${ChatMetadataRedisKey}:${queueId}:${student.id}`;
 
@@ -57,7 +59,7 @@ export class QueueChatService {
           lastName: student.lastName,
           photoURL: student.photoURL,
         } as QueueChatUserPartial,
-        startedAt: new Date(),
+        startedAt: startedAt ?? new Date(),
       } as QueueChatPartial),
     );
 
