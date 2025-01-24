@@ -8,11 +8,14 @@ export interface CommentProps {
   onDeleteSuccess: () => void
   onEditSuccess: (newCommentText: string) => void
   setIsLockedExpanded: (lockedExpanded: boolean) => void
+  IAmStaff: boolean
+  showStudents: boolean
   authorId: number
   authorAnonId: number
   authorName: string
   content: string
   datetime: React.ReactNode
+  commenterRole: Role
   authorType: CommentAuthorType
-  avatar?: string
+  photoURL?: string
 }

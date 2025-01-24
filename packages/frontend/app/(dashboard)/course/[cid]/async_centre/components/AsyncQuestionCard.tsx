@@ -22,7 +22,11 @@ import StudentAsyncQuestionCardButtons from './StudentAsyncQuestionCardButtons'
 import { ArrowBigDown, ArrowBigUp } from 'lucide-react'
 import MarkdownCustom from '@/app/components/Markdown'
 import CommentSection from './CommentSection'
-import { getAnonAnimal, getAnonId } from '../utils/commonAsyncFunctions'
+import {
+  getAnonAnimal,
+  getAnonId,
+  getAvatarTooltip,
+} from '../utils/commonAsyncFunctions'
 import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
 
 const statusDisplayMap = {
@@ -64,15 +68,23 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   const shouldFlash =
     question.status === asyncQuestionStatus.AIAnswered &&
     userId === question.creatorId
+
   const isStaff =
     userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
 
-  const shownUser = isStaff && showStudents ? question.creator : null
+  // note: it is assumed that only students are creating questions
+  const [isUserShown, setIsUserShown] = useState(isStaff && showStudents)
+  useEffect(() => {
+    setIsUserShown(isStaff && showStudents)
+  }, [isStaff, showStudents])
+
+  const shownUser = isStaff && isUserShown ? question.creator : null
 
   const anonId = useMemo(
     () => getAnonId(question.creator.id, question.id),
     [question.creator.id, question.id],
   )
+  const anonAnimal = getAnonAnimal(anonId)
 
   const handleFeedback = async (resolved: boolean) => {
     const newstatus = resolved
@@ -119,14 +131,11 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     setThisUserThisQuestionVote(resp.vote)
   }
 
-  // log when lockedExpanded is true
-  useEffect(() => {
-    if (isLockedExpanded) {
-      console.log('lockedExpanded is true')
-    } else {
-      console.log('lockedExpanded is false')
-    }
-  }, [isLockedExpanded])
+  const avatarTooltipTitle = getAvatarTooltip(
+    isStaff,
+    showStudents,
+    userId === question.creatorId ? 'you' : Role.STUDENT,
+  )
 
   return (
     <div
@@ -203,53 +212,71 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
           <div className="mb-1 flex flex-col md:mb-4">
             <div className="mb-1 flex justify-between">
               <div className="flex flex-grow">
-                <UserAvatar
-                  size={40}
-                  // the colour of the avatar is based on the username
-                  // the name is authorId + questionId % length of ANIMAL_NAMES
-                  // while the colour is just authorId + questionId
-                  username={
-                    isStaff && showStudents
-                      ? question.creator.name
-                      : (question.creator.id + question.id).toString()
-                  }
-                  photoURL={
-                    isStaff && showStudents
-                      ? question.creator.photoURL
-                      : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}.png`
-                  }
-                  className="mr-2 hidden md:flex"
-                  anonymous
-                />
-                <UserAvatar
-                  size={34}
-                  username={
-                    isStaff && showStudents
-                      ? question.creator.name
-                      : (question.creator.id + question.id).toString()
-                  }
-                  photoURL={
-                    isStaff && showStudents
-                      ? question.creator.photoURL
-                      : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}.png`
-                  }
-                  className="mr-2 flex md:hidden"
-                  anonymous
-                />
+                <Tooltip title={avatarTooltipTitle}>
+                  <UserAvatar
+                    className={
+                      'mr-2 hidden md:flex ' + (isStaff ? 'cursor-pointer' : '')
+                    }
+                    size={40}
+                    // the colour of the avatar is based on the username
+                    // the name is authorId + questionId % length of ANIMAL_NAMES
+                    // while the colour is just authorId + questionId
+                    username={
+                      isUserShown
+                        ? question.creator.name
+                        : (question.creator.id + question.id).toString()
+                    }
+                    photoURL={
+                      isUserShown
+                        ? question.creator.photoURL
+                        : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${anonAnimal}.png`
+                    }
+                    anonymous
+                    onClick={(e) => {
+                      if (isStaff) {
+                        e?.stopPropagation()
+                        setIsUserShown(!isUserShown)
+                      }
+                    }}
+                  />
+                  <UserAvatar
+                    className={
+                      'mr-2 flex md:hidden ' + (isStaff ? 'cursor-pointer' : '')
+                    }
+                    size={34}
+                    username={
+                      isUserShown
+                        ? question.creator.name
+                        : (question.creator.id + question.id).toString()
+                    }
+                    photoURL={
+                      isUserShown
+                        ? question.creator.photoURL
+                        : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${anonAnimal}.png`
+                    }
+                    anonymous
+                    onClick={(e) => {
+                      if (isStaff) {
+                        e?.stopPropagation()
+                        setIsUserShown(!isUserShown)
+                      }
+                    }}
+                  />
+                </Tooltip>
                 <div className="flex flex-grow flex-col justify-between md:flex-row">
                   <div
-                    className={`flex-grow text-sm italic text-gray-500 ${shownUser && 'md:pt-2.5'}`}
+                    className={`flex-grow text-sm italic text-gray-500 md:pt-2.5`}
                   >
                     <span className="mr-2 font-semibold">
-                      {isStaff && showStudents ? (
+                      {isUserShown ? (
                         question.creator.name
                       ) : (
-                        <span>
+                        <>
                           Anonymous {getAnonAnimal(anonId)}
                           <span className="font-normal not-italic text-green-500">
-                            {userId == question.creatorId ? ' (You)' : ''}{' '}
+                            {userId === question.creatorId ? ' (You)' : ''}{' '}
                           </span>
-                        </span>
+                        </>
                       )}
                     </span>
                     <span>{getAsyncWaitTime(question.createdAt)} ago</span>
@@ -326,7 +353,6 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             </div>
             <div className="flex-grow">
               <h4 className="font-bold">{question.questionAbstract}</h4>
-
               {/* When not expanded, show only 1 line of the questionText */}
               <div
                 className={cn(

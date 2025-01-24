@@ -4,9 +4,11 @@ import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { Role } from '@koh/common'
 import { CommentProps } from '../utils/types'
 import { DeleteOutlined, EditOutlined, MoreOutlined } from '@ant-design/icons'
-import { Button, Dropdown, Input, message, Popconfirm } from 'antd'
-import { useState } from 'react'
+import { Button, Dropdown, Input, message, Popconfirm, Tooltip } from 'antd'
+import { useEffect, useState } from 'react'
 import { API } from '@/app/api'
+import { getAnonAnimal, getAvatarTooltip } from '../utils/commonAsyncFunctions'
+import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
 
 const { TextArea } = Input
 
@@ -15,7 +17,7 @@ const COLOR_CODING = {
   ['author']: 'text-blue-500',
   [Role.STUDENT]: 'text-gray-500',
   [Role.TA]: 'text-purple-500',
-  [Role.PROFESSOR]: 'text-red-500',
+  [Role.PROFESSOR]: 'text-teal-500',
 }
 
 const DISPLAY_TEXT_AS = {
@@ -23,7 +25,8 @@ const DISPLAY_TEXT_AS = {
   ['author']: '(Author)',
   [Role.STUDENT]: '',
   [Role.TA]: '(TA)',
-  [Role.PROFESSOR]: '(Prof)',
+  [Role.PROFESSOR]: '(Professor)',
+  [Role.PROFESSOR + 'mobile']: '(Prof)',
 }
 
 const Comment: React.FC<CommentProps> = ({
@@ -32,49 +35,105 @@ const Comment: React.FC<CommentProps> = ({
   onDeleteSuccess,
   onEditSuccess,
   setIsLockedExpanded,
+  IAmStaff,
+  showStudents,
   authorName,
-  avatar,
+  photoURL,
   authorId,
+  authorAnonId,
   content,
   datetime,
+  commenterRole,
   authorType,
 }) => {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [newContent, setNewContent] = useState(content)
   const [editLoading, setEditLoading] = useState(false)
+  const [isUserShown, setIsUserShown] = useState(
+    (IAmStaff && showStudents) ||
+      commenterRole === Role.PROFESSOR ||
+      commenterRole === Role.TA,
+  )
+
+  useEffect(() => {
+    setIsUserShown(
+      (IAmStaff && showStudents) ||
+        commenterRole === Role.PROFESSOR ||
+        commenterRole === Role.TA,
+    )
+  }, [IAmStaff, commenterRole, showStudents])
+
+  const avatarTooltipTitle = getAvatarTooltip(
+    IAmStaff,
+    showStudents,
+    authorType,
+  )
+  const anonAnimal = getAnonAnimal(authorAnonId)
 
   return (
     <div className="overflow-auto border-b border-gray-200 py-3">
       {/* Avatar */}
       <figure className="float-left mr-3 hidden h-10 w-10 md:flex">
         {/* Desktop Avatar */}
-        <UserAvatar
-          size={40}
-          // the colour of the avatar is based on the username
-          // the name is authorId + questionId % length of ANIMAL_NAMES
-          // while the colour is just authorId + questionId
-          username={
-            authorType === Role.TA || authorType === Role.PROFESSOR
-              ? authorName
-              : (questionId + authorId).toString()
-          }
-          photoURL={avatar}
-          anonymous
-        />
+        <Tooltip title={avatarTooltipTitle}>
+          <UserAvatar
+            className={
+              IAmStaff && commenterRole === Role.STUDENT ? 'cursor-pointer' : ''
+            }
+            size={40}
+            // the colour of the avatar is based on the username
+            // the name is authorId + questionId % length of ANIMAL_NAMES
+            // while the colour is just authorId + questionId
+            username={
+              isUserShown ? authorName : (questionId + authorId).toString()
+            }
+            photoURL={
+              isUserShown
+                ? photoURL
+                : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${anonAnimal}.png`
+            }
+            anonymous
+            onClick={(e) => {
+              if (
+                IAmStaff &&
+                !(commenterRole === Role.PROFESSOR || commenterRole === Role.TA)
+              ) {
+                e?.stopPropagation()
+                setIsUserShown(!isUserShown)
+              }
+            }}
+          />
+        </Tooltip>
       </figure>
       <figure className="float-left mr-3 flex h-8 w-8 md:hidden">
         {/* Mobile Avatar (a little smaller) */}
-        <UserAvatar
-          size={34}
-          username={
-            authorType === Role.TA || authorType === Role.PROFESSOR
-              ? authorName
-              : (questionId + authorId).toString()
-          }
-          photoURL={avatar}
-          anonymous
-        />
+        <Tooltip title={avatarTooltipTitle}>
+          <UserAvatar
+            className={
+              IAmStaff && commenterRole === Role.STUDENT ? 'cursor-pointer' : ''
+            }
+            size={34}
+            username={
+              isUserShown ? authorName : (questionId + authorId).toString()
+            }
+            photoURL={
+              isUserShown
+                ? photoURL
+                : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${anonAnimal}.png`
+            }
+            anonymous
+            onClick={(e) => {
+              if (
+                IAmStaff &&
+                !(commenterRole === Role.PROFESSOR || commenterRole === Role.TA)
+              ) {
+                e?.stopPropagation()
+                setIsUserShown(!isUserShown)
+              }
+            }}
+          />
+        </Tooltip>
       </figure>
 
       {/* Edit/Delete buttons in dropdown (floated right so that text flows around it) */}
@@ -150,10 +209,18 @@ const Comment: React.FC<CommentProps> = ({
         <div className=" flex items-center">
           {/* Author */}
           <span className="mr-1 text-sm font-semibold italic text-gray-500">
-            {authorName}
+            {isUserShown ? authorName : `Anonymous ${anonAnimal}`}
           </span>
           <span className={cn('mr-2', COLOR_CODING[authorType])}>
-            {DISPLAY_TEXT_AS[authorType]}
+            <span className="hidden md:inline">
+              {DISPLAY_TEXT_AS[authorType]}
+            </span>
+            {/* shorten it to just (Prof) on mobile to save space */}
+            <span className="md:hidden">
+              {authorType === Role.PROFESSOR
+                ? DISPLAY_TEXT_AS[Role.PROFESSOR + 'mobile']
+                : DISPLAY_TEXT_AS[authorType]}
+            </span>
           </span>
 
           {/* Datetime */}

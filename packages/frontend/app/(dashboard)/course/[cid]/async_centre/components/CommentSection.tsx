@@ -225,9 +225,6 @@ function generateCommentData(
   for (const comment of comments) {
     const isSelf = userInfo.id === comment.creator.id
     const isAuthor = questionCreatorId === comment.creator.id
-    const isStaffComment =
-      comment.creator.courseRole === Role.TA ||
-      comment.creator.courseRole === Role.PROFESSOR
     const anonId = getAnonId(comment.creator.id, questionId)
     // if any comment already in the list has the same anonId, generate a new one
     // NOTE: instead of doing this, I have opted for just giving them a different random colour (by setting the username of the UserAvatar to just be the creatorId + questionId)
@@ -245,6 +242,7 @@ function generateCommentData(
     //     anonId = getAnonId(comment.creator.id + retries, questionId)
     //   }
     // }
+    const commenterRole = comment.creator.courseRole ?? Role.STUDENT
     newComments.push({
       commentId: comment.id,
       questionId,
@@ -261,25 +259,24 @@ function generateCommentData(
       },
       authorId: comment.creator.id,
       authorAnonId: anonId,
-      authorName:
-        (IAmStaff && showStudents) || isStaffComment
-          ? comment.creator.name
-          : `Anonymous ${getAnonAnimal(anonId)}`,
-      avatar:
-        (IAmStaff && showStudents) || isStaffComment
-          ? comment.creator.photoURL
-          : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}.png`,
+      authorName: comment.creator.name,
+      // (IAmStaff && showStudents) || isStaffComment
+      //   ? comment.creator.name
+      //   : `Anonymous ${getAnonAnimal(anonId)}`,
+      photoURL: comment.creator.photoURL,
+      // (IAmStaff && showStudents) || isStaffComment
+      //   ? comment.creator.photoURL
+      //   : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}.png`,
       content: comment.commentText,
       datetime: (
         <Tooltip title={new Date(comment.createdAt).toLocaleString()}>
           {getAsyncWaitTime(comment.createdAt)} ago
         </Tooltip>
       ),
-      authorType: isSelf
-        ? 'you'
-        : isAuthor
-          ? 'author'
-          : (comment.creator.courseRole ?? Role.STUDENT),
+      commenterRole,
+      authorType: isSelf ? 'you' : isAuthor ? 'author' : commenterRole,
+      IAmStaff,
+      showStudents,
       setIsLockedExpanded,
     })
   }
