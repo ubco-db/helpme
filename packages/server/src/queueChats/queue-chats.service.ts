@@ -33,16 +33,14 @@ export class QueueChatService {
     queueId: number,
     staff: UserModel,
     student: UserModel,
-    clear: boolean,
+
     startedAt?: Date,
   ): Promise<void> {
     const key = `${ChatMetadataRedisKey}:${queueId}:${student.id}`;
 
     // Remove any existing chat metadata and messages (in case of mismanagement; to protect previous chat history)
-    if (clear) {
-      await this.redis.del(key);
-      await this.redis.del(`${ChatMessageRedisKey}:${queueId}:${student.id}`);
-    }
+    await this.redis.del(key);
+    await this.redis.del(`${ChatMessageRedisKey}:${queueId}:${student.id}`);
 
     await this.redis.set(
       key,
@@ -142,9 +140,14 @@ export class QueueChatService {
     studentId: number,
   ): Promise<QueueChatPartial | null> {
     const metadata = await this.getChatMetadata(queueId, studentId);
-    const messages = await this.getChatMessages(queueId, studentId);
 
     if (!metadata) return null;
+
+    // Remove IDs from metadata for privacy
+    delete metadata.id;
+    delete metadata.student.id;
+    delete metadata.staff.id;
+    const messages = await this.getChatMessages(queueId, studentId);
 
     return {
       ...metadata,

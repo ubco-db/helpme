@@ -35,7 +35,7 @@ export class QuestionService {
     private notifService: NotificationService,
     public queueService: QueueService,
     public redisQueueService: RedisQueueService,
-    public queueChatService: QueueChatService,
+    public readonly queueChatService: QueueChatService,
   ) {}
 
   async changeStatus(
@@ -64,18 +64,6 @@ export class QuestionService {
       }
     }
 
-    const validTransition = question.changeStatus(newStatus, myRole);
-    if (!validTransition) {
-      throw new UnauthorizedException(
-        ERROR_MESSAGES.questionController.updateQuestion.fsmViolation(
-          myRole,
-          oldStatus,
-          newStatus,
-        ),
-      );
-    }
-
-    // Set TA as taHelped when the TA starts helping the student
     const isBecomingHelped =
       oldStatus !== OpenQuestionStatus.Helping &&
       newStatus === OpenQuestionStatus.Helping;
@@ -92,8 +80,57 @@ export class QuestionService {
       !waitingStatuses.includes(oldStatus) &&
       waitingStatuses.includes(newStatus);
     const isResolving = newStatus === ClosedQuestionStatus.Resolved;
-    const isFirstHelped = isBecomingHelped && !question.firstHelpedAt;
+    const isFirstHelped = isBecomingHelped && question.firstHelpedAt;
 
+    // For Queue Chats
+    try {
+      if (isResolving) {
+        // Save chat metadata in database (if messages were exchanged)
+        await this.queueChatService.endChat(
+          question.queueId,
+          question.creatorId,
+        );
+      } else if (isBecomingClosedFromWaiting) {
+        // Don't save chat metadata in database
+        await this.queueChatService.clearChat(
+          question.queueId,
+          question.creatorId,
+        );
+      } else if (isFirstHelped) {
+        const user = await UserModel.findOne({
+          where: { id: userId },
+        });
+        // Create chat metadata in Redis
+        await this.queueChatService.createChat(
+          question.queueId,
+          question.creator,
+          user,
+        );
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        console.error(err.stack);
+      } else {
+        console.error(err);
+      }
+      throw new HttpException(
+        ERROR_MESSAGES.questionService.queueChatUpdateFailure,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const validTransition = question.changeStatus(newStatus, myRole);
+    if (!validTransition) {
+      throw new UnauthorizedException(
+        ERROR_MESSAGES.questionController.updateQuestion.fsmViolation(
+          myRole,
+          oldStatus,
+          newStatus,
+        ),
+      );
+    }
+
+    // Set TA as taHelped when the TA starts helping the student
     const now = new Date();
     if (isBecomingHelped || isBecomingClosedFromWaiting) {
       question.taHelped = await UserModel.findOne({ where: { id: userId } });
@@ -140,28 +177,6 @@ export class QuestionService {
       // depends on if the question was passed in with its group preloaded
       if (question.group) question.group = null;
       else question.groupId = null;
-    }
-
-    // For Queue Chats
-    if (isResolving) {
-      await this.queueChatService.endChat(question.queueId, question.creatorId); // Save chat metadata in database
-    } else if (isBecomingClosedFromWaiting) {
-      await this.queueChatService.clearChat(
-        // Don't save chat metadata in database
-        question.queueId,
-        question.creatorId,
-      );
-    } else if (isBecomingHelped) {
-      const user = await UserModel.findOne({
-        where: { id: userId },
-      });
-      await this.queueChatService.createChat(
-        // Create chat metadata in Redis
-        question.queueId,
-        question.creator,
-        user,
-        isFirstHelped,
-      );
     }
 
     try {

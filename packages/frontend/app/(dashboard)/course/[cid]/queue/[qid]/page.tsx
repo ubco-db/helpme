@@ -1001,7 +1001,11 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       placement={'left'}
                       open={!seenChatPopover}
                     >
-                      <Badge count={newMessagesInQueueChats} offset={[-4, 4]}>
+                      <Badge
+                        count={newMessagesInQueueChats}
+                        overflowCount={99}
+                        offset={[-4, 4]}
+                      >
                         <Button
                           type="primary"
                           size="large"

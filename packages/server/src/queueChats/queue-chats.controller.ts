@@ -101,7 +101,10 @@ export class QueueChatController {
       studentId,
     );
     if (!metadata) {
-      throw new HttpException('Chat not found', HttpStatus.NOT_FOUND);
+      throw new HttpException(
+        ERROR_MESSAGES.queueChatsController.chatNotFound,
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     const allowedToSend = await this.queueChatService.checkPermissions(

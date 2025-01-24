@@ -91,7 +91,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
   if (!queueChatData || queueChatError) {
     return (
       <Alert
-        className={`${fixed ? 'fixed ' : ''}md:bottom-8 right-0 box-border overflow-y-auto md:right-2`}
+        style={{ zIndex: 1050 }}
+        className={`${fixed ? 'fixed ' : ''} bottom-0 right-0 box-border overflow-y-auto md:bottom-8 md:right-2`}
         message={`Chat data is not available.`}
         description="Please try again later or contact support if the issue persists."
         type="warning"
@@ -246,12 +247,14 @@ const QueueChat: React.FC<QueueChatProps> = ({
     <div style={{ zIndex: 1050, width: '100%', padding: '0.75rem' }}>
       <Badge
         count={newMessageCount}
+        style={{ zIndex: 1050 }}
         className={`${hidden ? 'hidden ' : ''}${isStaff ? 'w-full ' : `${fixed ? `fixed ` : ''}bottom-5 right-5 `}`}
+        overflowCount={99}
       >
         <Button
           type="primary"
           size="large"
-          className={`w-full rounded-sm`}
+          className={`z-50 w-full rounded-sm`}
           onClick={() => {
             setIsOpen(true)
             onOpen()
