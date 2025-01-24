@@ -24,6 +24,7 @@ import {
   Divider,
   Drawer,
   Badge,
+  Popover,
 } from 'antd'
 import { mutate } from 'swr'
 import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
@@ -94,6 +95,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     useState(false)
   const [clickedZoomModal, setClickedZoomModal] = useState(false)
   const [staffListHidden, setStaffListHidden] = useState(false)
+  const [seenChatPopover, setSeenChatPopover] = useState(false)
   const [isFinishAllHelpingButtonLoading, setIsFinishAllHelpingButtonLoading] =
     useState(false)
   const {
@@ -167,6 +169,20 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       setClickedZoomModal(false)
     }
   }, [clickedZoomModal, studentQuestion])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const seenQueueChatPopover =
+        localStorage.getItem('seenChatPopover') == 'true'
+      setSeenChatPopover(seenQueueChatPopover)
+      if (!seenQueueChatPopover) {
+        setTimeout(() => {
+          setSeenChatPopover(true)
+          localStorage.setItem('seenChatPopover', 'true')
+        }, 6000) // message will disappear after 6 seconds
+      }
+    }
+  }, [window])
 
   useEffect(() => {
     resetClickedZoomModal()
@@ -977,21 +993,27 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 </Drawer>
                 {helpingQuestions.length > 0 && (
                   <div
-                    className={`${mobileQueueChatOpen ? 'hidden ' : ''}fixed bottom-8 right-3 flex justify-end md:left-2`}
+                    className={`${mobileQueueChatOpen ? 'hidden ' : ''}fixed bottom-5 right-5 flex justify-end md:left-2`}
                     style={{ zIndex: 1050 }}
                   >
-                    <Badge count={newMessagesInQueueChats} offset={[-4, 4]}>
-                      <Button
-                        type="primary"
-                        size="large"
-                        className={`box-border rounded-full p-6 shadow-lg`}
-                        icon={<MessageCircleMore />}
-                        onClick={() => {
-                          setMobileQueueChatOpen(true)
-                          setNewMessagesInQueueChats(0)
-                        }}
-                      ></Button>
-                    </Badge>
+                    <Popover
+                      content="Open Queue Chats"
+                      placement={'left'}
+                      open={!seenChatPopover}
+                    >
+                      <Badge count={newMessagesInQueueChats} offset={[-4, 4]}>
+                        <Button
+                          type="primary"
+                          size="large"
+                          className={`box-border rounded-full p-6 shadow-lg`}
+                          icon={<MessageCircleMore />}
+                          onClick={() => {
+                            setMobileQueueChatOpen(true)
+                            setNewMessagesInQueueChats(0)
+                          }}
+                        ></Button>
+                      </Badge>
+                    </Popover>
                   </div>
                 )}
               </>

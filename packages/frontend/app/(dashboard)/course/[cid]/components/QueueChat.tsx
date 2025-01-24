@@ -243,10 +243,10 @@ const QueueChat: React.FC<QueueChatProps> = ({
       </Card>
     </div>
   ) : isMobile ? (
-    <div style={{ zIndex: 1050, width: '100%', padding: '0.5rem' }}>
+    <div style={{ zIndex: 1050, width: '100%', padding: '0.75rem' }}>
       <Badge
         count={newMessageCount}
-        className={`${hidden ? 'hidden ' : ''}${isStaff ? 'w-full ' : `${fixed ? `fixed ` : ''}bottom-8 right-3 `}`}
+        className={`${hidden ? 'hidden ' : ''}${isStaff ? 'w-full ' : `${fixed ? `fixed ` : ''}bottom-5 right-5 `}`}
       >
         <Button
           type="primary"
