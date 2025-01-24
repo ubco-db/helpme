@@ -21,10 +21,9 @@ import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { UserModel } from '../profile/user.entity';
-import { CronJob } from 'cron';
-import { SchedulerRegistry } from '@nestjs/schedule';
-import * as Sentry from '@sentry/browser';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 } from 'uuid';
+import * as Sentry from '@sentry/browser';
 
 export enum LMSGet {
   Course,
@@ -41,10 +40,25 @@ export enum LMSUpload {
 @Injectable()
 export class LMSIntegrationService {
   constructor(
-    private schedulerRegistry: SchedulerRegistry,
     @Inject(LMSIntegrationAdapter)
     private integrationAdapter: LMSIntegrationAdapter,
   ) {}
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async resynchronizeCourseIntegrations() {
+    const courses = await LMSCourseIntegrationModel.find({
+      lmsSynchronize: true,
+    });
+    for (const course of courses) {
+      await this.syncDocuments(course.courseId).catch((err) => {
+        console.error(
+          `Failed to synchronize Canvas LMS for HelpMe course ${course.courseId}`,
+          err,
+        );
+        Sentry.captureException(err);
+      });
+    }
+  }
 
   lmsStatusToHttpStatus(status: LMSApiResponseStatus): HttpStatus {
     switch (status) {
@@ -63,20 +77,21 @@ export class LMSIntegrationService {
 
   public async upsertOrganizationLMSIntegration(
     organizationId: number,
-    props: LMSOrganizationIntegrationPartial,
+    rootUrl: string,
+    apiPlatform: LMSIntegrationPlatform,
   ) {
     let integration = await LMSOrganizationIntegrationModel.findOne({
-      where: { organizationId: organizationId, apiPlatform: props.apiPlatform },
+      where: { organizationId: organizationId, apiPlatform: apiPlatform },
     });
     let isUpdate = false;
     if (integration) {
-      integration.rootUrl = props.rootUrl;
+      integration.rootUrl = rootUrl;
       isUpdate = true;
     } else {
       integration = new LMSOrganizationIntegrationModel();
       integration.organizationId = organizationId;
-      integration.apiPlatform = props.apiPlatform;
-      integration.rootUrl = props.rootUrl;
+      integration.apiPlatform = apiPlatform;
+      integration.rootUrl = rootUrl;
     }
     await LMSOrganizationIntegrationModel.upsert(integration, [
       'organizationId',
@@ -642,67 +657,6 @@ export class LMSIntegrationService {
           success: false,
         };
       });
-  }
-
-  async createLMSSyncCronJob(courseId: number) {
-    const jobName = `lms_integration_sync_${courseId}`;
-
-    const cronJobs = this.schedulerRegistry.getCronJobs();
-    if (cronJobs.has(jobName)) {
-      return;
-    }
-
-    // Every day, at 12:01 AM this job will run
-    const jobInterval = '1 0 * * *';
-
-    const job = new CronJob(jobInterval, async () => {
-      const integration = await LMSCourseIntegrationModel.findOne({ courseId });
-      if (!integration.lmsSynchronize) {
-        console.error(
-          `Job failed: synchronization disabled for Canvas LMS for HelpMe course ${courseId}`,
-        );
-        Sentry.captureMessage(
-          `Job failed: synchronization disabled for Canvas LMS for HelpMe course ${courseId}`,
-        );
-        await this.deleteLMSSyncCronJobs([courseId], false);
-        return;
-      }
-      this.syncDocuments(courseId).catch((err) => {
-        console.error(
-          `Failed to synchronize Canvas LMS for HelpMe course ${courseId}`,
-          err,
-        );
-        Sentry.captureException(err);
-      });
-    });
-    try {
-      this.schedulerRegistry.addCronJob(jobName, job);
-      job.start();
-    } catch (err) {
-      console.error('Error adding cron job', err);
-      Sentry.captureException(err);
-    }
-  }
-
-  async deleteLMSSyncCronJobs(courseIds: number[], skipIfNotExists: boolean) {
-    const cronJobs = this.schedulerRegistry.getCronJobs();
-    for (const courseId of courseIds) {
-      const jobName = `lms_integration_sync_${courseId}`;
-      if (!cronJobs.has(jobName)) {
-        if (!skipIfNotExists) {
-          console.error(`Cron job with name ${jobName} does not exist`);
-          Sentry.captureMessage(`Cron job with name ${jobName} does not exist`);
-        }
-        continue;
-      }
-      try {
-        this.schedulerRegistry.deleteCronJob(jobName);
-        console.log(`Deleted cron job with name ${jobName}`);
-      } catch (err) {
-        console.error(`Error deleting cron job with name ${jobName}`, err);
-        Sentry.captureException(err);
-      }
-    }
   }
 
   getPartialOrgLmsIntegration(lmsIntegration: LMSOrganizationIntegrationModel) {

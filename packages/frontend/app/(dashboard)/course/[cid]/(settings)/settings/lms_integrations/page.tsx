@@ -9,7 +9,6 @@ import {
   List,
   message,
   Modal,
-  Spin,
   Tabs,
   Tooltip,
 } from 'antd'
@@ -29,6 +28,7 @@ import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { useCourseLmsIntegration } from '@/app/hooks/useCourseLmsIntegration'
 import LMSDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSDocumentList'
 import { DeleteOutlined, SyncOutlined } from '@ant-design/icons'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
 
 export default function CourseLMSIntegrationPage({
   params,
@@ -119,9 +119,7 @@ export default function CourseLMSIntegrationPage({
     }
 
     API.lmsIntegration
-      .removeCourseIntegration(courseId, {
-        apiPlatform: integration.apiPlatform,
-      })
+      .removeCourseIntegration(courseId)
       .then((result) => {
         if (!result) {
           message.error(
@@ -135,6 +133,7 @@ export default function CourseLMSIntegrationPage({
         }
         setUpdateFlag(!updateFlag)
       })
+      .catch((err) => message.error(getErrorMessage(err)))
   }
 
   const toggleSync = async () => {
@@ -145,17 +144,20 @@ export default function CourseLMSIntegrationPage({
 
     setSyncing(true)
 
-    API.lmsIntegration.toggleSync(courseId).then((result) => {
-      if (!result) {
-        message.error(
-          `Unknown error occurred, could not enable synchronization with the LMS.`,
-        )
-      } else {
-        message.success(result)
-      }
-      setSyncing(false)
-      setUpdateFlag(!updateFlag)
-    })
+    API.lmsIntegration
+      .toggleSync(courseId)
+      .then((result) => {
+        if (!result) {
+          message.error(
+            `Unknown error occurred, could not enable synchronization with the LMS.`,
+          )
+        } else {
+          message.success(result)
+        }
+        setSyncing(false)
+        setUpdateFlag(!updateFlag)
+      })
+      .catch((err) => message.error(getErrorMessage(err)))
   }
 
   const forceSync = async () => {
@@ -165,17 +167,20 @@ export default function CourseLMSIntegrationPage({
     }
 
     setSyncing(true)
-    API.lmsIntegration.forceSync(courseId).then((result) => {
-      if (!result) {
-        message.error(
-          `Unknown error occurred, could not force synchronization with the LMS.`,
-        )
-      } else {
-        message.success(result)
-      }
-      setSyncing(false)
-      setUpdateFlag(!updateFlag)
-    })
+    API.lmsIntegration
+      .forceSync(courseId)
+      .then((result) => {
+        if (!result) {
+          message.error(
+            `Unknown error occurred, could not force synchronization with the LMS.`,
+          )
+        } else {
+          message.success(result)
+        }
+        setSyncing(false)
+        setUpdateFlag(!updateFlag)
+      })
+      .catch((err) => message.error(getErrorMessage(err)))
   }
 
   const clearDocuments = async () => {
@@ -185,17 +190,20 @@ export default function CourseLMSIntegrationPage({
     }
 
     setSyncing(true)
-    API.lmsIntegration.clearDocuments(courseId).then((result) => {
-      if (!result) {
-        message.error(
-          `Unknown error occurred, could not clear documents from the LMS.`,
-        )
-      } else {
-        message.success(result)
-      }
-      setSyncing(false)
-      setUpdateFlag(!updateFlag)
-    })
+    API.lmsIntegration
+      .clearDocuments(courseId)
+      .then((result) => {
+        if (!result) {
+          message.error(
+            `Unknown error occurred, could not clear documents from the LMS.`,
+          )
+        } else {
+          message.success(result)
+        }
+        setSyncing(false)
+        setUpdateFlag(!updateFlag)
+      })
+      .catch((err) => message.error(getErrorMessage(err)))
   }
 
   const outOfDateDocumentsCount = useMemo(
@@ -218,13 +226,7 @@ export default function CourseLMSIntegrationPage({
   )
 
   if (isLoading) {
-    return (
-      <div className={'flex h-full w-full items-center justify-center'}>
-        <Spin className={'text-nowrap'} size="large">
-          <div className={'text-helpmeblue mt-16'}>Loading...</div>
-        </Spin>
-      </div>
-    )
+    return <CenteredSpinner tip={'Loading...'} />
   }
 
   if (integration == undefined) {
@@ -403,22 +405,26 @@ export default function CourseLMSIntegrationPage({
           {!integration.isExpired && course != undefined && (
             <>
               <div className={'grid grid-cols-5 gap-2'}>
-                <div className={'col-span-3'}>
+                <div className={'col-span-3 '}>
                   <Descriptions
                     size={'middle'}
                     layout={'vertical'}
                     bordered={true}
-                  >
-                    <Descriptions.Item label={'API Course ID'}>
-                      {integration.apiCourseId}
-                    </Descriptions.Item>
-                    <Descriptions.Item label={'Course Name (Course Code)'}>
-                      {course.name} ({course.code})
-                    </Descriptions.Item>
-                    <Descriptions.Item label={'Student Count'}>
-                      {course.studentCount}
-                    </Descriptions.Item>
-                  </Descriptions>
+                    items={[
+                      {
+                        label: 'API Course ID',
+                        children: integration.apiCourseId,
+                      },
+                      {
+                        label: 'Course Name (Course Code)',
+                        children: `${course.name} (${course.code})`,
+                      },
+                      {
+                        label: 'Student Count',
+                        children: course.studentCount,
+                      },
+                    ]}
+                  />
                 </div>
                 <div className={'col-span-2'}>
                   <Card title={'Synchronization Options'}>

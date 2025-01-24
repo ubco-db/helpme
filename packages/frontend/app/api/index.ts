@@ -62,7 +62,6 @@ import {
   QueueInvite,
   InsightDashboardPartial,
   InsightDetail,
-  LMSIntegrationPlatform,
   LMSCourseIntegrationPartial,
   LMSAssignment,
   LMSApiResponseStatus,
@@ -71,6 +70,10 @@ import {
   OrgUser,
   LMSAnnouncement,
   LMSOrganizationIntegrationPartial,
+  UpsertLMSCourseParams,
+  RemoveLMSOrganizationParams,
+  UpsertLMSOrganizationParams,
+  TestLMSIntegrationParams,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -760,7 +763,7 @@ class APIClient {
       this.req('GET', `/api/v1/lms/org/${organizationId}`),
     upsertOrganizationIntegration: async (
       organizationId: number,
-      props: { rootUrl: string; apiPlatform: LMSIntegrationPlatform },
+      props: UpsertLMSOrganizationParams,
     ): Promise<string> =>
       this.req(
         'POST',
@@ -770,7 +773,7 @@ class APIClient {
       ),
     removeOrganizationIntegration: async (
       organizationId: number,
-      props: { apiPlatform: LMSIntegrationPlatform },
+      props: RemoveLMSOrganizationParams,
     ): Promise<string> =>
       this.req(
         'DELETE',
@@ -788,13 +791,7 @@ class APIClient {
       this.req('GET', `/api/v1/lms/course/${courseId}`),
     upsertCourseIntegration: async (
       courseId: number,
-      props: {
-        apiPlatform: LMSIntegrationPlatform
-        apiKey: string
-        apiKeyExpiry?: Date
-        apiKeyExpiryDeleted?: boolean
-        apiCourseId: string
-      },
+      props: UpsertLMSCourseParams,
     ): Promise<string> =>
       this.req(
         'POST',
@@ -804,14 +801,8 @@ class APIClient {
       ),
     removeCourseIntegration: async (
       courseId: number,
-      props: { apiPlatform: LMSIntegrationPlatform },
     ): Promise<string | undefined> =>
-      this.req(
-        'DELETE',
-        `/api/v1/lms/course/${courseId}/remove`,
-        undefined,
-        props,
-      ),
+      this.req('DELETE', `/api/v1/lms/course/${courseId}/remove`),
     getCourse: async (courseId: number): Promise<LMSCourseAPIResponse> =>
       this.req('GET', `/api/v1/lms/${courseId}`),
     getStudents: async (courseId: number): Promise<string[]> =>
@@ -828,11 +819,7 @@ class APIClient {
       this.req('DELETE', `/api/v1/lms/${courseId}/sync/clear`),
     testIntegration: async (
       courseId: number,
-      props: {
-        apiPlatform: LMSIntegrationPlatform
-        apiKey: string
-        apiCourseId: string
-      },
+      props: TestLMSIntegrationParams,
     ): Promise<LMSApiResponseStatus> =>
       this.req('POST', `/api/v1/lms/${courseId}/test`, undefined, props),
   }

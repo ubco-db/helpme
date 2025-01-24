@@ -17,7 +17,11 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   OrganizationRole,
+  RemoveLMSOrganizationParams,
   Role,
+  TestLMSIntegrationParams,
+  UpsertLMSCourseParams,
+  UpsertLMSOrganizationParams,
 } from '@koh/common';
 import { LMSGet, LMSIntegrationService } from './lmsIntegration.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -46,13 +50,15 @@ export class LMSIntegrationController {
   @Roles(OrganizationRole.ADMIN)
   async upsertOrganizationLMSIntegration(
     @Param('oid', ParseIntPipe) oid: number,
-    @Body() props: any,
+    @Body() props: UpsertLMSOrganizationParams,
   ): Promise<string> {
     if (!Object.keys(LMSIntegrationPlatform).includes(props.apiPlatform))
       throw new HttpException(
         ERROR_MESSAGES.lmsController.lmsIntegrationInvalidPlatform,
         HttpStatus.BAD_REQUEST,
       );
+
+    const { apiPlatform, rootUrl } = props;
 
     if (props.rootUrl == undefined)
       throw new HttpException(
@@ -68,7 +74,8 @@ export class LMSIntegrationController {
 
     return await this.integrationService.upsertOrganizationLMSIntegration(
       oid,
-      props,
+      rootUrl,
+      apiPlatform,
     );
   }
 
@@ -83,7 +90,7 @@ export class LMSIntegrationController {
   async removeOrganizationLMSIntegration(
     @User() _user: UserModel,
     @Param('oid', ParseIntPipe) oid: number,
-    @Body() body: any,
+    @Body() body: RemoveLMSOrganizationParams,
   ): Promise<string> {
     const exists = await LMSOrganizationIntegrationModel.findOne({
       where: { organizationId: oid, apiPlatform: body.apiPlatform },
@@ -98,9 +105,8 @@ export class LMSIntegrationController {
     const courses = await LMSCourseIntegrationModel.find({
       where: { orgIntegration: exists },
     });
-    const ids = courses.map((c) => c.courseId);
-    await this.integrationService.deleteLMSSyncCronJobs(ids, true);
-    for (const id of ids) {
+
+    for (const id of courses.map((c) => c.courseId)) {
       await this.integrationService.clearDocuments(id);
     }
 
@@ -168,7 +174,7 @@ export class LMSIntegrationController {
   async upsertCourseLMSIntegration(
     @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() props: any,
+    @Body() props: UpsertLMSCourseParams,
   ): Promise<any> {
     const orgCourse = await OrganizationCourseModel.findOne({
       courseId: courseId,
@@ -180,10 +186,18 @@ export class LMSIntegrationController {
       );
     }
 
+    const {
+      apiPlatform,
+      apiCourseId,
+      apiKey,
+      apiKeyExpiry,
+      apiKeyExpiryDeleted,
+    } = props;
+
     const orgIntegration = await LMSOrganizationIntegrationModel.findOne({
       where: {
         organizationId: orgCourse.organizationId,
-        apiPlatform: props.apiPlatform,
+        apiPlatform: apiPlatform,
       },
     });
     if (!orgIntegration) {
@@ -202,18 +216,18 @@ export class LMSIntegrationController {
       return await this.integrationService.updateCourseLMSIntegration(
         courseIntegration,
         orgIntegration,
-        props.apiKeyExpiryDeleted,
-        props.apiCourseId,
-        props.apiKey,
-        props.apiKeyExpiry,
+        apiKeyExpiryDeleted,
+        apiCourseId,
+        apiKey,
+        apiKeyExpiry,
       );
     } else {
       return await this.integrationService.createCourseLMSIntegration(
         orgIntegration,
         courseId,
-        props.apiCourseId,
-        props.apiKey,
-        props.apiKeyExpiry,
+        apiCourseId,
+        apiKey,
+        apiKeyExpiry,
       );
     }
   }
@@ -224,31 +238,9 @@ export class LMSIntegrationController {
   async removeCourseLMSIntegration(
     @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() props: any,
   ): Promise<any> {
-    const orgCourse = await OrganizationCourseModel.findOne({
-      courseId: courseId,
-    });
-    if (!orgCourse) {
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.organizationNotFound,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    const orgIntegration = await LMSOrganizationIntegrationModel.findOne({
-      organizationId: orgCourse.organizationId,
-      apiPlatform: props.apiPlatform,
-    });
-    if (!orgIntegration) {
-      throw new HttpException(
-        ERROR_MESSAGES.lmsController.orgIntegrationNotFound,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
     const exists = await LMSCourseIntegrationModel.findOne({
-      where: { courseId: courseId, orgIntegration: orgIntegration },
+      where: { courseId: courseId },
     });
     if (!exists) {
       throw new HttpException(
@@ -257,7 +249,6 @@ export class LMSIntegrationController {
       );
     }
 
-    await this.integrationService.deleteLMSSyncCronJobs([courseId], false);
     await this.integrationService.clearDocuments(courseId);
 
     await LMSCourseIntegrationModel.remove(exists);
@@ -317,7 +308,7 @@ export class LMSIntegrationController {
   @Roles(Role.PROFESSOR)
   async testLmsIntegration(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() props: any,
+    @Body() props: TestLMSIntegrationParams,
   ): Promise<LMSApiResponseStatus> {
     const orgCourse = await OrganizationCourseModel.findOne({
       courseId: courseId,
@@ -372,13 +363,7 @@ export class LMSIntegrationController {
 
     const newState = !integration.lmsSynchronize;
     if (newState) {
-      await this.integrationService.createLMSSyncCronJob(integration.courseId);
       await this.integrationService.syncDocuments(integration.courseId);
-    } else {
-      await this.integrationService.deleteLMSSyncCronJobs(
-        [integration.courseId],
-        false,
-      );
     }
     await LMSCourseIntegrationModel.update(
       { courseId: integration.courseId },

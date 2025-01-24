@@ -988,6 +988,29 @@ export class GetOrganizationResponse {
   ssoUrl?: string
 }
 
+export type UpsertLMSOrganizationParams = {
+  apiPlatform: LMSIntegrationPlatform
+  rootUrl: string
+}
+
+export type RemoveLMSOrganizationParams = {
+  apiPlatform: LMSIntegrationPlatform
+}
+
+export type UpsertLMSCourseParams = {
+  apiPlatform: LMSIntegrationPlatform
+  apiKey: string
+  apiKeyExpiry?: Date
+  apiKeyExpiryDeleted?: boolean
+  apiCourseId: string
+}
+
+export type TestLMSIntegrationParams = {
+  apiPlatform: LMSIntegrationPlatform
+  apiKey: string
+  apiCourseId: string
+}
+
 export class LMSOrganizationIntegrationPartial {
   organizationId!: number
   apiPlatform!: LMSIntegrationPlatform

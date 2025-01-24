@@ -75,23 +75,33 @@ export function useCourseLmsIntegration(
     })()
   }, [courseId, integration])
 
+  const resetIntegration = () => {
+    setIntegration(undefined)
+    setCourse(undefined)
+    setAssignments([])
+    setAnnouncements([])
+    setStudents([])
+    setIsLoading(true)
+  }
+
   useEffect(() => {
     if (courseId != undefined) {
+      if (integration == undefined) {
+        setIsLoading(true)
+      }
       API.lmsIntegration
         .getCourseIntegration(courseId)
         .then((response) => {
           if (response) {
             setIntegration(response)
+          } else {
+            resetIntegration()
+            setIsLoading(false)
           }
         })
         .catch(errorFx)
     } else {
-      setIntegration(undefined)
-      setCourse(undefined)
-      setAssignments([])
-      setAnnouncements([])
-      setStudents([])
-      setIsLoading(true)
+      resetIntegration()
     }
   }, [courseId, updateFlag])
 

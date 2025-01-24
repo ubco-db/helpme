@@ -293,33 +293,31 @@ export default function LMSDocumentList<
     )
   } else {
     return (
-      <div>
-        <div className="bg-white">
-          <div
-            className={
-              'my-2 flex flex-col justify-start md:flex-row md:justify-between'
-            }
-          >
-            <Input
-              placeholder={'Search for assignments and press enter'}
-              prefix={<SearchOutlined />}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onPressEnter={handleSearch}
+      <div className="bg-white">
+        <div
+          className={
+            'my-2 flex flex-col justify-start md:flex-row md:justify-between'
+          }
+        >
+          <Input
+            placeholder={'Search for assignments and press enter'}
+            prefix={<SearchOutlined />}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onPressEnter={handleSearch}
+          />
+          {matchingDocuments.length > 20 && (
+            <Pagination
+              style={{ float: 'right' }}
+              current={page}
+              pageSize={20}
+              total={matchingDocuments.length}
+              onChange={(page) => setPage(page)}
+              showSizeChanger={false}
             />
-            {matchingDocuments.length > 20 && (
-              <Pagination
-                style={{ float: 'right' }}
-                current={page}
-                pageSize={20}
-                total={matchingDocuments.length}
-                onChange={(page) => setPage(page)}
-                showSizeChanger={false}
-              />
-            )}
-          </div>
-          {renderDocumentList(paginatedDocuments)}
+          )}
         </div>
+        {renderDocumentList(paginatedDocuments)}
       </div>
     )
   }

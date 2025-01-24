@@ -7,6 +7,7 @@ import {
   LMSCourseIntegrationPartial,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
+  UpsertLMSCourseParams,
 } from '@koh/common'
 import { API } from '@/app/api'
 import { BaseOptionType } from 'antd/es/select'
@@ -89,18 +90,18 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
 
     testLMSConnection(apiKey, apiCourseId, usePlatform).then((result) => {
       if (result == LMSApiResponseStatus.Success) {
-        const body: { [key: string]: any } = {
+        const body: UpsertLMSCourseParams = {
           apiPlatform: usePlatform,
           apiKey,
           apiKeyExpiry,
           apiCourseId,
         }
         if (baseIntegration != undefined) {
-          body['apiKeyExpiryDeleted'] = apiKeyExpiry == undefined
+          body.apiKeyExpiryDeleted = apiKeyExpiry == undefined
         }
 
         API.lmsIntegration
-          .upsertCourseIntegration(courseId, body as any)
+          .upsertCourseIntegration(courseId, body)
           .then((result) => {
             if (!result) {
               message.error(
