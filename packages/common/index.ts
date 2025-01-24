@@ -1001,6 +1001,7 @@ export class LMSCourseIntegrationPartial {
   apiPlatform!: LMSIntegrationPlatform
   apiCourseId!: string
   apiKeyExpiry!: Date
+  lmsSynchronize!: boolean
   isExpired!: boolean
 }
 
@@ -1030,14 +1031,8 @@ export type LMSAnnouncement = {
 
 export type LMSFileUploadResponse = {
   id: number
-  type: 'Assignment' | 'Announcement'
   success: boolean
   documentId?: string
-}
-
-export type LMSFileResult = {
-  id: number
-  success: boolean
 }
 
 export enum LMSApiResponseStatus {
@@ -2609,7 +2604,8 @@ export const ERROR_MESSAGES = {
       'Root URL should not include protocol (https/http)',
     orgIntegrationNotFound: 'Course organization has no LMS integrations',
     courseLmsIntegrationNotFound: 'Course has no related LMS integration',
-    noChatToken:
-      'No HelpMe Chatbot API token associated with account could be found',
+    syncDisabled: 'LMS synchronization has not been enabled.',
+    failedToSync: 'Failed to synchronize course with LMS equivalent.',
+    failedToClear: 'Failed to clear documents from HelpMe database.',
   },
 }

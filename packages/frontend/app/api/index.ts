@@ -70,7 +70,6 @@ import {
   CronJob,
   OrgUser,
   LMSAnnouncement,
-  LMSFileResult,
   LMSOrganizationIntegrationPartial,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
@@ -821,46 +820,12 @@ class APIClient {
       this.req('GET', `/api/v1/lms/${courseId}/assignments`),
     getAnnouncements: async (courseId: number): Promise<LMSAnnouncement[]> =>
       this.req('GET', `/api/v1/lms/${courseId}/announcements`),
-    uploadAssignments: async (
-      courseId: number,
-      ids: number[],
-    ): Promise<LMSFileResult[]> =>
-      this.req(
-        'POST',
-        `/api/v1/lms/${courseId}/assignments/upload`,
-        undefined,
-        { ids },
-      ),
-    uploadAnnouncements: async (
-      courseId: number,
-      ids: number[],
-    ): Promise<LMSFileResult[]> =>
-      this.req(
-        'POST',
-        `/api/v1/lms/${courseId}/announcements/upload`,
-        undefined,
-        { ids },
-      ),
-    removeAssignments: async (
-      courseId: number,
-      ids: number[],
-    ): Promise<LMSFileResult[]> =>
-      this.req(
-        'DELETE',
-        `/api/v1/lms/${courseId}/assignments/remove`,
-        undefined,
-        { ids },
-      ),
-    removeAnnouncements: async (
-      courseId: number,
-      ids: number[],
-    ): Promise<LMSFileResult[]> =>
-      this.req(
-        'DELETE',
-        `/api/v1/lms/${courseId}/announcements/remove`,
-        undefined,
-        { ids },
-      ),
+    toggleSync: async (courseId: number): Promise<string> =>
+      this.req('POST', `/api/v1/lms/${courseId}/sync`),
+    forceSync: async (courseId: number): Promise<string> =>
+      this.req('POST', `/api/v1/lms/${courseId}/sync/force`),
+    clearDocuments: async (courseId: number): Promise<string> =>
+      this.req('DELETE', `/api/v1/lms/${courseId}/sync/clear`),
     testIntegration: async (
       courseId: number,
       props: {

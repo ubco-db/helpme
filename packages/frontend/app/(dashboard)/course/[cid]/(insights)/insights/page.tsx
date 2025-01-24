@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import DashboardPresetComponent from '../components/DashboardPresetComponent'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import InsightComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightComponent'
 import InsightsPageMenu from '@/app/(dashboard)/course/[cid]/(insights)/components/InsightsPageMenu'
 import { InsightContextProvider } from '@/app/(dashboard)/course/[cid]/(insights)/context/InsightsContext'
@@ -15,7 +15,6 @@ import {
   ListInsightsResponse,
 } from '@koh/common'
 import { API } from '@/app/api'
-import { NavigateOptions } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 
 export default function InsightsPage() {
   const { cid } = useParams<{ cid: string }>()

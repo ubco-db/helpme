@@ -5,7 +5,9 @@ import {
   LMSApiResponseStatus,
   LMSAssignment,
   LMSCourseAPIResponse,
+  LMSIntegrationPlatform,
 } from '@koh/common';
+import { LMSUpload } from './lmsIntegration.service';
 
 @Injectable()
 export class LMSIntegrationAdapter {
@@ -21,6 +23,10 @@ export class LMSIntegrationAdapter {
 export abstract class AbstractLMSAdapter {
   /* eslint-disable @typescript-eslint/no-unused-vars */
   constructor(protected integration: LMSCourseIntegrationModel) {}
+
+  getPlatform(): LMSIntegrationPlatform | null {
+    return null;
+  }
 
   isImplemented(): boolean {
     return false;
@@ -59,6 +65,13 @@ export abstract class AbstractLMSAdapter {
   }> {
     return null;
   }
+
+  getDocumentLink(documentId: number, documentType: LMSUpload): string {
+    switch (documentType) {
+      default:
+        return '';
+    }
+  }
 }
 
 abstract class ImplementedLMSAdapter extends AbstractLMSAdapter {
@@ -70,6 +83,10 @@ abstract class ImplementedLMSAdapter extends AbstractLMSAdapter {
 export class BaseLMSAdapter extends AbstractLMSAdapter {}
 
 class CanvasLMSAdapter extends ImplementedLMSAdapter {
+  getPlatform(): LMSIntegrationPlatform {
+    return LMSIntegrationPlatform.Canvas;
+  }
+
   async Get(
     path: string,
   ): Promise<{ status: LMSApiResponseStatus; data?: any; nextLink?: string }> {
@@ -243,5 +260,16 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
       status: LMSApiResponseStatus.Success,
       assignments,
     };
+  }
+
+  getDocumentLink(documentId: number, documentType: LMSUpload): string {
+    switch (documentType) {
+      case LMSUpload.Announcements:
+        return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/discussion_topics/${documentId}/`;
+      case LMSUpload.Assignments:
+        return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/assignments/${documentId}/`;
+      default:
+        return '';
+    }
   }
 }

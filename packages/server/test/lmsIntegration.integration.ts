@@ -1,6 +1,8 @@
 import { OrganizationRole, Role } from '@koh/common';
 import {
   CourseFactory,
+  lmsCourseIntFactory,
+  lmsOrgIntFactory,
   OrganizationFactory,
   UserFactory,
 } from './util/factories';
@@ -8,9 +10,56 @@ import { UserCourseModel } from '../src/profile/user-course.entity';
 import { setupIntegrationTest } from './util/testUtils';
 import { LmsIntegrationModule } from '../src/lmsIntegration/lmsIntegration.module';
 import { OrganizationUserModel } from '../src/organization/organization-user.entity';
+import { CourseModel } from '../src/course/course.entity';
+import { UserModel } from '../src/profile/user.entity';
 
 describe('Lms Integration Integrations', () => {
   const supertest = setupIntegrationTest(LmsIntegrationModule);
+
+  let prof: UserModel;
+  let course: CourseModel;
+
+  beforeEach(async () => {
+    prof = await UserFactory.create();
+    course = await CourseFactory.create();
+
+    await UserCourseModel.create({
+      userId: prof.id,
+      courseId: course.id,
+      role: Role.PROFESSOR,
+    }).save();
+  });
+
+  const failedPermsCheck = async (
+    route: (id: number) => string,
+    courseRole: Role,
+    method: 'GET' | 'POST' | 'DELETE',
+  ) => {
+    const user = await UserFactory.create();
+    const course = await CourseFactory.create();
+
+    await UserCourseModel.create({
+      userId: user.id,
+      courseId: course.id,
+      role: courseRole,
+    }).save();
+
+    const sp = supertest({ userId: user.id });
+    const path = route(course.id);
+    let res: any;
+    switch (method) {
+      case 'DELETE':
+        res = await sp.delete(path);
+        break;
+      case 'GET':
+        res = await sp.get(path);
+        break;
+      case 'POST':
+        res = await sp.post(path);
+        break;
+    }
+    expect(res.statusCode).toBe(403);
+  };
 
   describe('GET lms/org/:oid/*', () => {
     it.each([OrganizationRole.PROFESSOR, OrganizationRole.MEMBER])(
@@ -45,19 +94,7 @@ describe('Lms Integration Integrations', () => {
     ])(
       'should return 403 when non-professor accesses route',
       async ({ role, route }) => {
-        const user = await UserFactory.create();
-        const course = await CourseFactory.create();
-
-        await UserCourseModel.create({
-          userId: user.id,
-          courseId: course.id,
-          role: role,
-        }).save();
-
-        const res = await supertest({ userId: user.id }).get(
-          `/lms/${course.id}${route}`,
-        );
-        expect(res.statusCode).toBe(403);
+        await failedPermsCheck((id) => `/lms/${id}${route}`, role, 'GET');
       },
     );
   });
@@ -66,20 +103,7 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        const user = await UserFactory.create();
-        const course = await CourseFactory.create();
-
-        await UserCourseModel.create({
-          userId: user.id,
-          courseId: course.id,
-          role: courseRole,
-        }).save();
-
-        const res = await supertest({ userId: user.id }).post(
-          `/lms/${course.id}/test`,
-        );
-
-        expect(res.statusCode).toBe(403);
+        await failedPermsCheck((id) => `/lms/${id}/test`, courseRole, 'POST');
       },
     );
   });
@@ -88,19 +112,7 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        const user = await UserFactory.create();
-        const course = await CourseFactory.create();
-
-        await UserCourseModel.create({
-          userId: user.id,
-          courseId: course.id,
-          role: courseRole,
-        }).save();
-
-        const res = await supertest({ userId: user.id }).get(
-          `/lms/course/${course.id}`,
-        );
-        expect(res.statusCode).toBe(403);
+        await failedPermsCheck((id) => `/lms/course/${id}`, courseRole, 'GET');
       },
     );
   });
@@ -109,19 +121,11 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        const user = await UserFactory.create();
-        const course = await CourseFactory.create();
-
-        await UserCourseModel.create({
-          userId: user.id,
-          courseId: course.id,
-          role: courseRole,
-        }).save();
-
-        const res = await supertest({ userId: user.id }).post(
-          `/lms/course/${course.id}/upsert`,
+        await failedPermsCheck(
+          (id) => `/lms/course/${id}/upsert`,
+          courseRole,
+          'POST',
         );
-        expect(res.statusCode).toBe(403);
       },
     );
   });
@@ -130,20 +134,81 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        const user = await UserFactory.create();
-        const course = await CourseFactory.create();
-
-        await UserCourseModel.create({
-          userId: user.id,
-          courseId: course.id,
-          role: courseRole,
-        }).save();
-
-        const res = await supertest({ userId: user.id }).delete(
-          `/lms/course/${course.id}/remove`,
+        await failedPermsCheck(
+          (id) => `/lms/course/${id}/remove`,
+          courseRole,
+          'DELETE',
         );
-        expect(res.statusCode).toBe(403);
       },
     );
+  });
+
+  describe('POST lms/course/:id/sync', () => {
+    it.each([Role.STUDENT, Role.TA])(
+      'should return 403 when non-professor accesses route',
+      async (courseRole) => {
+        await failedPermsCheck((id) => `/lms/${id}/sync`, courseRole, 'POST');
+      },
+    );
+
+    it('should return 404 when LMS course integration doesnt exist', async () => {
+      const res = await supertest({ userId: prof.id }).post(
+        `/lms/${course.id}/sync`,
+      );
+      expect(res.statusCode).toBe(404);
+    });
+  });
+
+  describe('POST lms/course/:id/sync/force', () => {
+    it.each([Role.STUDENT, Role.TA])(
+      'should return 403 when non-professor accesses route',
+      async (courseRole) => {
+        await failedPermsCheck(
+          (id) => `/lms/${id}/sync/force`,
+          courseRole,
+          'POST',
+        );
+      },
+    );
+
+    it('should return 404 when LMS course integration doesnt exist', async () => {
+      const res = await supertest({ userId: prof.id }).post(
+        `/lms/${course.id}/sync/force`,
+      );
+      expect(res.statusCode).toBe(404);
+    });
+  });
+
+  describe('DELETE lms/:id/sync/clear', () => {
+    it.each([Role.STUDENT, Role.TA])(
+      'should return 403 when non-professor accesses route',
+      async (courseRole) => {
+        await failedPermsCheck(
+          (id) => `/lms/${id}/sync/clear`,
+          courseRole,
+          'DELETE',
+        );
+      },
+    );
+
+    it('should return 200 when LMS course integration exists', async () => {
+      const orgInt = await lmsOrgIntFactory.create();
+      await lmsCourseIntFactory.create({
+        orgIntegration: orgInt,
+        course: course,
+      });
+
+      const res = await supertest({ userId: prof.id }).delete(
+        `/lms/${course.id}/sync/clear`,
+      );
+      expect(res.statusCode).toBe(200);
+    });
+
+    it('should return 404 when LMS course integration doesnt exist', async () => {
+      const res = await supertest({ userId: prof.id }).delete(
+        `/lms/${course.id}/sync/clear`,
+      );
+      expect(res.statusCode).toBe(404);
+    });
   });
 });

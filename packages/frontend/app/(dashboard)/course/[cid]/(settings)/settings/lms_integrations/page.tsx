@@ -11,6 +11,7 @@ import {
   Modal,
   Spin,
   Tabs,
+  Tooltip,
 } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
@@ -24,9 +25,10 @@ import { API } from '@/app/api'
 import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal'
 import { PenBoxIcon, RefreshCwIcon, TrashIcon } from 'lucide-react'
 import LMSRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSRosterTable'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { useCourseLmsIntegration } from '@/app/hooks/useCourseLmsIntegration'
 import LMSDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSDocumentList'
+import { DeleteOutlined, SyncOutlined } from '@ant-design/icons'
 
 export default function CourseLMSIntegrationPage({
   params,
@@ -51,6 +53,8 @@ export default function CourseLMSIntegrationPage({
   const [selectedIntegration, setSelectedIntegration] = useState<
     LMSOrganizationIntegrationPartial | undefined
   >(undefined)
+
+  const [syncing, setSyncing] = useState<boolean>(false)
 
   const [modalOpen, setModalOpen] = useState<boolean>(false)
   const [delModalOpen, setDelModalOpen] = useState<boolean>(false)
@@ -129,16 +133,96 @@ export default function CourseLMSIntegrationPage({
         } else {
           message.error(result)
         }
-      })
-      .finally(() => {
         setUpdateFlag(!updateFlag)
       })
   }
 
+  const toggleSync = async () => {
+    if (integration == undefined) {
+      message.error('No integration was specified')
+      return
+    }
+
+    setSyncing(true)
+
+    API.lmsIntegration.toggleSync(courseId).then((result) => {
+      if (!result) {
+        message.error(
+          `Unknown error occurred, could not enable synchronization with the LMS.`,
+        )
+      } else {
+        message.success(result)
+      }
+      setSyncing(false)
+      setUpdateFlag(!updateFlag)
+    })
+  }
+
+  const forceSync = async () => {
+    if (integration == undefined) {
+      message.error('No integration was specified')
+      return
+    }
+
+    setSyncing(true)
+    API.lmsIntegration.forceSync(courseId).then((result) => {
+      if (!result) {
+        message.error(
+          `Unknown error occurred, could not force synchronization with the LMS.`,
+        )
+      } else {
+        message.success(result)
+      }
+      setSyncing(false)
+      setUpdateFlag(!updateFlag)
+    })
+  }
+
+  const clearDocuments = async () => {
+    if (integration == undefined) {
+      message.error('No integration was specified')
+      return
+    }
+
+    setSyncing(true)
+    API.lmsIntegration.clearDocuments(courseId).then((result) => {
+      if (!result) {
+        message.error(
+          `Unknown error occurred, could not clear documents from the LMS.`,
+        )
+      } else {
+        message.success(result)
+      }
+      setSyncing(false)
+      setUpdateFlag(!updateFlag)
+    })
+  }
+
+  const outOfDateDocumentsCount = useMemo(
+    () =>
+      assignments.filter((a) => {
+        return (
+          a.uploaded &&
+          a.modified &&
+          new Date(a.uploaded).getTime() < new Date(a.modified).getTime()
+        )
+      }).length +
+      announcements.filter((a) => {
+        return (
+          a.uploaded &&
+          a.modified &&
+          new Date(a.uploaded).getTime() < new Date(a.modified).getTime()
+        )
+      }).length,
+    [announcements, assignments],
+  )
+
   if (isLoading) {
     return (
       <div className={'flex h-full w-full items-center justify-center'}>
-        <Spin tip="Loading..." size="large" />
+        <Spin className={'text-nowrap'} size="large">
+          <div className={'text-helpmeblue mt-16'}>Loading...</div>
+        </Spin>
       </div>
     )
   }
@@ -244,10 +328,8 @@ export default function CourseLMSIntegrationPage({
         children: (
           <LMSDocumentList<LMSAssignment>
             type={'Assignment'}
-            courseId={courseId}
             documents={assignments}
             loadingLMSData={isLoading}
-            updateCallback={() => setUpdateFlag(!updateFlag)}
           />
         ),
       })
@@ -259,10 +341,8 @@ export default function CourseLMSIntegrationPage({
         children: (
           <LMSDocumentList<LMSAnnouncement>
             type={'Announcement'}
-            courseId={courseId}
             documents={announcements}
             loadingLMSData={isLoading}
-            updateCallback={() => setUpdateFlag(!updateFlag)}
           />
         ),
       })
@@ -322,17 +402,104 @@ export default function CourseLMSIntegrationPage({
           </div>
           {!integration.isExpired && course != undefined && (
             <>
-              <Descriptions layout={'vertical'} bordered={true}>
-                <Descriptions.Item label={'API Course ID'}>
-                  {integration.apiCourseId}
-                </Descriptions.Item>
-                <Descriptions.Item label={'Course Name (Course Code)'}>
-                  {course.name} ({course.code})
-                </Descriptions.Item>
-                <Descriptions.Item label={'Student Count'}>
-                  {course.studentCount}
-                </Descriptions.Item>
-              </Descriptions>
+              <div className={'grid grid-cols-5 gap-2'}>
+                <div className={'col-span-3'}>
+                  <Descriptions
+                    size={'middle'}
+                    layout={'vertical'}
+                    bordered={true}
+                  >
+                    <Descriptions.Item label={'API Course ID'}>
+                      {integration.apiCourseId}
+                    </Descriptions.Item>
+                    <Descriptions.Item label={'Course Name (Course Code)'}>
+                      {course.name} ({course.code})
+                    </Descriptions.Item>
+                    <Descriptions.Item label={'Student Count'}>
+                      {course.studentCount}
+                    </Descriptions.Item>
+                  </Descriptions>
+                </div>
+                <div className={'col-span-2'}>
+                  <Card title={'Synchronization Options'}>
+                    <div className={'flex flex-col items-center gap-2'}>
+                      <div className={'flex flex-row gap-2'}>
+                        <Button
+                          size={'large'}
+                          variant={'outlined'}
+                          color={
+                            integration.lmsSynchronize ? 'danger' : 'default'
+                          }
+                          className={cn(
+                            integration.lmsSynchronize
+                              ? ''
+                              : 'border-green-700 text-green-700 hover:border-green-500 hover:text-green-500',
+                          )}
+                          onClick={toggleSync}
+                          loading={syncing}
+                        >
+                          {integration.lmsSynchronize ? 'Disable' : 'Enable'}{' '}
+                          {integration.apiPlatform} Synchronization
+                        </Button>
+                      </div>
+                      <div>
+                        <Badge count={outOfDateDocumentsCount} showZero={false}>
+                          <Tooltip
+                            title={`Force sychronization of data with ${integration.apiPlatform}. If visible, the red badge indicates how many documents are observed to be out-of-date.`}
+                          >
+                            <Button
+                              size={'large'}
+                              shape={'round'}
+                              variant={
+                                integration.lmsSynchronize
+                                  ? 'outlined'
+                                  : 'dashed'
+                              }
+                              color={
+                                integration.lmsSynchronize ? 'blue' : 'default'
+                              }
+                              icon={<SyncOutlined />}
+                              disabled={!integration.lmsSynchronize}
+                              onClick={forceSync}
+                              loading={syncing && integration.lmsSynchronize}
+                            >
+                              Force Synchronization
+                            </Button>
+                          </Tooltip>
+                        </Badge>
+                      </div>
+                      <div className={'mt-4 flex flex-col gap-2 text-gray-500'}>
+                        <p>
+                          By enabling synchronization with{' '}
+                          {integration.apiPlatform}, documents will be imported
+                          and used to tune Chatbot responses to student
+                          questions.
+                        </p>
+                        <p>
+                          By default, the documents will be updated once a day.
+                          You can force synchronization at any time to update
+                          documents at will.
+                        </p>
+                      </div>
+                      <Tooltip
+                        title={`Clear any documents imported from ${integration.apiPlatform}.`}
+                      >
+                        <Button
+                          size={'large'}
+                          shape={'round'}
+                          variant={'outlined'}
+                          color={'danger'}
+                          icon={<DeleteOutlined />}
+                          onClick={clearDocuments}
+                          loading={syncing}
+                        >
+                          Clear Documents
+                        </Button>
+                      </Tooltip>
+                    </div>
+                  </Card>
+                </div>
+              </div>
               <Tabs defaultActiveKey={'roster'} items={tabItems} />
             </>
           )}

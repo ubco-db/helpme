@@ -27,6 +27,9 @@ export class LMSCourseIntegrationModel extends BaseEntity {
   @Column({ type: 'timestamp', nullable: true })
   apiKeyExpiry: Date;
 
+  @Column({ type: 'boolean', default: false })
+  lmsSynchronize: boolean;
+
   @ManyToOne(
     (type) => LMSOrganizationIntegrationModel,
     (integration) => integration.courseIntegrations,

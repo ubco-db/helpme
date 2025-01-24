@@ -7,6 +7,7 @@ import {
   PrimaryColumn,
 } from 'typeorm';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
+import { LMSIntegrationPlatform } from '@koh/common';
 
 @Entity('lms_announcement_model')
 export class LMSAnnouncementModel extends BaseEntity {
@@ -15,6 +16,13 @@ export class LMSAnnouncementModel extends BaseEntity {
 
   @PrimaryColumn()
   courseId: number;
+
+  @Column({
+    type: 'enum',
+    enum: LMSIntegrationPlatform,
+    enumName: 'lms_api_platform_enum',
+  })
+  lmsSource: LMSIntegrationPlatform;
 
   @Column({ type: 'text' })
   title: string;

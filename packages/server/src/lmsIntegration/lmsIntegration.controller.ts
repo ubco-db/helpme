@@ -14,17 +14,12 @@ import {
   ERROR_MESSAGES,
   LMSApiResponseStatus,
   LMSCourseIntegrationPartial,
-  LMSFileResult,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   OrganizationRole,
   Role,
 } from '@koh/common';
-import {
-  LMSGet,
-  LMSIntegrationService,
-  LMSUpload,
-} from './lmsIntegration.service';
+import { LMSGet, LMSIntegrationService } from './lmsIntegration.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
 import { Roles } from '../decorators/roles.decorator';
@@ -86,7 +81,7 @@ export class LMSIntegrationController {
   )
   @Roles(OrganizationRole.ADMIN)
   async removeOrganizationLMSIntegration(
-    @User() user: UserModel,
+    @User() _user: UserModel,
     @Param('oid', ParseIntPipe) oid: number,
     @Body() body: any,
   ): Promise<string> {
@@ -103,17 +98,10 @@ export class LMSIntegrationController {
     const courses = await LMSCourseIntegrationModel.find({
       where: { orgIntegration: exists },
     });
-    for (const course of courses) {
-      await this.integrationService.removeDocuments(
-        user,
-        course.courseId,
-        LMSUpload.Announcements,
-      );
-      await this.integrationService.removeDocuments(
-        user,
-        course.courseId,
-        LMSUpload.Assignments,
-      );
+    const ids = courses.map((c) => c.courseId);
+    await this.integrationService.deleteLMSSyncCronJobs(ids, true);
+    for (const id of ids) {
+      await this.integrationService.clearDocuments(id);
     }
 
     const platform = exists.apiPlatform;
@@ -178,7 +166,7 @@ export class LMSIntegrationController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async upsertCourseLMSIntegration(
-    @User() user: UserModel,
+    @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() props: any,
   ): Promise<any> {
@@ -212,7 +200,6 @@ export class LMSIntegrationController {
 
     if (courseIntegration != undefined) {
       return await this.integrationService.updateCourseLMSIntegration(
-        user,
         courseIntegration,
         orgIntegration,
         props.apiKeyExpiryDeleted,
@@ -235,7 +222,7 @@ export class LMSIntegrationController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async removeCourseLMSIntegration(
-    @User() user: UserModel,
+    @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() props: any,
   ): Promise<any> {
@@ -270,16 +257,8 @@ export class LMSIntegrationController {
       );
     }
 
-    await this.integrationService.removeDocuments(
-      user,
-      courseId,
-      LMSUpload.Announcements,
-    );
-    await this.integrationService.removeDocuments(
-      user,
-      courseId,
-      LMSUpload.Assignments,
-    );
+    await this.integrationService.deleteLMSSyncCronJobs([courseId], false);
+    await this.integrationService.clearDocuments(courseId);
 
     await LMSCourseIntegrationModel.remove(exists);
     return `Successfully disconnected LMS integration`;
@@ -368,67 +347,123 @@ export class LMSIntegrationController {
     );
   }
 
-  @Post(':courseId/assignments/upload')
+  @Post(':courseId/sync')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
-  async uploadAssignments(
-    @User() user: UserModel,
+  async toggleSynchronizeCourse(
+    @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() props: any,
-  ): Promise<LMSFileResult[]> {
-    return await this.integrationService.uploadDocuments(
-      user,
-      courseId,
-      LMSUpload.Assignments,
-      props.ids,
+  ): Promise<string> {
+    const integration = await LMSCourseIntegrationModel.findOne(
+      {
+        courseId: courseId,
+      },
+      {
+        relations: ['orgIntegration'],
+      },
     );
+
+    if (!integration) {
+      throw new HttpException(
+        LMSApiResponseStatus.InvalidConfiguration,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const newState = !integration.lmsSynchronize;
+    if (newState) {
+      await this.integrationService.createLMSSyncCronJob(integration.courseId);
+      await this.integrationService.syncDocuments(integration.courseId);
+    } else {
+      await this.integrationService.deleteLMSSyncCronJobs(
+        [integration.courseId],
+        false,
+      );
+    }
+    await LMSCourseIntegrationModel.update(
+      { courseId: integration.courseId },
+      { lmsSynchronize: newState },
+    );
+
+    return `Successfully ${newState ? 'enabled' : 'disabled'} synchronization with ${integration.orgIntegration.apiPlatform ?? 'LMS'}.`;
   }
 
-  @Post(':courseId/announcements/upload')
+  @Post(':courseId/sync/force')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
-  async uploadAnnouncements(
-    @User() user: UserModel,
+  async forceSynchronizeCourse(
+    @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() props: any,
-  ): Promise<LMSFileResult[]> {
-    return await this.integrationService.uploadDocuments(
-      user,
-      courseId,
-      LMSUpload.Announcements,
-      props.ids,
+  ): Promise<string> {
+    const integration = await LMSCourseIntegrationModel.findOne(
+      {
+        courseId: courseId,
+      },
+      {
+        relations: ['orgIntegration'],
+      },
     );
+
+    if (!integration) {
+      throw new HttpException(
+        LMSApiResponseStatus.InvalidConfiguration,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    if (!integration.lmsSynchronize) {
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.syncDisabled,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    try {
+      await this.integrationService.syncDocuments(courseId);
+    } catch (err) {
+      console.error(err);
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.failedToSync,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return `Successfully forced synchronization with ${integration.orgIntegration.apiPlatform ?? 'LMS'} course.`;
   }
 
-  @Delete(':courseId/assignments/remove')
+  @Delete(':courseId/sync/clear')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
-  async removeAssignments(
-    @User() user: UserModel,
+  async clearDocuments(
+    @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() props: any,
-  ): Promise<LMSFileResult[]> {
-    return await this.integrationService.removeDocuments(
-      user,
-      courseId,
-      LMSUpload.Assignments,
-      props.ids,
+  ): Promise<string> {
+    const integration = await LMSCourseIntegrationModel.findOne(
+      {
+        courseId: courseId,
+      },
+      {
+        relations: ['orgIntegration'],
+      },
     );
-  }
 
-  @Delete(':courseId/announcements/remove')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard)
-  @Roles(Role.PROFESSOR)
-  async removeAnnouncements(
-    @User() user: UserModel,
-    @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() props: any,
-  ): Promise<LMSFileResult[]> {
-    return await this.integrationService.removeDocuments(
-      user,
-      courseId,
-      LMSUpload.Announcements,
-      props.ids,
-    );
+    if (!integration) {
+      throw new HttpException(
+        LMSApiResponseStatus.InvalidConfiguration,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    try {
+      await this.integrationService.clearDocuments(courseId);
+    } catch (err) {
+      console.error(err);
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.failedToClear,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return `Successfully cleared documents from ${integration.orgIntegration.apiPlatform ?? 'LMS'} in HelpMe.`;
   }
 }

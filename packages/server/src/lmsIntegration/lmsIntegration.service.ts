@@ -13,7 +13,6 @@ import {
   LMSOrganizationIntegrationPartial,
   LMSAssignment,
   LMSAnnouncement,
-  LMSFileResult,
   isProd,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
@@ -22,6 +21,10 @@ import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { UserModel } from '../profile/user.entity';
+import { CronJob } from 'cron';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import * as Sentry from '@sentry/browser';
+import { v4 } from 'uuid';
 
 export enum LMSGet {
   Course,
@@ -38,6 +41,7 @@ export enum LMSUpload {
 @Injectable()
 export class LMSIntegrationService {
   constructor(
+    private schedulerRegistry: SchedulerRegistry,
     @Inject(LMSIntegrationAdapter)
     private integrationAdapter: LMSIntegrationAdapter,
   ) {}
@@ -101,7 +105,6 @@ export class LMSIntegrationService {
   }
 
   public async updateCourseLMSIntegration(
-    user: UserModel,
     integration: LMSCourseIntegrationModel,
     orgIntegration: LMSOrganizationIntegrationModel,
     apiKeyExpiryDeleted = false,
@@ -111,25 +114,10 @@ export class LMSIntegrationService {
   ) {
     if (integration.orgIntegration.apiPlatform != orgIntegration.apiPlatform) {
       // If the integration changes to another platform, clear out the previously saved assignments
-      const allAssignments = await LMSAssignmentModel.find({
-        where: { courseId: integration.courseId },
-      });
-      const allAnnouncements = await LMSAnnouncementModel.find({
-        where: { courseId: integration.courseId },
-      });
-
-      await this.removeDocuments(
-        user,
+      await this.clearDocuments(
         integration.courseId,
-        LMSUpload.Announcements,
+        orgIntegration.apiPlatform,
       );
-      await this.removeDocuments(
-        user,
-        integration.courseId,
-        LMSUpload.Assignments,
-      );
-      await LMSAssignmentModel.remove(allAssignments);
-      await LMSAnnouncementModel.remove(allAnnouncements);
     }
 
     integration.orgIntegration = orgIntegration;
@@ -192,7 +180,6 @@ export class LMSIntegrationService {
         const { items } = await this.getDocumentModelAndItems(
           courseId,
           LMSUpload.Assignments,
-          assignments.map((a) => a.id),
         );
         for (let idx = 0; idx < assignments.length; idx++) {
           const found = items.find(
@@ -204,7 +191,7 @@ export class LMSIntegrationService {
               name: found.name,
               description: found.description,
               due: found.due,
-              modified: found.modified,
+              modified: assignments[idx].modified ?? found.modified,
               uploaded: found.uploaded,
             };
           }
@@ -218,7 +205,6 @@ export class LMSIntegrationService {
         const { items } = await this.getDocumentModelAndItems(
           courseId,
           LMSUpload.Announcements,
-          announcements.map((a) => a.id),
         );
         for (let idx = 0; idx < announcements.length; idx++) {
           const found = items.find(
@@ -230,7 +216,7 @@ export class LMSIntegrationService {
               title: found.title,
               message: found.message,
               posted: found.posted,
-              modified: found.modified,
+              modified: announcements[idx].modified ?? found.modified,
               uploaded: found.uploaded,
             };
           }
@@ -267,7 +253,7 @@ export class LMSIntegrationService {
       }
     })();
 
-    if (!model.find) {
+    if (!model || !model.find) {
       throw new HttpException(
         ERROR_MESSAGES.lmsController.invalidDocumentType,
         HttpStatus.BAD_REQUEST,
@@ -280,28 +266,26 @@ export class LMSIntegrationService {
   async getDocumentModelAndItems(
     courseId: number,
     type: LMSUpload,
-    ids: number[],
+    platforms?: LMSIntegrationPlatform[],
   ) {
     const model = await this.getDocumentModel(type);
 
-    let qb = model
+    const qb = model
       .createQueryBuilder('aModel')
       .select()
       .where('aModel.courseId = :courseId', { courseId });
 
-    if (ids.length > 0) {
-      qb = qb.andWhere('aModel.id IN (:...ids)', { ids });
+    if (platforms) {
+      qb.andWhere('aModel.lmsSource IN (:...platforms)', { platforms });
     }
 
-    return { model, items: await qb.getMany() };
+    return {
+      model,
+      items: await qb.getMany(),
+    };
   }
 
-  async uploadDocuments(
-    user: UserModel,
-    courseId: number,
-    type: LMSUpload,
-    ids: number[],
-  ): Promise<LMSFileResult[]> {
+  async syncDocuments(courseId: number) {
     const adapter = await this.getAdapter(courseId);
     if (!adapter.isImplemented()) {
       throw new HttpException(
@@ -310,199 +294,185 @@ export class LMSIntegrationService {
       );
     }
 
-    let result: {
-      status: LMSApiResponseStatus;
-      assignments?: LMSAssignment[];
-      announcements?: LMSAnnouncement[];
-    };
+    for (const type of Object.keys(LMSUpload)
+      .filter((k: any) => !isNaN(k))
+      .map((k) => parseInt(k))) {
+      let result: {
+        status: LMSApiResponseStatus;
+        assignments?: LMSAssignment[];
+        announcements?: LMSAnnouncement[];
+      };
 
-    const modelAndPersisted = await this.getDocumentModelAndItems(
-      courseId,
-      type,
-      ids,
-    );
-    const model = modelAndPersisted.model;
-    switch (type) {
-      case LMSUpload.Assignments:
-        result = await adapter.getAssignments();
-        result.assignments = result.assignments.filter(
-          (a) => a.description != undefined && a.description.trim() != '',
-        );
-        break;
-      case LMSUpload.Announcements:
-        result = await adapter.getAnnouncements();
-        break;
-      default:
-        result = { status: LMSApiResponseStatus.Error };
-        break;
-    }
-
-    if (result.status != LMSApiResponseStatus.Success) {
-      throw new HttpException(
-        result.status,
-        this.lmsStatusToHttpStatus(result.status),
+      const modelAndPersisted = await this.getDocumentModelAndItems(
+        courseId,
+        type,
       );
-    }
+      const model = modelAndPersisted.model;
+      switch (type) {
+        case LMSUpload.Assignments:
+          result = await adapter.getAssignments();
+          result.assignments = result.assignments.filter(
+            (a) =>
+              (a.description != undefined && a.description.trim() != '') ||
+              a.due != undefined,
+          );
+          break;
+        case LMSUpload.Announcements:
+          result = await adapter.getAnnouncements();
+          break;
+        default:
+          result = { status: LMSApiResponseStatus.Error };
+          break;
+      }
 
-    let items: (
-      | LMSAnnouncement
-      | LMSAnnouncementModel
-      | LMSAssignment
-      | LMSAssignmentModel
-    )[];
-    switch (type) {
-      case LMSUpload.Assignments:
-        items = result.assignments;
-        break;
-      case LMSUpload.Announcements:
-        items = result.announcements;
-        break;
-    }
+      if (result.status != LMSApiResponseStatus.Success) {
+        throw new HttpException(
+          result.status,
+          this.lmsStatusToHttpStatus(result.status),
+        );
+      }
 
-    const uploadItems = items.filter((v) => ids.includes(v.id));
-    const persistedItems: LMSAssignmentModel[] | LMSAnnouncementModel[] =
-      modelAndPersisted.items;
-    for (let i = 0; i < uploadItems.length; i++) {
-      const found = persistedItems.find((p) => p.id == uploadItems[i].id);
-      if (found) {
-        uploadItems[i] = found;
+      let items: (
+        | LMSAnnouncement
+        | LMSAnnouncementModel
+        | LMSAssignment
+        | LMSAssignmentModel
+      )[];
+      switch (type) {
+        case LMSUpload.Assignments:
+          items = result.assignments;
+          break;
+        case LMSUpload.Announcements:
+          items = result.announcements;
+          break;
+      }
+
+      const persistedItems: LMSAssignmentModel[] | LMSAnnouncementModel[] =
+        modelAndPersisted.items;
+      for (let i = 0; i < items.length; i++) {
+        const found = persistedItems.find((p) => p.id == items[i].id);
+        if (found) {
+          items[i] = found;
+        }
+      }
+
+      const tempUser = await UserModel.create({
+        email: 'tempemail@example.com',
+      }).save();
+      const token = await ChatTokenModel.create({
+        user: tempUser,
+        token: v4(),
+        max_uses: items.length,
+      }).save();
+
+      const statuses: LMSFileUploadResponse[] = [];
+      for (const item of items) {
+        statuses.push(
+          await this.uploadDocument(courseId, item, token, type, adapter),
+        );
+      }
+
+      await ChatTokenModel.remove(token);
+
+      const validIds = statuses.filter((u) => u.success).map((u) => u.id);
+      const toSave = items.filter((u) => validIds.includes(u.id));
+
+      const entities = toSave
+        .map((i) => {
+          const chatbotDocumentId = statuses.find(
+            (u) => u.id == i.id,
+          )?.documentId;
+
+          switch (type) {
+            case LMSUpload.Announcements:
+              const ann = i as LMSAnnouncement;
+              return (model as typeof LMSAnnouncementModel).create({
+                id: ann.id,
+                title: ann.title,
+                message: ann.message,
+                posted: ann.posted,
+                chatbotDocumentId: chatbotDocumentId,
+                uploaded: new Date(),
+                modified:
+                  ann.modified != undefined
+                    ? new Date(ann.modified)
+                    : new Date(),
+                courseId: courseId,
+                lmsSource: adapter.getPlatform(),
+              }) as LMSAnnouncementModel;
+            case LMSUpload.Assignments:
+              const asg = i as LMSAssignment;
+              return (model as typeof LMSAssignmentModel).create({
+                id: asg.id,
+                name: asg.name,
+                description: asg.description ?? '',
+                due: asg.due,
+                chatbotDocumentId: chatbotDocumentId,
+                uploaded: new Date(),
+                courseId: courseId,
+                modified:
+                  asg.modified != undefined
+                    ? new Date(asg.modified)
+                    : new Date(),
+                lmsSource: adapter.getPlatform(),
+              }) as LMSAssignmentModel;
+            default:
+              return undefined;
+          }
+        })
+        .filter((e) => e != undefined) as
+        | LMSAssignmentModel[]
+        | LMSAnnouncementModel[];
+
+      switch (type) {
+        case LMSUpload.Announcements:
+          await (model as typeof LMSAnnouncementModel).save(
+            entities as LMSAnnouncementModel[],
+          );
+          break;
+        case LMSUpload.Assignments:
+          await (model as typeof LMSAssignmentModel).save(
+            entities as LMSAssignmentModel[],
+          );
+          break;
       }
     }
-
-    const token = await ChatTokenModel.findOne({
-      where: {
-        user,
-      },
-    });
-    if (!token) {
-      throw new HttpException(
-        ERROR_MESSAGES.lmsController.noChatToken,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    const { used, max_uses } = token;
-    await ChatTokenModel.createQueryBuilder()
-      .update()
-      .set({ used: 0, max_uses: uploadItems.length })
-      .where({ user: user.id })
-      .execute();
-
-    const statuses: LMSFileUploadResponse[] = [];
-    for (const item of uploadItems) {
-      statuses.push(await this.uploadDocument(courseId, item, token, type));
-    }
-
-    await ChatTokenModel.createQueryBuilder()
-      .update()
-      .set({ used, max_uses })
-      .where({ user: user.id })
-      .execute();
-
-    const validIds = statuses.filter((u) => u.success).map((u) => u.id);
-    const toSave = uploadItems.filter((u) => validIds.includes(u.id));
-
-    const entities = toSave
-      .map((i) => {
-        const chatbotDocumentId = statuses.find(
-          (u) => u.id == i.id,
-        )?.documentId;
-
-        switch (type) {
-          case LMSUpload.Announcements:
-            const ann = i as LMSAnnouncement;
-            return (model as typeof LMSAnnouncementModel).create({
-              id: ann.id,
-              title: ann.title,
-              message: ann.message,
-              posted: ann.posted,
-              chatbotDocumentId: chatbotDocumentId,
-              uploaded: new Date(),
-              modified: ann.modified != undefined ? ann.modified : new Date(),
-              courseId: courseId,
-            }) as LMSAnnouncementModel;
-          case LMSUpload.Assignments:
-            const asg = i as LMSAssignment;
-            return (model as typeof LMSAssignmentModel).create({
-              id: asg.id,
-              name: asg.name,
-              description: asg.description ?? '',
-              due: asg.due,
-              chatbotDocumentId: chatbotDocumentId,
-              uploaded: new Date(),
-              courseId: courseId,
-              modified: asg.modified != undefined ? asg.modified : new Date(),
-            }) as LMSAssignmentModel;
-          default:
-            return undefined;
-        }
-      })
-      .filter((e) => e != undefined) as
-      | LMSAssignmentModel[]
-      | LMSAnnouncementModel[];
-
-    switch (type) {
-      case LMSUpload.Announcements:
-        await (model as typeof LMSAnnouncementModel).save(
-          entities as LMSAnnouncementModel[],
-        );
-        break;
-      case LMSUpload.Assignments:
-        await (model as typeof LMSAssignmentModel).save(
-          entities as LMSAssignmentModel[],
-        );
-        break;
-    }
-
-    return statuses;
   }
 
-  async removeDocuments(
-    user: UserModel,
-    courseId: number,
-    type: LMSUpload,
-    ids?: number[],
-  ) {
-    const { model, items } = await this.getDocumentModelAndItems(
-      courseId,
-      type,
-      ids,
-    );
+  async clearDocuments(courseId: number, exceptIn?: LMSIntegrationPlatform) {
+    for (const type of Object.keys(LMSUpload)
+      .filter((k: any) => !isNaN(k))
+      .map((k) => parseInt(k))) {
+      const platforms = Object.keys(LMSIntegrationPlatform)
+        .filter((k: any) => !isNaN(k))
+        .map((k) => k as unknown as LMSIntegrationPlatform)
+        .filter((p) => p != exceptIn);
 
-    const token = await ChatTokenModel.findOne({
-      where: {
-        user,
-      },
-    });
-    if (!token) {
-      throw new HttpException(
-        ERROR_MESSAGES.lmsController.noChatToken,
-        HttpStatus.NOT_FOUND,
+      const { model, items } = await this.getDocumentModelAndItems(
+        courseId,
+        type,
+        exceptIn != undefined ? platforms : undefined,
       );
+
+      const tempUser = await UserModel.create({
+        email: 'tempemail@example.com',
+      }).save();
+      const token = await ChatTokenModel.create({
+        user: tempUser,
+        token: v4(),
+        max_uses: items.length,
+      }).save();
+
+      const statuses: LMSFileUploadResponse[] = [];
+      for (const item of items) {
+        statuses.push(await this.deleteDocument(courseId, item, token));
+      }
+
+      await ChatTokenModel.remove(token);
+
+      const successfulIds = statuses.filter((s) => s.success).map((s) => s.id);
+      await model.remove(items.filter((i) => successfulIds.includes(i.id)));
     }
-
-    const { used, max_uses } = token;
-    await ChatTokenModel.createQueryBuilder()
-      .update()
-      .set({ used: 0, max_uses: items.length })
-      .where({ user: user.id })
-      .execute();
-
-    const statuses: LMSFileUploadResponse[] = [];
-    for (const item of items) {
-      statuses.push(await this.deleteDocument(courseId, item, token, type));
-    }
-
-    await ChatTokenModel.createQueryBuilder()
-      .update()
-      .set({ used, max_uses })
-      .where({ user: user.id })
-      .execute();
-
-    const successfulIds = statuses.filter((s) => s.success).map((s) => s.id);
-    await model.remove(items.filter((i) => successfulIds.includes(i.id)));
-
-    return statuses;
   }
 
   private async uploadDocument(
@@ -514,9 +484,8 @@ export class LMSIntegrationService {
       | LMSAnnouncementModel,
     token: ChatTokenModel,
     type: LMSUpload,
+    adapter: AbstractLMSAdapter,
   ): Promise<LMSFileUploadResponse> {
-    const typeReturn =
-      type == LMSUpload.Announcements ? 'Announcement' : 'Assignment';
     let documentText: string | undefined = undefined;
     switch (type) {
       case LMSUpload.Announcements: {
@@ -526,13 +495,12 @@ export class LMSIntegrationService {
       }
       case LMSUpload.Assignments: {
         const a = item as any as LMSAssignment;
-        documentText = `(Course Assignment)\n Name: ${a.name}\n${a.due != undefined ? `Due Date: ${a.due.toLocaleDateString()}\n` : 'Due Date: No due date\n'}Description: ${a.description}`;
+        documentText = `(Course Assignment)\n Name: ${a.name}\n${a.due != undefined ? `Due Date: ${a.due.toLocaleDateString()}\n` : 'Due Date: No due date\n'}${a.description && `Description: ${a.description}`}`;
         break;
       }
       default:
         return {
           id: item.id,
-          type: typeReturn,
           success: false,
         } as LMSFileUploadResponse;
     }
@@ -540,9 +508,13 @@ export class LMSIntegrationService {
     if (!documentText) {
       return {
         id: item.id,
-        type: typeReturn,
         success: false,
       };
+    }
+
+    const computedDocLink = adapter.getDocumentLink(item.id, type);
+    if (computedDocLink) {
+      documentText = documentText.concat(`\nPage Link: ${computedDocLink}`);
     }
 
     if (
@@ -554,15 +526,14 @@ export class LMSIntegrationService {
     ) {
       return {
         id: item.id,
-        type: typeReturn,
         success: true,
         documentId: item.chatbotDocumentId,
       };
     }
 
     const metadata: any = {
-      name: 'Manually Inserted Information',
-      type: 'inserted_document',
+      name: `LMS Resource`,
+      type: 'inserted_lms_document',
     };
 
     const reqOptions = {
@@ -588,7 +559,6 @@ export class LMSIntegrationService {
         ) {
           return {
             id: item.id,
-            type: typeReturn,
             success: true,
             documentId: item.chatbotDocumentId,
           } as LMSFileUploadResponse;
@@ -622,18 +592,13 @@ export class LMSIntegrationService {
         };
         return {
           id: item.id,
-          type: typeReturn,
           success: true,
           documentId: persistedDoc.id,
         };
       })
-      .catch((error) => {
-        console.log(
-          `Failed to upload a document to the Chatbot (${error.message})`,
-        );
+      .catch((_error) => {
         return {
           id: item.id,
-          type: typeReturn,
           success: false,
         } as LMSFileUploadResponse;
       });
@@ -643,10 +608,7 @@ export class LMSIntegrationService {
     courseId: number,
     item: LMSAnnouncementModel | LMSAssignmentModel,
     token: ChatTokenModel,
-    type: LMSUpload,
   ) {
-    const typeReturn =
-      type == LMSUpload.Announcements ? 'Announcement' : 'Assignment';
     const reqOptions = {
       method: 'DELETE',
       headers: {
@@ -656,10 +618,10 @@ export class LMSIntegrationService {
     };
 
     const thenFx = (response: Response): LMSFileUploadResponse => {
-      if (response.ok) {
+      if (response.ok || response.status == 404) {
+        // 404 means it's already been deleted
         return {
           id: item.id,
-          type: typeReturn,
           success: true,
         };
       } else {
@@ -674,14 +636,73 @@ export class LMSIntegrationService {
       reqOptions,
     )
       .then(thenFx)
-      .catch((error): LMSFileUploadResponse => {
-        console.log(`Failed to remove a document from the Chatbot (${error})`);
+      .catch((_error): LMSFileUploadResponse => {
         return {
           id: item.id,
-          type: typeReturn,
           success: false,
         };
       });
+  }
+
+  async createLMSSyncCronJob(courseId: number) {
+    const jobName = `lms_integration_sync_${courseId}`;
+
+    const cronJobs = this.schedulerRegistry.getCronJobs();
+    if (cronJobs.has(jobName)) {
+      return;
+    }
+
+    // Every day, at 12:01 AM this job will run
+    const jobInterval = '1 0 * * *';
+
+    const job = new CronJob(jobInterval, async () => {
+      const integration = await LMSCourseIntegrationModel.findOne({ courseId });
+      if (!integration.lmsSynchronize) {
+        console.error(
+          `Job failed: synchronization disabled for Canvas LMS for HelpMe course ${courseId}`,
+        );
+        Sentry.captureMessage(
+          `Job failed: synchronization disabled for Canvas LMS for HelpMe course ${courseId}`,
+        );
+        await this.deleteLMSSyncCronJobs([courseId], false);
+        return;
+      }
+      this.syncDocuments(courseId).catch((err) => {
+        console.error(
+          `Failed to synchronize Canvas LMS for HelpMe course ${courseId}`,
+          err,
+        );
+        Sentry.captureException(err);
+      });
+    });
+    try {
+      this.schedulerRegistry.addCronJob(jobName, job);
+      job.start();
+    } catch (err) {
+      console.error('Error adding cron job', err);
+      Sentry.captureException(err);
+    }
+  }
+
+  async deleteLMSSyncCronJobs(courseIds: number[], skipIfNotExists: boolean) {
+    const cronJobs = this.schedulerRegistry.getCronJobs();
+    for (const courseId of courseIds) {
+      const jobName = `lms_integration_sync_${courseId}`;
+      if (!cronJobs.has(jobName)) {
+        if (!skipIfNotExists) {
+          console.error(`Cron job with name ${jobName} does not exist`);
+          Sentry.captureMessage(`Cron job with name ${jobName} does not exist`);
+        }
+        continue;
+      }
+      try {
+        this.schedulerRegistry.deleteCronJob(jobName);
+        console.log(`Deleted cron job with name ${jobName}`);
+      } catch (err) {
+        console.error(`Error deleting cron job with name ${jobName}`, err);
+        Sentry.captureException(err);
+      }
+    }
   }
 
   getPartialOrgLmsIntegration(lmsIntegration: LMSOrganizationIntegrationModel) {
@@ -712,6 +733,7 @@ export class LMSIntegrationService {
       } satisfies CoursePartial,
       apiCourseId: lmsIntegration.apiCourseId,
       apiKeyExpiry: lmsIntegration.apiKeyExpiry,
+      lmsSynchronize: lmsIntegration.lmsSynchronize,
       isExpired:
         lmsIntegration.apiKeyExpiry != undefined &&
         new Date(lmsIntegration.apiKeyExpiry).getTime() < new Date().getTime(),
