@@ -62,7 +62,7 @@ describe('QueueChatService', () => {
         photoURL: 'studentPhotoURL',
       } as UserModel;
 
-      await service.createChat(123, staff, student, true);
+      await service.createChat(123, staff, student);
 
       const key = 'queue_chat_metadata:123:2';
       expect(redisMock.del).toHaveBeenCalledWith(key);

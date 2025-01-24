@@ -60,7 +60,7 @@ export function useQueueChat(
     const newMessageCount = currentMessageCount - previousMessageCount
 
     if (newMessageCount > 0) {
-      setNewMessageCount((prev) => prev + newMessageCount)
+      setNewMessageCount(newMessageCount)
     }
 
     previousMessageCountRef.current = currentMessageCount

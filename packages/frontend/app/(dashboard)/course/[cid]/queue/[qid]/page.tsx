@@ -980,7 +980,11 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                     className={`${mobileQueueChatOpen ? 'hidden ' : ''}fixed bottom-8 right-3 flex justify-end md:left-2`}
                     style={{ zIndex: 1050 }}
                   >
-                    <Badge count={newMessagesInQueueChats} offset={[-4, 4]}>
+                    <Badge
+                      count={newMessagesInQueueChats}
+                      overflowCount={99}
+                      offset={[-4, 4]}
+                    >
                       <Button
                         type="primary"
                         size="large"

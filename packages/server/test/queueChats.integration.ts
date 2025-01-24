@@ -61,12 +61,10 @@ describe('QueueChat Integration Tests', () => {
     it('retrieves chat metadata and messages', async () => {
       const metadata = {
         staff: {
-          id: staff.user.id,
           firstName: staff.user.firstName,
           lastName: staff.user.lastName,
         },
         student: {
-          id: student.user.id,
           firstName: student.user.firstName,
           lastName: student.user.lastName,
         },
@@ -84,7 +82,6 @@ describe('QueueChat Integration Tests', () => {
         queue.id,
         staff.user,
         student.user,
-        true,
         new Date(metadata.startedAt),
       );
 
@@ -129,7 +126,6 @@ describe('QueueChat Integration Tests', () => {
         queue.id,
         staff.user,
         student.user,
-        true,
         new Date(metadata.startedAt),
       );
 
@@ -163,7 +159,6 @@ describe('QueueChat Integration Tests', () => {
         queue.id,
         staff.user,
         student.user,
-        true,
         new Date('2021-01-01T00:00:00Z'),
       );
 

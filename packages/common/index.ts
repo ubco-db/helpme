@@ -693,8 +693,9 @@ export class QueueChatPartial {
 }
 
 export class QueueChatUserPartial {
+  @IsOptional()
   @IsInt()
-  id!: number
+  id?: number
 
   @IsString()
   firstName!: string
@@ -2405,6 +2406,7 @@ export const ERROR_MESSAGES = {
   },
   questionService: {
     getDBClient: 'Error getting DB client',
+    queueChatUpdateFailure: 'Error updating queue chat',
   },
   calendarEvent: {
     invalidEvent:
