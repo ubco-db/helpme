@@ -7,7 +7,11 @@ import {
   CourseFactory,
   lmsCourseIntFactory,
   lmsOrgIntFactory,
+  OrganizationCourseFactory,
+  OrganizationFactory,
 } from '../../test/util/factories';
+import { LMSIntegrationPlatform } from '@koh/common';
+import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 
 /*
 Note:
@@ -29,11 +33,59 @@ describe('LMSIntegrationService', () => {
   });
 
   afterAll(async () => {
+    jest.clearAllMocks();
     await conn.close();
   });
 
   beforeEach(async () => {
     await conn.synchronize(true);
+  });
+
+  describe('resynchronizeCourseIntegrations', () => {
+    it('should call to sync documents of any courses with sync enabled', async () => {
+      const org = await OrganizationFactory.create();
+      const orgIntegration = await lmsOrgIntFactory.create({
+        organization: org,
+        rootUrl: 'example.ubc.ca',
+        apiPlatform: LMSIntegrationPlatform.Canvas,
+      });
+      const courses = [
+        await CourseFactory.create(),
+        await CourseFactory.create(),
+        await CourseFactory.create(),
+      ];
+      for (const course of courses) {
+        course.organizationCourse = await OrganizationCourseFactory.create({
+          organization: org,
+          course: course,
+        });
+        course.lmsIntegration = await lmsCourseIntFactory.create({
+          course: course,
+          apiCourseId: 'abc',
+          apiKey: 'def',
+          lmsSynchronize: course.id != 2,
+          orgIntegration,
+        });
+      }
+
+      const old = service.syncDocuments;
+      const findSpy = jest.spyOn(LMSCourseIntegrationModel, 'find');
+      service.syncDocuments = jest.fn(async (_courseId: number) => undefined);
+      await service.resynchronizeCourseIntegrations();
+
+      expect(findSpy).toHaveBeenCalledTimes(1);
+      expect(findSpy).toHaveBeenCalledWith({ lmsSynchronize: true });
+
+      expect(service.syncDocuments).toHaveBeenCalledTimes(2);
+      let i = 1;
+      for (const course of courses.filter(
+        (c) => c.lmsIntegration.lmsSynchronize,
+      )) {
+        expect(service.syncDocuments).toHaveBeenNthCalledWith(i, course.id);
+        ++i;
+      }
+      service.syncDocuments = old;
+    });
   });
 
   describe('getAdapter', () => {
