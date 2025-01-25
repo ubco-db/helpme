@@ -362,8 +362,19 @@ export class LMSIntegrationService {
           break;
       }
 
-      const persistedItems: LMSAssignmentModel[] | LMSAnnouncementModel[] =
+      let persistedItems: LMSAssignmentModel[] | LMSAnnouncementModel[] =
         modelAndPersisted.items;
+
+      const toRemove: LMSAssignmentModel[] | LMSAnnouncementModel[] =
+        persistedItems.filter((i0) => !items.find((i1) => i1.id == i0.id));
+      if (toRemove.length > 0) {
+        const toRemoveIds = toRemove.map((i) => i.id);
+        persistedItems = persistedItems.filter((i) =>
+          toRemoveIds.includes(i.id),
+        );
+        await this.clearSpecificDocuments(courseId, toRemove, model);
+      }
+
       for (let i = 0; i < items.length; i++) {
         const found = persistedItems.find((p) => p.id == items[i].id);
         if (found) {
@@ -469,25 +480,33 @@ export class LMSIntegrationService {
         exceptIn != undefined ? platforms : undefined,
       );
 
-      const tempUser = await UserModel.create({
-        email: 'tempemail@example.com',
-      }).save();
-      const token = await ChatTokenModel.create({
-        user: tempUser,
-        token: v4(),
-        max_uses: items.length,
-      }).save();
-
-      const statuses: LMSFileUploadResponse[] = [];
-      for (const item of items) {
-        statuses.push(await this.deleteDocument(courseId, item, token));
-      }
-
-      await ChatTokenModel.remove(token);
-
-      const successfulIds = statuses.filter((s) => s.success).map((s) => s.id);
-      await model.remove(items.filter((i) => successfulIds.includes(i.id)));
+      await this.clearSpecificDocuments(courseId, items, model);
     }
+  }
+
+  async clearSpecificDocuments(
+    courseId: number,
+    items: LMSAssignmentModel[] | LMSAnnouncementModel[],
+    model: typeof LMSAssignmentModel | typeof LMSAnnouncementModel,
+  ) {
+    const tempUser = await UserModel.create({
+      email: 'tempemail@example.com',
+    }).save();
+    const token = await ChatTokenModel.create({
+      user: tempUser,
+      token: v4(),
+      max_uses: items.length,
+    }).save();
+
+    const statuses: LMSFileUploadResponse[] = [];
+    for (const item of items) {
+      statuses.push(await this.deleteDocument(courseId, item, token));
+    }
+
+    await ChatTokenModel.remove(token);
+
+    const successfulIds = statuses.filter((s) => s.success).map((s) => s.id);
+    await model.remove(items.filter((i) => successfulIds.includes(i.id)));
   }
 
   private async uploadDocument(
