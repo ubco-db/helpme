@@ -2,12 +2,19 @@ import { useCallback } from 'react'
 import Modal from 'antd/lib/modal/Modal'
 import { Form, message, Checkbox, Input, Select, Segmented } from 'antd'
 import { useEffect, useState } from 'react'
-import { OpenQuestionStatus, QuestionLocations, UserTiny } from '@koh/common'
+import {
+  ConfigTasks,
+  OpenQuestionStatus,
+  QuestionLocations,
+  StudentAssignmentProgress,
+  UserTiny,
+} from '@koh/common'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../../components/QuestionTagElement'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
+import TaskSelector from '../TaskSelector'
 
 interface FormValues {
   studentId: number
@@ -15,12 +22,16 @@ interface FormValues {
   questionText: string
   location: QuestionLocations
   help: boolean
+  taskIds: string[]
 }
 
 interface AddStudentsToQueueModalProps {
   queueId: number
   courseId: number
   isQueueHybrid: boolean
+  isDemoQueue: boolean
+  configTasks?: ConfigTasks
+  assignmentId?: string
   open: boolean
   onAddStudent: () => void
   onCancel: () => void
@@ -30,6 +41,9 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
   queueId,
   courseId,
   isQueueHybrid,
+  isDemoQueue,
+  configTasks,
+  assignmentId,
   open,
   onAddStudent,
   onCancel,
@@ -39,25 +53,36 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
   const [isloading, setIsLoading] = useState(false)
   //studentState stores all students
   const [studentsState, setStudentsState] = useState<UserTiny[]>()
+  const [studentsLoading, setStudentsLoading] = useState(true)
   const [selectedStudent, setSelectedStudent] = useState<UserTiny>()
+  const [addingDemo, setAddingDemo] = useState(false)
+  const [
+    currentStudentsAssignmentProgress,
+    setCurrentStudentsAssignmentProgress,
+  ] = useState<StudentAssignmentProgress | undefined>(undefined)
 
-  const populateStudents = useCallback(async () => {
-    await API.course
-      .getAllStudentsNotInQueue(courseId)
-      .then((students) => {
-        setStudentsState(students)
-      })
-      .catch((err) => {
-        const errorMessage = getErrorMessage(err)
-        message.error(errorMessage)
-      })
-  }, [courseId])
+  const populateStudents = useCallback(
+    async (courseId: number, withATaskQuestion: boolean) => {
+      setStudentsLoading(true)
+      await API.course
+        .getAllStudentsNotInQueue(courseId, withATaskQuestion)
+        .then((students) => {
+          setStudentsState(students)
+          setStudentsLoading(false)
+        })
+        .catch((err) => {
+          const errorMessage = getErrorMessage(err)
+          message.error(errorMessage)
+        })
+    },
+    [setStudentsState],
+  )
 
   useEffect(() => {
     if (open) {
-      populateStudents()
+      populateStudents(courseId, addingDemo)
     }
-  }, [populateStudents, open])
+  }, [populateStudents, courseId, open, addingDemo])
 
   const onFinish = async (values: FormValues) => {
     if (studentsState?.length == 0) {
@@ -79,13 +104,15 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
     await API.questions
       .TAcreate(
         {
-          text: values.questionText ?? '',
+          text: addingDemo
+            ? `Mark ${values.taskIds.map((task) => `"${task}"`).join(' ')}`
+            : (values.questionText ?? ''),
           queueId: queueId,
           location: values.location,
           force: true,
           groupable: false,
-          questionTypes: newQuestionTypeInput,
-          isTaskQuestion: false,
+          questionTypes: addingDemo ? [] : newQuestionTypeInput,
+          isTaskQuestion: addingDemo,
         },
         selectedStudent.id,
       )
@@ -114,7 +141,25 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
   return (
     <Modal
       open={open}
-      title="Add Student to Queue"
+      title={
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
+          <div className="flex items-center justify-center">
+            Add Student to Queue
+          </div>
+          {isDemoQueue && (
+            <div className="flex items-center justify-center gap-2">
+              <Segmented
+                options={[
+                  { label: 'Question', value: false },
+                  { label: 'Demo', value: true },
+                ]}
+                value={addingDemo}
+                onChange={(val) => setAddingDemo(val)}
+              />
+            </div>
+          )}
+        </div>
+      }
       okText="Finish"
       cancelText={
         !studentsState || studentsState.length === 0 ? 'Close' : 'Cancel'
@@ -122,7 +167,13 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
       okButtonProps={{
         autoFocus: true,
         htmlType: 'submit',
-        disabled: !studentsState || studentsState.length === 0,
+        disabled:
+          !studentsState ||
+          studentsState.length === 0 ||
+          (addingDemo &&
+            (!assignmentId ||
+              !configTasks ||
+              Object.keys(configTasks).length == 0)),
         loading: isloading,
       }}
       cancelButtonProps={{
@@ -145,6 +196,27 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
                   (student) => student.id === changedValues.studentId,
                 ),
               )
+              if (addingDemo && assignmentId) {
+                API.studentTaskProgress
+                  .getAssignmentProgress(
+                    changedValues.studentId,
+                    courseId,
+                    assignmentId,
+                  )
+                  .then((progress) => {
+                    setCurrentStudentsAssignmentProgress(progress)
+                    form.setFieldsValue({
+                      taskIds: [],
+                    })
+                  })
+                  .catch((err) => {
+                    const errorMessage = getErrorMessage(err)
+                    message.error(
+                      "Error fetching student's assignment progress:",
+                      errorMessage,
+                    )
+                  })
+              }
             }
           }}
           clearOnDestroy
@@ -169,23 +241,59 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
               showSearch
               placeholder="Select Student"
               optionFilterProp="label"
+              loading={studentsLoading}
               options={studentsState?.map((student) => ({
                 value: student.id,
                 label: student.name,
               }))}
             />
           </Form.Item>
-          {questionTypes && questionTypes.length > 0 && (
-            <Form.Item
-              name="questionTypesInput"
-              label="What categories does the question fall under?"
-            >
-              <QuestionTagSelector questionTags={questionTypes} />
-            </Form.Item>
+          {addingDemo ? (
+            <>
+              {assignmentId &&
+              configTasks &&
+              Object.keys(configTasks).length > 0 ? (
+                <Form.Item
+                  name="taskIds"
+                  label="What parts are being checked?"
+                  rules={[
+                    {
+                      required: true,
+                      message: 'Please select at least one task',
+                    },
+                  ]}
+                >
+                  <TaskSelector
+                    studentAssignmentProgress={
+                      currentStudentsAssignmentProgress
+                    }
+                    configTasks={configTasks}
+                  />
+                </Form.Item>
+              ) : (
+                <p>
+                  No Tasks Found. Please add some tasks in the queue settings
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              {questionTypes && questionTypes.length > 0 && (
+                <Form.Item
+                  name="questionTypesInput"
+                  label="What categories does the question fall under?"
+                >
+                  <QuestionTagSelector questionTags={questionTypes} />
+                </Form.Item>
+              )}
+              <Form.Item name="questionText" label="Question Text">
+                <Input.TextArea
+                  autoSize={{ minRows: 3, maxRows: 6 }}
+                  allowClear
+                />
+              </Form.Item>
+            </>
           )}
-          <Form.Item name="questionText" label="Question Text">
-            <Input.TextArea autoSize={{ minRows: 3, maxRows: 6 }} allowClear />
-          </Form.Item>
 
           {isQueueHybrid && (
             <Form.Item

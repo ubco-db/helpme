@@ -284,10 +284,11 @@ class APIClient {
       this.req('GET', `/api/v1/courses/${courseId}/features`),
     getAllStudentsNotInQueue: async (
       courseId: number,
+      withATaskQuestion?: boolean,
     ): Promise<{ name: string; id: number }[]> =>
       this.req(
         'GET',
-        `/api/v1/courses/${courseId}/students_not_in_queue`,
+        `/api/v1/courses/${courseId}/students_not_in_queue?with_a_task_question=${!!withATaskQuestion}`,
         undefined,
       ),
     getAllQuestionTypes: async (courseId: number): Promise<QuestionType[]> =>

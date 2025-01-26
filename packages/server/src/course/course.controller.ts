@@ -1066,20 +1066,25 @@ export class CourseController {
   @Roles(Role.TA, Role.PROFESSOR)
   async getAllStudentsNotInQueue(
     @Param('id', ParseIntPipe) courseId: number,
+    @Query('with_a_task_question') withATaskQuestion: string,
     @Res() res: Response,
   ): Promise<UserTiny[]> {
+    const withATaskQuestionBool = withATaskQuestion === 'true';
+
     // have to do a manual query 'cause the current version of typeORM we're using is crunked and creates syntax errors in postgres queries
     const query = `
     SELECT "user_model"."firstName" || ' ' || "user_model"."lastName" AS name, "user_model".id AS id
     FROM "user_course_model"
     LEFT JOIN "user_model" ON ("user_course_model"."userId" = "user_model".id AND "user_course_model".role = $1)
-    WHERE "user_course_model"."courseId" = $2 AND "user_model".id IS NOT NULL
-    AND NOT EXISTS (
-    SELECT 1
-    FROM "question_model"
-    WHERE "question_model"."creatorId" = "user_model".id
-    AND "question_model".status = $3
-    )
+    WHERE "user_course_model"."courseId" = $2 
+      AND "user_model".id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM "question_model"
+        WHERE "question_model"."creatorId" = "user_model".id
+        AND "question_model".status = $3
+        AND "question_model"."isTaskQuestion" = $4
+      )
     ORDER BY name;
   `;
 
@@ -1087,6 +1092,7 @@ export class CourseController {
       Role.STUDENT,
       courseId,
       QuestionStatusKeys.Queued,
+      withATaskQuestionBool,
     ]);
 
     res.status(200).send(studentsWithoutQuestions);

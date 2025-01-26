@@ -63,9 +63,11 @@ export default function InsightsPage() {
         ? Object.keys(insightDirectory).filter(
             (v) => dashboardInsights?.insights[v]?.active == true,
           )
-        : Object.keys(insightDirectory).filter(
-            (v) => insightDirectory[v].insightCategory == category,
-          )
+        : category == 'Dashboard'
+          ? Object.keys(insightDirectory)
+          : Object.keys(insightDirectory).filter(
+              (v) => insightDirectory[v].insightCategory == category,
+            )
 
       const mappedInsights: { name: string; insight: InsightDisplayInfo }[] =
         validInsights.map((v) => {
@@ -154,15 +156,8 @@ export default function InsightsPage() {
                 <>
                   {(dashboardInsights != undefined &&
                     Object.keys(dashboardInsights.insights).length > 0 &&
-                    renderInsights(dashboardInsights.insights)) || (
-                    <div className={'h-full w-full text-center'}>
-                      <h2>No insights to show!</h2>
-                      <p>
-                        Create an insight dashboard preset to view available
-                        analytics.
-                      </p>
-                    </div>
-                  )}
+                    renderInsights(dashboardInsights.insights)) ||
+                    renderInsights()}
                 </>
               ) : (
                 renderInsights()
