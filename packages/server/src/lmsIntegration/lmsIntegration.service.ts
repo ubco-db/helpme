@@ -127,8 +127,12 @@ export class LMSIntegrationService {
     apiKey?: string,
     apiKeyExpiry?: Date,
   ) {
-    if (integration.orgIntegration.apiPlatform != orgIntegration.apiPlatform) {
+    if (
+      integration.orgIntegration.apiPlatform != orgIntegration.apiPlatform ||
+      (apiCourseId != undefined && integration.apiCourseId != apiCourseId)
+    ) {
       // If the integration changes to another platform, clear out the previously saved assignments
+      // Or: if the apiCourseId changes, the information is no longer relevant - clear out old documents
       await this.clearDocuments(
         integration.courseId,
         orgIntegration.apiPlatform,
@@ -382,6 +386,8 @@ export class LMSIntegrationService {
         }
       }
 
+      if (items.length == 0) continue;
+
       const tempUser = await UserModel.create({
         email: 'tempemail@example.com',
       }).save();
@@ -399,6 +405,7 @@ export class LMSIntegrationService {
       }
 
       await ChatTokenModel.remove(token);
+      await UserModel.remove(tempUser);
 
       const validIds = statuses.filter((u) => u.success).map((u) => u.id);
       const toSave = items.filter((u) => validIds.includes(u.id));
@@ -480,6 +487,8 @@ export class LMSIntegrationService {
         exceptIn != undefined ? platforms : undefined,
       );
 
+      if (items.length == 0) continue;
+
       await this.clearSpecificDocuments(courseId, items, model);
     }
   }
@@ -504,6 +513,7 @@ export class LMSIntegrationService {
     }
 
     await ChatTokenModel.remove(token);
+    await UserModel.remove(tempUser);
 
     const successfulIds = statuses.filter((s) => s.success).map((s) => s.id);
     await model.remove(items.filter((i) => successfulIds.includes(i.id)));
@@ -556,7 +566,7 @@ export class LMSIntegrationService {
       item.chatbotDocumentId != undefined &&
       item.uploaded != undefined &&
       item.modified != undefined &&
-      new Date(item.modified).getTime() <= new Date(item.uploaded).getTime()
+      new Date(item.modified).getTime() > new Date(item.uploaded).getTime()
     ) {
       return {
         id: item.id,

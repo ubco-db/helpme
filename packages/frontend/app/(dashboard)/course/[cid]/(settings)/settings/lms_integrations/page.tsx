@@ -208,20 +208,20 @@ export default function CourseLMSIntegrationPage({
 
   const outOfDateDocumentsCount = useMemo(
     () =>
-      assignments.filter((a) => {
-        return (
-          a.uploaded &&
-          a.modified &&
-          new Date(a.uploaded).getTime() < new Date(a.modified).getTime()
-        )
-      }).length +
-      announcements.filter((a) => {
+      [...assignments, ...announcements].filter((a) => {
         return (
           a.uploaded &&
           a.modified &&
           new Date(a.uploaded).getTime() < new Date(a.modified).getTime()
         )
       }).length,
+    [announcements, assignments],
+  )
+
+  const savedDocumentsCount = useMemo(
+    () =>
+      [...assignments, ...announcements].filter((a) => a.uploaded != undefined)
+        .length,
     [announcements, assignments],
   )
 
@@ -498,6 +498,7 @@ export default function CourseLMSIntegrationPage({
                           icon={<DeleteOutlined />}
                           onClick={clearDocuments}
                           loading={syncing}
+                          disabled={savedDocumentsCount < 1}
                         >
                           Clear Documents
                         </Button>
