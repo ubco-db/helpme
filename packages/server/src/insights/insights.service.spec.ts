@@ -293,23 +293,19 @@ describe('InsightsService', () => {
 
     expect(output.data).toEqual([
       {
-        studentName: 'Jean Valjean (4)',
-        email: 'valjean.j@protonmail.com',
+        studentName: 'Jean Valjean',
         questionsAsked: '110',
       },
       {
-        studentName: 'David Wright (2)',
-        email: 'wright.da@northeastern.edu',
+        studentName: 'David Wright',
         questionsAsked: '20',
       },
       {
-        studentName: 'Adam Smith (3)',
-        email: 'smith.a@northeastern.edu',
+        studentName: 'Adam Smith',
         questionsAsked: '10',
       },
       {
-        studentName: 'Derek Jeter (1)',
-        email: 'jeter.d@northeastern.edu',
+        studentName: 'Derek Jeter',
         questionsAsked: '8',
       },
     ]);

@@ -16,6 +16,7 @@
   - [Tips](#tips)
   - [Testing the Production Environment](#testing-the-production-environment)
   - [Production](#production)
+    - [Changelog](#changelog)
   - [Misc](#misc)
 
 ## Installation to run locally
@@ -26,14 +27,16 @@
 3. Run `yarn install` in this directory to get dependencies
 4. Run `yarn dev:db:up` to start the database via docker; `yarn dev:db:down` will stop it (this step might not be needed).
 5. Change the environment variables to match your environment. 
-  - You can find the required environment variables in the `.env.development` file in the `packages/server` directory. If you are running the app in a Docker container, you should change the environment variables in the `.env.docker` file in the `packages/server` directory. 
-  - There is also a .env for the frontend to set the recaptcha key. 
+  - You can find the required environment variables in the `.env.development` file in the `packages/server` directory. If you're new to `.env` files, basically create a new `.env` file in the same directory as `.env.development` and copy-paste all of the variables over
+    - Note that if you have installed postgres before and you have changed the default postgres password, you may need to change the password from mysecretpassword to this password
+    - If you are running the app in a Docker container (for production), you should instead use the `.env.docker` environment variable template in the `packages/server` directory. 
+  - There is also a .env for the frontend (`dev.env`). Do just as you did and create a `.env` in `packages/frontend` and copy-paste all the variables from `dev.env` over.
   - For more details, see [ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md)
-5. Start the app in development with `yarn dev`
-6. Visit the app at http://localhost:3000/dev and seed the database. 
+6. Start the app in development with `yarn dev`
+7. Visit the app at http://localhost:3000/dev and seed the database. 
   - You may need to first create a `dev`, `test`, and `chatbot` database in your local postgres database (using psql or Beekeeper Studio). 
   - You can do this by running `CREATE DATABASE dev;`, `CREATE DATABASE test;`, and `CREATE DATABASE chatbot;` in psql.
-7. Visit the app at http://localhost:3000
+8. Visit the app at http://localhost:3000
 
 If you have any questions, feel free to reach out to a member of the team. If you think this document can be improved, make a PR!
 
@@ -164,6 +167,11 @@ On the VM, source code is at `/var/www/source`. From there you can run `yarn cli
 
 If you need to hotfix something, you can edit the files on prod and run `yarn build && env HOME=/var/www pm2 startOrReload infrastructure/prod/ecosystem.config.js` to build and restart the server. Try to avoid doing this.
 You can also push something to master, and then use the deploy script. Note that it'll still take about 5 minutes for the changes to propagate to the dist folder
+
+### Changelog
+The changelog (```./packages/frontend/public/changelog.md``` from project-root) contains a formatted list of feature roll-outs for each deployment update.
+
+Be sure to update this file, the version number in the footer, and set all users' ```readChangeLog``` attributes in the User model of the database to false before finishing deployment updates.
 
 ## Misc
 

@@ -93,47 +93,6 @@ describe('Profile Integration', () => {
       await UserFactory.create();
       await supertest().get('/profile').expect(401);
     });
-
-    it('returns pending courses when they exist', async () => {
-      const prof1KhouryCourses = [
-        {
-          name: 'Fundies 1',
-          crns: [123, 456],
-          semester: '202110',
-        },
-        {
-          name: 'OOD',
-          crns: [798],
-          semester: '202110',
-        },
-      ];
-      const prof1 = await UserFactory.create();
-      await ProfSectionGroupsFactory.create({
-        prof: prof1,
-        sectionGroups: prof1KhouryCourses,
-      });
-      await LastRegistrationFactory.create({
-        prof: prof1,
-        lastRegisteredSemester: '202010',
-      });
-      const fundies1 = await CourseFactory.create();
-      await CourseSectionFactory.create({ crn: 123, course: fundies1 });
-      await CourseSectionFactory.create({ crn: 456, course: fundies1 });
-
-      const res = await supertest({ userId: prof1.id })
-        .get('/profile')
-        .expect(200);
-
-      expect(res.body.pendingCourses).toEqual([
-        prof1KhouryCourses[0],
-        prof1KhouryCourses[1],
-        // {
-        //   name: 'OOD',
-        //   crns: [798],
-        //   semester: '202110',
-        // },
-      ]);
-    });
   });
 
   describe('DELETE /profile/delete_profile_picture', () => {

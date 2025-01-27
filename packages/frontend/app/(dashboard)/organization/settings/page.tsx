@@ -11,13 +11,11 @@ import {
   Row,
   Spin,
   Switch,
-  Upload,
 } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import { ReactElement, useEffect, useState } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { Organization } from '@/app/typings/organization'
-import { organizationApi } from '@/app/api/organizationApi'
 import { API } from '@/app/api'
 import Image from 'next/image'
 import ImageCropperModal from '@/app/(dashboard)/components/ImageCropperModal'
@@ -45,7 +43,7 @@ export default function SettingsPage(): ReactElement {
 
   useEffect(() => {
     const fetchDataAsync = async () => {
-      const response = await organizationApi.getOrganization(
+      const response = await API.organizations.get(
         Number(userInfo?.organization?.orgId) ?? -1,
       )
 

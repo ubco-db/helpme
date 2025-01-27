@@ -64,6 +64,7 @@ import { useChatbotContext } from '../../components/chatbot/ChatbotProvider'
 import CircleButton from './components/CircleButton'
 import JoinZoomNowModal from './components/modals/JoinZoomNowModal'
 import JoinZoomButton from './components/JoinZoomButton'
+import { useUpdateAlertsWhenLastStaffChecksOut } from '@/app/hooks/useUpdateAlertsWhenLastStaffChecksOut'
 
 type QueuePageProps = {
   params: { cid: string; qid: string }
@@ -111,6 +112,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       isStaff,
     )
   const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree)
+  useUpdateAlertsWhenLastStaffChecksOut(cid, queue?.staffList, isStaff)
   const [isJoiningQuestion, setIsJoiningQuestion] = useState(
     queueQuestions &&
       studentQuestions &&
@@ -213,12 +215,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     }
   }, [queueConfig, configTasks, isStaff, queueQuestions, questionTypes])
 
-  const staffCheckedIntoAnotherQueue = course?.queues?.some(
-    (q) =>
-      q.id !== qid &&
-      q.staffList.some((staffMember) => staffMember.id === userInfo.id),
-  )
-
   const studentQuestionId = studentQuestion?.id
   const studentQuestionStatus = studentQuestion?.status
   const studentDemoId = studentDemo?.id
@@ -256,7 +252,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           text: text || '',
           questionTypes: questionTypes,
           queueId: qid,
-          location: (location ?? isQueueHybrid) ? 'Unselected' : undefined,
+          location: location ?? (isQueueHybrid ? 'Unselected' : undefined),
           force: force,
           groupable: false,
           isTaskQuestion,
@@ -296,7 +292,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   )
 
   const joinQueueAfterDeletion = useCallback(
-    (isTaskQuestion: boolean) => {
+    async (isTaskQuestion: boolean) => {
       const question = isTaskQuestion ? studentDemo : studentQuestion
       const id = isTaskQuestion ? studentDemoId : studentQuestionId
       if (id === undefined || question === undefined) {
@@ -304,7 +300,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       }
       // delete the old question and create a new one
       updateQuestionStatus(id, ClosedQuestionStatus.ConfirmedDeleted)
-      createQuestion(
+      await createQuestion(
         question.text,
         question.questionTypes ?? [],
         true,
@@ -575,8 +571,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               <Tooltip
                 title={
                   (queue.isDisabled && 'Cannot check into a disabled queue!') ||
-                  (staffCheckedIntoAnotherQueue &&
-                    'You are already checked into another queue') ||
                   (helpingQuestions &&
                     helpingQuestions.length > 0 &&
                     'You cannot check out while helping a student') ||
@@ -588,9 +582,8 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 <span>
                   <TACheckinButton
                     courseId={cid}
-                    room={queue.room}
+                    queueId={qid}
                     disabled={
-                      staffCheckedIntoAnotherQueue ||
                       (helpingQuestions && helpingQuestions.length > 0) ||
                       (queue.isProfessorQueue && role !== Role.PROFESSOR) ||
                       queue.isDisabled
@@ -624,12 +617,12 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                     onClick={() => setAddStudentsModalOpen(true)}
                     icon={<PlusOutlined />}
                   >
-                    {/* "+ Add Students to Queue" on desktop, "+ Students" on mobile */}
+                    {/* "+ Add Students to Queue" on desktop, "+ Student" on mobile */}
                     <span>
                       <span className="hidden md:inline">
-                        Add Students to Queue
+                        Add Student to Queue
                       </span>
-                      <span className="inline md:hidden">Students</span>
+                      <span className="inline md:hidden">Student</span>
                     </span>
                   </EditQueueButton>
                 </span>
@@ -899,6 +892,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               queueId={qid}
               courseId={cid}
               isQueueHybrid={queue.type === 'hybrid'}
+              isDemoQueue={isDemoQueue}
+              configTasks={configTasks}
+              assignmentId={queueConfig?.assignment_id}
               open={addStudentsModalOpen}
               onAddStudent={() => {
                 mutateQuestions()
