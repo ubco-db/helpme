@@ -108,6 +108,7 @@ export class ProfileController {
       'accountType',
       'emailVerified',
       'chat_token',
+      'readChangeLog',
     ]);
 
     if (userResponse === null || userResponse === undefined) {
@@ -118,7 +119,8 @@ export class ProfileController {
       );
     }
 
-    const pendingCourses = await this.profileService.getPendingCourses(user.id);
+    // this is old code from Khoury College's semester system
+    //const pendingCourses = await this.profileService.getPendingCourses(user.id);
     const userOrganization =
       await this.organizationService.getOrganizationAndRoleByUserId(user.id);
 
@@ -136,7 +138,6 @@ export class ProfileController {
       ...userResponse,
       courses,
       desktopNotifs,
-      pendingCourses,
       organization,
     };
   }
@@ -332,6 +333,25 @@ export class ProfileController {
           }
         },
       );
+    }
+  }
+
+  @Patch('/read_changelog')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  async readChangelogs(
+    @User() user: UserModel,
+    @Res() res: Response,
+  ): Promise<Response> {
+    try {
+      user.readChangeLog = true;
+      await user.save();
+      return res
+        .status(HttpStatus.OK)
+        .send({ message: 'Changelogs read successfully' });
+    } catch (error) {
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .send({ message: 'Error reading changelogs' });
     }
   }
 }

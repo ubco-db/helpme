@@ -129,7 +129,7 @@ export default function TACheckInCheckOutTimes({
         </div>
         {tasWhoAreBusy.length ? (
           <div>
-            <h3>People currently holding office hours:</h3>
+            <h3>Staff currently in queues:</h3>
             {tasWhoAreBusy.map((ta) => (
               <p className="font-bold" key={ta.name}>
                 {ta.name}
@@ -148,10 +148,11 @@ export default function TACheckInCheckOutTimes({
               </p>
             ))}
             <p className="mt-3">
-              Please remind course staff to check out at the end of their
-              session. This way students don&apos;t join a queue thinking that
-              there is still an ongoing session when the course staff has
-              already left
+              Please consider creating some events on the Schedule page and
+              assigning staff to them so that they will automatically be checked
+              out at the end of their session. This way students don&apos;t join
+              a queue thinking that there is still an ongoing session when the
+              course staff has already left
             </p>
           </div>
         ) : null}

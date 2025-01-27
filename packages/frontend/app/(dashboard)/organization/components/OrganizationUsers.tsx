@@ -2,7 +2,7 @@
 
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { GetOrganizationResponse, OrganizationRole } from '@koh/common'
+import { GetOrganizationResponse, OrganizationRole, OrgUser } from '@koh/common'
 import { Alert, Card, message, Modal } from 'antd'
 import { useState } from 'react'
 import UsersTable from './UsersTable'
@@ -11,40 +11,28 @@ interface UsersTableProps {
   organization: GetOrganizationResponse
 }
 
-interface UserData {
-  userId: number
-  firstName: string
-  lastName: string
-  email: string
-  photoUrl: string
-  userRole: string
-  organizationRole: string
-}
-
 const OrganizationUsers: React.FC<UsersTableProps> = ({ organization }) => {
   const { userInfo } = useUserInfo()
   const [isRoleChangeModalVisible, setRoleChangeModalVisible] = useState(false)
-  const [selectedUserData, setSelectedUserData] = useState<UserData | null>(
-    null,
-  )
+  const [selectedUserData, setSelectedUserData] = useState<OrgUser | null>(null)
   const [updatedRole, setUpdatedRole] = useState<OrganizationRole>(
     OrganizationRole.MEMBER,
   )
 
-  const toggleRoleChangeModal = (userData: UserData) => {
+  const toggleRoleChangeModal = (userData: OrgUser) => {
     setSelectedUserData(userData)
     setRoleChangeModalVisible(!isRoleChangeModalVisible)
   }
 
   const prepareAndShowConfirmationModal =
-    (user: UserData) => async (newRole: string) => {
+    (user: OrgUser) => async (newRole: string) => {
       setUpdatedRole(newRole as OrganizationRole)
 
       toggleRoleChangeModal(user)
     }
 
   const updateRole = async () => {
-    const { userId } = selectedUserData as UserData
+    const { userId } = selectedUserData as OrgUser
 
     await API.organizations
       .updateOrganizationUserRole(userInfo.organization?.orgId || -1, {
@@ -55,7 +43,7 @@ const OrganizationUsers: React.FC<UsersTableProps> = ({ organization }) => {
         message.success({
           content: 'Successfully updated user role.',
           onClose: () => {
-            toggleRoleChangeModal(selectedUserData as UserData)
+            toggleRoleChangeModal(selectedUserData as OrgUser)
           },
         })
       })

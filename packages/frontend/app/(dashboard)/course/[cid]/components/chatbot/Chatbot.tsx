@@ -27,8 +27,8 @@ import {
   ChatbotAskResponse,
 } from '@/app/typings/chatbot'
 import { API } from '@/app/api'
-import Markdown from 'react-markdown'
 import MarkdownCustom from '@/app/components/Markdown'
+import Link from 'next/link'
 
 const { TextArea } = Input
 
@@ -96,11 +96,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
     }
     if (userInfo.chat_token) {
       setQuestionsLeft(userInfo.chat_token.max_uses - userInfo.chat_token.used)
-    }
-    return () => {
-      setHelpmeQuestionId(undefined)
-      setInteractionId(undefined)
-      setPreDeterminedQuestions([])
     }
   }, [
     userInfo,
@@ -434,7 +429,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
                       )}
                     </Fragment>
                   ))}
-
                 {preDeterminedQuestions &&
                   !isLoading &&
                   preDeterminedQuestions.map((question) => (
@@ -459,6 +453,19 @@ const Chatbot: React.FC<ChatbotProps> = ({
                   />
                 )}
                 <div ref={messagesEndRef} />
+                {messages.length > 1 && (
+                  <div>
+                    Unhappy with your answer?{' '}
+                    <Link
+                      href={{
+                        pathname: `/course/${cid}/async_centre`,
+                        query: { convertChatbotQ: true },
+                      }}
+                    >
+                      Convert to anytime question
+                    </Link>
+                  </div>
+                )}
               </div>
               <div>
                 <Space.Compact block size="large">

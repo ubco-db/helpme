@@ -2,16 +2,22 @@
 
 ## Saving backups
 
-There are three types of backups:
-- **Semi-Hourly**: Every 3 hours. These are rolling (we only keep 5 days of these). We also only take these from 7am to 10pm.
-- **Daily**: Every day at midnight. These are rolling (we only keep 1 month of these)
-- **Monthly**: The first of every month at midnight. These are kept indefinitely.
+There are three types of database backups and one for the uploads directory in the backend:
+
+- Database
+  - **Semi-Hourly**: Every 3 hours. These are rolling (we only keep 5 days of these). We also only take these from 7am to 10pm.
+  - **Daily**: Every day at midnight. These are rolling (we only keep 1 month of these)
+  - **Monthly**: The first of every month at midnight. These are kept indefinitely.
+- Uploads
+  - **Every 4 Days**: Every day at midnight. These are rolling (we keep the last 12 days worth / the last 3 backups)
 
 All of these can be adjusted easily in backup.service.ts
 
-We are using `pg_dumpall` which back ups both our `prod` as well as our `chatbot` databases.
+For database backups, we are using `pg_dumpall` which back ups both our `prod` as well as our `chatbot` databases.
 
-## Restoring a backup
+For uploads backups, we are simply using `tar` to compress the files of the uploads directory.
+
+## Restoring a database backup
 
 NOTE: my database container name is `helpme-postgresql-1`, you may need to change that in the commands.
 
@@ -25,3 +31,9 @@ This will restore any deleted databases. Any non-deleted database will just tell
 Don't forget to enter the redis container ("Exec" tab), run `redis-cli` and run `flushall` so that redis doesn't have the old data!
 
 Note: You might want to restart the server since routing can get a little messed up after restoring?
+
+Prod's postgres docker container is called `helpme_2024_03_18-postgresql-1`
+
+## Restoring an Uploads Backup
+
+To avoid filename conflicts, delete all files in the uploads folder before beginning the data restoration process. You can do this through an available GUI (decompress the backup) or through the command: `tar -xzf ../../backups/uploads-daily/uploads_backup-YYYY-MM-DD.tar.gz -C ./uploads/`. Bear in mind that this should be run from the ```./packages/server``` directory.
