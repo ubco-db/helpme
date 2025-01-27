@@ -1,11 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
-import {
-  AsyncQuestion,
-  asyncQuestionStatus,
-  Role,
-  UserPartial,
-} from '@koh/common'
+import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common'
 import {
   CheckCircleOutlined,
   DownOutlined,
@@ -22,11 +17,7 @@ import StudentAsyncQuestionCardButtons from './StudentAsyncQuestionCardButtons'
 import { ArrowBigDown, ArrowBigUp } from 'lucide-react'
 import MarkdownCustom from '@/app/components/Markdown'
 import CommentSection from './CommentSection'
-import {
-  getAnonAnimal,
-  getAnonId,
-  getAvatarTooltip,
-} from '../utils/commonAsyncFunctions'
+import { getAnonAnimal, getAvatarTooltip } from '../utils/commonAsyncFunctions'
 import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
 
 const statusDisplayMap = {
@@ -78,12 +69,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     setIsUserShown(isStaff && showStudents)
   }, [isStaff, showStudents])
 
-  const shownUser = isStaff && isUserShown ? question.creator : null
-
-  const anonId = useMemo(
-    () => getAnonId(question.creator.id, question.id),
-    [question.creator.id, question.id],
-  )
+  const anonId = question.creator.anonId
   const anonAnimal = getAnonAnimal(anonId)
 
   const handleFeedback = async (resolved: boolean) => {
@@ -218,14 +204,10 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                       'mr-2 hidden md:flex ' + (isStaff ? 'cursor-pointer' : '')
                     }
                     size={40}
-                    // the colour of the avatar is based on the username
-                    // the name is authorId + questionId % length of ANIMAL_NAMES
-                    // while the colour is just authorId + questionId
                     username={
-                      isUserShown
-                        ? question.creator.name
-                        : (question.creator.id + question.id).toString()
+                      isUserShown ? question.creator.name : 'Anonymous Student'
                     }
+                    colour={question.creator.colour}
                     photoURL={
                       isUserShown
                         ? question.creator.photoURL
@@ -245,10 +227,9 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                     }
                     size={34}
                     username={
-                      isUserShown
-                        ? question.creator.name
-                        : (question.creator.id + question.id).toString()
+                      isUserShown ? question.creator.name : 'Anonymous Student'
                     }
+                    colour={question.creator.colour}
                     photoURL={
                       isUserShown
                         ? question.creator.photoURL

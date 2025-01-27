@@ -2,14 +2,16 @@ import { UserOutlined } from '@ant-design/icons'
 import { Avatar, AvatarProps } from 'antd'
 import React, { ReactElement } from 'react'
 import { useUserInfo } from '../contexts/userContext'
-import { cn, getInitialsFromName, nameToRGB } from '../utils/generalUtils'
+import { cn, getInitialsFromName } from '../utils/generalUtils'
 import Image from 'next/image'
+import { nameToRGB } from '@koh/common'
 
 type SelfAvatarProps = Omit<AvatarProps, 'icon' | 'src'>
 type UserAvatarProps = Omit<AvatarProps, 'icon' | 'src'> & {
   photoURL?: string
   username?: string
   anonymous?: boolean
+  colour?: string // hex colour
 }
 
 export function SelfAvatar({ ...props }: SelfAvatarProps): ReactElement {
@@ -33,6 +35,7 @@ export default function UserAvatar({
   username,
   className,
   anonymous,
+  colour,
   ...props
 }: UserAvatarProps): ReactElement {
   const fontSize =
@@ -47,7 +50,7 @@ export default function UserAvatar({
       style={
         anonymous
           ? {
-              backgroundColor: nameToRGB(username), // using tailwind by doing bg-[${nameToRGB(username)}] does not seem to work
+              backgroundColor: colour ?? nameToRGB(username), // using tailwind by doing bg-[${nameToRGB(username)}] does not seem to work
             }
           : {}
       }

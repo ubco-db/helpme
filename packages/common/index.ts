@@ -581,12 +581,23 @@ export class QuestionGroup {
   //Might want to add a list of students in group so they can be added without a question
 }
 
+export type AsyncCreator = {
+  id?: number
+  anonId: number
+  name?: string
+  photoURL?: string
+  email?: string
+  courseRole: Role
+  isAuthor?: boolean
+  colour: string // hex string (generated from nameToRGB())
+}
+
 /**
  * This AsyncQuestion is one that is already created and not used for sending data to the server (hence why there's no decorators). Used on frontend.
  */
 export type AsyncQuestion = {
   id: number
-  creator: UserPartial
+  creator: AsyncCreator
   questionText?: string
   creatorId?: number
   taHelped?: User
@@ -685,8 +696,7 @@ export class AsyncQuestionComment {
 
   questionId!: number
 
-  @Type(() => UserPartial)
-  creator!: UserPartial
+  creator!: AsyncCreator
 
   commentText!: string
 
@@ -2312,6 +2322,45 @@ export function encodeBase64(str: string) {
 
 export function decodeBase64(str: string) {
   return Buffer.from(str, 'base64').toString('utf-8')
+}
+
+const colorsToBeChosenFromForName = [
+  '#1abc9c',
+  '#2ecc71',
+  '#3498db',
+  '#9b59b6',
+  '#34495e',
+  '#16a085',
+  '#27ae60',
+  '#2980b9',
+  '#8e44ad',
+  '#2c3e50',
+  '#f1c40f',
+  '#e67e22',
+  '#e74c3c',
+  '#95a5a6',
+  '#f39c12',
+  '#d35400',
+  '#c0392b',
+  '#bdc3c7',
+  '#7f8c8d',
+]
+
+export function nameToRGB(
+  str: string,
+  colors: string[] = colorsToBeChosenFromForName,
+): string {
+  if (!str) {
+    throw new Error('Input string cannot be empty')
+  }
+
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i)
+    hash |= 0 // Convert to 32bit integer
+  }
+
+  return colors[Math.abs(hash) % colors.length]
 }
 
 export enum LMSIntegration {

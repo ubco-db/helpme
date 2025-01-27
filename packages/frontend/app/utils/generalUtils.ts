@@ -44,45 +44,6 @@ export function checkNameAgainst(name: string, others: string[]) {
   return others.map((o) => o.toLowerCase()).includes(name.toLowerCase())
 }
 
-const colorsToBeChosenFromForName = [
-  '#1abc9c',
-  '#2ecc71',
-  '#3498db',
-  '#9b59b6',
-  '#34495e',
-  '#16a085',
-  '#27ae60',
-  '#2980b9',
-  '#8e44ad',
-  '#2c3e50',
-  '#f1c40f',
-  '#e67e22',
-  '#e74c3c',
-  '#95a5a6',
-  '#f39c12',
-  '#d35400',
-  '#c0392b',
-  '#bdc3c7',
-  '#7f8c8d',
-]
-
-export function nameToRGB(
-  str: string,
-  colors: string[] = colorsToBeChosenFromForName,
-): string {
-  if (!str) {
-    throw new Error('Input string cannot be empty')
-  }
-
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i)
-    hash |= 0 // Convert to 32bit integer
-  }
-
-  return colors[Math.abs(hash) % colors.length]
-}
-
 /**
  * Convert a string to a hex color
  * @param str {string} The string to convert

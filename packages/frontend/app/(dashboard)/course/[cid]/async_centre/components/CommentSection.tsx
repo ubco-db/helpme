@@ -3,11 +3,8 @@ import { List, Button, Tooltip, message, Input, Popconfirm } from 'antd'
 import Comment from './Comment'
 import moment from 'moment'
 import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { AsyncQuestion, AsyncQuestionComment, Role, User } from '@koh/common'
-import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
-import { getAnonAnimal, getAnonId } from '../utils/commonAsyncFunctions'
+import { AsyncQuestion, AsyncQuestionComment, Role } from '@koh/common'
 import { CommentProps } from '../utils/types'
 import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
 
@@ -35,7 +32,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   )
   const commentsRef = useRef<HTMLDivElement>(null)
   const firstCommentRef = useRef<HTMLDivElement>(null)
-  const { userInfo } = useUserInfo()
   const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
   const [postCommentCancelPopoverOpen, setPostCommentCancelPopoverOpen] =
     useState(false)
@@ -47,8 +43,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     return generateCommentData(
       question.id,
       question.comments,
-      question.creator.id,
-      userInfo,
       isStaff,
       showStudents,
       setIsLockedExpanded,
@@ -58,8 +52,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   }, [
     question.id,
     question.comments,
-    question.creator.id,
-    userInfo,
     isStaff,
     showStudents,
     setIsLockedExpanded,
@@ -210,8 +202,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 function generateCommentData(
   questionId: number,
   comments: AsyncQuestionComment[],
-  questionCreatorId: number,
-  userInfo: User,
   IAmStaff: boolean,
   showStudents: boolean,
   setIsLockedExpanded: (lockedExpanded: boolean) => void,
@@ -223,29 +213,11 @@ function generateCommentData(
 
   const newComments: CommentProps[] = []
   for (const comment of comments) {
-    const isSelf = userInfo.id === comment.creator.id
-    const isAuthor = questionCreatorId === comment.creator.id
-    const anonId = getAnonId(comment.creator.id, questionId)
-    // if any comment already in the list has the same anonId, generate a new one
-    // NOTE: instead of doing this, I have opted for just giving them a different random colour (by setting the username of the UserAvatar to just be the creatorId + questionId)
-    // let retries = 0
-    // while (
-    //   newComments.some(
-    //     (c) => c.authorId !== comment.creator.id && c.authorAnonId === anonId,
-    //   )
-    // ) {
-    //   retries++
-    //   if (retries >= ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES.length) {
-    //     // if we have tried all possible anonIds, just use the same one
-    //     break
-    //   } else {
-    //     anonId = getAnonId(comment.creator.id + retries, questionId)
-    //   }
-    // }
-    const commenterRole = comment.creator.courseRole ?? Role.STUDENT
     newComments.push({
       commentId: comment.id,
       questionId,
+      author: comment.creator,
+      content: comment.commentText,
       onDeleteSuccess: () => {
         // remove the comment from the question object
         const commentIndex = comments.findIndex((c) => c.id === comment.id)
@@ -257,24 +229,11 @@ function generateCommentData(
         comment.commentText = newCommentText
         regenerateComments(!regenerateCommentsFlag)
       },
-      authorId: comment.creator.id,
-      authorAnonId: anonId,
-      authorName: comment.creator.name,
-      // (IAmStaff && showStudents) || isStaffComment
-      //   ? comment.creator.name
-      //   : `Anonymous ${getAnonAnimal(anonId)}`,
-      photoURL: comment.creator.photoURL,
-      // (IAmStaff && showStudents) || isStaffComment
-      //   ? comment.creator.photoURL
-      //   : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${getAnonAnimal(anonId)}.png`,
-      content: comment.commentText,
       datetime: (
         <Tooltip title={new Date(comment.createdAt).toLocaleString()}>
           {getAsyncWaitTime(comment.createdAt)} ago
         </Tooltip>
       ),
-      commenterRole,
-      authorType: isSelf ? 'you' : isAuthor ? 'author' : commenterRole,
       IAmStaff,
       showStudents,
       setIsLockedExpanded,

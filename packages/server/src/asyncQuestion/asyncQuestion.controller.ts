@@ -8,6 +8,8 @@ import {
   MailServiceType,
   AsyncQuestionCommentParams,
   AsyncQuestion,
+  nameToRGB,
+  AsyncCreator,
 } from '@koh/common';
 import {
   Body,
@@ -482,8 +484,10 @@ export class asyncQuestionController {
     comment.creator = {
       id: user.id,
       name: user.name,
+      colour: nameToRGB(Math.abs(user.id - qid).toString()),
+      anonId: getAnonId(user.id, qid),
       photoURL: user.photoURL,
-    } as unknown as UserModel;
+    } as AsyncCreator as unknown as UserModel;
 
     res.status(HttpStatus.CREATED).send(comment);
   }
@@ -740,16 +744,26 @@ export class asyncQuestionController {
           commenterRole !== Role.STUDENT
             ? ({
                 id: comment.creator.id,
+                anonId: getAnonId(comment.creator.id, question.id),
+                colour: nameToRGB(
+                  Math.abs(comment.creatorId - question.id).toString(),
+                ),
                 name: comment.creator.name,
                 photoURL: comment.creator.photoURL,
+                isAuthor: comment.creator.id === question.creatorId,
                 courseRole: commenterRole,
-              } as unknown as UserModel)
+                // this is an AsyncCreator but I'm casting it to UserModel so typescript doesn't get mad
+              } as AsyncCreator as unknown as UserModel)
             : ({
-                id: comment.creator.id,
-                name: 'Anonymous',
+                // don't send user name, pfp, nor userid to frontend
+                anonId: getAnonId(comment.creator.id, question.id),
+                colour: nameToRGB(
+                  Math.abs(comment.creatorId - question.id).toString(),
+                ),
                 photoURL: null,
+                isAuthor: comment.creator.id === question.creatorId,
                 courseRole: commenterRole,
-              } as unknown as UserModel);
+              } as AsyncCreator as unknown as UserModel);
 
         return temp as unknown as AsyncQuestionCommentModel;
       });
@@ -760,11 +774,18 @@ export class asyncQuestionController {
           isStaff || question.creator.id == userId
             ? {
                 id: question.creator.id,
+                anonId: getAnonId(question.creator.id, question.id),
+                colour: nameToRGB(
+                  Math.abs(question.creator.id - question.id).toString(),
+                ),
                 name: question.creator.name,
                 photoURL: question.creator.photoURL,
               }
             : {
-                id: question.creator.id,
+                anonId: getAnonId(question.creator.id, question.id),
+                colour: nameToRGB(
+                  Math.abs(question.creator.id - question.id).toString(),
+                ),
                 name: 'Anonymous',
                 photoURL: null,
               },
@@ -776,4 +797,14 @@ export class asyncQuestionController {
     res.status(HttpStatus.OK).send(questions);
     return;
   }
+}
+
+/**
+ * Takes in a userId and async questionId and hashes them to return a random index from ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
+ * Note that 70 is the length of ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
+ * I have opted to hard-code it since I don't want to put that giant array here and it's unlikely to change
+ */
+function getAnonId(userId: number, questionId: number) {
+  const hash = userId + questionId;
+  return hash % 70;
 }

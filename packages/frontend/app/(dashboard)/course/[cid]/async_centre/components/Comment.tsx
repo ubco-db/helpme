@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import { API } from '@/app/api'
 import { getAnonAnimal, getAvatarTooltip } from '../utils/commonAsyncFunctions'
 import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 const { TextArea } = Input
 
@@ -32,44 +33,46 @@ const DISPLAY_TEXT_AS = {
 const Comment: React.FC<CommentProps> = ({
   commentId,
   questionId,
+  author,
+  content,
   onDeleteSuccess,
   onEditSuccess,
   setIsLockedExpanded,
+  datetime,
   IAmStaff,
   showStudents,
-  authorName,
-  photoURL,
-  authorId,
-  authorAnonId,
-  content,
-  datetime,
-  commenterRole,
-  authorType,
 }) => {
+  const { userInfo } = useUserInfo()
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [newContent, setNewContent] = useState(content)
   const [editLoading, setEditLoading] = useState(false)
   const [isUserShown, setIsUserShown] = useState(
     (IAmStaff && showStudents) ||
-      commenterRole === Role.PROFESSOR ||
-      commenterRole === Role.TA,
+      author.courseRole === Role.PROFESSOR ||
+      author.courseRole === Role.TA,
   )
+  const isSelf = userInfo.id === author.id // comment.creator.id is only defined if they're staff or if its you (or if you are staff)
+  const authorType = isSelf
+    ? 'you'
+    : author.isAuthor
+      ? 'author'
+      : author.courseRole
 
   useEffect(() => {
     setIsUserShown(
       (IAmStaff && showStudents) ||
-        commenterRole === Role.PROFESSOR ||
-        commenterRole === Role.TA,
+        author.courseRole === Role.PROFESSOR ||
+        author.courseRole === Role.TA,
     )
-  }, [IAmStaff, commenterRole, showStudents])
+  }, [IAmStaff, author.courseRole, showStudents])
 
   const avatarTooltipTitle = getAvatarTooltip(
     IAmStaff,
     showStudents,
     authorType,
   )
-  const anonAnimal = getAnonAnimal(authorAnonId)
+  const anonAnimal = getAnonAnimal(author.anonId)
 
   return (
     <div className="overflow-auto border-b border-gray-200 py-3">
@@ -79,25 +82,29 @@ const Comment: React.FC<CommentProps> = ({
         <Tooltip title={avatarTooltipTitle}>
           <UserAvatar
             className={
-              IAmStaff && commenterRole === Role.STUDENT ? 'cursor-pointer' : ''
+              IAmStaff && author.courseRole === Role.STUDENT
+                ? 'cursor-pointer'
+                : ''
             }
             size={40}
             // the colour of the avatar is based on the username
             // the name is authorId + questionId % length of ANIMAL_NAMES
             // while the colour is just authorId + questionId
-            username={
-              isUserShown ? authorName : (questionId + authorId).toString()
-            }
+            username={isUserShown ? author.name : 'Anonymous Student'}
+            colour={author.colour}
             photoURL={
               isUserShown
-                ? photoURL
+                ? author.photoURL
                 : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${anonAnimal}.png`
             }
             anonymous
             onClick={(e) => {
               if (
                 IAmStaff &&
-                !(commenterRole === Role.PROFESSOR || commenterRole === Role.TA)
+                !(
+                  author.courseRole === Role.PROFESSOR ||
+                  author.courseRole === Role.TA
+                )
               ) {
                 e?.stopPropagation()
                 setIsUserShown(!isUserShown)
@@ -111,22 +118,26 @@ const Comment: React.FC<CommentProps> = ({
         <Tooltip title={avatarTooltipTitle}>
           <UserAvatar
             className={
-              IAmStaff && commenterRole === Role.STUDENT ? 'cursor-pointer' : ''
+              IAmStaff && author.courseRole === Role.STUDENT
+                ? 'cursor-pointer'
+                : ''
             }
             size={34}
-            username={
-              isUserShown ? authorName : (questionId + authorId).toString()
-            }
+            username={isUserShown ? author.name : 'Anonymous Student'}
+            colour={author.colour}
             photoURL={
               isUserShown
-                ? photoURL
+                ? author.photoURL
                 : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${anonAnimal}.png`
             }
             anonymous
             onClick={(e) => {
               if (
                 IAmStaff &&
-                !(commenterRole === Role.PROFESSOR || commenterRole === Role.TA)
+                !(
+                  author.courseRole === Role.PROFESSOR ||
+                  author.courseRole === Role.TA
+                )
               ) {
                 e?.stopPropagation()
                 setIsUserShown(!isUserShown)
@@ -209,7 +220,7 @@ const Comment: React.FC<CommentProps> = ({
         <div className=" flex items-center">
           {/* Author */}
           <span className="mr-1 text-sm font-semibold italic text-gray-500">
-            {isUserShown ? authorName : `Anonymous ${anonAnimal}`}
+            {isUserShown ? author.name : `Anonymous ${anonAnimal}`}
           </span>
           <span className={cn('mr-2', COLOR_CODING[authorType])}>
             <span className="hidden md:inline">

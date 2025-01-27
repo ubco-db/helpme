@@ -49,14 +49,6 @@ export function getAnonAnimal(anonId: number) {
   return ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES[anonId]
 }
 
-/**
- * Takes in a userId and questionId and hashes them to return a random index from ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
- */
-export function getAnonId(userId: number, questionId: number) {
-  const hash = userId + questionId
-  return hash % ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES.length
-}
-
 // export function getAnonNumber(userId: number, questionId: number) {
 //   const hash = userId + questionId
 //   return (hash % 99) + 1
