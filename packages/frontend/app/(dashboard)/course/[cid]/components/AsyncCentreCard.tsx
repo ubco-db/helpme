@@ -4,7 +4,7 @@ import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { Badge, Card } from 'antd'
 import Link from 'next/link'
-import React, { ReactElement, useEffect, useState } from 'react'
+import React, { ReactElement, use, useEffect, useState } from 'react'
 
 interface AsyncCentreCardProps {
   cid: number
@@ -15,19 +15,10 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
   cid,
   linkId,
 }): ReactElement => {
-  const [unreadCount, setUnreadCount] = useState<number>(0)
   const { userInfo } = useUserInfo()
 
-  useEffect(() => {
-    if (userInfo) {
-      const count = userInfo.courses.find(
-        (c) => c.course.id === cid,
-      )?.unreadCount
-      if (count) {
-        setUnreadCount(count)
-      }
-    }
-  }, [userInfo])
+  const unreadCount =
+    userInfo.courses.find((c) => c.course.id === cid)?.unreadCount || 0
 
   return (
     <Link

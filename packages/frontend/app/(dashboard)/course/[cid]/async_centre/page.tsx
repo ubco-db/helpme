@@ -104,7 +104,10 @@ export default function AsyncCentrePage({
 
   // This endpoint will be called to update unread count back to 0 when this page is entered
   useEffect(() => {
-    API.course.updateUnreadAsyncCount(courseId)
+    if (
+      userInfo.courses.find((e) => e.course.id === courseId)?.unreadCount !== 0
+    )
+      API.course.updateUnreadAsyncCount(courseId)
   }, [])
 
   useEffect(() => {
