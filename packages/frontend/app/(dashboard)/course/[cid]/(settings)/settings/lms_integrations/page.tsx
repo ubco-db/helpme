@@ -4,11 +4,11 @@ import {
   Badge,
   Button,
   Card,
-  Descriptions,
   Divider,
   List,
   message,
   Modal,
+  Statistic,
   Tabs,
   Tooltip,
 } from 'antd'
@@ -225,6 +225,35 @@ export default function CourseLMSIntegrationPage({
     [announcements, assignments],
   )
 
+  const ableToSync = useMemo(
+    () => [
+      ...assignments.filter(
+        (a) =>
+          (a.description != undefined && a.description != '') ||
+          a.due != undefined,
+      ),
+      ...announcements,
+    ],
+    [announcements, assignments],
+  )
+
+  const unableToSync = useMemo(
+    () => [
+      ...assignments.filter(
+        (a) =>
+          (a.description == undefined || a.description == '') &&
+          a.due == undefined,
+      ),
+      ...announcements.filter((a) => !a),
+    ],
+    [assignments, announcements],
+  )
+
+  const failedToSync = useMemo(
+    () => ableToSync.filter((a) => a.uploaded == undefined),
+    [ableToSync],
+  )
+
   if (isLoading) {
     return <CenteredSpinner tip={'Loading...'} />
   }
@@ -332,6 +361,7 @@ export default function CourseLMSIntegrationPage({
             type={'Assignment'}
             documents={assignments}
             loadingLMSData={isLoading}
+            lmsSynchronize={integration.lmsSynchronize}
           />
         ),
       })
@@ -345,10 +375,12 @@ export default function CourseLMSIntegrationPage({
             type={'Announcement'}
             documents={announcements}
             loadingLMSData={isLoading}
+            lmsSynchronize={integration.lmsSynchronize}
           />
         ),
       })
     }
+
     const card = (
       <Card title={'Learning Management System'}>
         <div className={'flex flex-col gap-4'}>
@@ -404,27 +436,25 @@ export default function CourseLMSIntegrationPage({
           </div>
           {!integration.isExpired && course != undefined && (
             <>
-              <div className={'grid grid-cols-5 gap-2'}>
-                <div className={'col-span-3 '}>
-                  <Descriptions
-                    size={'middle'}
-                    layout={'vertical'}
-                    bordered={true}
-                    items={[
-                      {
-                        label: 'API Course ID',
-                        children: integration.apiCourseId,
-                      },
-                      {
-                        label: 'Course Name (Course Code)',
-                        children: `${course.name} (${course.code})`,
-                      },
-                      {
-                        label: 'Student Count',
-                        children: course.studentCount,
-                      },
-                    ]}
-                  />
+              <div className={'grid grid-cols-4 gap-2'}>
+                <div className={'col-span-2'}>
+                  <Card title={'Course Details'}>
+                    <div className={'flex flex-col gap-4'}>
+                      <Statistic
+                        title={'API Course ID'}
+                        groupSeparator={''}
+                        value={integration.apiCourseId}
+                      />
+                      <Statistic title={'Course Name'} value={course.name} />
+                      <Statistic
+                        title={'Student Count'}
+                        value={course.studentCount}
+                        suffix={
+                          course.studentCount > 1 ? 'students' : 'student'
+                        }
+                      />
+                    </div>
+                  </Card>
                 </div>
                 <div className={'col-span-2'}>
                   <Card title={'Synchronization Options'}>
@@ -448,10 +478,17 @@ export default function CourseLMSIntegrationPage({
                           {integration.apiPlatform} Synchronization
                         </Button>
                       </div>
-                      <div>
-                        <Badge count={outOfDateDocumentsCount} showZero={false}>
+                      <div className={'mt-2'}>
+                        <Badge
+                          count={
+                            integration.lmsSynchronize
+                              ? outOfDateDocumentsCount + failedToSync.length
+                              : 0
+                          }
+                          showZero={false}
+                        >
                           <Tooltip
-                            title={`Force sychronization of data with ${integration.apiPlatform}. If visible, the red badge indicates how many documents are observed to be out-of-date.`}
+                            title={`Force sychronization of data with ${integration.apiPlatform}. If visible, the red badge indicates how many documents are observed to be out-of-date and how many documents are unsynchronized.`}
                           >
                             <Button
                               size={'large'}
@@ -474,6 +511,40 @@ export default function CourseLMSIntegrationPage({
                           </Tooltip>
                         </Badge>
                       </div>
+                      {integration.lmsSynchronize && (
+                        <div className={'flex flex-row items-center gap-1'}>
+                          {ableToSync.length - failedToSync.length > 0 && (
+                            <Badge
+                              color={'green'}
+                              count={`${
+                                ableToSync.length - failedToSync.length < 10
+                                  ? ableToSync.length - failedToSync.length
+                                  : '9+'
+                              } Synced`}
+                            />
+                          )}
+                          {unableToSync.length > 0 && (
+                            <Badge
+                              color={'yellow'}
+                              count={`${
+                                unableToSync.length < 10
+                                  ? unableToSync.length
+                                  : '9+'
+                              } Cannot Be Synced`}
+                            />
+                          )}
+                          {failedToSync.length > 0 && (
+                            <Badge
+                              color={'red'}
+                              count={`${
+                                failedToSync.length < 10
+                                  ? failedToSync.length
+                                  : '9+'
+                              } Not Synced`}
+                            />
+                          )}
+                        </div>
+                      )}
                       <div className={'mt-4 flex flex-col gap-2 text-gray-500'}>
                         <p>
                           By enabling synchronization with{' '}

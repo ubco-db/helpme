@@ -1,13 +1,14 @@
 import { SearchOutlined } from '@ant-design/icons'
 import { LMSAnnouncement, LMSAssignment } from '@koh/common'
 import { Badge, Collapse, Input, List, Pagination, Spin } from 'antd'
-import { useCallback, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { cn } from '@/app/utils/generalUtils'
 
 type LMSDocumentListProps<T> = {
   type: 'Assignment' | 'Announcement'
   documents: T[]
   loadingLMSData?: boolean
+  lmsSynchronize?: boolean
 }
 
 type LMSDocumentListColumn = {
@@ -21,74 +22,71 @@ type LMSDocumentListColumn = {
 
 export default function LMSDocumentList<
   T extends LMSAssignment | LMSAnnouncement,
->({ type, documents, loadingLMSData = false }: LMSDocumentListProps<T>) {
+>({
+  type,
+  documents,
+  loadingLMSData = false,
+  lmsSynchronize,
+}: LMSDocumentListProps<T>) {
   const [page, setPage] = useState(1)
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
 
-  const getStatusCell = useCallback(
-    (item: T) => {
-      const isOutOfDate =
-        item != undefined &&
-        item.modified != undefined &&
-        item.uploaded != undefined &&
-        new Date(item.uploaded).getTime() < new Date(item.modified).getTime()
+  const getNameCell = (item: T) => {
+    const isOutOfDate =
+      item != undefined &&
+      item.modified != undefined &&
+      item.uploaded != undefined &&
+      new Date(item.uploaded).getTime() < new Date(item.modified).getTime()
 
-      const saved = item.uploaded != undefined && (
+    let ineligible = false
+    if (type == 'Assignment') {
+      const asAssignment = item as LMSAssignment
+      ineligible =
+        (asAssignment.description == undefined ||
+          asAssignment.description == '') &&
+        asAssignment.due == undefined
+    }
+
+    return (
+      <div className={'flex w-full flex-row items-center justify-between'}>
         <div className={'flex flex-col gap-1'}>
-          <div className={'font-semibold'}>Synchronized with HelpMe</div>
-          <div>Last update: {new Date(item.uploaded).toLocaleDateString()}</div>
-        </div>
-      )
-
-      const ineligible =
-        type == 'Assignment' &&
-        (!('due' in item) ||
-          !('description' in item) ||
-          ('description' in item &&
-            item.description.trim() == '' &&
-            !('due' in item)))
-      return (
-        <div className={'flex flex-col gap-2'}>
-          {isOutOfDate ? (
-            <Badge.Ribbon color={'red'} text={'Out of Date!'}>
-              {saved}
-            </Badge.Ribbon>
-          ) : (
-            saved
-          )}
-          {ineligible ? (
-            <div className={'italic'}>
-              Cannot be synchronized (no relevant information)
-            </div>
-          ) : (
-            item.uploaded == undefined && (
-              <div className={'font-semibold italic'}>
-                Not synchronized with HelpMe
-              </div>
-            )
+          <span className={'font-semibold'}>
+            {'name' in item ? item.name : 'title' in item ? item.title : ''}
+          </span>
+          {lmsSynchronize && (
+            <Badge
+              color={
+                ineligible
+                  ? 'yellow'
+                  : item.uploaded != undefined
+                    ? 'green'
+                    : 'red'
+              }
+              count={
+                ineligible
+                  ? "Can't Sync"
+                  : item.uploaded != undefined
+                    ? 'Synced'
+                    : 'Not Synced'
+              }
+            />
           )}
         </div>
-      )
-    },
-    [type],
-  )
+        {isOutOfDate && <Badge count={'Out of Date'} />}
+      </div>
+    )
+  }
 
   const columns = useMemo(() => {
     switch (type) {
       case 'Announcement':
         return [
           {
-            dataIndex: 'id',
-            header: 'Announcement ID',
-            cellFormat: (item: number) => item,
-            colSpan: 1,
-          },
-          {
             dataIndex: 'title',
             header: 'Title',
-            cellFormat: (item: string) => item,
-            colSpan: 1,
+            cellFormat: (item: T) => getNameCell(item),
+            colSpan: 2,
           },
           {
             dataIndex: 'posted',
@@ -112,25 +110,13 @@ export default function LMSDocumentList<
               )) || <i>No message</i>,
             colSpan: 3,
           },
-          {
-            dataIndex: 'status',
-            header: 'Status',
-            cellFormat: (item: T) => getStatusCell(item),
-            colSpan: 1,
-          },
         ] as LMSDocumentListColumn[]
       case 'Assignment':
         return [
           {
-            dataIndex: 'id',
-            header: 'Assignment ID',
-            cellFormat: (item: number) => item,
-            colSpan: 1,
-          },
-          {
             dataIndex: 'name',
             header: 'Name',
-            cellFormat: (item: string) => item,
+            cellFormat: (item: T) => getNameCell(item),
             colSpan: 2,
           },
           {
@@ -159,17 +145,11 @@ export default function LMSDocumentList<
               )) || <i>No description</i>,
             colSpan: 4,
           },
-          {
-            dataIndex: 'status',
-            header: 'Status',
-            cellFormat: (item: T) => getStatusCell(item),
-            colSpan: 1,
-          },
         ] as LMSDocumentListColumn[]
       default:
         return []
     }
-  }, [getStatusCell, type])
+  }, [getNameCell, type])
 
   const ncols = useMemo(
     () => columns.reduce((acc, column) => acc + column.colSpan, 0),
@@ -249,7 +229,7 @@ export default function LMSDocumentList<
               <div
                 key={`header-col-${index}`}
                 className={cn(
-                  'border border-gray-200 p-4',
+                  'border border-gray-200 p-2',
                   col.colSpan == 2 ? 'col-span-2' : '',
                   col.colSpan == 3 ? 'col-span-3' : '',
                   col.colSpan == 4 ? 'col-span-4' : '',
@@ -266,15 +246,17 @@ export default function LMSDocumentList<
               <div
                 key={`column-${index}`}
                 className={cn(
-                  'flex items-center justify-between border border-gray-100 p-4',
+                  'border border-gray-100 p-2',
                   col.colSpan == 2 ? 'col-span-2' : '',
                   col.colSpan == 3 ? 'col-span-3' : '',
                   col.colSpan == 4 ? 'col-span-4' : '',
                 )}
               >
-                <div>
+                <div className={'flex w-full items-center justify-between'}>
                   {col.cellFormat(
-                    col.dataIndex == 'status' ? item : item[col.dataIndex],
+                    col.dataIndex == 'name' || col.dataIndex == 'title'
+                      ? item
+                      : item[col.dataIndex],
                   )}
                 </div>
               </div>
