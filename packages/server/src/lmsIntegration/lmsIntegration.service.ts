@@ -13,7 +13,6 @@ import {
   LMSOrganizationIntegrationPartial,
   LMSAssignment,
   LMSAnnouncement,
-  isProd,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
@@ -614,12 +613,10 @@ export class LMSIntegrationService {
       }
     };
 
-    const baseUrl = isProd() ? 'http://chatbot:3003' : 'http://localhost:3003';
-
     return await fetch(
       'chatbotDocumentId' in item && item.chatbotDocumentId != undefined
-        ? `${baseUrl}/chat/${courseId}/${item.chatbotDocumentId}/documentChunk`
-        : `${baseUrl}/chat/${courseId}/documentChunk`,
+        ? `http://localhost:3003/chat/${courseId}/${item.chatbotDocumentId}/documentChunk`
+        : `http://localhost:3003/chat/${courseId}/documentChunk`,
       reqOptions,
     )
       .then(thenFx)
@@ -673,10 +670,8 @@ export class LMSIntegrationService {
       }
     };
 
-    const baseUrl = isProd() ? 'http://chatbot:3003' : 'http://localhost:3003';
-
     return await fetch(
-      `${baseUrl}/chat/${courseId}/documentChunk/${item.chatbotDocumentId}`,
+      `http://localhost:3003/chat/${courseId}/documentChunk/${item.chatbotDocumentId}`,
       reqOptions,
     )
       .then(thenFx)
