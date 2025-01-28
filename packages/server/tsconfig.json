@@ -1,17 +1,18 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "node16", // We are on node 20, so we follow https://github.com/microsoft/TypeScript/wiki/Node-Target-Mapping
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "es2017",
+    "target": "ES2023",
     "sourceMap": true,
     "baseUrl": "./src",
     "outDir": "./dist",
     "incremental": true,
     "skipLibCheck": true,
+    "lib": ["ES2023"],
     "strictNullChecks": false,
     "inlineSources": true,
 
