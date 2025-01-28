@@ -1153,20 +1153,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   leaveQueue={() => leaveQueue(true)}
                   rejoinQueue={() => rejoinQueue(true)}
                 />
-                <JoinZoomNowModal
-                  taName={studentQuestion?.taHelped?.name}
-                  open={
-                    ((queue.type === 'hybrid' && // Forces student to join zoom or requeue themselves if they are not ready
-                      studentQuestion?.location === 'Online') || // Modal closes in either case
-                      queue.type === 'online') &&
-                    !clickedZoomModal &&
-                    studentQuestion?.status === OpenQuestionStatus.Helping
-                  }
-                  notes={queue?.notes}
-                  zoomLink={queue.zoomLink ?? course?.zoomLink}
-                  onJoin={() => setClickedZoomModal(true)}
-                  setRequeuing={() => setRequeuing(false)}
-                />
               </>
             )}
             {((studentQuestion &&
