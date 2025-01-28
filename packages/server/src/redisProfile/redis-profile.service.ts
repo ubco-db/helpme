@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { RedisService } from 'nestjs-redis';
 import { Redis } from 'ioredis';
-import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import * as zlib from 'zlib';
 import { GetProfileResponse } from '@koh/common';
 
@@ -22,15 +21,21 @@ export class RedisProfileService {
 
   async updateProfile(
     key: string,
-    profileResponse: AsyncQuestionModel,
+    profileResponse: GetProfileResponse,
   ): Promise<void> {
     const jsonStr = JSON.stringify(profileResponse);
+
+    // Compress data since base64 encoding adds ~33% overhead
     const compressedData = zlib.gzipSync(jsonStr);
     const base64Encoded = compressedData.toString('base64');
 
     await this.redis.hset(key, profileResponse.id, base64Encoded);
   }
 
+  /**
+   * Deletes a profile from cache given that hash set's key
+   * @param key {string} The key name to specific profile from cache
+   */
   async deleteProfile(
     key: string,
     profileResponse: GetProfileResponse,
@@ -38,6 +43,10 @@ export class RedisProfileService {
     await this.redis.hdel(key, profileResponse.id.toString());
   }
 
+  /**
+   * Adds a profile to cache given that hash set's key
+   * @param key {string} The key name to specific profile from cache
+   */
   async addProfile(
     key: string,
     profileResponse: GetProfileResponse,
@@ -50,9 +59,9 @@ export class RedisProfileService {
   }
 
   /**
-   * Get async questions from the redis cache
-   * @param key {string} The key name to get async questions from cache
-   * @returns {Promise<Record<string, AsyncQuestionModel>>} A promise that resolves with the async questions from cache
+   * Fetches profile data from cache
+   * @param key {string} The key name to specific profile from cache
+   * @returns {Promise<Record<string, AsyncQuestionModel>>} A promise that resolves with the user data response from cache
    */
   async getKey(key: string): Promise<Record<string, any>> {
     const data = await this.redis.hgetall(key);
@@ -68,6 +77,10 @@ export class RedisProfileService {
     return result;
   }
 
+  /**
+   * Removes the whole hash set from cache
+   * @param key {string} The key name to delete from cache
+   */
   async deleteKey(key: string): Promise<void> {
     await this.redis.del(key);
   }

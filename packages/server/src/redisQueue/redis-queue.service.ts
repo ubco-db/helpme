@@ -97,6 +97,8 @@ export class RedisQueueService {
     asyncQuestion: AsyncQuestionModel,
   ): Promise<void> {
     const jsonStr = JSON.stringify(asyncQuestion);
+
+    // Compress data since base64 encoding adds ~33% overhead
     const compressedData = zlib.gzipSync(jsonStr);
     const base64Encoded = compressedData.toString('base64');
 
