@@ -30,6 +30,7 @@ import { setupIntegrationTest } from './util/testUtils';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { QuestionModel } from 'question/question.entity';
 
 describe('Course Integration', () => {
   const supertest = setupIntegrationTest(CourseModule);
@@ -1990,6 +1991,85 @@ describe('Course Integration', () => {
 
       expect(resp.status).toBe(200);
       expect(resp.body).toEqual([
+        {
+          id: student2.id,
+          name: student2.firstName + ' ' + student2.lastName,
+        },
+        {
+          id: student3.id,
+          name: student3.firstName + ' ' + student3.lastName,
+        },
+      ]);
+    });
+    it('should return all students not in a queue with a task question (or vise-versa with regular questions)', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create({ firstName: 'professor' });
+      const student1 = await UserFactory.create({ firstName: 'student1' });
+      const student2 = await UserFactory.create({ firstName: 'student2' });
+      const student3 = await UserFactory.create({ firstName: 'student3' });
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: student1,
+        role: Role.STUDENT,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: student2,
+        role: Role.STUDENT,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: student3,
+        role: Role.STUDENT,
+        course: course,
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+        courseId: course.id,
+      });
+      await QuestionFactory.create({
+        queue: queue,
+        status: QuestionStatusKeys.Queued,
+        creatorId: student1.id,
+        creator: student1,
+      });
+      await QuestionFactory.create({
+        queue: queue,
+        status: QuestionStatusKeys.Resolved,
+        creator: student2,
+        creatorId: student2.id,
+      });
+      await QuestionFactory.create({
+        queue: queue,
+        status: QuestionStatusKeys.Queued,
+        creator: student3,
+        creatorId: student3.id,
+        isTaskQuestion: true,
+      });
+      const resp = await supertest({ userId: professor.id }).get(
+        `/courses/${course.id}/students_not_in_queue?with_a_task_question=true`,
+      );
+      expect(resp.status).toBe(200);
+      expect(resp.body).toEqual([
+        {
+          id: student1.id,
+          name: student1.firstName + ' ' + student1.lastName,
+        },
+        {
+          id: student2.id,
+          name: student2.firstName + ' ' + student2.lastName,
+        },
+      ]);
+      const resp2 = await supertest({ userId: professor.id }).get(
+        `/courses/${course.id}/students_not_in_queue?with_a_task_question=false`,
+      );
+
+      expect(resp2.status).toBe(200);
+      expect(resp2.body).toEqual([
         {
           id: student2.id,
           name: student2.firstName + ' ' + student2.lastName,

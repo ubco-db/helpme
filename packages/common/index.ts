@@ -1885,11 +1885,13 @@ export interface StudentTaskProgressWithUser {
   taskProgress: StudentTaskProgress
 }
 
+export interface AssignmentProgressWithUser {
+  userDetails: UserPartial
+  assignmentProgress: StudentAssignmentProgress
+}
+
 export interface AllStudentAssignmentProgress {
-  [userId: number]: {
-    userDetails: UserPartial
-    assignmentProgress: StudentAssignmentProgress
-  }
+  [userId: number]: AssignmentProgressWithUser
 }
 
 /**
