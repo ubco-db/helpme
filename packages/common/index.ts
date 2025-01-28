@@ -2324,7 +2324,8 @@ export function decodeBase64(str: string) {
   return Buffer.from(str, 'base64').toString('utf-8')
 }
 
-const colorsToBeChosenFromForName = [
+// TODO: Delete these old pfp colours on a new semester. They are only left here so that people's current colour won't randomly change
+export const classicPFPColours = [
   '#1abc9c',
   '#2ecc71',
   '#3498db',
@@ -2346,9 +2347,63 @@ const colorsToBeChosenFromForName = [
   '#7f8c8d',
 ]
 
+// colours pallet extended with names courtesy of o1
+const extendedPFPColours = [
+  '#1abc9c', // Turquoise
+  '#2ecc71', // Emerald
+  '#3498db', // Peter River
+  '#9b59b6', // Amethyst
+  '#34495e', // Wet Asphalt
+  '#16a085', // Green Sea
+  '#27ae60', // Nephritis
+  '#2980b9', // Belize Hole
+  '#8e44ad', // Wisteria
+  '#2c3e50', // Midnight Blue
+  '#f1c40f', // Sun Flower
+  '#e67e22', // Carrot
+  '#e74c3c', // Alizarin
+  '#95a5a6', // Concrete
+  '#f39c12', // Orange
+  '#d35400', // Pumpkin
+  '#c0392b', // Pomegranate
+  '#bdc3c7', // Silver
+  '#7f8c8d', // Asbestos
+  '#6C3483', // Dark Purple
+  '#154360', // Deep Navy
+  '#7D6608', // Dark Gold
+  '#6E2C00', // Brown
+  '#4A235A', // Purple
+  '#512E5F', // Grape
+  '#4D5656', // Slate Gray
+  '#5D6D7E', // Grayish Blue
+  '#2E4053', // Grayish Navy
+  '#78281F', // Dark Red
+  '#9C640C', // Dark Ochre
+  '#145A32', // Forest Green
+  '#21618C', // Steel Blue
+  '#9B1B1B', // Maroon
+  '#7A613E', // Cocoa
+  '#5B2C6F', // Dark Orchid
+  '#1B4F72', // Navy Teal
+  '#873600', // Burnt Orange
+  '#7B241C', // Earth Red
+  '#943126', // Redwood
+  '#239B56', // Jade
+  '#17202A', // Carbon
+  '#1F618D', // Dusk Blue
+  '#2E86C1', // Cerulean
+  '#85C1E9', // Light Cerulean
+  '#F5B041', // Light Orange
+  '#B7950B', // Mustard
+  '#7E5109', // Toffee
+  '#A93226', // Crimson
+  '#5A2E2E', // Ruby Brown
+  '#0097A7', // Dark Teal
+]
+
 export function nameToRGB(
   str: string,
-  colors: string[] = colorsToBeChosenFromForName,
+  colors: string[] = extendedPFPColours,
 ): string {
   if (!str) {
     throw new Error('Input string cannot be empty')

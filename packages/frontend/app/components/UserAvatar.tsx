@@ -4,7 +4,7 @@ import React, { ReactElement } from 'react'
 import { useUserInfo } from '../contexts/userContext'
 import { cn, getInitialsFromName } from '../utils/generalUtils'
 import Image from 'next/image'
-import { nameToRGB } from '@koh/common'
+import { classicPFPColours, nameToRGB } from '@koh/common'
 
 type SelfAvatarProps = Omit<AvatarProps, 'icon' | 'src'>
 type UserAvatarProps = Omit<AvatarProps, 'icon' | 'src'> & {
@@ -50,7 +50,7 @@ export default function UserAvatar({
       style={
         anonymous
           ? {
-              backgroundColor: colour ?? nameToRGB(username), // using tailwind by doing bg-[${nameToRGB(username)}] does not seem to work
+              backgroundColor: colour ?? nameToRGB(username, classicPFPColours), // using tailwind by doing bg-[${nameToRGB(username)}] does not seem to work
             }
           : {}
       }
@@ -80,7 +80,7 @@ export default function UserAvatar({
   ) : username ? (
     <Avatar
       style={{
-        backgroundColor: nameToRGB(username), // using tailwind by doing bg-[${nameToRGB(username)}] does not seem to work
+        backgroundColor: nameToRGB(username, classicPFPColours), // using tailwind by doing bg-[${nameToRGB(username)}] does not seem to work
         fontSize: `${fontSize}px`,
       }}
       className={cn(`font-normal`, className)}

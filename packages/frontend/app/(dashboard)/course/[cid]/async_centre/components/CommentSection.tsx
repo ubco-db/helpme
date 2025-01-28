@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { List, Button, Tooltip, message, Input, Popconfirm } from 'antd'
 import Comment from './Comment'
 import moment from 'moment'
@@ -14,24 +14,19 @@ interface CommentSectionProps {
   userCourseRole: Role
   question: AsyncQuestion
   setIsLockedExpanded: (isLocked: boolean) => void
-  showAllComments: boolean
   showStudents: boolean
+  className?: string
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({
   userCourseRole,
   question,
   setIsLockedExpanded,
-  showAllComments,
   showStudents,
+  className,
 }) => {
   const [showCommentTextInput, setShowCommentTextInput] = useState(false)
   const [commentInputValue, setCommentInputValue] = useState('')
-  const [commentsHeight, setCommentsHeight] = useState<string | undefined>(
-    undefined,
-  )
-  const commentsRef = useRef<HTMLDivElement>(null)
-  const firstCommentRef = useRef<HTMLDivElement>(null)
   const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
   const [postCommentCancelPopoverOpen, setPostCommentCancelPopoverOpen] =
     useState(false)
@@ -39,8 +34,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   const isStaff =
     userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
 
-  const comments = React.useMemo(() => {
-    return generateCommentData(
+  const comments = useMemo(() => {
+    return generateCommentProps(
       question.id,
       question.comments,
       isStaff,
@@ -57,15 +52,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     setIsLockedExpanded,
     regenerateCommentsFlag,
   ])
-
-  useEffect(() => {
-    if (firstCommentRef.current && !showAllComments) {
-      const firstCommentHeight = firstCommentRef.current.clientHeight + 50
-      setCommentsHeight(`${firstCommentHeight}px`)
-    } else if (commentsRef.current && showAllComments) {
-      setCommentsHeight(`${commentsRef.current.scrollHeight}px`)
-    }
-  }, [showAllComments, comments])
 
   const handleCommentOnPost = async (
     questionId: number,
@@ -93,29 +79,16 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     setIsLockedExpanded(false)
   }
 
-  if (!showAllComments) {
-    return null
-  }
   return (
-    <>
+    <div className={className}>
       {comments && comments?.length > 0 ? (
-        <div
-          className={`mt-2`}
-          ref={commentsRef}
-          style={{
-            maxHeight: commentsHeight,
-            overflow: 'hidden',
-            transition: 'max-height 0.4s ease-in-out',
-          }}
-        >
+        <div className="mt-2">
           <strong>Comments: </strong>
           <List
             className="overflow-hidden"
             dataSource={comments}
-            renderItem={(props: CommentProps, index) => (
-              <div ref={index === 0 ? firstCommentRef : undefined}>
-                <Comment {...props} />
-              </div>
+            renderItem={(props: CommentProps) => (
+              <Comment key={props.commentId} {...props} />
             )}
           />
         </div>
@@ -141,7 +114,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         {showCommentTextInput && (
           <>
             <TextArea
-              maxLength={10000}
+              maxLength={10000} // same as reddit's max length
               className="my-2"
               rows={4}
               placeholder="Enter your comment here..."
@@ -195,11 +168,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({
           </>
         )}
       </div>
-    </>
+    </div>
   )
 }
 
-function generateCommentData(
+function generateCommentProps(
   questionId: number,
   comments: AsyncQuestionComment[],
   IAmStaff: boolean,

@@ -19,6 +19,7 @@ import MarkdownCustom from '@/app/components/Markdown'
 import CommentSection from './CommentSection'
 import { getAnonAnimal, getAvatarTooltip } from '../utils/commonAsyncFunctions'
 import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
+import styles from './AsyncQuestionCard.module.css'
 
 const statusDisplayMap = {
   // if the question has no answer text, it will say "awaiting answer"
@@ -49,7 +50,8 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   showStudents,
 }) => {
   const [isLockedExpanded, setIsLockedExpanded] = useState(false)
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(true)
+  const [isExpandable, setIsExpandable] = useState(false)
   const [truncateText, setTruncateText] = useState(true) // after the max-height transition is finished on expanding the text, truncate it to show a `...`
   const [voteCount, setVoteCount] = useState(question.votesSum)
   const [thisUserThisQuestionVote, setThisUserThisQuestionVote] = useState(
@@ -63,7 +65,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   const isStaff =
     userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
 
-  // note: it is assumed that only students are creating questions
+  // note: it is assumed that only students are creating questions. Staff creating questions will appear as anonymous (but their comments are not)
   const [isUserShown, setIsUserShown] = useState(isStaff && showStudents)
   useEffect(() => {
     setIsUserShown(isStaff && showStudents)
@@ -92,24 +94,21 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
       })
   }
 
-  useEffect(() => {
-    if (showAllComments) {
+  const showComments = (show: boolean) => {
+    // first expand the card, then after 0.3s (animation), expand the comments
+    if (show) {
       setIsExpanded(true)
       setTruncateText(false)
+      setIsExpandable(false)
+      setTimeout(() => {
+        setShowAllComments(true)
+      }, 300)
+    } else {
+      // hide the comments, but don't collapse the card right away
+      setShowAllComments(false)
+      setIsExpandable(true)
     }
-  }, [showAllComments])
-
-  // const setIsLockedExpanded = (isLockedExpanded: boolean) => {
-  //   setIsLockedExpanded(isLockedExpanded)
-  //   setIsExpanded(isLockedExpanded)
-  //   if (!isLockedExpanded) {
-  //     setTimeout(() => {
-  //       setTruncateText(true)
-  //     }, 300)
-  //   } else {
-  //     setTruncateText(false)
-  //   }
-  // }
+  }
 
   const handleVote = async (questionId: number, vote: number) => {
     const resp = await API.asyncQuestions.vote(questionId, vote)
@@ -126,7 +125,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   return (
     <div
       className={cn(
-        'mb-2 mt-2 flex flex-col rounded-lg bg-white p-2 shadow-lg',
+        'mb-2 mt-2 flex flex-col rounded-lg bg-white px-2 pt-2 shadow-lg',
         isStaff &&
           (question.status === asyncQuestionStatus.AIAnswered ||
             question.status === asyncQuestionStatus.AIAnsweredNeedsAttention ||
@@ -135,7 +134,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
           : '',
       )}
       onClick={() => {
-        if (isLockedExpanded) return
+        if (isLockedExpanded || !isExpandable) return
         setIsExpanded(!isExpanded)
         // after the max-height transition is finished on expanding the text, truncate it to show a `...`
         // truncating the questionText before the animation is finished will cause the animation to jump
@@ -337,8 +336,9 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
               {/* When not expanded, show only 1 line of the questionText */}
               <div
                 className={cn(
-                  'childrenMarkdownFormatted expandable-text',
-                  isExpanded ? 'expanded' : '',
+                  'childrenMarkdownFormatted',
+                  styles.expandableText,
+                  isExpanded ? styles.expanded : '',
                   truncateText ? 'line-clamp-1' : '',
                 )}
               >
@@ -354,10 +354,13 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 )}
               </div>
               <CommentSection
+                className={cn(
+                  styles.expandableComments,
+                  showAllComments ? styles.expandedComments : '',
+                )}
                 userCourseRole={userCourseRole}
                 question={question}
                 setIsLockedExpanded={setIsLockedExpanded}
-                showAllComments={showAllComments}
                 showStudents={showStudents}
               />
             </div>
@@ -408,7 +411,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             type="link"
             onClick={(e) => {
               e.stopPropagation()
-              setShowAllComments(!showAllComments)
+              showComments(!showAllComments)
             }}
           >
             {showAllComments

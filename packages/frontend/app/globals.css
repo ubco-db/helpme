@@ -204,23 +204,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 
-/* Initial state */
-.expandable-text {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-height: 1.2rem;
-  /* only slow down near the very end of the transition */
-  transition: max-height 0.3s cubic-bezier(0,1,0,1); 
-}
-
-/* Expanded state */
-.expandable-text.expanded {
-  max-height: 300vh !important;
-  /* only slow down near the very start of the transition */
-  transition: max-height 0.3s cubic-bezier(1,0,1,0)
-}
-
 .time-graph-container .popularTimes__bar {
   cursor: pointer
 }

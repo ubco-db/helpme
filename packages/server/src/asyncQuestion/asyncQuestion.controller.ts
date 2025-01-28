@@ -202,7 +202,7 @@ export class asyncQuestionController {
 
   @Patch('student/:questionId')
   @UseGuards(AsyncQuestionRolesGuard)
-  @Roles(Role.STUDENT)
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR) // since were letting staff post questions, they might end up calling this endpoint to update their own questions
   async updateStudentQuestion(
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
