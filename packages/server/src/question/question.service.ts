@@ -80,7 +80,7 @@ export class QuestionService {
       !waitingStatuses.includes(oldStatus) &&
       waitingStatuses.includes(newStatus);
     const isResolving = newStatus === ClosedQuestionStatus.Resolved;
-    const isFirstHelped = isBecomingHelped && question.firstHelpedAt;
+    const isFirstHelped = isBecomingHelped && !question.firstHelpedAt;
 
     // For Queue Chats
     try {
