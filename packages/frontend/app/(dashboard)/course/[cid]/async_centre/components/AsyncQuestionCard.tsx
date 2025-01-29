@@ -50,17 +50,27 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   showStudents,
 }) => {
   const [isLockedExpanded, setIsLockedExpanded] = useState(false)
-  const [isExpanded, setIsExpanded] = useState(true)
-  const [isExpandable, setIsExpandable] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpandable, setIsExpandable] = useState(true)
   const [truncateText, setTruncateText] = useState(true) // after the max-height transition is finished on expanding the text, truncate it to show a `...`
   const [voteCount, setVoteCount] = useState(question.votesSum)
   const [thisUserThisQuestionVote, setThisUserThisQuestionVote] = useState(
     question.votes?.find((vote) => vote.userId === userId)?.vote,
   )
   const [showAllComments, setShowAllComments] = useState(false)
+  const [satisfiedLoading, setSatisfiedLoading] = useState(false)
+  const [needsAttentionLoading, setNeedsAttentionLoading] = useState(false)
   const shouldFlash =
     question.status === asyncQuestionStatus.AIAnswered &&
     userId === question.creatorId
+
+  // make the card expanded if it is flashing (so they immediately see their answer)
+  useEffect(() => {
+    if (shouldFlash) {
+      setIsExpanded(true)
+      setTruncateText(false)
+    }
+  }, [shouldFlash])
 
   const isStaff =
     userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
@@ -318,16 +328,12 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                     question={question}
                     onAsyncQuestionUpdate={mutateAsyncQuestions}
                   />
-                ) : userId === question.creatorId &&
-                  question.status === asyncQuestionStatus.AIAnswered ? (
-                  <>
-                    {/* Students can edit their own questions, but only if question is not resolved, note that AIAnswer is default */}
-                    <StudentAsyncQuestionCardButtons
-                      question={question}
-                      onAsyncQuestionUpdate={mutateAsyncQuestions}
-                      courseId={courseId}
-                    />
-                  </>
+                ) : userId === question.creatorId ? (
+                  <StudentAsyncQuestionCardButtons
+                    question={question}
+                    onAsyncQuestionUpdate={mutateAsyncQuestions}
+                    courseId={courseId}
+                  />
                 ) : null}
               </div>
             </div>
@@ -384,19 +390,27 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
               >
                 {/* Students vote on whether they still need faculty help */}
                 <Button
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation()
-                    handleFeedback(true)
+                    setSatisfiedLoading(true)
+                    await handleFeedback(true)
+                    setSatisfiedLoading(false)
                   }}
+                  loading={satisfiedLoading}
+                  disabled={needsAttentionLoading}
                 >
                   Satisfied
                 </Button>
                 <Button
                   type="primary"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation()
-                    handleFeedback(false)
+                    setNeedsAttentionLoading(true)
+                    await handleFeedback(false)
+                    setNeedsAttentionLoading(false)
                   }}
+                  loading={needsAttentionLoading}
+                  disabled={satisfiedLoading}
                 >
                   Still need faculty Help
                 </Button>
@@ -419,7 +433,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
               : `Comments (${question.comments.length})`}
           </Button>
           <div className="mr-16 flex flex-grow justify-center">
-            {showAllComments ? null : isExpanded ? (
+            {!isExpandable ? null : isExpanded ? (
               <UpOutlined />
             ) : (
               <DownOutlined />

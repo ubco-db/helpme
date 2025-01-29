@@ -124,7 +124,9 @@ export default function AsyncCentrePage({
     // Apply status filter
     if (statusFilter === 'verified') {
       displayedQuestions = displayedQuestions.filter(
-        (question) => question.status === asyncQuestionStatus.HumanAnswered,
+        (question) =>
+          question.status === asyncQuestionStatus.HumanAnswered ||
+          question.verified,
       )
     } else if (statusFilter === 'unverified') {
       displayedQuestions = displayedQuestions.filter(
