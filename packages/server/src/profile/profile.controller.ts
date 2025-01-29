@@ -37,11 +37,13 @@ import { ProfileService } from './profile.service';
 import { OrganizationService } from '../organization/organization.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { minutes, SkipThrottle, Throttle } from '@nestjs/throttler';
+import { RedisProfileService } from 'redisProfile/redis-profile.service';
 
 @Controller('profile')
 export class ProfileController {
   constructor(
     private profileService: ProfileService,
+    private redisProfileService: RedisProfileService,
     private organizationService: OrganizationService,
   ) {}
 
@@ -68,77 +70,91 @@ export class ProfileController {
       );
     }
 
-    const courses = user.courses
-      ? user.courses
-          .filter((userCourse) => userCourse?.course?.enabled)
-          .map((userCourse) => {
-            return {
-              course: {
-                id: userCourse.courseId,
-                name: userCourse.course.name,
-              },
-              role: userCourse.role,
-            };
-          })
-      : [];
+    // Check redis for record
+    const redisRecord = await this.redisProfileService.getKey(`u:${user.id}`);
 
-    const desktopNotifs: DesktopNotifPartial[] = user.desktopNotifs
-      ? user.desktopNotifs.map((d) => ({
-          endpoint: d.endpoint,
-          id: d.id,
-          createdAt: d.createdAt,
-          name: d.name,
-        }))
-      : [];
+    if (!redisRecord) {
+      const courses = user.courses
+        ? user.courses
+            .filter((userCourse) => userCourse?.course?.enabled)
+            .map((userCourse) => {
+              return {
+                course: {
+                  id: userCourse.courseId,
+                  name: userCourse.course.name,
+                },
+                role: userCourse.role,
+              };
+            })
+        : [];
 
-    const userResponse = pick(user, [
-      'id',
-      'email',
-      'name',
-      'sid',
-      'firstName',
-      'lastName',
-      'photoURL',
-      'defaultMessage',
-      'includeDefaultMessage',
-      'desktopNotifsEnabled',
-      'insights',
-      'userRole',
-      'accountType',
-      'emailVerified',
-      'chat_token',
-      'readChangeLog',
-    ]);
+      const desktopNotifs: DesktopNotifPartial[] = user.desktopNotifs
+        ? user.desktopNotifs.map((d) => ({
+            endpoint: d.endpoint,
+            id: d.id,
+            createdAt: d.createdAt,
+            name: d.name,
+          }))
+        : [];
 
-    if (userResponse === null || userResponse === undefined) {
-      console.error(ERROR_MESSAGES.profileController.userResponseNotFound);
-      throw new HttpException(
-        ERROR_MESSAGES.profileController.userResponseNotFound,
-        HttpStatus.NOT_FOUND,
-      );
+      const userResponse = pick(user, [
+        'id',
+        'email',
+        'name',
+        'sid',
+        'firstName',
+        'lastName',
+        'photoURL',
+        'defaultMessage',
+        'includeDefaultMessage',
+        'desktopNotifsEnabled',
+        'insights',
+        'userRole',
+        'accountType',
+        'emailVerified',
+        'chat_token',
+        'readChangeLog',
+      ]);
+
+      if (userResponse === null || userResponse === undefined) {
+        console.error(ERROR_MESSAGES.profileController.userResponseNotFound);
+        throw new HttpException(
+          ERROR_MESSAGES.profileController.userResponseNotFound,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // this is old code from Khoury College's semester system
+      //const pendingCourses = await this.profileService.getPendingCourses(user.id);
+      const userOrganization =
+        await this.organizationService.getOrganizationAndRoleByUserId(user.id);
+
+      const organization = pick(userOrganization, [
+        'id',
+        'orgId',
+        'organizationName',
+        'organizationDescription',
+        'organizationLogoUrl',
+        'organizationBannerUrl',
+        'organizationRole',
+      ]);
+
+      const profile = {
+        ...userResponse,
+        courses,
+        desktopNotifs,
+        organization,
+      };
+
+      // Update redis
+      if (profile) {
+        await this.redisProfileService.setProfile(`u:${user.id}`, profile);
+      }
+
+      return profile;
+    } else {
+      return redisRecord;
     }
-
-    // this is old code from Khoury College's semester system
-    //const pendingCourses = await this.profileService.getPendingCourses(user.id);
-    const userOrganization =
-      await this.organizationService.getOrganizationAndRoleByUserId(user.id);
-
-    const organization = pick(userOrganization, [
-      'id',
-      'orgId',
-      'organizationName',
-      'organizationDescription',
-      'organizationLogoUrl',
-      'organizationBannerUrl',
-      'organizationRole',
-    ]);
-
-    return {
-      ...userResponse,
-      courses,
-      desktopNotifs,
-      organization,
-    };
   }
 
   @Patch()

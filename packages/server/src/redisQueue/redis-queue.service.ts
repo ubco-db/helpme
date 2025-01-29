@@ -47,7 +47,7 @@ export class RedisQueueService {
    * @param questions {any} The questions to set in cache
    */
   async setQuestions(key: string, questions: any): Promise<void> {
-    const pipeline = this.redis.pipeline();
+    const pipeline = this.redis.pipeline(); // TODO: remove pipeline since there is only one query
 
     const jsonStr = JSON.stringify(questions);
     const compressedData = zlib.gzipSync(jsonStr);

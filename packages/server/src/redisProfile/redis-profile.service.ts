@@ -19,7 +19,7 @@ export class RedisProfileService {
     this.redis = this.redisService.getClient('db');
   }
 
-  async updateProfile(
+  async setProfile(
     key: string,
     profileResponse: GetProfileResponse,
   ): Promise<void> {
@@ -29,33 +29,15 @@ export class RedisProfileService {
     const compressedData = zlib.gzipSync(jsonStr);
     const base64Encoded = compressedData.toString('base64');
 
-    await this.redis.hset(key, profileResponse.id, base64Encoded);
+    await this.redis.set(key, base64Encoded);
   }
 
   /**
    * Deletes a profile from cache given that hash set's key
    * @param key {string} The key name to specific profile from cache
    */
-  async deleteProfile(
-    key: string,
-    profileResponse: GetProfileResponse,
-  ): Promise<void> {
-    await this.redis.hdel(key, profileResponse.id.toString());
-  }
-
-  /**
-   * Adds a profile to cache given that hash set's key
-   * @param key {string} The key name to specific profile from cache
-   */
-  async addProfile(
-    key: string,
-    profileResponse: GetProfileResponse,
-  ): Promise<void> {
-    const jsonStr = JSON.stringify(profileResponse);
-    const compressedData = zlib.gzipSync(jsonStr);
-    const base64Encoded = compressedData.toString('base64');
-
-    await this.redis.hset(key, profileResponse.id, base64Encoded);
+  async deleteProfile(key: string): Promise<void> {
+    await this.redis.del(key);
   }
 
   /**
@@ -63,18 +45,13 @@ export class RedisProfileService {
    * @param key {string} The key name to specific profile from cache
    * @returns {Promise<Record<string, AsyncQuestionModel>>} A promise that resolves with the user data response from cache
    */
-  async getKey(key: string): Promise<Record<string, any>> {
-    const data = await this.redis.hgetall(key);
-
-    const result: Record<string, any> = {};
-
-    Object.entries(data).forEach(([field, base64Encoded]) => {
-      const compressedData = Buffer.from(base64Encoded, 'base64');
-      const decompressedData = zlib.gunzipSync(compressedData).toString();
-      result[field] = JSON.parse(decompressedData);
-    });
-
-    return result;
+  async getKey(key: string): Promise<GetProfileResponse> {
+    try {
+      const data = JSON.parse(await this.redis.get(key));
+      return data as GetProfileResponse;
+    } catch (error) {
+      return null;
+    }
   }
 
   /**

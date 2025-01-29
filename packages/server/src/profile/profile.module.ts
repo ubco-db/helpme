@@ -9,12 +9,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './jwt.strategy';
 import { MailModule } from 'mail/mail.module';
 import { OrganizationModule } from '../organization/organization.module';
+import { RedisProfileService } from '../redisProfile/redis-profile.service';
 
 @Module({
   imports: [
     NotificationModule,
     LoginModule,
     MailModule,
+    RedisProfileService,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -25,6 +27,11 @@ import { OrganizationModule } from '../organization/organization.module';
     OrganizationModule,
   ],
   controllers: [ProfileController],
-  providers: [JwtStrategy, ProfileService, LoginCourseService],
+  providers: [
+    JwtStrategy,
+    ProfileService,
+    RedisProfileService,
+    LoginCourseService,
+  ],
 })
 export class ProfileModule {}
