@@ -656,10 +656,17 @@ describe('AsyncQuestion Integration', () => {
           }),
           expect.objectContaining({
             id: asyncQuestion2.id,
+            creator: expect.not.objectContaining({
+              id: expect.anything(), // id should not be visible
+            }),
+          }),
+          expect.objectContaining({
+            id: asyncQuestion2.id,
             visible: true,
             creator: expect.objectContaining({
-              id: studentUser.id,
-              // redacted name, photoURL
+              anonId: expect.any(Number),
+              colour: expect.any(String),
+              // redacted name, photoURL, id
               name: expect.not.stringContaining(
                 `${studentUser.firstName} ${studentUser.lastName}`,
               ),
@@ -670,6 +677,8 @@ describe('AsyncQuestion Integration', () => {
             id: asyncQuestion3.id,
             visible: false,
             creator: expect.objectContaining({
+              anonId: expect.any(Number),
+              colour: expect.any(String),
               id: studentUser2.id,
               name: `${studentUser2.firstName} ${studentUser2.lastName}`,
               photoURL: studentUser2.photoURL,
@@ -743,17 +752,33 @@ describe('AsyncQuestion Integration', () => {
               }),
               expect.objectContaining({
                 commentText: comment1.commentText,
+                creator: expect.not.objectContaining({
+                  id: expect.anything(), // id should not be visible
+                }),
+              }),
+              expect.objectContaining({
+                commentText: comment1.commentText,
+                creator: expect.not.objectContaining({
+                  name: expect.anything(), // name should not be visible
+                }),
+              }),
+              expect.not.objectContaining({
+                commentText: comment1.commentText,
+                creatorId: expect.anything(), // creatorId should not be visible
+              }),
+              expect.objectContaining({
+                commentText: comment1.commentText,
                 creator: expect.objectContaining({
-                  id: studentUser.id,
-                  name: expect.not.stringContaining(
-                    `${studentUser.firstName} ${studentUser.lastName}`,
-                  ),
+                  anonId: expect.any(Number),
+                  colour: expect.any(String),
                   photoURL: null,
                 }),
               }),
               expect.objectContaining({
                 commentText: comment2.commentText,
                 creator: expect.objectContaining({
+                  anonId: expect.any(Number),
+                  colour: expect.any(String),
                   id: studentUser2.id,
                   name: `${studentUser2.firstName} ${studentUser2.lastName}`,
                   photoURL: studentUser2.photoURL,
@@ -777,6 +802,8 @@ describe('AsyncQuestion Integration', () => {
               expect.objectContaining({
                 commentText: comment1.commentText,
                 creator: expect.objectContaining({
+                  anonId: expect.any(Number),
+                  colour: expect.any(String),
                   id: studentUser.id,
                   name: `${studentUser.firstName} ${studentUser.lastName}`,
                   photoURL: studentUser.photoURL,
@@ -785,6 +812,8 @@ describe('AsyncQuestion Integration', () => {
               expect.objectContaining({
                 commentText: comment2.commentText,
                 creator: expect.objectContaining({
+                  anonId: expect.any(Number),
+                  colour: expect.any(String),
                   id: studentUser2.id,
                   name: `${studentUser2.firstName} ${studentUser2.lastName}`,
                   photoURL: studentUser2.photoURL,

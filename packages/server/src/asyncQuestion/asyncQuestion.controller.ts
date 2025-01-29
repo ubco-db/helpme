@@ -116,6 +116,7 @@ export class asyncQuestionController {
 
     // Check if the question was upvoted and send email if subscribed
     if (vote > 0 && userId !== updatedQuestion.creator.id) {
+      console.log('somethin ghappended!');
       await this.asyncQuestionService.sendUpvotedEmail(updatedQuestion);
     }
 
@@ -686,6 +687,8 @@ export class asyncQuestionController {
                 isAuthor: comment.creator.id === question.creatorId,
                 courseRole: commenterRole,
               } as AsyncCreator as unknown as UserModel);
+
+        delete temp.creatorId;
 
         return temp as unknown as AsyncQuestionCommentModel;
       });

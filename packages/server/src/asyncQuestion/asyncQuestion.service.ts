@@ -18,6 +18,9 @@ export class AsyncQuestionService {
     question: AsyncQuestionModel,
     comment: AsyncQuestionCommentModel,
   ) {
+    if (!question.creator) {
+      return;
+    }
     const subscription = await UserSubscriptionModel.findOne({
       where: {
         userId: question.creator.id,
@@ -69,6 +72,9 @@ export class AsyncQuestionService {
           comment.creator.id !== questionCreatorId,
       )
       .map((comment) => comment.creator.id);
+    if (userIds.length === 0) {
+      return;
+    }
     // Now get subscriptions for these users
     const subscriptions = await UserSubscriptionModel.createQueryBuilder(
       'subscription',
@@ -113,6 +119,9 @@ export class AsyncQuestionService {
       .getMany();
 
     const userIds = usersInCourse.map((uc) => uc.userId);
+    if (userIds.length === 0) {
+      return;
+    }
 
     // Step 2: Get subscriptions for these users
     const subscriptions = await UserSubscriptionModel.createQueryBuilder(
@@ -217,6 +226,7 @@ export class AsyncQuestionService {
   }
 
   async sendUpvotedEmail(updatedQuestion: AsyncQuestionModel) {
+    console.log('1');
     const subscription = await UserSubscriptionModel.findOne({
       where: {
         userId: updatedQuestion.creator.id,
@@ -229,6 +239,7 @@ export class AsyncQuestionService {
     });
 
     if (subscription) {
+      console.log('2');
       const service = subscription.service;
       await this.mailService
         .sendEmail({
@@ -236,7 +247,7 @@ export class AsyncQuestionService {
           type: service.serviceType,
           subject: 'HelpMe - Your Anytime Question Has Been Upvoted',
           content: `<br> <b>Your question on the Anytime Question Hub has received an upvote:</b> 
-          <br> Question: ${updatedQuestion.questionText}
+        <br> Question: ${updatedQuestion.questionText}
           <br> Current votes: ${updatedQuestion.votesSum}
           <br> <a href="${process.env.DOMAIN}/course/${updatedQuestion.courseId}/async_centre">View Here</a> <br>`,
         })
@@ -244,6 +255,7 @@ export class AsyncQuestionService {
           console.error('Failed to send email Vote Question email: ' + err);
           Sentry.captureException(err);
         });
+      console.log('3');
     }
   }
 
