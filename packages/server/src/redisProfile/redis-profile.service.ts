@@ -11,6 +11,8 @@ export class RedisProfileService {
    */
   private readonly redis: Redis;
 
+  private readonly EXPIRATION_TIME = 30 * 60; // 30 min in seconds
+
   /**
    * Constructor for the RedisQueueService
    * @param redisService {RedisService} The redis service to use for the redis queue
@@ -23,13 +25,15 @@ export class RedisProfileService {
     key: string,
     profileResponse: GetProfileResponse,
   ): Promise<void> {
+    console.log('Setting profile in cache'); // PAT TODO: remove
+
     const jsonStr = JSON.stringify(profileResponse);
 
     // Compress data since base64 encoding adds ~33% overhead
     const compressedData = zlib.gzipSync(jsonStr);
     const base64Encoded = compressedData.toString('base64');
 
-    await this.redis.set(key, base64Encoded);
+    await this.redis.setex(key, this.EXPIRATION_TIME, base64Encoded);
   }
 
   /**
@@ -45,11 +49,19 @@ export class RedisProfileService {
    * @param key {string} The key name to specific profile from cache
    * @returns {Promise<Record<string, AsyncQuestionModel>>} A promise that resolves with the user data response from cache
    */
-  async getKey(key: string): Promise<GetProfileResponse> {
+  async getKey(key: string): Promise<GetProfileResponse | null> {
     try {
-      const data = JSON.parse(await this.redis.get(key));
+      const base64Encoded = await this.redis.get(key);
+      if (!base64Encoded) {
+        return null;
+      }
+      const compressedData = Buffer.from(base64Encoded, 'base64');
+      const stringData = zlib.gunzipSync(compressedData).toString();
+      const data = JSON.parse(stringData);
+
       return data as GetProfileResponse;
     } catch (error) {
+      console.error('Error getting profile from cache', error);
       return null;
     }
   }

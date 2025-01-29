@@ -146,6 +146,8 @@ export class ProfileController {
         organization,
       };
 
+      console.log('Fetching profile from database');
+
       // Update redis
       if (profile) {
         await this.redisProfileService.setProfile(`u:${user.id}`, profile);
@@ -153,6 +155,7 @@ export class ProfileController {
 
       return profile;
     } else {
+      console.log('Fetching profile from Redis');
       return redisRecord;
     }
   }
