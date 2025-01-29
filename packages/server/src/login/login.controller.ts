@@ -1,4 +1,4 @@
-import { ERROR_MESSAGES, UBCOloginParam } from '@koh/common';
+import { ERROR_MESSAGES, LoginData } from '@koh/common';
 import {
   Body,
   Controller,
@@ -19,7 +19,7 @@ import * as request from 'superagent';
 import { getCookie } from 'common/helpers';
 import { CourseService } from 'course/course.service';
 import { minutes, Throttle } from '@nestjs/throttler';
-import { AuthService } from '../auth/auth.service';
+import { UserModel } from '../profile/user.entity';
 
 // Only 7 attempts per minute
 @Throttle({ default: { limit: 7, ttl: minutes(1) } })
@@ -29,13 +29,12 @@ export class LoginController {
     private jwtService: JwtService,
     private configService: ConfigService,
     private courseService: CourseService,
-    private authService: AuthService,
   ) {}
 
   @Post('/ubc_login')
   async receiveDataFromLogin(
     @Res() res: Response,
-    @Body() body: UBCOloginParam,
+    @Body() body: LoginData,
   ): Promise<any> {
     if (process.env.NODE_ENV !== 'development') {
       if (!body.recaptchaToken) {
@@ -54,10 +53,13 @@ export class LoginController {
       }
     }
 
-    const user = await this.authService
-      .getUserByEmailQuery(body.email)
-      .leftJoinAndSelect('organizationUser.organization', 'org')
-      .getOne();
+    const user = await UserModel.findOne({
+      where: {
+        normalizedEmail: body.email.toUpperCase(),
+        organizationId: body.organizationId,
+      },
+      relations: ['organization'],
+    });
 
     if (!user) {
       return res
@@ -65,10 +67,7 @@ export class LoginController {
         .send({ message: 'User Not found' });
     }
 
-    if (
-      user.organizationUser &&
-      user.organizationUser.organization.legacyAuthEnabled === false
-    ) {
+    if (user.organization.legacyAuthEnabled === false) {
       return res.status(HttpStatus.UNAUTHORIZED).send({
         message: 'Organization does not allow login with username/password',
       });

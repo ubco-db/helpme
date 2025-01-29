@@ -1,5 +1,6 @@
 'use client'
 
+import { LoginData } from '@koh/common'
 import { organizationApi } from '@/app/api/organizationApi'
 import { message, Alert, Button, Card, Form, Input, Select } from 'antd'
 import React, { SetStateAction, useCallback, useEffect, useState } from 'react'
@@ -10,7 +11,6 @@ import ReCAPTCHA from 'react-google-recaptcha'
 import Link from 'next/link'
 import { userApi } from '@/app/api/userApi'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { LoginData } from '@/app/typings/user'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useLoginRedirectInfoProvider } from './components/LoginRedirectInfoProvider'
 import { isProd } from '@koh/common'
@@ -96,26 +96,26 @@ export default function LoginPage() {
   }, [])
 
   async function login() {
-    let loginData: LoginData
+    if (!organization) {
+      message.error('Organization is required to login')
+      return
+    }
+
+    const loginData: LoginData = {
+      email,
+      password,
+      organizationId: organization.id,
+      recaptchaToken: '',
+    }
     if (isProd()) {
       const token = (await recaptchaRef?.current?.executeAsync()) ?? ''
-      if (organization && !organization.legacyAuthEnabled) {
+      if (!organization.legacyAuthEnabled) {
         message.error(
           'Organization does not support login with username/password',
         )
         return
       }
-      loginData = {
-        email,
-        password,
-        recaptchaToken: token,
-      }
-    } else {
-      loginData = {
-        email,
-        password,
-        recaptchaToken: '',
-      }
+      loginData.recaptchaToken = token
     }
     await userApi.login(loginData).then(async (response) => {
       const data = await response.json()

@@ -10,7 +10,6 @@ import {
 import { UserRole } from '@koh/common';
 import { OrganizationCourseModel } from './organization-course.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
-import { AuthService } from '../auth/auth.service';
 import { MailService } from '../mail/mail.service';
 
 describe('OrganizationService', () => {
@@ -22,7 +21,6 @@ describe('OrganizationService', () => {
       imports: [TestTypeOrmModule, TestConfigModule],
       providers: [
         OrganizationService,
-        AuthService,
         {
           // We disabled the mail service for now, so let's just mock it
           provide: MailService,

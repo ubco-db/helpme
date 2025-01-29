@@ -710,20 +710,16 @@ export type DesktopNotifBody = {
 // On backend, validated with https://docs.nestjs.com/techniques/validation
 // API route Params and Responses
 
+export interface LoginData {
+  email: string
+  password: string
+  organizationId: number
+  recaptchaToken: string
+}
+
 // Office Hours Response Types
 export class GetProfileResponse extends User {}
 
-export class UBCOloginParam {
-  @IsString()
-  email!: string
-
-  @IsString()
-  password!: string
-
-  @IsOptional()
-  @IsString()
-  recaptchaToken?: string
-}
 export class UBCOuserParam {
   @IsString()
   email!: string
@@ -733,30 +729,6 @@ export class UBCOuserParam {
 
   @IsInt()
   organizationId!: number
-}
-export class KhouryDataParams {
-  @IsString()
-  email!: string
-
-  @IsString()
-  password!: string
-
-  @IsString()
-  first_name!: string
-
-  @IsString()
-  last_name!: string
-
-  @IsInt()
-  campus!: number
-
-  @IsOptional()
-  @IsString()
-  photo_url!: string
-
-  @IsOptional()
-  @IsDefined() // TODO: use ValidateNested instead, for some reason it's crunked
-  courses!: KhouryCourse[] | KhouryProfCourse[]
 }
 
 export class KhouryCourse {

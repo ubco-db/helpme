@@ -130,6 +130,7 @@ class APIClient {
     ): Promise<{ redirectUri: string }> =>
       this.req('GET', `/api/v1/auth/link/google/${organizationId}`, undefined),
   }
+
   profile = {
     index: async (): Promise<GetProfileResponse> =>
       this.req('GET', `/api/v1/profile`, GetProfileResponse),

@@ -10,6 +10,7 @@ import {
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { DesktopNotifModel } from '../notification/desktop-notif.entity';
 import { QueueModel } from '../queue/queue.entity';
@@ -26,6 +27,7 @@ import { CalendarStaffModel } from '../calendar/calendar-staff.entity';
 import { OrganizationModel } from '../organization/organization.entity';
 
 @Entity('user_model')
+@Unique('UQ_userEmailOrganizationId', ['normalizedEmail', 'organizationId'])
 export class UserModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -34,6 +36,9 @@ export class UserModel extends BaseEntity {
 
   @Column('text')
   email: string;
+
+  @Column('text')
+  normalizedEmail: string;
 
   @Column('text', { nullable: true })
   @Exclude()
@@ -157,6 +162,9 @@ export class UserModel extends BaseEntity {
   organizationRole: OrganizationRole;
 
   @OneToOne((type) => OrganizationModel, (organization) => organization.users)
+  /* WHEN UPDATED > 0.3.7:
+    @JoinColumn({ name: 'organizationId', foreignKeyConstraintName: 'FK_userToOrganizationForeignKey'})
+  */
   @JoinColumn({ name: 'organizationId' })
   organization: OrganizationModel;
 }

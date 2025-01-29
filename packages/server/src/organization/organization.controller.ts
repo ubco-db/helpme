@@ -65,14 +65,12 @@ import { UserId } from 'decorators/user.decorator';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import { AuthService } from '../auth/auth.service';
 
 @Controller('organization')
 export class OrganizationController {
   constructor(
     private organizationService: OrganizationService,
     private schedulerRegistry: SchedulerRegistry,
-    private authService: AuthService,
   ) {}
 
   @Post(':oid/reset_chat_token_limit')
@@ -1473,10 +1471,13 @@ export class OrganizationController {
       });
     }
 
-    if (userInfo.email.toLowerCase() !== email.toLowerCase()) {
-      const emailInUse = await this.authService
-        .getUserByEmailQuery(email, userInfo.organizationId)
-        .getOne();
+    if (userInfo.normalizedEmail !== email.toUpperCase()) {
+      const emailInUse = await UserModel.findOne({
+        where: {
+          normalizedEmail: email.toUpperCase(),
+          organizationId: userInfo.organizationId,
+        },
+      });
 
       if (emailInUse) {
         return res.status(HttpStatus.BAD_REQUEST).send({

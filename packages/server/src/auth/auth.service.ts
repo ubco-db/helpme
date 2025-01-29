@@ -15,7 +15,6 @@ import { MailServiceModel } from 'mail/mail-services.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
-import { SelectQueryBuilder } from 'typeorm';
 
 @Injectable()
 export class AuthService {
@@ -62,10 +61,12 @@ export class AuthService {
     organizationId: number,
   ): Promise<number> {
     try {
-      const user = await this.getUserByEmailQuery(
-        mail,
-        organizationId,
-      ).getOne();
+      const user = await UserModel.findOne({
+        where: {
+          normalizedEmail: mail.toUpperCase(),
+          organizationId: organizationId,
+        },
+      });
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -86,6 +87,7 @@ export class AuthService {
       if (!user) {
         const newUser = await UserModel.create({
           email: mail,
+          normalizedEmail: mail.toUpperCase(),
           firstName: givenName,
           lastName: lastName,
           accountType: AccountType.SHIBBOLETH,
@@ -128,10 +130,12 @@ export class AuthService {
         throw new BadRequestException('Email not verified');
       }
 
-      const user = await this.getUserByEmailQuery(
-        payload.email,
-        organizationId,
-      ).getOne();
+      const user = await UserModel.findOne({
+        where: {
+          normalizedEmail: payload.email.toUpperCase(),
+          organizationId: organizationId,
+        },
+      });
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -152,6 +156,7 @@ export class AuthService {
       if (!user) {
         const newUser = await UserModel.create({
           email: payload.email,
+          normalizedEmail: payload.email.toUpperCase(),
           firstName: payload.given_name,
           lastName: payload.family_name,
           photoURL: payload.picture,
@@ -186,13 +191,12 @@ export class AuthService {
     organizationId: number,
   ): Promise<number> {
     try {
-      // tentative change; allow same email if not part of the same organization
-      // may want to instead collapse this and identify accounts purely by email
-      // but specifically search for organization affiliation where necessary
-      const user = await this.getUserByEmailQuery(
-        email,
-        organizationId,
-      ).getOne();
+      const user = await UserModel.findOne({
+        where: {
+          normalizedEmail: email.toUpperCase(),
+          organizationId: organizationId,
+        },
+      });
 
       if (user) {
         throw new BadRequestException('Email already exists');
@@ -207,6 +211,7 @@ export class AuthService {
         newUser = await UserModel.create({
           courses: [],
           email,
+          normalizedEmail: email.toUpperCase(),
           firstName,
           lastName,
           password: hashedPassword,
@@ -216,6 +221,7 @@ export class AuthService {
         newUser = await UserModel.create({
           courses: [],
           email,
+          normalizedEmail: email.toUpperCase(),
           firstName,
           lastName,
           password: hashedPassword,
@@ -280,19 +286,5 @@ export class AuthService {
       token += characters.charAt(randomIndex);
     }
     return token;
-  }
-
-  getUserByEmailQuery(
-    email: string,
-    organizationId: number,
-  ): SelectQueryBuilder<UserModel | undefined> {
-    return UserModel.createQueryBuilder('UserModel')
-      .select()
-      .where('LOWER("UserModel"."email") = :email', {
-        email: email.toLowerCase(),
-      })
-      .andWhere('"UserModel"."organizationId" = :organizationId', {
-        organizationId,
-      });
   }
 }

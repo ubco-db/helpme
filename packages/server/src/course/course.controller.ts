@@ -32,18 +32,18 @@ import {
   HttpStatus,
   NotFoundException,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
-  Res,
   Req,
+  Res,
   UnauthorizedException,
   UseGuards,
   UseInterceptors,
-  ParseIntPipe,
 } from '@nestjs/common';
 import async from 'async';
-import { Response, Request } from 'express';
+import { Request, Response } from 'express';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Roles } from '../decorators/roles.decorator';
@@ -63,20 +63,18 @@ import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
 import { ApplicationConfigService } from '../config/application_config.service';
-import { Not, getManager } from 'typeorm';
+import { getManager, Not } from 'typeorm';
 import { pick } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
-import { AuthService } from '../auth/auth.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
 export class CourseController {
   constructor(
-    private authService: AuthService,
     private configService: ConfigService,
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
@@ -172,7 +170,7 @@ export class CourseController {
       return;
     }
 
-    let questions;
+    let questions: Partial<AsyncQuestionModel>[];
 
     const isStaff: boolean =
       userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
@@ -492,7 +490,7 @@ export class CourseController {
 
           // now for each tag defined in the config, create a QuestionType
           const questionTypes = newConfig.tags ?? {};
-          for (const [tagKey, tagValue] of Object.entries(questionTypes)) {
+          for (const [_tagKey, tagValue] of Object.entries(questionTypes)) {
             await transactionalEntityManager
               .getRepository(QuestionTypeModel)
               .insert({
@@ -833,14 +831,13 @@ export class CourseController {
       search = '';
     }
     const roles = role === 'staff' ? [Role.TA, Role.PROFESSOR] : [role];
-    const users = await this.courseService.getUserInfo(
+    return await this.courseService.getUserInfo(
       courseId,
       page,
       pageSize,
       search,
       roles,
     );
-    return users;
   }
 
   @Post('enroll_by_invite_code/:code')
@@ -850,13 +847,13 @@ export class CourseController {
     @Body() body: UBCOuserParam,
     @Res() res: Response,
   ): Promise<Response<void>> {
-    const user = await this.authService
-      .getUserByEmailQuery(body.email)
-      .andWhere('organizationUser.organizationId = :organizationId', {
+    const user = await UserModel.findOne({
+      where: {
+        normalizedEmail: body.email.toUpperCase(),
         organizationId: body.organizationId,
-      })
-      .leftJoinAndSelect('UserModel.courses', 'course')
-      .getOne();
+      },
+      relations: ['courses'],
+    });
 
     if (!user) {
       res.status(HttpStatus.NOT_FOUND).send({ message: 'User not found' });
@@ -865,7 +862,7 @@ export class CourseController {
 
     const course = await OrganizationCourseModel.findOne({
       where: {
-        organizationId: user.organizationUser.organizationId,
+        organizationId: user.organizationId,
         courseId: body.selected_course,
       },
       relations: ['course'],
@@ -912,18 +909,14 @@ export class CourseController {
     @Param('id', ParseIntPipe) courseId: number,
     @Param('sid', ParseIntPipe) studentId: number,
   ): Promise<Response<void>> {
-    const user = await UserModel.findOne({
-      where: { sid: studentId },
-      relations: ['organizationUser', 'courses'],
-    });
-
     const professorId: number = (req.user as { userId: number }).userId;
-    const { organizationUser } = await UserModel.findOne({
+    const { organizationId } = await UserModel.findOne({
       where: { id: professorId },
-      relations: ['organizationUser'],
     });
-
-    const organizationId = organizationUser.organizationId;
+    const user = await UserModel.findOne({
+      where: { sid: studentId, organizationId },
+      relations: ['courses'],
+    });
 
     if (!user) {
       res
@@ -936,13 +929,6 @@ export class CourseController {
       res
         .status(HttpStatus.BAD_REQUEST)
         .send({ message: 'You cannot add yourself to this course' });
-      return;
-    }
-
-    if (user.organizationUser.organizationId !== organizationId) {
-      res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'User is not in the same organization' });
       return;
     }
 
@@ -1053,7 +1039,7 @@ export class CourseController {
     });
 
     // if no settings found for the courseid, return the default values
-    const response = new CourseSettingsResponse({
+    return new CourseSettingsResponse({
       courseId: courseId,
       chatBotEnabled: courseSettings?.chatBotEnabled ?? true, // the 'true' at the end here is the default value
       asyncQueueEnabled: courseSettings?.asyncQueueEnabled ?? true,
@@ -1063,8 +1049,6 @@ export class CourseController {
       asyncCentreAIAnswers: courseSettings?.asyncCentreAIAnswers ?? true,
       settingsFound: !!courseSettings, // !! converts truthy/falsy into true/false
     });
-
-    return response;
   }
 
   @Get(':id/students_not_in_queue')
