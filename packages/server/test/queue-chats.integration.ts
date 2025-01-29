@@ -57,7 +57,7 @@ describe('QueueChat Integration Tests', () => {
     await redisService.getClient('db').flushall();
   });
 
-  describe('GET /queueChats/:queueId/:studentId', () => {
+  describe('GET /queueChats/:queueId/:questionId', () => {
     it('retrieves chat metadata and messages', async () => {
       const metadata = {
         staff: {
@@ -81,16 +81,16 @@ describe('QueueChat Integration Tests', () => {
       await queueChatService.createChat(
         queue.id,
         staff.user,
-        student.user,
+        question,
         new Date(metadata.startedAt),
       );
 
       await supertest({ userId: staff.user.id })
-        .patch(`/queueChats/${queue.id}/${student.user.id}`)
+        .patch(`/queueChats/${queue.id}/${question.id}`)
         .send({ message: messageObj.message });
 
       const res = await supertest({ userId: staff.user.id })
-        .get(`/queueChats/${queue.id}/${student.user.id}`)
+        .get(`/queueChats/${queue.id}/${question.id}`)
         .expect(200);
 
       expect(res.body).toMatchObject({
@@ -101,7 +101,7 @@ describe('QueueChat Integration Tests', () => {
 
     it('returns 404 if no chat metadata or messages exist', async () => {
       await supertest({ userId: staff.user.id })
-        .get(`/queueChats/${queue.id}/${student.user.id}`)
+        .get(`/queueChats/${queue.id}/${question.id}`)
         .expect(404);
     });
   });
@@ -125,20 +125,20 @@ describe('QueueChat Integration Tests', () => {
       await queueChatService.createChat(
         queue.id,
         staff.user,
-        student.user,
+        question,
         new Date(metadata.startedAt),
       );
 
       const message = 'Hello, student!';
       const res = await supertest({ userId: staff.user.id })
-        .patch(`/queueChats/${queue.id}/${student.user.id}`)
+        .patch(`/queueChats/${queue.id}/${question.id}`)
         .send({ message })
         .expect(200);
 
       expect(res.body).toEqual({ message: 'Message sent' });
 
       const result = await supertest({ userId: staff.user.id })
-        .get(`/queueChats/${queue.id}/${student.user.id}`)
+        .get(`/queueChats/${queue.id}/${question.id}`)
         .expect(200);
 
       expect(result.body.messages).toEqual([
@@ -158,12 +158,12 @@ describe('QueueChat Integration Tests', () => {
       await queueChatService.createChat(
         queue.id,
         staff.user,
-        student.user,
+        question,
         new Date('2021-01-01T00:00:00Z'),
       );
 
       await supertest({ userId: otherStudent.user.id })
-        .patch(`/queueChats/${queue.id}/${student.user.id}`)
+        .patch(`/queueChats/${queue.id}/${question.id}`)
         .send({ message: 'Unauthorized' })
         .expect(403);
     });

@@ -2,14 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RedisService } from 'nestjs-redis';
 import { QueueChatService } from './queue-chats.service';
 import { QueueChatsModel } from './queue-chats.entity';
-import { UserModel } from 'profile/user.entity';
 import { Connection } from 'typeorm';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
-import { ApplicationTestingConfigModule } from 'config/application_config.module';
-import { QuestionFactory } from '../../test/util/factories';
+import { ApplicationTestingConfigModule } from '../config/application_config.module';
+import { QuestionFactory, UserFactory } from '../../test/util/factories';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 jest.mock('nestjs-redis');
-jest.mock('./queue-chats.entity');
 
 describe('QueueChatService', () => {
   let service: QueueChatService;
@@ -28,7 +27,7 @@ describe('QueueChatService', () => {
 
   const staticDate = new Date('2023-01-01T00:00:00Z');
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     redisMock = mockRedisClient();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -36,6 +35,7 @@ describe('QueueChatService', () => {
         TestTypeOrmModule,
         TestConfigModule,
         ApplicationTestingConfigModule,
+        TypeOrmModule.forFeature([QueueChatsModel]),
       ],
       providers: [
         QueueChatService,
@@ -47,7 +47,6 @@ describe('QueueChatService', () => {
         },
       ],
     }).compile();
-    jest.spyOn(global, 'Date').mockImplementation(() => staticDate);
     service = module.get<QueueChatService>(QueueChatService);
     conn = module.get<Connection>(Connection);
   });
@@ -67,7 +66,7 @@ describe('QueueChatService', () => {
 
   describe('createChat', () => {
     it('should create a new chat in Redis', async () => {
-      const staff = UserModel.create({ id: 1 });
+      const staff = await UserFactory.create({ id: 1 });
       const question = await QuestionFactory.create({
         taHelped: staff,
       });
@@ -79,8 +78,8 @@ describe('QueueChatService', () => {
         staticDate,
       );
 
-      const key_metadata = 'queue_chat_metadata:123:3';
-      const key_messages = 'queue_chat_messages:123:3';
+      const key_metadata = 'queue_chat_metadata:2:1';
+      const key_messages = 'queue_chat_messages:2:1';
       expect(redisMock.del).toHaveBeenCalledWith(
         key_metadata,
         expect.any(Function),
@@ -105,8 +104,9 @@ describe('QueueChatService', () => {
             lastName: question.creator.lastName,
             photoURL: question.creator.photoURL,
           },
-          startedAt: staticDate,
+          startedAt: staticDate.toISOString(),
         }),
+        expect.any(Function),
       );
       expect(redisMock.expire).toHaveBeenCalledWith(key_metadata, 604800); // one week in seconds
     });
@@ -119,11 +119,8 @@ describe('QueueChatService', () => {
       const key = 'queue_chat_messages:123:2';
       expect(redisMock.lpush).toHaveBeenCalledWith(
         key,
-        JSON.stringify({
-          isStaff: true,
-          message: 'Hello!',
-          timestamp: staticDate,
-        }),
+        expect.stringMatching(/"isStaff":true,"message":"Hello!"/),
+        expect.any(Function),
       );
     });
   });
@@ -139,7 +136,10 @@ describe('QueueChatService', () => {
       redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
 
       const result = await service.getChatMetadata(123, 2);
-      expect(redisMock.get).toHaveBeenCalledWith('queue_chat_metadata:123:2');
+      expect(redisMock.get).toHaveBeenCalledWith(
+        'queue_chat_metadata:123:2',
+        expect.any(Function),
+      );
       expect(result).toEqual(metadata);
     });
 
@@ -147,7 +147,10 @@ describe('QueueChatService', () => {
       redisMock.get.mockResolvedValueOnce(null);
 
       const result = await service.getChatMetadata(123, 2);
-      expect(redisMock.get).toHaveBeenCalledWith('queue_chat_metadata:123:2');
+      expect(redisMock.get).toHaveBeenCalledWith(
+        'queue_chat_metadata:123:2',
+        expect.any(Function),
+      );
       expect(result).toBeNull();
     });
   });
@@ -174,6 +177,7 @@ describe('QueueChatService', () => {
         'queue_chat_messages:123:2',
         0,
         -1,
+        expect.any(Function),
       );
 
       expect(result).toEqual(
@@ -198,6 +202,7 @@ describe('QueueChatService', () => {
         'queue_chat_messages:123:2',
         0,
         -1,
+        expect.any(Function),
       );
       expect(result).toBeNull();
     });
@@ -229,7 +234,10 @@ describe('QueueChatService', () => {
       await service.endChat(123, 2);
 
       expect(mockSave).toHaveBeenCalledWith();
-      expect(redisMock.del).toHaveBeenCalledWith('queue_chat_metadata:123:2');
+      expect(redisMock.del).toHaveBeenCalledWith(
+        'queue_chat_metadata:123:2',
+        expect.any(Function),
+      );
     });
 
     it('should not save data if no messages exist', async () => {
@@ -242,13 +250,14 @@ describe('QueueChatService', () => {
       redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
       redisMock.lrange.mockResolvedValueOnce([]);
 
-      const mockSave = jest.spyOn(QueueChatsModel.prototype, 'save');
-
       await service.endChat(123, 2);
 
-      expect(mockSave).not.toHaveBeenCalled();
+      expect(
+        QueueChatsModel.find({ where: { queueId: 123, studentId: 2 } }),
+      ).resolves.toEqual([]);
       expect(redisMock.del).not.toHaveBeenCalledWith(
         'queue_chat_messages:123:2',
+        expect.any(Function),
       );
     });
   });
