@@ -4,7 +4,7 @@ import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/nestjs';
 
 /*
  * NOTE: all paths here are relative to package/server

@@ -223,6 +223,8 @@ export enum MailServiceType {
   ASYNC_QUESTION_FLAGGED = 'async_question_flagged',
   ASYNC_QUESTION_STATUS_CHANGED = 'async_question_status_changed',
   ASYNC_QUESTION_UPVOTED = 'async_question_upvoted',
+  ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST = 'async_question_new_comment_on_my_post',
+  ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
 }
 /**
  * Represents one of three possible user roles in a course.

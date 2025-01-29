@@ -5,7 +5,6 @@ import {
   AsyncQuestionParams,
   asyncQuestionStatus,
   UpdateAsyncQuestions,
-  MailServiceType,
   AsyncQuestionCommentParams,
   AsyncQuestion,
   nameToRGB,
@@ -17,7 +16,6 @@ import {
   Delete,
   ForbiddenException,
   Get,
-  HttpException,
   HttpStatus,
   NotFoundException,
   Param,
@@ -25,6 +23,7 @@ import {
   Patch,
   Post,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -37,7 +36,6 @@ import { MailService } from 'mail/mail.service';
 import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
-import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { AsyncQuestionRolesGuard } from 'guards/async-question-roles.guard';
@@ -45,14 +43,15 @@ import { pick } from 'lodash';
 import { UserModel } from 'profile/user.entity';
 import { Not } from 'typeorm';
 import { ApplicationConfigService } from 'config/application_config.service';
+import { AsyncQuestionService } from './asyncQuestion.service';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class asyncQuestionController {
   constructor(
     private readonly redisQueueService: RedisQueueService,
-    private mailService: MailService,
     private readonly appConfig: ApplicationConfigService,
+    private readonly asyncQuestionService: AsyncQuestionService,
   ) {}
 
   @Post('vote/:qid/:vote')
@@ -117,29 +116,7 @@ export class asyncQuestionController {
 
     // Check if the question was upvoted and send email if subscribed
     if (vote > 0 && userId !== updatedQuestion.creator.id) {
-      const subscription = await UserSubscriptionModel.findOne({
-        where: {
-          userId: updatedQuestion.creator.id,
-          isSubscribed: true,
-          service: {
-            serviceType: MailServiceType.ASYNC_QUESTION_UPVOTED,
-          },
-        },
-        relations: ['service'],
-      });
-
-      if (subscription) {
-        const service = subscription.service;
-        await this.mailService.sendEmail({
-          receiver: updatedQuestion.creator.email,
-          type: service.serviceType,
-          subject: 'HelpMe - Your Anytime Question Has Been Upvoted',
-          content: `<br> <b>Your question on the anytime question hub has received an upvote:</b> 
-          <br> Question: ${updatedQuestion.questionText}
-          <br> Current votes: ${updatedQuestion.votesSum}
-          <br> <a href="${process.env.DOMAIN}/course/${updatedQuestion.courseId}/async_centre">View Here</a> <br>`,
-        });
-      }
+      await this.asyncQuestionService.sendUpvotedEmail(updatedQuestion);
     }
 
     return res.status(HttpStatus.OK).send({
@@ -220,70 +197,26 @@ export class asyncQuestionController {
     });
 
     if (!question) {
-      throw new NotFoundException();
+      throw new NotFoundException('Question Not Found');
     }
 
     if (question.creatorId !== userId) {
-      throw new HttpException(
-        'You can only update your own questions',
-        HttpStatus.UNAUTHORIZED,
-      );
+      throw new UnauthorizedException('You can only update your own questions');
     }
     // if you created the question (i.e. a student), you can't update the status to illegal ones
     if (
       body.status === asyncQuestionStatus.TADeleted ||
       body.status === asyncQuestionStatus.HumanAnswered
     ) {
-      throw new HttpException(
+      throw new UnauthorizedException(
         `You cannot update your own question's status to ${body.status}`,
-        HttpStatus.UNAUTHORIZED,
       );
     }
     if (
       body.status === asyncQuestionStatus.AIAnsweredNeedsAttention &&
       question.status != asyncQuestionStatus.AIAnsweredNeedsAttention
     ) {
-      const courseId = question.courseId;
-
-      // Step 1: Get all users in the course
-      const usersInCourse = await UserCourseModel.createQueryBuilder(
-        'userCourse',
-      )
-        .select('userCourse.userId')
-        .where('userCourse.courseId = :courseId', { courseId })
-        .getMany();
-
-      const userIds = usersInCourse.map((uc) => uc.userId);
-
-      // Step 2: Get subscriptions for these users
-      const subscriptions = await UserSubscriptionModel.createQueryBuilder(
-        'subscription',
-      )
-        .innerJoinAndSelect('subscription.user', 'user')
-        .innerJoinAndSelect('subscription.service', 'service')
-        .where('subscription.userId IN (:...userIds)', { userIds })
-        .andWhere('service.serviceType = :serviceType', {
-          serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
-        })
-        .andWhere('subscription.isSubscribed = true')
-        .getMany();
-
-      // Send emails in parallel
-      await Promise.all(
-        subscriptions.map((sub) =>
-          this.mailService.sendEmail({
-            receiver: sub.user.email,
-            type: MailServiceType.ASYNC_QUESTION_FLAGGED,
-            subject: 'HelpMe - New Question Marked as Needing Attention',
-            content: `<br> <b>A new question has been posted on the anytime question hub and has been marked as needing attention:</b> 
-            <br> <b>Question Abstract:</b> ${question.questionAbstract}
-            <br> <b>Question Types:</b> ${question.questionTypes.map((qt) => qt.name).join(', ')}
-            <br> <b>Question Text:</b> ${question.questionText}
-            <br>
-            <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
-          }),
-        ),
-      );
+      await this.asyncQuestionService.sendNeedsAttentionEmail(question);
     }
 
     // Update allowed fields
@@ -333,7 +266,7 @@ export class asyncQuestionController {
     });
 
     if (!question) {
-      throw new NotFoundException();
+      throw new NotFoundException('Question Not Found');
     }
 
     const courseId = question.courseId;
@@ -347,9 +280,8 @@ export class asyncQuestionController {
     });
 
     if (!requester || requester.role === Role.STUDENT) {
-      throw new HttpException(
+      throw new UnauthorizedException(
         'You must be a TA/PROF to update this question',
-        HttpStatus.UNAUTHORIZED,
       );
     }
 
@@ -362,53 +294,13 @@ export class asyncQuestionController {
     if (body.status === asyncQuestionStatus.HumanAnswered) {
       question.closedAt = new Date();
       question.taHelpedId = userId;
-      const subscription = await UserSubscriptionModel.findOne({
-        where: {
-          userId: question.creator.id,
-          isSubscribed: true,
-          service: {
-            serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
-          },
-        },
-        relations: ['service'],
-      });
-
-      if (subscription) {
-        const service = subscription.service;
-        await this.mailService.sendEmail({
-          receiver: question.creator.email,
-          type: service.serviceType,
-          subject: 'HelpMe - Your Anytime Question Has Been Answered',
-          content: `<br> <b>Your question on the anytime question hub has been answered or verified by staff:</b> 
-          <br> ${question.answerText}
-          <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
-        });
-      }
-    } else {
-      //send generic your async question changed.
-      const statusChangeSubscription = await UserSubscriptionModel.findOne({
-        where: {
-          userId: question.creator.id,
-          isSubscribed: true,
-          service: {
-            serviceType: MailServiceType.ASYNC_QUESTION_STATUS_CHANGED,
-          },
-        },
-        relations: ['service'],
-      });
-
       // TODO: add tests in asyncQuestion.integration to test to make sure it is sending the emails
-      if (statusChangeSubscription) {
-        const service = statusChangeSubscription.service;
-        await this.mailService.sendEmail({
-          receiver: question.creator.email,
-          type: service.serviceType,
-          subject: 'HelpMe - Your Anytime Question Status Has Changed',
-          content: `<br> <b>The status of your question on the anytime question hub has been updated:</b> 
-          <br> New status: ${body.status}
-          <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
-        });
-      }
+      await this.asyncQuestionService.sendQuestionAnsweredEmail(question);
+    } else {
+      await this.asyncQuestionService.sendGenericStatusChangeEmail(
+        question,
+        body.status,
+      );
     }
     const updatedQuestion = await question.save();
 
@@ -478,7 +370,31 @@ export class asyncQuestionController {
       updatedQuestion,
     );
 
-    // TODO: Notify the creator of the question that a comment has been posted
+    const myUserCourse = await UserCourseModel.findOne({
+      where: {
+        user,
+        courseId: question.courseId,
+      },
+    });
+    const myRole = myUserCourse.role;
+
+    // don't send email if its a comment on your own post
+    if (question.creatorId !== user.id) {
+      await this.asyncQuestionService.sendNewCommentOnMyQuestionEmail(
+        user,
+        myRole,
+        question,
+        comment,
+      );
+    }
+    // send emails out to all users that have posted a comment on this question
+    await this.asyncQuestionService.sendNewCommentOnOtherQuestionEmail(
+      user,
+      myRole,
+      question.creatorId,
+      updatedQuestion,
+      comment,
+    );
 
     // only put necessary info for the response's creator (otherwise it would send the password hash and a bunch of other unnecessary info)
     comment.creator = {
