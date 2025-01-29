@@ -114,7 +114,7 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
   return (
     <Modal
       open={open}
-      title="Add Students To Queue"
+      title="Add Student to Queue"
       okText="Finish"
       cancelText={
         !studentsState || studentsState.length === 0 ? 'Close' : 'Cancel'

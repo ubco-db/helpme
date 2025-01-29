@@ -23,7 +23,9 @@ export class AsyncQuestionModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne((type) => CourseModel)
+  @ManyToOne((type) => CourseModel, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'courseId' })
   @Exclude()
   course: CourseModel;
@@ -44,7 +46,9 @@ export class AsyncQuestionModel extends BaseEntity {
   @Column('text', { nullable: true })
   answerText: string;
 
-  @ManyToOne((type) => UserModel)
+  @ManyToOne((type) => UserModel, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'creatorId' })
   creator: UserModel;
 
@@ -52,7 +56,9 @@ export class AsyncQuestionModel extends BaseEntity {
   @Exclude()
   creatorId: number;
 
-  @ManyToOne((type) => UserModel)
+  @ManyToOne((type) => UserModel, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'taHelpedId' })
   taHelped: UserModel;
 

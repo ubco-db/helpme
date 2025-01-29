@@ -1,4 +1,4 @@
-import { AccountType, OrganizationRole } from '@koh/common';
+import { AccountType } from '@koh/common';
 import {
   BadRequestException,
   HttpException,
@@ -7,7 +7,6 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
-import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { UserModel } from 'profile/user.entity';
 import * as bcrypt from 'bcrypt';
 import { TokenType, UserTokenModel } from 'profile/user-token.entity';
@@ -16,7 +15,6 @@ import { MailServiceModel } from 'mail/mail-services.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
-import { SelectQueryBuilder } from 'typeorm';
 
 @Injectable()
 export class AuthService {
@@ -63,11 +61,12 @@ export class AuthService {
     organizationId: number,
   ): Promise<number> {
     try {
-      const user = await this.getUserByEmailQuery(mail)
-        .andWhere('organizationUser.organizationId = :organizationId', {
-          organizationId,
-        })
-        .getOne();
+      const user = await UserModel.findOne({
+        where: {
+          normalizedEmail: mail.toUpperCase(),
+          organizationId: organizationId,
+        },
+      });
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -88,19 +87,15 @@ export class AuthService {
       if (!user) {
         const newUser = await UserModel.create({
           email: mail,
+          normalizedEmail: mail.toUpperCase(),
           firstName: givenName,
           lastName: lastName,
           accountType: AccountType.SHIBBOLETH,
           emailVerified: true,
+          organizationId,
         }).save();
 
         const userId = newUser.id;
-
-        await OrganizationUserModel.create({
-          organizationId,
-          userId: userId,
-          role: OrganizationRole.MEMBER,
-        }).save();
 
         await ChatTokenModel.create({
           user: newUser,
@@ -135,11 +130,12 @@ export class AuthService {
         throw new BadRequestException('Email not verified');
       }
 
-      const user = await this.getUserByEmailQuery(payload.email)
-        .andWhere('organizationUser.organizationId = :organizationId', {
-          organizationId,
-        })
-        .getOne();
+      const user = await UserModel.findOne({
+        where: {
+          normalizedEmail: payload.email.toUpperCase(),
+          organizationId: organizationId,
+        },
+      });
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -160,19 +156,16 @@ export class AuthService {
       if (!user) {
         const newUser = await UserModel.create({
           email: payload.email,
+          normalizedEmail: payload.email.toUpperCase(),
           firstName: payload.given_name,
           lastName: payload.family_name,
           photoURL: payload.picture,
           accountType: AccountType.GOOGLE,
           emailVerified: true,
+          organizationId,
         }).save();
 
         const userId = newUser.id;
-
-        await OrganizationUserModel.create({
-          organizationId,
-          userId: userId,
-        }).save();
 
         await ChatTokenModel.create({
           user: newUser,
@@ -198,14 +191,12 @@ export class AuthService {
     organizationId: number,
   ): Promise<number> {
     try {
-      // tentative change; allow same email if not part of the same organization
-      // may want to instead collapse this and identify accounts purely by email
-      // but specifically search for organization affiliation where necessary
-      const user = await this.getUserByEmailQuery(email)
-        .andWhere('organizationUser.organizationId = :organizationId', {
-          organizationId,
-        })
-        .getOne();
+      const user = await UserModel.findOne({
+        where: {
+          normalizedEmail: email.toUpperCase(),
+          organizationId: organizationId,
+        },
+      });
 
       if (user) {
         throw new BadRequestException('Email already exists');
@@ -220,6 +211,7 @@ export class AuthService {
         newUser = await UserModel.create({
           courses: [],
           email,
+          normalizedEmail: email.toUpperCase(),
           firstName,
           lastName,
           password: hashedPassword,
@@ -229,10 +221,12 @@ export class AuthService {
         newUser = await UserModel.create({
           courses: [],
           email,
+          normalizedEmail: email.toUpperCase(),
           firstName,
           lastName,
           password: hashedPassword,
           sid,
+          organizationId,
           hideInsights: [],
         }).save();
       }
@@ -251,12 +245,6 @@ export class AuthService {
 
       const userId = newUser.id;
 
-      await OrganizationUserModel.create({
-        organizationId,
-        userId,
-        role: OrganizationRole.MEMBER,
-      }).save();
-
       await ChatTokenModel.create({
         user: newUser,
         token: v4(),
@@ -270,10 +258,9 @@ export class AuthService {
 
   async studentIdExists(sid: number, oid: number): Promise<boolean> {
     const user = await UserModel.findOne({
-      where: { sid },
-      relations: ['organizationUser'],
+      where: { sid, organizationId: oid },
     });
-    return user?.organizationUser?.organizationId == oid;
+    return user != undefined;
   }
 
   async createPasswordResetToken(user: UserModel): Promise<string> {
@@ -299,16 +286,5 @@ export class AuthService {
       token += characters.charAt(randomIndex);
     }
     return token;
-  }
-
-  getUserByEmailQuery(
-    email: string,
-  ): SelectQueryBuilder<UserModel | undefined> {
-    return UserModel.createQueryBuilder('UserModel')
-      .select()
-      .leftJoinAndSelect('UserModel.organizationUser', 'organizationUser')
-      .where('LOWER("UserModel"."email") = :email', {
-        email: email.toLowerCase(),
-      });
   }
 }

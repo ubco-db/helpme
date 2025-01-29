@@ -41,7 +41,7 @@ const CheckInModal: React.FC<CheckInModalProps> = ({
             placeholder="Select a queue"
             onChange={onQueueUpdate}
             optionFilterProp="label"
-            options={queues.map((q, i) => ({ value: i, label: q.room }))}
+            options={queues.map((q) => ({ value: q.id, label: q.room }))}
           />
         </div>
       </div>

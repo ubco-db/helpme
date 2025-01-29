@@ -3,15 +3,10 @@ import { AuthModule } from 'auth/auth.module';
 import { setupIntegrationTest } from './util/testUtils';
 import { TestingModuleBuilder } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import {
-  OrganizationFactory,
-  OrganizationUserFactory,
-  UserFactory,
-} from './util/factories';
+import { OrganizationFactory, UserFactory } from './util/factories';
 import { AuthService } from 'auth/auth.service';
 import { AccountType } from '@koh/common';
 import { MailService } from 'mail/mail.service';
-import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { UserModel } from 'profile/user.entity';
 import {
   TokenAction,
@@ -65,10 +60,7 @@ const mockAuthService = {
   },
 
   studentIdExists: async (sid: number, organizationId: number) => {
-    if (sid === 1 && organizationId === 1) {
-      return true;
-    }
-    return false;
+    return sid === 1 && organizationId === 1;
   },
 
   register: async (
@@ -483,10 +475,6 @@ describe('Auth Integration', () => {
       const user = await UserFactory.create({
         email: 'user@email.com',
         sid: 1,
-      });
-
-      await OrganizationUserFactory.create({
-        userId: user.id,
         organizationId: organization.id,
       });
 
@@ -554,12 +542,8 @@ describe('Auth Integration', () => {
       const user = await UserFactory.create({
         email: 'email.com',
         emailVerified: false,
-      });
-
-      await OrganizationUserModel.create({
         organizationId: organization.id,
-        userId: user.id,
-      }).save();
+      });
 
       const res = await supertest().post('/auth/password/reset').send({
         email: user.email,
@@ -575,12 +559,8 @@ describe('Auth Integration', () => {
       const user = await UserFactory.create({
         email: 'email.com',
         emailVerified: true,
-      });
-
-      await OrganizationUserModel.create({
         organizationId: organization.id,
-        userId: user.id,
-      }).save();
+      });
 
       const res = await supertest().post('/auth/password/reset').send({
         email: user.email,

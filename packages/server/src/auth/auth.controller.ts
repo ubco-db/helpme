@@ -1,15 +1,15 @@
 import {
+  Body,
   Controller,
   Get,
   HttpStatus,
   Param,
+  ParseIntPipe,
+  Post,
   Query,
   Req,
   Res,
-  Post,
-  Body,
   UseGuards,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -35,6 +35,7 @@ import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import * as bcrypt from 'bcrypt';
 import { getCookie } from '../common/helpers';
 import { CourseService } from 'course/course.service';
+import { UserModel } from '../profile/user.entity';
 
 interface RequestUser {
   userId: string;
@@ -282,15 +283,13 @@ export class AuthController {
       });
     }
 
-    const user = await this.authService
-      .getUserByEmailQuery(email)
-      .andWhere('organizationUser.organizationId = :orgId', {
-        orgId: organizationId,
-      })
-      .andWhere('UserModel.accountType = :accountType', {
+    const user = await UserModel.findOne({
+      where: {
+        normalizedEmail: email.toUpperCase(),
+        organizationId: organizationId,
         accountType: AccountType.LEGACY,
-      })
-      .getOne();
+      },
+    });
 
     if (!user) {
       return res
@@ -388,7 +387,12 @@ export class AuthController {
         .send({ message: 'Organization not found' });
     }
 
-    const user = await this.authService.getUserByEmailQuery(email).getOne();
+    const user = await UserModel.findOne({
+      where: {
+        normalizedEmail: email.toUpperCase(),
+        organizationId: organizationId,
+      },
+    });
 
     if (user) {
       return res

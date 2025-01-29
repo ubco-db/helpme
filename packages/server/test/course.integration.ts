@@ -15,7 +15,6 @@ import {
   EventFactory,
   OrganizationCourseFactory,
   OrganizationFactory,
-  OrganizationUserFactory,
   QueueFactory,
   SemesterFactory,
   StudentCourseFactory,
@@ -27,7 +26,6 @@ import {
   QueueInviteFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
-import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 
@@ -869,6 +867,97 @@ describe('Course Integration', () => {
         },
       ]);
     });
+    it('should properly get the start and end time if end event is EventType.TA_CHECKED_OUT_EVENT_END', async () => {
+      const now = new Date();
+      const yesterday = new Date();
+      yesterday.setUTCHours(now.getUTCHours() - 24);
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      const professor = await UserFactory.create();
+
+      await UserCourseFactory.create({
+        user: ta,
+        role: Role.TA,
+        course,
+      });
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course,
+      });
+
+      await EventFactory.create({
+        user: ta,
+        course: course,
+        time: yesterday,
+        eventType: EventType.TA_CHECKED_IN,
+      });
+
+      const yesterdayPlusTwoHours = new Date(yesterday);
+      yesterdayPlusTwoHours.setUTCHours(yesterday.getUTCHours() + 2);
+
+      await EventFactory.create({
+        user: ta,
+        course: course,
+        time: new Date(yesterdayPlusTwoHours),
+        eventType: EventType.TA_CHECKED_OUT,
+      });
+
+      const thenThreeMoreHours = new Date(yesterdayPlusTwoHours);
+      thenThreeMoreHours.setUTCHours(yesterdayPlusTwoHours.getUTCHours() + 3);
+
+      await EventFactory.create({
+        user: ta,
+        course: course,
+        time: thenThreeMoreHours,
+        eventType: EventType.TA_CHECKED_IN,
+      });
+
+      const twelveHoursAFter = new Date(thenThreeMoreHours);
+      twelveHoursAFter.setUTCHours(thenThreeMoreHours.getUTCHours() + 12);
+
+      await EventFactory.create({
+        user: ta,
+        course: course,
+        time: twelveHoursAFter,
+        eventType: EventType.TA_CHECKED_OUT_EVENT_END,
+      });
+
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setUTCDate(twoDaysAgo.getUTCDate() - 2);
+
+      const dateNow = new Date();
+      const data = await supertest({ userId: professor.id })
+        .get(`/courses/${course.id}/ta_check_in_times`)
+        .query({
+          startDate: twoDaysAgo,
+          endDate: dateNow,
+        })
+        .expect(200);
+
+      const checkinTimes = (data.body as unknown as TACheckinTimesResponse)
+        .taCheckinTimes;
+
+      const taName = ta.firstName + ' ' + ta.lastName;
+      expect(checkinTimes).toStrictEqual([
+        {
+          checkinTime: yesterday.toISOString(),
+          checkoutTime: yesterdayPlusTwoHours.toISOString(),
+          forced: false,
+          inProgress: false,
+          name: taName,
+          numHelped: 0,
+        },
+        {
+          checkinTime: thenThreeMoreHours.toISOString(),
+          checkoutTime: twelveHoursAFter.toISOString(),
+          forced: false,
+          inProgress: false,
+          name: taName,
+          numHelped: 0,
+        },
+      ]);
+    });
   });
 
   describe('DELETE /courses/:id/withdraw_course', () => {
@@ -1140,15 +1229,9 @@ describe('Course Integration', () => {
     });
 
     it('should return 404 if course is not found', async () => {
-      const user = await UserFactory.create();
-
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserFactory.create({
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        userId: user.id,
-        organization: organization,
-        organizationUser: user,
       });
 
       const resp = await supertest({ userId: user.id })
@@ -1164,15 +1247,10 @@ describe('Course Integration', () => {
     });
 
     it('should return 400 if course invite code is incorrect', async () => {
-      const user = await UserFactory.create();
       const course = await CourseFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserFactory.create({
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        userId: user.id,
-        organization: organization,
-        organizationUser: user,
       });
 
       await OrganizationCourseFactory.create({
@@ -1195,15 +1273,10 @@ describe('Course Integration', () => {
     });
 
     it('should return 200 if user is already enrolled in the course', async () => {
-      const user = await UserFactory.create();
       const course = await CourseFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserFactory.create({
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        userId: user.id,
-        organization: organization,
-        organizationUser: user,
       });
 
       await OrganizationCourseFactory.create({
@@ -1231,15 +1304,10 @@ describe('Course Integration', () => {
     });
 
     it('should return 200 if user is successfully enrolled in the course', async () => {
-      const user = await UserFactory.create();
       const course = await CourseFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserFactory.create({
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        userId: user.id,
-        organization: organization,
-        organizationUser: user,
       });
 
       await OrganizationCourseFactory.create({
@@ -1283,13 +1351,10 @@ describe('Course Integration', () => {
 
     it('should return 404 when user is not found', async () => {
       const course = await CourseFactory.create();
-      const professor = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
+      const professor = await UserFactory.create({
         organizationId: organization.id,
-        userId: professor.id,
-      }).save();
+      });
 
       await UserCourseFactory.create({
         course: course,
@@ -1309,13 +1374,11 @@ describe('Course Integration', () => {
 
     it('should return 400 when user adds themselves', async () => {
       const course = await CourseFactory.create();
-      const professor = await UserFactory.create({ sid: 1 });
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
+      const professor = await UserFactory.create({
+        sid: 1,
         organizationId: organization.id,
-        userId: professor.id,
-      }).save();
+      });
 
       await UserCourseFactory.create({
         course: course,
@@ -1335,20 +1398,15 @@ describe('Course Integration', () => {
 
     it('should return 400 when user to add is in different organization', async () => {
       const course = await CourseFactory.create();
-      const professor = await UserFactory.create();
-      const student = await UserFactory.create({ sid: 1 });
       const organization = await OrganizationFactory.create();
       const organizationTwo = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        organizationId: organization.id,
-        userId: student.id,
-      }).save();
-
-      await OrganizationUserModel.create({
+      const professor = await UserFactory.create({
         organizationId: organizationTwo.id,
-        userId: professor.id,
-      }).save();
+      });
+      const student = await UserFactory.create({
+        sid: 1,
+        organizationId: organization.id,
+      });
 
       await UserCourseFactory.create({
         course: course,
@@ -1365,19 +1423,15 @@ describe('Course Integration', () => {
 
     it('should return 200 when user is added successfully', async () => {
       const course = await CourseFactory.create();
-      const professor = await UserFactory.create();
-      const student = await UserFactory.create({ sid: 1, courses: [] });
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
+      const professor = await UserFactory.create({
         organizationId: organization.id,
-        userId: student.id,
-      }).save();
-
-      await OrganizationUserModel.create({
+      });
+      const student = await UserFactory.create({
+        sid: 1,
+        courses: [],
         organizationId: organization.id,
-        userId: professor.id,
-      }).save();
+      });
 
       await UserCourseFactory.create({
         course: course,
@@ -1818,7 +1872,6 @@ describe('Course Integration', () => {
       const professor = await UserFactory.create();
       const student1 = await UserFactory.create();
       const student2 = await UserFactory.create();
-      const student3 = await UserFactory.create();
       await UserCourseFactory.create({
         user: professor,
         role: Role.PROFESSOR,

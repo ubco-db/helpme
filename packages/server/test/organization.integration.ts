@@ -7,7 +7,6 @@ import {
   SemesterFactory,
   UserFactory,
 } from './util/factories';
-import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { MailServiceType, OrganizationRole, Role, UserRole } from '@koh/common';
 import * as fs from 'fs';
@@ -32,13 +31,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).post(
         `/organization/${organization.id}/populate_chat_token_table`,
@@ -48,55 +44,17 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when chat token table is populated', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id }).post(
         `/organization/${organization.id}/populate_chat_token_table`,
       );
 
       expect(res.status).toBe(200);
-    });
-  });
-
-  describe('POST /organization/:oid/add_member/:uid', () => {
-    it('should return 403 when user is not logged in', async () => {
-      const response = await supertest().post('/organization/1/add_member/1');
-
-      expect(response.status).toBe(401);
-    });
-
-    it("should return 200 when user doesn't exist in organization", async () => {
-      const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
-
-      const res = await supertest({ userId: user.id }).post(
-        `/organization/${organization.id}/add_member/${user.id}`,
-      );
-
-      expect(res.status).toBe(200);
-    });
-
-    it('should return 500 when user already exists in organization', async () => {
-      const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-      }).save();
-
-      const res = await supertest({ userId: user.id }).post(
-        `/organization/${organization.id}/add_member/${user.id}`,
-      );
-
-      expect(res.status).toBe(500);
     });
   });
 
@@ -122,13 +80,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_users/1`,
@@ -138,14 +93,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when user is an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_users/1`,
@@ -167,13 +119,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_courses/1`,
@@ -183,15 +132,12 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when user is an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -218,13 +164,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/stats`,
@@ -234,22 +177,12 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when user is an admin', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
-        organizationId: organization.id,
-        role: OrganizationRole.PROFESSOR,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -276,13 +209,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_user/1`,
@@ -292,21 +222,16 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when searching for user not in the same organization', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const organizationTwo = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
-        organizationId: organizationTwo.id,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
+        organizationId: organization.id,
+        organizationRole: OrganizationRole.MEMBER,
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organizationTwo.id}/get_user/${userTwo.id}`,
@@ -316,21 +241,16 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user to get info is not in the same organization', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const organizationTwo = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organizationTwo.id,
-      }).save();
+        organizationRole: OrganizationRole.MEMBER,
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_user/${userTwo.id}`,
@@ -340,21 +260,15 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user to get info is admin', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_user/${userTwo.id}`,
@@ -364,20 +278,15 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when user is found', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+        organizationRole: OrganizationRole.MEMBER,
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_user/${userTwo.id}`,
@@ -399,13 +308,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 and response when user is logged in', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}`,
@@ -439,11 +345,6 @@ describe('Organization Integration', () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-      }).save();
-
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/update_account_access/1`,
       );
@@ -451,22 +352,16 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(401);
     });
 
-    it('should return 401 when user to update is organization admin', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
+    it('should return 401 when user to update account access for is organization admin', async () => {
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/update_account_access/${userTwo.id}`,
@@ -476,22 +371,15 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user to update is global admin', async () => {
-      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const user = await UserFactory.create({
+        organizationId: organization.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
       const userTwo = await UserFactory.create({
+        organizationId: organization.id,
         userRole: UserRole.ADMIN,
       });
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
-        organizationId: organization.id,
-      }).save();
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${userTwo.id}/update_account_access/${userTwo.id}`,
@@ -501,20 +389,14 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when user access is updated', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/update_account_access/${userTwo.id}`,
@@ -535,19 +417,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-      const userTwo = await UserFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
-        organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/update_user_role`,
@@ -557,20 +430,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when request missing body', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-      const userTwo = await UserFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
-        organizationId: organization.id,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/update_user_role`,
@@ -580,21 +444,15 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when user to update is organization admin', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/update_user_role`)
@@ -607,14 +465,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 404 when user to update is not found', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/update_user_role`)
@@ -627,20 +482,14 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when user role is updated', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/update_user_role`)
@@ -664,45 +513,31 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-      const userTwo = await UserFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).patch(
-        `/organization/${organization.id}/edit_user/1`,
+        `/organization/${organization.id}/edit_user/${userTwo.id}`,
       );
 
       expect(res.status).toBe(401);
     });
 
     it('should return 401 when user to update is global admin', async () => {
-      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const user = await UserFactory.create({
+        organizationId: organization.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
       const userTwo = await UserFactory.create({
+        organizationId: organization.id,
         userRole: UserRole.ADMIN,
       });
-      const organization = await OrganizationFactory.create();
-      const userThree = await UserFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userThree.id,
-        organizationId: organization.id,
-      }).save();
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/edit_user/${userTwo.id}`,
@@ -712,21 +547,15 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user to update is organization admin', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/edit_user/${userTwo.id}`)
@@ -741,20 +570,14 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when firstName is too short', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/edit_user/${userTwo.id}`)
@@ -769,20 +592,14 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when lastName is too short', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/edit_user/${userTwo.id}`)
@@ -797,20 +614,14 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when email is too short', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/edit_user/${userTwo.id}`)
@@ -825,22 +636,15 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when student id is smaller than one', async () => {
-      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const user = await UserFactory.create({
+        organizationId: organization.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
       const userTwo = await UserFactory.create({
+        organizationId: organization.id,
         sid: 200,
       });
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
-        organizationId: organization.id,
-      }).save();
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/edit_user/${userTwo.id}`)
@@ -855,23 +659,18 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when user email to update is already in use', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const user = await UserFactory.create({
+        organizationId: organization.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
+        organizationId: organization.id,
+      });
       await UserFactory.create({
+        organizationId: organization.id,
         email: 'test@mail.com',
       });
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
-        organizationId: organization.id,
-      }).save();
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/edit_user/${userTwo.id}`)
@@ -879,7 +678,6 @@ describe('Organization Integration', () => {
           firstName: 'test',
           lastName: 'test',
           email: 'test@mail.com',
-          sid: 23,
         });
 
       expect(res.body.message).toBe('Email is already in use');
@@ -887,20 +685,14 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when user is updated', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/edit_user/${userTwo.id}`)
@@ -927,14 +719,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -949,14 +738,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 404 when course not found', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/update_course/0`)
@@ -968,15 +754,13 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when course name is too short', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
+
       await OrganizationCourseModel.create({
         courseId: course.id,
         organizationId: organization.id,
@@ -993,17 +777,14 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when course coordinator email is too short', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create({
         coordinator_email: 'test@ubc.ca',
       });
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -1024,15 +805,12 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when section group name is too short', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -1054,17 +832,15 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when course timezone is not valid', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
+      const user = await UserFactory.create({
+        organizationId: organization.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
       const course = await CourseFactory.create({
         timezone: 'America/Los_Angeles',
       });
 
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
       await OrganizationCourseModel.create({
         courseId: course.id,
         organizationId: organization.id,
@@ -1088,15 +864,12 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when semester id is not in valid form', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -1119,17 +892,18 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when course is updated', async () => {
-      const user = await UserFactory.create();
-      const professor1 = await UserFactory.create();
-      const professor2 = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const professor1 = await UserFactory.create({
+        organizationId: organization.id,
+      });
+      const professor2 = await UserFactory.create({
+        organizationId: organization.id,
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -1162,14 +936,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.MEMBER,
-      }).save();
+        organizationRole: OrganizationRole.MEMBER,
+      });
 
       const res = await supertest({ userId: user.id }).post(
         `/organization/${organization.id}/reset_chat_token_limit`,
@@ -1178,38 +949,29 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(401);
     });
     it('should reset chat token limits successfully', async () => {
-      const admin = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-      const professor = await UserFactory.create();
-      const member = await UserFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: admin.id,
+      const admin = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: professor.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const professor = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.PROFESSOR,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: member.id,
+        organizationRole: OrganizationRole.PROFESSOR,
+      });
+      const member = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.MEMBER,
-      }).save();
+        organizationRole: OrganizationRole.MEMBER,
+      });
 
       // Create chat tokens with non-zero 'used' values
-      const memberToken = await ChatTokenModel.create({
+      await ChatTokenModel.create({
         user: member,
         used: 50,
         token: 'test1',
         max_uses: 100,
       }).save();
 
-      const professorToken = await ChatTokenModel.create({
+      await ChatTokenModel.create({
         user: professor,
         used: 20,
         token: 'test',
@@ -1240,24 +1002,20 @@ describe('Organization Integration', () => {
   describe('POST /organization/:oid/populate_subscription_table', () => {
     it('should populate subscription table correctly for member who is TA in a course', async () => {
       try {
-        const admin = await UserFactory.create();
         const organization = await OrganizationFactory.create();
-        const memberTA = await UserFactory.create();
         const course = await CourseFactory.create();
 
         // Set up admin
-        await OrganizationUserModel.create({
-          userId: admin.id,
+        const admin = await UserFactory.create({
           organizationId: organization.id,
-          role: OrganizationRole.ADMIN,
-        }).save();
+          organizationRole: OrganizationRole.ADMIN,
+        });
 
         // Set up member who is also a TA
-        await OrganizationUserModel.create({
-          userId: memberTA.id,
+        const memberTA = await UserFactory.create({
           organizationId: organization.id,
-          role: OrganizationRole.MEMBER,
-        }).save();
+          organizationRole: OrganizationRole.MEMBER,
+        });
 
         // Add memberTA as TA to the course
         await UserCourseModel.create({
@@ -1337,14 +1095,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.MEMBER,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).post(
         `/organization/${organization.id}/populate_subscription_table`,
@@ -1355,21 +1109,14 @@ describe('Organization Integration', () => {
 
     it('should populate subscription table successfully', async () => {
       try {
-        const admin = await UserFactory.create();
         const organization = await OrganizationFactory.create();
-        const member = await UserFactory.create();
-
-        await OrganizationUserModel.create({
-          userId: admin.id,
+        const admin = await UserFactory.create({
           organizationId: organization.id,
-          role: OrganizationRole.ADMIN,
-        }).save();
-
-        await OrganizationUserModel.create({
-          userId: member.id,
+          organizationRole: OrganizationRole.ADMIN,
+        });
+        const member = await UserFactory.create({
           organizationId: organization.id,
-          role: OrganizationRole.MEMBER,
-        }).save();
+        });
 
         // Create mail services
         const memberService = await mailServiceFactory.create({
@@ -1382,8 +1129,6 @@ describe('Organization Integration', () => {
         });
 
         await UserSubscriptionModel.delete({});
-
-        const existingSubscriptions = await UserSubscriptionModel.find();
 
         const res = await supertest({ userId: admin.id }).post(
           `/organization/${organization.id}/populate_subscription_table`,
@@ -1427,24 +1172,20 @@ describe('Organization Integration', () => {
 
     it('should populate subscription table correctly for regular member without TA role', async () => {
       try {
-        const admin = await UserFactory.create();
         const organization = await OrganizationFactory.create();
-        const regularMember = await UserFactory.create();
         const course = await CourseFactory.create();
 
         // Set up admin
-        await OrganizationUserModel.create({
-          userId: admin.id,
+        const admin = await UserFactory.create({
           organizationId: organization.id,
-          role: OrganizationRole.ADMIN,
-        }).save();
+          organizationRole: OrganizationRole.ADMIN,
+        });
 
         // Set up regular member
-        await OrganizationUserModel.create({
-          userId: regularMember.id,
+        const regularMember = await UserFactory.create({
           organizationId: organization.id,
-          role: OrganizationRole.MEMBER,
-        }).save();
+          organizationRole: OrganizationRole.MEMBER,
+        });
 
         // Add regularMember as student to the course
         await UserCourseModel.create({
@@ -1524,14 +1265,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -1546,14 +1284,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 404 when course not found', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/update_course_access/0`,
@@ -1563,15 +1298,12 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when course access is updated', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -1598,14 +1330,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -1620,14 +1349,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 404 when course is not found', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_course/0`,
@@ -1645,13 +1371,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 404 when image is not found', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_banner/non_existing_image.png`,
@@ -1669,15 +1392,12 @@ describe('Organization Integration', () => {
         file,
       );
 
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create({
         bannerUrl: fileName,
       });
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_banner/${organization.bannerUrl}`,
@@ -1695,6 +1415,7 @@ describe('Organization Integration', () => {
 
       expect(response.status).toBe(404);
     });
+
     it('should return 200 when user is not logged in since it is public', async () => {
       const file = Buffer.from([]);
       const fileName = 'test.png';
@@ -1719,13 +1440,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 404 when image is not found', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_logo/non_existing_image.png`,
@@ -1743,15 +1461,12 @@ describe('Organization Integration', () => {
         file,
       );
 
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create({
         logoUrl: fileName,
       });
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_logo/${organization.logoUrl}`,
@@ -1773,13 +1488,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when is not admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/update_account_access/1`,
@@ -1789,21 +1501,15 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user to update is organization admin', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/update_account_access/${userTwo.id}`,
@@ -1813,22 +1519,15 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user to update is global admin', async () => {
-      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const user = await UserFactory.create({
+        organizationId: organization.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
       const userTwo = await UserFactory.create({
+        organizationId: organization.id,
         userRole: UserRole.ADMIN,
       });
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
-        organizationId: organization.id,
-      }).save();
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/update_account_access/${userTwo.id}`,
@@ -1838,20 +1537,14 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when user is updated', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/update_account_access/${userTwo.id}`,
@@ -1870,13 +1563,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when is not admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/update`,
@@ -1886,14 +1576,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when organization name is too short', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/update`)
@@ -1908,14 +1595,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when organization description is too short', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/update`)
@@ -1931,16 +1615,13 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when organization website URL is too short', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create({
         websiteUrl: 'http://ubc.ca',
       });
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/update`)
@@ -1957,16 +1638,13 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when organization is updated', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create({
         websiteUrl: 'http://ubc.ca',
       });
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id })
         .patch(`/organization/${organization.id}/update`)
@@ -1991,13 +1669,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when is not admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).delete(
         `/organization/${organization.id}/drop_user_courses/1`,
@@ -2007,20 +1682,14 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when body userCourses is empty', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-      const userTwo = await UserFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id })
         .delete(
@@ -2032,23 +1701,17 @@ describe('Organization Integration', () => {
       expect(res.body.message).toBe("User doesn't have any courses to delete");
     });
 
-    it('should return 401 when user to update is organization admin', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
+    it('should return 401 when user to drop courses for is organization admin', async () => {
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -2065,23 +1728,16 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user to update is global admin', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create({
-        userRole: UserRole.ADMIN,
-      });
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+        userRole: UserRole.ADMIN,
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -2098,21 +1754,15 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when user courses are deleted', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -2135,20 +1785,15 @@ describe('Organization Integration', () => {
     });
 
     it('Should allow organization professors to drop students from their courses', async () => {
-      const professor = await UserFactory.create();
-      const student = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: professor.id,
+      const professor = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.PROFESSOR,
-      }).save();
-      await OrganizationUserModel.create({
-        userId: student.id,
+        organizationRole: OrganizationRole.PROFESSOR,
+      });
+      const student = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -2173,25 +1818,18 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('User courses deleted');
     });
+
     it('Should return 401 when a professor tries to drop a student from a course they are not teaching', async () => {
-      const professor = await UserFactory.create();
-      const student = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
       const course2 = await CourseFactory.create();
-
-      const profOrgUser = await OrganizationUserModel.create({
-        userId: professor.id,
+      const professor = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.PROFESSOR,
-      }).save();
-
-      professor.organizationUser = profOrgUser;
-
-      await OrganizationUserModel.create({
-        userId: student.id,
+        organizationRole: OrganizationRole.PROFESSOR,
+      });
+      const student = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -2227,13 +1865,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when is not admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).delete(
         `/organization/${organization.id}/delete_profile_picture/1`,
@@ -2242,22 +1877,16 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(401);
     });
 
-    it('should return 401 when user to update is organization admin', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
+    it('should return 401 when user to delete profile picture for is organization admin', async () => {
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id }).delete(
         `/organization/${organization.id}/delete_profile_picture/${userTwo.id}`,
@@ -2267,22 +1896,15 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user to update is global admin', async () => {
-      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const user = await UserFactory.create({
+        organizationId: organization.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
       const userTwo = await UserFactory.create({
+        organizationId: organization.id,
         userRole: UserRole.ADMIN,
       });
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
-        organizationId: organization.id,
-      }).save();
 
       const res = await supertest({ userId: user.id }).delete(
         `/organization/${organization.id}/delete_profile_picture/${userTwo.id}`,
@@ -2292,20 +1914,14 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when user has no profile picture', async () => {
-      const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const userTwo = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).delete(
         `/organization/${organization.id}/delete_profile_picture/${userTwo.id}`,
@@ -2316,22 +1932,15 @@ describe('Organization Integration', () => {
     });
 
     it("should return 500 when user profile picture doesn't exist", async () => {
-      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const user = await UserFactory.create({
+        organizationId: organization.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
       const userTwo = await UserFactory.create({
+        organizationId: organization.id,
         photoURL: 'non_existing_photo_url',
       });
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
-        organizationId: organization.id,
-      }).save();
 
       const res = await supertest({ userId: user.id }).delete(
         `/organization/${organization.id}/delete_profile_picture/${userTwo.id}`,
@@ -2352,23 +1961,15 @@ describe('Organization Integration', () => {
         file,
       );
 
-      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const user = await UserFactory.create({
+        organizationId: organization.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
       const userTwo = await UserFactory.create({
+        organizationId: organization.id,
         photoURL: fileName,
       });
-
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: userTwo.id,
-        organizationId: organization.id,
-      }).save();
 
       const res = await supertest({ userId: user.id }).delete(
         `/organization/${organization.id}/delete_profile_picture/${userTwo.id}`,
@@ -2387,13 +1988,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).post(
         `/organization/${organization.id}/upload_logo`,
@@ -2411,16 +2009,13 @@ describe('Organization Integration', () => {
         file,
       );
 
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create({
         logoUrl: fileName,
       });
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id })
         .post(`/organization/${organization.id}/upload_logo`)
@@ -2435,14 +2030,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when logo is uploaded', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id })
         .post(`/organization/${organization.id}/upload_logo`)
@@ -2465,13 +2057,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).post(
         `/organization/${organization.id}/upload_banner`,
@@ -2492,14 +2081,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not an admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -2514,15 +2100,13 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when course name is too short', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
+
       await OrganizationCourseModel.create({
         courseId: course.id,
         organizationId: organization.id,
@@ -2539,18 +2123,14 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when course coordinator email is too short', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create({
         coordinator_email: 'test@ubc.ca',
       });
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
+        organizationRole: OrganizationRole.ADMIN,
+      });
       await OrganizationCourseModel.create({
         courseId: course.id,
         organizationId: organization.id,
@@ -2570,16 +2150,12 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when section group name is too short', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
+        organizationRole: OrganizationRole.ADMIN,
+      });
       await OrganizationCourseModel.create({
         courseId: course.id,
         organizationId: organization.id,
@@ -2600,17 +2176,14 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when course timezone is not valid', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create({
         timezone: 'America/Los_Angeles',
       });
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
       await OrganizationCourseModel.create({
         courseId: course.id,
         organizationId: organization.id,
@@ -2634,15 +2207,13 @@ describe('Organization Integration', () => {
     });
 
     it('should return 202 when no professors are given', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
+      const user = await UserFactory.create({
+        organizationId: organization.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
       const course = await CourseFactory.create();
 
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
       await OrganizationCourseModel.create({
         courseId: course.id,
         organizationId: organization.id,
@@ -2670,18 +2241,18 @@ describe('Organization Integration', () => {
     });
 
     it('should return 400 when course settings is invalid', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
+      const user = await UserFactory.create({
+        organizationId: organization.id,
+        organizationRole: OrganizationRole.ADMIN,
+      });
       const course = await CourseFactory.create();
-      const professor1 = await UserFactory.create();
+      const professor1 = await UserFactory.create({
+        organizationId: organization.id,
+      });
 
       await SemesterFactory.create();
 
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
       await OrganizationCourseModel.create({
         courseId: course.id,
         organizationId: organization.id,
@@ -2724,17 +2295,16 @@ describe('Organization Integration', () => {
     });
 
     it('should return 202 when a course is created with no course settings provided (which will use defaults)', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-      const semester = await SemesterFactory.create();
+      await SemesterFactory.create();
       const professor1 = await UserFactory.create();
 
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
+
       await OrganizationCourseModel.create({
         courseId: course.id,
         organizationId: organization.id,
@@ -2774,17 +2344,18 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when course is created', async () => {
-      const user = await UserFactory.create();
-      const professor1 = await UserFactory.create();
-      const professor2 = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-      const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
+      const professor1 = await UserFactory.create({
+        organizationId: organization.id,
+      });
+      const professor2 = await UserFactory.create({
+        organizationId: organization.id,
+      });
+      const course = await CourseFactory.create();
 
       await OrganizationCourseModel.create({
         courseId: course.id,
@@ -2853,13 +2424,10 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 when user is not admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/cronjobs`,
@@ -2869,14 +2437,11 @@ describe('Organization Integration', () => {
     });
 
     it('should return 200 when user is admin', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
+        organizationRole: OrganizationRole.ADMIN,
+      });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/cronjobs`,
@@ -2884,27 +2449,5 @@ describe('Organization Integration', () => {
 
       expect(res.status).toBe(200);
     });
-  });
-
-  describe('GET /organization/:oid/lms_integration', () => {
-    it.each([OrganizationRole.PROFESSOR, OrganizationRole.MEMBER])(
-      'should return 401 when org non-administrator calls route',
-      async (orgRole: OrganizationRole) => {
-        const user = await UserFactory.create();
-        const organization = await OrganizationFactory.create();
-
-        await OrganizationUserModel.create({
-          userId: user.id,
-          organizationId: organization.id,
-          role: orgRole,
-        }).save();
-
-        const res = await supertest({ userId: user.id }).get(
-          `/organization/${organization.id}/lms_integration`,
-        );
-
-        expect(res.status).toBe(401);
-      },
-    );
   });
 });

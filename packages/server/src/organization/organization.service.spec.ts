@@ -2,7 +2,6 @@ import { Connection } from 'typeorm';
 import { OrganizationService } from './organization.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
-import { OrganizationUserModel } from './organization-user.entity';
 import {
   CourseFactory,
   OrganizationFactory,
@@ -11,7 +10,6 @@ import {
 import { UserRole } from '@koh/common';
 import { OrganizationCourseModel } from './organization-course.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
-import { AuthService } from '../auth/auth.service';
 import { MailService } from '../mail/mail.service';
 
 describe('OrganizationService', () => {
@@ -23,7 +21,6 @@ describe('OrganizationService', () => {
       imports: [TestTypeOrmModule, TestConfigModule],
       providers: [
         OrganizationService,
-        AuthService,
         {
           // We disabled the mail service for now, so let's just mock it
           provide: MailService,
@@ -50,17 +47,13 @@ describe('OrganizationService', () => {
     });
 
     it('should return the organization and role of the organizationUser', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
-      const organizationUserModel =
-        await service.getOrganizationAndRoleByUserId(user.id);
-      expect(organizationUserModel).toMatchSnapshot();
+      const userModel = await service.getOrganizationAndRoleByUserId(user.id);
+      expect(userModel).toMatchSnapshot();
     });
   });
 
@@ -72,10 +65,12 @@ describe('OrganizationService', () => {
     });
 
     it('should delete user courses', async () => {
-      const user = await UserFactory.create();
       const courseOne = await CourseFactory.create();
       const courseTwo = await CourseFactory.create();
       const organization = await OrganizationFactory.create();
+      const user = await UserFactory.create({
+        organizationId: organization.id,
+      });
 
       await UserCourseModel.create({
         userId: user.id,
@@ -95,11 +90,6 @@ describe('OrganizationService', () => {
       await OrganizationCourseModel.create({
         organizationId: organization.id,
         courseId: courseTwo.id,
-      }).save();
-
-      await OrganizationUserModel.create({
-        organizationId: organization.id,
-        userId: user.id,
       }).save();
 
       await service.deleteUserCourses(user.id, [courseOne.id, courseTwo.id]);
@@ -188,14 +178,10 @@ describe('OrganizationService', () => {
 
     it('should return empty organization users if no users match search query', async () => {
       const organization = await OrganizationFactory.create();
-      const user = await UserFactory.create({
+      await UserFactory.create({
         firstName: 'test',
-      });
-
-      await OrganizationUserModel.create({
         organizationId: organization.id,
-        userId: user.id,
-      }).save();
+      });
 
       const users = await service.getUsers(
         organization.id,
@@ -209,23 +195,15 @@ describe('OrganizationService', () => {
 
     it('should return organization users with search', async () => {
       const organization = await OrganizationFactory.create();
-      const user = await UserFactory.create({
+      await UserFactory.create({
         firstName: 'test',
+        organizationId: organization.id,
       });
 
-      const userTwo = await UserFactory.create({
+      await UserFactory.create({
         firstName: 'userNotMatchingSearch',
+        organizationId: organization.id,
       });
-
-      await OrganizationUserModel.create({
-        organizationId: organization.id,
-        userId: user.id,
-      }).save();
-
-      await OrganizationUserModel.create({
-        organizationId: organization.id,
-        userId: userTwo.id,
-      }).save();
 
       const users = await service.getUsers(organization.id, 1, 50, 'test');
       expect(users).toMatchSnapshot();
@@ -233,18 +211,8 @@ describe('OrganizationService', () => {
 
     it('should return organization users', async () => {
       const organization = await OrganizationFactory.create();
-      const userOne = await UserFactory.create();
-      const userTwo = await UserFactory.create();
-
-      await OrganizationUserModel.create({
-        organizationId: organization.id,
-        userId: userOne.id,
-      }).save();
-
-      await OrganizationUserModel.create({
-        organizationId: organization.id,
-        userId: userTwo.id,
-      }).save();
+      await UserFactory.create({ organizationId: organization.id });
+      await UserFactory.create({ organizationId: organization.id });
 
       const users = await service.getUsers(organization.id, 1, 50);
       expect(users).toMatchSnapshot();
@@ -261,15 +229,11 @@ describe('OrganizationService', () => {
     });
 
     it('should return organizationUser globalRole as unknown when user global role is admin', async () => {
+      const organization = await OrganizationFactory.create();
       const user = await UserFactory.create({
         userRole: UserRole.ADMIN,
-      });
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
         organizationId: organization.id,
-      }).save();
+      });
 
       const organizationUser = await service.getOrganizationUserByUserId(
         user.id,
@@ -278,13 +242,10 @@ describe('OrganizationService', () => {
     });
 
     it('should return the organizationUser', async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
         organizationId: organization.id,
-      }).save();
+      });
 
       const organizationUser = await service.getOrganizationUserByUserId(
         user.id,

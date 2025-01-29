@@ -1,4 +1,5 @@
-import { LoginData, PasswordResetData, RegisterData } from '../typings/user'
+import { LoginData } from '@koh/common'
+import { PasswordResetData, RegisterData } from '../typings/user'
 import { fetchAuthToken } from './cookieApi'
 
 /**
@@ -63,10 +64,8 @@ export const userApi = {
 
   /**
    * Login with email and password
-   * @param username {string} - The email to login with
-   * @param password {string} - The password to login with
-   * @param token {string} - The reCAPTCHA token
    * @returns {Promise<Response>} - The response from the server
+   * @param loginData
    */
   login: async (loginData: LoginData): Promise<Response> => {
     const loginRequest = {

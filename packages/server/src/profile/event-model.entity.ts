@@ -32,7 +32,9 @@ export class EventModel extends BaseEntity {
   @Column({ type: 'enum', enum: EventType })
   eventType: EventType;
 
-  @ManyToOne((type) => UserModel, (user) => user.events)
+  @ManyToOne((type) => UserModel, (user) => user.events, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'userId' })
   user: UserModel;
 
@@ -40,7 +42,9 @@ export class EventModel extends BaseEntity {
   @Exclude()
   userId: number;
 
-  @ManyToOne((type) => CourseModel, (course) => course.events)
+  @ManyToOne((type) => CourseModel, (course) => course.events, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'courseId' })
   course: CourseModel;
 

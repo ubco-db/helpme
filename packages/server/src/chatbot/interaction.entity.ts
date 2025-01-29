@@ -19,15 +19,25 @@ export class InteractionModel extends BaseEntity {
   @Column()
   timestamp: Date;
 
-  @ManyToOne(() => CourseModel)
+  @ManyToOne(() => CourseModel, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'course' })
   course: CourseModel;
 
-  @ManyToOne(() => UserModel)
+  @ManyToOne(() => UserModel, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'user' })
   user: UserModel;
 
-  @OneToMany((type) => ChatbotQuestionModel, (question) => question.interaction)
+  @OneToMany(
+    (type) => ChatbotQuestionModel,
+    (question) => question.interaction,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'interaction' })
   questions: ChatbotQuestionModel[];
 }

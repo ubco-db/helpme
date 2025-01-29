@@ -2,16 +2,12 @@ import {
   StudentCourseFactory,
   UserFactory,
   CourseFactory,
-  ProfSectionGroupsFactory,
-  CourseSectionFactory,
-  LastRegistrationFactory,
   OrganizationFactory,
   ChatTokenFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { ProfileModule } from '../src/profile/profile.module';
 import { DesktopNotifModel } from 'notification/desktop-notif.entity';
-import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { AccountType } from '@koh/common';
 
 describe('Profile Integration', () => {
@@ -20,13 +16,11 @@ describe('Profile Integration', () => {
   describe('GET /profile', () => {
     it('returns the logged-in user profile', async () => {
       const organization = await OrganizationFactory.create();
-      const user = await UserFactory.create();
+      const user = await UserFactory.create({
+        organizationId: organization.id,
+      });
       const fundies = await CourseFactory.create({ name: 'CS 2500' });
       await StudentCourseFactory.create({ course: fundies, user });
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-      }).save();
 
       await ChatTokenFactory.create({ user, token: 'test' });
 

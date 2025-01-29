@@ -19,6 +19,7 @@ export class OrganizationCourseModel extends BaseEntity {
   @ManyToOne(
     (type) => OrganizationModel,
     (organization) => organization.organizationCourses,
+    { onDelete: 'CASCADE' },
   )
   @JoinColumn({ name: 'organizationId' })
   organization: OrganizationModel;

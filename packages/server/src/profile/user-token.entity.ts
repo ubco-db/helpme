@@ -45,6 +45,8 @@ export class UserTokenModel extends BaseEntity {
   })
   token_action: TokenAction;
 
-  @ManyToOne((type) => UserModel, (user) => user.tokens)
+  @ManyToOne((type) => UserModel, (user) => user.tokens, {
+    onDelete: 'CASCADE',
+  })
   user: UserModel;
 }

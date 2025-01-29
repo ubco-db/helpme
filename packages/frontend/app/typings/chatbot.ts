@@ -28,6 +28,10 @@ export interface Message {
   questionId?: string
 }
 
+export interface ChatbotQToConvertToAnytimeQ {
+  messages: Message[]
+}
+
 // this is the response from the backend when new questions are asked
 // if question is I don't know, only answer and questionId are returned
 export interface ChatbotAskResponse {

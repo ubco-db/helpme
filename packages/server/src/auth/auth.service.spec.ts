@@ -3,12 +3,8 @@ import { AuthService } from './auth.service';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { UserModel } from 'profile/user.entity';
 import { Connection } from 'typeorm';
-import {
-  OrganizationFactory,
-  OrganizationUserFactory,
-} from '../../test/util/factories';
+import { OrganizationFactory } from '../../test/util/factories';
 import { AccountType } from '@koh/common';
-import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { MailService } from 'mail/mail.service';
 import { MailModule } from 'mail/mail.module';
 
@@ -99,13 +95,10 @@ describe('AuthService', () => {
   describe('loginWithShibboleth', () => {
     it('should throw an error when user already exists with password', async () => {
       const org = await OrganizationFactory.create();
-      const u = await UserModel.create({
+      await UserModel.create({
         email: 'mocked_email@example.com',
         password: 'test_password',
-      }).save();
-      await OrganizationUserModel.create({
         organizationId: org.id,
-        userId: u.id,
       }).save();
 
       await expect(
@@ -123,13 +116,10 @@ describe('AuthService', () => {
 
     it('should throw an error when user already exists with other account type', async () => {
       const org = await OrganizationFactory.create();
-      const u = await UserModel.create({
+      await UserModel.create({
         email: 'mocked_email@example.com',
         accountType: AccountType.GOOGLE,
-      }).save();
-      await OrganizationUserModel.create({
         organizationId: org.id,
-        userId: u.id,
       }).save();
 
       await expect(
@@ -150,10 +140,7 @@ describe('AuthService', () => {
       const user = await UserModel.create({
         email: 'mocked_email@example.com',
         accountType: AccountType.SHIBBOLETH,
-      }).save();
-      await OrganizationUserModel.create({
         organizationId: org.id,
-        userId: user.id,
       }).save();
 
       const userId = await service.loginWithShibboleth(
@@ -190,14 +177,11 @@ describe('AuthService', () => {
 
     it('should throw an error when user already exists with password', async () => {
       const organization = await OrganizationFactory.create();
-      const user = await UserModel.create({
+      await UserModel.create({
         email: 'mocked_email@example.com',
         password: 'test_password',
+        organizationId: organization.id,
       }).save();
-      await OrganizationUserFactory.create({
-        organizationUser: user,
-        organization: organization,
-      });
 
       await expect(
         service.loginWithGoogle('valid_code', organization.id),
@@ -208,14 +192,11 @@ describe('AuthService', () => {
 
     it('should throw an error when user already exists with other account type', async () => {
       const organization = await OrganizationFactory.create();
-      const user = await UserModel.create({
+      await UserModel.create({
         email: 'mocked_email@example.com',
         accountType: AccountType.SHIBBOLETH,
+        organizationId: organization.id,
       }).save();
-      await OrganizationUserFactory.create({
-        organizationUser: user,
-        organization: organization,
-      });
 
       await expect(
         service.loginWithGoogle('valid_code', organization.id),
@@ -229,11 +210,8 @@ describe('AuthService', () => {
       const user = await UserModel.create({
         email: 'mocked_email@example.com',
         accountType: AccountType.GOOGLE,
+        organizationId: organization.id,
       }).save();
-      await OrganizationUserFactory.create({
-        organizationUser: user,
-        organization: organization,
-      });
 
       const userId = await service.loginWithGoogle(
         'valid_code',
@@ -269,10 +247,6 @@ describe('AuthService', () => {
       const user = await UserModel.create({
         email: 'test@email.com',
         sid: 123456789,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
         organizationId: otherOrganization.id,
       }).save();
 
@@ -286,10 +260,6 @@ describe('AuthService', () => {
       const user = await UserModel.create({
         email: 'test@email.com',
         sid: 123456789,
-      }).save();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
         organizationId: organization.id,
       }).save();
 
@@ -301,12 +271,9 @@ describe('AuthService', () => {
   describe('register', () => {
     it('should throw an error when email already exists', async () => {
       const org = await OrganizationFactory.create();
-      const u = await UserModel.create({
+      await UserModel.create({
         email: 'existingEmail@mail.com',
-      }).save();
-      await OrganizationUserModel.create({
         organizationId: org.id,
-        userId: u.id,
       }).save();
 
       await expect(

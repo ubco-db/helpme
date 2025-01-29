@@ -39,8 +39,8 @@ export default function VerifyEmailPage() {
   }
 
   const validateVerificationCode = async () => {
-    const formValues = await form.validateFields()
-    const { verificationCode } = formValues
+    const formValues: { verificationCode: string } = await form.validateFields()
+    const verificationCode = formValues.verificationCode.toUpperCase()
 
     const response = await authApi.verifyEmail(verificationCode)
 

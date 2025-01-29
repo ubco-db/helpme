@@ -24,7 +24,7 @@
     "@visx/grid": "^3.5.0",
     "@visx/responsive": "^3.10.2",
     "@visx/tooltip": "^3.3.0",
-    "antd": "^5.22.2",
+    "antd": "^5.23.1",
     "class-transformer": "^0.5.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

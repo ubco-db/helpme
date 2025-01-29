@@ -8,11 +8,12 @@ import {
   Checkbox,
   Button,
   Popconfirm,
+  Tooltip,
 } from 'antd'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
-import { DeleteOutlined } from '@ant-design/icons'
+import { DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
 
 interface FormValues {
@@ -44,12 +45,11 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
     // unless the TA changes the verified status to true, then it will always be HumanAnswered (displayed as Human Verified)
     const newStatus =
       question.answerText === values.answerText && !values.verified
-        ? question.status in
-          [
+        ? [
             asyncQuestionStatus.AIAnswered,
             asyncQuestionStatus.AIAnsweredNeedsAttention,
             asyncQuestionStatus.AIAnsweredResolved,
-          ]
+          ].includes(question.status)
           ? question.status
           : asyncQuestionStatus.HumanAnswered
         : asyncQuestionStatus.HumanAnswered
@@ -142,7 +142,14 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
       </Form.Item>
       <Form.Item
         name="visible"
-        label="Set question visible to all students"
+        label={
+          <div className="flex flex-row items-center gap-1">
+            Set question visible to all students
+            <Tooltip title="Questions can normally only be seen by staff and the student who asked it. This will make it visible to all students (the student themselves will appear anonymous to other students)">
+              <QuestionCircleOutlined style={{ color: 'gray' }} />
+            </Tooltip>
+          </div>
+        }
         valuePropName="checked"
       >
         <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />

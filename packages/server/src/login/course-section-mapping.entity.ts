@@ -17,7 +17,9 @@ export class CourseSectionMappingModel extends BaseEntity {
   crn: number;
 
   // Represents the course that this maps to
-  @ManyToOne((type) => CourseModel)
+  @ManyToOne((type) => CourseModel, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'courseId' })
   course: CourseModel;
 

@@ -28,7 +28,6 @@ import {
   UserCourseFactory,
   UserFactory,
   OrganizationFactory,
-  OrganizationUserFactory,
   OrganizationCourseFactory,
   CourseSettingsFactory,
   QuestionTypeFactory,
@@ -42,7 +41,6 @@ import { QuestionModel } from '../question/question.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { SeedService } from './seed.service';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
-import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { InteractionModel } from 'chatbot/interaction.entity';
@@ -143,7 +141,6 @@ export class SeedController {
     await this.seedService.deleteAll(QuestionTypeModel);
     await this.seedService.deleteAll(OrganizationCourseModel);
     await this.seedService.deleteAll(UserSubscriptionModel);
-    await this.seedService.deleteAll(OrganizationUserModel);
     await this.seedService.deleteAll(LastRegistrationModel);
     await this.seedService.deleteAll(ProfSectionGroupsModel);
     await this.seedService.deleteAll(QuestionModel);
@@ -256,6 +253,12 @@ export class SeedController {
     const userExists = await UserModel.findOne();
 
     if (!userExists) {
+      const organization = await OrganizationFactory.create({
+        name: 'UBCO',
+        description: 'UBC Okanagan',
+        legacyAuthEnabled: true,
+      });
+
       // Student 1
       const user1 = await UserFactory.create({
         email: 'studentOne@ubc.ca',
@@ -263,6 +266,7 @@ export class SeedController {
         lastName: 'studentOne',
         password: hashedPassword1,
         emailVerified: true,
+        organizationId: organization.id,
       });
 
       await ChatTokenFactory.create({
@@ -303,6 +307,7 @@ export class SeedController {
         lastName: 'studentTwo',
         password: hashedPassword1,
         emailVerified: true,
+        organizationId: organization.id,
       });
 
       await ChatTokenFactory.create({
@@ -330,6 +335,7 @@ export class SeedController {
         lastName: 'TaOne',
         password: hashedPassword1,
         emailVerified: true,
+        organizationId: organization.id,
       });
 
       await ChatTokenFactory.create({
@@ -352,6 +358,7 @@ export class SeedController {
         lastName: 'TaTwo',
         password: hashedPassword1,
         emailVerified: true,
+        organizationId: organization.id,
       });
 
       await ChatTokenFactory.create({
@@ -379,6 +386,7 @@ export class SeedController {
         ],
         password: hashedPassword1,
         emailVerified: true,
+        organizationId: organization.id,
       });
 
       await ChatTokenFactory.create({
@@ -398,47 +406,6 @@ export class SeedController {
         isSubscribed: true,
         user: user5,
         service: facultyMailService,
-      });
-      const organization = await OrganizationFactory.create({
-        name: 'UBCO',
-        description: 'UBC Okanagan',
-        legacyAuthEnabled: true,
-      });
-
-      await OrganizationUserFactory.create({
-        userId: user1.id,
-        organizationId: organization.id,
-        organizationUser: user1,
-        organization: organization,
-      });
-
-      await OrganizationUserFactory.create({
-        userId: user2.id,
-        organizationId: organization.id,
-        organizationUser: user2,
-        organization: organization,
-      });
-
-      await OrganizationUserFactory.create({
-        userId: user3.id,
-        organizationId: organization.id,
-        organizationUser: user3,
-        organization: organization,
-      });
-
-      await OrganizationUserFactory.create({
-        userId: user4.id,
-        organizationId: organization.id,
-        organizationUser: user4,
-        organization: organization,
-      });
-
-      await OrganizationUserFactory.create({
-        userId: user5.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-        organizationUser: user5,
-        organization: organization,
       });
 
       await OrganizationCourseFactory.create({

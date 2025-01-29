@@ -134,7 +134,14 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       onCancel={() => onCancel()}
       okButtonProps={{ disabled: !imageSrc }}
       destroyOnClose={true}
-      width="auto"
+      width={{
+        xs: '90%',
+        sm: '85%',
+        md: '80%',
+        lg: '75%',
+        xl: '70%',
+        xxl: '65%',
+      }}
       className="flex flex-col items-center justify-center"
     >
       <Upload

@@ -146,6 +146,10 @@ export class BackupService {
     fs.readdir(directory, (err, files) => {
       if (err) throw err;
       files.forEach((file) => {
+        // Skip .md files
+        if (file.endsWith('.md')) {
+          return;
+        }
         const filePath = path.join(directory, file);
         fs.stat(filePath, (err, stats) => {
           if (err) throw err;

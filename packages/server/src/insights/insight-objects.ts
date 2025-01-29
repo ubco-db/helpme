@@ -205,11 +205,10 @@ export const MostActiveStudents: InsightObject = {
     );
 
     return {
-      headerRow: ['Student Name (Student ID)', 'Email', 'Questions Asked'],
+      headerRow: ['Student Name', 'Questions Asked'],
       data: dataSource.map((item) => {
         return {
-          studentName: `${item.name} (${item.studentId})`,
-          email: item.email,
+          studentName: `${item.name}`,
           questionsAsked: item.questionsAsked,
         };
       }),

@@ -36,15 +36,10 @@ import { UserModel } from './user.entity';
 import { OrganizationService } from '../organization/organization.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { minutes, SkipThrottle, Throttle } from '@nestjs/throttler';
-import { AuthService } from '../auth/auth.service';
-import { OrganizationUserModel } from '../organization/organization-user.entity';
 
 @Controller('profile')
 export class ProfileController {
-  constructor(
-    private organizationService: OrganizationService,
-    private authService: AuthService,
-  ) {}
+  constructor(private organizationService: OrganizationService) {}
 
   // Don't throttle this endpoint since the middleware calls this for every page (and if it prefetches like 30 pages, it will hit the throttle limit and can cause issue for the user)
   @SkipThrottle()
@@ -158,11 +153,14 @@ export class ProfileController {
 
     if (
       userPatch.email &&
-      userPatch.email.toLowerCase() !== user.email.toLowerCase()
+      userPatch.email.toUpperCase() !== user.normalizedEmail
     ) {
-      const email = await this.authService
-        .getUserByEmailQuery(userPatch.email)
-        .getOne();
+      const email = await UserModel.findOne({
+        where: {
+          normalizedEmail: userPatch.email.toUpperCase(),
+          organizationId: user.organizationId,
+        },
+      });
 
       if (email) {
         return res
@@ -173,16 +171,11 @@ export class ProfileController {
 
     if (userPatch.sid && userPatch.sid !== user.sid) {
       // this may need to be altered if user -> orguser relation is changed to one-to-many
-      const orgUser = await OrganizationUserModel.findOne({
-        userId: user.id,
-      });
 
       const sid = await UserModel.findOne({
         where: {
           sid: userPatch.sid,
-          organizationUser: {
-            organizationId: orgUser.organizationId,
-          },
+          organizationId: user.organizationId,
         },
       });
 

@@ -14,7 +14,9 @@ export class LastRegistrationModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne((type) => UserModel)
+  @OneToOne((type) => UserModel, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'profId' })
   prof: UserModel;
 

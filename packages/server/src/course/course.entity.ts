@@ -58,7 +58,9 @@ export class CourseModel extends BaseEntity {
   @Exclude()
   interactions: InteractionModel[];
 
-  @ManyToOne((type) => SemesterModel, (semester) => semester.courses)
+  @ManyToOne((type) => SemesterModel, (semester) => semester.courses, {
+    onDelete: 'RESTRICT',
+  })
   @JoinColumn({ name: 'semesterId' })
   @Exclude()
   semester: SemesterModel;

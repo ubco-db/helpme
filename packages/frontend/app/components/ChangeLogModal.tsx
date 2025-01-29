@@ -55,7 +55,14 @@ const ChangeLogModal: React.FC<ChangeLogModalProps> = ({
         setIsOpen(false)
         onClose?.()
       }}
-      width="auto"
+      width={{
+        xs: '90%',
+        sm: '85%',
+        md: '80%',
+        lg: '75%',
+        xl: '70%',
+        xxl: '65%',
+      }}
       classNames={{
         header: 'flex items-center justify-center',
       }}

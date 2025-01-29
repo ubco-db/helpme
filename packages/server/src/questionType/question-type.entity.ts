@@ -42,7 +42,9 @@ export class QuestionTypeModel extends BaseEntity {
   @ManyToMany(() => AsyncQuestionModel, (question) => question.questionTypes)
   asyncQuestions: AsyncQuestionModel[];
 
-  @ManyToOne(() => QueueModel, (q) => q.questions)
+  @ManyToOne(() => QueueModel, (q) => q.questions, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'queueId' })
   @Exclude()
   queue: QueueModel;
