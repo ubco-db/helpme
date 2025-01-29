@@ -3,6 +3,10 @@ import { RedisService } from 'nestjs-redis';
 import { QueueChatService } from './queue-chats.service';
 import { QueueChatsModel } from './queue-chats.entity';
 import { UserModel } from 'profile/user.entity';
+import { Connection } from 'typeorm';
+import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
+import { ApplicationTestingConfigModule } from 'config/application_config.module';
+import { QuestionFactory } from '../../test/util/factories';
 
 jest.mock('nestjs-redis');
 jest.mock('./queue-chats.entity');
@@ -10,6 +14,7 @@ jest.mock('./queue-chats.entity');
 describe('QueueChatService', () => {
   let service: QueueChatService;
   let redisMock: { [key: string]: jest.Mock };
+  let conn: Connection;
 
   const mockRedisClient = () => ({
     get: jest.fn(),
@@ -27,6 +32,11 @@ describe('QueueChatService', () => {
     redisMock = mockRedisClient();
 
     const module: TestingModule = await Test.createTestingModule({
+      imports: [
+        TestTypeOrmModule,
+        TestConfigModule,
+        ApplicationTestingConfigModule,
+      ],
       providers: [
         QueueChatService,
         {
@@ -39,6 +49,15 @@ describe('QueueChatService', () => {
     }).compile();
     jest.spyOn(global, 'Date').mockImplementation(() => staticDate);
     service = module.get<QueueChatService>(QueueChatService);
+    conn = module.get<Connection>(Connection);
+  });
+
+  afterAll(async () => {
+    await conn.close();
+  });
+
+  beforeEach(async () => {
+    await conn.synchronize(true);
   });
 
   afterEach(() => {
@@ -48,26 +67,31 @@ describe('QueueChatService', () => {
 
   describe('createChat', () => {
     it('should create a new chat in Redis', async () => {
-      const staff: UserModel = {
-        id: 1,
-        firstName: 'StaffFirst',
-        lastName: 'StaffLast',
-        photoURL: 'staffPhotoURL',
-      } as UserModel;
+      const staff = UserModel.create({ id: 1 });
+      const question = await QuestionFactory.create({
+        taHelped: staff,
+      });
 
-      const student: UserModel = {
-        id: 2,
-        firstName: 'StudentFirst',
-        lastName: 'StudentLast',
-        photoURL: 'studentPhotoURL',
-      } as UserModel;
+      await service.createChat(
+        question.queueId,
+        question.taHelped,
+        question,
+        staticDate,
+      );
 
-      await service.createChat(123, staff, student);
-
-      const key = 'queue_chat_metadata:123:2';
-      expect(redisMock.del).toHaveBeenCalledWith(key);
+      const key_metadata = 'queue_chat_metadata:123:3';
+      const key_messages = 'queue_chat_messages:123:3';
+      expect(redisMock.del).toHaveBeenCalledWith(
+        key_metadata,
+        expect.any(Function),
+      );
+      expect(redisMock.del).toHaveBeenCalledWith(
+        key_messages,
+        expect.any(Function),
+      );
+      expect(redisMock.del).toHaveBeenCalledTimes(2);
       expect(redisMock.set).toHaveBeenCalledWith(
-        key,
+        key_metadata,
         JSON.stringify({
           staff: {
             id: staff.id,
@@ -76,15 +100,15 @@ describe('QueueChatService', () => {
             photoURL: staff.photoURL,
           },
           student: {
-            id: student.id,
-            firstName: student.firstName,
-            lastName: student.lastName,
-            photoURL: student.photoURL,
+            id: question.creator.id,
+            firstName: question.creator.firstName,
+            lastName: question.creator.lastName,
+            photoURL: question.creator.photoURL,
           },
           startedAt: staticDate,
         }),
       );
-      expect(redisMock.expire).toHaveBeenCalledWith(key, 604800); // one week in seconds
+      expect(redisMock.expire).toHaveBeenCalledWith(key_metadata, 604800); // one week in seconds
     });
   });
 

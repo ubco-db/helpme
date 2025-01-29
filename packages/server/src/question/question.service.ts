@@ -82,43 +82,6 @@ export class QuestionService {
     const isResolving = newStatus === ClosedQuestionStatus.Resolved;
     const isFirstHelped = isBecomingHelped && !question.firstHelpedAt;
 
-    // For Queue Chats
-    try {
-      if (isResolving) {
-        // Save chat metadata in database (if messages were exchanged)
-        await this.queueChatService.endChat(
-          question.queueId,
-          question.creatorId,
-        );
-      } else if (isBecomingClosedFromWaiting) {
-        // Don't save chat metadata in database
-        await this.queueChatService.clearChat(
-          question.queueId,
-          question.creatorId,
-        );
-      } else if (isFirstHelped) {
-        const user = await UserModel.findOne({
-          where: { id: userId },
-        });
-        // Create chat metadata in Redis
-        await this.queueChatService.createChat(
-          question.queueId,
-          question.creator,
-          user,
-        );
-      }
-    } catch (err) {
-      if (err instanceof Error) {
-        console.error(err.stack);
-      } else {
-        console.error(err);
-      }
-      throw new HttpException(
-        ERROR_MESSAGES.questionService.queueChatUpdateFailure,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
     const validTransition = question.changeStatus(newStatus, myRole);
     if (!validTransition) {
       throw new UnauthorizedException(
@@ -177,6 +140,34 @@ export class QuestionService {
       // depends on if the question was passed in with its group preloaded
       if (question.group) question.group = null;
       else question.groupId = null;
+    }
+
+    // For Queue Chats
+    try {
+      if (isResolving) {
+        // Save chat metadata in database (if messages were exchanged)
+        await this.queueChatService.endChat(question.queueId, question.id);
+      } else if (isBecomingClosedFromWaiting) {
+        // Don't save chat metadata in database
+        await this.queueChatService.clearChat(question.queueId, question.id);
+      } else if (isFirstHelped) {
+        // Create chat metadata in Redis
+        await this.queueChatService.createChat(
+          question.queueId,
+          question.taHelped,
+          question,
+        );
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        console.error(err.stack);
+      } else {
+        console.error(err);
+      }
+      throw new HttpException(
+        ERROR_MESSAGES.questionService.queueChatUpdateFailure,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     try {

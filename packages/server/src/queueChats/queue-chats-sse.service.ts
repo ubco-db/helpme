@@ -7,8 +7,8 @@ import { QueueChatService } from 'queueChats/queue-chats.service';
 
 type QueueClientMetadata = { userId: number; role: Role };
 
-const idToRoom = (queueId: number, studentId: number) =>
-  `qc-${queueId}-${studentId}`;
+const idToRoom = (queueId: number, questionId: number) =>
+  `qc-${queueId}-${questionId}`;
 /**
  * Handle sending queue sse events
  */
@@ -21,39 +21,39 @@ export class QueueChatSSEService {
 
   subscribeClient(
     queueId: number,
-    studentId: number,
+    questionId: number,
     res: Response,
     metadata: QueueClientMetadata,
   ): void {
     this.sseService.subscribeClient(
-      idToRoom(queueId, studentId),
+      idToRoom(queueId, questionId),
       res,
       metadata,
     );
   }
 
-  updateQueueChat = this.throttleUpdate(async (queueId, studentId) => {
+  updateQueueChat = this.throttleUpdate(async (queueId, questionId) => {
     const queueChat = await this.queueChatService.getChatData(
       queueId,
-      studentId,
+      questionId,
     );
     if (queueChat) {
-      this.sendToRoom(queueId, studentId, async () => ({ queueChat }));
+      this.sendToRoom(queueId, questionId, async () => ({ queueChat }));
     }
   });
 
   private async sendToRoom(
     queueId: number,
-    studentId: number,
+    questionId: number,
     data: (metadata: QueueClientMetadata) => Promise<SSEQueueChatResponse>,
   ) {
     await this.sseService.sendEvent(
-      idToRoom(queueId, studentId),
+      idToRoom(queueId, questionId),
       (metadata: QueueClientMetadata) => {
         if (
           !this.queueChatService.checkPermissions(
             queueId,
-            studentId,
+            questionId,
             metadata.userId,
           )
         ) {
@@ -69,12 +69,12 @@ export class QueueChatSSEService {
   }
 
   private throttleUpdate(
-    updateFunction: (queueId: number, studentId: number) => Promise<void>,
+    updateFunction: (queueId: number, questionId: number) => Promise<void>,
   ) {
     return throttle(
-      async (queueId: number, studentId?: number) => {
+      async (queueId: number, questionId?: number) => {
         try {
-          await updateFunction(queueId, studentId);
+          await updateFunction(queueId, questionId);
         } catch (e) {}
       },
       1000,

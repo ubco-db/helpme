@@ -11,7 +11,7 @@ import { CloseOutlined } from '@ant-design/icons'
 interface QueueChatProps {
   role: Role
   queueId: number
-  studentId: number
+  questionId: number
   isMobile: boolean
   hidden: boolean
   fixed?: boolean
@@ -23,7 +23,7 @@ interface QueueChatProps {
 const QueueChat: React.FC<QueueChatProps> = ({
   role,
   queueId,
-  studentId,
+  questionId,
   isMobile,
   hidden,
   fixed = true,
@@ -46,7 +46,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     mutateQueueChat,
     newMessageCount,
     resetNewMessageCount,
-  } = useQueueChat(queueId, studentId)
+  } = useQueueChat(queueId, questionId)
   const messagesEndRef = useRef<HTMLDivElement | null>(null) // This handles auto scrolling
 
   // To always auto scroll to the bottom of the page when new messages are added
@@ -58,7 +58,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
 
   // To handle new message events
   useEffect(() => {
-    if (newMessageCount == 0) {
+    if (newMessageCount == 0 || !queueChatData) {
       return
     }
     if (!isMobile) {
@@ -76,8 +76,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
   const sendMessage = async () => {
     setIsLoading(true)
     try {
-      if (studentId) {
-        API.queueChats.sendMessage(queueId, studentId, input).then(() => {
+      if (questionId) {
+        API.queueChats.sendMessage(queueId, questionId, input).then(() => {
           mutateQueueChat()
           setIsLoading(false)
           setInput('')
@@ -92,7 +92,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     return (
       <Alert
         style={{ zIndex: 1050 }}
-        className={`${fixed ? 'fixed ' : ''} bottom-0 right-0 box-border overflow-y-auto md:bottom-8 md:right-2`}
+        className={`${fixed ? 'fixed ' : ''} bottom-0 right-0 box-border overflow-y-auto`}
         message={`Chat data is not available.`}
         description="Please try again later or contact support if the issue persists."
         type="warning"

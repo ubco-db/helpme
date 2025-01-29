@@ -971,7 +971,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                         <QueueChat
                           key={question.id}
                           queueId={qid}
-                          studentId={question.creatorId}
+                          questionId={question.id}
                           role={role}
                           isMobile={isMobile}
                           fixed={false}
@@ -1033,7 +1033,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       <QueueChat
                         key={question.id}
                         queueId={qid}
-                        studentId={question.creatorId}
+                        questionId={question.id}
                         role={role}
                         isMobile={isMobile}
                         fixed={false}
@@ -1155,20 +1155,27 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 />
               </>
             )}
-            {((studentQuestion &&
-              studentQuestion.status == OpenQuestionStatus.Helping) ||
-              (studentDemo &&
-                studentDemo.status == OpenQuestionStatus.Helping) ||
-              isHelping) && (
+            {studentQuestion &&
+            studentQuestion.status == OpenQuestionStatus.Helping ? (
               <QueueChat
                 queueId={qid}
-                studentId={userInfo.id}
+                questionId={studentQuestion.id}
                 role={role}
                 isMobile={isMobile}
                 fixed={true}
                 hidden={false}
               />
-            )}
+            ) : studentDemo &&
+              studentDemo.status == OpenQuestionStatus.Helping ? (
+              <QueueChat
+                queueId={qid}
+                questionId={studentDemo.id}
+                role={role}
+                isMobile={isMobile}
+                fixed={true}
+                hidden={false}
+              />
+            ) : null}
           </>
         )}
       </div>

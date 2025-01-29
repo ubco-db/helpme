@@ -1,13 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { RedisService } from 'nestjs-redis';
 import { Redis } from 'ioredis';
 import { QueueChatsModel } from './queue-chats.entity';
 import { UserModel } from 'profile/user.entity';
 import {
+  ERROR_MESSAGES,
   QueueChatMessagePartial,
   QueueChatPartial,
   QueueChatUserPartial,
 } from '@koh/common';
+import { QuestionModel } from 'question/question.entity';
 
 const ChatMessageRedisKey = 'queue_chat_messages';
 const ChatMetadataRedisKey = 'queue_chat_metadata';
@@ -24,23 +26,45 @@ export class QueueChatService {
   /**
    * Create a new chat in Redis
    * @param queueId The ID of the queue
-   * @param staff The instance of the staff member
-   * @param student The instance of the student
-   * @param clear Whether to clear any existing chat data for privacy
+   * @param staff The entity of the staff member
+   * @param question The entity of the question
    * @param startedAt The time the chat was started (defaults to now)
    */
   async createChat(
     queueId: number,
     staff: UserModel,
-    student: UserModel,
-
+    question: QuestionModel,
     startedAt?: Date,
   ): Promise<void> {
-    const key = `${ChatMetadataRedisKey}:${queueId}:${student.id}`;
+    const key = `${ChatMetadataRedisKey}:${queueId}:${question.id}`;
 
     // Remove any existing chat metadata and messages (in case of mismanagement; to protect previous chat history)
-    await this.redis.del(key);
-    await this.redis.del(`${ChatMessageRedisKey}:${queueId}:${student.id}`);
+    await this.redis.del(key, (error, result) => {
+      if (error) {
+        console.error(error);
+        throw new HttpException(
+          ERROR_MESSAGES.queueChatsController.failureToClearChat,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    });
+    await this.redis.del(
+      `${ChatMessageRedisKey}:${queueId}:${question.id}`,
+      (error, result) => {
+        if (error) {
+          console.error(error);
+          throw new HttpException(
+            ERROR_MESSAGES.queueChatsController.failureToClearChat,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      },
+    );
+
+    // Since it isn't guaranteed that the creator relation will be populated
+    const creator = await UserModel.findOne({
+      where: { id: question.creatorId },
+    });
 
     await this.redis.set(
       key,
@@ -52,13 +76,22 @@ export class QueueChatService {
           photoURL: staff.photoURL,
         } as QueueChatUserPartial,
         student: {
-          id: student.id,
-          firstName: student.firstName,
-          lastName: student.lastName,
-          photoURL: student.photoURL,
+          id: creator.id,
+          firstName: creator.firstName,
+          lastName: creator.lastName,
+          photoURL: creator.photoURL,
         } as QueueChatUserPartial,
         startedAt: startedAt ?? new Date(),
       } as QueueChatPartial),
+      (error, result) => {
+        if (error) {
+          console.error(error);
+          throw new HttpException(
+            ERROR_MESSAGES.queueChatsController.failureToCreateChat,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      },
     );
 
     await this.redis.expire(key, 604800); // 1 week = 7 * 24 * 60 * 60 = 604800 seconds
@@ -67,39 +100,55 @@ export class QueueChatService {
   /**
    * Store a chat message in Redis
    * @param queueId The ID of the queue
-   * @param studentId The ID of the student
+   * @param questionId The ID of the question
    * @param isStaff Whether the user sending the message is staff
    * @param message The chat message to store
    *
    */
   async sendMessage(
     queueId: number,
-    studentId: number,
+    questionId: number,
     isStaff: boolean,
     message: string,
   ): Promise<void> {
-    const key = `${ChatMessageRedisKey}:${queueId}:${studentId}`;
+    const key = `${ChatMessageRedisKey}:${queueId}:${questionId}`;
 
     const chatDataString = JSON.stringify({
       isStaff,
       message,
       timestamp: new Date(),
     } as QueueChatMessagePartial);
-    await this.redis.lpush(key, chatDataString);
+    await this.redis.lpush(key, chatDataString, (error, result) => {
+      if (error) {
+        console.error(error);
+        throw new HttpException(
+          ERROR_MESSAGES.queueChatsController.failureToSendMessage,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    });
   }
 
   /**
    * Retrieve the chat metadata for a given course and queue
    * @param queueId The ID of the queue
-   * @param studentId The ID of the student
+   * @param questionId The ID of the question
    * @returns
    */
   async getChatMetadata(
     queueId: number,
-    studentId: number,
+    questionId: number,
   ): Promise<QueueChatPartial | null> {
-    const key = `${ChatMetadataRedisKey}:${queueId}:${studentId}`;
-    const metadataString = await this.redis.get(key);
+    const key = `${ChatMetadataRedisKey}:${queueId}:${questionId}`;
+    const metadataString = await this.redis.get(key, (error, result) => {
+      if (error) {
+        console.error(error);
+        throw new HttpException(
+          ERROR_MESSAGES.queueChatsController.chatNotFound,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    });
     return metadataString
       ? (JSON.parse(metadataString) as QueueChatPartial)
       : null;
@@ -108,14 +157,27 @@ export class QueueChatService {
   /**
    * Retrieve all chat messages for a given course and queue
    * @param queueId The ID of the queue
-   * @param studentId The ID of the student
+   * @param questionId The ID of the question
    */
   async getChatMessages(
     queueId: number,
-    studentId: number,
+    questionId: number,
   ): Promise<QueueChatMessagePartial[] | null> {
-    const key = `${ChatMessageRedisKey}:${queueId}:${studentId}`;
-    const chatMessageStrings = await this.redis.lrange(key, 0, -1);
+    const key = `${ChatMessageRedisKey}:${queueId}:${questionId}`;
+    const chatMessageStrings = await this.redis.lrange(
+      key,
+      0,
+      -1,
+      (error, result) => {
+        if (error) {
+          console.error(error);
+          throw new HttpException(
+            ERROR_MESSAGES.queueChatsController.chatNotFound,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+      },
+    );
     if (chatMessageStrings.length === 0) return null;
 
     return chatMessageStrings
@@ -133,13 +195,13 @@ export class QueueChatService {
   /**
    * For SSE, get all chat data for a given queue
    * @param queueId The ID of the queue
-   * @param studentId The ID of the student
+   * @param questionId The ID of the question
    */
   async getChatData(
     queueId: number,
-    studentId: number,
+    questionId: number,
   ): Promise<QueueChatPartial | null> {
-    const metadata = await this.getChatMetadata(queueId, studentId);
+    const metadata = await this.getChatMetadata(queueId, questionId);
 
     if (!metadata) return null;
 
@@ -147,7 +209,7 @@ export class QueueChatService {
     delete metadata.id;
     delete metadata.student.id;
     delete metadata.staff.id;
-    const messages = await this.getChatMessages(queueId, studentId);
+    const messages = await this.getChatMessages(queueId, questionId);
 
     return {
       ...metadata,
@@ -158,14 +220,14 @@ export class QueueChatService {
   /**
    * End a chat and store the data in the database for record keeping
    * @param queueId The ID of the queue
-   * @param studentId The ID of the student
+   * @param questionId The ID of the question
    */
-  async endChat(queueId: number, studentId: number): Promise<void> {
-    const metaKey = `${ChatMetadataRedisKey}:${queueId}:${studentId}`;
-    const messageKey = `${ChatMessageRedisKey}:${queueId}:${studentId}`;
+  async endChat(queueId: number, questionId: number): Promise<void> {
+    const metaKey = `${ChatMetadataRedisKey}:${queueId}:${questionId}`;
+    const messageKey = `${ChatMessageRedisKey}:${queueId}:${questionId}`;
 
-    const metadata = await this.getChatMetadata(queueId, studentId);
-    const messages = await this.getChatMessages(queueId, studentId);
+    const metadata = await this.getChatMetadata(queueId, questionId);
+    const messages = await this.getChatMessages(queueId, questionId);
 
     // Don't bother saving if chat was not used
     if (messages && messages.length !== 0) {
@@ -177,8 +239,24 @@ export class QueueChatService {
       queueChat.closedAt = new Date();
       queueChat.messageCount = messages.length;
       queueChat.save().then(async () => {
-        await this.redis.del(metaKey);
-        await this.redis.del(messageKey);
+        await this.redis.del(metaKey, (error, result) => {
+          if (error) {
+            console.error(error);
+            throw new HttpException(
+              ERROR_MESSAGES.queueChatsController.failureToClearChat,
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+          }
+        });
+        await this.redis.del(messageKey, (error, result) => {
+          if (error) {
+            console.error(error);
+            throw new HttpException(
+              ERROR_MESSAGES.queueChatsController.failureToClearChat,
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+          }
+        });
       });
     }
   }
@@ -186,11 +264,11 @@ export class QueueChatService {
   /**
    * Clear a chat from Redis (without saving metadata to database -- for unresolved but closed chats)
    * @param queueId The ID of the queue
-   * @param studentId The ID of the student
+   * @param questionId The ID of the question
    */
-  async clearChat(queueId: number, studentId: number): Promise<void> {
-    const metaKey = `${ChatMetadataRedisKey}:${queueId}:${studentId}`;
-    const messageKey = `${ChatMessageRedisKey}:${queueId}:${studentId}`;
+  async clearChat(queueId: number, questionId: number): Promise<void> {
+    const metaKey = `${ChatMetadataRedisKey}:${queueId}:${questionId}`;
+    const messageKey = `${ChatMessageRedisKey}:${queueId}:${questionId}`;
 
     await this.redis.del(metaKey);
     await this.redis.del(messageKey);
@@ -199,15 +277,15 @@ export class QueueChatService {
   /**
    * Check if a user has permission to access a chat
    * @param queueId The ID of the queue
-   * @param studentId The ID of the student
+   * @param questionId The ID of the question
    * @param userId The ID of the user accessing the chat
    */
   async checkPermissions(
     queueId: number,
-    studentId: number,
+    questionId: number,
     userId: number,
   ): Promise<boolean> {
-    const metadata = await this.getChatMetadata(queueId, studentId);
+    const metadata = await this.getChatMetadata(queueId, questionId);
     if (!metadata) return false;
     return metadata.staff.id === userId || metadata.student.id === userId;
   }
@@ -215,9 +293,10 @@ export class QueueChatService {
   /**
    * Check if a chat exists for a given course and queue
    * @param queueId The ID of the queue
+   * @param questionId The ID of the question
    */
-  async checkChatExists(queueId: number, studentId: number): Promise<boolean> {
-    const key = `${ChatMetadataRedisKey}:${queueId}:${studentId}`;
+  async checkChatExists(queueId: number, questionId: number): Promise<boolean> {
+    const key = `${ChatMetadataRedisKey}:${queueId}:${questionId}`;
     return this.redis.exists(key).then((exists) => exists === 1);
   }
 }

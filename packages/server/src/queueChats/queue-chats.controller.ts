@@ -27,16 +27,16 @@ export class QueueChatController {
     private queueChatSSEService: QueueChatSSEService,
   ) {}
 
-  @Get(':queueId/:studentId')
+  @Get(':queueId/:questionId')
   @UseGuards(JwtAuthGuard)
   async getQueueChat(
     @Param('queueId') queueId: number,
-    @Param('studentId') studentId: number,
+    @Param('questionId') questionId: number,
     @User() user: UserModel,
   ) {
     const chatData = await this.queueChatService.getChatData(
       queueId,
-      studentId,
+      questionId,
     );
     if (!chatData) {
       throw new HttpException(
@@ -46,7 +46,7 @@ export class QueueChatController {
     }
 
     await this.queueChatService
-      .checkPermissions(queueId, studentId, user.id)
+      .checkPermissions(queueId, questionId, user.id)
       .then((allowedToRetrieve) => {
         if (!allowedToRetrieve) {
           throw new HttpException(
@@ -63,10 +63,10 @@ export class QueueChatController {
    * Endpoint to tell frontend when the queue chat changes
    * Note there is a similar method in queue-invite.controller.ts & queue.controller.ts
    *  */
-  @Get(':queueId/:studentId/sse')
+  @Get(':queueId/:questionId/sse')
   sendEvent(
     @Param('queueId', ParseIntPipe) queueId: number,
-    @Param('studentId', ParseIntPipe) studentId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
     @QueueRole() role: Role,
     @UserId() userId: number,
     @Res() res: Response,
@@ -79,7 +79,7 @@ export class QueueChatController {
     });
 
     try {
-      this.queueChatSSEService.subscribeClient(queueId, studentId, res, {
+      this.queueChatSSEService.subscribeClient(queueId, questionId, res, {
         role,
         userId,
       });
@@ -88,17 +88,17 @@ export class QueueChatController {
     }
   }
 
-  @Patch(':queueId/:studentId')
+  @Patch(':queueId/:questionId')
   @UseGuards(JwtAuthGuard)
   async sendMessage(
     @Param('queueId') queueId: number,
-    @Param('studentId') studentId: number,
+    @Param('questionId') questionId: number,
     @User() user: UserModel,
     @Body('message') message: string,
   ) {
     const metadata = await this.queueChatService.getChatMetadata(
       queueId,
-      studentId,
+      questionId,
     );
     if (!metadata) {
       throw new HttpException(
@@ -109,7 +109,7 @@ export class QueueChatController {
 
     const allowedToSend = await this.queueChatService.checkPermissions(
       queueId,
-      studentId,
+      questionId,
       user.id,
     );
     if (!allowedToSend) {
@@ -122,11 +122,11 @@ export class QueueChatController {
       const isStaff = user.id === metadata.staff.id;
       await this.queueChatService.sendMessage(
         queueId,
-        studentId,
+        questionId,
         isStaff,
         message,
       );
-      await this.queueChatSSEService.updateQueueChat(queueId, studentId);
+      await this.queueChatSSEService.updateQueueChat(queueId, questionId);
       return { message: 'Message sent' };
     } catch (error) {
       if (error) {

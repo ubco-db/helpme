@@ -2551,6 +2551,9 @@ export const ERROR_MESSAGES = {
   },
   queueChatsController: {
     chatNotFound: 'Chat not found',
+    failureToClearChat: 'Unable to clear chat',
+    failureToCreateChat: 'Unable to create chat',
+    failureToSendMessage: 'Unable to send message',
     chatNotAuthorized: 'User is not allowed to retrieve requested chat data',
     sendNotAuthorized: 'User is not allowed to send messages to this chat',
     internalSendError: 'Error occurred while sending message',
