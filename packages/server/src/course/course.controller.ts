@@ -65,11 +65,12 @@ import { ConfigService } from '@nestjs/config';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { Not, getManager } from 'typeorm';
 import { pick } from 'lodash';
-import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
-import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
+import { QueueCleanService } from '../queue/queue-clean/queue-clean.service';
+import { RedisProfileService } from '../redisProfile/redis-profile.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -81,6 +82,7 @@ export class CourseController {
     private courseService: CourseService,
     private queueCleanService: QueueCleanService,
     private redisQueueService: RedisQueueService,
+    private redisProfileService: RedisProfileService,
     private readonly appConfig: ApplicationConfigService,
   ) {}
 
@@ -898,6 +900,10 @@ export class CourseController {
       .catch((err) => {
         res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
       });
+
+    // Delete old cached record if changed
+    // TODO: see if manipulating the cached data instead of refetching is more efficient
+    await this.redisProfileService.deleteProfile(`u:${user.id}`);
     return;
   }
 

@@ -25,8 +25,6 @@ export class RedisProfileService {
     key: string,
     profileResponse: GetProfileResponse,
   ): Promise<void> {
-    console.log('Setting profile in cache'); // PAT TODO: remove
-
     const jsonStr = JSON.stringify(profileResponse);
 
     // Compress data since base64 encoding adds ~33% overhead
@@ -64,13 +62,5 @@ export class RedisProfileService {
       console.error('Error getting profile from cache', error);
       return null;
     }
-  }
-
-  /**
-   * Removes the whole hash set from cache
-   * @param key {string} The key name to delete from cache
-   */
-  async deleteKey(key: string): Promise<void> {
-    await this.redis.del(key);
   }
 }

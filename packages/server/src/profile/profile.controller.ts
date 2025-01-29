@@ -204,6 +204,10 @@ export class ProfileController {
 
     user = Object.assign(user, userPatch);
 
+    // Delete old cached record if changed
+    // TODO: see if manipulating the cached data instead of refetching is more efficient
+    await this.redisProfileService.deleteProfile(`u:${user.id}`);
+
     await user
       .save()
       .then(() => {
@@ -271,6 +275,11 @@ export class ProfileController {
         console.error('Error processing image:', err);
       }
       await user.save();
+
+      // Delete old cached record if changed
+      // TODO: see if manipulating the cached data instead of refetching is more efficient
+      await this.redisProfileService.deleteProfile(`u:${user.id}`);
+
       response
         .status(200)
         .send({ message: 'Image uploaded successfully', fileName });
