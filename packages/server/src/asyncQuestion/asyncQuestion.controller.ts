@@ -401,7 +401,7 @@ export class asyncQuestionController {
       id: user.id,
       name: user.name,
       colour: nameToRGB(Math.abs(user.id - qid).toString()),
-      anonId: getAnonId(user.id, qid),
+      anonId: this.asyncQuestionService.getAnonId(user.id, qid),
       photoURL: user.photoURL,
     } as AsyncCreator as unknown as UserModel;
 
@@ -660,7 +660,10 @@ export class asyncQuestionController {
           commenterRole !== Role.STUDENT
             ? ({
                 id: comment.creator.id,
-                anonId: getAnonId(comment.creator.id, question.id),
+                anonId: this.asyncQuestionService.getAnonId(
+                  comment.creator.id,
+                  question.id,
+                ),
                 colour: nameToRGB(
                   Math.abs(comment.creatorId - question.id).toString(),
                 ),
@@ -672,7 +675,10 @@ export class asyncQuestionController {
               } as AsyncCreator as unknown as UserModel)
             : ({
                 // don't send user name, pfp, nor userid to frontend
-                anonId: getAnonId(comment.creator.id, question.id),
+                anonId: this.asyncQuestionService.getAnonId(
+                  comment.creator.id,
+                  question.id,
+                ),
                 colour: nameToRGB(
                   Math.abs(comment.creatorId - question.id).toString(),
                 ),
@@ -690,7 +696,10 @@ export class asyncQuestionController {
           isStaff || question.creator.id == userId
             ? {
                 id: question.creator.id,
-                anonId: getAnonId(question.creator.id, question.id),
+                anonId: this.asyncQuestionService.getAnonId(
+                  question.creator.id,
+                  question.id,
+                ),
                 colour: nameToRGB(
                   Math.abs(question.creator.id - question.id).toString(),
                 ),
@@ -698,7 +707,10 @@ export class asyncQuestionController {
                 photoURL: question.creator.photoURL,
               }
             : {
-                anonId: getAnonId(question.creator.id, question.id),
+                anonId: this.asyncQuestionService.getAnonId(
+                  question.creator.id,
+                  question.id,
+                ),
                 colour: nameToRGB(
                   Math.abs(question.creator.id - question.id).toString(),
                 ),
@@ -713,14 +725,4 @@ export class asyncQuestionController {
     res.status(HttpStatus.OK).send(questions);
     return;
   }
-}
-
-/**
- * Takes in a userId and async questionId and hashes them to return a random index from ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
- * Note that 70 is the length of ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
- * I have opted to hard-code it since I don't want to put that giant array here and it's unlikely to change
- */
-function getAnonId(userId: number, questionId: number) {
-  const hash = userId + questionId;
-  return hash % 70;
 }

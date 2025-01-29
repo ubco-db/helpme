@@ -136,3 +136,19 @@ export const mockRedisQueueService = {
 
 export const overrideRedisQueue: ModuleModifier = (builder) =>
   builder.overrideProvider(RedisQueueService).useValue(mockRedisQueueService);
+
+export const mockEmailService = {
+  sendEmail: jest.fn(),
+};
+
+export const overrideEmailService: ModuleModifier = (builder) =>
+  builder.overrideProvider(NotificationService).useValue(mockEmailService);
+export const expectEmailSent = (receiver: string, type: string): void =>
+  expect(mockEmailService.sendEmail).toHaveBeenCalledWith(
+    expect.objectContaining({
+      receiver,
+      type,
+    }),
+  );
+export const expectEmailNotSent = (): void =>
+  expect(mockEmailService.sendEmail).not.toHaveBeenCalled();

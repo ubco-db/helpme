@@ -1,10 +1,8 @@
 import { MailServiceType, Role } from '@koh/common';
 import { Injectable } from '@nestjs/common';
-import { ApplicationConfigService } from 'config/application_config.service';
 import { MailService } from 'mail/mail.service';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
-import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { AsyncQuestionModel } from './asyncQuestion.entity';
 import { UserModel } from 'profile/user.entity';
 import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
@@ -12,11 +10,7 @@ import * as Sentry from '@sentry/nestjs';
 
 @Injectable()
 export class AsyncQuestionService {
-  constructor(
-    private readonly redisQueueService: RedisQueueService,
-    private mailService: MailService,
-    private readonly appConfig: ApplicationConfigService,
-  ) {}
+  constructor(private mailService: MailService) {}
 
   async sendNewCommentOnMyQuestionEmail(
     commenter: UserModel,
@@ -58,8 +52,8 @@ export class AsyncQuestionService {
   }
 
   /*send emails out to all users that have posted a comment on this question.
-    Note that updatedQuestion must have comments and comments.creator relations
-    */
+      Note that updatedQuestion must have comments and comments.creator relations
+      */
   async sendNewCommentOnOtherQuestionEmail(
     commenter: UserModel,
     commenterRole: Role,
@@ -251,5 +245,15 @@ export class AsyncQuestionService {
           Sentry.captureException(err);
         });
     }
+  }
+
+  /**
+   * Takes in a userId and async questionId and hashes them to return a random index from ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
+   * Note that 70 is the length of ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
+   * I have opted to hard-code it since I don't want to put that giant array here and it's unlikely to change
+   */
+  getAnonId(userId: number, questionId: number) {
+    const hash = userId + questionId;
+    return hash % 70;
   }
 }
