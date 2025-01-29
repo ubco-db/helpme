@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { OrganizationUserModel } from './organization-user.entity';
 import { UserModel } from 'profile/user.entity';
 import { Brackets, getRepository } from 'typeorm';
 import { OrganizationCourseModel } from './organization-course.entity';
@@ -7,8 +6,8 @@ import { CourseModel } from 'course/course.entity';
 import {
   CourseResponse,
   GetOrganizationUserResponse,
-  OrgUser,
   LMSOrganizationIntegrationPartial,
+  OrgUser,
   Role,
   UserRole,
 } from '@koh/common';
@@ -35,17 +34,17 @@ export interface OrganizationCourseResponse {
 
 @Injectable()
 export class OrganizationService {
-  public async getOrganizationRoleByUserId(userId: number): Promise<string> {
-    const organizationUser = await OrganizationUserModel.findOne({
+  public async getOrganizationRoleByUserId(id: number): Promise<string> {
+    const user = await UserModel.findOne({
       where: {
-        userId,
+        id,
       },
     });
 
-    if (!organizationUser) {
+    if (!user) {
       return null;
     }
-    return organizationUser.role;
+    return user.organizationRole;
   }
 
   public async deleteUserCourses(
@@ -121,15 +120,13 @@ export class OrganizationService {
       // .getMany() wouldn't work here because relations are not working well with getMany()
       .getRawMany();
 
-    const coursesResponse = coursesSubset.map((course) => {
+    return coursesSubset.map((course) => {
       return {
         courseId: course.courseid,
         courseName: course.coursename,
         isEnabled: course.isenabled,
       };
     });
-
-    return coursesResponse;
   }
 
   public async getUsers(
@@ -138,14 +135,9 @@ export class OrganizationService {
     pageSize: number,
     search?: string,
   ): Promise<OrgUser[]> {
-    const organizationUsers = await getRepository(OrganizationUserModel)
+    const organizationUsers = await getRepository(UserModel)
       .createQueryBuilder()
-      .leftJoin(
-        UserModel,
-        'UserModel',
-        'UserModel.id = OrganizationUserModel.userId',
-      )
-      .where('OrganizationUserModel.organizationId = :organizationId', {
+      .where('UserModel.organizationId = :organizationId', {
         organizationId,
       });
 
@@ -170,7 +162,7 @@ export class OrganizationService {
       'UserModel.email as userEmail',
       'UserModel.photoURL as userPhotoUrl',
       'UserModel.userRole as userRole',
-      'OrganizationUserModel.role as userOrganizationRole',
+      'UserModel.organizationRole as userOrganizationRole',
     ]);
 
     const usersSubset = await users
@@ -180,7 +172,7 @@ export class OrganizationService {
       // .getMany() wouldn't work here because relations are not working well with getMany()
       .getRawMany();
 
-    const usersResponse = usersSubset.map((user) => {
+    return usersSubset.map((user) => {
       return {
         userId: user.userid,
         firstName: user.userfirstname,
@@ -191,50 +183,43 @@ export class OrganizationService {
         organizationRole: user.userorganizationrole,
       };
     });
-
-    return usersResponse;
   }
 
   public async getOrganizationUserByUserId(
     userId: number,
   ): Promise<GetOrganizationUserResponse> {
-    const organizationUserResponse = await OrganizationUserModel.findOne({
+    const userResponse = await UserModel.findOne({
       where: {
         userId,
       },
-      relations: [
-        'organizationUser',
-        'organizationUser.courses',
-        'organizationUser.courses.course',
-      ],
+      relations: ['courses', 'courses.course'],
     });
 
-    if (!organizationUserResponse) {
+    if (!userResponse) {
       throw new NotFoundException(
         `OrganizationUser with userId ${userId} not found`,
       );
     }
 
-    const { organizationId, role, organizationUser } = organizationUserResponse;
+    const { organizationId, organizationRole, userRole } = userResponse;
 
-    const globalRole: string =
-      organizationUser.userRole == UserRole.ADMIN ? 'unknown' : 'user';
+    const globalRole: string = userRole == UserRole.ADMIN ? 'unknown' : 'user';
 
-    const flattenedUser = {
+    return {
       organizationId: organizationId,
-      organizationRole: role,
+      organizationRole: organizationRole,
       user: {
-        id: organizationUser.id,
-        firstName: organizationUser.firstName,
-        lastName: organizationUser.lastName,
-        email: organizationUser.email,
-        photoUrl: organizationUser.photoURL,
-        fullName: organizationUser.name,
+        id: userResponse.id,
+        firstName: userResponse.firstName,
+        lastName: userResponse.lastName,
+        email: userResponse.email,
+        photoUrl: userResponse.photoURL,
+        fullName: userResponse.name,
         globalRole: globalRole,
-        sid: organizationUser.sid,
-        accountDeactivated: organizationUser.accountDeactivated,
+        sid: userResponse.sid,
+        accountDeactivated: userResponse.accountDeactivated,
       },
-      courses: organizationUser.courses.map((courseInfo) => {
+      courses: userResponse.courses.map((courseInfo) => {
         const { role, course } = courseInfo;
 
         return {
@@ -244,8 +229,6 @@ export class OrganizationService {
         };
       }),
     };
-
-    return flattenedUser;
   }
 
   public async getOrganizationCourse(
@@ -286,30 +269,30 @@ export class OrganizationService {
   }
 
   public async getOrganizationAndRoleByUserId(
-    userId: number,
+    id: number,
   ): Promise<FlattenedOrganizationResponse> {
-    const organizationUser = await OrganizationUserModel.createQueryBuilder(
-      'organizationUser',
-    )
-      .leftJoinAndSelect('organizationUser.organization', 'organization')
-      .where('organizationUser.userId = :userId', { userId })
-      .getOne();
+    const user = await UserModel.findOne(
+      {
+        id,
+      },
+      {
+        relations: ['organization'],
+      },
+    );
 
-    if (!organizationUser) {
+    if (!user) {
       return null;
     }
 
-    const flattenedOrganization = {
-      id: organizationUser.id,
-      orgId: organizationUser.organization.id,
-      organizationName: organizationUser.organization.name,
-      organizationDescription: organizationUser.organization.description,
-      organizationLogoUrl: organizationUser.organization.logoUrl,
-      organizationBannerUrl: organizationUser.organization.bannerUrl,
-      organizationRole: organizationUser.role,
+    return {
+      id,
+      orgId: user.organizationId,
+      organizationName: user.organization.name,
+      organizationDescription: user.organization.description,
+      organizationLogoUrl: user.organization.logoUrl,
+      organizationBannerUrl: user.organization.bannerUrl,
+      organizationRole: user.organizationRole,
     };
-
-    return flattenedOrganization;
   }
 
   public async upsertLMSIntegration(

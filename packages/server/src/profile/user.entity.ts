@@ -6,7 +6,6 @@ import {
   Column,
   Entity,
   JoinColumn,
-  JoinTable,
   ManyToMany,
   OneToMany,
   OneToOne,
@@ -17,14 +16,14 @@ import { QueueModel } from '../queue/queue.entity';
 import { EventModel } from './event-model.entity';
 import { UserCourseModel } from './user-course.entity';
 import { AlertModel } from '../alerts/alerts.entity';
-import { AccountType, UserRole } from '@koh/common';
-import { OrganizationUserModel } from '../organization/organization-user.entity';
+import { AccountType, OrganizationRole, UserRole } from '@koh/common';
 import { InteractionModel } from '../chatbot/interaction.entity';
 import { UserTokenModel } from './user-token.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
-import { CalendarStaffModel } from 'calendar/calendar-staff.entity';
+import { CalendarStaffModel } from '../calendar/calendar-staff.entity';
+import { OrganizationModel } from '../organization/organization.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -103,9 +102,6 @@ export class UserModel extends BaseEntity {
 
   insights: string[];
 
-  @OneToOne((type) => OrganizationUserModel, (ou) => ou.organizationUser)
-  organizationUser: OrganizationUserModel;
-
   @OneToMany((type) => InteractionModel, (interaction) => interaction.user)
   @JoinColumn({ name: 'user' })
   interactions: InteractionModel[];
@@ -149,4 +145,18 @@ export class UserModel extends BaseEntity {
 
   @Column({ type: 'boolean', default: false })
   readChangeLog: boolean;
+
+  @Column({ type: 'number' })
+  organizationId: number;
+
+  @Column({
+    type: 'enum',
+    enum: OrganizationRole,
+    enumName: 'user_model_organization_role',
+  })
+  organizationRole: OrganizationRole;
+
+  @OneToOne((type) => OrganizationModel, (organization) => organization.users)
+  @JoinColumn({ name: 'organizationId' })
+  organization: OrganizationModel;
 }

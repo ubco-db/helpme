@@ -1,10 +1,9 @@
 import {
-  UserFactory,
-  CourseFactory,
-  UserCourseFactory,
   calendarFactory,
+  CourseFactory,
   OrganizationFactory,
-  OrganizationUserFactory,
+  UserCourseFactory,
+  UserFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { CalendarModel } from '../src/calendar/calendar.entity';
@@ -44,9 +43,13 @@ describe('Calendar Integration', () => {
 
   beforeEach(async () => {
     // initialize course, task, and user factories
+    org = await OrganizationFactory.create();
     ta1 = await UserFactory.create();
     ta2 = await UserFactory.create();
-    prof = await UserFactory.create();
+    prof = await UserFactory.create({
+      organizationId: org.id,
+      organizationRole: OrganizationRole.ADMIN,
+    });
     course = await CourseFactory.create();
     await UserCourseFactory.create({
       user: ta1,
@@ -62,12 +65,6 @@ describe('Calendar Integration', () => {
       user: prof,
       course,
       role: Role.PROFESSOR,
-    });
-    org = await OrganizationFactory.create();
-    await OrganizationUserFactory.create({
-      organization: org,
-      organizationUser: prof,
-      role: OrganizationRole.ADMIN,
     });
   });
   afterEach(async () => {

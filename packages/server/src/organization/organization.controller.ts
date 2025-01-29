@@ -1,45 +1,43 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
-  HttpException,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
-  Delete,
   Query,
   Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
 import {
+  COURSE_TIMEZONES,
+  CoursePartial,
+  CourseResponse,
+  CourseSettingsRequestBody,
   ERROR_MESSAGES,
   GetOrganizationUserResponse,
+  LMSCourseIntegrationPartial,
+  LMSIntegration,
+  LMSOrganizationIntegrationPartial,
+  OrganizationProfessor,
   OrganizationResponse,
   OrganizationRole,
+  OrgUser,
   Role,
   UpdateOrganizationCourseDetailsParams,
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
   UpdateProfileParams,
   UserRole,
-  COURSE_TIMEZONES,
-  CourseSettingsRequestBody,
-  OrganizationProfessor,
-  CourseResponse,
-  LMSOrganizationIntegrationPartial,
-  LMSCourseIntegrationPartial,
-  CoursePartial,
-  LMSIntegration,
-  OrgUser,
 } from '@koh/common';
 import * as fs from 'fs';
-import { OrganizationUserModel } from './organization-user.entity';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { OrganizationRolesGuard } from 'guards/organization-roles.guard';
 import { CourseModel } from 'course/course.entity';
@@ -97,16 +95,16 @@ export class OrganizationController {
           max_uses = CASE
             WHEN EXISTS (
               SELECT 1 
-              FROM organization_user_model
-              WHERE organization_user_model."userId" = public.chat_token_model.user
-                AND organization_user_model.role != 'member'
-                AND organization_user_model."organizationId" = $1
+              FROM user_model
+              WHERE user_model."id" = public.chat_token_model.user
+                AND user_model."organizationRole" != 'member'
+                AND user_model."organizationId" = $1
             ) THEN 300
             ELSE 30
           END 
       WHERE public.chat_token_model.user IN (
-        SELECT "userId"
-        FROM organization_user_model
+        SELECT "id"
+        FROM user_model
         WHERE "organizationId" = $1
       )
     `,
@@ -158,18 +156,18 @@ export class OrganizationController {
       // Get all users for the organization with their highest role
       const orgUsers = await entityManager.query(
         `
-  SELECT ou."userId",
-         CASE
-           WHEN EXISTS (
-             SELECT 1 
-             FROM user_course_model uc 
-             WHERE uc."userId" = ou."userId" AND uc.role != 'student'
-           ) THEN 'professor'
-           ELSE ou.role
-         END AS role
-  FROM organization_user_model ou
-  WHERE ou."organizationId" = $1
-  `,
+          SELECT u."id",
+                 CASE
+                   WHEN EXISTS (
+                     SELECT 1 
+                     FROM user_course_model uc 
+                     WHERE uc."userId" = u."id" AND uc.role != 'student'
+                   ) THEN 'professor'
+                   ELSE u."organizationRole"
+                 END AS role
+          FROM user_model u
+          WHERE u."organizationId" = $1
+        `,
         [oid],
       );
 
@@ -249,28 +247,26 @@ export class OrganizationController {
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
-    const organizationUsers = await OrganizationUserModel.find({
+    const users = await UserModel.find({
       where: {
         organizationId: oid,
       },
-      relations: ['organizationUser', 'organizationUser.chat_token'],
+      relations: ['chat_token'],
     });
 
     let chatTokenCount = 0;
-    organizationUsers.forEach(async (organizationUser) => {
-      const ou = organizationUser.organizationUser;
-
-      if (!ou.chat_token) {
+    for (const user of users) {
+      if (!user.chat_token) {
         await ChatTokenModel.create({
-          user: ou,
+          user: user,
           token: v4(),
         }).save();
       } else {
         chatTokenCount += 1;
       }
-    });
+    }
 
-    if (chatTokenCount === organizationUsers.length) {
+    if (chatTokenCount === users.length) {
       return res.status(HttpStatus.OK).send({
         message: 'Chat token table already populated',
       });
@@ -956,26 +952,24 @@ export class OrganizationController {
     @Res() res: Response,
     @Param('uid', ParseIntPipe) uid: number,
   ): Promise<Response<void>> {
-    const userInfo = await OrganizationUserModel.findOne({
+    const userInfo = await UserModel.findOne({
       where: {
-        userId: uid,
+        id: uid,
       },
-      relations: ['organizationUser'],
     });
 
     if (
-      userInfo.role === OrganizationRole.ADMIN ||
-      userInfo.organizationUser.userRole === UserRole.ADMIN
+      userInfo.organizationRole === OrganizationRole.ADMIN ||
+      userInfo.userRole === UserRole.ADMIN
     ) {
       return res.status(HttpStatus.UNAUTHORIZED).send({
         message: ERROR_MESSAGES.roleGuard.notAuthorized,
       });
     }
 
-    userInfo.organizationUser.accountDeactivated =
-      !userInfo.organizationUser.accountDeactivated;
+    userInfo.accountDeactivated = !userInfo.accountDeactivated;
 
-    await userInfo.organizationUser
+    await userInfo
       .save()
       .then(() => {
         return res.status(HttpStatus.OK).send({
@@ -1135,14 +1129,14 @@ export class OrganizationController {
           });
         }
 
-        await OrganizationUserModel.findOne({
+        await UserModel.findOne({
           where: {
-            userId: organizationUserRolePatch.userId,
+            id: organizationUserRolePatch.userId,
             organizationId: oid,
           },
         })
-          .then(async (organizationUser) => {
-            if (!organizationUser) {
+          .then(async (user) => {
+            if (!user) {
               return res.status(HttpStatus.NOT_FOUND).send({
                 message:
                   ERROR_MESSAGES.organizationController
@@ -1151,7 +1145,7 @@ export class OrganizationController {
             }
 
             if (
-              organizationUser.role === OrganizationRole.ADMIN &&
+              user.organizationRole === OrganizationRole.ADMIN &&
               organizationUserRolePatch.organizationRole !==
                 OrganizationRole.ADMIN
             ) {
@@ -1161,9 +1155,9 @@ export class OrganizationController {
               });
             }
 
-            organizationUser.role = organizationUserRolePatch.organizationRole;
+            user.organizationRole = organizationUserRolePatch.organizationRole;
 
-            await organizationUser
+            await user
               .save()
               .then((_) => {
                 res.status(HttpStatus.OK).send({
@@ -1260,7 +1254,7 @@ export class OrganizationController {
     courses: number;
     membersProfessors: number;
   }> {
-    const members = await OrganizationUserModel.count({
+    const members = await UserModel.count({
       where: {
         organizationId: oid,
       },
@@ -1272,7 +1266,7 @@ export class OrganizationController {
       },
     });
 
-    const membersProfessors = await OrganizationUserModel.count({
+    const membersProfessors = await UserModel.count({
       where: {
         organizationId: oid,
         role: OrganizationRole.PROFESSOR,
@@ -1306,14 +1300,14 @@ export class OrganizationController {
       });
     }
 
-    const userOrg = await OrganizationUserModel.findOne({
+    const user = await UserModel.findOne({
       where: {
         userId,
       },
     });
 
     // If the user is just an OrganizationRole.PROFESSOR, they can only remove users from their own courses
-    if (userOrg.role === OrganizationRole.PROFESSOR) {
+    if (user.organizationRole === OrganizationRole.PROFESSOR) {
       const userCoursesForUser = await UserCourseModel.find({
         where: {
           userId: userId,
@@ -1339,16 +1333,15 @@ export class OrganizationController {
       }
     }
 
-    const userInfo = await OrganizationUserModel.findOne({
+    const userInfo = await UserModel.findOne({
       where: {
         userId: uid,
       },
-      relations: ['organizationUser'],
     });
 
     if (
-      userInfo.role === OrganizationRole.ADMIN ||
-      userInfo.organizationUser.userRole === UserRole.ADMIN
+      userInfo.organizationRole === OrganizationRole.ADMIN ||
+      userInfo.userRole === UserRole.ADMIN
     ) {
       return res.status(HttpStatus.UNAUTHORIZED).send({
         message: ERROR_MESSAGES.roleGuard.notAuthorized,
@@ -1381,42 +1374,41 @@ export class OrganizationController {
     @Res() res: Response,
     @Param('uid', ParseIntPipe) uid: number,
   ): Promise<Response<void>> {
-    const userInfo = await OrganizationUserModel.findOne({
+    const userInfo = await UserModel.findOne({
       where: {
         userId: uid,
       },
-      relations: ['organizationUser'],
     });
 
     if (
-      userInfo.role === OrganizationRole.ADMIN ||
-      userInfo.organizationUser.userRole === UserRole.ADMIN
+      userInfo.organizationRole === OrganizationRole.ADMIN ||
+      userInfo.userRole === UserRole.ADMIN
     ) {
       return res.status(HttpStatus.UNAUTHORIZED).send({
         message: ERROR_MESSAGES.roleGuard.notAuthorized,
       });
     }
 
-    if (!userInfo.organizationUser.photoURL) {
+    if (!userInfo.photoURL) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: ERROR_MESSAGES.profileController.noProfilePicture,
       });
     }
 
     fs.unlink(
-      process.env.UPLOAD_LOCATION + '/' + userInfo.organizationUser.photoURL,
+      process.env.UPLOAD_LOCATION + '/' + userInfo.photoURL,
       async (err) => {
         if (err) {
           const errMessage =
             'Error deleting previous picture at : ' +
-            userInfo.organizationUser.photoURL +
+            userInfo.photoURL +
             ' the previous image was at an invalid location?';
           return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
             message: errMessage,
           });
         } else {
-          userInfo.organizationUser.photoURL = null;
-          await userInfo.organizationUser.save();
+          userInfo.photoURL = null;
+          await userInfo.save();
           return res.status(HttpStatus.OK).send({
             message: 'Profile picture deleted',
           });
@@ -1438,16 +1430,16 @@ export class OrganizationController {
     @Param('uid', ParseIntPipe) uid: number,
     @Body() userDetailsBody: UpdateProfileParams,
   ): Promise<Response<void>> {
-    const userInfo = await OrganizationUserModel.findOne({
+    const userInfo = await UserModel.findOne({
       where: {
         userId: uid,
       },
-      relations: ['organizationUser', 'organization'],
+      relations: ['organization'],
     });
 
     if (
-      userInfo.role === OrganizationRole.ADMIN ||
-      userInfo.organizationUser.userRole === UserRole.ADMIN ||
+      userInfo.organizationRole === OrganizationRole.ADMIN ||
+      userInfo.userRole === UserRole.ADMIN ||
       userInfo.organization.ssoEnabled
     ) {
       return res.status(HttpStatus.UNAUTHORIZED).send({
@@ -1475,15 +1467,15 @@ export class OrganizationController {
       });
     }
 
-    if (userInfo.organizationUser.sid && sid < 1) {
+    if (userInfo.sid && sid < 1) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: ERROR_MESSAGES.profileController.sidInvalid,
       });
     }
 
-    if (userInfo.organizationUser.email.toLowerCase() !== email.toLowerCase()) {
+    if (userInfo.email.toLowerCase() !== email.toLowerCase()) {
       const emailInUse = await this.authService
-        .getUserByEmailQuery(email)
+        .getUserByEmailQuery(email, userInfo.organizationId)
         .getOne();
 
       if (emailInUse) {
@@ -1493,12 +1485,12 @@ export class OrganizationController {
       }
     }
 
-    userInfo.organizationUser.firstName = firstName;
-    userInfo.organizationUser.lastName = lastName;
-    userInfo.organizationUser.email = email;
-    userInfo.organizationUser.sid = sid;
+    userInfo.firstName = firstName;
+    userInfo.lastName = lastName;
+    userInfo.email = email;
+    userInfo.sid = sid;
 
-    await userInfo.organizationUser
+    await userInfo
       .save()
       .then(() => {
         return res.status(HttpStatus.OK).send({
@@ -1552,14 +1544,7 @@ export class OrganizationController {
       search = '';
     }
 
-    const users = await this.organizationService.getUsers(
-      oid,
-      page,
-      pageSize,
-      search,
-    );
-
-    return users;
+    return await this.organizationService.getUsers(oid, page, pageSize, search);
   }
 
   @Get(':oid/get_courses/:page?')
@@ -1576,14 +1561,12 @@ export class OrganizationController {
       search = '';
     }
 
-    const courses = await this.organizationService.getCourses(
+    return await this.organizationService.getCourses(
       oid,
       page,
       pageSize,
       search,
     );
-
-    return courses;
   }
 
   @Get(':oid/get_professors/:courseId')
@@ -1594,12 +1577,11 @@ export class OrganizationController {
     @Param('courseId', ParseIntPipe) cid: number,
     @Res() res: Response,
   ): Promise<Response<OrganizationProfessor[]>> {
-    const orgProfs = await OrganizationUserModel.find({
+    const orgProfs = await UserModel.find({
       where: {
         organizationId: oid,
         role: In([OrganizationRole.PROFESSOR, OrganizationRole.ADMIN]),
       },
-      relations: ['organizationUser'],
     });
 
     let courseProfs = [];
@@ -1614,80 +1596,23 @@ export class OrganizationController {
 
       // filter out professors that are already an organization professor
       courseProfs = courseProfs.filter(
-        (prof) => !orgProfs.some((orgProf) => orgProf.userId === prof.userId),
+        (prof: UserCourseModel) =>
+          !orgProfs.some((orgProf) => orgProf.id === prof.userId),
       );
     }
 
     const professors: OrganizationProfessor[] = [
       ...orgProfs.map((prof) => ({
-        organizationUser: {
-          id: prof.organizationUser.id,
-          name: prof.organizationUser.name,
-        },
-        userId: prof.userId,
+        id: prof.id,
+        name: prof.name,
       })),
       ...courseProfs.map((prof) => ({
-        organizationUser: {
-          id: prof.user.id,
-          name: prof.user.name,
-          lacksProfOrgRole: true,
-        },
-        userId: prof.userId,
+        id: prof.user.id,
+        name: prof.user.name,
+        lacksProfOrgRole: true,
       })),
     ];
     return res.status(HttpStatus.OK).send(professors);
-  }
-
-  @Post(':oid/add_member/:uid')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  async addUserToOrganization(
-    @Res() res: Response,
-    @Param('oid', ParseIntPipe) oid: number,
-    @Param('uid', ParseIntPipe) uid: number,
-  ): Promise<void> {
-    UserModel.findOne({
-      where: { id: uid },
-    })
-      .then((user) => {
-        if (!user) {
-          throw new HttpException(
-            ERROR_MESSAGES.profileController.accountNotAvailable,
-            HttpStatus.NOT_FOUND,
-          );
-        }
-
-        OrganizationUserModel.findOne({
-          where: { userId: uid, organizationId: oid },
-        })
-          .then((organizationUser) => {
-            if (organizationUser) {
-              throw new HttpException(
-                ERROR_MESSAGES.organizationController.userAlreadyInOrganization,
-                HttpStatus.BAD_REQUEST,
-              );
-            }
-
-            const organizationUserModel = new OrganizationUserModel();
-            organizationUserModel.organizationId = oid;
-            organizationUserModel.userId = uid;
-            organizationUserModel.role = OrganizationRole.MEMBER;
-
-            organizationUserModel
-              .save()
-              .then((_) => {
-                res.status(200).send({ message: 'User added to organization' });
-              })
-              .catch((err) => {
-                res.status(500).send({ message: err });
-              });
-          })
-          .catch((err) => {
-            res.status(500).send({ message: err });
-          });
-      })
-      .catch((err) => {
-        res.status(500).send({ message: err });
-      });
   }
 
   private isValidUrl = (url: string): boolean => {

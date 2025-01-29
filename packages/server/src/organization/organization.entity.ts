@@ -7,9 +7,9 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { OrganizationUserModel } from './organization-user.entity';
 import { OrganizationCourseModel } from './organization-course.entity';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
+import { UserModel } from '../profile/user.entity';
 
 @Entity('organization_model')
 export class OrganizationModel extends BaseEntity {
@@ -45,12 +45,9 @@ export class OrganizationModel extends BaseEntity {
 
   @Exclude()
   @JoinColumn({ name: 'organizationId' })
-  @OneToMany(
-    (type) => OrganizationUserModel,
-    (organizationUser) => organizationUser.organization,
-  )
+  @OneToMany((type) => UserModel, (user) => user.organization)
   @JoinColumn({ name: 'organizationId' })
-  organizationUsers: OrganizationUserModel[];
+  users: UserModel[];
 
   @Exclude()
   @JoinColumn({ name: 'organizationId' })

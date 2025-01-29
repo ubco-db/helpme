@@ -95,7 +95,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         !profIdsField.every(
           (profId) =>
             typeof profId === 'number' &&
-            professors.find((prof) => prof.userId === profId),
+            professors.find((prof) => prof.id === profId),
         ))
     ) {
       message.error('One or more selected professors are invalid')
@@ -262,8 +262,8 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
               mode="multiple"
               placeholder="Select professors"
               options={professors.map((prof: OrganizationProfessor) => ({
-                label: prof.organizationUser.name,
-                value: prof.organizationUser.id,
+                label: prof.name,
+                value: prof.id,
               }))}
               tagRender={(props) => {
                 const { label, value, closable, onClose } = props
@@ -275,8 +275,8 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
                 }
                 // find the professor with the given id and see if they have lacksProfOrgRole
                 const lacksProfOrgRole = professors.find(
-                  (prof) => prof.organizationUser.id === value,
-                )?.organizationUser.lacksProfOrgRole
+                  (prof) => prof.id === value,
+                )?.lacksProfOrgRole
                 return (
                   <Tooltip
                     title={

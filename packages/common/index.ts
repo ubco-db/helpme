@@ -1118,12 +1118,9 @@ export class GetOrganizationUserResponse {
 }
 
 export type OrganizationProfessor = {
-  organizationUser: {
-    id: number
-    name: string
-    lacksProfOrgRole?: boolean
-  }
-  userId: number
+  id: number
+  name: string
+  lacksProfOrgRole?: boolean
 }
 
 export class InteractionParams {

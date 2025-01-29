@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { OrganizationUserModel } from 'organization/organization-user.entity';
+import { UserModel } from '../profile/user.entity';
 
 @Injectable()
 export class OrganizationRolesGuard implements CanActivate {
@@ -32,23 +32,24 @@ export class OrganizationRolesGuard implements CanActivate {
   async setupData(
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     request: any,
-  ): Promise<{ user: OrganizationUserModel }> {
-    const user = await OrganizationUserModel.findOne({
+  ): Promise<{ user: UserModel }> {
+    const user = await UserModel.findOne({
       where: {
-        userId: request.user.userId,
-        organizationId: request.params.oid,
+        userId:
+          request.params.uid || request.body.userId || request.user.userId,
+        organizationId:
+          request.params.oid ||
+          request.params.organizationId ||
+          request.params.orgId,
       },
     });
 
     return { user };
   }
 
-  async matchRoles(
-    roles: string[],
-    user: OrganizationUserModel,
-  ): Promise<boolean> {
+  async matchRoles(roles: string[], user: UserModel): Promise<boolean> {
     const remaining = roles.filter((role) => {
-      return user.role.toString() === role;
+      return user.organizationRole.toString() === role;
     });
 
     if (remaining.length <= 0) {

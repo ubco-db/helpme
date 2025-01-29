@@ -24,7 +24,6 @@ import { OrganizationModel } from '../../src/organization/organization.entity';
 import { InteractionModel } from '../../src/chatbot/interaction.entity';
 import { OrganizationCourseModel } from '../../src/organization/organization-course.entity';
 import { QuestionTypeModel } from '../../src/questionType/question-type.entity';
-import { OrganizationUserModel } from '../../src/organization/organization-user.entity';
 import { CourseSettingsModel } from '../../src/course/course_settings.entity';
 import { AsyncQuestionModel } from '../../src/asyncQuestion/asyncQuestion.entity';
 import { AsyncQuestionVotesModel } from '../../src/asyncQuestion/asyncQuestionVotes.entity';
@@ -182,11 +181,6 @@ export const InteractionFactory = new Factory(InteractionModel)
 export const OrganizationCourseFactory = new Factory(OrganizationCourseModel)
   .assocOne('organization', OrganizationFactory)
   .assocOne('course', CourseFactory);
-
-export const OrganizationUserFactory = new Factory(OrganizationUserModel)
-  .assocOne('organization', OrganizationFactory)
-  .assocOne('organizationUser', UserFactory)
-  .attr('role', OrganizationRole.MEMBER);
 
 export const ChatTokenFactory = new Factory(ChatTokenModel)
   .attr('token', v4())

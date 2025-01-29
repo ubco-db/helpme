@@ -8,7 +8,6 @@ import {
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import * as bcrypt from 'bcrypt';
-import { OrganizationUserModel } from 'organization/organization-user.entity';
 
 jest.mock('superagent', () => ({
   post: jest.fn().mockImplementation((url) => {
@@ -117,12 +116,10 @@ describe('Login Integration', () => {
       const organization = await OrganizationFactory.create({
         legacyAuthEnabled: false,
       });
-      const user = await UserFactory.create({ password: 'real_password' });
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
+        password: 'real_password',
         organizationId: organization.id,
-      }).save();
+      });
 
       await mockJWT.signAsync({ userId: user.id });
 
@@ -140,12 +137,10 @@ describe('Login Integration', () => {
       const organization = await OrganizationFactory.create({
         legacyAuthEnabled: false,
       });
-      const user = await UserFactory.create({ password: null });
-
-      await OrganizationUserModel.create({
-        userId: user.id,
+      const user = await UserFactory.create({
+        password: null,
         organizationId: organization.id,
-      }).save();
+      });
 
       await mockJWT.signAsync({ userId: user.id });
 

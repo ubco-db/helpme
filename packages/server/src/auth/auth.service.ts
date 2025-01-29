@@ -1,4 +1,4 @@
-import { AccountType, OrganizationRole } from '@koh/common';
+import { AccountType } from '@koh/common';
 import {
   BadRequestException,
   HttpException,
@@ -7,7 +7,6 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
-import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { UserModel } from 'profile/user.entity';
 import * as bcrypt from 'bcrypt';
 import { TokenType, UserTokenModel } from 'profile/user-token.entity';
@@ -63,11 +62,10 @@ export class AuthService {
     organizationId: number,
   ): Promise<number> {
     try {
-      const user = await this.getUserByEmailQuery(mail)
-        .andWhere('organizationUser.organizationId = :organizationId', {
-          organizationId,
-        })
-        .getOne();
+      const user = await this.getUserByEmailQuery(
+        mail,
+        organizationId,
+      ).getOne();
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -92,15 +90,10 @@ export class AuthService {
           lastName: lastName,
           accountType: AccountType.SHIBBOLETH,
           emailVerified: true,
+          organizationId,
         }).save();
 
         const userId = newUser.id;
-
-        await OrganizationUserModel.create({
-          organizationId,
-          userId: userId,
-          role: OrganizationRole.MEMBER,
-        }).save();
 
         await ChatTokenModel.create({
           user: newUser,
@@ -135,11 +128,10 @@ export class AuthService {
         throw new BadRequestException('Email not verified');
       }
 
-      const user = await this.getUserByEmailQuery(payload.email)
-        .andWhere('organizationUser.organizationId = :organizationId', {
-          organizationId,
-        })
-        .getOne();
+      const user = await this.getUserByEmailQuery(
+        payload.email,
+        organizationId,
+      ).getOne();
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -165,14 +157,10 @@ export class AuthService {
           photoURL: payload.picture,
           accountType: AccountType.GOOGLE,
           emailVerified: true,
+          organizationId,
         }).save();
 
         const userId = newUser.id;
-
-        await OrganizationUserModel.create({
-          organizationId,
-          userId: userId,
-        }).save();
 
         await ChatTokenModel.create({
           user: newUser,
@@ -201,11 +189,10 @@ export class AuthService {
       // tentative change; allow same email if not part of the same organization
       // may want to instead collapse this and identify accounts purely by email
       // but specifically search for organization affiliation where necessary
-      const user = await this.getUserByEmailQuery(email)
-        .andWhere('organizationUser.organizationId = :organizationId', {
-          organizationId,
-        })
-        .getOne();
+      const user = await this.getUserByEmailQuery(
+        email,
+        organizationId,
+      ).getOne();
 
       if (user) {
         throw new BadRequestException('Email already exists');
@@ -233,6 +220,7 @@ export class AuthService {
           lastName,
           password: hashedPassword,
           sid,
+          organizationId,
           hideInsights: [],
         }).save();
       }
@@ -251,12 +239,6 @@ export class AuthService {
 
       const userId = newUser.id;
 
-      await OrganizationUserModel.create({
-        organizationId,
-        userId,
-        role: OrganizationRole.MEMBER,
-      }).save();
-
       await ChatTokenModel.create({
         user: newUser,
         token: v4(),
@@ -270,10 +252,9 @@ export class AuthService {
 
   async studentIdExists(sid: number, oid: number): Promise<boolean> {
     const user = await UserModel.findOne({
-      where: { sid },
-      relations: ['organizationUser'],
+      where: { sid, organizationId: oid },
     });
-    return user?.organizationUser?.organizationId == oid;
+    return user != undefined;
   }
 
   async createPasswordResetToken(user: UserModel): Promise<string> {
@@ -303,12 +284,15 @@ export class AuthService {
 
   getUserByEmailQuery(
     email: string,
+    organizationId: number,
   ): SelectQueryBuilder<UserModel | undefined> {
     return UserModel.createQueryBuilder('UserModel')
       .select()
-      .leftJoinAndSelect('UserModel.organizationUser', 'organizationUser')
       .where('LOWER("UserModel"."email") = :email', {
         email: email.toLowerCase(),
+      })
+      .andWhere('"UserModel"."organizationId" = :organizationId', {
+        organizationId,
       });
   }
 }

@@ -267,11 +267,8 @@ export default function AddCoursePage(): ReactElement {
                             placeholder="Select professors"
                           >
                             {professors.map((prof) => (
-                              <Select.Option
-                                value={prof.organizationUser.id}
-                                key={prof.organizationUser.id}
-                              >
-                                {prof.organizationUser.name}
+                              <Select.Option value={prof.id} key={prof.id}>
+                                {prof.name}
                               </Select.Option>
                             ))}
                           </Select>
