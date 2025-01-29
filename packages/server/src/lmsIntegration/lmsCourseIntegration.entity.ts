@@ -33,7 +33,9 @@ export class LMSCourseIntegrationModel extends BaseEntity {
   )
   orgIntegration: LMSOrganizationIntegrationModel;
 
-  @OneToOne((type) => CourseModel, (course) => course.lmsIntegration)
+  @OneToOne((type) => CourseModel, (course) => course.lmsIntegration, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn()
   course: CourseModel;
 

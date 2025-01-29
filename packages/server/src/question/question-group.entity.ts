@@ -19,14 +19,18 @@ export class QuestionGroupModel extends BaseEntity {
   @OneToMany((type) => QuestionModel, (q) => q.group)
   questions: QuestionModel[];
 
-  @ManyToOne((type) => UserCourseModel)
+  @ManyToOne((type) => UserCourseModel, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'creatorId' })
   creator: UserCourseModel;
 
   @Column()
   creatorId: number;
 
-  @ManyToOne((type) => QueueModel, (q) => q.groups)
+  @ManyToOne((type) => QueueModel, (q) => q.groups, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'queueId' })
   queue: QueueModel;
 

@@ -27,7 +27,9 @@ export class QuestionModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne((type) => QueueModel, (q) => q.questions)
+  @ManyToOne((type) => QueueModel, (q) => q.questions, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'queueId' })
   @Exclude()
   queue: QueueModel;
@@ -39,7 +41,9 @@ export class QuestionModel extends BaseEntity {
   @Column('text')
   text: string;
 
-  @ManyToOne((type) => UserModel)
+  @ManyToOne((type) => UserModel, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'creatorId' })
   creator: UserModel;
 
@@ -47,7 +51,9 @@ export class QuestionModel extends BaseEntity {
   @Exclude()
   creatorId: number;
 
-  @ManyToOne((type) => UserModel)
+  @ManyToOne((type) => UserModel, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'taHelpedId' })
   taHelped: UserModel;
 
@@ -99,7 +105,10 @@ export class QuestionModel extends BaseEntity {
   @Column({ default: false })
   isTaskQuestion: boolean;
 
-  @ManyToOne((type) => QuestionGroupModel, { nullable: true })
+  @ManyToOne((type) => QuestionGroupModel, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'groupId' })
   group: QuestionGroupModel;
 

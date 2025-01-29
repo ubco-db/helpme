@@ -161,7 +161,10 @@ export class UserModel extends BaseEntity {
   })
   organizationRole: OrganizationRole;
 
-  @OneToOne((type) => OrganizationModel, (organization) => organization.users)
+  @OneToOne((type) => OrganizationModel, (organization) => organization.users, {
+    onUpdate: 'CASCADE',
+    onDelete: 'RESTRICT',
+  })
   /* WHEN UPDATED > 0.3.7:
     @JoinColumn({ name: 'organizationId', foreignKeyConstraintName: 'FK_userToOrganizationForeignKey'})
   */

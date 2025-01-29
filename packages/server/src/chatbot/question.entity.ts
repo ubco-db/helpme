@@ -19,7 +19,9 @@ export class ChatbotQuestionModel extends BaseEntity {
   @Column({ nullable: true })
   interactionId: number;
 
-  @ManyToOne(() => InteractionModel)
+  @ManyToOne(() => InteractionModel, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'interaction' })
   interaction: InteractionModel;
 

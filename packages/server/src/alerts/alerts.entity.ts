@@ -25,7 +25,9 @@ export class AlertModel extends BaseEntity {
   @Column({ nullable: true })
   resolved: Date;
 
-  @ManyToOne((type) => UserModel, (user) => user.alerts)
+  @ManyToOne((type) => UserModel, (user) => user.alerts, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'userId' })
   user: UserModel;
 
@@ -33,7 +35,9 @@ export class AlertModel extends BaseEntity {
   @Exclude()
   userId: number;
 
-  @ManyToOne((type) => CourseModel, (course) => course.alerts)
+  @ManyToOne((type) => CourseModel, (course) => course.alerts, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'courseId' })
   course: CourseModel;
 

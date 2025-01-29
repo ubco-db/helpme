@@ -31,7 +31,9 @@ export class QueueModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne((type) => CourseModel, (course) => course.queues)
+  @ManyToOne((type) => CourseModel, (course) => course.queues, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'courseId' })
   course: CourseModel;
 
