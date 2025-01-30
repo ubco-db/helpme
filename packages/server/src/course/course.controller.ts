@@ -960,7 +960,7 @@ export class CourseController {
 
     // have to do a manual query 'cause the current version of typeORM we're using is crunked and creates syntax errors in postgres queries
     const query = `
-    SELECT "user_model"."firstName" || ' ' || "user_model"."lastName" AS name, "user_model".id AS id
+    SELECT COALESCE("user_model"."firstName", '') || ' ' || COALESCE("user_model"."lastName", '') AS name, "user_model".id AS id
     FROM "user_course_model"
     LEFT JOIN "user_model" ON ("user_course_model"."userId" = "user_model".id AND "user_course_model".role = $1)
     WHERE "user_course_model"."courseId" = $2 
