@@ -212,14 +212,14 @@ describe('Lms Integration Integrations', () => {
     });
   });
 
-  describe('DELETE lms/:id/sync/*/:id/toggle', () => {
+  describe('POST lms/:id/sync/*/:id/toggle', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
         await failedPermsCheck(
           (id) => `/lms/${id}/sync/announcement/0/toggle`,
           courseRole,
-          'DELETE',
+          'POST',
         );
       },
     );
@@ -230,7 +230,7 @@ describe('Lms Integration Integrations', () => {
         await failedPermsCheck(
           (id) => `/lms/${id}/sync/assignment/0/toggle`,
           courseRole,
-          'DELETE',
+          'POST',
         );
       },
     );
