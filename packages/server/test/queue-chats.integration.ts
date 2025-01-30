@@ -57,6 +57,10 @@ describe('QueueChat Integration Tests', () => {
     await redisService.getClient('db').flushall();
   });
 
+  afterAll(async () => {
+    await getTestModule().close();
+  });
+
   describe('GET /queueChats/:queueId/:questionId', () => {
     it('retrieves chat metadata and messages', async () => {
       const metadata = {
