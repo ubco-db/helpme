@@ -13,6 +13,7 @@ import { Get } from '@nestjs/common/decorators';
 import {
   ERROR_MESSAGES,
   LMSApiResponseStatus,
+  LMSAssignment,
   LMSCourseIntegrationPartial,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
@@ -23,7 +24,11 @@ import {
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
 } from '@koh/common';
-import { LMSGet, LMSIntegrationService } from './lmsIntegration.service';
+import {
+  LMSGet,
+  LMSIntegrationService,
+  LMSUpload,
+} from './lmsIntegration.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
 import { Roles } from '../decorators/roles.decorator';
@@ -450,5 +455,104 @@ export class LMSIntegrationController {
     }
 
     return `Successfully cleared documents from ${integration.orgIntegration.apiPlatform ?? 'LMS'} in HelpMe.`;
+  }
+
+  @Post(':courseId/sync/:docType/:itemId/toggle')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async toggleSyncDocument(
+    @User() _user: UserModel,
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('docType') docType: 'assignment' | 'announcement',
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() params?: LMSAssignment,
+  ): Promise<string> {
+    const integration = await LMSCourseIntegrationModel.findOne(
+      {
+        courseId: courseId,
+      },
+      {
+        relations: ['orgIntegration'],
+      },
+    );
+
+    if (!integration) {
+      throw new HttpException(
+        LMSApiResponseStatus.InvalidConfiguration,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    let uploadType: LMSUpload;
+    switch (docType) {
+      case 'assignment':
+        uploadType = LMSUpload.Assignments;
+        break;
+      case 'announcement':
+        uploadType = LMSUpload.Announcements;
+        break;
+      default:
+        throw new HttpException(
+          ERROR_MESSAGES.lmsController.invalidDocumentType,
+          HttpStatus.BAD_REQUEST,
+        );
+    }
+
+    const model = await this.integrationService.getDocumentModel(uploadType);
+    let item = await model.findOne({
+      id: itemId,
+    });
+    let didNotExist = false;
+
+    if (!item && params != undefined) {
+      didNotExist = true;
+      const createParams = {
+        ...params,
+        id: itemId,
+        courseId: courseId,
+        modified:
+          params.modified != undefined ? new Date(params.modified) : new Date(),
+        lmsSource: integration.orgIntegration.apiPlatform,
+      };
+      if (uploadType == LMSUpload.Announcements) {
+        createParams['posted'] = new Date(createParams['posted']);
+      }
+      item = model.create(createParams);
+    } else if (!item) {
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.lmsDocumentNotFound,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const newState = didNotExist ? true : !item.syncEnabled;
+
+    if (newState && !integration.lmsSynchronize) {
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.cannotSyncDocumentWhenSyncDisabled,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const result = await this.integrationService.singleDocOperation(
+        courseId,
+        item,
+        uploadType,
+        newState ? 'Sync' : 'Clear',
+      );
+
+      if (!result) {
+        throw new Error();
+      }
+    } catch (err) {
+      console.error(err);
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.failedToClearOne,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return `Successfully ${newState ? 'synced' : 'cleared'} document from ${integration.orgIntegration.apiPlatform ?? 'LMS'} in HelpMe.`;
   }
 }

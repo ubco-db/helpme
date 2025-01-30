@@ -211,6 +211,7 @@ export class LMSIntegrationService {
               due: found.due,
               modified: assignments[idx].modified ?? found.modified,
               uploaded: found.uploaded,
+              syncEnabled: found.syncEnabled,
             };
           }
         }
@@ -236,6 +237,7 @@ export class LMSIntegrationService {
               posted: found.posted,
               modified: announcements[idx].modified ?? found.modified,
               uploaded: found.uploaded,
+              syncEnabled: found.syncEnabled,
             };
           }
         }
@@ -295,6 +297,8 @@ export class LMSIntegrationService {
 
     if (platforms) {
       qb.andWhere('aModel.lmsSource IN (:...platforms)', { platforms });
+    } else {
+      qb.andWhere('aModel.syncEnabled = true');
     }
 
     return {
@@ -411,9 +415,10 @@ export class LMSIntegrationService {
 
       const entities = toSave
         .map((i) => {
-          const chatbotDocumentId = statuses.find(
-            (u) => u.id == i.id,
-          )?.documentId;
+          const chatbotDocumentId =
+            'chatbotDocumentId' in i && i.chatbotDocumentId != undefined
+              ? i.chatbotDocumentId
+              : statuses.find((u) => u.id == i.id)?.documentId;
 
           switch (type) {
             case LMSUpload.Announcements:
@@ -518,6 +523,96 @@ export class LMSIntegrationService {
     await model.remove(items.filter((i) => successfulIds.includes(i.id)));
   }
 
+  async singleDocOperation(
+    courseId: number,
+    item: LMSAnnouncementModel | LMSAssignmentModel,
+    type: LMSUpload,
+    action: 'Sync' | 'Clear',
+  ) {
+    switch (action) {
+      case 'Sync':
+        return await this.syncDocument(courseId, item, type);
+      case 'Clear':
+        return await this.clearDocument(courseId, item, type);
+    }
+  }
+
+  private async syncDocument(
+    courseId: number,
+    item: LMSAnnouncementModel | LMSAssignmentModel,
+    type: LMSUpload,
+  ) {
+    const adapter = await this.getAdapter(courseId);
+    if (!adapter.isImplemented()) {
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.noLMSIntegration,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const model = await this.getDocumentModel(type);
+
+    const tempUser = await UserModel.create({
+      email: 'tempemail@example.com',
+    }).save();
+    const token = await ChatTokenModel.create({
+      user: tempUser,
+      token: v4(),
+      max_uses: 1,
+    }).save();
+
+    const status = await this.uploadDocument(
+      courseId,
+      item,
+      token,
+      type,
+      adapter,
+    );
+
+    if (status.success) {
+      item.chatbotDocumentId = item.chatbotDocumentId ?? status.documentId;
+      item.uploaded = new Date();
+      item.syncEnabled = true;
+      await model.upsert(item, ['id', 'courseId']);
+    }
+
+    await ChatTokenModel.remove(token);
+    await UserModel.remove(tempUser);
+
+    return status.success;
+  }
+
+  private async clearDocument(
+    courseId: number,
+    item: LMSAnnouncementModel | LMSAssignmentModel,
+    type: LMSUpload,
+  ) {
+    const model = await this.getDocumentModel(type);
+
+    const tempUser = await UserModel.create({
+      email: 'tempemail@example.com',
+    }).save();
+    const token = await ChatTokenModel.create({
+      user: tempUser,
+      token: v4(),
+      max_uses: 1,
+    }).save();
+
+    const status = await this.deleteDocument(courseId, item, token);
+
+    if (status.success) {
+      item.chatbotDocumentId = null;
+      item.uploaded = null;
+      item.syncEnabled = false;
+      await model.upsert(item, ['id', 'courseId']);
+    }
+
+    await ChatTokenModel.remove(token);
+    await UserModel.remove(tempUser);
+
+    return status.success;
+  }
+
   private async uploadDocument(
     courseId: number,
     item:
@@ -596,14 +691,12 @@ export class LMSIntegrationService {
 
     const thenFx = (response: Response) => {
       if (response.ok) {
-        if (
-          'chatbotDocumentId' in item &&
-          item.chatbotDocumentId != undefined
-        ) {
+        if (reqOptions.method == 'PATCH') {
           return {
             id: item.id,
             success: true,
-            documentId: item.chatbotDocumentId,
+            documentId: (item as LMSAssignmentModel | LMSAnnouncementModel)
+              .chatbotDocumentId,
           } as LMSFileUploadResponse;
         } else {
           return response.json();
@@ -621,11 +714,7 @@ export class LMSIntegrationService {
     )
       .then(thenFx)
       .then((response): LMSFileUploadResponse => {
-        if (
-          'chatbotDocumentId' in response &&
-          response.chatbotDocumentId != undefined
-        )
-          return;
+        if (reqOptions.method == 'PATCH') return response;
         const persistedDoc = response as {
           id: string;
           pageContent: string;

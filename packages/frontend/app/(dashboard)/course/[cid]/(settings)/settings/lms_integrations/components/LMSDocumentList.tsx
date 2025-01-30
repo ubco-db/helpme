@@ -1,14 +1,32 @@
-import { SearchOutlined } from '@ant-design/icons'
+import {
+  DeleteOutlined,
+  MoreOutlined,
+  SearchOutlined,
+  SyncOutlined,
+} from '@ant-design/icons'
 import { LMSAnnouncement, LMSAssignment } from '@koh/common'
-import { Badge, Collapse, Input, List, Pagination, Spin } from 'antd'
+import {
+  Badge,
+  Button,
+  Collapse,
+  Input,
+  List,
+  message,
+  Pagination,
+  Popover,
+  Spin,
+} from 'antd'
 import { useMemo, useState } from 'react'
-import { cn } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
+import { API } from '@/app/api'
 
 type LMSDocumentListProps<T> = {
+  courseId: number
   type: 'Assignment' | 'Announcement'
   documents: T[]
   loadingLMSData?: boolean
   lmsSynchronize?: boolean
+  onUpdateCallback?: () => void
 }
 
 type LMSDocumentListColumn = {
@@ -23,14 +41,17 @@ type LMSDocumentListColumn = {
 export default function LMSDocumentList<
   T extends LMSAssignment | LMSAnnouncement,
 >({
+  courseId,
   type,
   documents,
   loadingLMSData = false,
   lmsSynchronize,
+  onUpdateCallback = () => undefined,
 }: LMSDocumentListProps<T>) {
   const [page, setPage] = useState(1)
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
+  const [performingSyncOp, setPerformingSyncOp] = useState<boolean>(false)
 
   const getNameCell = (item: T) => {
     const isOutOfDate =
@@ -74,6 +95,41 @@ export default function LMSDocumentList<
           )}
         </div>
         {isOutOfDate && <Badge count={'Out of Date'} />}
+        {!ineligible && (
+          <Popover
+            content={
+              (lmsSynchronize && !item.syncEnabled && (
+                <Button
+                  onClick={() => toggleSyncDocument(item, type)}
+                  icon={<SyncOutlined />}
+                  color={'blue'}
+                  variant={'outlined'}
+                  loading={performingSyncOp}
+                >
+                  {item.uploaded != undefined
+                    ? 'Enable synchronization'
+                    : 'Force synchronization'}
+                </Button>
+              )) ||
+              (item.syncEnabled && (
+                <Button
+                  onClick={() => toggleSyncDocument(item, type)}
+                  icon={<DeleteOutlined />}
+                  color={'danger'}
+                  variant={'outlined'}
+                  loading={performingSyncOp}
+                >
+                  {!lmsSynchronize
+                    ? 'Delete document'
+                    : 'Disable synchronization'}
+                </Button>
+              ))
+            }
+            trigger={'click'}
+          >
+            <Button type={'text'} icon={<MoreOutlined />} />
+          </Popover>
+        )}
       </div>
     )
   }
@@ -200,6 +256,44 @@ export default function LMSDocumentList<
     [matchingDocuments, page],
   )
 
+  const toggleSyncDocument = async (
+    doc: LMSAssignment | LMSAnnouncement,
+    type: 'Assignment' | 'Announcement',
+  ) => {
+    const thenFx = (result?: string) => {
+      if (result) {
+        message.success(result)
+        onUpdateCallback()
+      } else {
+        throw new Error('Unknown error occurred')
+      }
+    }
+
+    const errFx = (err: Error) => {
+      message.error(getErrorMessage(err))
+    }
+
+    const finallyFx = () => {
+      setPerformingSyncOp(false)
+    }
+
+    setPerformingSyncOp(true)
+    switch (type) {
+      case 'Announcement':
+        return await API.lmsIntegration
+          .toggleSyncAnnouncement(courseId, doc.id, doc as LMSAnnouncement)
+          .then(thenFx)
+          .catch(errFx)
+          .finally(finallyFx)
+      case 'Assignment':
+        return await API.lmsIntegration
+          .toggleSyncAssignment(courseId, doc.id, doc as LMSAssignment)
+          .then(thenFx)
+          .catch(errFx)
+          .finally(finallyFx)
+    }
+  }
+
   const renderDocumentList = (documents: T[]) => {
     const colClassString = cn(
       'grid',
@@ -229,13 +323,13 @@ export default function LMSDocumentList<
               <div
                 key={`header-col-${index}`}
                 className={cn(
-                  'border border-gray-200 p-2',
+                  'flex flex-row justify-between border border-gray-200 p-2',
                   col.colSpan == 2 ? 'col-span-2' : '',
                   col.colSpan == 3 ? 'col-span-3' : '',
                   col.colSpan == 4 ? 'col-span-4' : '',
                 )}
               >
-                {col.header}
+                <span>{col.header}</span>
               </div>
             ))}
           </div>

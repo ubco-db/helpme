@@ -191,6 +191,19 @@ describe('Lms Integration Integrations', () => {
       },
     );
 
+    describe('DELETE lms/:id/sync/*/:id/toggle', () => {
+      it.each([Role.STUDENT, Role.TA])(
+        'should return 403 when non-professor accesses route',
+        async (courseRole) => {
+          await failedPermsCheck(
+            (id) => `/lms/${id}/sync/*/:id/toggle`,
+            courseRole,
+            'DELETE',
+          );
+        },
+      );
+    });
+
     it('should return 200 when LMS course integration exists', async () => {
       const orgInt = await lmsOrgIntFactory.create();
       await lmsCourseIntFactory.create({

@@ -818,6 +818,28 @@ class APIClient {
       this.req('POST', `/api/v1/lms/${courseId}/sync/force`),
     clearDocuments: async (courseId: number): Promise<string> =>
       this.req('DELETE', `/api/v1/lms/${courseId}/sync/clear`),
+    toggleSyncAssignment: async (
+      courseId: number,
+      assignmentId: number,
+      assignment: LMSAssignment,
+    ): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/lms/${courseId}/sync/assignment/${assignmentId}/toggle`,
+        undefined,
+        assignment,
+      ),
+    toggleSyncAnnouncement: async (
+      courseId: number,
+      announcementId: number,
+      announcement: LMSAnnouncement,
+    ): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/lms/${courseId}/sync/announcement/${announcementId}/toggle`,
+        undefined,
+        announcement,
+      ),
     testIntegration: async (
       courseId: number,
       props: TestLMSIntegrationParams,

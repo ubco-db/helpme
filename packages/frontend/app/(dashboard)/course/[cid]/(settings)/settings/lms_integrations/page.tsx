@@ -22,12 +22,11 @@ import {
 } from '@koh/common'
 import { API } from '@/app/api'
 import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal'
-import { PenBoxIcon, RefreshCwIcon, TrashIcon } from 'lucide-react'
 import LMSRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSRosterTable'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { useCourseLmsIntegration } from '@/app/hooks/useCourseLmsIntegration'
 import LMSDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSDocumentList'
-import { DeleteOutlined, SyncOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, SyncOutlined } from '@ant-design/icons'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 
 export default function CourseLMSIntegrationPage({
@@ -154,10 +153,10 @@ export default function CourseLMSIntegrationPage({
         } else {
           message.success(result)
         }
-        setSyncing(false)
         setUpdateFlag(!updateFlag)
       })
       .catch((err) => message.error(getErrorMessage(err)))
+      .finally(() => setSyncing(false))
   }
 
   const forceSync = async () => {
@@ -177,10 +176,10 @@ export default function CourseLMSIntegrationPage({
         } else {
           message.success(result)
         }
-        setSyncing(false)
         setUpdateFlag(!updateFlag)
       })
       .catch((err) => message.error(getErrorMessage(err)))
+      .finally(() => setSyncing(false))
   }
 
   const clearDocuments = async () => {
@@ -200,10 +199,10 @@ export default function CourseLMSIntegrationPage({
         } else {
           message.success(result)
         }
-        setSyncing(false)
         setUpdateFlag(!updateFlag)
       })
       .catch((err) => message.error(getErrorMessage(err)))
+      .finally(() => setSyncing(false))
   }
 
   const outOfDateDocumentsCount = useMemo(
@@ -358,10 +357,12 @@ export default function CourseLMSIntegrationPage({
         label: 'Course Assignments',
         children: (
           <LMSDocumentList<LMSAssignment>
+            courseId={courseId}
             type={'Assignment'}
             documents={assignments}
             loadingLMSData={isLoading}
             lmsSynchronize={integration.lmsSynchronize}
+            onUpdateCallback={() => setUpdateFlag(!updateFlag)}
           />
         ),
       })
@@ -372,10 +373,12 @@ export default function CourseLMSIntegrationPage({
         label: 'Course Announcements',
         children: (
           <LMSDocumentList<LMSAnnouncement>
+            courseId={courseId}
             type={'Announcement'}
             documents={announcements}
             loadingLMSData={isLoading}
             lmsSynchronize={integration.lmsSynchronize}
+            onUpdateCallback={() => setUpdateFlag(!updateFlag)}
           />
         ),
       })
@@ -392,9 +395,8 @@ export default function CourseLMSIntegrationPage({
             <div>{`${integration.apiPlatform} API Connection`}</div>
             <div className={'grid grid-cols-2 gap-2'}>
               <Button
-                className={
-                  'border-helpmeblue md:hover:bg-helpmeblue md:hover:border-helpmeblue border-2 bg-white p-4 transition-all md:hover:text-white'
-                }
+                color={'blue'}
+                variant={'outlined'}
                 onClick={() => {
                   setSelectedIntegration(
                     lmsIntegrations.find(
@@ -403,34 +405,21 @@ export default function CourseLMSIntegrationPage({
                   )
                   setModalOpen(true)
                 }}
+                icon={
+                  !integration.isExpired ? <EditOutlined /> : <SyncOutlined />
+                }
               >
-                {!integration.isExpired ? (
-                  <span
-                    className={
-                      'text-helpmeblue flex w-full justify-between md:hover:text-white'
-                    }
-                  >
-                    <p>Edit</p> <PenBoxIcon />
-                  </span>
-                ) : (
-                  <span
-                    className={
-                      'text-helpmeblue flex w-full justify-between md:hover:text-white'
-                    }
-                  >
-                    <p>Update</p> <RefreshCwIcon />
-                  </span>
-                )}
+                {!integration.isExpired ? 'Edit' : 'Update'}
               </Button>
               <Button
-                className={
-                  'border-2 border-red-500 bg-white p-4 text-red-500 transition-all md:hover:border-red-500 md:hover:bg-red-500 md:hover:text-white'
-                }
+                color={'danger'}
+                variant={'outlined'}
+                icon={<DeleteOutlined />}
                 onClick={() => {
                   setDelModalOpen(true)
                 }}
               >
-                <p>Delete</p> <TrashIcon />
+                Delete
               </Button>
             </div>
           </div>

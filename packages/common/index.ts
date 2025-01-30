@@ -1038,6 +1038,7 @@ export type LMSAssignment = {
   id: number
   name: string
   description: string
+  syncEnabled?: boolean
   due?: Date
   modified?: Date
   uploaded?: Date
@@ -1048,6 +1049,7 @@ export type LMSAnnouncement = {
   title: string
   message: string
   posted: Date
+  syncEnabled?: boolean
   modified?: Date
   uploaded?: Date
 }
@@ -2618,7 +2620,7 @@ export const ERROR_MESSAGES = {
     noAssignmentsSaved:
       'There are no assignments from the course LMS that have been persisted to the database.',
     invalidDocumentType:
-      'Failed to upload any LMS documents to the chatbot, invalid document type specified.',
+      'Failed to upload or delete any LMS documents to/from the chatbot, invalid document type specified.',
     failedToUpload: 'Failed to upload any LMS documents to the chatbot.',
     organizationCourseNotFound: 'Course has no associated organization.',
     orgLmsIntegrationNotFound:
@@ -2632,5 +2634,9 @@ export const ERROR_MESSAGES = {
     syncDisabled: 'LMS synchronization has not been enabled.',
     failedToSync: 'Failed to synchronize course with LMS equivalent.',
     failedToClear: 'Failed to clear documents from HelpMe database.',
+    failedToClearOne: 'Failed to clear document from HelpMe database.',
+    lmsDocumentNotFound: 'Document was not found.',
+    cannotSyncDocumentWhenSyncDisabled:
+      'Cannot synchronize a document when synchronization is disabled.',
   },
 }
