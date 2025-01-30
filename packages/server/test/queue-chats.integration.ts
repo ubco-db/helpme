@@ -44,6 +44,10 @@ describe('QueueChat Integration Tests', () => {
       course: queue.course,
       user: await UserFactory.create(),
     });
+
+    question.creator = student.user;
+    question.taHelped = staff.user;
+    question.save();
   });
 
   afterEach(async () => {
@@ -54,11 +58,18 @@ describe('QueueChat Integration Tests', () => {
     await UserModel.remove(staff.user);
     await UserModel.remove(student.user);
 
-    await redisService.getClient('db').flushall();
-  });
+    question = await QuestionFactory.create();
+    queue = await question.queue;
+    staff = await TACourseFactory.create({
+      course: queue.course,
+      user: await UserFactory.create(),
+    });
+    student = await StudentCourseFactory.create({
+      course: queue.course,
+      user: await UserFactory.create(),
+    });
 
-  afterAll(async () => {
-    await getTestModule().close();
+    await redisService.getClient('db').flushall();
   });
 
   describe('GET /queueChats/:queueId/:questionId', () => {
