@@ -191,30 +191,6 @@ describe('Lms Integration Integrations', () => {
       },
     );
 
-    describe('DELETE lms/:id/sync/*/:id/toggle', () => {
-      it.each([Role.STUDENT, Role.TA])(
-        'should return 403 when non-professor accesses route',
-        async (courseRole) => {
-          await failedPermsCheck(
-            (id) => `/lms/${id}/sync/announcement/0/toggle`,
-            courseRole,
-            'DELETE',
-          );
-        },
-      );
-
-      it.each([Role.STUDENT, Role.TA])(
-        'should return 403 when non-professor accesses route',
-        async (courseRole) => {
-          await failedPermsCheck(
-            (id) => `/lms/${id}/sync/assignment/0/toggle`,
-            courseRole,
-            'DELETE',
-          );
-        },
-      );
-    });
-
     it('should return 200 when LMS course integration exists', async () => {
       const orgInt = await lmsOrgIntFactory.create();
       await lmsCourseIntFactory.create({
@@ -234,5 +210,29 @@ describe('Lms Integration Integrations', () => {
       );
       expect(res.statusCode).toBe(404);
     });
+  });
+
+  describe('DELETE lms/:id/sync/*/:id/toggle', () => {
+    it.each([Role.STUDENT, Role.TA])(
+      'should return 403 when non-professor accesses route',
+      async (courseRole) => {
+        await failedPermsCheck(
+          (id) => `/lms/${id}/sync/announcement/0/toggle`,
+          courseRole,
+          'DELETE',
+        );
+      },
+    );
+
+    it.each([Role.STUDENT, Role.TA])(
+      'should return 403 when non-professor accesses route',
+      async (courseRole) => {
+        await failedPermsCheck(
+          (id) => `/lms/${id}/sync/assignment/0/toggle`,
+          courseRole,
+          'DELETE',
+        );
+      },
+    );
   });
 });
