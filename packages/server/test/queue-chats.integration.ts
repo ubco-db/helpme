@@ -69,8 +69,6 @@ describe('QueueChat Integration Tests', () => {
       course: queue.course,
       user: await UserFactory.create(),
     });
-
-    await redisService.getClient('db').flushall();
   });
 
   describe('GET /queueChats/:queueId/:questionId', () => {

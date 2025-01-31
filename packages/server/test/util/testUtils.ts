@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule, TestingModuleBuilder } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RedisModule } from 'nestjs-redis';
+import { RedisModule, RedisService } from 'nestjs-redis';
 import { NotificationService } from 'notification/notification.service';
 import * as supertest from 'supertest';
 import { Connection } from 'typeorm';
@@ -12,7 +12,7 @@ import { LoginModule } from '../../src/login/login.module';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { ApplicationConfigModule } from 'config/application_config.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
-import RedisMemoryServer from 'redis-memory-server';
+import { GenericContainer, StartedTestContainer } from 'testcontainers';
 
 export interface SupertestOptions {
   userId?: number;
@@ -50,18 +50,20 @@ export function setupIntegrationTest(
   let schedulerRegistry: SchedulerRegistry;
   let testModule: TestingModule;
 
-  let redisServer: RedisMemoryServer;
+  let redisContainer: StartedTestContainer;
   let redisHost: string;
   let redisPort: number;
 
   beforeAll(async () => {
     // Start Redis in-memory server
     try {
-      redisServer = new RedisMemoryServer();
-      redisHost = await redisServer.getHost();
-      redisPort = await redisServer.getPort();
+      redisContainer = await new GenericContainer('redis:7-alpine')
+        .withExposedPorts(6379)
+        .start();
+      redisHost = await redisContainer.getHost();
+      redisPort = redisContainer.getMappedPort(6379);
     } catch (err) {
-      console.error('Error initializing RedisMemoryServer:', err);
+      console.error('Error initializing redis test container:', err);
       throw err;
     }
 
@@ -100,19 +102,20 @@ export function setupIntegrationTest(
     await appConfig.loadConfig();
     await app.init();
     schedulerRegistry = testModule.get<SchedulerRegistry>(SchedulerRegistry);
-  });
+  }, 10000);
 
   afterAll(async () => {
     await app.close();
     await conn.close();
-    if (redisServer) {
-      await redisServer.stop();
+    if (redisContainer) {
+      await redisContainer.stop();
     }
   });
 
   beforeEach(async () => {
     await conn.synchronize(true);
     await clearAllCronJobs(schedulerRegistry);
+    await testModule.get<RedisService>(RedisService).getClient('db').flushall();
   });
 
   return {
