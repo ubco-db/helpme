@@ -26,6 +26,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: install redis-memory-server linux dependencies
+        run: sudo apt-get install -y libjemalloc-dev
       - uses: bahmutov/npm-install@v1
       - run: yarn test
         env:

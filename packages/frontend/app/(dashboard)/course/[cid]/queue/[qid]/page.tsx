@@ -171,18 +171,16 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   }, [clickedZoomModal, studentQuestion])
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const seenQueueChatPopover =
-        localStorage.getItem('seenChatPopover') == 'true'
-      setSeenChatPopover(seenQueueChatPopover)
-      if (!seenQueueChatPopover) {
-        setTimeout(() => {
-          setSeenChatPopover(true)
-          localStorage.setItem('seenChatPopover', 'true')
-        }, 6000) // message will disappear after 6 seconds
-      }
+    const seenQueueChatPopover =
+      localStorage.getItem('seenChatPopover') == 'true'
+    setSeenChatPopover(seenQueueChatPopover)
+    if (!seenQueueChatPopover) {
+      setTimeout(() => {
+        setSeenChatPopover(true)
+        localStorage.setItem('seenChatPopover', 'true')
+      }, 6000) // message will disappear after 6 seconds
     }
-  }, [window])
+  }, [])
 
   useEffect(() => {
     resetClickedZoomModal()

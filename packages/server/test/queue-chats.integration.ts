@@ -14,6 +14,7 @@ import { RedisService } from 'nestjs-redis';
 import { QuestionModel } from 'question/question.entity';
 import { UserModel } from 'profile/user.entity';
 import { QueueChatService } from 'queueChats/queue-chats.service';
+import { QueueChatSSEService } from 'queueChats/queue-chats-sse.service';
 
 describe('QueueChat Integration Tests', () => {
   const { supertest, getTestModule } = setupIntegrationTest(
