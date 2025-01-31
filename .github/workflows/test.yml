@@ -16,18 +16,13 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
           - 5432:5432
-      redis:
-        image: redis
-        ports:
-          - 6379:6379
+        # removed redis service because test-containers is used for this service (so that local and CI tests are consistent)
     steps:
       - uses: actions/checkout@v4
       - name: install node v20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: install redis-memory-server linux dependencies
-        run: sudo apt-get install -y libjemalloc-dev
       - uses: bahmutov/npm-install@v1
       - run: yarn test
         env:
