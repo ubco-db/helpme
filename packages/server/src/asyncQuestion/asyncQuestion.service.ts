@@ -226,7 +226,6 @@ export class AsyncQuestionService {
   }
 
   async sendUpvotedEmail(updatedQuestion: AsyncQuestionModel) {
-    console.log('1');
     const subscription = await UserSubscriptionModel.findOne({
       where: {
         userId: updatedQuestion.creator.id,
@@ -239,7 +238,6 @@ export class AsyncQuestionService {
     });
 
     if (subscription) {
-      console.log('2');
       const service = subscription.service;
       await this.mailService
         .sendEmail({
@@ -255,7 +253,6 @@ export class AsyncQuestionService {
           console.error('Failed to send email Vote Question email: ' + err);
           Sentry.captureException(err);
         });
-      console.log('3');
     }
   }
 

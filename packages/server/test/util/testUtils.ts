@@ -13,6 +13,7 @@ import { ApplicationConfigService } from 'config/application_config.service';
 import { ApplicationConfigModule } from 'config/application_config.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
+import { MailService } from 'mail/mail.service';
 
 export interface SupertestOptions {
   userId?: number;
@@ -138,11 +139,11 @@ export const overrideRedisQueue: ModuleModifier = (builder) =>
   builder.overrideProvider(RedisQueueService).useValue(mockRedisQueueService);
 
 export const mockEmailService = {
-  sendEmail: jest.fn(),
+  sendEmail: jest.fn().mockImplementation(() => Promise.resolve()),
 };
 
 export const overrideEmailService: ModuleModifier = (builder) =>
-  builder.overrideProvider(NotificationService).useValue(mockEmailService);
+  builder.overrideProvider(MailService).useValue(mockEmailService);
 export const expectEmailSent = (
   receiver: string,
   type: string,

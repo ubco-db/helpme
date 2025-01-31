@@ -79,6 +79,7 @@ describe('AsyncQuestion Integration - Email Tests', () => {
   });
 
   describe('POST /asyncQuestions/vote/:qid/:vote', () => {
+    let ownerSubscription: UserSubscriptionModel;
     beforeEach(async () => {
       // Give questionOwner a subscription to upvote notifications
       // so we can check that the email is actually sent
@@ -88,7 +89,7 @@ describe('AsyncQuestion Integration - Email Tests', () => {
       await userSubscriptionFactory.create({
         service: upvoteService,
       });
-      await UserSubscriptionModel.create({
+      ownerSubscription = await UserSubscriptionModel.create({
         userId: questionOwner.id,
         service: upvoteService,
         isSubscribed: true,
@@ -100,10 +101,10 @@ describe('AsyncQuestion Integration - Email Tests', () => {
         .expect(200);
 
       // ensure mailService.sendEmail was actually called
-      // expectEmailSent(
-      //   questionOwner.email,
-      //   MailServiceType.ASYNC_QUESTION_UPVOTED,
-      // );
+      expectEmailSent(
+        questionOwner.email,
+        MailServiceType.ASYNC_QUESTION_UPVOTED,
+      );
     });
     it('does NOT send an email if the question owner upvotes their own question', async () => {
       await supertest({ userId: questionOwner.id })
@@ -111,6 +112,41 @@ describe('AsyncQuestion Integration - Email Tests', () => {
         .expect(200);
 
       // questionOwner is the same user who owns it, so no email
+      expectEmailNotSent();
+    });
+    it('does NOT send an email if the vote is a downvote or 0 (neutral)', async () => {
+      await supertest({ userId: otherStudent.id })
+        .post(`/asyncQuestions/vote/${asyncQuestion.id}/0`)
+        .expect(200);
+
+      // vote is neutral, so no email
+      expectEmailNotSent();
+
+      await supertest({ userId: otherStudent.id })
+        .post(`/asyncQuestions/vote/${asyncQuestion.id}/-1`)
+        .expect(200);
+
+      // vote is downvote, so no email
+      expectEmailNotSent();
+    });
+    it('does NOT send an email if the question owner is not subscribed to upvote notifications', async () => {
+      // unsubscribe questionOwner from upvote notifications
+      ownerSubscription.isSubscribed = false;
+      await ownerSubscription.save();
+
+      await supertest({ userId: otherStudent.id })
+        .post(`/asyncQuestions/vote/${asyncQuestion.id}/1`)
+        .expect(200);
+
+      // questionOwner is not subscribed, so no email
+      expectEmailNotSent();
+    });
+    it('does NOT send an email if the vote is an invalid number (like 999)', async () => {
+      await supertest({ userId: otherStudent.id })
+        .post(`/asyncQuestions/vote/${asyncQuestion.id}/999`)
+        .expect(400);
+
+      // vote is invalid, so no email
       expectEmailNotSent();
     });
   });

@@ -83,16 +83,20 @@ export class asyncQuestionController {
 
     const newValue = sumVotes + vote;
 
-    const canVote = newValue <= 1 && newValue >= -1;
-    if (canVote) {
-      if (hasVoted) {
-        thisUserThisQuestionVote.vote = newValue;
-      } else {
-        thisUserThisQuestionVote = new AsyncQuestionVotesModel();
-        thisUserThisQuestionVote.userId = userId;
-        thisUserThisQuestionVote.question = question;
-        thisUserThisQuestionVote.vote = newValue;
-      }
+    const canVote = newValue === 0 || newValue === 1 || newValue === -1;
+    if (!canVote) {
+      res
+        .status(HttpStatus.BAD_REQUEST)
+        .send({ message: 'Invalid Vote (the new value must be 0, 1, or -1)' });
+      return;
+    }
+    if (hasVoted) {
+      thisUserThisQuestionVote.vote = newValue;
+    } else {
+      thisUserThisQuestionVote = new AsyncQuestionVotesModel();
+      thisUserThisQuestionVote.userId = userId;
+      thisUserThisQuestionVote.question = question;
+      thisUserThisQuestionVote.vote = newValue;
     }
 
     await thisUserThisQuestionVote.save();
@@ -115,8 +119,7 @@ export class asyncQuestionController {
     );
 
     // Check if the question was upvoted and send email if subscribed
-    if (vote > 0 && userId !== updatedQuestion.creator.id) {
-      console.log('somethin ghappended!');
+    if (newValue === 1 && userId !== updatedQuestion.creator.id) {
       await this.asyncQuestionService.sendUpvotedEmail(updatedQuestion);
     }
 
