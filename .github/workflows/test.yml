@@ -16,7 +16,6 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
           - 5432:5432
-        # removed redis service because test-containers is used for this service (so that local and CI tests are consistent)
     steps:
       - uses: actions/checkout@v4
       - name: install node v20
