@@ -49,6 +49,7 @@ export function setupIntegrationTest(
   let appConfig: ApplicationConfigService;
   let schedulerRegistry: SchedulerRegistry;
   let testModule: TestingModule;
+  let redisService: RedisService;
 
   let redisContainer: StartedTestContainer;
   let redisHost: string;
@@ -106,6 +107,7 @@ export function setupIntegrationTest(
       ApplicationConfigService,
     );
     conn = testModule.get<Connection>(Connection);
+    redisService = testModule.get<RedisService>(RedisService);
 
     await appConfig.loadConfig();
     await app.init();
@@ -115,6 +117,7 @@ export function setupIntegrationTest(
   afterAll(async () => {
     await app.close();
     await conn.close();
+    await redisService.getClient('db').quit();
 
     if (redisContainer) {
       await redisContainer.stop();
@@ -124,7 +127,7 @@ export function setupIntegrationTest(
   beforeEach(async () => {
     await conn.synchronize(true);
     await clearAllCronJobs(schedulerRegistry);
-    await testModule.get<RedisService>(RedisService).getClient('db').flushall();
+    //await testModule.get<RedisService>(RedisService).getClient('db').flushall();
   });
 
   return {
