@@ -55,7 +55,8 @@ export function setupIntegrationTest(
   let redisPort: number;
 
   beforeAll(async () => {
-    if (!process.env.CI) {
+    if (!process.env.CI && false) {
+      // See if the environment variable is the issue
       // Start Redis in-memory server
       try {
         redisContainer = await new GenericContainer('redis:7-alpine')
@@ -114,6 +115,7 @@ export function setupIntegrationTest(
   afterAll(async () => {
     await app.close();
     await conn.close();
+
     if (redisContainer) {
       await redisContainer.stop();
     }
