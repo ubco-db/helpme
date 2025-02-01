@@ -53,7 +53,7 @@ export class MailService {
     const fullContent = `
     ${baseContent}
     <br><br><a href="${process.env.DOMAIN}/courses">View Your Courses</a>
-    <br>Do you not want to receive these emails? <a href="${process.env.DOMAIN}/profile">Unsubscribe</a>
+    <br>Do you not want to receive these emails? <a href="${process.env.DOMAIN}/profile?page=notifications">Unsubscribe</a>
   `;
     await this.mailerService.sendMail({
       to: emailPost.receiver,
