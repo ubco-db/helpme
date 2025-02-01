@@ -13,6 +13,7 @@ import {
 import { overrideRedisQueue, setupIntegrationTest } from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
 import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common';
+import { AsyncQuestionVotesModel } from 'asyncQuestion/asyncQuestionVotes.entity';
 
 describe('AsyncQuestion Integration', () => {
   const supertest = setupIntegrationTest(
@@ -250,8 +251,13 @@ describe('AsyncQuestion Integration', () => {
       const response = await supertest({ userId: studentUser.id }).post(
         `/asyncQuestions/vote/${asyncQuestion.id}/2`,
       );
-      expect(response.status).toBe(200);
-      expect(response.body.vote).toBe(1); // original vote
+      expect(response.status).toBe(400);
+      // vote should not have changed
+      const updatedVote = await AsyncQuestionVotesModel.findOne({
+        userId: studentUser.id,
+        question: asyncQuestion,
+      });
+      expect(updatedVote.vote).toBe(1);
     });
     it('should not allow voting by unauthorized users', async () => {
       const response = await supertest().post(

@@ -11,6 +11,7 @@ import {
   AsyncQuestionFactory,
   userSubscriptionFactory,
   mailServiceFactory,
+  AsyncQuestionCommentFactory,
 } from './util/factories';
 import {
   expectEmailNotSent,
@@ -389,7 +390,7 @@ describe('AsyncQuestion Integration - Email Tests', () => {
       );
     });
   });
-  describe('PATCH /asyncQuestions/faculty/:questionId', () => {
+  describe('PATCH /asyncQuestions/faculty/:questionId HumanAnswered', () => {
     let humanAnsweredSubscription: UserSubscriptionModel;
     beforeEach(async () => {
       // give questionOwner a subscription to ASYNC_QUESTION_HUMAN_ANSWERED
@@ -424,6 +425,337 @@ describe('AsyncQuestion Integration - Email Tests', () => {
       expectEmailSent(
         [questionOwner.email],
         [MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED],
+      );
+    });
+    it('does NOT send an email to questionOwner if they are not subscribed', async () => {
+      humanAnsweredSubscription.isSubscribed = false;
+      await humanAnsweredSubscription.save();
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.HumanAnswered })
+        .expect(200);
+
+      expectEmailNotSent();
+    });
+    it('does NOT send this email for other statuses', async () => {
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.AIAnswered })
+        .expect(200);
+      expectEmailNotSent();
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.AIAnsweredNeedsAttention })
+        .expect(200);
+      expectEmailNotSent();
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.AIAnsweredResolved })
+        .expect(200);
+      expectEmailNotSent();
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.StudentDeleted })
+        .expect(200);
+      expectEmailNotSent();
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.TADeleted })
+        .expect(200);
+      expectEmailNotSent();
+    });
+  });
+  describe('PATCH /asyncQuestions/faculty/:questionId StatusChanged', () => {
+    let statusChangedSubscription: UserSubscriptionModel;
+    beforeEach(async () => {
+      // give questionOwner a subscription to ASYNC_QUESTION_STATUS_CHANGED
+      statusChangedSubscription = await userSubscriptionFactory.create({
+        user: questionOwner,
+        service: genericStatusChangedService,
+      });
+    });
+    it('sends an email to questionOwner when a staff changes the status of their question to most statuses', async () => {
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.AIAnswered })
+        .expect(200);
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.AIAnsweredResolved })
+        .expect(200);
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.AIAnsweredNeedsAttention })
+        .expect(200);
+
+      expectEmailSent(
+        [questionOwner.email, questionOwner.email, questionOwner.email],
+        [
+          MailServiceType.ASYNC_QUESTION_STATUS_CHANGED,
+          MailServiceType.ASYNC_QUESTION_STATUS_CHANGED,
+          MailServiceType.ASYNC_QUESTION_STATUS_CHANGED,
+        ],
+      );
+    });
+    it('does NOT send an email for other statuses (especially delete)', async () => {
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.HumanAnswered })
+        .expect(200);
+      expectEmailNotSent();
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.StudentDeleted })
+        .expect(200);
+      expectEmailNotSent();
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.TADeleted })
+        .expect(200);
+      expectEmailNotSent();
+    });
+    it('does NOT send an email to questionOwner if they are not subscribed', async () => {
+      statusChangedSubscription.isSubscribed = false;
+      await statusChangedSubscription.save();
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.AIAnswered })
+        .expect(200);
+
+      expectEmailNotSent();
+    });
+    it('does NOT send an email to other student if they are subscribed', async () => {
+      await UserSubscriptionModel.create({
+        userId: otherStudent.id,
+        service: genericStatusChangedService,
+        isSubscribed: true,
+      }).save();
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.AIAnswered })
+        .expect(200);
+
+      // only 1 email is sent, and that's to question owner, and not to the other student
+      expectEmailSent(
+        [questionOwner.email],
+        [MailServiceType.ASYNC_QUESTION_STATUS_CHANGED],
+      );
+    });
+  });
+  describe('POST /asyncQuestions/comment/:qid NewCommentMyPost', () => {
+    let ownerSubscription: UserSubscriptionModel;
+    beforeEach(async () => {
+      // Give questionOwner a subscription to newCommentMyPostService
+      ownerSubscription = await userSubscriptionFactory.create({
+        user: questionOwner,
+        service: newCommentMyPostService,
+      });
+    });
+    it('sends an email to questionOwner when another user comments on their post', async () => {
+      await supertest({ userId: otherStudent.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ commentText: 'Test comment' })
+        .expect(201);
+
+      expectEmailSent(
+        [questionOwner.email],
+        [MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST],
+      );
+    });
+    it('does NOT send an email to questionOwner if they are not subscribed', async () => {
+      ownerSubscription.isSubscribed = false;
+      await ownerSubscription.save();
+      await supertest({ userId: otherStudent.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ commentText: 'Test comment' })
+        .expect(201);
+
+      expectEmailNotSent();
+    });
+    it('does NOT send an email to questionOwner if they are the one commenting', async () => {
+      await supertest({ userId: questionOwner.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ commentText: 'Test comment' })
+        .expect(201);
+
+      expectEmailNotSent();
+    });
+    it('does NOT send an email to questionOwner if the question is invalid', async () => {
+      await supertest({ userId: otherStudent.id })
+        .post(`/asyncQuestions/comment/999`)
+        .send({ commentText: 'Test comment' })
+        .expect(404);
+
+      expectEmailNotSent();
+    });
+    it('does NOT send an email for unauthorized users', async () => {
+      await supertest()
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ commentText: 'Test comment' })
+        .expect(401);
+
+      expectEmailNotSent();
+    });
+    it('does NOT send an email to otherStudent if they are subscribed', async () => {
+      await UserSubscriptionModel.create({
+        userId: otherStudent.id,
+        service: newCommentMyPostService,
+        isSubscribed: true,
+      }).save();
+      await supertest({ userId: otherStudent.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ commentText: 'Test comment' })
+        .expect(201);
+
+      // only 1 email is sent, and that's to question owner, and not to the other student
+      expectEmailSent(
+        [questionOwner.email],
+        [MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST],
+      );
+    });
+    it('does NOT send an email for invalid comment bodies', async () => {
+      await supertest({ userId: otherStudent.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ invalidAttribute: '' })
+        .expect(400);
+
+      expectEmailNotSent();
+    });
+  });
+  describe('POST /asyncQuestions/comment/:qid NewCommentOthersPost', () => {
+    let otherStudentSubscription: UserSubscriptionModel;
+    beforeEach(async () => {
+      // Make a new comment from otherStudent (questionOwner will create a new comment and we will check if otherStudent got the email)
+      await AsyncQuestionCommentFactory.create({
+        creator: otherStudent,
+        question: asyncQuestion,
+        commentText: 'The answer is really quite shrimple',
+      });
+      // Give otherStudent a subscription to newCommentOtherPostService
+      otherStudentSubscription = await userSubscriptionFactory.create({
+        user: otherStudent,
+        service: newCommentOtherPostService,
+      });
+    });
+    it('sends an email to otherStudent when another user comments on a post they commented on', async () => {
+      await supertest({ userId: questionOwner.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ commentText: 'Owner Comment!' })
+        .expect(201);
+
+      expectEmailSent(
+        [otherStudent.email],
+        [MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST],
+      );
+    });
+    it('does NOT send an email to otherStudent if they are not subscribed', async () => {
+      otherStudentSubscription.isSubscribed = false;
+      await otherStudentSubscription.save();
+      await supertest({ userId: questionOwner.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ commentText: 'Owner Comment!' })
+        .expect(201);
+
+      expectEmailNotSent();
+    });
+    it('does NOT send an email to otherStudent if they are the one commenting', async () => {
+      await supertest({ userId: otherStudent.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ commentText: 'Other student Comment!' })
+        .expect(201);
+
+      expectEmailNotSent();
+    });
+    it('does NOT send an email to otherStudent if the question is invalid', async () => {
+      await supertest({ userId: otherStudent.id })
+        .post(`/asyncQuestions/comment/999`)
+        .send({ commentText: 'Test comment' })
+        .expect(404);
+
+      expectEmailNotSent();
+    });
+    it('does NOT send an email for unauthorized users', async () => {
+      await supertest()
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ commentText: 'Test comment' })
+        .expect(401);
+
+      expectEmailNotSent();
+    });
+    it('does NOT send an email to questionOwner if they are subscribed', async () => {
+      await UserSubscriptionModel.create({
+        userId: questionOwner.id,
+        service: newCommentOtherPostService,
+        isSubscribed: true,
+      }).save();
+      await supertest({ userId: questionOwner.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ commentText: 'Owner Comment!' })
+        .expect(201);
+
+      // only 1 email is sent, and that's to otherStudent, and not to the question owner
+      expectEmailSent(
+        [otherStudent.email],
+        [MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST],
+      );
+    });
+    it('does NOT send an email for invalid comment bodies', async () => {
+      await supertest({ userId: questionOwner.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ invalidAttribute: '' })
+        .expect(400);
+
+      expectEmailNotSent();
+    });
+    it('Will send only 1 email even if otherStudent has 2 comments on the same post', async () => {
+      await AsyncQuestionCommentFactory.create({
+        creator: otherStudent,
+        question: asyncQuestion,
+        commentText: 'Cargo space? No car go road',
+      });
+      await supertest({ userId: questionOwner.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ commentText: 'Owner Comment!' })
+        .expect(201);
+
+      expectEmailSent(
+        [otherStudent.email],
+        [MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST],
+      );
+    });
+    it('Will send an email to multiple students if they have commented on the same post', async () => {
+      const otherStudent2 = await UserFactory.create({
+        firstName: 'Other2',
+        lastName: 'Student',
+        email: 'other@Student2.com',
+      });
+      await UserCourseFactory.create({
+        user: otherStudent2,
+        course,
+        role: Role.STUDENT,
+      });
+      await AsyncQuestionCommentFactory.create({
+        creator: otherStudent2,
+        question: asyncQuestion,
+        commentText:
+          'Nothing ever happens (except these tests failing apparently)',
+      });
+      await UserSubscriptionModel.create({
+        userId: otherStudent2.id,
+        service: newCommentOtherPostService,
+        isSubscribed: true,
+      }).save();
+      await supertest({ userId: questionOwner.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({ commentText: 'Owner Comment!' })
+        .expect(201);
+
+      expectEmailSent(
+        [otherStudent.email, otherStudent2.email],
+        [
+          MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST,
+          MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST,
+        ],
       );
     });
   });

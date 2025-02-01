@@ -300,7 +300,13 @@ export class asyncQuestionController {
       question.taHelpedId = userId;
       // TODO: add tests in asyncQuestion.integration to test to make sure it is sending the emails
       await this.asyncQuestionService.sendQuestionAnsweredEmail(question);
-    } else {
+    } else if (
+      body.status !== asyncQuestionStatus.TADeleted &&
+      body.status !== asyncQuestionStatus.StudentDeleted
+    ) {
+      // don't send status change email if its deleted
+      // (I don't like the vibes of notifying a student that their question was deleted by staff)
+      // Though technically speaking this isn't even really used yet since there isn't a status that the TA would really turn it to that isn't HumanAnswered or TADeleted
       await this.asyncQuestionService.sendGenericStatusChangeEmail(
         question,
         body.status,
@@ -387,11 +393,11 @@ export class asyncQuestionController {
       await this.asyncQuestionService.sendNewCommentOnMyQuestionEmail(
         user,
         myRole,
-        question,
+        updatedQuestion,
         comment,
       );
     }
-    // send emails out to all users that have posted a comment on this question
+    // send emails out to all users that have posted a comment on this question (it also performs checks)
     await this.asyncQuestionService.sendNewCommentOnOtherQuestionEmail(
       user,
       myRole,
