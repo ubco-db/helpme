@@ -144,17 +144,20 @@ export const mockEmailService = {
 
 export const overrideEmailService: ModuleModifier = (builder) =>
   builder.overrideProvider(MailService).useValue(mockEmailService);
-export const expectEmailSent = (
-  receiver: string,
-  type: string,
-  times = 1,
-): void => {
-  expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(times);
-  expect(mockEmailService.sendEmail).toHaveBeenCalledWith(
-    expect.objectContaining({
-      receiver,
-      type,
-    }),
+/* Takes an array of emails (receivers) and type of email (types)*/
+export const expectEmailSent = (receivers: string[], types: string[]): void => {
+  expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(receivers.length);
+  const calls = mockEmailService.sendEmail.mock.calls.map((args) => args[0]);
+  // expect that each receiver was sent an email of the correct type
+  expect(calls).toEqual(
+    expect.arrayContaining(
+      receivers.map((item, i) =>
+        expect.objectContaining({
+          receiver: receivers[i],
+          type: types[i],
+        }),
+      ),
+    ),
   );
 };
 export const expectEmailNotSent = (): void =>

@@ -112,10 +112,13 @@ export class AsyncQuestionService {
   }
 
   async sendNeedsAttentionEmail(question: AsyncQuestionModel) {
-    // Step 1: Get all users in the course
+    // Step 1: Get all staff members in the course
     const usersInCourse = await UserCourseModel.createQueryBuilder('userCourse')
       .select('userCourse.userId')
       .where('userCourse.courseId = :courseId', { courseId: question.courseId })
+      .andWhere('userCourse.role IN (:...roles)', {
+        roles: [Role.PROFESSOR, Role.TA],
+      })
       .getMany();
 
     const userIds = usersInCourse.map((uc) => uc.userId);

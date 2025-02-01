@@ -205,14 +205,14 @@ export class asyncQuestionController {
     }
 
     if (question.creatorId !== userId) {
-      throw new UnauthorizedException('You can only update your own questions');
+      throw new ForbiddenException('You can only update your own questions');
     }
     // if you created the question (i.e. a student), you can't update the status to illegal ones
     if (
       body.status === asyncQuestionStatus.TADeleted ||
       body.status === asyncQuestionStatus.HumanAnswered
     ) {
-      throw new UnauthorizedException(
+      throw new ForbiddenException(
         `You cannot update your own question's status to ${body.status}`,
       );
     }
@@ -284,7 +284,7 @@ export class asyncQuestionController {
     });
 
     if (!requester || requester.role === Role.STUDENT) {
-      throw new UnauthorizedException(
+      throw new ForbiddenException(
         'You must be a TA/PROF to update this question',
       );
     }

@@ -202,7 +202,7 @@ describe('AsyncQuestion Integration', () => {
         .send({
           status: asyncQuestionStatus.HumanAnswered,
         })
-        .expect(401);
+        .expect(403);
     });
     it('Prevents students from modifying a question in another course', async () => {
       const otherCourse = await CourseFactory.create();

@@ -18,6 +18,11 @@ export class AsyncQuestionRolesGuard extends RolesGuard {
     });
     // asnyc questionId given in the request parameter. Can be qid or questionId
     const questionId = request.params.qid ?? request.params.questionId ?? null;
+    if (!questionId) {
+      throw new NotFoundException(
+        'Question id not found. Please ensure you are using the correct parameter name',
+      );
+    }
 
     // get the courseId from the async question
     const aq = await createQueryBuilder(AsyncQuestionModel)
