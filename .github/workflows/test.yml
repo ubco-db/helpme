@@ -4,7 +4,7 @@ on: pull_request
 
 jobs:
   test:
-    runs-on: ubuntu-current
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:11.5
