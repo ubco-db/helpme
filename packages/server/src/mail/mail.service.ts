@@ -1,14 +1,8 @@
-import {
-  MailServiceWithSubscription,
-  OrganizationRole,
-  Role,
-  sendEmailParams,
-} from '@koh/common';
+import { MailServiceWithSubscription, sendEmailParams } from '@koh/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { MailServiceModel } from './mail-services.entity';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
-import { UserCourseModel } from 'profile/user-course.entity';
 
 @Injectable()
 export class MailService {
@@ -65,15 +59,7 @@ export class MailService {
   async findAllSubscriptions(
     user: UserModel,
   ): Promise<MailServiceWithSubscription[]> {
-    // Check if the user is a professor in any course
-    const isProfInAnyCourse = await UserCourseModel.findOne({
-      where: {
-        userId: user.id,
-        role: Role.PROFESSOR,
-      },
-    });
-
-    let mailServicesQuery = MailServiceModel.createQueryBuilder(
+    const mailServicesQuery = MailServiceModel.createQueryBuilder(
       'mailService',
     ).leftJoinAndSelect(
       'mailService.subscriptions',
@@ -81,14 +67,6 @@ export class MailService {
       'subscription.userId = :userId',
       { userId: user.id },
     );
-
-    // If user is not a professor in any course, filter by MEMBER role
-    if (!isProfInAnyCourse) {
-      mailServicesQuery = mailServicesQuery.where(
-        'mailService.mailType = :role',
-        { role: OrganizationRole.MEMBER },
-      );
-    }
 
     const mailServicesWithSubscriptions = await mailServicesQuery.getMany();
 
