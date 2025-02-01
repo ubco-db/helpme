@@ -55,16 +55,23 @@ export function setupIntegrationTest(
   let redisPort: number;
 
   beforeAll(async () => {
-    // Start Redis in-memory server
-    try {
-      redisContainer = await new GenericContainer('redis:7-alpine')
-        .withExposedPorts(6379)
-        .start();
-      redisHost = await redisContainer.getHost();
-      redisPort = redisContainer.getMappedPort(6379);
-    } catch (err) {
-      console.error('Error initializing redis test container:', err);
-      throw err;
+    if (!process.env.CI) {
+      // Start Redis in-memory server
+      try {
+        redisContainer = await new GenericContainer('redis:7-alpine')
+          .withExposedPorts(6379)
+          .start();
+        redisHost = await redisContainer.getHost();
+        redisPort = redisContainer.getMappedPort(6379);
+      } catch (err) {
+        console.error('Error initializing redis test container:', err);
+        throw err;
+      }
+    } else {
+      redisHost = process.env.REDIS_HOST || 'localhost';
+      redisPort = process.env.REDIS_PORT
+        ? parseInt(process.env.REDIS_PORT)
+        : 6379;
     }
 
     // Create the testing module

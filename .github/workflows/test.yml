@@ -4,7 +4,7 @@ on: pull_request
 
 jobs:
   test:
-    runs-on: ubuntu-22.04 # because the latest version (24.04) currently has compatability issues with redis-memory-server
+    runs-on: ubuntu-current
     services:
       postgres:
         image: postgres:11.5
@@ -30,3 +30,6 @@ jobs:
       - run: yarn test
         env:
           POSTGRES_USER: postgres
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          CI: true
