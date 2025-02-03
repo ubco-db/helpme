@@ -15,6 +15,7 @@ import { QuestionTagElement } from '../../../components/QuestionTagElement'
 import { getServedTime, getWaitTime } from '@/app/utils/timeFormatUtils'
 import TAQuestionCardButtons from './TAQuestionCardButtons'
 import { cn } from '@/app/utils/generalUtils'
+import styles from './QuestionCard.module.css'
 
 interface QuestionCardProps {
   question: Question
@@ -45,6 +46,9 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   isPaused,
   className,
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [truncateText, setTruncateText] = useState(true) // after the max-height transition is finished on expanding the text, truncate it to show a `...`
+
   const tasks = question.isTaskQuestion
     ? parseTaskIdsFromQuestionText(question.text)
     : [] // gives an array of "part1","part2",etc.
@@ -100,6 +104,22 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           className,
         )}
         classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
+        onClick={() => {
+          setIsExpanded(!isExpanded)
+          // after the max-height transition is finished on expanding the text, truncate it to show a `...`
+          // truncating the questionText before the animation is finished will cause the animation to jump
+          // Also, this logic is reversed for some reason
+          if (isExpanded) {
+            //// Collapsing the card
+            setTimeout(() => {
+              setTruncateText(true)
+            }, 300)
+          } else {
+            //// Expanding the card
+            // however, we do want to instantly remove the truncation when expanding the card
+            setTruncateText(false)
+          }
+        }}
       >
         <Row className="items-center">
           {isStaff && ( // only show avatar if staff for now. TODO: fix endpoint to allow queues to access student avatars and names if prof enabled it
@@ -156,32 +176,16 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 }
               </div>
             ) : (
-              <>
-                <Tooltip // only show tooltip if text is too long TODO: replace with expand card details feature
-                  title={
-                    question.text && question.text.length > 110
-                      ? question.text
-                      : ''
-                  }
-                  overlayStyle={{ maxWidth: '60em' }}
-                >
-                  <div
-                    style={
-                      {
-                        // shorten question text dynamically
-                        display: '-webkit-box',
-                        WebkitLineClamp: 1,
-                        WebkitBoxOrient: 'vertical',
-                        textOverflow: 'ellipsis',
-                        overflow: 'hidden',
-                        maxWidth: '55em',
-                      } as React.CSSProperties
-                    }
-                  >
-                    {question.text}
-                  </div>
-                </Tooltip>
-              </>
+              <div
+                className={cn(
+                  'childrenMarkdownFormatted',
+                  styles.expandableText,
+                  isExpanded ? styles.expanded : '',
+                  truncateText ? 'line-clamp-1' : '',
+                )}
+              >
+                {question.text}
+              </div>
             )}
             {isStaff && (
               <div

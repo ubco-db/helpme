@@ -159,6 +159,7 @@ export type UserTiny = {
  * Represents a partial course data needed on the front end when nested in a response.
  * @param id - The id number of this Course.
  * @param name - The subject and course number of this course. Ex: "CS 2500"
+ * @param unreadCount - The number of unread questions in the async centre for this course.
  */
 export type CoursePartial = {
   id: number
@@ -197,6 +198,7 @@ export class PasswordRequestResetWithTokenBody {
 export type UserCourse = {
   course: CoursePartial
   role: Role
+  unreadCount?: number
 }
 
 export const COURSE_TIMEZONES = [

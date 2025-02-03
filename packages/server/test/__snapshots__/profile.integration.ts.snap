@@ -16,6 +16,7 @@ exports[`Profile Integration GET /profile returns the logged-in user profile 1`]
         "name": "CS 2500",
       },
       "role": "student",
+      "unreadCount": 0,
     },
   ],
   "defaultMessage": null,

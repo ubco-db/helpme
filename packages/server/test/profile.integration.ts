@@ -59,6 +59,7 @@ describe('Profile Integration', () => {
             name: 'CS 2500',
           },
           role: 'student',
+          unreadCount: 0,
         },
       ]);
     });
