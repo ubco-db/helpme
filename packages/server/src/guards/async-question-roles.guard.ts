@@ -13,7 +13,7 @@ export class AsyncQuestionRolesGuard extends RolesGuard {
   async setupData(
     request: any,
   ): Promise<{ courseId: number; user: UserModel }> {
-    const user = await UserModel.findOne(request.user.userId, {
+    const user: UserModel = await UserModel.findOne(request.user.userId, {
       relations: ['courses'],
     });
     // asnyc questionId given in the request parameter. Can be qid or questionId
