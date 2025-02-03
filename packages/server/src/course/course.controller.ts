@@ -1135,4 +1135,27 @@ export class CourseController {
     res.status(200).send(queueInvites);
     return;
   }
+
+  @Patch(':id/unread_async_count')
+  @UseGuards(JwtAuthGuard)
+  async updateUnreadAsyncCount(
+    @Param('id', ParseIntPipe) courseId: number,
+    @User() user: UserModel,
+  ): Promise<void> {
+    const userCourse = await UserCourseModel.findOne({
+      where: {
+        user,
+        courseId,
+      },
+    });
+
+    if (!userCourse) {
+      throw new NotFoundException('UserCourse not found');
+    }
+
+    userCourse.unreadAsyncQuestions = 0;
+    await userCourse.save();
+
+    return;
+  }
 }

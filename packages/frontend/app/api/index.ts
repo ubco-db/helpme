@@ -295,6 +295,38 @@ class APIClient {
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
     getAllQueueInvites: async (courseId: number): Promise<QueueInvite[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/queue_invites`),
+    updateUnreadAsyncCount: async (courseId: number): Promise<void> =>
+      this.req('PATCH', `/api/v1/courses/${courseId}/unread_async_count`),
+    getIntegration: async (
+      courseId: number,
+    ): Promise<LMSCourseIntegrationPartial> =>
+      this.req('GET', `/api/v1/courses/${courseId}/lms_integration`),
+    upsertIntegration: async (
+      courseId: number,
+      props: {
+        apiPlatform: LMSIntegration
+        apiKey: string
+        apiKeyExpiry?: Date
+        apiKeyExpiryDeleted?: boolean
+        apiCourseId: string
+      },
+    ): Promise<string | undefined> =>
+      this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/lms_integration/upsert`,
+        undefined,
+        props,
+      ),
+    removeIntegration: async (
+      courseId: number,
+      props: { apiPlatform: LMSIntegration },
+    ): Promise<string | undefined> =>
+      this.req(
+        'DELETE',
+        `/api/v1/courses/${courseId}/lms_integration/remove`,
+        undefined,
+        props,
+      ),
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>
