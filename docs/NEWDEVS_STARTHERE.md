@@ -11,6 +11,12 @@
       - [Tailwind and CSS](#tailwind-and-css)
       - [JSX](#jsx)
     - [Backend](#backend)
+      - [Nest.js files](#nestjs-files)
+      - [Redis](#redis)
+      - [Guards and `@Roles`](#guards-and-roles)
+      - [`@User` and `@UserId` decorators](#user-and-userid-decorators)
+      - [Why some endpoints have `@Res` and some don't](#why-some-endpoints-have-res-and-some-dont)
+        - [Ways to return errors/http status codes + messages](#ways-to-return-errorshttp-status-codes--messages)
 - [History](#history)
 - [TODO](#todo)
   - [For the whole project](#for-the-whole-project)
@@ -109,19 +115,64 @@ Want to conditionally render something like an `elseif` statement? Do: `{conditi
 
 ### Backend
 
-`module` - I believe this is only for nestjs for connecting the service to the controller, but maybe you can do some other cool stuff here.
+#### Nest.js files
 
-`controller` - Defines an endpoint and the various calls you can make to it. Takes in requests, does business logic, and then sends a response (please use `@Res` for sending a response, as it is more flexible). They're supposed to be fairly lightweight and not call the database directly; however, nearly all of our endpoints are implemented incorrectly where the entire endpoint is written in the controller. Integration tests test these.
+`module` - Used by nest.js to figure out what services each controller/service needs. You usually don't need to touch these unless you are making a new controller or service file.
+- **Advanced**: Inside the module, you can specify multiple things:
+  - **controllers**: all controllers for this module. Each module should have maybe 1-2 controllers (e.g. queue.module.ts has QueueController and QueueInviteController)
+  - **providers**: these are all the services that all your services, controllers, or *services' dependencies* depend on.
+    - E.g. In queue.module, if QueueService needs QuestionService, and QuestionService needs AlertsService, then you must put QueueService,QuestionService, *and* AlertsService as providers
+      - However, you can also make question.module, which is an **import** in queue.module, **export** AlertsService and it should automatically be made a provider
+  - **imports**: these are *modules* that you must import if you want access to the services said module exports (e.g. you want to use some function from question.service, so you must add QuestionModule as an import)
+  - **forwardRef** - Used to resolve a circular dependency where two modules depend on each other
+
+`controller` - Defines an endpoint and the various calls you can make to it. Takes in requests, does business logic, and then sends a response. They're supposed to be fairly lightweight and not call the database directly; however, nearly all of our endpoints are implemented incorrectly where the entire endpoint is written in the controller. Integration tests test these.
 
 `service` - These define methods that make calls to the database. Unit tests test these.
 
 `entity` - These define the database schema. If you make any changes to these, be sure to make a migration (see `DEVELOPING.md`) 
+
+#### Redis
 
 `redis` - A fast, in-memory database that we use for caching frequently accessed data. Sometimes, there can be issues where the redis database is not in sync with the actual database. If this happens, follow these steps to flush the redis cache:
 1. Open the redis container in docker desktop and go to the "Exec" tab
 2. Run `redis-cli` to open the redis command line
 3. Run `flushall` to flush the cache
 
+#### Guards and `@Roles`
+
+TODO
+
+#### `@User` and `@UserId` decorators
+
+TODO
+
+#### Why some endpoints have `@Res` and some don't
+
+So the first thing to understand is Nest.js is built off of express.js (or at least our version is).
+
+`@Res` is a thing from express that allows you to send responses from your endpoints.
+e.g. `res.status(200).send(updatedQuestion)`
+
+You would also send all your errors this way, e.g. `res.status(404).send("Question Not Found")`
+
+However, Nest.js adds some other ways of doing things so you don't need to use `@Res`:
+- You can throw different types of HttpExceptions (see next section)
+- To return a response, just use `return`
+  - e.g. `return updatedQuestion`
+    - This will automatically be a 200 status response
+
+##### Ways to return errors/http status codes + messages
+
+There are multiple ways to make your endpoints give different errors/status codes. There's no real difference. Nest.js will catch any uncaught errors and return the corresponding error code and given message.
+- `throw new xyzException("Some message")` - recommended (simple)
+  - e.g. `throw new BadRequestException("SomeField must not be empty")`
+  - Note that these exceptions must be instance of an HttpException (regular exceptions like FileNotFound will become 500 errors)
+- `throw new HttpException("Some message", HttpStatus.NOT_FOUND)`
+- `res.status(status code).send(an object or message text)`
+  - e.g. `res.status(201).send(newlyCreatedComment)`
+  - note you will need to add the `@Res()` decorator at the top of the controller
+  - This also lets you return other status codes (e.g. 201 Created) and is not just limited to errors
 
 # History
 
