@@ -32,4 +32,4 @@ jobs:
           POSTGRES_USER: postgres
           REDIS_HOST: localhost
           REDIS_PORT: 6379
-          CI: true
+          CI: "true"
