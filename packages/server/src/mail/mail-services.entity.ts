@@ -27,9 +27,6 @@ export class MailServiceModel extends BaseEntity {
   @Column()
   name: string;
 
-  @Column()
-  content: string; // TODO: figure out what this does
-
   @OneToMany(
     () => UserSubscriptionModel,
     (subscription) => subscription.service,
