@@ -127,7 +127,7 @@ export function setupIntegrationTest(
   beforeEach(async () => {
     await conn.synchronize(true);
     await clearAllCronJobs(schedulerRegistry);
-    //await testModule.get<RedisService>(RedisService).getClient('db').flushall();
+    await testModule.get<RedisService>(RedisService).getClient('db').flushall();
   });
 
   return {
