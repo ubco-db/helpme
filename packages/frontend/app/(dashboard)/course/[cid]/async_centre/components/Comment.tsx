@@ -169,12 +169,14 @@ const Comment: React.FC<CommentProps> = ({
                   onClick: (e) => {
                     e.domEvent.stopPropagation()
                   },
+                  className: 'this-dropdown-has-popconfirm',
                   label: (
                     <Popconfirm
                       title="Are you sure you want to delete your comment?"
                       okText="Yes"
                       cancelText="No"
                       okButtonProps={{ loading: deleteLoading }}
+                      cancelButtonProps={{ disabled: deleteLoading }}
                       onConfirm={async (e) => {
                         e?.stopPropagation()
                         setDeleteLoading(true)
@@ -194,10 +196,12 @@ const Comment: React.FC<CommentProps> = ({
                           })
                       }}
                     >
-                      Delete
+                      <div className="px-3 py-[5px]">
+                        <DeleteOutlined className="mr-2" />
+                        Delete
+                      </div>
                     </Popconfirm>
                   ),
-                  icon: <DeleteOutlined />,
                   danger: true,
                 },
               ],

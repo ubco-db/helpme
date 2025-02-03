@@ -61,6 +61,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     await API.asyncQuestions
       .comment(questionId, { commentText })
       .then((newComment) => {
+        setIsLockedExpanded(false)
         message.success('Comment posted successfully')
         newComment.creator.courseRole = userCourseRole
         question.comments.push(newComment)

@@ -230,6 +230,14 @@ background: rgb(47, 76, 128) !important;
   background: rgb(70, 76, 121) !important;
 }
 
+/* If you have a popconfirm in a dropdown (antd), only clicking the text will trigger the popconfirm. This is to get around that.
+Also add 'px-3 py-[5px]' to the dropdown label's element so that it looks like other dropdown items.
+Here's the issue on antd's github: https://github.com/ant-design/ant-design/issues/22578
+*/
+.ant-dropdown-menu-item.this-dropdown-has-popconfirm {
+  padding: 0 !important;
+}
+
 /*
 These childrenMarkdownFormatted styles are to format all children of this component in a particular way.
 It is used for displaying markdown nicely inside any <Markdown> components
