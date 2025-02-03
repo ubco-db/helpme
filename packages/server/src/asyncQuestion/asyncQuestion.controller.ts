@@ -591,7 +591,7 @@ export class asyncQuestionController {
     );
     let all: AsyncQuestionModel[] = [];
 
-    if (asyncQuestionKeys.length === 0) {
+    if (!asyncQuestionKeys || Object.keys(asyncQuestionKeys).length === 0) {
       console.log('Fetching from Database');
       all = await AsyncQuestionModel.find({
         where: {
