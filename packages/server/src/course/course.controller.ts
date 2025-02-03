@@ -401,7 +401,25 @@ export class CourseController {
     @Param('id', ParseIntPipe) courseId: number,
     @Body() coursePatch: EditCourseInfoParams,
   ): Promise<void> {
-    await this.courseService.editCourse(courseId, coursePatch);
+    await this.courseService
+      .editCourse(courseId, coursePatch)
+      .then(async () => {
+        const course = await CourseModel.findOne({
+          where: {
+            courseId,
+          },
+          relations: ['userCourses'],
+        });
+
+        // Won't be a costly operation since courses are not modified often
+        if (course) {
+          course.userCourses.map(async (userCourse) => {
+            await this.redisProfileService.deleteProfile(
+              `u:${userCourse.user.id}`,
+            );
+          });
+        }
+      });
   }
 
   @Post(':id/create_queue/:room')
