@@ -144,6 +144,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 className="mr-2"
                 onClick={(e) => e.stopPropagation()}
                 danger
+                disabled={isPostCommentLoading}
               >
                 Cancel
               </Button>

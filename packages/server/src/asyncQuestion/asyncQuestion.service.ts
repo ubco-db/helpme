@@ -40,8 +40,8 @@ export class AsyncQuestionService {
           receiver: question.creator.email,
           type: service.serviceType,
           subject: `HelpMe - ${commenterIsStaff ? commenter.name : 'Someone'} Commented on Your Anytime Question`,
-          content: `<br> <b>${commenterIsStaff ? commenter.name : 'Someone'} has commented on your "${(question.questionAbstract ?? question.answerText) ? question.answerText.slice(0, 50) : ''}" Anytime Question:</b> 
-                <br> ${comment.commentText}
+          content: `<br> <b>${commenterIsStaff ? commenter.name : 'Someone'} has commented on your "${question.questionAbstract ?? (question.questionText ? question.questionText.slice(0, 50) : '')}" Anytime Question:</b> 
+                <br> <b>Comment Text<b>: ${comment.commentText}
                 <br>
                 <br> Note: Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Reply Here</a> <br>`,
         })
@@ -96,8 +96,8 @@ export class AsyncQuestionService {
           receiver: sub.user.email,
           type: MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST,
           subject: `HelpMe - ${commenterIsStaff ? commenter.name : 'Someone'} Commented on an Anytime Question You Commented on`,
-          content: `<br> <b>${commenterIsStaff ? commenter.name : 'Someone'} has commented on the "${updatedQuestion.questionAbstract}" Anytime Question:</b> 
-                    <br> ${comment.commentText}
+          content: `<br> <b>${commenterIsStaff ? commenter.name : 'Someone'} has commented on the "${updatedQuestion.questionAbstract ?? (updatedQuestion.questionText ? updatedQuestion.questionText.slice(0, 50) : '')}" Anytime Question:</b> 
+                    <br> <b>Comment Text<b>: ${comment.commentText}
                     <br>
                     <br> Note: Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${updatedQuestion.courseId}/async_centre">View and Reply Here</a> <br>`,
         }),
@@ -147,9 +147,9 @@ export class AsyncQuestionService {
           type: MailServiceType.ASYNC_QUESTION_FLAGGED,
           subject: 'HelpMe - New Question Marked as Needing Attention',
           content: `<br> <b>A new question has been posted on the Anytime Question Hub and has been marked as needing attention:</b> 
-                    <br> <b>Question Abstract:</b> ${question.questionAbstract ?? ''}
-                    <br> <b>Question Types:</b> ${question.questionTypes.map((qt) => qt.name).join(', ')}
-                    <br> <b>Question Text:</b> ${question.questionText ?? ''}
+                    <br> ${question.questionAbstract ? `<b>Question Abstract:</b> ${question.questionAbstract}` : ''}
+                    <br> ${question.questionTypes?.length > 0 ? `<b>Question Types:</b> ${question.questionTypes.map((qt) => qt.name).join(', ')}` : ''}
+                    <br> ${question.questionText ? `<b>Question Text:</b> ${question.questionText}` : ''}
                     <br>
                     <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
         }),
@@ -182,8 +182,8 @@ export class AsyncQuestionService {
           receiver: question.creator.email,
           type: service.serviceType,
           subject: 'HelpMe - Your Anytime Question Has Been Answered',
-          content: `<br> <b>Your question on the Anytime Question Hub has been answered or verified by staff:</b> 
-              <br> ${question.answerText}
+          content: `<br> <b>Your question on the Anytime Question Hub has been answered or verified by staff.</b> 
+              <br> <b>Answer Text:</b> ${question.answerText}
               <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
         })
         .catch((err) => {
@@ -217,7 +217,7 @@ export class AsyncQuestionService {
           receiver: question.creator.email,
           type: service.serviceType,
           subject: 'HelpMe - Your Anytime Question Status Has Changed',
-          content: `<br> <b>The status of your question on the Anytime Question Hub has been updated by a staff member:</b> 
+          content: `<br> <b>The status of your question on the Anytime Question Hub has been updated by a staff member.</b> 
                   <br> New status: ${status}
                   <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
         })
@@ -247,7 +247,7 @@ export class AsyncQuestionService {
           receiver: updatedQuestion.creator.email,
           type: service.serviceType,
           subject: 'HelpMe - Your Anytime Question Has Been Upvoted',
-          content: `<br> <b>Your question on the Anytime Question Hub has received an upvote:</b> 
+          content: `<br> <b>Your question on the Anytime Question Hub has received an upvote.</b> 
         <br> Question: ${updatedQuestion.questionText ?? updatedQuestion.questionAbstract ?? ''}
           <br> Current votes: ${updatedQuestion.votesSum}
           <br> <a href="${process.env.DOMAIN}/course/${updatedQuestion.courseId}/async_centre">View Here</a> <br>`,

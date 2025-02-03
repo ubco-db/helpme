@@ -144,10 +144,6 @@ export class UserPartial {
   @IsInt()
   @IsOptional()
   sid?: number
-
-  @IsOptional()
-  @IsString()
-  courseRole?: Role // currently only used by asyncQuestion.controller for attaching roles to comments
 }
 
 /**

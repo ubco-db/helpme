@@ -16,7 +16,6 @@ export class MailServiceModel extends BaseEntity {
   @Column()
   mailType: OrganizationRole;
 
-  // this is the displayed name to users
   @Column({
     type: 'enum',
     enum: MailServiceType,
@@ -24,11 +23,12 @@ export class MailServiceModel extends BaseEntity {
   })
   serviceType: MailServiceType;
 
+  // this is the displayed name to users
   @Column()
   name: string;
 
   @Column()
-  content: string;
+  content: string; // TODO: figure out what this does
 
   @OneToMany(
     () => UserSubscriptionModel,

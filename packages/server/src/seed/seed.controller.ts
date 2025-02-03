@@ -217,6 +217,18 @@ export class SeedController {
       name: 'Notify when your anytime question has been upvoted',
       content: 'Your anytime question has received an upvote',
     });
+    const studentMailService4 = await mailServiceFactory.create({
+      mailType: OrganizationRole.MEMBER,
+      serviceType: MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST,
+      name: 'Notify when someone comments on your anytime question',
+      content: 'Someone commented on your anytime question',
+    });
+    const studentMailService5 = await mailServiceFactory.create({
+      mailType: OrganizationRole.MEMBER,
+      serviceType: MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST,
+      name: 'Notify when someone comments on an anytime question you commented on',
+      content: 'Someone commented on an anytime question you commented on',
+    });
     const courseExists = await CourseModel.findOne({
       where: { name: 'CS 304' },
     });
@@ -275,23 +287,30 @@ export class SeedController {
         role: Role.STUDENT,
         course: course,
       });
-
       await userSubscriptionFactory.create({
         isSubscribed: true,
         user: user1,
         service: studentMailService,
       });
-
       await userSubscriptionFactory.create({
         isSubscribed: true,
         user: user1,
         service: studentMailService2,
       });
-
       await userSubscriptionFactory.create({
         isSubscribed: true,
         user: user1,
         service: studentMailService3,
+      });
+      await userSubscriptionFactory.create({
+        isSubscribed: true,
+        user: user1,
+        service: studentMailService4,
+      });
+      await userSubscriptionFactory.create({
+        isSubscribed: true,
+        user: user1,
+        service: studentMailService5,
       });
 
       // Student 2
