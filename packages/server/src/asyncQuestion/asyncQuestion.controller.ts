@@ -173,13 +173,14 @@ export class asyncQuestionController {
         relations: ['creator', 'taHelped', 'votes'],
       });
 
-      // update read counts for all users in course
-      const query = await UserCourseModel.createQueryBuilder()
-        .update(UserCourseModel)
-        .set({ unreadAsyncQuestions: () => '"unreadAsyncQuestions" + 1' })
-        .where('courseId = :courseId', { courseId: cid })
-        .andWhere('userId != :userId', { userId: user.id }) // Exclude the question creator
-        .execute();
+      // PAT TODO: remove
+      // // update read counts for all users in course
+      // const query = await UserCourseModel.createQueryBuilder()
+      //   .update(UserCourseModel)
+      //   .set({ unreadAsyncQuestions: () => '"unreadAsyncQuestions" + 1' })
+      //   .where('courseId = :courseId', { courseId: cid })
+      //   .andWhere('userId != :userId', { userId: user.id }) // Exclude the question creator
+      //   .execute();
 
       await this.redisQueueService.addAsyncQuestion(`c:${cid}:aq`, newQuestion);
 
