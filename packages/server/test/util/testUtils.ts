@@ -12,7 +12,7 @@ import { LoginModule } from '../../src/login/login.module';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { ApplicationConfigModule } from 'config/application_config.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
-import { GenericContainer, StartedTestContainer } from 'testcontainers';
+import { RedisMemoryServer } from 'redis-memory-server';
 
 export interface SupertestOptions {
   userId?: number;
@@ -51,7 +51,7 @@ export function setupIntegrationTest(
   let testModule: TestingModule;
   let redisService: RedisService;
 
-  let redisContainer: StartedTestContainer;
+  let redisTestServer: RedisMemoryServer;
   let redisHost: string;
   let redisPort: number;
 
@@ -60,11 +60,9 @@ export function setupIntegrationTest(
       // See if the environment variable is the issue
       // Start Redis in-memory server
       try {
-        redisContainer = await new GenericContainer('redis:7-alpine')
-          .withExposedPorts(6379)
-          .start();
-        redisHost = await redisContainer.getHost();
-        redisPort = redisContainer.getMappedPort(6379);
+        redisTestServer = new RedisMemoryServer();
+        redisHost = await redisTestServer.getHost();
+        redisPort = await redisTestServer.getPort();
       } catch (err) {
         console.error('Error initializing redis test container:', err);
         throw err;
@@ -119,8 +117,8 @@ export function setupIntegrationTest(
     await conn.close();
     await redisService.getClient('db').quit();
 
-    if (redisContainer) {
-      await redisContainer.stop();
+    if (redisTestServer) {
+      await redisTestServer.stop();
     }
   });
 
