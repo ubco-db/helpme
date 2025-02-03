@@ -31,6 +31,7 @@ import {
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { useChatbotContext } from '../components/chatbot/ChatbotProvider'
+import { API } from '@/app/api'
 import ConvertChatbotQToAnytimeQModal from './components/modals/ConvertChatbotQToAnytimeQModal'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
@@ -116,6 +117,14 @@ export default function AsyncCentrePage({
     },
     [sortBy],
   )
+
+  // This endpoint will be called to update unread count back to 0 when this page is entered
+  useEffect(() => {
+    if (
+      userInfo.courses.find((e) => e.course.id === courseId)?.unreadCount !== 0
+    )
+      API.course.updateUnreadAsyncCount(courseId)
+  }, [])
 
   useEffect(() => {
     let displayedQuestions = asyncQuestions || []
