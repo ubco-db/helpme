@@ -207,8 +207,7 @@ export const StudentTaskProgressFactory = new Factory(StudentTaskProgressModel)
 export const mailServiceFactory = new Factory(MailServiceModel)
   .attr('mailType', OrganizationRole.PROFESSOR)
   .attr('serviceType', MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED)
-  .attr('name', 'async_question_created')
-  .attr('content', 'A new async question is asked, and the student is asking');
+  .attr('name', 'async_question_created');
 
 export const userSubscriptionFactory = new Factory(UserSubscriptionModel)
   .attr('isSubscribed', true)

@@ -24,10 +24,10 @@ import { UserTokenModel } from './user-token.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
-import { CalendarStaffModel } from 'calendar/calendar-staff.entity';
-import { AsyncQuestionCommentModel } from 'asyncQuestion/asyncQuestionComment.entity';
-import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
-import { QuestionModel } from 'question/question.entity';
+import { CalendarStaffModel } from '../calendar/calendar-staff.entity';
+import { AsyncQuestionCommentModel } from '../asyncQuestion/asyncQuestionComment.entity';
+import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
+import { QuestionModel } from '../question/question.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {

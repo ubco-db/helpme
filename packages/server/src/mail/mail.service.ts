@@ -71,20 +71,11 @@ export class MailService {
     }
   }
 
+  /*  if function is called, email should be sent.
+    functions that call this function should previously check in user subscriptions and pass in emailPost.receiver
+    */
   async sendEmail(emailPost: sendEmailParams): Promise<void> {
-    // if function is called, email should be sent
-    // functions that call this function should previously check in user subscriptions and pass in emailPost.receiver
-    // retrieve text to send based on emailPost.type
-    const mail = await MailServiceModel.findOne({
-      where: {
-        serviceType: emailPost.type,
-      },
-    });
-    if (!mail) {
-      throw new HttpException('Mail type/name not found', HttpStatus.NOT_FOUND);
-    }
-
-    const baseContent = emailPost.content || mail.content;
+    const baseContent = emailPost.content;
     const fullContent = `
     ${baseContent}
     <br><br><a href="${process.env.DOMAIN}/courses">View Your Courses</a>
@@ -102,6 +93,7 @@ export class MailService {
       html: fullContent,
     });
   }
+
   async findAllSubscriptions(
     user: UserModel,
   ): Promise<MailServiceWithSubscription[]> {
@@ -123,7 +115,6 @@ export class MailService {
         mailType: mailService.mailType,
         serviceType: mailService.serviceType,
         name: mailService.name,
-        content: mailService.content,
         isSubscribed:
           mailService.subscriptions.length > 0
             ? mailService.subscriptions[0].isSubscribed

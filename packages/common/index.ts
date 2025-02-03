@@ -1697,7 +1697,6 @@ export type MailServiceWithSubscription = {
   id: number
   mailType: OrganizationRole
   name: string
-  content: string
   isSubscribed: boolean
 }
 

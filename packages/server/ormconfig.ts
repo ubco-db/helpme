@@ -35,7 +35,7 @@ import { QueueInviteModel } from './src/queue/queue-invite.entity';
 import { LMSOrganizationIntegrationModel } from './src/lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from './src/lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';
-import { AsyncQuestionCommentModel } from 'asyncQuestion/asyncQuestionComment.entity';
+import { AsyncQuestionCommentModel } from './src/asyncQuestion/asyncQuestionComment.entity';
 
 config();
 
