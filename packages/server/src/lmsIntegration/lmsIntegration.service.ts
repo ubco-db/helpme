@@ -369,10 +369,10 @@ export class LMSIntegrationService {
           break;
       }
 
-      let persistedItems: LMSAssignmentModel[] | LMSAnnouncementModel[] =
+      let persistedItems: (LMSAnnouncementModel | LMSAssignmentModel)[] =
         modelAndPersisted.items;
 
-      const toRemove: LMSAssignmentModel[] | LMSAnnouncementModel[] =
+      const toRemove: (LMSAnnouncementModel | LMSAssignmentModel)[] =
         persistedItems.filter((i0) => !items.find((i1) => i1.id == i0.id));
       if (toRemove.length > 0) {
         const toRemoveIds = toRemove.map((i) => i.id);
@@ -499,7 +499,7 @@ export class LMSIntegrationService {
 
   async clearSpecificDocuments(
     courseId: number,
-    items: LMSAssignmentModel[] | LMSAnnouncementModel[],
+    items: (LMSAssignmentModel | LMSAnnouncementModel)[],
     model: typeof LMSAssignmentModel | typeof LMSAnnouncementModel,
   ) {
     const tempUser = await UserModel.create({
@@ -660,7 +660,7 @@ export class LMSIntegrationService {
       item.chatbotDocumentId != undefined &&
       item.uploaded != undefined &&
       item.modified != undefined &&
-      new Date(item.modified).getTime() > new Date(item.uploaded).getTime()
+      new Date(item.modified).getTime() < new Date(item.uploaded).getTime()
     ) {
       return {
         id: item.id,

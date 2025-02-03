@@ -1,8 +1,15 @@
 import { Connection } from 'typeorm';
-import { LMSIntegrationService } from './lmsIntegration.service';
+import {
+  LMSGet,
+  LMSIntegrationService,
+  LMSUpload,
+} from './lmsIntegration.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
-import { LMSIntegrationAdapter } from './lmsIntegration.adapter';
+import {
+  AbstractLMSAdapter,
+  LMSIntegrationAdapter,
+} from './lmsIntegration.adapter';
 import {
   CourseFactory,
   lmsCourseIntFactory,
@@ -10,8 +17,21 @@ import {
   OrganizationCourseFactory,
   OrganizationFactory,
 } from '../../test/util/factories';
-import { LMSIntegrationPlatform } from '@koh/common';
+import {
+  ERROR_MESSAGES,
+  LMSAnnouncement,
+  LMSApiResponseStatus,
+  LMSAssignment,
+  LMSCourseAPIResponse,
+  LMSIntegrationPlatform,
+} from '@koh/common';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
+import { HttpException, HttpStatus } from '@nestjs/common';
+import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
+import { CourseModel } from '../course/course.entity';
+import { OrganizationModel } from '../organization/organization.entity';
+import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
+import { LMSAssignmentModel } from './lmsAssignment.entity';
 
 /*
 Note:
@@ -70,7 +90,7 @@ describe('LMSIntegrationService', () => {
 
       const old = service.syncDocuments;
       const findSpy = jest.spyOn(LMSCourseIntegrationModel, 'find');
-      service.syncDocuments = jest.fn(async (_courseId: number) => undefined);
+      service.syncDocuments = jest.fn(async () => undefined);
       await service.resynchronizeCourseIntegrations();
 
       expect(findSpy).toHaveBeenCalledTimes(1);
@@ -102,6 +122,515 @@ describe('LMSIntegrationService', () => {
 
       const adapterResult = await service.getAdapter(1);
       expect(adapterResult.isImplemented()).toBeTruthy();
+    });
+  });
+
+  describe('lmsStatusToHttpStatus', () => {
+    it.each([
+      {
+        status: LMSApiResponseStatus.InvalidKey,
+        httpStatus: HttpStatus.UNAUTHORIZED,
+      },
+      {
+        status: LMSApiResponseStatus.InvalidPlatform,
+        httpStatus: HttpStatus.NOT_FOUND,
+      },
+      { status: LMSApiResponseStatus.None, httpStatus: HttpStatus.BAD_REQUEST },
+      { status: LMSApiResponseStatus.None, httpStatus: HttpStatus.BAD_REQUEST },
+      {
+        status: LMSApiResponseStatus.Error,
+        httpStatus: HttpStatus.BAD_REQUEST,
+      },
+      {
+        status: LMSApiResponseStatus.InvalidCourseId,
+        httpStatus: HttpStatus.BAD_REQUEST,
+      },
+      {
+        status: LMSApiResponseStatus.InvalidConfiguration,
+        httpStatus: HttpStatus.BAD_REQUEST,
+      },
+    ])('should return the correct HTTP status', ({ status, httpStatus }) => {
+      expect(service.lmsStatusToHttpStatus(status)).toBe(httpStatus);
+    });
+  });
+
+  describe('upsertOrganizationLMSIntegration', () => {
+    let org: OrganizationModel;
+    beforeEach(async () => {
+      org = await OrganizationFactory.create();
+    });
+
+    it('should behave as create if integration is found', async () => {
+      const response = await service.upsertOrganizationLMSIntegration(
+        org.id,
+        'www.example.com',
+        LMSIntegrationPlatform.Canvas,
+      );
+
+      const created = await LMSOrganizationIntegrationModel.findOne(undefined, {
+        where: {
+          organizationId: org.id,
+          apiPlatform: LMSIntegrationPlatform.Canvas,
+        },
+      });
+
+      expect(created).toBeTruthy();
+      expect(response.includes('created')).toBeTruthy();
+    });
+
+    it('should behave as update if integration is found', async () => {
+      const org = await OrganizationFactory.create();
+      await (
+        await lmsOrgIntFactory.create({
+          organizationId: org.id,
+          rootUrl: 'www.example.com',
+          apiPlatform: LMSIntegrationPlatform.Canvas,
+        })
+      ).save();
+
+      const response = await service.upsertOrganizationLMSIntegration(
+        org.id,
+        'www.example2.com',
+        LMSIntegrationPlatform.Canvas,
+      );
+
+      const updated = await LMSOrganizationIntegrationModel.findOne(undefined, {
+        where: {
+          organizationId: org.id,
+          apiPlatform: LMSIntegrationPlatform.Canvas,
+        },
+      });
+
+      expect(updated.rootUrl).toEqual('www.example2.com');
+      expect(response.includes('updated')).toBeTruthy();
+    });
+  });
+
+  describe('createCourseLMSIntegration', () => {
+    let org: OrganizationModel;
+    let orgInt: LMSOrganizationIntegrationModel;
+    let course: CourseModel;
+
+    beforeEach(async () => {
+      org = await OrganizationFactory.create();
+      orgInt = await (
+        await lmsOrgIntFactory.create({
+          organizationId: org.id,
+          rootUrl: 'www.example.com',
+          apiPlatform: LMSIntegrationPlatform.Canvas,
+        })
+      ).save();
+      course = await CourseFactory.create();
+    });
+
+    it('should create a new course integration without an expiry', async () => {
+      await service.createCourseLMSIntegration(orgInt, course.id, 'abc', 'def');
+
+      const check = await LMSCourseIntegrationModel.findOne(course.id);
+      expect(check).toBeTruthy();
+      expect(check.apiKeyExpiry).toBeNull();
+    });
+
+    it('should create a new course integration with an expiry', async () => {
+      await service.createCourseLMSIntegration(
+        orgInt,
+        course.id,
+        'abc',
+        'def',
+        new Date(),
+      );
+      const check = await LMSCourseIntegrationModel.findOne(course.id);
+      expect(check).toBeTruthy();
+      expect(check.apiKeyExpiry).toBeTruthy();
+    });
+  });
+
+  describe('updateCourseLMSIntegration', () => {
+    let org: OrganizationModel;
+    let orgInt: LMSOrganizationIntegrationModel;
+    let course: CourseModel;
+    let courseInt: LMSCourseIntegrationModel;
+
+    beforeEach(async () => {
+      org = await OrganizationFactory.create();
+      orgInt = await lmsOrgIntFactory.create({
+        organizationId: org.id,
+        rootUrl: 'www.example.com',
+        apiPlatform: LMSIntegrationPlatform.Canvas,
+      });
+      course = await CourseFactory.create();
+      courseInt = await lmsCourseIntFactory.create({
+        orgIntegration: orgInt,
+        courseId: course.id,
+        apiCourseId: 'abc',
+        apiKey: 'def',
+        apiKeyExpiry: new Date(0),
+      });
+    });
+
+    it('should update parameters', async () => {
+      const now = new Date();
+      await service.updateCourseLMSIntegration(
+        courseInt,
+        orgInt,
+        false,
+        'ghi',
+        'jkl',
+        now,
+      );
+
+      const updated = await LMSCourseIntegrationModel.findOne(undefined, {
+        where: {
+          courseId: course.id,
+        },
+      });
+
+      expect(updated).toBeTruthy();
+      expect(updated.apiCourseId).toBe('ghi');
+      expect(updated.apiKey).toBe('jkl');
+      expect(updated.apiKeyExpiry).toBe(now);
+    });
+
+    it('should delete expiry when specified', async () => {
+      await service.updateCourseLMSIntegration(
+        courseInt,
+        orgInt,
+        true,
+        'ghi',
+        'jkl',
+      );
+
+      const updated = await LMSCourseIntegrationModel.findOne(undefined, {
+        where: {
+          courseId: course.id,
+        },
+      });
+
+      expect(updated).toBeTruthy();
+      expect(updated.apiCourseId).toBe('ghi');
+      expect(updated.apiKey).toBe('jkl');
+      expect(updated.apiKeyExpiry).toBeUndefined();
+    });
+  });
+
+  describe('getItems', () => {
+    let getAdapter: any;
+    let mockAdapter: any;
+
+    beforeEach(async () => {
+      getAdapter = service.getAdapter;
+      mockAdapter = {
+        getPlatform(): LMSIntegrationPlatform | null {
+          return null;
+        },
+
+        isImplemented(): boolean {
+          return false;
+        },
+
+        async Get(
+          url: string,
+        ): Promise<{
+          status: LMSApiResponseStatus;
+          data?: any;
+          nextLink?: string;
+        }> {
+          return null;
+        },
+
+        async getCourse(): Promise<{
+          status: LMSApiResponseStatus;
+          course: LMSCourseAPIResponse;
+        }> {
+          return null;
+        },
+
+        async getStudents(): Promise<{
+          status: LMSApiResponseStatus;
+          students: string[];
+        }> {
+          return null;
+        },
+
+        async getAnnouncements(): Promise<{
+          status: LMSApiResponseStatus;
+          announcements: LMSAnnouncement[];
+        }> {
+          return null;
+        },
+
+        async getAssignments(): Promise<{
+          status: LMSApiResponseStatus;
+          assignments: LMSAssignment[];
+        }> {
+          return null;
+        },
+
+        getDocumentLink(documentId: number, documentType: LMSUpload): string {
+          switch (documentType) {
+            default:
+              return '';
+          }
+        },
+      } as AbstractLMSAdapter;
+      service.getAdapter = jest.fn(async () => mockAdapter);
+    });
+
+    afterEach(async () => {
+      service.getAdapter = getAdapter;
+      jest.restoreAllMocks();
+    });
+
+    it.each([
+      LMSApiResponseStatus.InvalidPlatform,
+      LMSApiResponseStatus.InvalidConfiguration,
+      LMSApiResponseStatus.InvalidKey,
+      LMSApiResponseStatus.InvalidCourseId,
+      LMSApiResponseStatus.Error,
+      LMSApiResponseStatus.None,
+    ])(
+      'should fail when retrievalStatus is not success',
+      async (retrievalStatus) => {
+        mockAdapter.getStudents = jest.fn(async () => {
+          return {
+            status: retrievalStatus,
+            students: [],
+          };
+        });
+        mockAdapter.getAssignments = jest.fn(async () => {
+          return {
+            status: retrievalStatus,
+            assignments: [],
+          };
+        });
+        mockAdapter.getAnnouncements = jest.fn(async () => {
+          return {
+            status: retrievalStatus,
+            announcements: [],
+          };
+        });
+        mockAdapter.getCourse = jest.fn(async () => {
+          return {
+            status: retrievalStatus,
+            course: {},
+          };
+        });
+
+        console.log(await service.getItems(0, LMSGet.Students));
+        expect(async () => await service.getItems(0, LMSGet.Students)).toThrow(
+          new HttpException(
+            retrievalStatus,
+            service.lmsStatusToHttpStatus(retrievalStatus),
+          ),
+        );
+        expect(
+          async () => await service.getItems(0, LMSGet.Assignments),
+        ).toThrow(
+          new HttpException(
+            retrievalStatus,
+            service.lmsStatusToHttpStatus(retrievalStatus),
+          ),
+        );
+        expect(
+          async () => await service.getItems(0, LMSGet.Announcements),
+        ).toThrow(
+          new HttpException(
+            retrievalStatus,
+            service.lmsStatusToHttpStatus(retrievalStatus),
+          ),
+        );
+        expect(async () => await service.getItems(0, LMSGet.Course)).toThrow(
+          new HttpException(
+            retrievalStatus,
+            service.lmsStatusToHttpStatus(retrievalStatus),
+          ),
+        );
+      },
+    );
+
+    it('should return list of students as string array if type is Students', async () => {
+      const students = ['Student1', 'Student2', 'Student3'];
+      mockAdapter.getStudents = jest.fn(async () => {
+        return {
+          status: LMSApiResponseStatus.Success,
+          students,
+        };
+      });
+
+      const resp = await service.getItems(0, LMSGet.Students);
+      expect(resp).toEqual(students);
+    });
+
+    it('should return list of assignments if type is Assignments', async () => {
+      const assignments = [{ id: 1 }, { id: 2 }, { id: 3 }];
+      mockAdapter.getAssignments = jest.fn(async () => {
+        return {
+          status: LMSApiResponseStatus.Success,
+          assignments,
+        };
+      });
+
+      const spy = spyOn(service, 'getDocumentModelAndItems');
+      const resp = await service.getItems(0, LMSGet.Assignments);
+      expect(spy).toBeCalledTimes(1);
+      expect(resp).toEqual(assignments);
+    });
+
+    it('should return list of announcements if type is Announcements', async () => {
+      const announcements = [{ id: 1 }, { id: 2 }, { id: 3 }];
+      mockAdapter.getAnnouncements = jest.fn(async () => {
+        return {
+          status: LMSApiResponseStatus.Success,
+          announcements,
+        };
+      });
+
+      const spy = spyOn(service, 'getDocumentModelAndItems');
+      const resp = await service.getItems(0, LMSGet.Announcements);
+      expect(spy).toBeCalledTimes(1);
+      expect(resp).toEqual(announcements);
+    });
+
+    it('should return course object if type is Course', async () => {
+      const course = { id: 1 };
+      mockAdapter.getCourse = jest.fn(async () => {
+        return {
+          status: LMSApiResponseStatus.Success,
+          course,
+        };
+      });
+
+      const resp = await service.getItems(0, LMSGet.Course);
+      expect(resp).toEqual(course);
+    });
+  });
+
+  describe('getDocumentModel', () => {
+    it('should return LMSAnnouncementModel if type is Announcements', async () => {
+      const res = await service.getDocumentModel(LMSUpload.Announcements);
+      expect(res).toBe(typeof LMSAnnouncementModel);
+    });
+
+    it('should return LMSAssignmentModel if type is Assignments', async () => {
+      const res = await service.getDocumentModel(LMSUpload.Assignments);
+      expect(res).toBe(typeof LMSAssignmentModel);
+    });
+
+    it('should return bad request if model is invalid', async () => {
+      expect(
+        async () =>
+          await service.getDocumentModel('None' as unknown as LMSUpload),
+      ).toThrow(
+        new HttpException(
+          ERROR_MESSAGES.lmsController.invalidDocumentType,
+          HttpStatus.BAD_REQUEST,
+        ),
+      );
+    });
+  });
+
+  describe('getDocumentModelAndItems', () => {
+    let org: OrganizationModel;
+    let orgInt: LMSOrganizationIntegrationModel;
+    let course: CourseModel;
+    let courseInt: LMSCourseIntegrationModel;
+
+    beforeEach(async () => {
+      org = await OrganizationFactory.create();
+      orgInt = await lmsOrgIntFactory.create({
+        organizationId: org.id,
+        rootUrl: 'www.example.com',
+        apiPlatform: LMSIntegrationPlatform.Canvas,
+      });
+      course = await CourseFactory.create();
+      courseInt = await lmsCourseIntFactory.create({
+        orgIntegration: orgInt,
+        courseId: course.id,
+        apiCourseId: 'abc',
+        apiKey: 'def',
+        apiKeyExpiry: undefined,
+      });
+    });
+
+    it('should return all matching assignments', async () => {
+      for (let i = 1; i < 5; i++) {
+        await LMSAssignmentModel.create({
+          id: i,
+          courseId: course.id,
+          name: `assignment${i}`,
+          description: `description for assignment ${i}`,
+          modified: new Date(),
+          lmsSource: LMSIntegrationPlatform.Canvas,
+          syncEnabled: i % 2 == 0,
+        }).save();
+      }
+      const assignments = LMSAssignmentModel.find({
+        where: {
+          courseId: course.id,
+          syncEnabled: true,
+        },
+      });
+      const res = await service.getDocumentModelAndItems(
+        course.id,
+        LMSUpload.Assignments,
+      );
+      expect(res.model).toBe(typeof LMSAssignmentModel);
+      expect(res.items).toEqual(assignments);
+    });
+
+    it('should return all matching announcements', async () => {
+      for (let i = 1; i < 5; i++) {
+        await LMSAnnouncementModel.create({
+          id: i,
+          courseId: course.id,
+          title: `announcement${i}`,
+          message: `description for announcement ${i}`,
+          modified: new Date(),
+          lmsSource: LMSIntegrationPlatform.Canvas,
+          syncEnabled: i % 2 == 0,
+        }).save();
+      }
+      const announcements = LMSAnnouncementModel.find({
+        where: {
+          courseId: course.id,
+          syncEnabled: true,
+        },
+      });
+      const res = await service.getDocumentModelAndItems(
+        course.id,
+        LMSUpload.Announcements,
+      );
+      expect(res.model).toBe(typeof LMSAnnouncementModel);
+      expect(res.items).toEqual(announcements);
+    });
+
+    it('should return all from specified platforms', async () => {
+      for (let i = 1; i < 5; i++) {
+        await LMSAnnouncementModel.create({
+          id: i,
+          courseId: course.id,
+          title: `announcement${i}`,
+          message: `description for announcement ${i}`,
+          modified: new Date(),
+          lmsSource:
+            i % 2 == 0
+              ? LMSIntegrationPlatform.Canvas
+              : ('None' as LMSIntegrationPlatform),
+        }).save();
+      }
+      const announcements = LMSAnnouncementModel.find({
+        where: {
+          courseId: course.id,
+          lmsSource: 'None' as LMSIntegrationPlatform,
+        },
+      });
+      const res = await service.getDocumentModelAndItems(
+        course.id,
+        LMSUpload.Announcements,
+        ['None' as LMSIntegrationPlatform],
+      );
+      expect(res.model).toBe(typeof LMSAnnouncementModel);
+      expect(res.items).toEqual(announcements);
     });
   });
 });
