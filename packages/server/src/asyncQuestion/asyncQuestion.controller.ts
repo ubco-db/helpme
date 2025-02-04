@@ -23,7 +23,6 @@ import {
   Patch,
   Post,
   Res,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -32,7 +31,6 @@ import { User, UserId } from '../decorators/user.decorator';
 import { AsyncQuestionModel } from './asyncQuestion.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Response } from 'express';
-import { MailService } from 'mail/mail.service';
 import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
@@ -306,7 +304,6 @@ export class asyncQuestionController {
     if (body.status === asyncQuestionStatus.HumanAnswered) {
       question.closedAt = new Date();
       question.taHelpedId = userId;
-      // TODO: add tests in asyncQuestion.integration to test to make sure it is sending the emails
       await this.asyncQuestionService.sendQuestionAnsweredEmail(question);
     } else if (
       body.status !== asyncQuestionStatus.TADeleted &&

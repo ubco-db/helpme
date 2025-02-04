@@ -45,7 +45,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         requests.)
       </p>
       <p>
-        <Link className="text-xl text-blue-500" href="api/v1/logout">
+        <Link
+          className="text-xl text-blue-500"
+          href="/api/v1/logout"
+          prefetch={false}
+        >
           Log Out
         </Link>
       </p>

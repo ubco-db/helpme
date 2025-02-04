@@ -49,11 +49,6 @@ export function getAnonAnimal(anonId: number) {
   return ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES[anonId]
 }
 
-// export function getAnonNumber(userId: number, questionId: number) {
-//   const hash = userId + questionId
-//   return (hash % 99) + 1
-// }
-
 /**
  * This just returns the tooltip that shows on their avatars, it's used in AsyncQuestionCard and Comment
  */

@@ -37,7 +37,9 @@ const EmailNotifications: React.FC = () => {
     (uc) => uc.role === Role.TA || uc.role === Role.PROFESSOR,
   )
 
-  // The only people that have access to staff notifications are staff or if they are subscribed to any 'professor' type email notifications
+  // The only people that have access to staff notifications are staff
+  // Note that there is the potential issue that someone is staff, they subscribe, and then lose their staff status.
+  // The fix to this was to just make the endpoint check if they are staff before sending the email rather than trying to sync the subscribed status with their role
   const showStaffNotifications =
     isStaffInAnyCourse ||
     userInfo.userRole === OrganizationRole.PROFESSOR ||

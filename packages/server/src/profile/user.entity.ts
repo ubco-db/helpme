@@ -154,9 +154,11 @@ export class UserModel extends BaseEntity {
   readChangeLog: boolean;
 
   @OneToMany((type) => QuestionModel, (q) => q.creator)
+  @Exclude()
   questions: QuestionModel[];
 
   @OneToMany((type) => AsyncQuestionModel, (aq) => aq.creator)
+  @Exclude()
   asyncQuestions: AsyncQuestionModel[];
 
   @OneToMany((type) => AsyncQuestionCommentModel, (aqc) => aqc.creator)
