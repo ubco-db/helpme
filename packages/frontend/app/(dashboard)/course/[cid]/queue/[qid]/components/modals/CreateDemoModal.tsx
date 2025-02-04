@@ -10,7 +10,6 @@ import {
 } from '@koh/common'
 import { Alert, Form, Modal } from 'antd'
 import TaskSelector from '../TaskSelector'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useEffect, useState } from 'react'
 
 interface FormValues {

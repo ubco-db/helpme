@@ -37,6 +37,7 @@ import { QueueChatsModel } from './src/queueChats/queue-chats.entity';
 import { LMSOrganizationIntegrationModel } from './src/lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from './src/lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';
+import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entity';
 
 config();
 
@@ -93,6 +94,7 @@ const typeorm = {
     LMSOrganizationIntegrationModel,
     LMSCourseIntegrationModel,
     LMSAssignmentModel,
+    LMSAnnouncementModel,
   ],
   keepConnectionAlive: true,
   logging:

@@ -160,9 +160,8 @@ const TaskSelector: React.FC<TaskSelectorProps> = ({
   useEffect(() => {
     // First, assemble a tree data structure that will allow us to easily find the tasks that are prerequisites for each task.
     // This turns all the preconditions into object references instead of strings
-    const configTasksCopy: ConfigTasksWithAssignmentProgress = {
-      ...configTasks,
-    } // Create a copy of configTasks (since the function will mutate it)
+    const configTasksCopy: ConfigTasksWithAssignmentProgress =
+      structuredClone(configTasks) // Create a copy of configTasks (since the function will mutate it)
     // For each task that is marked as done, give it the isDone = true attribute
     if (studentAssignmentProgress) {
       for (const [taskKey, taskValue] of Object.entries(

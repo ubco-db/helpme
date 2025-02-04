@@ -3,7 +3,7 @@ import {
   AlertType,
   asyncQuestionStatus,
   calendarEventLocationType,
-  LMSIntegration,
+  LMSIntegrationPlatform,
   MailServiceType,
   OrganizationRole,
   Role,
@@ -235,7 +235,7 @@ export const dashboardPresetFactory = new Factory(InsightDashboardModel)
   .assocOne('userCourse', UserCourseFactory);
 
 export const lmsOrgIntFactory = new Factory(LMSOrganizationIntegrationModel)
-  .attr('apiPlatform', 'Canvas' as LMSIntegration)
+  .attr('apiPlatform', LMSIntegrationPlatform.Canvas)
   .attr('rootUrl', '')
   .assocOne('organization', OrganizationFactory);
 

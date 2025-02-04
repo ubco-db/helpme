@@ -254,6 +254,42 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setHelpmeQuestionId(undefined)
     setInput('')
   }
+
+  const getSourceLinkButton = (
+    docName: string,
+    sourceLink: string,
+    part?: number,
+  ) => {
+    if (!sourceLink) {
+      return null
+    }
+
+    return (
+      <div
+        className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
+          sourceLink && 'hover:bg-black-300 cursor-pointer hover:text-white'
+        }`}
+        key={`${docName}-${part}`}
+        onClick={() => {
+          if (sourceLink) {
+            window.open(sourceLink)
+          }
+        }}
+      >
+        <p className="h-fit w-fit text-xs leading-4">
+          {part ? `p. ${part}` : 'Source'}
+        </p>
+      </div>
+    )
+  }
+
+  const extractLMSLink = (content?: string) => {
+    if (!content) return undefined
+    const idx = content.indexOf('Page Link:')
+    if (idx < 0) return undefined
+    return content.substring(idx + 'Page Link:'.length).trim()
+  }
+
   if (!cid || !courseFeatures?.chatBotEnabled) {
     return <></>
   } else {
@@ -379,7 +415,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                   (sourceDocument, idx) => (
                                     <Tooltip
                                       title={
-                                        sourceDocument.type
+                                        sourceDocument.type &&
+                                        sourceDocument.type !=
+                                          'inserted_lms_document'
                                           ? sourceDocument.content
                                           : ''
                                       }
@@ -389,30 +427,26 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                         <p className="px-2 py-1">
                                           {sourceDocument.docName}
                                         </p>
+                                        {sourceDocument.type ==
+                                          'inserted_lms_document' &&
+                                          extractLMSLink(
+                                            sourceDocument.content,
+                                          ) &&
+                                          getSourceLinkButton(
+                                            sourceDocument.docName,
+                                            extractLMSLink(
+                                              sourceDocument.content,
+                                            ) ?? '',
+                                            0,
+                                          )}
                                         {sourceDocument.pageNumbers &&
                                           sourceDocument.pageNumbers.map(
-                                            (part) => (
-                                              <div
-                                                className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
-                                                  sourceDocument.sourceLink &&
-                                                  'hover:bg-black-300 cursor-pointer hover:text-white'
-                                                }`}
-                                                key={`${sourceDocument.docName}-${part}`}
-                                                onClick={() => {
-                                                  if (
-                                                    sourceDocument.sourceLink
-                                                  ) {
-                                                    window.open(
-                                                      sourceDocument.sourceLink,
-                                                    )
-                                                  }
-                                                }}
-                                              >
-                                                <p className="h-fit w-fit text-xs leading-4">
-                                                  {`p. ${part}`}
-                                                </p>
-                                              </div>
-                                            ),
+                                            (part) =>
+                                              getSourceLinkButton(
+                                                sourceDocument.docName,
+                                                sourceDocument.sourceLink,
+                                                part,
+                                              ),
                                           )}
                                       </div>
                                     </Tooltip>
