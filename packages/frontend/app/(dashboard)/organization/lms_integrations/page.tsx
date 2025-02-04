@@ -51,10 +51,17 @@ export default function LMSIntegrationsPage(): ReactElement {
 
   const mappedLMS = useMemo(() => {
     const pairs: { [key: string]: string } = {}
-    Object.keys(LMSIntegrationPlatform).map((integration: string) => {
-      pairs[integration] =
-        LMSIntegrationPlatform[integration as LMSIntegrationPlatform]
-    })
+    Object.keys(LMSIntegrationPlatform)
+      .filter(
+        (integration) =>
+          LMSIntegrationPlatform[integration as LMSIntegrationPlatform] !=
+          'None',
+      )
+      .map(
+        (integration: string) =>
+          (pairs[integration] =
+            LMSIntegrationPlatform[integration as LMSIntegrationPlatform]),
+      )
     return pairs
   }, [])
 

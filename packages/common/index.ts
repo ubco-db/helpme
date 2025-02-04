@@ -2397,6 +2397,7 @@ export function decodeBase64(str: string) {
 }
 
 export enum LMSIntegrationPlatform {
+  None = 'None',
   Canvas = 'Canvas',
 }
 

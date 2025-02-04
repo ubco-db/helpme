@@ -7,7 +7,7 @@ export class addLmsIntegrationModels1737915783083
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TYPE "public"."lms_api_platform_enum" AS ENUM('Canvas')`,
+      `CREATE TYPE "public"."lms_api_platform_enum" AS ENUM('None','Canvas')`,
     );
     await queryRunner.query(
       `CREATE TABLE "lms_assignment_model" ("id" integer NOT NULL, "courseId" integer NOT NULL, "lmsSource" "public"."lms_api_platform_enum" NOT NULL, "name" text NOT NULL, "description" text NOT NULL DEFAULT '', "due" TIMESTAMP, "modified" TIMESTAMP NOT NULL, "chatbotDocumentId" text, "uploaded" TIMESTAMP, "syncEnabled" BOOLEAN DEFAULT(TRUE), CONSTRAINT "PK_632eb1b1362c2e5d805db6ea013" PRIMARY KEY ("id", "courseId"))`,

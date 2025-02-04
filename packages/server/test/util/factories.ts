@@ -234,7 +234,7 @@ export const dashboardPresetFactory = new Factory(InsightDashboardModel)
   .assocOne('userCourse', UserCourseFactory);
 
 export const lmsOrgIntFactory = new Factory(LMSOrganizationIntegrationModel)
-  .attr('apiPlatform', 'Canvas' as LMSIntegrationPlatform)
+  .attr('apiPlatform', LMSIntegrationPlatform.Canvas)
   .attr('rootUrl', '')
   .assocOne('organization', OrganizationFactory);
 
