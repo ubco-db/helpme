@@ -37,6 +37,7 @@ import { LMSOrganizationIntegrationModel } from './src/lmsIntegration/lmsOrgInte
 import { LMSCourseIntegrationModel } from './src/lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';
 import { UserCourseAsyncQuestionModel } from './src/profile/user-course-asyncQuestion.entity';
+import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entity';
 
 config();
 
@@ -93,6 +94,7 @@ const typeorm = {
     LMSCourseIntegrationModel,
     LMSAssignmentModel,
     UserCourseAsyncQuestionModel,
+    LMSAnnouncementModel,
   ],
   keepConnectionAlive: true,
   logging:

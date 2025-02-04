@@ -9,8 +9,8 @@ import {
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 import { LMSIntegrationPlatform } from '@koh/common';
 
-@Entity('lms_assignment_model')
-export class LMSAssignmentModel extends BaseEntity {
+@Entity('lms_announcement_model')
+export class LMSAnnouncementModel extends BaseEntity {
   @PrimaryColumn()
   id: number;
 
@@ -24,13 +24,13 @@ export class LMSAssignmentModel extends BaseEntity {
   lmsSource: LMSIntegrationPlatform;
 
   @Column({ type: 'text' })
-  name: string;
+  title: string;
 
-  @Column({ type: 'text', default: '' })
-  description: string;
+  @Column({ type: 'text' })
+  message: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  due?: Date;
+  @Column({ type: 'timestamp' })
+  posted: Date;
 
   @Column({ type: 'timestamp' })
   modified: Date;

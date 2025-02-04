@@ -65,6 +65,10 @@ export async function middleware(
           },
           1, // retry only once
         )
+      } else if (data.status >= 300 && data.status < 400) {
+        // The user was redirected (from some other part of our app, maybe even this middleware)
+        // We should just let them through to the next page
+        return NextResponse.next()
       } else if (data.status === 429) {
         // Too many requests (somehow. This should never happen since the getUser api has no throttler, but i'm leaving this here in case that changes).
         // Ideally, we would just do an antd message.error, but we can't do that in middelware since it's server-side.
@@ -78,19 +82,43 @@ export async function middleware(
         })
       } else if (data.status >= 400) {
         // this really is not meant to happen
-        const userData: User = await data.json()
-        Sentry.captureEvent({
-          message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
-          level: 'error',
-          extra: {
-            requestedRoute: nextUrl.pathname,
-            statusText: data.statusText,
-            statusCode: data.status,
-            userId: userData.id,
-            userEmail: userData.email,
-            userRole: userData.organization?.organizationRole,
-          },
-        })
+        if (data.headers.get('content-type')?.includes('application/json')) {
+          const userData: User = await data.json()
+          Sentry.captureEvent({
+            message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
+            level: 'error',
+            extra: {
+              requestedRoute: nextUrl.pathname,
+              statusText: data.statusText,
+              statusCode: data.status,
+              userId: userData.id,
+              userEmail: userData.email,
+              userRole: userData.organization?.organizationRole,
+            },
+          })
+        } else if (data.headers.get('content-type')?.includes('text/html')) {
+          const text = await data.text()
+          Sentry.captureEvent({
+            message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
+            level: 'error',
+            extra: {
+              requestedRoute: nextUrl.pathname,
+              statusText: data.statusText,
+              statusCode: data.status,
+              text,
+            },
+          })
+        } else {
+          Sentry.captureEvent({
+            message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
+            level: 'error',
+            extra: {
+              requestedRoute: nextUrl.pathname,
+              statusText: data.statusText,
+              statusCode: data.status,
+            },
+          })
+        }
         return await handleRetry(request, () => {
           const response = NextResponse.redirect(
             new URL(

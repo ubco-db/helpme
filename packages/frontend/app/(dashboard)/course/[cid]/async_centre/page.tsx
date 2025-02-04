@@ -123,20 +123,16 @@ export default function AsyncCentrePage({
     if (
       userInfo.courses.find((e) => e.course.id === courseId)?.unreadCount !== 0
     )
-      API.course.updateUnreadAsyncCount(courseId)
-    setUserInfo({
-      ...userInfo,
-      courses: userInfo.courses.map((e) => {
-        if (e.course.id === courseId) {
-          return {
-            ...e,
-            unreadCount: 0,
-          }
-        } else {
-          return e
-        }
-      }),
-    })
+      API.course.updateUnreadAsyncCount(courseId).then(() => {
+        setUserInfo({
+          ...userInfo,
+          courses: userInfo.courses.map((course) =>
+            course.course.id === courseId
+              ? { ...course, unreadCount: 0 }
+              : course,
+          ),
+        })
+      })
   }, [])
 
   useEffect(() => {

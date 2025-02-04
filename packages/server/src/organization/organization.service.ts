@@ -8,12 +8,10 @@ import {
   CourseResponse,
   GetOrganizationUserResponse,
   OrgUser,
-  LMSOrganizationIntegrationPartial,
   Role,
   UserRole,
 } from '@koh/common';
 import { UserCourseModel } from 'profile/user-course.entity';
-import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 
 export interface FlattenedOrganizationResponse {
   id: number;
@@ -310,31 +308,5 @@ export class OrganizationService {
     };
 
     return flattenedOrganization;
-  }
-
-  public async upsertLMSIntegration(
-    organizationId: number,
-    props: LMSOrganizationIntegrationPartial,
-  ) {
-    let integration = await LMSOrganizationIntegrationModel.findOne({
-      where: { organizationId: organizationId, apiPlatform: props.apiPlatform },
-    });
-    let isUpdate = false;
-    if (integration) {
-      integration.rootUrl = props.rootUrl;
-      isUpdate = true;
-    } else {
-      integration = new LMSOrganizationIntegrationModel();
-      integration.organizationId = organizationId;
-      integration.apiPlatform = props.apiPlatform;
-      integration.rootUrl = props.rootUrl;
-    }
-    await LMSOrganizationIntegrationModel.upsert(integration, [
-      'organizationId',
-      'apiPlatform',
-    ]);
-    return isUpdate
-      ? `Successfully updated integration for ${integration.apiPlatform}`
-      : `Successfully created integration for ${integration.apiPlatform}`;
   }
 }
