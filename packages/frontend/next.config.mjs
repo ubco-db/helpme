@@ -1,7 +1,7 @@
 import {withSentryConfig} from "@sentry/nextjs";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // reactStrictMode: false,
+  reactStrictMode: false, // disabled since it messes with antd forms unfortunately
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
