@@ -56,7 +56,7 @@ export function setupIntegrationTest(
   let redisPort: number;
 
   beforeAll(async () => {
-    if (process.env.CI !== 'true') {
+    if (!process.env.CI) {
       // See if the environment variable is the issue
       // Start Redis in-memory server
       try {
