@@ -84,22 +84,6 @@ export class asyncQuestionController {
         thisUserThisQuestionVote.question = question;
         thisUserThisQuestionVote.vote = newValue;
       }
-      // if a question is voted on, mark all course users' entries as unread
-      if (question.visible) {
-        await getRepository(UserCourseAsyncQuestionModel)
-          .createQueryBuilder()
-          .useTransaction(true)
-          .update(UserCourseAsyncQuestionModel)
-          .set({ readLatest: false })
-          .where('asyncQuestionId = :asyncQuestionId', {
-            asyncQuestionId: question.id,
-          })
-          .andWhere(
-            `userCourseId IN (SELECT id FROM user_course_model WHERE "userId" != :userId)`,
-            { userId: user.id },
-          )
-          .execute();
-      }
     }
 
     await thisUserThisQuestionVote.save();
