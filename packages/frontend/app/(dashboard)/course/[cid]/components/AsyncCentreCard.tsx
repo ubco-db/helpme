@@ -38,8 +38,8 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
           unreadCount > 0 && (
             <>
               <div className="mr-8 h-fit text-sm font-normal text-gray-200">
-                <span className="text-lg font-medium">{unreadCount}</span>{' '}
-                updates
+                <span className="text-lg font-medium">{unreadCount}</span>
+                {` update${unreadCount > 1 ? 's' : ''}`}
               </div>
             </>
           )
