@@ -129,16 +129,15 @@ export class asyncQuestionController {
 
       if (subscription) {
         const service = subscription.service;
-        // PAT TODO: Uncomment this
-        // await this.mailService.sendEmail({
-        //   receiver: question.creator.email,
-        //   type: service.serviceType,
-        //   subject: 'HelpMe - Your Anytime Question Has Been Upvoted',
-        //   content: `<br> <b>Your question on the anytime question hub has received an upvote:</b>
-        //   <br> Question: ${question.questionText}
-        //   <br> Current votes: ${updatedQuestion.votesSum}
-        //   <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
-        // });
+        await this.mailService.sendEmail({
+          receiver: question.creator.email,
+          type: service.serviceType,
+          subject: 'HelpMe - Your Anytime Question Has Been Upvoted',
+          content: `<br> <b>Your question on the anytime question hub has received an upvote:</b>
+          <br> Question: ${question.questionText}
+          <br> Current votes: ${updatedQuestion.votesSum}
+          <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
+        });
       }
     }
 
@@ -286,21 +285,20 @@ export class asyncQuestionController {
         .getMany();
 
       // Send emails in parallel
-      // PAT TODO: Uncomment this
-      // await Promise.all(
-      //   subscriptions.map((sub) =>
-      //     this.mailService.sendEmail({
-      //       receiver: sub.user.email,
-      //       type: MailServiceType.ASYNC_QUESTION_FLAGGED,
-      //       subject: 'HelpMe - New Question Marked as Needing Attention',
-      //       content: `<br> <b>A new question has been posted on the anytime question hub and has been marked as needing attention:</b>
-      //       <br> <b>Question Abstract:</b> ${question.questionAbstract}
-      //       <br> <b>Question Types:</b> ${question.questionTypes.map((qt) => qt.name).join(', ')}
-      //       <br> <b>Question Text:</b> ${question.questionText}
-      //       <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
-      //     }),
-      //   ),
-      // );
+      await Promise.all(
+        subscriptions.map((sub) =>
+          this.mailService.sendEmail({
+            receiver: sub.user.email,
+            type: MailServiceType.ASYNC_QUESTION_FLAGGED,
+            subject: 'HelpMe - New Question Marked as Needing Attention',
+            content: `<br> <b>A new question has been posted on the anytime question hub and has been marked as needing attention:</b>
+            <br> <b>Question Abstract:</b> ${question.questionAbstract}
+            <br> <b>Question Types:</b> ${question.questionTypes.map((qt) => qt.name).join(', ')}
+            <br> <b>Question Text:</b> ${question.questionText}
+            <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
+          }),
+        ),
+      );
     }
 
     let updated = false;
@@ -407,15 +405,14 @@ export class asyncQuestionController {
 
       if (subscription) {
         const service = subscription.service;
-        // PAT TODO: Uncomment this
-        // await this.mailService.sendEmail({
-        //   receiver: question.creator.email,
-        //   type: service.serviceType,
-        //   subject: 'HelpMe - Your Anytime Question Has Been Answered',
-        //   content: `<br> <b>Your question on the anytime question hub has been answered or verified by staff:</b>
-        //   <br> ${question.answerText}
-        //   <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
-        // });
+        await this.mailService.sendEmail({
+          receiver: question.creator.email,
+          type: service.serviceType,
+          subject: 'HelpMe - Your Anytime Question Has Been Answered',
+          content: `<br> <b>Your question on the anytime question hub has been answered or verified by staff:</b>
+          <br> ${question.answerText}
+          <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
+        });
       }
     } else {
       //send generic your async question changed.
@@ -432,15 +429,14 @@ export class asyncQuestionController {
 
       if (statusChangeSubscription) {
         const service = statusChangeSubscription.service;
-        // PAT TODO: Uncomment this
-        // await this.mailService.sendEmail({
-        //   receiver: question.creator.email,
-        //   type: service.serviceType,
-        //   subject: 'HelpMe - Your Anytime Question Status Has Changed',
-        //   content: `<br> <b>The status of your question on the anytime question hub has been updated:</b>
-        //   <br> New status: ${body.status}
-        //   <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
-        // });
+        await this.mailService.sendEmail({
+          receiver: question.creator.email,
+          type: service.serviceType,
+          subject: 'HelpMe - Your Anytime Question Status Has Changed',
+          content: `<br> <b>The status of your question on the anytime question hub has been updated:</b>
+          <br> New status: ${body.status}
+          <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
+        });
       }
     }
 
