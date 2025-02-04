@@ -74,80 +74,8 @@ export class ProfileController {
     const redisRecord = await this.redisProfileService.getKey(`u:${user.id}`);
 
     if (!redisRecord) {
-      const courses = user.courses
-        ? user.courses
-            .filter((userCourse) => userCourse?.course?.enabled)
-            .map((userCourse) => {
-              return {
-                course: {
-                  id: userCourse.courseId,
-                  name: userCourse.course.name,
-                },
-                role: userCourse.role,
-              };
-            })
-        : [];
-
-      const desktopNotifs: DesktopNotifPartial[] = user.desktopNotifs
-        ? user.desktopNotifs.map((d) => ({
-            endpoint: d.endpoint,
-            id: d.id,
-            createdAt: d.createdAt,
-            name: d.name,
-          }))
-        : [];
-
-      const userResponse = pick(user, [
-        'id',
-        'email',
-        'name',
-        'sid',
-        'firstName',
-        'lastName',
-        'photoURL',
-        'defaultMessage',
-        'includeDefaultMessage',
-        'desktopNotifsEnabled',
-        'insights',
-        'userRole',
-        'accountType',
-        'emailVerified',
-        'chat_token',
-        'readChangeLog',
-      ]);
-
-      if (userResponse === null || userResponse === undefined) {
-        console.error(ERROR_MESSAGES.profileController.userResponseNotFound);
-        throw new HttpException(
-          ERROR_MESSAGES.profileController.userResponseNotFound,
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      // this is old code from Khoury College's semester system
-      //const pendingCourses = await this.profileService.getPendingCourses(user.id);
-      const userOrganization =
-        await this.organizationService.getOrganizationAndRoleByUserId(user.id);
-
-      const organization = pick(userOrganization, [
-        'id',
-        'orgId',
-        'organizationName',
-        'organizationDescription',
-        'organizationLogoUrl',
-        'organizationBannerUrl',
-        'organizationRole',
-      ]);
-
-      const profile = {
-        ...userResponse,
-        courses,
-        desktopNotifs,
-        organization,
-      };
-
+      const profile = await this.profileService.getProfile(user);
       console.log('Fetching profile from database');
-
       // Update redis
       if (profile) {
         await this.redisProfileService.setProfile(`u:${user.id}`, profile);
