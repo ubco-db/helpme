@@ -43,7 +43,7 @@ export class UserCourseModel extends BaseEntity {
     (type) => InsightDashboardModel,
     (insightDashboard) => insightDashboard.userCourse,
   )
-  insightDashboard?: InsightDashboardModel;
+  insightDashboard?: InsightDashboardModel[];
 
   @OneToMany((type) => UserCourseAsyncQuestionModel, (ucm) => ucm.userCourse)
   courseAsyncQuestions?: UserCourseAsyncQuestionModel[];

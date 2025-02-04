@@ -39,6 +39,7 @@ import {
   UseGuards,
   UseInterceptors,
   ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import async from 'async';
 import { Response, Request } from 'express';
@@ -1135,6 +1136,32 @@ export class CourseController {
 
     res.status(200).send(queueInvites);
     return;
+  }
+
+  // Moved from userInfo context endpoint as this updates too frequently to make sense caching it with userInfo data
+  @Get(':id/unread_async_count')
+  @UseGuards(JwtAuthGuard)
+  async getUnreadAsyncCount(
+    @Param('id', ParseIntPipe) courseId: number,
+    @User() user: UserModel,
+  ): Promise<number> {
+    const userCourse = await UserCourseModel.findOne({
+      where: { courseId, user },
+    });
+
+    if (!userCourse) {
+      throw new ForbiddenException('User is not in the course');
+    }
+
+    const userCourseAsyncQuestions = await UserCourseAsyncQuestionModel.find({
+      where: {
+        userCourse,
+        readLatest: false,
+      },
+      relations: ['userCourse'],
+    });
+
+    return userCourseAsyncQuestions.length;
   }
 
   @Patch(':id/unread_async_count')
