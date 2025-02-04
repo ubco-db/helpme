@@ -17,10 +17,9 @@ export class LMSAnnouncementModel extends BaseEntity {
   @PrimaryColumn()
   courseId: number;
 
+  // Would rather this be enum, but evolving enums are not well-supported...
   @Column({
-    type: 'enum',
-    enum: LMSIntegrationPlatform,
-    enumName: 'lms_api_platform_enum',
+    type: 'text',
   })
   lmsSource: LMSIntegrationPlatform;
 

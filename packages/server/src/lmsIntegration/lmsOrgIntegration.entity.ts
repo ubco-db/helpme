@@ -17,9 +17,7 @@ export class LMSOrganizationIntegrationModel extends BaseEntity {
   organizationId: number;
 
   @PrimaryColumn({
-    type: 'enum',
-    enum: LMSIntegrationPlatform,
-    enumName: 'lms_api_platform_enum',
+    type: 'text',
   })
   apiPlatform: LMSIntegrationPlatform;
 

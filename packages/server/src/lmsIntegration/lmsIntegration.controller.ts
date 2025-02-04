@@ -546,9 +546,10 @@ export class LMSIntegrationController {
         throw new Error();
       }
     } catch (err) {
-      console.error(err);
       throw new HttpException(
-        ERROR_MESSAGES.lmsController.failedToClearOne,
+        newState
+          ? ERROR_MESSAGES.lmsController.failedToSyncOne
+          : ERROR_MESSAGES.lmsController.failedToClearOne,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

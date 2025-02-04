@@ -2636,6 +2636,7 @@ export const ERROR_MESSAGES = {
     courseLmsIntegrationNotFound: 'Course has no related LMS integration',
     syncDisabled: 'LMS synchronization has not been enabled.',
     failedToSync: 'Failed to synchronize course with LMS equivalent.',
+    failedToSyncOne: 'Failed to synchronize document from LMS equivalent.',
     failedToClear: 'Failed to clear documents from HelpMe database.',
     failedToClearOne: 'Failed to clear document from HelpMe database.',
     lmsDocumentNotFound: 'Document was not found.',
