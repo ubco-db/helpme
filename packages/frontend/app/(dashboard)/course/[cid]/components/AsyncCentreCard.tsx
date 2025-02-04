@@ -37,7 +37,7 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
             <>
               <div className="mr-8 h-fit text-sm font-normal text-gray-200">
                 <span className="text-lg font-medium">{unreadCount}</span>{' '}
-                unread
+                updates
               </div>
             </>
           )

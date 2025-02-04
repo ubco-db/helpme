@@ -11,7 +11,7 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
 import { asyncQuestionStatus, Role } from '@koh/common';
-import { UserCourseModel } from 'profile/user-course.entity';
+import { UserCourseAsyncQuestionModel } from 'profile/user-course-asyncQuestion.entity';
 
 describe('AsyncQuestion Integration', () => {
   const supertest = setupIntegrationTest(asyncQuestionModule);
@@ -62,9 +62,16 @@ describe('AsyncQuestion Integration', () => {
   });
   describe('Async question creation', () => {
     it('Student can create a question', async () => {
-      const prevCount = await UserCourseModel.findOne({
-        where: { userId: studentUser2.id, courseId: course.id },
-      });
+      const [prevRecords, prevCount] =
+        await UserCourseAsyncQuestionModel.findAndCount({
+          relations: ['userCourse', 'userCourse.user', 'userCourse.course'],
+          where: {
+            userCourse: {
+              user: { id: studentUser2.id },
+              course: { id: course.id },
+            },
+          },
+        });
 
       await supertest({ userId: studentUser.id })
         .post(`/asyncQuestions/${course.id}`)
@@ -74,12 +81,17 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(201)
         .then(async (response) => {
-          const currentCount = await UserCourseModel.findOne({
-            where: { userId: studentUser2.id, courseId: course.id },
-          });
-          expect(currentCount.unreadAsyncQuestions).toBe(
-            prevCount.unreadAsyncQuestions + 1,
-          );
+          const [currentRecords, currentCount] =
+            await UserCourseAsyncQuestionModel.findAndCount({
+              relations: ['userCourse', 'userCourse.user', 'userCourse.course'],
+              where: {
+                userCourse: {
+                  user: { id: studentUser2.id },
+                  course: { id: course.id },
+                },
+              },
+            });
+          expect(currentCount).toBe(prevCount + 1);
 
           expect(response.body).toHaveProperty('status', 'AIAnswered');
           expect(response.body).toHaveProperty('closedAt', null);

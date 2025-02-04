@@ -46,7 +46,7 @@ export default function AsyncCentrePage({
   const router = useRouter()
   const pathname = usePathname()
   const courseId = Number(params.cid)
-  const { userInfo } = useUserInfo()
+  const { userInfo, setUserInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
   const [asyncQuestions, mutateAsyncQuestions] = useAsnycQuestions(courseId)
@@ -124,6 +124,19 @@ export default function AsyncCentrePage({
       userInfo.courses.find((e) => e.course.id === courseId)?.unreadCount !== 0
     )
       API.course.updateUnreadAsyncCount(courseId)
+    setUserInfo({
+      ...userInfo,
+      courses: userInfo.courses.map((e) => {
+        if (e.course.id === courseId) {
+          return {
+            ...e,
+            unreadCount: 0,
+          }
+        } else {
+          return e
+        }
+      }),
+    })
   }, [])
 
   useEffect(() => {

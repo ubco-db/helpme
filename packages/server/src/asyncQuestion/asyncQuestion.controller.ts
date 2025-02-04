@@ -33,8 +33,9 @@ import { MailService } from 'mail/mail.service';
 import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
-import { MailServiceModel } from 'mail/mail-services.entity';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
+import { UserCourseAsyncQuestionModel } from '../profile/user-course-asyncQuestion.entity';
+import { getRepository } from 'typeorm';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -83,6 +84,22 @@ export class asyncQuestionController {
         thisUserThisQuestionVote.question = question;
         thisUserThisQuestionVote.vote = newValue;
       }
+      // if a question is voted on, mark all course users' entries as unread
+      if (question.verified) {
+        await getRepository(UserCourseAsyncQuestionModel)
+          .createQueryBuilder()
+          .useTransaction(true)
+          .update(UserCourseAsyncQuestionModel)
+          .set({ readLatest: false })
+          .where('asyncQuestionId = :asyncQuestionId', {
+            asyncQuestionId: question.id,
+          })
+          .andWhere(
+            `userCourseId IN (SELECT id FROM user_course_model WHERE "userId" != :userId)`,
+            { userId: user.id },
+          )
+          .execute();
+      }
     }
 
     await thisUserThisQuestionVote.save();
@@ -112,15 +129,15 @@ export class asyncQuestionController {
 
       if (subscription) {
         const service = subscription.service;
-        await this.mailService.sendEmail({
-          receiver: question.creator.email,
-          type: service.serviceType,
-          subject: 'HelpMe - Your Anytime Question Has Been Upvoted',
-          content: `<br> <b>Your question on the anytime question hub has received an upvote:</b> 
-          <br> Question: ${question.questionText}
-          <br> Current votes: ${updatedQuestion.votesSum}
-          <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
-        });
+        // await this.mailService.sendEmail({
+        //   receiver: question.creator.email,
+        //   type: service.serviceType,
+        //   subject: 'HelpMe - Your Anytime Question Has Been Upvoted',
+        //   content: `<br> <b>Your question on the anytime question hub has received an upvote:</b>
+        //   <br> Question: ${question.questionText}
+        //   <br> Current votes: ${updatedQuestion.votesSum}
+        //   <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
+        // });
       }
     }
 
@@ -170,20 +187,30 @@ export class asyncQuestionController {
           courseId: cid,
           id: question.id,
         },
-        relations: ['creator', 'taHelped', 'votes'],
+        relations: ['creator', 'taHelped', 'votes', 'viewers'],
       });
-
-      // PAT TODO: remove
-      // // update read counts for all users in course
-      // const query = await UserCourseModel.createQueryBuilder()
-      //   .update(UserCourseModel)
-      //   .set({ unreadAsyncQuestions: () => '"unreadAsyncQuestions" + 1' })
-      //   .where('courseId = :courseId', { courseId: cid })
-      //   .andWhere('userId != :userId', { userId: user.id }) // Exclude the question creator
-      //   .execute();
 
       await this.redisQueueService.addAsyncQuestion(`c:${cid}:aq`, newQuestion);
 
+      const usersInCourse = await UserCourseModel.find({
+        where: { courseId: cid },
+      });
+
+      if (usersInCourse?.length) {
+        await getRepository(UserCourseAsyncQuestionModel)
+          .createQueryBuilder()
+          .useTransaction(true)
+          .insert()
+          .into(UserCourseAsyncQuestionModel)
+          .values(
+            usersInCourse.map((userCourse) => ({
+              userCourse: userCourse,
+              asyncQuestion: question,
+              readLatest: false,
+            })),
+          )
+          .execute();
+      }
       res.status(HttpStatus.CREATED).send(question);
       return;
     } catch (err) {
@@ -256,30 +283,51 @@ export class asyncQuestionController {
         .getMany();
 
       // Send emails in parallel
-      await Promise.all(
-        subscriptions.map((sub) =>
-          this.mailService.sendEmail({
-            receiver: sub.user.email,
-            type: MailServiceType.ASYNC_QUESTION_FLAGGED,
-            subject: 'HelpMe - New Question Marked as Needing Attention',
-            content: `<br> <b>A new question has been posted on the anytime question hub and has been marked as needing attention:</b> 
-            <br> <b>Question Abstract:</b> ${question.questionAbstract}
-            <br> <b>Question Types:</b> ${question.questionTypes.map((qt) => qt.name).join(', ')}
-            <br> <b>Question Text:</b> ${question.questionText}
-            <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
-          }),
-        ),
-      );
+      // PAT TODO: add back
+      // await Promise.all(
+      //   subscriptions.map((sub) =>
+      //     this.mailService.sendEmail({
+      //       receiver: sub.user.email,
+      //       type: MailServiceType.ASYNC_QUESTION_FLAGGED,
+      //       subject: 'HelpMe - New Question Marked as Needing Attention',
+      //       content: `<br> <b>A new question has been posted on the anytime question hub and has been marked as needing attention:</b>
+      //       <br> <b>Question Abstract:</b> ${question.questionAbstract}
+      //       <br> <b>Question Types:</b> ${question.questionTypes.map((qt) => qt.name).join(', ')}
+      //       <br> <b>Question Text:</b> ${question.questionText}
+      //       <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
+      //     }),
+      //   ),
+      // );
     }
+
+    let updated = false;
 
     // Update allowed fields
     Object.keys(body).forEach((key) => {
       if (body[key] !== undefined && body[key] !== null) {
+        updated = true;
         question[key] = body[key];
       }
     });
 
     const updatedQuestion = await question.save();
+
+    // if a question is updated by student and is verified, mark all course users' entries as unread
+    if (updated && updatedQuestion.verified) {
+      await getRepository(UserCourseAsyncQuestionModel)
+        .createQueryBuilder()
+        .useTransaction(true)
+        .update(UserCourseAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: questionId,
+        })
+        .andWhere(
+          `userCourseId IN (SELECT id FROM user_course_model WHERE "userId" != :userId)`,
+          { userId: user.id },
+        )
+        .execute();
+    }
 
     if (body.status === asyncQuestionStatus.StudentDeleted) {
       await this.redisQueueService.deleteAsyncQuestion(
@@ -298,6 +346,7 @@ export class asyncQuestionController {
     return question;
   }
 
+  // check that verified equals true and something changed
   @Patch('faculty/:questionId')
   async updateTAQuestion(
     @Param('questionId', ParseIntPipe) questionId: number,
@@ -330,8 +379,11 @@ export class asyncQuestionController {
       );
     }
 
+    let updated = false;
+
     Object.keys(body).forEach((key) => {
       if (body[key] !== undefined && body[key] !== null) {
+        updated = true;
         question[key] = body[key];
       }
     });
@@ -351,15 +403,16 @@ export class asyncQuestionController {
       });
 
       if (subscription) {
-        const service = subscription.service;
-        await this.mailService.sendEmail({
-          receiver: question.creator.email,
-          type: service.serviceType,
-          subject: 'HelpMe - Your Anytime Question Has Been Answered',
-          content: `<br> <b>Your question on the anytime question hub has been answered or verified by staff:</b> 
-          <br> ${question.answerText}
-          <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
-        });
+        // PAT TODO: add back
+        // const service = subscription.service;
+        // await this.mailService.sendEmail({
+        //   receiver: question.creator.email,
+        //   type: service.serviceType,
+        //   subject: 'HelpMe - Your Anytime Question Has Been Answered',
+        //   content: `<br> <b>Your question on the anytime question hub has been answered or verified by staff:</b>
+        //   <br> ${question.answerText}
+        //   <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
+        // });
       }
     } else {
       //send generic your async question changed.
@@ -376,17 +429,36 @@ export class asyncQuestionController {
 
       if (statusChangeSubscription) {
         const service = statusChangeSubscription.service;
-        await this.mailService.sendEmail({
-          receiver: question.creator.email,
-          type: service.serviceType,
-          subject: 'HelpMe - Your Anytime Question Status Has Changed',
-          content: `<br> <b>The status of your question on the anytime question hub has been updated:</b> 
-          <br> New status: ${body.status}
-          <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
-        });
+        // PAT TODO: add back
+        // await this.mailService.sendEmail({
+        //   receiver: question.creator.email,
+        //   type: service.serviceType,
+        //   subject: 'HelpMe - Your Anytime Question Status Has Changed',
+        //   content: `<br> <b>The status of your question on the anytime question hub has been updated:</b>
+        //   <br> New status: ${body.status}
+        //   <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
+        // });
       }
     }
+
     const updatedQuestion = await question.save();
+
+    // if a question is updated by staff and is verified, mark all user's questions as unread
+    if (updated && updatedQuestion.verified) {
+      await getRepository(UserCourseAsyncQuestionModel)
+        .createQueryBuilder()
+        .useTransaction(true)
+        .update(UserCourseAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: questionId,
+        })
+        .andWhere(
+          `userCourseId IN (SELECT "id" FROM user_course_model WHERE "userId" != :userId)`,
+          { userId: user.id },
+        )
+        .execute();
+    }
 
     if (
       body.status === asyncQuestionStatus.TADeleted ||

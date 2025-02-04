@@ -6,7 +6,6 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { CourseModel } from '../course/course.entity';
 import { UserCourseModel } from './user-course.entity';
 import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
 
@@ -19,7 +18,7 @@ export class UserCourseAsyncQuestionModel extends BaseEntity {
     (type) => UserCourseModel,
     (userCourse) => userCourse.courseAsyncQuestions,
   )
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'userCourseId' })
   userCourse: UserCourseModel;
 
   @Column({ nullable: true })
@@ -29,12 +28,12 @@ export class UserCourseAsyncQuestionModel extends BaseEntity {
     (type) => AsyncQuestionModel,
     (asyncQuestion) => asyncQuestion.viewers,
   )
-  @JoinColumn({ name: 'courseId' })
-  asyncQuestion: CourseModel;
+  @JoinColumn({ name: 'asyncQuestionId' })
+  asyncQuestion: AsyncQuestionModel;
 
   @Column({ nullable: true })
   asyncQuestionId: number;
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ type: 'boolean', default: true })
   readLatest: boolean;
 }

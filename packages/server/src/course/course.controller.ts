@@ -70,6 +70,7 @@ import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
+import { UserCourseAsyncQuestionModel } from 'profile/user-course-asyncQuestion.entity';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -1146,19 +1147,20 @@ export class CourseController {
     @Param('id', ParseIntPipe) courseId: number,
     @User() user: UserModel,
   ): Promise<void> {
-    const userCourse = await UserCourseModel.findOne({
+    const userCourseAsyncQuestions = await UserCourseAsyncQuestionModel.find({
       where: {
-        user,
-        courseId,
+        userCourse: {
+          courseId,
+          user,
+        },
       },
+      relations: ['userCourse'],
     });
 
-    if (!userCourse) {
-      throw new NotFoundException('UserCourse not found');
-    }
-
-    userCourse.unreadAsyncQuestions = 0;
-    await userCourse.save();
+    userCourseAsyncQuestions.forEach((uc) => {
+      uc.readLatest = true;
+      uc.save();
+    });
 
     return;
   }

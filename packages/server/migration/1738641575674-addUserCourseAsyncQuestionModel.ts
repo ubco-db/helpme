@@ -1,13 +1,13 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class addIntermediaryEntityForUserCourseAndAsyncQuestions1738614433982
+export class addUserCourseAsyncQuestionModel1738641575674
   implements MigrationInterface
 {
-  name = 'addIntermediaryEntityForUserCourseAndAsyncQuestions1738614433982';
+  name = 'addUserCourseAsyncQuestionModel1738641575674';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "user_course_async_model" ("id" SERIAL NOT NULL, "userCourseId" integer, "asyncQuestionId" integer, "readLatest" boolean NOT NULL DEFAULT false, "userId" integer, "courseId" integer, CONSTRAINT "PK_51d65ed3335832028b91d15a05e" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "user_course_async_model" ("id" SERIAL NOT NULL, "userCourseId" integer, "asyncQuestionId" integer, "readLatest" boolean NOT NULL DEFAULT true, CONSTRAINT "PK_51d65ed3335832028b91d15a05e" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "lms_assignment_model" ("id" integer NOT NULL, "courseId" integer NOT NULL, "name" text NOT NULL, "description" text NOT NULL, "trackedAt" TIMESTAMP NOT NULL, "courseCourseId" integer, CONSTRAINT "PK_632eb1b1362c2e5d805db6ea013" PRIMARY KEY ("id", "courseId"))`,
@@ -19,13 +19,13 @@ export class addIntermediaryEntityForUserCourseAndAsyncQuestions1738614433982
       `CREATE TABLE "lms_course_integration_model" ("courseId" integer NOT NULL, "apiCourseId" text NOT NULL, "apiKey" text NOT NULL, "apiKeyExpiry" TIMESTAMP, "orgIntegrationOrganizationId" integer, "orgIntegrationApiPlatform" "public"."lms_api_platform_enum", CONSTRAINT "REL_594c79fce72d04560c3a4465ea" UNIQUE ("courseId"), CONSTRAINT "PK_594c79fce72d04560c3a4465ea6" PRIMARY KEY ("courseId"))`,
     );
     await queryRunner.query(
+      `CREATE TYPE "public"."lms_api_platform_enum" AS ENUM('Canvas')`,
+    );
+    await queryRunner.query(
       `CREATE TABLE "lms_org_integration_model" ("organizationId" integer NOT NULL, "apiPlatform" "public"."lms_api_platform_enum" NOT NULL, "rootUrl" text NOT NULL, CONSTRAINT "PK_8f17bd650afb1438b091dfde758" PRIMARY KEY ("organizationId", "apiPlatform"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "calendar_staff_model" ("userId" integer NOT NULL, "calendarId" integer NOT NULL, CONSTRAINT "PK_a067936add588bd9f746ac63808" PRIMARY KEY ("userId", "calendarId"))`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "user_course_model" DROP COLUMN "unreadAsyncQuestions"`,
     );
     await queryRunner.query(
       `ALTER TABLE "course_model" ADD "courseId" integer`,
@@ -58,10 +58,10 @@ export class addIntermediaryEntityForUserCourseAndAsyncQuestions1738614433982
       `DROP TYPE "public"."alert_model_alerttype_enum_old"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "user_course_async_model" ADD CONSTRAINT "FK_27f64d7080a320982d16075bc65" FOREIGN KEY ("userId") REFERENCES "user_course_model"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "user_course_async_model" ADD CONSTRAINT "FK_06fe865e60aee7680eb34e72986" FOREIGN KEY ("userCourseId") REFERENCES "user_course_model"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "user_course_async_model" ADD CONSTRAINT "FK_9c5d9d07422ea2c4c34ad3fbe68" FOREIGN KEY ("courseId") REFERENCES "async_question_model"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "user_course_async_model" ADD CONSTRAINT "FK_af90063fff427e12c9acc1ecd3d" FOREIGN KEY ("asyncQuestionId") REFERENCES "async_question_model"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "lms_assignment_model" ADD CONSTRAINT "FK_5e13e46626a92677ea3528a28f5" FOREIGN KEY ("courseCourseId") REFERENCES "lms_course_integration_model"("courseId") ON DELETE CASCADE ON UPDATE NO ACTION`,
@@ -109,10 +109,10 @@ export class addIntermediaryEntityForUserCourseAndAsyncQuestions1738614433982
       `ALTER TABLE "lms_assignment_model" DROP CONSTRAINT "FK_5e13e46626a92677ea3528a28f5"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "user_course_async_model" DROP CONSTRAINT "FK_9c5d9d07422ea2c4c34ad3fbe68"`,
+      `ALTER TABLE "user_course_async_model" DROP CONSTRAINT "FK_af90063fff427e12c9acc1ecd3d"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "user_course_async_model" DROP CONSTRAINT "FK_27f64d7080a320982d16075bc65"`,
+      `ALTER TABLE "user_course_async_model" DROP CONSTRAINT "FK_06fe865e60aee7680eb34e72986"`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."alert_model_alerttype_enum_old" AS ENUM('rephraseQuestion')`,
@@ -139,9 +139,6 @@ export class addIntermediaryEntityForUserCourseAndAsyncQuestions1738614433982
     );
     await queryRunner.query(
       `ALTER TABLE "course_model" DROP COLUMN "courseId"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "user_course_model" ADD "unreadAsyncQuestions" integer NOT NULL DEFAULT '0'`,
     );
     await queryRunner.query(`DROP TABLE "calendar_staff_model"`);
     await queryRunner.query(`DROP TABLE "lms_org_integration_model"`);
