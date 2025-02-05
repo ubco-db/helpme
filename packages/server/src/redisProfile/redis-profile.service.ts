@@ -7,15 +7,15 @@ import { GetProfileResponse } from '@koh/common';
 @Injectable()
 export class RedisProfileService {
   /**
-   * The redis client to use for the redis queue
+   * The redis client to use for the redis profiles
    */
   private readonly redis: Redis;
 
   private readonly EXPIRATION_TIME = 30 * 60; // 30 min in seconds
 
   /**
-   * Constructor for the RedisQueueService
-   * @param redisService {RedisService} The redis service to use for the redis queue
+   * Constructor for the RedisProfileService
+   * @param redisService {RedisService} The redis service to use for the redis profiles
    */
   constructor(private readonly redisService: RedisService) {
     this.redis = this.redisService.getClient('db');
