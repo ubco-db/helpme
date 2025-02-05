@@ -2,7 +2,7 @@ import { TestingModule, Test } from '@nestjs/testing';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { Connection } from 'typeorm';
 import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
-import { RedisModule } from 'nestjs-redis';
+import { RedisModule, RedisService } from 'nestjs-redis';
 import { GetProfileResponse, AccountType, UserRole } from '@koh/common';
 import Redis from 'ioredis';
 
@@ -26,7 +26,7 @@ describe('RedisProfileService', () => {
           { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
         ]),
       ],
-      providers: [RedisProfileService],
+      providers: [RedisProfileService, RedisService],
     }).compile();
 
     service = module.get<RedisProfileService>(RedisProfileService);
