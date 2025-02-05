@@ -1,12 +1,9 @@
 import {
-  DesktopNotifPartial,
   ERROR_MESSAGES,
   GetProfileResponse,
   UpdateProfileParams,
-  AccountType,
 } from '@koh/common';
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -17,24 +14,19 @@ import {
   Patch,
   Post,
   Res,
-  ServiceUnavailableException,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import * as checkDiskSpace from 'check-disk-space';
 import { Response } from 'express';
 import * as fs from 'fs';
-import { pick } from 'lodash';
 import { memoryStorage } from 'multer';
 import * as path from 'path';
-import * as sharp from 'sharp';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from './user.entity';
 import { ProfileService } from './profile.service';
-import { OrganizationService } from '../organization/organization.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { minutes, SkipThrottle, Throttle } from '@nestjs/throttler';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
@@ -44,7 +36,6 @@ export class ProfileController {
   constructor(
     private profileService: ProfileService,
     private redisProfileService: RedisProfileService,
-    private organizationService: OrganizationService,
   ) {}
 
   // Don't throttle this endpoint since the middleware calls this for every page (and if it prefetches like 30 pages, it will hit the throttle limit and can cause issue for the user)
@@ -93,58 +84,14 @@ export class ProfileController {
   async patch(
     @Res() res: Response,
     @Body() userPatch: UpdateProfileParams,
-    @User()
-    user: UserModel,
+    @User() user: UserModel,
   ): Promise<Response<GetProfileResponse>> {
-    if (user.accountType !== AccountType.LEGACY && userPatch.email) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: ERROR_MESSAGES.profileController.cannotUpdateEmail });
+    try {
+      await this.profileService.updateUserProfile(user, userPatch);
+      return res.status(200).send({ message: 'Profile updated successfully' });
+    } catch (error) {
+      return res.status(error.status || 500).send({ message: error.message });
     }
-
-    if (userPatch.email && userPatch.email !== user.email) {
-      const email = await UserModel.findOne({
-        where: {
-          email: userPatch.email,
-        },
-      });
-
-      if (email) {
-        return res
-          .status(HttpStatus.BAD_REQUEST)
-          .send({ message: ERROR_MESSAGES.profileController.emailAlreadyInDb });
-      }
-    }
-
-    if (userPatch.sid && userPatch.sid !== user.sid) {
-      const sid = await UserModel.findOne({
-        where: {
-          sid: userPatch.sid,
-        },
-      });
-
-      if (sid) {
-        return res
-          .status(HttpStatus.BAD_REQUEST)
-          .send({ message: ERROR_MESSAGES.profileController.sidAlreadyInDb });
-      }
-    }
-
-    user = Object.assign(user, userPatch);
-
-    // Delete old cached record if changed
-    await this.redisProfileService.deleteProfile(`u:${user.id}`);
-
-    await user
-      .save()
-      .then(() => {
-        return this.get(user);
-      })
-      .catch((e) => {
-        console.log(e);
-      });
-
-    return res.status(200).send({ message: 'Profile updated successfully' });
   }
 
   // Only 10 calls allowed in 1 minute
@@ -162,51 +109,10 @@ export class ProfileController {
     @Res() response: Response,
   ): Promise<void> {
     try {
-      /*
-       * The second check is for google accounts, which have a photoURL that is a external link
-       */
-      if (user.photoURL && !user.photoURL.startsWith('http')) {
-        try {
-          fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, user.photoURL));
-        } catch (e) {
-          console.error(
-            'Error deleting previous picture at : ' +
-              user.photoURL +
-              '\n Perhaps the previous image was deleted or the database is out of sync with the uploads directory for some reason.' +
-              '\n Will remove this entry from the database and continue.',
-          );
-        }
-      }
-
-      const spaceLeft = await checkDiskSpace(path.parse(process.cwd()).root);
-
-      if (spaceLeft.free < 1_000_000_000) {
-        // if less than a gigabyte left
-        throw new ServiceUnavailableException(
-          ERROR_MESSAGES.profileController.noDiskSpace,
-        );
-      }
-      const fileName = user.id + '-' + Date.now().toString() + '.webp';
-
-      // Create the upload location if it doesn't exist
-      if (!fs.existsSync(process.env.UPLOAD_LOCATION)) {
-        fs.mkdirSync(process.env.UPLOAD_LOCATION, { recursive: true });
-      }
-
-      const targetPath = path.join(process.env.UPLOAD_LOCATION, fileName);
-
-      try {
-        await sharp(file.buffer).resize(256).webp().toFile(targetPath);
-        user.photoURL = fileName;
-      } catch (err) {
-        console.error('Error processing image:', err);
-      }
-      await user.save();
-
-      // Delete old cached record if changed
-      // TODO: see if manipulating the cached data instead of refetching is more efficient
-      await this.redisProfileService.deleteProfile(`u:${user.id}`);
-
+      const fileName = await this.profileService.uploadUserProfileImage(
+        file,
+        user,
+      );
       response
         .status(200)
         .send({ message: 'Image uploaded successfully', fileName });
@@ -255,38 +161,13 @@ export class ProfileController {
     @User() user: UserModel,
     @Res() res: Response,
   ): Promise<Response> {
-    if (!user?.photoURL) {
+    try {
+      await this.profileService.removeProfilePicture(user);
       return res
-        .status(HttpStatus.NOT_FOUND)
-        .send({ message: 'No profile picture to delete' });
-    }
-
-    if (user.photoURL.startsWith('http')) {
-      user.photoURL = null;
-      await user.save();
-      return res
-        .status(HttpStatus.OK)
+        .status(200)
         .send({ message: 'Profile picture deleted successfully' });
-    } else {
-      fs.unlink(
-        process.env.UPLOAD_LOCATION + '/' + user.photoURL,
-        async (err) => {
-          if (err) {
-            const errMessage =
-              'Error deleting previous picture at : ' +
-              user.photoURL +
-              'the previous image was at an invalid location?';
-            console.error(errMessage, err);
-            throw new BadRequestException(errMessage);
-          } else {
-            user.photoURL = null;
-            await user.save();
-            return res
-              .status(HttpStatus.OK)
-              .send({ message: 'Profile picture deleted successfully' });
-          }
-        },
-      );
+    } catch (error) {
+      return res.status(error.status || 500).send({ message: error.message });
     }
   }
 
@@ -299,6 +180,10 @@ export class ProfileController {
     try {
       user.readChangeLog = true;
       await user.save();
+
+      // Delete old cached record if changed
+      await this.redisProfileService.deleteProfile(`u:${user.id}`);
+
       return res
         .status(HttpStatus.OK)
         .send({ message: 'Changelogs read successfully' });
