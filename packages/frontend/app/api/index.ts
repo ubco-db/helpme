@@ -304,7 +304,7 @@ class APIClient {
     upsertIntegration: async (
       courseId: number,
       props: {
-        apiPlatform: LMSIntegration
+        apiPlatform: any
         apiKey: string
         apiKeyExpiry?: Date
         apiKeyExpiryDeleted?: boolean
@@ -319,7 +319,7 @@ class APIClient {
       ),
     removeIntegration: async (
       courseId: number,
-      props: { apiPlatform: LMSIntegration },
+      props: { apiPlatform: any },
     ): Promise<string | undefined> =>
       this.req(
         'DELETE',
