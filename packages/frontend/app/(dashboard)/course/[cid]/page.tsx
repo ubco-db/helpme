@@ -53,6 +53,8 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
     setInteractionId,
     helpmeQuestionId,
     setHelpmeQuestionId,
+    chatbotQuestionType,
+    setChatbotQuestionType,
   } = useChatbotContext()
   useEffect(() => {
     setCid(cid)
@@ -211,6 +213,8 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                       setInteractionId={setInteractionId}
                       setHelpmeQuestionId={setHelpmeQuestionId}
                       helpmeQuestionId={helpmeQuestionId}
+                      chatbotQuestionType={chatbotQuestionType}
+                      setChatbotQuestionType={setChatbotQuestionType}
                     />
                   )
                 )}
@@ -235,6 +239,8 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
               setInteractionId={setInteractionId}
               setHelpmeQuestionId={setHelpmeQuestionId}
               helpmeQuestionId={helpmeQuestionId}
+              chatbotQuestionType={chatbotQuestionType}
+              setChatbotQuestionType={setChatbotQuestionType}
               /* eslint-disable-next-line @typescript-eslint/no-empty-function */
               setIsOpen={() => {}}
             />
