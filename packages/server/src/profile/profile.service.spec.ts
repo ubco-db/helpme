@@ -10,8 +10,9 @@ import {
 } from '../../test/util/factories';
 import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
 import { ProfileService } from './profile.service';
-import { MailService } from 'mail/mail.service';
-import { UserModel } from './user.entity';
+import { MailService } from '../mail/mail.service';
+import { RedisProfileService } from '../redisProfile/redis-profile.service';
+import { OrganizationService } from '../organization/organization.service';
 
 jest.useRealTimers();
 
@@ -26,6 +27,8 @@ describe('ProfileService', () => {
       providers: [
         ProfileService,
         LoginCourseService,
+        RedisProfileService,
+        OrganizationService,
         {
           // We disabled the mail service for now, so let's just mock it
           provide: MailService,
