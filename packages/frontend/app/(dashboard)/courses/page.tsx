@@ -1,18 +1,21 @@
 'use client'
 
-import { ReactElement } from 'react'
-import { Alert, Button, Empty } from 'antd'
+import { ReactElement, useState } from 'react'
+import { Alert, Button, Empty, Segmented } from 'antd'
 import { OrganizationRole } from '@/app/typings/user'
 import { useUserInfo } from '@/app/contexts/userContext'
-import CoursesSection from '../components/coursesSection'
+import CoursesSection from '../components/CoursesSection'
 import OrganizationCard from '../components/organizationCard'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
+import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons'
 
 export default function CoursesPage(): ReactElement {
   const { userInfo } = useUserInfo()
   const searchParams = useSearchParams()
   const error = searchParams.get('err')
+
+  const [enabledTableView, setEnabledTableView] = useState(false)
 
   return (
     <>
@@ -56,19 +59,33 @@ export default function CoursesPage(): ReactElement {
       )}
       <div className="mt-5 flex items-center justify-between align-middle">
         <h1 className="mt-0">My Courses</h1>
-        {(userInfo?.organization?.organizationRole ===
-          OrganizationRole.PROFESSOR ||
-          userInfo?.organization?.organizationRole ===
-            OrganizationRole.ADMIN) && (
-          <Button type="primary" href={`organization/course/add`}>
-            Add New Course
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {(userInfo?.organization?.organizationRole ===
+            OrganizationRole.PROFESSOR ||
+            userInfo?.organization?.organizationRole ===
+              OrganizationRole.ADMIN) && (
+            <Button type="primary" href={`organization/course/add`}>
+              Add New Course
+            </Button>
+          )}
+          <Segmented
+            options={[
+              { value: false, icon: <AppstoreOutlined /> },
+              { value: true, icon: <BarsOutlined /> },
+            ]}
+            onChange={(value) => {
+              setEnabledTableView(value)
+            }}
+          />
+        </div>
       </div>
       {userInfo?.courses?.length === 0 ? (
         <Empty description="You are not enrolled in any course" />
       ) : (
-        <CoursesSection courses={userInfo.courses} />
+        <CoursesSection
+          courses={userInfo.courses}
+          enabledTableView={enabledTableView}
+        />
       )}
     </>
   )
