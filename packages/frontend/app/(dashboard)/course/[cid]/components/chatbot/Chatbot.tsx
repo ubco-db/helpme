@@ -10,7 +10,6 @@ import {
   message,
   Space,
   Segmented,
-  Alert,
   Popconfirm,
 } from 'antd'
 import {
@@ -355,7 +354,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
             )}
             extra={
               <>
-                {messages.length > 1 ? (
+                {courseIdToUse !== -1 && messages.length > 1 ? (
                   <Popconfirm
                     title="Are you sure? this will reset the chat"
                     open={tempChatbotQuestionType !== null}
@@ -381,14 +380,16 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     />
                   </Popconfirm>
                 ) : (
-                  <Segmented<ChatbotQuestionType>
-                    options={['Course', 'System']}
-                    value={chatbotQuestionType}
-                    onChange={(value) => {
-                      setChatbotQuestionType(value)
-                      resetChat()
-                    }}
-                  />
+                  courseIdToUse !== -1 && (
+                    <Segmented<ChatbotQuestionType>
+                      options={['Course', 'System']}
+                      value={chatbotQuestionType}
+                      onChange={(value) => {
+                        setChatbotQuestionType(value)
+                        resetChat()
+                      }}
+                    />
+                  )
                 )}
                 <Popconfirm
                   title="Are you sure you want to reset the chat?"
@@ -623,13 +624,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     description={`You can ask the chatbot ${questionsLeft} more question${
                       questionsLeft > 1 ? 's' : ''
                     } today`}
-                    className="mt-3"
-                  />
-                )}
-                {courseIdToUse === -1 && (
-                  <Alert
-                    message="Warning: No helpme courseId set (please set NEXT_PUBLIC_HELPME_COURSE_ID in .env on /frontend)!"
-                    type="error"
                     className="mt-3"
                   />
                 )}
