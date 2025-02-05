@@ -1,18 +1,12 @@
 import { TestingModule, Test } from '@nestjs/testing';
 import { LoginCourseService } from '../login/login-course.service';
 import { Connection } from 'typeorm';
-import {
-  UserFactory,
-  CourseFactory,
-  LastRegistrationFactory,
-  CourseSectionFactory,
-  ProfSectionGroupsFactory,
-} from '../../test/util/factories';
 import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
 import { ProfileService } from './profile.service';
 import { MailService } from '../mail/mail.service';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { OrganizationService } from '../organization/organization.service';
+import { RedisService } from 'nestjs-redis';
 
 jest.useRealTimers();
 
@@ -27,6 +21,7 @@ describe('ProfileService', () => {
       providers: [
         ProfileService,
         LoginCourseService,
+        RedisService,
         RedisProfileService,
         OrganizationService,
         {
