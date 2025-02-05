@@ -57,7 +57,7 @@ export function setupIntegrationTest(
 
   beforeAll(async () => {
     if (!process.env.CI) {
-      // See if the environment variable is the issue
+      console.log('Starting Redis in-memory server');
       // Start Redis in-memory server
       try {
         redisTestServer = new RedisMemoryServer();
@@ -68,6 +68,7 @@ export function setupIntegrationTest(
         throw err;
       }
     } else {
+      console.log('Using CI Redis server');
       redisHost = process.env.REDIS_HOST || 'localhost';
       redisPort = process.env.REDIS_PORT
         ? parseInt(process.env.REDIS_PORT)
