@@ -6,7 +6,8 @@ import { ProfileService } from './profile.service';
 import { MailService } from '../mail/mail.service';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { OrganizationService } from '../organization/organization.service';
-import { RedisService } from 'nestjs-redis';
+import { RedisModule, RedisService } from 'nestjs-redis';
+import Redis from 'ioredis';
 
 jest.useRealTimers();
 
@@ -14,10 +15,20 @@ jest.useRealTimers();
 describe('ProfileService', () => {
   let service: ProfileService;
   let conn: Connection;
+  let redis: Redis;
 
   beforeAll(async () => {
+    redis = new Redis();
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule],
+      imports: [
+        TestTypeOrmModule,
+        TestConfigModule,
+        RedisModule.register([
+          { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
+          { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
+          { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
+        ]),
+      ],
       providers: [
         ProfileService,
         LoginCourseService,
