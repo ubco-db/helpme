@@ -25,6 +25,7 @@ import {
   cn,
   convertPathnameToPageName,
   getErrorMessage,
+  getRoleInCourse,
 } from '@/app/utils/generalUtils'
 import { Feedback } from './Feedback'
 import {
@@ -39,6 +40,7 @@ import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Role } from '@koh/common'
 
 const { TextArea } = Input
 
@@ -95,6 +97,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
   // used to temporarily store what question type the user is trying to change to
   const [tempChatbotQuestionType, setTempChatbotQuestionType] =
     useState<ChatbotQuestionType | null>(null)
+  const role = getRoleInCourse(userInfo, cid)
 
   const courseIdToUse =
     chatbotQuestionType === 'System'
@@ -135,6 +138,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
   // when chatbotQuestionType changes, reset chat
   useEffect(() => {
     resetChat()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatbotQuestionType])
 
   const query = async () => {
@@ -142,7 +146,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
       const data = {
         question:
           chatbotQuestionType === 'System'
-            ? `${input}\nThis user is currently on the ${currentPageTitle}`
+            ? `${input}
+            \nThis user is currently on the ${currentPageTitle}.
+            \nThe user's role for this course is ${role === Role.PROFESSOR ? 'Professor (Staff)' : role === Role.TA ? 'TA (Staff)' : 'Student'}.`
             : input,
         history: messages,
       }
@@ -359,7 +365,8 @@ const Chatbot: React.FC<ChatbotProps> = ({
             )}
             extra={
               <>
-                {courseIdToUse !== -1 && messages.length > 1 ? (
+                {Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) &&
+                messages.length > 1 ? (
                   <Popconfirm
                     title="Are you sure? this will reset the chat"
                     open={tempChatbotQuestionType !== null}
@@ -380,11 +387,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
                           setTempChatbotQuestionType(newValue)
                         }
                       }}
-                      // onClick={(e) => {e.stopPropagation()}}
                     />
                   </Popconfirm>
                 ) : (
-                  courseIdToUse !== -1 && (
+                  Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) && (
                     <Segmented<ChatbotQuestionType>
                       options={['Course', 'System']}
                       value={chatbotQuestionType}
