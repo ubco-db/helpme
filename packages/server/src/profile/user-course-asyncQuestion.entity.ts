@@ -17,21 +17,23 @@ export class UserCourseAsyncQuestionModel extends BaseEntity {
   @ManyToOne(
     (type) => UserCourseModel,
     (userCourse) => userCourse.courseAsyncQuestions,
+    { onDelete: 'CASCADE' },
   )
   @JoinColumn({ name: 'userCourseId' })
   userCourse: UserCourseModel;
 
-  @Column({ nullable: true })
+  @Column()
   userCourseId: number;
 
   @ManyToOne(
     (type) => AsyncQuestionModel,
     (asyncQuestion) => asyncQuestion.viewers,
+    { onDelete: 'CASCADE' },
   )
   @JoinColumn({ name: 'asyncQuestionId' })
   asyncQuestion: AsyncQuestionModel;
 
-  @Column({ nullable: true })
+  @Column()
   asyncQuestionId: number;
 
   @Column({ type: 'boolean', default: true })

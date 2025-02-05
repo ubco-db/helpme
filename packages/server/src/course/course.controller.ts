@@ -1143,10 +1143,10 @@ export class CourseController {
   @UseGuards(JwtAuthGuard)
   async getUnreadAsyncCount(
     @Param('id', ParseIntPipe) courseId: number,
-    @User() user: UserModel,
+    @User() userId: number,
   ): Promise<number> {
     const userCourse = await UserCourseModel.findOne({
-      where: { courseId, user },
+      where: { courseId, userId },
     });
 
     if (!userCourse) {
@@ -1158,7 +1158,6 @@ export class CourseController {
         userCourse,
         readLatest: false,
       },
-      relations: ['userCourse'],
     });
 
     return userCourseAsyncQuestions.length;
@@ -1168,22 +1167,26 @@ export class CourseController {
   @UseGuards(JwtAuthGuard)
   async updateUnreadAsyncCount(
     @Param('id', ParseIntPipe) courseId: number,
-    @User() user: UserModel,
+    @User() userId: number,
   ): Promise<void> {
-    const userCourseAsyncQuestions = await UserCourseAsyncQuestionModel.find({
-      where: {
-        userCourse: {
-          courseId,
-          user,
-        },
-      },
-      relations: ['userCourse'],
+    const userCourse = await UserCourseModel.findOne({
+      where: { courseId, userId },
     });
 
-    userCourseAsyncQuestions.forEach((uc) => {
-      uc.readLatest = true;
-      uc.save();
+    if (!userCourse) {
+      throw new ForbiddenException('User is not in the course');
+    }
+
+    const userCourseAsyncQuestions = await UserCourseAsyncQuestionModel.find({
+      where: {
+        userCourse,
+      },
     });
+
+    await UserCourseAsyncQuestionModel.update(
+      { userCourse },
+      { readLatest: true },
+    );
 
     return;
   }

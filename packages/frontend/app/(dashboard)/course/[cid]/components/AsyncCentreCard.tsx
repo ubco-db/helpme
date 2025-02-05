@@ -4,6 +4,7 @@ import { API } from '@/app/api'
 import { Card } from 'antd'
 import Link from 'next/link'
 import React, { ReactElement, use, useEffect, useState } from 'react'
+import { Tooltip } from 'antd'
 
 interface AsyncCentreCardProps {
   cid: number
@@ -36,12 +37,12 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
         title={'Anytime Question Hub'}
         extra={
           unreadCount > 0 && (
-            <>
+            <Tooltip title="The number of questions that have been updated since you last visted the Anytime Question Hub">
               <div className="mr-8 h-fit text-sm font-normal text-gray-200">
                 <span className="text-lg font-medium">{unreadCount}</span>
-                {` update${unreadCount > 1 ? 's' : ''}`}
+                {` updated`}
               </div>
-            </>
+            </Tooltip>
           )
         }
       >
