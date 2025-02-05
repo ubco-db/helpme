@@ -1,6 +1,5 @@
 import {
   asyncQuestionStatus,
-  CoursePartial,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
   EditCourseInfoParams,
@@ -8,7 +7,6 @@ import {
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
-  LMSCourseIntegrationPartial,
   QuestionStatusKeys,
   QueueConfig,
   QueueInvite,
@@ -67,10 +65,8 @@ import { Not, getManager } from 'typeorm';
 import { pick } from 'lodash';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
-import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
-import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
-import { QueueCleanService } from '../queue/queue-clean/queue-clean.service';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
+import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -1164,108 +1160,26 @@ export class CourseController {
     return;
   }
 
-  @Get(':id/lms_integration')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard)
-  @Roles(Role.PROFESSOR)
-  async getLmsIntegration(
+  @Patch(':id/unread_async_count')
+  @UseGuards(JwtAuthGuard)
+  async updateUnreadAsyncCount(
     @Param('id', ParseIntPipe) courseId: number,
-  ): Promise<LMSCourseIntegrationPartial | undefined> {
-    const lmsIntegration = await LMSCourseIntegrationModel.findOne({
-      where: { courseId: courseId },
-      relations: ['orgIntegration', 'course'],
-    });
-    if (lmsIntegration == undefined) return undefined;
-
-    return {
-      apiPlatform: lmsIntegration.orgIntegration.apiPlatform,
-      courseId: lmsIntegration.courseId,
-      course: {
-        id: lmsIntegration.courseId,
-        name: lmsIntegration.course.name,
-      } satisfies CoursePartial,
-      apiCourseId: lmsIntegration.apiCourseId,
-      apiKeyExpiry: lmsIntegration.apiKeyExpiry,
-    } satisfies LMSCourseIntegrationPartial;
-  }
-
-  @Post(':id/lms_integration/upsert')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard)
-  @Roles(Role.PROFESSOR)
-  async upsertLMSIntegration(
-    @Param('id', ParseIntPipe) courseId: number,
-    @Body() props: any,
-  ): Promise<any> {
-    const orgCourse = await OrganizationCourseModel.findOne({
-      courseId: courseId,
-    });
-    if (!orgCourse) {
-      return ERROR_MESSAGES.courseController.organizationNotFound;
-    }
-
-    const orgIntegration = await LMSOrganizationIntegrationModel.findOne({
+    @User() user: UserModel,
+  ): Promise<void> {
+    const userCourse = await UserCourseModel.findOne({
       where: {
-        organizationId: orgCourse.organizationId,
-        apiPlatform: props.apiPlatform,
+        user,
+        courseId,
       },
     });
-    if (!orgIntegration) {
-      return ERROR_MESSAGES.courseController.orgIntegrationNotFound;
+
+    if (!userCourse) {
+      throw new NotFoundException('UserCourse not found');
     }
 
-    const courseIntegration = await LMSCourseIntegrationModel.findOne({
-      where: { courseId: courseId },
-    });
+    userCourse.unreadAsyncQuestions = 0;
+    await userCourse.save();
 
-    if (courseIntegration != undefined) {
-      return await this.courseService.updateLMSIntegration(
-        courseIntegration,
-        orgIntegration,
-        props.apiKeyExpiryDeleted,
-        props.apiCourseId,
-        props.apiKey,
-        props.apiKeyExpiry,
-      );
-    } else {
-      return await this.courseService.createLMSIntegration(
-        orgIntegration,
-        courseId,
-        props.apiCourseId,
-        props.apiKey,
-        props.apiKeyExpiry,
-      );
-    }
-  }
-
-  @Delete(':id/lms_integration/remove')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard)
-  @Roles(Role.PROFESSOR)
-  async removeLMSIntegration(
-    @Param('id', ParseIntPipe) courseId: number,
-    @Body() props: any,
-  ): Promise<any> {
-    const orgCourse = await OrganizationCourseModel.findOne({
-      courseId: courseId,
-    });
-    if (!orgCourse) {
-      return ERROR_MESSAGES.courseController.organizationNotFound;
-    }
-
-    const orgIntegration = await LMSOrganizationIntegrationModel.findOne({
-      organizationId: orgCourse.organizationId,
-      apiPlatform: props.apiPlatform,
-    });
-    if (!orgIntegration) {
-      return ERROR_MESSAGES.courseController.orgIntegrationNotFound;
-    }
-
-    const exists = await LMSCourseIntegrationModel.findOne({
-      where: { courseId: courseId, orgIntegration: orgIntegration },
-    });
-    if (!exists) {
-      return ERROR_MESSAGES.courseController.lmsIntegrationNotFound;
-    }
-
-    await LMSCourseIntegrationModel.remove(exists);
-    return `Successfully disconnected LMS integration`;
+    return;
   }
 }

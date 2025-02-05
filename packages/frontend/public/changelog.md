@@ -1,4 +1,21 @@
-## Version 1.2.2 - Jan 19, 2024
+## Version 1.2.3 - Feb 02, 2025
+
+#### New Features
+- ***General***
+  - On the course page, you can now see if you have any unread Anytime Questions
+- ***Staff-only***
+  - Added sorting on the Assignment Report modal
+    - can now sort by date, student ID, and name
+  - Staff now have the option to add students to the queue with a demo (only works with queues with an assignment ID)
+
+#### Improvements
+- Reworked how question text is truncated on question cards. You now click to expand the question card. This also fixes an issue where sometimes the question text tooltip would not show up and thus the full text could not be read
+- Fixed an issue where the "Join Zoom Now" modal would not go away once done helping
+- Misc bug fixes and improvements
+
+***
+
+## Version 1.2.2 - Jan 19, 2025
 
 #### Improvements
 - Fixed a bug where end date would appear as "Invalid Date" when creating repeat events
@@ -11,7 +28,7 @@
 
 ***
 
-## Version 1.2.1 - Jan 15, 2024
+## Version 1.2.1 - Jan 15, 2025
 
 #### New Features
 - ***General***
@@ -26,7 +43,7 @@
 
 ***
 
-## Version 1.2.0 - Jan 11, 2024
+## Version 1.2.0 - Jan 11, 2025
 
 #### New Features
 - ***General***
@@ -47,7 +64,7 @@
 
 ***
 
-## Version 1.1.1 - Jan 3, 2024
+## Version 1.1.1 - Jan 3, 2025
 
 #### New Features
 - ***General***

@@ -27,12 +27,15 @@ const JoinZoomNowModal: React.FC<JoinZoomNowModalProps> = ({
   const [localOpen, setLocalOpen] = useState(true)
 
   useEffect(() => {
-    setIsClosable(false)
     if (open) {
+      setIsClosable(false)
       setLocalOpen(true)
       setTimeout(() => {
         setIsClosable(true)
       }, 10000)
+    } else {
+      // if the outside conditions make the modal close, make sure its closed here too
+      setLocalOpen(false)
     }
   }, [open])
 

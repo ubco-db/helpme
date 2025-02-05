@@ -7,7 +7,7 @@ import {
   OneToMany,
   PrimaryColumn,
 } from 'typeorm';
-import { LMSIntegration } from '@koh/common';
+import { LMSIntegrationPlatform } from '@koh/common';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 import { OrganizationModel } from '../organization/organization.entity';
 
@@ -17,11 +17,9 @@ export class LMSOrganizationIntegrationModel extends BaseEntity {
   organizationId: number;
 
   @PrimaryColumn({
-    type: 'enum',
-    enum: LMSIntegration,
-    enumName: 'lms_api_platform_enum',
+    type: 'text',
   })
-  apiPlatform: LMSIntegration;
+  apiPlatform: LMSIntegrationPlatform;
 
   @Column({ type: 'text' })
   rootUrl: string;
@@ -38,6 +36,6 @@ export class LMSOrganizationIntegrationModel extends BaseEntity {
     (org) => org.organizationIntegrations,
     { onDelete: 'CASCADE' },
   )
-  @JoinColumn({ referencedColumnName: 'id' })
+  @JoinColumn({ name: 'organizationId', referencedColumnName: 'id' })
   organization: OrganizationModel;
 }

@@ -6,7 +6,6 @@ import {
   Column,
   Entity,
   JoinColumn,
-  JoinTable,
   ManyToMany,
   OneToMany,
   OneToOne,
@@ -24,7 +23,7 @@ import { UserTokenModel } from './user-token.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
-import { CalendarStaffModel } from 'calendar/calendar-staff.entity';
+import { CalendarStaffModel } from '../calendar/calendar-staff.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {

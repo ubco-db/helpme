@@ -31,6 +31,7 @@ import {
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { useChatbotContext } from '../components/chatbot/ChatbotProvider'
+import { API } from '@/app/api'
 import ConvertChatbotQToAnytimeQModal from './components/modals/ConvertChatbotQToAnytimeQModal'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
@@ -45,7 +46,7 @@ export default function AsyncCentrePage({
   const router = useRouter()
   const pathname = usePathname()
   const courseId = Number(params.cid)
-  const { userInfo } = useUserInfo()
+  const { userInfo, setUserInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
   const [asyncQuestions, mutateAsyncQuestions] = useAsnycQuestions(courseId)
@@ -116,6 +117,23 @@ export default function AsyncCentrePage({
     },
     [sortBy],
   )
+
+  // This endpoint will be called to update unread count back to 0 when this page is entered
+  useEffect(() => {
+    if (
+      userInfo.courses.find((e) => e.course.id === courseId)?.unreadCount !== 0
+    )
+      API.course.updateUnreadAsyncCount(courseId).then(() => {
+        setUserInfo({
+          ...userInfo,
+          courses: userInfo.courses.map((course) =>
+            course.course.id === courseId
+              ? { ...course, unreadCount: 0 }
+              : course,
+          ),
+        })
+      })
+  }, [])
 
   useEffect(() => {
     let displayedQuestions = asyncQuestions || []
