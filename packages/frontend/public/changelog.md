@@ -1,3 +1,17 @@
+## Version 1.3.0 - Feb 05, 2025
+
+#### New Features
+- ***General***
+  - Added a new "System" Chatbot toggle, allowing you to ask any questions or feedback regarding the HelpMe system 
+  	- By default, it will still be in "Course" mode, which will query uploaded course documents as before
+- ***Staff-only***
+  - Fixed and completely overhauled the Learning Management System (Canvas) integration
+  	- Professors can now link their Canvas courses with HelpMe, allowing:
+  		- Professors to synchronize assignments (descriptions) and announcements to the HelpMe course chatbot
+  		- Professors to compare and see which students is in your HelpMe course and not your Canvas course (or vise-versa)
+
+***
+
 ## Version 1.2.3 - Feb 02, 2025
 
 #### New Features
