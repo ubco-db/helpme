@@ -8,7 +8,12 @@ import {
   useState,
 } from 'react'
 import Chatbot from './Chatbot'
-import { PreDeterminedQuestion, Message } from '@/app/typings/chatbot'
+import {
+  PreDeterminedQuestion,
+  Message,
+  chatbotStartingMessageCourse,
+  ChatbotQuestionType,
+} from '@/app/typings/chatbot'
 
 interface ChatbotContextType {
   setCid: React.Dispatch<React.SetStateAction<number | null>>
@@ -27,6 +32,10 @@ interface ChatbotContextType {
   setInteractionId: React.Dispatch<React.SetStateAction<number | undefined>>
   helpmeQuestionId: number | undefined
   setHelpmeQuestionId: React.Dispatch<React.SetStateAction<number | undefined>>
+  chatbotQuestionType: ChatbotQuestionType
+  setChatbotQuestionType: React.Dispatch<
+    React.SetStateAction<ChatbotQuestionType>
+  >
 }
 
 const chatbotContext = createContext<ChatbotContextType>({
@@ -39,8 +48,7 @@ const chatbotContext = createContext<ChatbotContextType>({
   messages: [
     {
       type: 'apiMessage',
-      message:
-        'Hello, how can I assist you? I can help with anything course related.',
+      message: chatbotStartingMessageCourse,
     },
   ],
   setMessages: () => {},
@@ -50,6 +58,8 @@ const chatbotContext = createContext<ChatbotContextType>({
   setInteractionId: () => {},
   helpmeQuestionId: undefined,
   setHelpmeQuestionId: () => {},
+  chatbotQuestionType: 'Course',
+  setChatbotQuestionType: () => {},
 })
 export function useChatbotContext() {
   return useContext(chatbotContext)
@@ -78,8 +88,7 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
   const [messages, setMessages] = useState<Message[]>([
     {
       type: 'apiMessage',
-      message:
-        'Hello, how can I assist you? I can help with anything course related.',
+      message: chatbotStartingMessageCourse,
     },
   ])
   const [isOpen, setIsOpen] = useState(false)
@@ -89,18 +98,21 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
   const [helpmeQuestionId, setHelpmeQuestionId] = useState<number | undefined>(
     undefined,
   )
+  const [chatbotQuestionType, setChatbotQuestionType] =
+    useState<ChatbotQuestionType>('Course')
   useEffect(() => {
     // reset chatbot states when course changes
     setPreDeterminedQuestions([])
     setMessages([
       {
         type: 'apiMessage',
-        message:
-          'Hello, how can I assist you? I can help with anything course related.',
+        message: chatbotStartingMessageCourse,
       },
     ])
     setInteractionId(undefined)
+    setHelpmeQuestionId(undefined)
     setIsOpen(false)
+    setChatbotQuestionType('Course')
   }, [cid])
 
   const values = {
@@ -118,6 +130,8 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
     setInteractionId,
     helpmeQuestionId,
     setHelpmeQuestionId,
+    chatbotQuestionType,
+    setChatbotQuestionType,
   }
   return (
     <chatbotContext.Provider value={values}>
@@ -139,6 +153,8 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
           setInteractionId={setInteractionId}
           helpmeQuestionId={helpmeQuestionId}
           setHelpmeQuestionId={setHelpmeQuestionId}
+          chatbotQuestionType={chatbotQuestionType}
+          setChatbotQuestionType={setChatbotQuestionType}
         />
       )}
     </chatbotContext.Provider>
