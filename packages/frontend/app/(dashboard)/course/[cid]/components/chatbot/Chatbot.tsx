@@ -293,21 +293,19 @@ const Chatbot: React.FC<ChatbotProps> = ({
     }
 
     return (
-      <div
+      <a
         className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
           sourceLink && 'hover:bg-black-300 cursor-pointer hover:text-white'
         }`}
         key={`${docName}-${part}`}
-        onClick={() => {
-          if (sourceLink) {
-            window.open(sourceLink)
-          }
-        }}
+        href={sourceLink}
+        // open in new tab
+        target="_blank"
       >
         <p className="h-fit w-fit text-xs leading-4">
           {part ? `p. ${part}` : 'Source'}
         </p>
-      </div>
+      </a>
     )
   }
 
@@ -457,6 +455,16 @@ const Chatbot: React.FC<ChatbotProps> = ({
                             </div>
                             <div className="flex flex-col gap-1">
                               {item.sourceDocuments &&
+                              chatbotQuestionType === 'System' ? (
+                                <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
+                                  <p className="px-2 py-1">User Guide</p>
+                                  {getSourceLinkButton(
+                                    'User Guide',
+                                    'https://github.com/ubco-db/helpme/blob/main/packages/frontend/public/userguide.md',
+                                  )}
+                                </div>
+                              ) : (
+                                item.sourceDocuments &&
                                 item.sourceDocuments.map(
                                   (sourceDocument, idx) => (
                                     <Tooltip
@@ -497,7 +505,8 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                       </div>
                                     </Tooltip>
                                   ),
-                                )}
+                                )
+                              )}
                             </div>
                             {item.type === 'apiMessage' &&
                               index === messages.length - 1 &&
