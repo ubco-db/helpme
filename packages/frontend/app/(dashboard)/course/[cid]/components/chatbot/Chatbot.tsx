@@ -9,6 +9,8 @@ import {
   Tooltip,
   message,
   Space,
+  Segmented,
+  Alert,
 } from 'antd'
 import {
   CheckCircleOutlined,
@@ -19,16 +21,24 @@ import {
 import axios from 'axios'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
+import {
+  cn,
+  convertPathnameToPageName,
+  getErrorMessage,
+} from '@/app/utils/generalUtils'
 import { Feedback } from './Feedback'
 import {
   PreDeterminedQuestion,
   Message,
   ChatbotAskResponse,
+  chatbotStartingMessageSystem,
+  chatbotStartingMessageCourse,
+  ChatbotQuestionType,
 } from '@/app/typings/chatbot'
 import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 const { TextArea } = Input
 
@@ -49,6 +59,10 @@ interface ChatbotProps {
   setInteractionId: React.Dispatch<React.SetStateAction<number | undefined>>
   helpmeQuestionId: number | undefined
   setHelpmeQuestionId: React.Dispatch<React.SetStateAction<number | undefined>>
+  chatbotQuestionType: ChatbotQuestionType
+  setChatbotQuestionType: React.Dispatch<
+    React.SetStateAction<ChatbotQuestionType>
+  >
 }
 
 const Chatbot: React.FC<ChatbotProps> = ({
@@ -66,6 +80,8 @@ const Chatbot: React.FC<ChatbotProps> = ({
   setInteractionId,
   helpmeQuestionId,
   setHelpmeQuestionId,
+  chatbotQuestionType,
+  setChatbotQuestionType,
 }): ReactElement => {
   const [input, setInput] = useState('')
   const { userInfo, setUserInfo } = useUserInfo()
@@ -73,12 +89,19 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const courseFeatures = useCourseFeatures(cid)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
+  const pathname = usePathname()
+  const currentPageTitle = convertPathnameToPageName(pathname)
+
+  const courseIdToUse =
+    chatbotQuestionType === 'System'
+      ? Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) || -1
+      : cid
 
   useEffect(() => {
     if (messages.length === 1) {
       setPreDeterminedQuestions([])
       axios
-        .get(`/chat/${cid}/allSuggestedQuestions`, {
+        .get(`/chat/${courseIdToUse}/allSuggestedQuestions`, {
           headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
         })
         .then((res) => {
@@ -99,7 +122,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
     }
   }, [
     userInfo,
-    cid,
+    courseIdToUse,
     setPreDeterminedQuestions,
     messages.length,
     setQuestionsLeft,
@@ -108,10 +131,13 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const query = async () => {
     try {
       const data = {
-        question: input,
+        question:
+          chatbotQuestionType === 'System'
+            ? `${input}\nThis user is currently on the ${currentPageTitle}`
+            : input,
         history: messages,
       }
-      const response = await fetch(`/chat/${cid}/ask`, {
+      const response = await fetch(`/chat/${courseIdToUse}/ask`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -147,7 +173,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
   }
   const createNewInteraction = async () => {
     const interaction = await API.chatbot.createInteraction({
-      courseId: cid,
+      courseId: courseIdToUse,
       userId: userInfo.id,
     })
     setInteractionId(interaction.id)
@@ -228,13 +254,15 @@ const Chatbot: React.FC<ChatbotProps> = ({
       {
         type: 'apiMessage',
         message:
-          'Hello, how can I assist you? I can help with anything course related.',
+          chatbotQuestionType === 'System'
+            ? chatbotStartingMessageSystem
+            : chatbotStartingMessageCourse,
       },
     ])
     setPreDeterminedQuestions([])
     hasAskedQuestion.current = false
     axios
-      .get(`/chat/${cid}/allSuggestedQuestions`, {
+      .get(`/chat/${courseIdToUse}/allSuggestedQuestions`, {
         headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
       })
       .then((res) => {
@@ -307,7 +335,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
       >
         {isOpen ? (
           <Card
-            title="Course Chatbot"
+            title="Chatbot"
             classNames={{
               header: 'pr-3',
               body: cn(
@@ -324,6 +352,24 @@ const Chatbot: React.FC<ChatbotProps> = ({
             )}
             extra={
               <>
+                <Segmented<ChatbotQuestionType>
+                  options={['Course', 'System']}
+                  value={chatbotQuestionType}
+                  onChange={(value) => {
+                    setChatbotQuestionType(value)
+                    if (messages.length === 1) {
+                      setMessages([
+                        {
+                          type: 'apiMessage',
+                          message:
+                            value === 'System'
+                              ? chatbotStartingMessageSystem
+                              : chatbotStartingMessageCourse,
+                        },
+                      ])
+                    }
+                  }}
+                />
                 <Button onClick={resetChat} danger type="link" className="mr-3">
                   Reset Chat
                 </Button>
@@ -487,7 +533,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                   />
                 )}
                 <div ref={messagesEndRef} />
-                {messages.length > 1 && (
+                {chatbotQuestionType === 'Course' && messages.length > 1 && (
                   <div>
                     Unhappy with your answer?{' '}
                     <Link
@@ -532,6 +578,13 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     description={`You can ask the chatbot ${questionsLeft} more question${
                       questionsLeft > 1 ? 's' : ''
                     } today`}
+                    className="mt-3"
+                  />
+                )}
+                {courseIdToUse === -1 && (
+                  <Alert
+                    message="Warning: No helpme courseId set (please set NEXT_PUBLIC_HELPME_COURSE_ID in .env on /frontend)!"
+                    type="error"
                     className="mt-3"
                   />
                 )}
