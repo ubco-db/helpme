@@ -11,6 +11,7 @@ import {
   Space,
   Segmented,
   Alert,
+  Popconfirm,
 } from 'antd'
 import {
   CheckCircleOutlined,
@@ -91,6 +92,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
   const pathname = usePathname()
   const currentPageTitle = convertPathnameToPageName(pathname)
+  const [popResetOpen, setPopResetOpen] = useState(false)
+  // used to temporarily store what question type the user is trying to change to
+  const [tempChatbotQuestionType, setTempChatbotQuestionType] =
+    useState<ChatbotQuestionType | null>(null)
 
   const courseIdToUse =
     chatbotQuestionType === 'System'
@@ -350,27 +355,58 @@ const Chatbot: React.FC<ChatbotProps> = ({
             )}
             extra={
               <>
-                <Segmented<ChatbotQuestionType>
-                  options={['Course', 'System']}
-                  value={chatbotQuestionType}
-                  onChange={(value) => {
-                    setChatbotQuestionType(value)
-                    if (messages.length === 1) {
-                      setMessages([
-                        {
-                          type: 'apiMessage',
-                          message:
-                            value === 'System'
-                              ? chatbotStartingMessageSystem
-                              : chatbotStartingMessageCourse,
-                        },
-                      ])
+                {messages.length > 1 ? (
+                  <Popconfirm
+                    title="Are you sure? this will reset the chat"
+                    open={tempChatbotQuestionType !== null}
+                    onConfirm={() => {
+                      if (tempChatbotQuestionType) {
+                        setChatbotQuestionType(tempChatbotQuestionType)
+                        setTempChatbotQuestionType(null)
+                        resetChat()
+                      }
+                    }}
+                    onCancel={() => setTempChatbotQuestionType(null)}
+                    trigger={'click'}
+                  >
+                    <Segmented<ChatbotQuestionType>
+                      options={['Course', 'System']}
+                      value={chatbotQuestionType}
+                      onChange={(newValue) => {
+                        if (newValue !== chatbotQuestionType) {
+                          setTempChatbotQuestionType(newValue)
+                        }
+                      }}
+                      // onClick={(e) => {e.stopPropagation()}}
+                    />
+                  </Popconfirm>
+                ) : (
+                  <Segmented<ChatbotQuestionType>
+                    options={['Course', 'System']}
+                    value={chatbotQuestionType}
+                    onChange={(value) => {
+                      setChatbotQuestionType(value)
+                      resetChat()
+                    }}
+                  />
+                )}
+                <Popconfirm
+                  title="Are you sure you want to reset the chat?"
+                  open={popResetOpen}
+                  onOpenChange={(open) => {
+                    if (messages.length > 1) {
+                      setPopResetOpen(open)
+                    } else {
+                      // reset chat right away if there are no messages
+                      resetChat()
                     }
                   }}
-                />
-                <Button onClick={resetChat} danger type="link" className="mr-3">
-                  Reset Chat
-                </Button>
+                  onConfirm={resetChat}
+                >
+                  <Button danger type="link" className="mr-3">
+                    Reset Chat
+                  </Button>
+                </Popconfirm>
                 {variant === 'small' && (
                   <Button
                     onClick={() => setIsOpen(false)}

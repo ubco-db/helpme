@@ -7,6 +7,10 @@ type AddChatbotProps = {
   children?: React.ReactNode
 }
 
+/** Adds the sticky chatbot "Chat Now!" button/modal to side of the page
+ * Only added in a couple areas right now, will move to other areas and do refactoring in the future.
+ * This is kinda a workaround to get this on layout.tsx (which is a server component)
+ */
 const AddChatbot: React.FC<AddChatbotProps> = ({ courseId, children }) => {
   // chatbot
   const { setCid, setRenderSmallChatbot } = useChatbotContext()
