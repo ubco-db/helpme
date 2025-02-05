@@ -132,6 +132,11 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setQuestionsLeft,
   ])
 
+  // when chatbotQuestionType changes, reset chat
+  useEffect(() => {
+    resetChat()
+  }, [chatbotQuestionType])
+
   const query = async () => {
     try {
       const data = {
@@ -362,7 +367,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
                       if (tempChatbotQuestionType) {
                         setChatbotQuestionType(tempChatbotQuestionType)
                         setTempChatbotQuestionType(null)
-                        resetChat()
                       }
                     }}
                     onCancel={() => setTempChatbotQuestionType(null)}
@@ -386,7 +390,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
                       value={chatbotQuestionType}
                       onChange={(value) => {
                         setChatbotQuestionType(value)
-                        resetChat()
                       }}
                     />
                   )
