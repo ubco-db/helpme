@@ -15,11 +15,11 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import * as bcrypt from 'bcrypt';
-import { UserModel } from 'profile/user.entity';
 import * as request from 'superagent';
 import { getCookie } from 'common/helpers';
 import { CourseService } from 'course/course.service';
 import { minutes, Throttle } from '@nestjs/throttler';
+import { AuthService } from '../auth/auth.service';
 
 // Only 7 attempts per minute
 @Throttle({ default: { limit: 7, ttl: minutes(1) } })
@@ -29,6 +29,7 @@ export class LoginController {
     private jwtService: JwtService,
     private configService: ConfigService,
     private courseService: CourseService,
+    private authService: AuthService,
   ) {}
 
   @Post('/ubc_login')
@@ -53,10 +54,10 @@ export class LoginController {
       }
     }
 
-    const user = await UserModel.findOne({
-      where: { email: body.email },
-      relations: ['organizationUser', 'organizationUser.organization'],
-    });
+    const user = await this.authService
+      .getUserByEmailQuery(body.email)
+      .leftJoinAndSelect('organizationUser.organization', 'org')
+      .getOne();
 
     if (!user) {
       return res

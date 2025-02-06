@@ -16,6 +16,7 @@ import { MailServiceModel } from 'mail/mail-services.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
+import { SelectQueryBuilder } from 'typeorm';
 
 @Injectable()
 export class AuthService {
@@ -62,7 +63,11 @@ export class AuthService {
     organizationId: number,
   ): Promise<number> {
     try {
-      const user = await UserModel.findOne({ email: mail });
+      const user = await this.getUserByEmailQuery(mail)
+        .andWhere('organizationUser.organizationId = :organizationId', {
+          organizationId,
+        })
+        .getOne();
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -130,15 +135,11 @@ export class AuthService {
         throw new BadRequestException('Email not verified');
       }
 
-      const user = await UserModel.findOne({
-        where: {
-          email: payload.email,
-          organizationUser: {
-            organizationId: organizationId,
-          },
-        },
-        relations: ['organizationUser'],
-      });
+      const user = await this.getUserByEmailQuery(payload.email)
+        .andWhere('organizationUser.organizationId = :organizationId', {
+          organizationId,
+        })
+        .getOne();
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -197,7 +198,14 @@ export class AuthService {
     organizationId: number,
   ): Promise<number> {
     try {
-      const user = await UserModel.findOne({ email });
+      // tentative change; allow same email if not part of the same organization
+      // may want to instead collapse this and identify accounts purely by email
+      // but specifically search for organization affiliation where necessary
+      const user = await this.getUserByEmailQuery(email)
+        .andWhere('organizationUser.organizationId = :organizationId', {
+          organizationId,
+        })
+        .getOne();
 
       if (user) {
         throw new BadRequestException('Email already exists');
@@ -265,7 +273,7 @@ export class AuthService {
       where: { sid },
       relations: ['organizationUser'],
     });
-    return user && user.organizationUser.organizationId === oid ? true : false;
+    return user?.organizationUser?.organizationId == oid;
   }
 
   async createPasswordResetToken(user: UserModel): Promise<string> {
@@ -291,5 +299,16 @@ export class AuthService {
       token += characters.charAt(randomIndex);
     }
     return token;
+  }
+
+  getUserByEmailQuery(
+    email: string,
+  ): SelectQueryBuilder<UserModel | undefined> {
+    return UserModel.createQueryBuilder('UserModel')
+      .select()
+      .leftJoinAndSelect('UserModel.organizationUser', 'organizationUser')
+      .where('LOWER("UserModel"."email") = :email', {
+        email: email.toLowerCase(),
+      });
   }
 }

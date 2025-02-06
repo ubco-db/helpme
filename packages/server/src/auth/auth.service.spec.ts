@@ -98,9 +98,14 @@ describe('AuthService', () => {
 
   describe('loginWithShibboleth', () => {
     it('should throw an error when user already exists with password', async () => {
-      await UserModel.create({
+      const org = await OrganizationFactory.create();
+      const u = await UserModel.create({
         email: 'mocked_email@example.com',
         password: 'test_password',
+      }).save();
+      await OrganizationUserModel.create({
+        organizationId: org.id,
+        userId: u.id,
       }).save();
 
       await expect(
@@ -117,9 +122,14 @@ describe('AuthService', () => {
     });
 
     it('should throw an error when user already exists with other account type', async () => {
-      await UserModel.create({
+      const org = await OrganizationFactory.create();
+      const u = await UserModel.create({
         email: 'mocked_email@example.com',
         accountType: AccountType.GOOGLE,
+      }).save();
+      await OrganizationUserModel.create({
+        organizationId: org.id,
+        userId: u.id,
       }).save();
 
       await expect(
@@ -136,9 +146,14 @@ describe('AuthService', () => {
     });
 
     it('should return user id when user already exists without password', async () => {
+      const org = await OrganizationFactory.create();
       const user = await UserModel.create({
         email: 'mocked_email@example.com',
         accountType: AccountType.SHIBBOLETH,
+      }).save();
+      await OrganizationUserModel.create({
+        organizationId: org.id,
+        userId: user.id,
       }).save();
 
       const userId = await service.loginWithShibboleth(
@@ -285,8 +300,13 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('should throw an error when email already exists', async () => {
-      await UserModel.create({
+      const org = await OrganizationFactory.create();
+      const u = await UserModel.create({
         email: 'existingEmail@mail.com',
+      }).save();
+      await OrganizationUserModel.create({
+        organizationId: org.id,
+        userId: u.id,
       }).save();
 
       await expect(

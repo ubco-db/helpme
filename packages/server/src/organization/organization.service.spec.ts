@@ -11,6 +11,8 @@ import {
 import { UserRole } from '@koh/common';
 import { OrganizationCourseModel } from './organization-course.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
+import { AuthService } from '../auth/auth.service';
+import { MailService } from '../mail/mail.service';
 
 describe('OrganizationService', () => {
   let service: OrganizationService;
@@ -19,7 +21,15 @@ describe('OrganizationService', () => {
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [TestTypeOrmModule, TestConfigModule],
-      providers: [OrganizationService],
+      providers: [
+        OrganizationService,
+        AuthService,
+        {
+          // We disabled the mail service for now, so let's just mock it
+          provide: MailService,
+          useValue: {},
+        },
+      ],
     }).compile();
     service = module.get<OrganizationService>(OrganizationService);
     conn = module.get<Connection>(Connection);
