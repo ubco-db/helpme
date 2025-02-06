@@ -4,7 +4,8 @@
 
 ### What is this system? And what are the major features of it and why should I use it?
 
-This is the HelpMe course help system.
+This is the HelpMe course help system. It is an education system designed to help alleviate some of the painful parts of managing courses.
+Using HelpMe does not cost anything and is completely free (it is primarily developed by students from UBC Okanagan).
 
 There are 3 main features of the system:
 - Queues
@@ -297,3 +298,11 @@ The schedule page lets you create events. These can be one-time events or recurr
 
 The main advantage to creating events is you can assign your staff members to these events, which will cause them to auto-checkout once the event ends (saving you the need to remember to checkout). It is **strongly** recommended to do this at the start of your course.
 
+
+### What is student assignment progress?
+
+So in HelpMe there exists a feature under the "Edit Queue Details" modal where you can assign an assignment ID of your choosing to a queue as well as tasks for your students to complete (students will have the option of creating a "Demo" in which you can check off which parts they got done). On a queue page, there is an option to "View {assignment_ID} Progress" which will show every students' progress so far in the assignment that you have created. Under Course Settings -> Export Data there is an option to "Export CSV of all students' assignment progress".
+
+The idea behind the feature is how in some labs there may be parts that require the TA to come "check-off" at some point before they leave the lab (e.g. chemistry/engineering/physics lab experiment). When a student is ready to have a part of the lab ready to be checked off they can create a "Demo", which is in the same queue as regular questions but can be differentiated and prioritized. Once you are helping them, you can select what parts they have finished, and that gets stored as "student assignment progress". You can think that each "task" may be a part of the lab that needs to be checked off, and any tasks that need to be looked at *before the student can continue working on the lab* are considered "Blocking Tasks" (by default, a task is not blocking, meaning that students can enter the queue with tasks 1, 2, and 3 all ready to be checked). This feature is totally optional.
+
+There is currently **no** integration made between the LMS (Canvas) integration assignments and these assignments. From synchronizing your LMS system (Canvas), your assignments descriptions will be automatically uploaded to the Course Chatbot, which can then be queried when the students ask the chatbot questions. But this LMS feature currently has nothing to do with student assignment progress and are completely separated systems.
