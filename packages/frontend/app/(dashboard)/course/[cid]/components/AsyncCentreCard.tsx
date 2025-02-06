@@ -1,10 +1,10 @@
 'use client'
 
 import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { Badge, Card } from 'antd'
+import { Card } from 'antd'
 import Link from 'next/link'
 import React, { ReactElement, use, useEffect, useState } from 'react'
+import { Tooltip } from 'antd'
 
 interface AsyncCentreCardProps {
   cid: number
@@ -15,10 +15,13 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
   cid,
   linkId,
 }): ReactElement => {
-  const { userInfo } = useUserInfo()
+  const [unreadCount, setUnreadCount] = useState(0)
 
-  const unreadCount =
-    userInfo.courses.find((c) => c.course.id === cid)?.unreadCount || 0
+  useEffect(() => {
+    API.course
+      .getUnreadAsyncCount(cid)
+      .then((unreadCount) => setUnreadCount(unreadCount))
+  }, [])
 
   return (
     <Link
@@ -34,12 +37,12 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
         title={'Anytime Question Hub'}
         extra={
           unreadCount > 0 && (
-            <>
+            <Tooltip title="The number of questions that have been updated since you last visted the Anytime Question Hub">
               <div className="mr-8 h-fit text-sm font-normal text-gray-200">
-                <span className="text-lg font-medium">{unreadCount}</span>{' '}
-                unread
+                <span className="text-lg font-medium">{unreadCount}</span>
+                {` updated`}
               </div>
-            </>
+            </Tooltip>
           )
         }
       >

@@ -56,6 +56,8 @@ import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegra
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from '../lmsIntegration/lmsAssignment.entity';
 import { CalendarModel } from '../calendar/calendar.entity';
+import { LMSAnnouncementModel } from 'lmsIntegration/lmsAnnouncement.entity';
+import { UserCourseAsyncQuestionModel } from 'profile/user-course-asyncQuestion.entity';
 
 const exampleConfig = {
   fifo_queue_view_enabled: true,
@@ -139,6 +141,12 @@ export class SeedController {
   async deleteAll(): Promise<string> {
     // NOTE: order of deletion matters for tables with foreign keys.
     // Children tables should be removed as early as possible.
+    await this.seedService.deleteAll(UserCourseAsyncQuestionModel);
+    await this.seedService.deleteAll(LMSAssignmentModel);
+    await this.seedService.deleteAll(LMSAnnouncementModel);
+    await this.seedService.deleteAll(LMSCourseIntegrationModel);
+    await this.seedService.deleteAll(LMSOrganizationIntegrationModel);
+    await this.seedService.deleteAll(InsightDashboardModel);
     await this.seedService.deleteAll(CalendarModel);
     await this.seedService.deleteAll(QuestionTypeModel);
     await this.seedService.deleteAll(OrganizationCourseModel);
@@ -166,10 +174,6 @@ export class SeedController {
     await this.seedService.deleteAll(QuestionTypeModel);
     await this.seedService.deleteAll(CourseSettingsModel);
     await this.seedService.deleteAll(MailServiceModel);
-    await this.seedService.deleteAll(InsightDashboardModel);
-    await this.seedService.deleteAll(LMSOrganizationIntegrationModel);
-    await this.seedService.deleteAll(LMSCourseIntegrationModel);
-    await this.seedService.deleteAll(LMSAssignmentModel);
     const manager = getManager();
     manager.query('ALTER SEQUENCE user_model_id_seq RESTART WITH 1;');
     manager.query('ALTER SEQUENCE organization_model_id_seq RESTART WITH 1;');

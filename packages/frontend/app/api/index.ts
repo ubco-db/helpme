@@ -295,6 +295,8 @@ class APIClient {
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
     getAllQueueInvites: async (courseId: number): Promise<QueueInvite[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/queue_invites`),
+    getUnreadAsyncCount: async (courseId: number): Promise<number> =>
+      this.req('GET', `/api/v1/courses/${courseId}/unread_async_count`),
     updateUnreadAsyncCount: async (courseId: number): Promise<void> =>
       this.req('PATCH', `/api/v1/courses/${courseId}/unread_async_count`),
     getIntegration: async (
