@@ -7,9 +7,9 @@ import {
   PrimaryColumn,
 } from 'typeorm';
 import { AsyncQuestionModel } from './asyncQuestion.entity';
-import { UserModel } from 'profile/user.entity';
+import { UserModel } from '../profile/user.entity';
 import { Exclude } from 'class-transformer';
-import { CourseModel } from 'course/course.entity';
+import { CourseModel } from '../course/course.entity';
 
 @Entity('unread_async_question_model')
 export class UnreadAsyncQuestionModel extends BaseEntity {

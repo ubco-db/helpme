@@ -64,12 +64,9 @@ describe('AsyncQuestion Integration', () => {
     it('Student can create a question', async () => {
       const [prevRecords, prevCount] =
         await UnreadAsyncQuestionModel.findAndCount({
-          relations: ['userCourse', 'userCourse.user', 'userCourse.course'],
           where: {
-            userCourse: {
-              user: { id: studentUser2.id },
-              course: { id: course.id },
-            },
+            userId: studentUser2.id,
+            courseId: course.id,
           },
         });
 
@@ -83,12 +80,9 @@ describe('AsyncQuestion Integration', () => {
         .then(async (response) => {
           const [currentRecords, currentCount] =
             await UnreadAsyncQuestionModel.findAndCount({
-              relations: ['userCourse', 'userCourse.user', 'userCourse.course'],
               where: {
-                userCourse: {
-                  user: { id: studentUser2.id },
-                  course: { id: course.id },
-                },
+                userId: studentUser2.id,
+                courseId: course.id,
               },
             });
           expect(currentCount).toBe(prevCount + 1);
