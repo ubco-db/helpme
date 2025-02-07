@@ -75,16 +75,20 @@ const QueueChat: React.FC<QueueChatProps> = ({
 
   const sendMessage = async () => {
     setIsLoading(true)
-      if (questionId) {
-        API.queueChats.sendMessage(queueId, questionId, input).then(() => {
+    if (questionId) {
+      API.queueChats
+        .sendMessage(queueId, questionId, input)
+        .then(() => {
           mutateQueueChat()
           setInput('')
-        }).catch((e) => {
-        message.error(getErrorMessage(e))
-        }).finally(() => {
-        setIsLoading(false)
         })
-      }
+        .catch((e) => {
+          message.error(e)
+        })
+        .finally(() => {
+          setIsLoading(false)
+        })
+    }
   }
 
   if (!queueChatData || queueChatError) {

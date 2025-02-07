@@ -19,7 +19,7 @@ import {
 import axios from 'axios'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { cn, getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { Feedback } from './Feedback'
 import {
   PreDeterminedQuestion,
@@ -539,19 +539,17 @@ const Chatbot: React.FC<ChatbotProps> = ({
             </div>
           </Card>
         ) : (
-          <>
-            <div className="md:flex md:justify-end">
-              <Button
-                type="primary"
-                icon={<RobotOutlined />}
-                size="large"
-                className="mx-5 rounded-sm"
-                onClick={() => setIsOpen(true)}
-              >
-                Chat now
-              </Button>
-            </div>
-          </>
+          <div className="md:flex md:justify-end">
+            <Button
+              type="primary"
+              icon={<RobotOutlined />}
+              size="large"
+              className="mx-5 rounded-sm"
+              onClick={() => setIsOpen(true)}
+            >
+              Chat now
+            </Button>
+          </div>
         )}
       </div>
     )
