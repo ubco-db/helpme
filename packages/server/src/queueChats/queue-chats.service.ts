@@ -39,60 +39,57 @@ export class QueueChatService {
     const key = `${ChatMetadataRedisKey}:${queueId}:${question.id}`;
 
     // Remove any existing chat metadata and messages (in case of mismanagement; to protect previous chat history)
-    await this.redis.del(key, (error, result) => {
+    await this.redis.del(key).catch((error) => {
       if (error) {
-        console.error(error);
         throw new HttpException(
           ERROR_MESSAGES.queueChatsController.failureToClearChat,
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
     });
-    await this.redis.del(
-      `${ChatMessageRedisKey}:${queueId}:${question.id}`,
-      (error, result) => {
+    await this.redis
+      .del(`${ChatMessageRedisKey}:${queueId}:${question.id}`)
+      .catch((error) => {
         if (error) {
-          console.error(error);
           throw new HttpException(
             ERROR_MESSAGES.queueChatsController.failureToClearChat,
             HttpStatus.INTERNAL_SERVER_ERROR,
           );
         }
-      },
-    );
+      });
 
     // Since it isn't guaranteed that the creator relation will be populated
     const creator = await UserModel.findOne({
       where: { id: question.creatorId },
     });
 
-    await this.redis.set(
-      key,
-      JSON.stringify({
-        staff: {
-          id: staff.id,
-          firstName: staff.firstName,
-          lastName: staff.lastName,
-          photoURL: staff.photoURL,
-        } as QueueChatUserPartial,
-        student: {
-          id: creator.id,
-          firstName: creator.firstName,
-          lastName: creator.lastName,
-          photoURL: creator.photoURL,
-        } as QueueChatUserPartial,
-        startedAt: startedAt ?? new Date(),
-      } as QueueChatPartial),
-      (error, result) => {
+    await this.redis
+      .set(
+        key,
+        JSON.stringify({
+          staff: {
+            id: staff.id,
+            firstName: staff.firstName,
+            lastName: staff.lastName,
+            photoURL: staff.photoURL,
+          } as QueueChatUserPartial,
+          student: {
+            id: creator.id,
+            firstName: creator.firstName,
+            lastName: creator.lastName,
+            photoURL: creator.photoURL,
+          } as QueueChatUserPartial,
+          startedAt: startedAt ?? new Date(),
+        } as QueueChatPartial),
+      )
+      .catch((error) => {
         if (error) {
-          console.error(error);
           throw new HttpException(
             ERROR_MESSAGES.queueChatsController.failureToCreateChat,
             HttpStatus.INTERNAL_SERVER_ERROR,
           );
         }
-      },
-    );
+      });
 
     await this.redis.expire(key, 604800); // 1 week = 7 * 24 * 60 * 60 = 604800 seconds
   }
@@ -118,9 +115,8 @@ export class QueueChatService {
       message,
       timestamp: new Date(),
     } as QueueChatMessagePartial);
-    await this.redis.lpush(key, chatDataString, (error, result) => {
+    await this.redis.lpush(key, chatDataString).catch((error) => {
       if (error) {
-        console.error(error);
         throw new HttpException(
           ERROR_MESSAGES.queueChatsController.failureToSendMessage,
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -140,9 +136,8 @@ export class QueueChatService {
     questionId: number,
   ): Promise<QueueChatPartial | null> {
     const key = `${ChatMetadataRedisKey}:${queueId}:${questionId}`;
-    const metadataString = await this.redis.get(key, (error, result) => {
+    const metadataString = await this.redis.get(key).catch((error) => {
       if (error) {
-        console.error(error);
         throw new HttpException(
           ERROR_MESSAGES.queueChatsController.chatNotFound,
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -164,11 +159,9 @@ export class QueueChatService {
     questionId: number,
   ): Promise<QueueChatMessagePartial[] | null> {
     const key = `${ChatMessageRedisKey}:${queueId}:${questionId}`;
-    const chatMessageStrings = await this.redis.lrange(
-      key,
-      0,
-      -1,
-      (error, result) => {
+    const chatMessageStrings = await this.redis
+      .lrange(key, 0, -1)
+      .catch((error) => {
         if (error) {
           console.error(error);
           throw new HttpException(
@@ -176,9 +169,8 @@ export class QueueChatService {
             HttpStatus.INTERNAL_SERVER_ERROR,
           );
         }
-      },
-    );
-    if (chatMessageStrings.length === 0) return null;
+      });
+    if (!chatMessageStrings || chatMessageStrings.length === 0) return null;
 
     return chatMessageStrings
       .map((chatDataString) => {
@@ -239,18 +231,16 @@ export class QueueChatService {
       queueChat.closedAt = new Date();
       queueChat.messageCount = messages.length;
       queueChat.save().then(async () => {
-        await this.redis.del(metaKey, (error, result) => {
+        await this.redis.del(metaKey).catch((error) => {
           if (error) {
-            console.error(error);
             throw new HttpException(
               ERROR_MESSAGES.queueChatsController.failureToClearChat,
               HttpStatus.INTERNAL_SERVER_ERROR,
             );
           }
         });
-        await this.redis.del(messageKey, (error, result) => {
+        await this.redis.del(messageKey).catch((error) => {
           if (error) {
-            console.error(error);
             throw new HttpException(
               ERROR_MESSAGES.queueChatsController.failureToClearChat,
               HttpStatus.INTERNAL_SERVER_ERROR,

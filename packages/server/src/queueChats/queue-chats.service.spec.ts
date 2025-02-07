@@ -16,13 +16,13 @@ describe('QueueChatService', () => {
   let conn: Connection;
 
   const mockRedisClient = () => ({
-    get: jest.fn(),
-    set: jest.fn(),
-    del: jest.fn(),
-    lpush: jest.fn(),
-    lrange: jest.fn(),
-    expire: jest.fn(),
-    exists: jest.fn(),
+    get: jest.fn().mockResolvedValue('mocked_value'), // Simulates redis.get() returning a value
+    set: jest.fn().mockResolvedValue('OK'), // Simulates redis.set() returning 'OK'
+    del: jest.fn().mockResolvedValue(1), // Simulates redis.del() indicating 1 key deleted
+    lpush: jest.fn().mockResolvedValue(1), // Simulates redis.lpush() returning new list length
+    lrange: jest.fn().mockResolvedValue(['item1', 'item2']), // Simulates redis.lrange() returning list items
+    expire: jest.fn().mockResolvedValue(1), // Simulates redis.expire() returning 1 (success)
+    exists: jest.fn().mockResolvedValue(1), // Simulates redis.exists() returning 1 (key exists)
   });
 
   const staticDate = new Date('2023-01-01T00:00:00Z');
@@ -80,14 +80,8 @@ describe('QueueChatService', () => {
 
       const key_metadata = 'queue_chat_metadata:2:1';
       const key_messages = 'queue_chat_messages:2:1';
-      expect(redisMock.del).toHaveBeenCalledWith(
-        key_metadata,
-        expect.any(Function),
-      );
-      expect(redisMock.del).toHaveBeenCalledWith(
-        key_messages,
-        expect.any(Function),
-      );
+      expect(redisMock.del).toHaveBeenCalledWith(key_metadata);
+      expect(redisMock.del).toHaveBeenCalledWith(key_messages);
       expect(redisMock.del).toHaveBeenCalledTimes(2);
       expect(redisMock.set).toHaveBeenCalledWith(
         key_metadata,
@@ -106,7 +100,6 @@ describe('QueueChatService', () => {
           },
           startedAt: staticDate.toISOString(),
         }),
-        expect.any(Function),
       );
       expect(redisMock.expire).toHaveBeenCalledWith(key_metadata, 604800); // one week in seconds
     });
@@ -120,7 +113,6 @@ describe('QueueChatService', () => {
       expect(redisMock.lpush).toHaveBeenCalledWith(
         key,
         expect.stringMatching(/"isStaff":true,"message":"Hello!"/),
-        expect.any(Function),
       );
     });
   });
@@ -136,10 +128,7 @@ describe('QueueChatService', () => {
       redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
 
       const result = await service.getChatMetadata(123, 2);
-      expect(redisMock.get).toHaveBeenCalledWith(
-        'queue_chat_metadata:123:2',
-        expect.any(Function),
-      );
+      expect(redisMock.get).toHaveBeenCalledWith('queue_chat_metadata:123:2');
       expect(result).toEqual(metadata);
     });
 
@@ -147,10 +136,7 @@ describe('QueueChatService', () => {
       redisMock.get.mockResolvedValueOnce(null);
 
       const result = await service.getChatMetadata(123, 2);
-      expect(redisMock.get).toHaveBeenCalledWith(
-        'queue_chat_metadata:123:2',
-        expect.any(Function),
-      );
+      expect(redisMock.get).toHaveBeenCalledWith('queue_chat_metadata:123:2');
       expect(result).toBeNull();
     });
   });
@@ -177,7 +163,6 @@ describe('QueueChatService', () => {
         'queue_chat_messages:123:2',
         0,
         -1,
-        expect.any(Function),
       );
 
       expect(result).toEqual(
@@ -202,7 +187,6 @@ describe('QueueChatService', () => {
         'queue_chat_messages:123:2',
         0,
         -1,
-        expect.any(Function),
       );
       expect(result).toBeNull();
     });
@@ -234,10 +218,7 @@ describe('QueueChatService', () => {
       await service.endChat(123, 2);
 
       expect(mockSave).toHaveBeenCalledWith();
-      expect(redisMock.del).toHaveBeenCalledWith(
-        'queue_chat_metadata:123:2',
-        expect.any(Function),
-      );
+      expect(redisMock.del).toHaveBeenCalledWith('queue_chat_metadata:123:2');
     });
 
     it('should not save data if no messages exist', async () => {
@@ -257,7 +238,6 @@ describe('QueueChatService', () => {
       ).resolves.toEqual([]);
       expect(redisMock.del).not.toHaveBeenCalledWith(
         'queue_chat_messages:123:2',
-        expect.any(Function),
       );
     });
   });

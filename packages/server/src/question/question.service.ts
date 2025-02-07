@@ -159,11 +159,6 @@ export class QuestionService {
         );
       }
     } catch (err) {
-      if (err instanceof Error) {
-        console.error(err.stack);
-      } else {
-        console.error(err);
-      }
       throw new HttpException(
         ERROR_MESSAGES.questionService.queueChatUpdateFailure,
         HttpStatus.INTERNAL_SERVER_ERROR,

@@ -26,25 +26,30 @@ import { QueueService } from 'queue/queue.service';
 import { AlertsService } from 'alerts/alerts.service';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
-import { RedisService } from 'nestjs-redis';
+import { RedisModule, RedisService } from 'nestjs-redis';
+import { RedisMemoryServer } from 'redis-memory-server';
 
 describe('QuestionService', () => {
   let service: QuestionService;
 
   let conn: Connection;
 
-  const mockRedisService = {
-    getClient: jest.fn(() => ({
-      get: jest.fn(),
-      set: jest.fn(),
-      del: jest.fn(),
-      lrange: jest.fn().mockResolvedValue([]),
-    })),
-  };
+  const redisMock = new RedisMemoryServer();
 
   beforeAll(async () => {
+    const redisHost = await redisMock.getHost();
+    const redisPort = await redisMock.getPort();
+
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule],
+      imports: [
+        TestTypeOrmModule,
+        TestConfigModule,
+        RedisModule.register([
+          { name: 'pub', host: redisHost, port: redisPort },
+          { name: 'sub', host: redisHost, port: redisPort },
+          { name: 'db', host: redisHost, port: redisPort },
+        ]),
+      ],
       providers: [
         {
           provide: QueueService,
@@ -64,10 +69,6 @@ describe('QuestionService', () => {
         ApplicationConfigService,
         QueueChatService,
         {
-          provide: RedisService,
-          useValue: mockRedisService,
-        },
-        {
           provide: 'REDIS_CLIENT',
           useValue: {},
         },
@@ -80,6 +81,9 @@ describe('QuestionService', () => {
 
   afterAll(async () => {
     await conn.close();
+    if (redisMock) {
+      await redisMock.stop();
+    }
   });
 
   beforeEach(async () => {
