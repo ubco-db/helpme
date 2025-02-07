@@ -296,6 +296,8 @@ class APIClient {
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
     getAllQueueInvites: async (courseId: number): Promise<QueueInvite[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/queue_invites`),
+    getUnreadAsyncCount: async (courseId: number): Promise<number> =>
+      this.req('GET', `/api/v1/courses/${courseId}/unread_async_count`),
     updateUnreadAsyncCount: async (courseId: number): Promise<void> =>
       this.req('PATCH', `/api/v1/courses/${courseId}/unread_async_count`),
     getIntegration: async (
@@ -305,7 +307,7 @@ class APIClient {
     upsertIntegration: async (
       courseId: number,
       props: {
-        apiPlatform: LMSIntegration
+        apiPlatform: any
         apiKey: string
         apiKeyExpiry?: Date
         apiKeyExpiryDeleted?: boolean
@@ -320,7 +322,7 @@ class APIClient {
       ),
     removeIntegration: async (
       courseId: number,
-      props: { apiPlatform: LMSIntegration },
+      props: { apiPlatform: any },
     ): Promise<string | undefined> =>
       this.req(
         'DELETE',

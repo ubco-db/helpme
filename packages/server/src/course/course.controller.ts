@@ -39,6 +39,7 @@ import {
   UseGuards,
   UseInterceptors,
   ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import async from 'async';
 import { Response, Request } from 'express';
@@ -66,6 +67,7 @@ import { pick } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
+import { UserCourseAsyncQuestionModel } from 'profile/user-course-asyncQuestion.entity';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -1136,25 +1138,55 @@ export class CourseController {
     return;
   }
 
+  // Moved from userInfo context endpoint as this updates too frequently to make sense caching it with userInfo data
+  @Get(':id/unread_async_count')
+  @UseGuards(JwtAuthGuard)
+  async getUnreadAsyncCount(
+    @Param('id', ParseIntPipe) courseId: number,
+    @User() userId: number,
+  ): Promise<number> {
+    const userCourse = await UserCourseModel.findOne({
+      where: { courseId, userId },
+    });
+
+    if (!userCourse) {
+      throw new ForbiddenException('User is not in the course');
+    }
+
+    const userCourseAsyncQuestions = await UserCourseAsyncQuestionModel.find({
+      where: {
+        userCourse,
+        readLatest: false,
+      },
+    });
+
+    return userCourseAsyncQuestions.length;
+  }
+
   @Patch(':id/unread_async_count')
   @UseGuards(JwtAuthGuard)
   async updateUnreadAsyncCount(
     @Param('id', ParseIntPipe) courseId: number,
-    @User() user: UserModel,
+    @User() userId: number,
   ): Promise<void> {
     const userCourse = await UserCourseModel.findOne({
-      where: {
-        user,
-        courseId,
-      },
+      where: { courseId, userId },
     });
 
     if (!userCourse) {
-      throw new NotFoundException('UserCourse not found');
+      throw new ForbiddenException('User is not in the course');
     }
 
-    userCourse.unreadAsyncQuestions = 0;
-    await userCourse.save();
+    const userCourseAsyncQuestions = await UserCourseAsyncQuestionModel.find({
+      where: {
+        userCourse,
+      },
+    });
+
+    await UserCourseAsyncQuestionModel.update(
+      { userCourse },
+      { readLatest: true },
+    );
 
     return;
   }
