@@ -182,7 +182,6 @@ export class asyncQuestionController {
       if (usersInCourse?.length) {
         await getRepository(UnreadAsyncQuestionModel)
           .createQueryBuilder()
-          .useTransaction(true)
           .insert()
           .into(UnreadAsyncQuestionModel)
           .values(
