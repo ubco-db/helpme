@@ -154,6 +154,9 @@ export class LMSIntegrationService {
       { courseId },
       { relations: ['orgIntegration'] },
     );
+    if (integration?.orgIntegration == undefined) {
+      throw new HttpException(LMSApiResponseStatus.InvalidConfiguration, 404);
+    }
     return await this.integrationAdapter.getAdapter(integration);
   }
 
