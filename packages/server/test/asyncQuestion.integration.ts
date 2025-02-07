@@ -11,7 +11,7 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
 import { asyncQuestionStatus, Role } from '@koh/common';
-import { UserCourseAsyncQuestionModel } from 'profile/user-course-asyncQuestion.entity';
+import { UserCourseAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 
 describe('AsyncQuestion Integration', () => {
   const supertest = setupIntegrationTest(asyncQuestionModule);

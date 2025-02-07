@@ -24,6 +24,7 @@ import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
 import { CalendarStaffModel } from '../calendar/calendar-staff.entity';
+import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -148,4 +149,11 @@ export class UserModel extends BaseEntity {
 
   @Column({ type: 'boolean', default: false })
   readChangeLog: boolean;
+
+  @OneToMany(
+    (type) => UnreadAsyncQuestionModel,
+    (unreadAsyncQuestion) => unreadAsyncQuestion.user,
+  )
+  @Exclude()
+  unreadAsyncQuestions: UnreadAsyncQuestionModel[];
 }

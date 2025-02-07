@@ -17,7 +17,7 @@ import {
 import { UserModel } from '../profile/user.entity';
 import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
-import { UserCourseAsyncQuestionModel } from '../profile/user-course-asyncQuestion.entity';
+import { UserCourseAsyncQuestionModel } from './unread-async-question.entity';
 
 @Entity('async_question_model')
 export class AsyncQuestionModel extends BaseEntity {

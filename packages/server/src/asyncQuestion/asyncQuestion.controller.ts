@@ -34,7 +34,7 @@ import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
-import { UserCourseAsyncQuestionModel } from '../profile/user-course-asyncQuestion.entity';
+import { UserCourseAsyncQuestionModel } from './unread-async-question.entity';
 import { getRepository } from 'typeorm';
 
 @Controller('asyncQuestions')
