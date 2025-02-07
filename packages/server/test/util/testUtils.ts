@@ -13,6 +13,7 @@ import { ApplicationConfigService } from 'config/application_config.service';
 import { ApplicationConfigModule } from 'config/application_config.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
 import { RedisMemoryServer } from 'redis-memory-server';
+import { Redis } from 'ioredis';
 
 export interface SupertestOptions {
   userId?: number;
@@ -102,6 +103,7 @@ export function setupIntegrationTest(
     testModule = await testModuleBuilder.compile();
 
     // Create and configure the application
+
     app = testModule.createNestApplication();
     addGlobalsToApp(app);
     jwtService = testModule.get<JwtService>(JwtService);
@@ -114,6 +116,9 @@ export function setupIntegrationTest(
     await appConfig.loadConfig();
     await app.init();
     schedulerRegistry = testModule.get<SchedulerRegistry>(SchedulerRegistry);
+
+    // Ensure Redis is connected before proceeding
+    await ensureRedisConnected(redisService.getClient('db'));
   }, 10000);
 
   afterAll(async () => {
@@ -177,4 +182,22 @@ export async function clearAllCronJobs(
   cronJobs.forEach((_, jobName) => {
     schedulerRegistry.deleteCronJob(jobName);
   });
+}
+
+async function ensureRedisConnected(redisClient: Redis, retries = 5) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const pingResponse = await redisClient.ping();
+      if (pingResponse === 'PONG') {
+        // Connected successfully, don't log anything
+        return;
+      }
+    } catch (err) {
+      console.warn(
+        `Failed to establish connection to redis server. Retrying Redis connection... (${i + 1}/${retries})`,
+      );
+    }
+    await new Promise((res) => setTimeout(res, 1000)); // Wait 1 second before retrying
+  }
+  throw new Error('Failed to connect to Redis after multiple attempts.');
 }
