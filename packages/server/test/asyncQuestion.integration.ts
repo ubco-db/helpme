@@ -11,7 +11,7 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
 import { asyncQuestionStatus, Role } from '@koh/common';
-import { UserCourseAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
+import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 
 describe('AsyncQuestion Integration', () => {
   const supertest = setupIntegrationTest(asyncQuestionModule);
@@ -63,7 +63,7 @@ describe('AsyncQuestion Integration', () => {
   describe('Async question creation', () => {
     it('Student can create a question', async () => {
       const [prevRecords, prevCount] =
-        await UserCourseAsyncQuestionModel.findAndCount({
+        await UnreadAsyncQuestionModel.findAndCount({
           relations: ['userCourse', 'userCourse.user', 'userCourse.course'],
           where: {
             userCourse: {
@@ -82,7 +82,7 @@ describe('AsyncQuestion Integration', () => {
         .expect(201)
         .then(async (response) => {
           const [currentRecords, currentCount] =
-            await UserCourseAsyncQuestionModel.findAndCount({
+            await UnreadAsyncQuestionModel.findAndCount({
               relations: ['userCourse', 'userCourse.user', 'userCourse.course'],
               where: {
                 userCourse: {
