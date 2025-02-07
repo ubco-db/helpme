@@ -32,4 +32,4 @@ jobs:
         with:
           node-version: 20
       - uses: bahmutov/npm-install@v1
-      - run: yarn test
+      - run: yarn test:ci
