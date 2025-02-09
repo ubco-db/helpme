@@ -5,8 +5,13 @@ export const CourseRole = createParamDecorator(
   async (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
     const courseId = request.params.courseId;
-    const user = await UserModel.findOne(request.user.userId, {
-      relations: ['courses'],
+    const user = await UserModel.findOne({
+      where: {
+        id: request.user.userId,
+      },
+      relations: {
+        courses: true,
+      },
     });
 
     const userCourse = user.courses.find((course) => {

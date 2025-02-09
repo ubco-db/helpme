@@ -118,7 +118,11 @@ export class CourseService {
     courseId: number,
     coursePatch: EditCourseInfoParams,
   ): Promise<void> {
-    const course = await CourseModel.findOne(courseId);
+    const course = await CourseModel.findOne({
+      where: {
+        id: courseId,
+      },
+    });
     if (course === null || course === undefined) {
       throw new HttpException(
         ERROR_MESSAGES.courseController.courseNotFound,
@@ -137,13 +141,19 @@ export class CourseService {
 
     for (const crn of new Set(coursePatch.crns)) {
       const courseCrnMaps = await CourseSectionMappingModel.find({
-        crn: crn,
+        where: {
+          crn: crn,
+        },
       });
 
       let courseCrnMapExists = false;
 
       for (const courseCrnMap of courseCrnMaps) {
-        const conflictCourse = await CourseModel.findOne(courseCrnMap.courseId);
+        const conflictCourse = await CourseModel.findOne({
+          where: {
+            id: courseCrnMap.courseId,
+          },
+        });
         if (conflictCourse && conflictCourse.semesterId === course.semesterId) {
           if (courseCrnMap.courseId !== courseId) {
             throw new BadRequestException(
@@ -329,7 +339,9 @@ export class CourseService {
     );
     // check if the queueInvite exists and if it will invite to course
     const queueInvite = await QueueInviteModel.findOne({
-      where: { queueId },
+      where: {
+        queueId: parseInt(queueId),
+      },
     });
     // get the user to see if they are in the course
     const user = await UserModel.findOne({
@@ -357,7 +369,9 @@ export class CourseService {
     } else if (queueInvite.willInviteToCourse && courseInviteCode) {
       // get course
       const course = await CourseModel.findOne({
-        where: { id: courseId },
+        where: {
+          id: parseInt(courseId),
+        },
       });
       if (!course) {
         return '/courses?err=courseNotFound';

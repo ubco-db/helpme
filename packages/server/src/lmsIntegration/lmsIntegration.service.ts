@@ -46,7 +46,9 @@ export class LMSIntegrationService {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async resynchronizeCourseIntegrations() {
     const courses = await LMSCourseIntegrationModel.find({
-      lmsSynchronize: true,
+      where: {
+        lmsSynchronize: true,
+      },
     });
     for (const course of courses) {
       await this.syncDocuments(course.courseId).catch((err) => {
@@ -150,10 +152,14 @@ export class LMSIntegrationService {
   }
 
   async getAdapter(courseId: number): Promise<AbstractLMSAdapter | undefined> {
-    const integration = await LMSCourseIntegrationModel.findOne(
-      { courseId },
-      { relations: ['orgIntegration'] },
-    );
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: {
+        courseId: courseId,
+      },
+      relations: {
+        orgIntegration: true,
+      },
+    });
     if (integration?.orgIntegration == undefined) {
       throw new HttpException(LMSApiResponseStatus.InvalidConfiguration, 404);
     }
@@ -293,7 +299,7 @@ export class LMSIntegrationService {
   ) {
     const model = await this.getDocumentModel(type);
 
-    const qb = model
+    const qb = (model as any)
       .createQueryBuilder('aModel')
       .select()
       .where('aModel.courseId = :courseId', { courseId });
@@ -576,7 +582,7 @@ export class LMSIntegrationService {
       item.chatbotDocumentId = item.chatbotDocumentId ?? status.documentId;
       item.uploaded = new Date();
       item.syncEnabled = true;
-      await model.upsert(item, ['id', 'courseId']);
+      await (model as any).upsert(item, ['id', 'courseId']);
     }
 
     await ChatTokenModel.remove(token);
@@ -607,7 +613,7 @@ export class LMSIntegrationService {
       item.chatbotDocumentId = null;
       item.uploaded = null;
       item.syncEnabled = false;
-      await model.upsert(item, ['id', 'courseId']);
+      await (model as any).upsert(item, ['id', 'courseId']);
     }
 
     await ChatTokenModel.remove(token);

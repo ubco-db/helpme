@@ -93,20 +93,17 @@ export class MailService {
     const mailServicesWithSubscriptions = await mailServicesQuery.getMany();
 
     // Map the results to the desired output format
-    const servicesWithSubscription: MailServiceWithSubscription[] =
-      mailServicesWithSubscriptions.map((mailService) => ({
-        id: mailService.id,
-        mailType: mailService.mailType,
-        serviceType: mailService.serviceType,
-        name: mailService.name,
-        content: mailService.content,
-        isSubscribed:
-          mailService.subscriptions.length > 0
-            ? mailService.subscriptions[0].isSubscribed
-            : false,
-      }));
-
-    return servicesWithSubscription;
+    return mailServicesWithSubscriptions.map((mailService) => ({
+      id: mailService.id,
+      mailType: mailService.mailType,
+      serviceType: mailService.serviceType,
+      name: mailService.name,
+      content: mailService.content,
+      isSubscribed:
+        mailService.subscriptions.length > 0
+          ? mailService.subscriptions[0].isSubscribed
+          : false,
+    }));
   }
 
   async create(mailService: MailServiceModel): Promise<MailServiceModel> {
@@ -118,7 +115,11 @@ export class MailService {
     mailService: MailServiceModel,
   ): Promise<MailServiceModel> {
     await MailServiceModel.update({ id }, mailService);
-    return MailServiceModel.findOne(id);
+    return MailServiceModel.findOne({
+      where: {
+        id: id,
+      },
+    });
   }
 
   async remove(id: number): Promise<void> {

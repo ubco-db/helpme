@@ -32,7 +32,9 @@ export class AuthService {
   async createStudentSubscriptions(userId: number): Promise<void> {
     try {
       const memberMailServices = await MailServiceModel.find({
-        where: { mailType: 'member' },
+        where: {
+          mailType: OrganizationRole.MEMBER,
+        },
       });
       if (!memberMailServices) {
         return;
@@ -62,7 +64,11 @@ export class AuthService {
     organizationId: number,
   ): Promise<number> {
     try {
-      const user = await UserModel.findOne({ email: mail });
+      const user = await UserModel.findOne({
+        where: {
+          email: mail,
+        },
+      });
 
       if (user && user.password) {
         throw new BadRequestException(
@@ -197,7 +203,11 @@ export class AuthService {
     organizationId: number,
   ): Promise<number> {
     try {
-      const user = await UserModel.findOne({ email });
+      const user = await UserModel.findOne({
+        where: {
+          email: email,
+        },
+      });
 
       if (user) {
         throw new BadRequestException('Email already exists');
@@ -263,7 +273,9 @@ export class AuthService {
   async studentIdExists(sid: number, oid: number): Promise<boolean> {
     const user = await UserModel.findOne({
       where: { sid },
-      relations: ['organizationUser'],
+      relations: {
+        organizationUser: true,
+      },
     });
     return user && user.organizationUser.organizationId === oid ? true : false;
   }

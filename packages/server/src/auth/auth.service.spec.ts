@@ -161,7 +161,11 @@ describe('AuthService', () => {
         'Doe',
         organization.id,
       );
-      const user = await UserModel.findOne(userId);
+      const user = await UserModel.findOne({
+        where: {
+          id: userId,
+        },
+      });
       expect(user).toMatchSnapshot();
     });
   });
@@ -234,7 +238,11 @@ describe('AuthService', () => {
         'valid_code',
         organization.id,
       );
-      const user = await UserModel.findOne(userId);
+      const user = await UserModel.findOne({
+        where: {
+          id: userId,
+        },
+      });
       expect(user).toMatchSnapshot();
     });
   });
@@ -313,7 +321,11 @@ describe('AuthService', () => {
         organization.id,
       );
 
-      const user = await UserModel.findOne(userId);
+      const user = await UserModel.findOne({
+        where: {
+          id: userId,
+        },
+      });
       expect(userId == user.id).toBe(true);
     });
 
@@ -329,7 +341,11 @@ describe('AuthService', () => {
         organization.id,
       );
 
-      const user = await UserModel.findOne(userId);
+      const user = await UserModel.findOne({
+        where: {
+          id: userId,
+        },
+      });
 
       expect(userId == user.id).toBe(true);
       expect(user.sid).toBe(123456);

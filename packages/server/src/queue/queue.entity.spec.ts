@@ -52,7 +52,11 @@ describe('queue entity', () => {
       });
     }
 
-    const queue = await QueueModel.findOne(queueFactory.id);
+    const queue = await QueueModel.findOne({
+      where: {
+        id: queueFactory.id,
+      },
+    });
     await queue.addQueueSize();
 
     expect(queue.queueSize).toBe(3);

@@ -8,6 +8,7 @@ import {
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { ChatbotQuestionModel } from 'chatbot/question.entity';
+import { DeepPartial } from 'typeorm';
 
 describe('ChatbotController Integration', () => {
   const supertest = setupIntegrationTest(ChatbotModule);
@@ -62,7 +63,7 @@ describe('ChatbotController Integration', () => {
     });
     const interaction = await InteractionFactory.create({ user, course });
 
-    const questionData: ChatbotQuestion = {
+    const questionData: DeepPartial<ChatbotQuestion> = {
       interactionId: interaction.id,
       questionText: 'How does photosynthesis work?',
       responseText: 'Photosynthesis is the process by which plants...',
@@ -70,7 +71,9 @@ describe('ChatbotController Integration', () => {
       userScore: 5,
     };
     const createdQuestion =
-      await ChatbotQuestionModel.create(questionData).save();
+      await ChatbotQuestionModel.create<ChatbotQuestionModel>(
+        questionData,
+      ).save();
     const editRequestData = {
       data: { userScore: 0, suggested: true },
       questionId: createdQuestion.id,

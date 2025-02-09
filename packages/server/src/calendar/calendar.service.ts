@@ -37,7 +37,11 @@ export class CalendarService implements OnModuleInit {
     transactionalEntityManager: EntityManager,
   ) {
     // make sure the user exists
-    const user = await transactionalEntityManager.findOne(UserModel, userId);
+    const user = await transactionalEntityManager.findOne(UserModel, {
+      where: {
+        id: userId,
+      },
+    });
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -129,11 +133,19 @@ export class CalendarService implements OnModuleInit {
         return;
       }
       // make sure the userId and the calendarId exist. If not, goodbye
-      await UserModel.findOneOrFail(userId).catch(() => {
+      await UserModel.findOneOrFail({
+        where: {
+          id: userId,
+        },
+      }).catch(() => {
         this.deleteAutoCheckoutCronJob(userId, calendarId);
         return;
       });
-      await CalendarModel.findOneOrFail(calendarId).catch(() => {
+      await CalendarModel.findOneOrFail({
+        where: {
+          id: calendarId,
+        },
+      }).catch(() => {
         this.deleteAutoCheckoutCronJob(userId, calendarId);
         return;
       });

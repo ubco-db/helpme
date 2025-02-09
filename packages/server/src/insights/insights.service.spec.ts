@@ -826,7 +826,11 @@ describe('InsightsService', () => {
   describe('toggleInsightOn', () => {
     it('works correctly', async () => {
       const userFactory = await UserFactory.create();
-      const user = await UserModel.findOne(userFactory.id);
+      const user = await UserModel.findOne({
+        where: {
+          id: userFactory.id,
+        },
+      });
       expect(user.hideInsights).toStrictEqual([]);
       await service.toggleInsightOff(user, 'questionTypeBreakdown');
       await user.reload();
@@ -839,7 +843,11 @@ describe('InsightsService', () => {
       const userFactory = await UserFactory.create({
         hideInsights: ['questionTypeBreakdown'],
       });
-      const user = await UserModel.findOne(userFactory.id);
+      const user = await UserModel.findOne({
+        where: {
+          id: userFactory.id,
+        },
+      });
       expect(user.hideInsights).toStrictEqual(['questionTypeBreakdown']);
       await service.toggleInsightOn(user, 'questionTypeBreakdown');
       await user.reload();

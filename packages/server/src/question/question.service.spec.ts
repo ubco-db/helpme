@@ -141,8 +141,16 @@ describe('QuestionService', () => {
 
       await service.resolveQuestions(queue.id, ta.id);
 
-      const resolvedQuestion1 = await QuestionModel.findOne(question1.id);
-      const resolvedQuestion2 = await QuestionModel.findOne(question2.id);
+      const resolvedQuestion1 = await QuestionModel.findOne({
+        where: {
+          id: question1.id,
+        },
+      });
+      const resolvedQuestion2 = await QuestionModel.findOne({
+        where: {
+          id: question2.id,
+        },
+      });
 
       expect(resolvedQuestion1.status).toEqual(ClosedQuestionStatus.Resolved);
       expect(resolvedQuestion2.status).toEqual(ClosedQuestionStatus.Resolved);
@@ -202,9 +210,17 @@ describe('QuestionService', () => {
         .mockResolvedValue([taskQuestion] as any);
       await service.resolveQuestions(queue.id, ta.id);
 
-      const updatedQuestion = await QuestionModel.findOne(taskQuestion.id);
+      const updatedQuestion = await QuestionModel.findOne({
+        where: {
+          id: taskQuestion.id,
+        },
+      });
       expect(updatedQuestion.status).toBe(ClosedQuestionStatus.Resolved);
-      const realQueue = await QueueModel.findOne(queue.id);
+      const realQueue = await QueueModel.findOne({
+        where: {
+          id: queue.id,
+        },
+      });
 
       expect(service.checkIfValidTaskQuestion).toHaveBeenCalledWith(
         updatedQuestion,

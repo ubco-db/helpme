@@ -166,7 +166,7 @@ describe('LMSIntegrationService', () => {
         LMSIntegrationPlatform.Canvas,
       );
 
-      const created = await LMSOrganizationIntegrationModel.findOne(undefined, {
+      const created = await LMSOrganizationIntegrationModel.findOne({
         where: {
           organizationId: org.id,
           apiPlatform: LMSIntegrationPlatform.Canvas,
@@ -191,7 +191,7 @@ describe('LMSIntegrationService', () => {
         LMSIntegrationPlatform.Canvas,
       );
 
-      const updated = await LMSOrganizationIntegrationModel.findOne(undefined, {
+      const updated = await LMSOrganizationIntegrationModel.findOne({
         where: {
           organizationId: org.id,
           apiPlatform: LMSIntegrationPlatform.Canvas,
@@ -221,7 +221,11 @@ describe('LMSIntegrationService', () => {
     it('should create a new course integration without an expiry', async () => {
       await service.createCourseLMSIntegration(orgInt, course.id, 'abc', 'def');
 
-      const check = await LMSCourseIntegrationModel.findOne(course.id);
+      const check = await LMSCourseIntegrationModel.findOne({
+        where: {
+          courseId: course.id,
+        },
+      });
       expect(check).toBeTruthy();
       expect(check.apiKeyExpiry).toBeNull();
     });
@@ -234,7 +238,11 @@ describe('LMSIntegrationService', () => {
         'def',
         new Date(),
       );
-      const check = await LMSCourseIntegrationModel.findOne(course.id);
+      const check = await LMSCourseIntegrationModel.findOne({
+        where: {
+          courseId: course.id,
+        },
+      });
       expect(check).toBeTruthy();
       expect(check.apiKeyExpiry).toBeTruthy();
     });

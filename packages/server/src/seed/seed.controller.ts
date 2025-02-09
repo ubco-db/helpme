@@ -257,7 +257,7 @@ export class SeedController {
       queueEnabled: true,
     });
 
-    const userExists = await UserModel.findOne();
+    const userExists = await UserModel.findOne({});
 
     if (!userExists) {
       // Student 1
@@ -590,7 +590,7 @@ export class SeedController {
 
   @Get('fill_queue')
   async fillQueue(): Promise<string> {
-    const queue = await QueueModel.findOne();
+    const queue = await QueueModel.findOne({});
 
     const questionType = await QuestionTypeFactory.create({
       cid: queue.course.id,

@@ -38,12 +38,20 @@ describe('NotificationService', () => {
         auth: 'fd',
       };
       await service.registerDesktop(data);
-      let dnotif = await DesktopNotifModel.find({ userId: user.id });
+      let dnotif = await DesktopNotifModel.find({
+        where: {
+          userId: user.id,
+        },
+      });
       expect(dnotif).toEqual([expect.objectContaining(data)]);
 
       // do it again, but it should skip
       await service.registerDesktop(data);
-      dnotif = await DesktopNotifModel.find({ userId: user.id });
+      dnotif = await DesktopNotifModel.find({
+        where: {
+          userId: user.id,
+        },
+      });
       expect(dnotif.length).toEqual(1);
     });
   });

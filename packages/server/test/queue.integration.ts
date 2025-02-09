@@ -300,7 +300,11 @@ describe('Queue Integration', () => {
         .delete(`/queues/${queue.id}`)
         .expect(200);
 
-      const postQueue = await QueueModel.findOne({ id: queue.id });
+      const postQueue = await QueueModel.findOne({
+        where: {
+          id: queue.id,
+        },
+      });
       expect(postQueue.isDisabled).toBeTruthy();
     });
 
@@ -320,7 +324,11 @@ describe('Queue Integration', () => {
         .delete(`/queues/${queue.id}`)
         .expect(403);
 
-      const postQueue = await QueueModel.findOne({ id: queue.id });
+      const postQueue = await QueueModel.findOne({
+        where: {
+          id: queue.id,
+        },
+      });
       expect(postQueue.isDisabled).toBeFalsy();
     });
 
@@ -358,7 +366,11 @@ describe('Queue Integration', () => {
         .delete(`/queues/${queue.id}`)
         .expect(200);
 
-      const postQueue = await QueueModel.findOne({ id: queue.id });
+      const postQueue = await QueueModel.findOne({
+        where: {
+          id: queue.id,
+        },
+      });
       expect(postQueue.isDisabled).toBeTruthy();
     });
     it('returns 404 on nonexistent queues', async () => {
@@ -426,12 +438,16 @@ describe('Queue Integration', () => {
 
       expect(queue.config).toEqual({});
 
-      const response = await supertest({ userId: ta.userId })
+      await supertest({ userId: ta.userId })
         .patch(`/queues/${queue.id}/config`)
         .send(validConfig)
         .expect(200);
 
-      const updatedQueue = await QueueModel.findOne({ id: queue.id });
+      const updatedQueue = await QueueModel.findOne({
+        where: {
+          id: queue.id,
+        },
+      });
       expect(updatedQueue.config).toEqual(validConfig);
     });
     it('doesnt allow students to update config', async () => {
@@ -451,7 +467,11 @@ describe('Queue Integration', () => {
         .send(validConfig)
         .expect(403);
 
-      const postQueue = await QueueModel.findOne({ id: queue.id });
+      const postQueue = await QueueModel.findOne({
+        where: {
+          id: queue.id,
+        },
+      });
       expect(postQueue.config).toEqual({});
     });
     it('returns 404 on nonexistent queues', async () => {
@@ -585,7 +605,9 @@ describe('Queue Integration', () => {
 
       // check to make sure the old question types are still there and unchanged
       const updatedQuestionTypes = await QuestionTypeModel.find({
-        queueId: queue.id,
+        where: {
+          queueId: queue.id,
+        },
       });
       expect(updatedQuestionTypes.length).toBe(4);
       expect(updatedQuestionTypes).toContainEqual(
@@ -685,7 +707,9 @@ describe('Queue Integration', () => {
 
       // check to make sure the old question types are still there and unchanged
       const updatedQuestionTypes = await QuestionTypeModel.find({
-        queueId: queue.id,
+        where: {
+          queueId: queue.id,
+        },
       });
       expect(updatedQuestionTypes.length).toBe(5);
       expect(updatedQuestionTypes).toContainEqual(
@@ -783,7 +807,9 @@ describe('Queue Integration', () => {
 
       // check to make sure the old question types are still there and unchanged (and that the deleted one is gone)
       const updatedQuestionTypes = await QuestionTypeModel.find({
-        queueId: queue.id,
+        where: {
+          queueId: queue.id,
+        },
       });
       expect(updatedQuestionTypes.length).toBe(2);
       expect(updatedQuestionTypes).toContainEqual(
@@ -857,7 +883,9 @@ describe('Queue Integration', () => {
 
       // check to make sure the old question types are still there and unchanged (and that the deleted ones are gone)
       const updatedQuestionTypes = await QuestionTypeModel.find({
-        queueId: queue.id,
+        where: {
+          queueId: queue.id,
+        },
       });
       expect(updatedQuestionTypes.length).toBe(1);
       expect(updatedQuestionTypes).toContainEqual(
@@ -923,7 +951,9 @@ describe('Queue Integration', () => {
 
       // check to make sure the old question types are still there and unchanged (and that the updated one is updated)
       const updatedQuestionTypes = await QuestionTypeModel.find({
-        queueId: queue.id,
+        where: {
+          queueId: queue.id,
+        },
       });
       expect(updatedQuestionTypes.length).toBe(3);
       expect(updatedQuestionTypes).toContainEqual(
@@ -1014,7 +1044,9 @@ describe('Queue Integration', () => {
 
       // check to make sure the old question types are still there and unchanged (and that the updated ones are updated)
       const updatedQuestionTypes = await QuestionTypeModel.find({
-        queueId: queue.id,
+        where: {
+          queueId: queue.id,
+        },
       });
       expect(updatedQuestionTypes.length).toBe(3);
       expect(updatedQuestionTypes).toContainEqual(
@@ -1084,7 +1116,9 @@ describe('Queue Integration', () => {
 
       // check to make sure the old question types are still there and unchanged
       const updatedQuestionTypes = await QuestionTypeModel.find({
-        queueId: queue.id,
+        where: {
+          queueId: queue.id,
+        },
       });
       expect(updatedQuestionTypes.length).toBe(3);
       expect(updatedQuestionTypes).toContainEqual(
@@ -1178,7 +1212,9 @@ describe('Queue Integration', () => {
 
       // check to make sure the old question types are still there and unchanged (and that the one with the changed id is gone with a new one in its place)
       const updatedQuestionTypes = await QuestionTypeModel.find({
-        queueId: queue.id,
+        where: {
+          queueId: queue.id,
+        },
       });
       expect(updatedQuestionTypes.length).toBe(3);
       expect(updatedQuestionTypes).toContainEqual(
@@ -1340,7 +1376,9 @@ describe('Queue Integration', () => {
 
       // check to make sure the old question types are still there and unchanged, and that the tag1 was updated
       const updatedQuestionTypes = await QuestionTypeModel.find({
-        queueId: queue.id,
+        where: {
+          queueId: queue.id,
+        },
       });
       expect(updatedQuestionTypes.length).toBe(3);
       expect(updatedQuestionTypes).toContainEqual(
@@ -1372,7 +1410,11 @@ describe('Queue Integration', () => {
       );
 
       // Check to make sure the new queue config has also been updated
-      const updatedQueue = await QueueModel.findOne({ id: queue.id });
+      const updatedQueue = await QueueModel.findOne({
+        where: {
+          id: queue.id,
+        },
+      });
       const generatedTagId3 = Object.keys(updatedQueue.config.tags).find(
         (tagId) => tagId.startsWith(validConfig.tags.tag3.display_name),
       );

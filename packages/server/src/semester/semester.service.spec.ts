@@ -74,8 +74,10 @@ describe('SemesterService', () => {
 
     async function getSemester(sea: Season, year: number) {
       return await SemesterModel.findOne({
-        season: sea,
-        year: year,
+        where: {
+          season: sea,
+          year: year,
+        },
       });
     }
 
@@ -101,7 +103,9 @@ describe('SemesterService', () => {
       await service.toggleActiveSemester(target, false);
 
       const allCourses = await CourseModel.find({
-        semester: target,
+        where: {
+          semester: target,
+        },
       });
 
       expect(allCourses.length).toBeGreaterThan(0);
@@ -110,7 +114,9 @@ describe('SemesterService', () => {
       await service.toggleActiveSemester(target, true);
 
       const allCourses2 = await CourseModel.find({
-        semester: target,
+        where: {
+          semester: target,
+        },
       });
       expect(allCourses.length).toBeGreaterThan(0);
 
