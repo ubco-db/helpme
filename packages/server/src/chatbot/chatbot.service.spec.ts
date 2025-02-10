@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { ChatbotService } from './chatbot.service';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import {
@@ -11,7 +11,7 @@ import { ChatbotQuestion } from '@koh/common';
 
 describe('ChatbotService', () => {
   let service: ChatbotService;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -20,8 +20,17 @@ describe('ChatbotService', () => {
     }).compile();
 
     service = module.get<ChatbotService>(ChatbotService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
+
+  afterAll(async () => {
+    await dataSource.destroy();
+  });
+
+  beforeEach(async () => {
+    await dataSource.synchronize(true);
+  });
+
   describe('createInteraction', () => {
     it('should throw an error if course is not found', async () => {
       await expect(
@@ -162,12 +171,5 @@ describe('ChatbotService', () => {
 
       expect(updatedQuestion.interactionId).toEqual(interaction2.id);
     });
-  });
-  afterAll(async () => {
-    await conn.close();
-  });
-
-  beforeEach(async () => {
-    await conn.synchronize(true);
   });
 });

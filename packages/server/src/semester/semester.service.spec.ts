@@ -1,4 +1,4 @@
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { SemesterService } from './semester.service';
@@ -9,7 +9,7 @@ import { SemesterModel } from './semester.entity';
 
 describe('SemesterService', () => {
   let service: SemesterService;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -18,15 +18,15 @@ describe('SemesterService', () => {
     }).compile();
 
     service = module.get<SemesterService>(SemesterService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('setSemester', () => {

@@ -1,27 +1,27 @@
 import { ClosedQuestionStatus, OpenQuestionStatus } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { QuestionFactory, QueueFactory } from '../../test/util/factories';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { QueueModel } from './queue.entity';
 
 describe('queue entity', () => {
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [TestTypeOrmModule],
     }).compile();
 
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   it('queueSize is handled properly and is equal to them sum of Queued, Drafting, and Helping questions', async () => {

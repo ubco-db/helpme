@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CacheModule } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { InsightsService } from './insights.service';
 import {
   AsyncQuestionFactory,
@@ -29,7 +29,7 @@ import {
 
 describe('InsightsService', () => {
   let service: InsightsService;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -38,15 +38,15 @@ describe('InsightsService', () => {
     }).compile();
 
     service = module.get<InsightsService>(InsightsService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('computeOutput', () => {

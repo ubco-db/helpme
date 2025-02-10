@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Connection, DeepPartial } from 'typeorm';
+import { DataSource, DeepPartial } from 'typeorm';
 import { UserFactory } from '../../test/util/factories';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { DesktopNotifModel } from './desktop-notif.entity';
@@ -7,8 +7,7 @@ import { NotificationService } from './notification.service';
 
 describe('NotificationService', () => {
   let service: NotificationService;
-
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -17,15 +16,15 @@ describe('NotificationService', () => {
     }).compile();
 
     service = module.get<NotificationService>(NotificationService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('registerDesktop', () => {

@@ -1,6 +1,6 @@
 import { Command, Positional } from 'nestjs-command';
 import { Injectable } from '@nestjs/common';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { InsightsService } from './insights.service';
 import { INSIGHTS_MAP } from './insight-objects';
 
@@ -13,7 +13,7 @@ import { INSIGHTS_MAP } from './insight-objects';
 @Injectable()
 export class InsightsCommand {
   constructor(
-    private connection: Connection,
+    private dataSource: DataSource,
     private insightsService: InsightsService,
   ) {}
 

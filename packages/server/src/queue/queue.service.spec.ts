@@ -2,7 +2,7 @@ import { ListQuestionsResponse, QuestionStatusKeys, Role } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { mapValues, zip } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   QuestionFactory,
   QueueFactory,
@@ -16,8 +16,7 @@ import { ApplicationTestingConfigModule } from 'config/application_config.module
 
 describe('QueueService', () => {
   let service: QueueService;
-
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -30,15 +29,15 @@ describe('QueueService', () => {
     }).compile();
 
     service = module.get<QueueService>(QueueService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   // create 1 question for each status that exists, and put them all in a queue

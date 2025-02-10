@@ -6,7 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from 'nestjs-redis';
 import { NotificationService } from 'notification/notification.service';
 import * as supertest from 'supertest';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { addGlobalsToApp } from '../../src/bootstrap';
 import { LoginModule } from '../../src/login/login.module';
 import { ApplicationConfigService } from 'config/application_config.service';
@@ -40,7 +40,7 @@ export function setupIntegrationTest(
 ): (u?: SupertestOptions) => supertest.SuperTest<supertest.Test> {
   let app: INestApplication;
   let jwtService: JwtService;
-  let conn: Connection;
+  let dataSource: DataSource;
   let appConfig: ApplicationConfigService;
   let schedulerRegistry: SchedulerRegistry;
 
@@ -73,7 +73,7 @@ export function setupIntegrationTest(
     appConfig = testModule.get<ApplicationConfigService>(
       ApplicationConfigService,
     );
-    conn = testModule.get<Connection>(Connection);
+    dataSource = testModule.get<DataSource>(DataSource);
 
     await appConfig.loadConfig();
     await app.init();
@@ -82,11 +82,11 @@ export function setupIntegrationTest(
 
   afterAll(async () => {
     await app.close();
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
     await clearAllCronJobs(schedulerRegistry);
   });
 

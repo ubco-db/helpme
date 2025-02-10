@@ -1,4 +1,4 @@
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   LMSGet,
   LMSIntegrationService,
@@ -39,7 +39,7 @@ Note:
 */
 describe('LMSIntegrationService', () => {
   let service: LMSIntegrationService;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -48,16 +48,16 @@ describe('LMSIntegrationService', () => {
     }).compile();
 
     service = module.get<LMSIntegrationService>(LMSIntegrationService);
-    conn = module.get<Connection>(Connection);
-  }, 10000);
+    dataSource = module.get<DataSource>(DataSource);
+  });
 
   afterAll(async () => {
     jest.clearAllMocks();
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('resynchronizeCourseIntegrations', () => {

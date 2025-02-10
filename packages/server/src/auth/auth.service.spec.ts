@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { UserModel } from 'profile/user.entity';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   OrganizationFactory,
   OrganizationUserFactory,
@@ -71,7 +71,7 @@ class MockMailService {
 
 describe('AuthService', () => {
   let service: AuthService;
-  let conn: Connection;
+  let dataSource: DataSource;
   let mailService: MailService;
 
   beforeAll(async () => {
@@ -85,15 +85,15 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     mailService = module.get<MailService>(MailService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('loginWithShibboleth', () => {

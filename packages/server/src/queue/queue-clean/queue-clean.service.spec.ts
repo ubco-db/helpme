@@ -15,7 +15,7 @@ import {
   ClosedQuestionStatus,
 } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Connection, createQueryBuilder } from 'typeorm';
+import { createQueryBuilder, DataSource } from 'typeorm';
 import {
   AlertFactory,
   QuestionFactory,
@@ -34,7 +34,7 @@ import { QueueModel } from 'queue/queue.entity';
 
 describe('QueueService', () => {
   let service: QueueCleanService;
-  let conn: Connection;
+  let dataSource: DataSource;
   let schedulerRegistry: SchedulerRegistry;
 
   beforeAll(async () => {
@@ -73,15 +73,15 @@ describe('QueueService', () => {
 
     service = module.get<QueueCleanService>(QueueCleanService);
     schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
     jest.resetAllMocks();
   });
 
@@ -330,13 +330,13 @@ describe('QueueService', () => {
         getRawMany: jest.fn().mockResolvedValue([{ studentId, courseId }]),
         getOne: jest.fn().mockResolvedValue(existingAlert),
       } as any;
-      (createQueryBuilder as jest.Mock).mockReturnValue(mockQueryBuilder);
-
-      (createQueryBuilder as jest.Mock).mockReturnValue(mockQueryBuilder);
+      (QueueModel.createQueryBuilder as jest.Mock).mockReturnValue(
+        mockQueryBuilder,
+      );
 
       jest.spyOn(QueueModel, 'query').mockResolvedValue([]);
       jest
-        .spyOn(createQueryBuilder(QueueModel), 'getRawMany')
+        .spyOn(QueueModel.createQueryBuilder(), 'getRawMany')
         .mockResolvedValue([{ studentId, courseId }]);
 
       await service.promptStudentsToLeaveQueue(queueId);

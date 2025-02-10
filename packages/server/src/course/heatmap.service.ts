@@ -1,5 +1,5 @@
-import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
-
+import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { ClosedQuestionStatus, Heatmap, timeDiffInMins } from '@koh/common';
 import { CourseModel } from './course.entity';
@@ -27,7 +27,7 @@ export class HeatmapService {
     return this.cacheManager.wrap(
       `heatmap/${courseId}`,
       () => this._getHeatmapFor(courseId),
-      { ttl: cacheLengthInSeconds },
+      cacheLengthInSeconds,
     );
   }
 

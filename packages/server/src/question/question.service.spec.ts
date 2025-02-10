@@ -6,7 +6,7 @@ import {
 } from '@koh/common';
 import { TestingModule, Test } from '@nestjs/testing';
 import { NotificationService } from 'notification/notification.service';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   QueueFactory,
   QuestionGroupFactory,
@@ -28,8 +28,7 @@ import { ApplicationConfigService } from 'config/application_config.service';
 
 describe('QuestionService', () => {
   let service: QuestionService;
-
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -55,15 +54,15 @@ describe('QuestionService', () => {
     }).compile();
 
     service = module.get<QuestionService>(QuestionService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('changeStatus', () => {

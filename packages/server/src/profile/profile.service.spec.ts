@@ -1,6 +1,6 @@
 import { TestingModule, Test } from '@nestjs/testing';
 import { LoginCourseService } from '../login/login-course.service';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   UserFactory,
   CourseFactory,
@@ -18,7 +18,7 @@ jest.useRealTimers();
 // Let's revisit theses tests later, we need to create new one since we changed a lot of the logic
 describe('ProfileService', () => {
   let service: ProfileService;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -34,15 +34,15 @@ describe('ProfileService', () => {
       ],
     }).compile();
     service = module.get<ProfileService>(ProfileService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('getPendingCourses', () => {

@@ -15,7 +15,6 @@ import { QueueModel } from '../queue.entity';
 import { AlertModel } from '../../alerts/alerts.entity';
 import { CronJob } from 'cron';
 import * as Sentry from '@sentry/browser';
-import { createQueryBuilder } from 'typeorm';
 import { QuestionService } from 'question/question.service';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { QueueService } from 'queue/queue.service';
@@ -153,7 +152,7 @@ export class QueueCleanService {
       return;
     }
     // get all the students in the queue
-    let students = await createQueryBuilder(QueueModel)
+    let students = await QueueModel.createQueryBuilder()
       .select('QuestionModel.creatorId', 'studentId')
       .addSelect('QueueModel.courseId', 'courseId')
       .leftJoin(
@@ -185,7 +184,7 @@ export class QueueCleanService {
     for (const student of students) {
       try {
         // first, make sure they don't already have an unresolved PROMPT_STUDENT_TO_LEAVE_QUEUE alert with this courseId and queueId
-        const existingAlert = await createQueryBuilder(AlertModel, 'alert')
+        const existingAlert = await AlertModel.createQueryBuilder('alert')
           .where('alert.userId = :userId', { userId: student.studentId })
           .andWhere('alert.courseId = :courseId', {
             courseId: student.courseId,
@@ -344,7 +343,7 @@ export class QueueCleanService {
   public async resolvePromptStudentToLeaveQueueAlerts(
     queueId: number,
   ): Promise<void> {
-    const alerts = await createQueryBuilder(AlertModel, 'alert')
+    const alerts = await AlertModel.createQueryBuilder('alert')
       .where('alert.alertType = :alertType', {
         alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
       })

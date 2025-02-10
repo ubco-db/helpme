@@ -5,12 +5,12 @@ import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { asyncQuestionStatus } from '@koh/common';
 import Redis from 'ioredis';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 describe('RedisQueueService', () => {
   let service: RedisQueueService;
   let redis: Redis;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     redis = new Redis();
@@ -32,16 +32,16 @@ describe('RedisQueueService', () => {
     }).compile();
 
     service = module.get<RedisQueueService>(RedisQueueService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  afterAll(async () => {
+    await dataSource.destroy();
   });
 
-  afterEach(async () => {
+  beforeEach(async () => {
     await redis.flushall();
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('setAsyncQuestions', () => {
