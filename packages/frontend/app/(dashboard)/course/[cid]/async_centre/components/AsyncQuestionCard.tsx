@@ -49,15 +49,15 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   mutateAsyncQuestions,
   showStudents,
 }) => {
-  const [isLockedExpanded, setIsLockedExpanded] = useState(false)
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [isExpandable, setIsExpandable] = useState(true)
+  const [isExpanded, setIsExpanded] = useState(false) // whether or not the card is expanded (not including comments)
+  const [showAllComments, setShowAllComments] = useState(false) // whether or not the comments section is expanded
+  const [isExpandable, setIsExpandable] = useState(true) // This only stops isExpanded from toggling. When showAllComments is true, this is set to false to make the card not expandable (first you must minimize comments before you can collapse the rest of the card)
+  const [isLockedExpanded, setIsLockedExpanded] = useState(false) // This stops both showAllComments and isExpanded from toggling. This is used to prevent users from collapsing the comments while they are still creating/editing one
   const [truncateText, setTruncateText] = useState(true) // after the max-height transition is finished on expanding the text, truncate it to show a `...`
   const [voteCount, setVoteCount] = useState(question.votesSum)
   const [thisUserThisQuestionVote, setThisUserThisQuestionVote] = useState(
     question.votes?.find((vote) => vote.userId === userId)?.vote,
   )
-  const [showAllComments, setShowAllComments] = useState(false)
   const [satisfiedLoading, setSatisfiedLoading] = useState(false)
   const [needsAttentionLoading, setNeedsAttentionLoading] = useState(false)
   const shouldFlash =
