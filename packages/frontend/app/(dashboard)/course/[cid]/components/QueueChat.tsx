@@ -7,6 +7,7 @@ import TextArea from 'antd/es/input/TextArea'
 import { API } from '@/app/api'
 import { useQueueChat } from '@/app/hooks/useQueueChat'
 import { CloseOutlined } from '@ant-design/icons'
+import { Tooltip } from 'antd'
 
 interface QueueChatProps {
   role: Role
@@ -14,6 +15,7 @@ interface QueueChatProps {
   questionId: number
   isMobile: boolean
   hidden: boolean
+  singleton?: boolean
   fixed?: boolean
   announceNewMessage?: (newCount: number) => void
   onOpen?: () => void
@@ -26,6 +28,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   questionId,
   isMobile,
   hidden,
+  singleton = false,
   fixed = true,
   announceNewMessage = (newCount: number) => {
     return
@@ -270,6 +273,32 @@ const QueueChat: React.FC<QueueChatProps> = ({
             : 'Loading...'}
         </Button>
       </Badge>
+    </div>
+  ) : singleton ? (
+    <div
+      className={`${fixed ? `fixed ` : ''}bottom-8 left-2 right-3 flex justify-end`}
+      style={{ zIndex: 1050 }}
+    >
+      <Tooltip
+        title={
+          queueChatData && queueChatData.staff && queueChatData.student
+            ? isStaff
+              ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName ?? ''}`
+              : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName ?? ''}`
+            : 'Loading...'
+        }
+      >
+        <Button
+          type="primary"
+          size="large"
+          className={`box-border rounded-full p-6 shadow-lg`}
+          icon={<MessageCircleMore />}
+          onClick={() => {
+            setIsOpen(true)
+            onOpen()
+          }}
+        ></Button>
+      </Tooltip>
     </div>
   ) : (
     <div

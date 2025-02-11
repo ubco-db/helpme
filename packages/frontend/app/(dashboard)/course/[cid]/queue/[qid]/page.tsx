@@ -1162,6 +1162,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 queueId={qid}
                 questionId={studentQuestion.id}
                 role={role}
+                singleton={true}
                 isMobile={isMobile}
                 fixed={true}
                 hidden={false}
@@ -1172,6 +1173,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 queueId={qid}
                 questionId={studentDemo.id}
                 role={role}
+                singleton={true}
                 isMobile={isMobile}
                 fixed={true}
                 hidden={false}
