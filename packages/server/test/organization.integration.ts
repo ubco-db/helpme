@@ -1750,7 +1750,7 @@ describe('Organization Integration', () => {
       });
       await UserCourseFactory.create({
         user,
-        course,
+        course: otherCourse,
         role: Role.PROFESSOR, // they are a course prof in other org
       });
 
