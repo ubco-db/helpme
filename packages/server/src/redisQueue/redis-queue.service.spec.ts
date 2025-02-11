@@ -1,4 +1,4 @@
-import { RedisModule } from 'nestjs-redis';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { RedisQueueService } from './redis-queue.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
@@ -22,11 +22,16 @@ describe('RedisQueueService', () => {
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
-        RedisModule.register([
-          { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
-          { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
-          { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
-        ]),
+        RedisModule.forRoot({
+          type: 'cluster',
+          nodes: [
+            {
+              host: process.env.REDIS_HOST || 'localhost',
+              port: 6379,
+            },
+          ],
+          options: {},
+        }),
         RedisQueueService,
       ],
     }).compile();

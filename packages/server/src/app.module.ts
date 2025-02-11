@@ -7,7 +7,7 @@ import { InsightsModule } from './insights/insights.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { BackfillModule } from './backfill/backfill.module';
 import { CommandModule } from 'nestjs-command';
-import { RedisModule } from 'nestjs-redis';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import * as typeormConfig from '../ormconfig';
 import { AdminModule } from './admin/admin.module';
 import { CourseModule } from './course/course.module';
@@ -43,11 +43,16 @@ import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
     TypeOrmModule.forRoot(typeormConfig),
     SentryModule.forRoot(),
     // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store
-    RedisModule.register([
-      { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
-      { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
-      { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
-    ]),
+    RedisModule.forRoot({
+      type: 'cluster',
+      nodes: [
+        {
+          host: process.env.REDIS_HOST || 'localhost',
+          port: 6379,
+        },
+      ],
+      options: {},
+    }),
     ScheduleModule.forRoot(),
     ApplicationConfigModule,
     LoginModule,

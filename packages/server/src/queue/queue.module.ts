@@ -33,6 +33,7 @@ import { RedisQueueModule } from '../redisQueue/redis-queue.module';
     AlertsService,
     QuestionService,
     QueueService,
+    RedisQueueService,
   ],
   imports: [
     ApplicationConfigModule,

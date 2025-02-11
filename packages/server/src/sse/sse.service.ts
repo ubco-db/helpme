@@ -2,8 +2,9 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { each } from 'async';
 import { serialize } from 'class-transformer';
 import { Response } from 'express';
-import { RedisService } from 'nestjs-redis';
+import { InjectRedis } from '@nestjs-modules/ioredis';
 import { ERROR_MESSAGES } from '@koh/common';
+import Redis from 'ioredis';
 
 /**
  * A connection to a particular frontend client
@@ -34,15 +35,17 @@ export class SSEService<T> implements OnModuleDestroy {
   // Clients connected to this instance of the backend
   private directConnnections: Record<string, Connection> = {};
 
-  constructor(private readonly redisService: RedisService) {
+  constructor(@InjectRedis() private readonly redis: Redis) {
+    /*
     const redisSub = this.redisService.getClient('sub');
 
     if (!redisSub) {
       throw new Error(ERROR_MESSAGES.sseService.getSubClient);
     }
+    */
 
     // If channel is managed by this instance, send the message to the Response object.
-    redisSub.on('message', (channel, message) => {
+    redis.on('message', (channel, message) => {
       const id = /sse::client-(\d+)/.exec(channel);
       if (id && id[1] in this.directConnnections) {
         this.directConnnections[id[1]].res.write(`data: ${message}\n\n`);
@@ -76,6 +79,7 @@ export class SSEService<T> implements OnModuleDestroy {
     res: Response,
     metadata: T,
   ): Promise<void> {
+    /*
     const redisSub = this.redisService.getClient('sub');
     const redis = this.redisService.getClient('db');
 
@@ -85,9 +89,10 @@ export class SSEService<T> implements OnModuleDestroy {
     if (!redis) {
       throw new Error(ERROR_MESSAGES.sseService.getDBClient);
     }
+    */
 
     // Keep track of responses so we can send sse through them
-    const clientId = await redis.incr('sse::client::id').catch((err) => {
+    const clientId = await this.redis.incr('sse::client::id').catch((err) => {
       console.error(ERROR_MESSAGES.sseService.clientIdSubscribe);
       console.error(err);
     });
@@ -97,7 +102,7 @@ export class SSEService<T> implements OnModuleDestroy {
       throw new Error(ERROR_MESSAGES.sseService.clientIdNotFound);
     }
 
-    await redisSub.subscribe(this.idToChannel(clientId)).catch((err) => {
+    await this.redis.subscribe(this.idToChannel(clientId)).catch((err) => {
       console.error(ERROR_MESSAGES.sseService.subscribe);
       console.error(err);
     });
@@ -107,7 +112,7 @@ export class SSEService<T> implements OnModuleDestroy {
       clientId,
       metadata: metadata,
     } as RedisClientInfo<T>);
-    await redis.sadd(room, clientInfo).catch((err) => {
+    await this.redis.sadd(room, clientInfo).catch((err) => {
       console.error(err);
     });
 
@@ -116,14 +121,16 @@ export class SSEService<T> implements OnModuleDestroy {
       res,
       cleanup: async () => {
         // Remove from the redis room
-        await redis.srem(room, clientInfo).catch((err) => {
+        await this.redis.srem(room, clientInfo).catch((err) => {
           console.error(ERROR_MESSAGES.sseService.removeFromRoom);
           console.error(err);
         });
-        await redisSub.unsubscribe(this.idToChannel(clientId)).catch((err) => {
-          console.error(ERROR_MESSAGES.sseService.unsubscribe);
-          console.error(err);
-        });
+        await this.redis
+          .unsubscribe(this.idToChannel(clientId))
+          .catch((err) => {
+            console.error(ERROR_MESSAGES.sseService.unsubscribe);
+            console.error(err);
+          });
         res.end();
       },
     };
@@ -146,6 +153,7 @@ export class SSEService<T> implements OnModuleDestroy {
     room: string,
     payload: (metadata: T) => Promise<D>,
   ): Promise<void> {
+    /*
     const redisPub = this.redisService.getClient('pub');
     const redis = this.redisService.getClient('db');
 
@@ -156,8 +164,9 @@ export class SSEService<T> implements OnModuleDestroy {
     if (!redis) {
       throw new Error(ERROR_MESSAGES.sseService.getDBClient);
     }
+    */
 
-    const roomInfo = await redis.smembers(room).catch((err) => {
+    const roomInfo = await this.redis.smembers(room).catch((err) => {
       console.error(ERROR_MESSAGES.sseService.roomMembers);
       console.error(err);
     });
@@ -171,7 +180,7 @@ export class SSEService<T> implements OnModuleDestroy {
             console.error(err);
           }),
         );
-        await redisPub
+        await this.redis
           .publish(this.idToChannel(clientId), toSend)
           .catch((err) => {
             console.error(ERROR_MESSAGES.sseService.publish);

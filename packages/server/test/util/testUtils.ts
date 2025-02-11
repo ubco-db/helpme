@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModuleBuilder } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RedisModule } from 'nestjs-redis';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { NotificationService } from 'notification/notification.service';
 import * as supertest from 'supertest';
 import { DataSource } from 'typeorm';
@@ -54,11 +54,10 @@ export function setupIntegrationTest(
         TestConfigModule,
         ApplicationConfigModule,
         ScheduleModule.forRoot(),
-        RedisModule.register([
-          { name: 'pub' },
-          { name: 'sub' },
-          { name: 'db' },
-        ]),
+        RedisModule.forRoot({
+          type: 'cluster',
+          nodes: [],
+        }),
       ],
     });
 
