@@ -63,6 +63,9 @@ import * as sharp from 'sharp';
 import { UserId } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
+import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
+import { OrgRoles } from 'decorators/org-roles.decorator';
+import { CourseRoles } from 'decorators/course-roles.decorator';
 
 @Controller('organization')
 export class OrganizationController {
@@ -678,8 +681,9 @@ export class OrganizationController {
   }
 
   @Get(':oid/get_course/:cid')
-  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
-  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrgOrCourseRolesGuard)
+  @CourseRoles(Role.PROFESSOR, Role.TA)
+  @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async getOrganizationCourse(
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,

@@ -3,8 +3,11 @@ import { setupIntegrationTest } from './util/testUtils';
 import {
   CourseFactory,
   mailServiceFactory,
+  OrganizationCourseFactory,
   OrganizationFactory,
+  OrganizationUserFactory,
   SemesterFactory,
+  UserCourseFactory,
   UserFactory,
 } from './util/factories';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -1596,8 +1599,7 @@ describe('Organization Integration', () => {
 
       expect(response.status).toBe(401);
     });
-
-    it('should return 401 when user is not admin', async () => {
+    it('should return 403 when user is not admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
@@ -1616,9 +1618,8 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/get_course/${course.id}`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
-
     it('should return 404 when course is not found', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
@@ -1634,6 +1635,138 @@ describe('Organization Integration', () => {
       );
 
       expect(res.status).toBe(404);
+    });
+    it('should return 200 when course is found and user is admin', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization,
+        role: OrganizationRole.ADMIN,
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`,
+      );
+
+      expect(res.status).toBe(200);
+    });
+    it('OrgOrCourseRolesGuard: should return 200 when the user is an org member but course professor', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization,
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+      await UserCourseFactory.create({
+        user,
+        course,
+        role: Role.PROFESSOR,
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`,
+      );
+
+      expect(res.status).toBe(200);
+    });
+    it('OrgOrCourseRolesGuard: should return 403 when the user is an org member and course student', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+      }).save();
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+      await UserCourseModel.create({
+        userId: user.id,
+        courseId: course.id,
+        role: Role.STUDENT,
+      }).save();
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`,
+      );
+
+      expect(res.status).toBe(403);
+    });
+    it('OrgOrCourseRolesGuard: should return 403 when the user is an org prof in one org and member in the main org', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      const otherOrganization = await OrganizationFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization, // regular member in this org
+      });
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: otherOrganization,
+        role: OrganizationRole.PROFESSOR, // prof in other org
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`,
+      );
+
+      expect(res.status).toBe(403);
+    });
+    it('OrgOrCourseRolesGuard: should return 403 when the user is a course prof in one org and a member in the main org', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      const otherCourse = await CourseFactory.create();
+      const otherOrganization = await OrganizationFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization, // regular member in this org
+      });
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: otherOrganization, // also a member in other org
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+      await OrganizationCourseFactory.create({
+        course: otherCourse,
+        organization: otherOrganization,
+      });
+      await UserCourseFactory.create({
+        user,
+        course,
+        role: Role.PROFESSOR, // they are a prof in other org
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`, // try to access main org's course
+      );
+
+      expect(res.status).toBe(403);
     });
   });
 
