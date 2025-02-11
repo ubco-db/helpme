@@ -29,9 +29,14 @@ export abstract class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const roles = this.reflector.get<string[]>('roles', context.getHandler());
+    let roles = this.reflector.get<string[]>('roles', context.getHandler());
     if (!roles) {
-      return true;
+      // if it doesn't have the roles decorator, maybe it has the CourseRoles decorator?
+      roles = this.reflector.get<string[]>('CourseRoles', context.getHandler());
+      if (!roles) {
+        // if it lacks any role decorator, then this guard won't do anything (TODO: maybe throw a NotImplementedException instead? Though doing this may break some endpoints)
+        return true;
+      }
     }
     const request = context.switchToHttp().getRequest();
     const { courseId, user } = await this.setupData(request);
