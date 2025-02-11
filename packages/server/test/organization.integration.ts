@@ -1707,16 +1707,12 @@ describe('Organization Integration', () => {
 
       expect(res.status).toBe(403);
     });
-    it('OrgOrCourseRolesGuard: should return 403 when the user is an org prof in one org and member in the main org', async () => {
+    it('OrgOrCourseRolesGuard: should return 404 when the user is an org prof in one org and member in the main org', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
       const otherOrganization = await OrganizationFactory.create();
 
-      await OrganizationUserFactory.create({
-        organizationUser: user,
-        organization, // regular member in this org
-      });
       await OrganizationUserFactory.create({
         organizationUser: user,
         organization: otherOrganization,
@@ -1731,9 +1727,9 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/get_course/${course.id}`,
       );
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(404);
     });
-    it('OrgOrCourseRolesGuard: should return 403 when the user is a course prof in one org and a member in the main org', async () => {
+    it('OrgOrCourseRolesGuard: should return 404 when the user is a course prof in one org and a member in the main org', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
@@ -1742,11 +1738,7 @@ describe('Organization Integration', () => {
 
       await OrganizationUserFactory.create({
         organizationUser: user,
-        organization, // regular member in this org
-      });
-      await OrganizationUserFactory.create({
-        organizationUser: user,
-        organization: otherOrganization, // also a member in other org
+        organization: otherOrganization, // a member in other org
       });
       await OrganizationCourseFactory.create({
         course,
@@ -1759,14 +1751,14 @@ describe('Organization Integration', () => {
       await UserCourseFactory.create({
         user,
         course,
-        role: Role.PROFESSOR, // they are a prof in other org
+        role: Role.PROFESSOR, // they are a course prof in other org
       });
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_course/${course.id}`, // try to access main org's course
       );
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(404);
     });
   });
 

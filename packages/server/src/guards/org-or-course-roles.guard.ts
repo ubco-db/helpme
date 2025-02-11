@@ -117,7 +117,9 @@ export class OrgOrCourseRolesGuard implements CanActivate {
         },
       });
     } catch (e) {
-      return false;
+      throw new NotFoundException(
+        'This course does not exist in your organization',
+      );
     }
 
     return true;
