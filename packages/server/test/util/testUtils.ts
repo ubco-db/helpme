@@ -55,8 +55,8 @@ export function setupIntegrationTest(
         ApplicationConfigModule,
         ScheduleModule.forRoot(),
         RedisModule.forRoot({
-          type: 'cluster',
-          nodes: [],
+          type: 'single',
+          url: '',
         }),
       ],
     });

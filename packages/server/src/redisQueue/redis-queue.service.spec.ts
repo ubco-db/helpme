@@ -23,14 +23,8 @@ describe('RedisQueueService', () => {
         TestTypeOrmModule,
         TestConfigModule,
         RedisModule.forRoot({
-          type: 'cluster',
-          nodes: [
-            {
-              host: process.env.REDIS_HOST || 'localhost',
-              port: 6379,
-            },
-          ],
-          options: {},
+          type: 'single',
+          url: `redis://${process.env.REDIS_HOST || 'localhost'}:6379`,
         }),
         RedisQueueService,
       ],
