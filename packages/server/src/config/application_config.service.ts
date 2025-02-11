@@ -10,7 +10,7 @@ export class ApplicationConfigService {
   }
 
   private async fetchConfigFromDatabase(): Promise<Record<string, number>> {
-    let applicationConfig = await ApplicationConfigModel.findOne({});
+    let applicationConfig = (await ApplicationConfigModel.find())?.pop();
 
     if (!applicationConfig) {
       applicationConfig = await ApplicationConfigModel.create().save();

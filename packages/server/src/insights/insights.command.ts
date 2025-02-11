@@ -20,7 +20,6 @@ export class InsightsCommand {
   @Command({
     command: 'semester_insights:generate <courseId>',
     describe: 'aggregates semesterly analytics for a course',
-    autoExit: true,
   })
   private async generateSemesterInsights(
     @Positional({

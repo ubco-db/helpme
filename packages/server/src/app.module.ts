@@ -44,14 +44,8 @@ import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
     SentryModule.forRoot(),
     // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store
     RedisModule.forRoot({
-      type: 'cluster',
-      nodes: [
-        {
-          host: process.env.REDIS_HOST || 'localhost',
-          port: 6379,
-        },
-      ],
-      options: {},
+      type: 'single',
+      url: `redis://${process.env.REDIS_HOST || 'localhost'}:6379`,
     }),
     ScheduleModule.forRoot(),
     ApplicationConfigModule,

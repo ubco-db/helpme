@@ -96,8 +96,8 @@ describe('QueueService', () => {
 
       await service.cleanQueue(queue.id);
 
-      const question = await QuestionModel.findOne({});
-      expect(question.status).toEqual('Queued');
+      const question = (await QuestionModel.find())?.pop();
+      expect(question?.status).toEqual('Queued');
     });
     it('if no staff are present all questions with open status are marked as stale', async () => {
       const queue = await QueueFactory.create({});
