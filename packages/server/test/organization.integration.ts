@@ -1189,6 +1189,40 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Course updated successfully');
     });
+    it('should prevent org professors who are a student in the course from updating the course', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+        role: OrganizationRole.PROFESSOR, // org professor
+      }).save();
+
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+
+      await UserCourseModel.create({
+        userId: user.id,
+        courseId: course.id,
+        role: Role.STUDENT, // course student
+      }).save();
+
+      const res = await supertest({ userId: user.id })
+        .patch(`/organization/${organization.id}/update_course/${course.id}`)
+        .send({
+          name: 'newName',
+          timezone: 'America/Los_Angeles',
+          sectionGroupName: 'test',
+          semesterName: 'Fall,2021',
+          profIds: [user.id], // try to make me the only prof in the course
+        });
+
+      expect(res.status).toBe(403);
+    });
   });
 
   describe('POST /organization/:oid/reset_chat_token_limit', () => {
@@ -2369,7 +2403,7 @@ describe('Organization Integration', () => {
       });
       expect(userCourses.length).toBe(0);
     });
-    it('Should allow organization professors to drop students from their courses', async () => {
+    it('Should allow org+course professors to drop students from their courses', async () => {
       const professor = await UserFactory.create();
       const student = await UserFactory.create();
       const organization = await OrganizationFactory.create();
@@ -2392,7 +2426,8 @@ describe('Organization Integration', () => {
 
       await UserCourseModel.create({
         userId: professor.id,
-        courseId: course.id, // but prof is student role in course
+        courseId: course.id,
+        role: Role.PROFESSOR, // also course professor (you need to be a course professor in the course in order to drop students)
       }).save();
       await UserCourseModel.create({
         userId: student.id,

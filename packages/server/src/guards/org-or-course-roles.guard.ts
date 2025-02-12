@@ -18,6 +18,8 @@ import { In } from 'typeorm';
     This could be used if there was an endpoint you want the course professor to be able to use or the org admin.
     Note that you DO need a courseId or cid parameter.
     You do NOT need an orgId or oid parameter, as the org is determined by the course.
+
+    ALSO NOTE: if you pass in OrgRole(PROFESSOR), you are allowing ANY user with the org role of professor to access the endpoint, regardless of whether or not they are in the course
 */
 @Injectable()
 export class OrgOrCourseRolesGuard implements CanActivate {

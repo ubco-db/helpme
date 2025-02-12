@@ -445,7 +445,7 @@ export class OrganizationController {
   @Patch(':oid/update_course/:cid')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrgOrCourseRolesGuard)
   @CourseRoles(Role.PROFESSOR)
-  @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  @OrgRoles(OrganizationRole.ADMIN)
   async updateCourse(
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
@@ -684,7 +684,7 @@ export class OrganizationController {
   @Get(':oid/get_course/:cid')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrgOrCourseRolesGuard)
   @CourseRoles(Role.PROFESSOR, Role.TA)
-  @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  @OrgRoles(OrganizationRole.ADMIN)
   async getOrganizationCourse(
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
@@ -1199,7 +1199,7 @@ export class OrganizationController {
   @Delete(':oid/drop_user_courses/:uid')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrgOrCourseRolesGuard)
   @CourseRoles(Role.PROFESSOR)
-  @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  @OrgRoles(OrganizationRole.ADMIN)
   async deleteUserCourses(
     @Res() res: Response,
     @Param('uid', ParseIntPipe) uid: number,
