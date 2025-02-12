@@ -5,4 +5,4 @@ import { RedisProfileService } from './redis-profile.service';
   providers: [RedisProfileService],
   exports: [RedisProfileService],
 })
-export class RedisQueueModule {}
+export class RedisProfileModule {}

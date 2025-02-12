@@ -10,15 +10,16 @@ import { JwtStrategy } from './jwt.strategy';
 import { MailModule } from 'mail/mail.module';
 import { OrganizationModule } from '../organization/organization.module';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
-import { RedisService } from 'nestjs-redis';
+import { RedisProfileModule } from '../redisProfile/redis-profile.module';
+import { RedisModule } from 'nestjs-redis';
 
 @Module({
   imports: [
     NotificationModule,
     LoginModule,
     MailModule,
-    RedisProfileService,
-    RedisService,
+    RedisModule,
+    RedisProfileModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -35,5 +36,6 @@ import { RedisService } from 'nestjs-redis';
     RedisProfileService,
     LoginCourseService,
   ],
+  exports: [ProfileService, RedisProfileService],
 })
 export class ProfileModule {}

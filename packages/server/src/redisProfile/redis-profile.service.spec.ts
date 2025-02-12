@@ -25,6 +25,7 @@ describe('RedisProfileService', () => {
           { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
           { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
         ]),
+        RedisProfileService,
       ],
       providers: [RedisProfileService, RedisService],
     }).compile();
