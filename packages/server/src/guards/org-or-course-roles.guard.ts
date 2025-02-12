@@ -10,7 +10,9 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
-import { UserModel } from 'profile/user.entity';
+import { OrganizationUserModel } from 'organization/organization-user.entity';
+import { UserCourseModel } from 'profile/user-course.entity';
+import { In } from 'typeorm';
 
 /* The user must have one of the specified CourseRoles OR OrgRoles in order to access this endpoint.
     This could be used if there was an endpoint you want the course professor to be able to use or the org admin.
@@ -40,86 +42,98 @@ export class OrgOrCourseRolesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const { user } = await this.setupData(request);
 
-    const courseId = request.params.courseId ?? request.params.cid ?? null;
+    const courseId =
+      request.params.courseId ??
+      request.params.cid ??
+      Number(request.body[0]) ?? // if the body is an array of a single courseId, it will use that (used in deleteUserCourses()). In the case that an admin is withdrawing a user from multiple courses, it will still work since the hasOrgRole check will be true
+      null;
+    const userId = request.user.userId ?? null;
 
-    if (!user) {
-      throw new UnauthorizedException(ERROR_MESSAGES.roleGuard.notLoggedIn);
+    if (!userId) {
+      throw new UnauthorizedException('User not logged in');
     }
     if (!courseId) {
       throw new NotFoundException(ERROR_MESSAGES.roleGuard.noCourseIdFound);
     }
 
-    // first check if they have the right course role (since usually that will get resolved first)
-    if (this.matchCourseRoles(courseRoles, user, courseId)) {
-      return true;
+    const [hasCourseRole, hasOrgRole] = await Promise.all([
+      this.matchCourseRoles(courseRoles, userId, courseId),
+      this.matchOrgRoles(orgRoles, userId, courseId),
+    ]);
+    if (!hasCourseRole && !hasOrgRole) {
+      // if they don't have either, throw an error
+      throw new ForbiddenException(
+        ERROR_MESSAGES.roleGuard.mustBeRoleToAccessExtended(
+          courseRoles,
+          orgRoles,
+        ),
+      );
     }
-    // then check if they have the right org role
-    if (await this.matchOrgRoles(orgRoles, user, courseId)) {
-      return true;
-    }
-    // if they don't have either, throw an error
-    throw new ForbiddenException(
-      ERROR_MESSAGES.roleGuard.mustBeRoleToAccessExtended(
-        courseRoles,
-        orgRoles,
-      ),
-    );
+    return true;
   }
 
-  async setupData(request: any): Promise<{ user: UserModel }> {
-    const user = await UserModel.findOne(request.user.userId, {
-      relations: ['organizationUser', 'courses'],
-    });
-
-    return { user };
-  }
-
-  matchCourseRoles(
+  async matchCourseRoles(
     roles: string[],
-    user: UserModel,
+    userId: number,
     courseId: number,
-  ): boolean {
-    const userCourse = user.courses.find((course) => {
-      return Number(course.courseId) === Number(courseId);
-    });
-    if (!userCourse) {
+  ): Promise<boolean> {
+    // first, use query builder to check if they have the right course roles
+    try {
+      await UserCourseModel.findOneOrFail({
+        where: {
+          userId: userId,
+          courseId,
+          role: In(roles),
+        },
+      });
+    } catch (e) {
       return false;
     }
-
-    const hasCorrectRole = roles.includes(userCourse.role);
-
-    return hasCorrectRole;
+    return true;
   }
 
   async matchOrgRoles(
     roles: string[],
-    user: UserModel,
+    userId: number,
     courseId: number,
   ): Promise<boolean> {
-    const userOrg = user.organizationUser;
-    if (!userOrg) {
-      throw new ForbiddenException('This user is not in any organization');
-    }
-
-    const hasCorrectRole = roles.includes(userOrg.role);
-    if (!hasCorrectRole) {
-      return false;
-    }
-
     // make sure this org user is in the same org as the course (that way org profs in one course can't access courses in another org)
-    try {
-      await OrganizationCourseModel.findOneOrFail({
-        where: {
-          organizationId: userOrg.organizationId,
-          courseId,
-        },
-      });
-    } catch (e) {
+    // use query builder to inner join OrganizationCourse with OrganizationUser (that way the it checks if the course is in the same org as the user)
+    const orgCourseUser = await OrganizationCourseModel.createQueryBuilder('oc')
+      .innerJoin(
+        OrganizationUserModel,
+        'ou',
+        `oc."organizationId" = ou."organizationId"`,
+      )
+      .select([
+        'oc.id as "oc_id"',
+        'oc.organizationId as "oc_organizationId"',
+        'oc.courseId as "oc_courseId"',
+        'ou.id as "ou_id"',
+        'ou.role as "ou_role"',
+      ])
+      .where('ou."userId" = :userId', { userId })
+      .andWhere('oc."courseId" = :courseId', { courseId })
+      .getRawOne<{
+        oc_id: number;
+        oc_organizationId: number;
+        oc_courseId: number;
+        ou_id: number;
+        ou_role: string;
+      }>();
+
+    console.log(orgCourseUser);
+
+    if (!orgCourseUser) {
       throw new NotFoundException(
         'This course does not exist in your organization',
       );
+    }
+
+    // then check if the user has the right org roles
+    if (!roles.includes(orgCourseUser.ou_role)) {
+      return false;
     }
 
     return true;
