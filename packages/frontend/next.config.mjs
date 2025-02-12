@@ -1,10 +1,10 @@
 import {withSentryConfig} from "@sentry/nextjs";
 
-import injectWhyDidYouRender from './scripts/why-did-you-render';
+import injectWhyDidYouRender from './scripts/why-did-you-render/index.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  // reactStrictMode: true,
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
