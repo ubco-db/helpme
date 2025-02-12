@@ -34,7 +34,6 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
-import { createQueryBuilder, getRepository } from 'typeorm';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -180,8 +179,7 @@ export class asyncQuestionController {
       });
 
       if (usersInCourse?.length) {
-        await getRepository(UnreadAsyncQuestionModel)
-          .createQueryBuilder()
+        await UnreadAsyncQuestionModel.createQueryBuilder()
           .insert()
           .into(UnreadAsyncQuestionModel)
           .values(
@@ -302,7 +300,7 @@ export class asyncQuestionController {
       body.status === asyncQuestionStatus.AIAnsweredNeedsAttention &&
       oldQuestion.status !== asyncQuestionStatus.AIAnsweredNeedsAttention
     ) {
-      await createQueryBuilder(UnreadAsyncQuestionModel)
+      await UnreadAsyncQuestionModel.createQueryBuilder()
         .update(UnreadAsyncQuestionModel)
         .set({ readLatest: false })
         .where('asyncQuestionId = :asyncQuestionId', {
@@ -326,8 +324,7 @@ export class asyncQuestionController {
       body.aiAnswerText !== oldQuestion.aiAnswerText &&
       body.questionText !== oldQuestion.questionText
     ) {
-      await getRepository(UnreadAsyncQuestionModel)
-        .createQueryBuilder()
+      await UnreadAsyncQuestionModel.createQueryBuilder()
         .update(UnreadAsyncQuestionModel)
         .set({ readLatest: false })
         .where('asyncQuestionId = :asyncQuestionId', {
@@ -457,7 +454,7 @@ export class asyncQuestionController {
 
     // Mark as new unread for all students if the question is marked as visible
     if (body.visible && !oldQuestion.visible) {
-      await createQueryBuilder(UnreadAsyncQuestionModel)
+      await UnreadAsyncQuestionModel.createQueryBuilder()
         .update(UnreadAsyncQuestionModel)
         .set({ readLatest: false })
         .where('asyncQuestionId = :asyncQuestionId', {
@@ -482,7 +479,7 @@ export class asyncQuestionController {
       (body.status === asyncQuestionStatus.HumanAnswered ||
         body.verified === true)
     ) {
-      await createQueryBuilder(UnreadAsyncQuestionModel)
+      await UnreadAsyncQuestionModel.createQueryBuilder()
         .update(UnreadAsyncQuestionModel)
         .set({ readLatest: false })
         .where('asyncQuestionId = :asyncQuestionId', {
