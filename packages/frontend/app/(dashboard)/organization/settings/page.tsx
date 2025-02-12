@@ -8,7 +8,9 @@ import {
   Form,
   Input,
   message,
+  Modal,
   Row,
+  Select,
   Spin,
   Switch,
 } from 'antd'
@@ -19,6 +21,7 @@ import { Organization } from '@/app/typings/organization'
 import { API } from '@/app/api'
 import Image from 'next/image'
 import ImageCropperModal from '@/app/(dashboard)/components/ImageCropperModal'
+import { SemesterPartial } from '@koh/common'
 
 export default function SettingsPage(): ReactElement {
   const [formGeneral] = Form.useForm()
@@ -40,6 +43,10 @@ export default function SettingsPage(): ReactElement {
   const [organizationWebsiteUrl, setOrganizationWebsiteUrl] = useState(
     organization?.websiteUrl,
   )
+  const [organizationSemesters, setOrganizationSemesters] = useState<
+    SemesterPartial[]
+  >([])
+  const [isSemesterModalOpen, setIsSemesterModalOpen] = useState(false)
 
   useEffect(() => {
     const fetchDataAsync = async () => {
@@ -51,6 +58,7 @@ export default function SettingsPage(): ReactElement {
       setOrganizationName(response.name)
       setOrganizationDescription(response.description)
       setOrganizationWebsiteUrl(response.websiteUrl)
+      setOrganizationSemesters(response.semesters)
     }
 
     fetchDataAsync()
@@ -124,9 +132,38 @@ export default function SettingsPage(): ReactElement {
       })
   }
 
+  // for semester management
+  const [semesterForm] = Form.useForm()
+
+  const handleAddSemester = async () => {
+    return
+  }
+
+  const handleEditSemester = (semesterId: number) => {
+    {
+      const semester = organizationSemesters.find((s) => s.id === semesterId)
+      if (!semester) {
+        message.error('Semester not found')
+        return
+      }
+      semesterForm.setFieldsValue({
+        name: semester.name,
+        year: semester.year,
+        startMonth: semester.startMonth,
+        endMonth: semester.endMonth,
+        description: semester.description,
+      })
+      setIsSemesterModalOpen(true)
+    }
+  }
+
+  const handleDeleteSemester = (semesterId: number) => {
+    return
+  }
+
   return organization ? (
-    <>
-      <Card title="General" bordered={true}>
+    <div className="flex flex-col items-center gap-3">
+      <Card title="General" bordered={true} className="w-full">
         <Form
           form={formGeneral}
           onFinish={updateGeneral}
@@ -182,7 +219,7 @@ export default function SettingsPage(): ReactElement {
         </Form>
       </Card>
 
-      <Card title="Logo & Banner" bordered={true} className="mt-3">
+      <Card title="Logo & Banner" bordered={true} className="w-full">
         <Form layout="vertical">
           <Row className="flex justify-around">
             <Form.Item label="Logo">
@@ -299,11 +336,176 @@ export default function SettingsPage(): ReactElement {
         </Form>
       </Card>
 
-      <Card
-        title="SSO"
-        bordered={true}
-        style={{ marginTop: 10, marginBottom: 10 }}
-      >
+      <Card title="Semester Management" bordered={true} className="w-full">
+        <Row gutter={[16, 16]}>
+          {organizationSemesters && organizationSemesters.length > 0 ? (
+            organizationSemesters.map((semester, index) => (
+              <Col xs={24} sm={12} md={8} lg={6} key={semester.id}>
+                <Card
+                  title={semester.name}
+                  bordered
+                  actions={[
+                    <Button
+                      type="link"
+                      key="edit"
+                      onClick={() => handleEditSemester(semester.id)}
+                    >
+                      Edit
+                    </Button>,
+                    <Button
+                      danger
+                      type="link"
+                      key="delete"
+                      onClick={() => handleDeleteSemester(semester.id)}
+                    >
+                      Delete
+                    </Button>,
+                  ]}
+                >
+                  <p>
+                    <strong>Year:</strong> {semester.year}
+                  </p>
+                  <p>
+                    <strong>Start Month:</strong> {semester.startMonth}
+                  </p>
+                  <p>
+                    <strong>End Month:</strong> {semester.endMonth}
+                  </p>
+                  {semester.description && (
+                    <p>
+                      <strong>Description:</strong> {semester.description}
+                    </p>
+                  )}
+                </Card>
+              </Col>
+            ))
+          ) : (
+            <Col span={24} className="text-center">
+              No semesters added yet. Click the button below to add a new
+              semester.
+            </Col>
+          )}
+
+          {/* Add Semester Button */}
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Button
+              type="dashed"
+              onClick={() => {
+                setIsSemesterModalOpen(true)
+              }}
+            >
+              + Add New Semester
+            </Button>
+          </Col>
+        </Row>
+
+        {/* Semester Modal Placeholder */}
+        {isSemesterModalOpen && (
+          <Modal
+            title="Add New Semester"
+            visible={isSemesterModalOpen}
+            onCancel={() => setIsSemesterModalOpen(false)}
+            onOk={handleAddSemester}
+            okText="Save"
+            cancelText="Cancel"
+          >
+            {/* Add your form inputs for semester here */}
+            <Form layout="vertical" form={semesterForm}>
+              <Form.Item
+                label="Semester Name"
+                name="name"
+                rules={[
+                  { required: true, message: 'Please enter the semester name' },
+                ]}
+              >
+                <Input placeholder="e.g., Fall 2024" />
+              </Form.Item>
+
+              <Form.Item
+                label="Year"
+                name="year"
+                rules={[{ required: true, message: 'Please select a year' }]}
+              >
+                <Select placeholder="Select Year">
+                  {/* grab all years in a 5 year "radius" to current year */}
+                  {Array.from(
+                    { length: 10 },
+                    (_, i) => new Date().getFullYear() + i - 5,
+                  ).map((year) => (
+                    <Select.Option key={year} value={year}>
+                      {year}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                label="Start Month"
+                name="startMonth"
+                rules={[
+                  { required: true, message: 'Please select a start month' },
+                ]}
+              >
+                <Select placeholder="Select Start Month">
+                  {[
+                    'January',
+                    'February',
+                    'March',
+                    'April',
+                    'May',
+                    'June',
+                    'July',
+                    'August',
+                    'September',
+                    'October',
+                    'November',
+                    'December',
+                  ].map((month, index) => (
+                    <Select.Option key={index + 1} value={index + 1}>
+                      {month}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                label="End Month"
+                name="endMonth"
+                rules={[
+                  { required: true, message: 'Please select an end month' },
+                ]}
+              >
+                <Select placeholder="Select End Month">
+                  {[
+                    'January',
+                    'February',
+                    'March',
+                    'April',
+                    'May',
+                    'June',
+                    'July',
+                    'August',
+                    'September',
+                    'October',
+                    'November',
+                    'December',
+                  ].map((month, index) => (
+                    <Select.Option key={index + 1} value={index + 1}>
+                      {month}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <Form.Item label="Description" name="description">
+                <TextArea rows={3} placeholder="Optional description" />
+              </Form.Item>
+            </Form>
+          </Modal>
+        )}
+      </Card>
+
+      <Card title="SSO" bordered={true} className="w-full">
         <Form layout="vertical">
           <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
             <Col xs={{ span: 24 }} sm={{ span: 12 }}>
@@ -334,7 +536,7 @@ export default function SettingsPage(): ReactElement {
           </Row>
         </Form>
       </Card>
-    </>
+    </div>
   ) : (
     <Spin />
   )

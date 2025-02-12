@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class refactorSemesters1739377042643 implements MigrationInterface {
-  name = 'refactorSemesters1739377042643';
+export class refactorSemesters1739379496937 implements MigrationInterface {
+  name = 'refactorSemesters1739379496937';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -20,13 +20,10 @@ export class refactorSemesters1739377042643 implements MigrationInterface {
       `ALTER TABLE "semester_model" ADD "description" text`,
     );
     await queryRunner.query(
-      `ALTER TABLE "semester_model" ADD "courseId" integer`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "semester_model" ADD "organizationId" integer`,
     );
     await queryRunner.query(
-      `ALTER TABLE "semester_model" ADD CONSTRAINT "FK_dfc876895413b140d62760ee03d" FOREIGN KEY ("organizationId") REFERENCES "organization_model"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "semester_model" ADD CONSTRAINT "FK_dfc876895413b140d62760ee03d" FOREIGN KEY ("organizationId") REFERENCES "organization_model"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
   }
 
@@ -36,9 +33,6 @@ export class refactorSemesters1739377042643 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "semester_model" DROP COLUMN "organizationId"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "semester_model" DROP COLUMN "courseId"`,
     );
     await queryRunner.query(
       `ALTER TABLE "semester_model" DROP COLUMN "description"`,

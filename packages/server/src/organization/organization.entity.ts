@@ -45,7 +45,7 @@ export class OrganizationModel extends BaseEntity {
   ssoUrl: string;
 
   @Exclude()
-  @JoinColumn({ name: 'semesterId' })
+  @JoinColumn({ name: 'organizationId' })
   @OneToMany((type) => SemesterModel, (semester) => semester.organization)
   semesters: SemesterModel[];
 

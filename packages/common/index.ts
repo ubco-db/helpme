@@ -164,7 +164,7 @@ export type UserTiny = {
 export type CoursePartial = {
   id: number
   name: string
-  semester: SemesterPartial
+  semester?: SemesterPartial
 }
 
 export class RegistrationTokenDetails {
@@ -984,6 +984,7 @@ export class OrganizationUserPartial {
 export class GetOrganizationResponse {
   id!: number
   name!: string
+  semesters!: SemesterPartial[]
   description?: string
   logoUrl?: string
   bannerUrl?: string
@@ -1596,9 +1597,11 @@ export class EditCourseInfoParams {
 }
 
 export class SemesterPartial {
+  id!: number
   name!: string
   startMonth!: number
   endMonth!: number
+  year!: number
   description?: string
 }
 

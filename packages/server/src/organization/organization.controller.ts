@@ -33,6 +33,7 @@ import {
   OrganizationProfessor,
   CourseResponse,
   OrgUser,
+  GetOrganizationResponse,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -51,16 +52,16 @@ import * as checkDiskSpace from 'check-disk-space';
 import * as path from 'path';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { SemesterModel } from 'semester/semester.entity';
+import { SemesterModel } from '../semester/semester.entity';
 import { getManager, In } from 'typeorm';
-import { UserCourseModel } from 'profile/user-course.entity';
-import { CourseSettingsModel } from 'course/course_settings.entity';
-import { EmailVerifiedGuard } from 'guards/email-verified.guard';
-import { ChatTokenModel } from 'chatbot/chat-token.entity';
+import { UserCourseModel } from '../profile/user-course.entity';
+import { CourseSettingsModel } from '../course/course_settings.entity';
+import { EmailVerifiedGuard } from '../guards/email-verified.guard';
+import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import _ from 'lodash';
 import * as sharp from 'sharp';
-import { UserId } from 'decorators/user.decorator';
+import { UserId } from '../decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 
@@ -390,16 +391,16 @@ export class OrganizationController {
         relations: ['courses'],
       });
 
-      if (!semester) {
-        await SemesterModel.create({
-          season: semesterDetails[0],
-          year: parseInt(semesterDetails[1]),
-          courses: [newCourse],
-        }).save();
-      } else {
-        semester.courses.push(newCourse);
-        await semester.save();
-      }
+      // if (!semester) {
+      //   await SemesterModel.create({
+      //     season: semesterDetails[0],
+      //     year: parseInt(semesterDetails[1]),
+      //     courses: [newCourse],
+      //   }).save();
+      // } else {
+      //   semester.courses.push(newCourse);
+      //   await semester.save();
+      // }
 
       // create courseSettingsModel for the new course (all checks are performed by typescript)
       const newCourseSettings = new CourseSettingsModel();
@@ -549,21 +550,21 @@ export class OrganizationController {
       }
     }
 
-    if (!semester) {
-      const newSemester = await SemesterModel.create({
-        season: semesterDetails[0],
-        year: parseInt(semesterDetails[1]),
-        courses: [courseInfo.course],
-      }).save();
+    // if (!semester) {
+    //   const newSemester = await SemesterModel.create({
+    //     season: semesterDetails[0],
+    //     year: parseInt(semesterDetails[1]),
+    //     courses: [courseInfo.course],
+    //   }).save();
 
-      courseInfo.course.semester = newSemester;
-      await courseInfo.course.save();
-    } else {
-      courseInfo.course.semester = semester;
-      await courseInfo.course.save();
-      semester.courses.push(courseInfo.course);
-      await semester.save();
-    }
+    //   courseInfo.course.semester = newSemester;
+    //   await courseInfo.course.save();
+    // } else {
+    //   courseInfo.course.semester = semester;
+    //   await courseInfo.course.save();
+    //   semester.courses.push(courseInfo.course);
+    //   await semester.save();
+    // }
 
     courseInfo.course.name = courseDetails.name;
 
@@ -1000,21 +1001,26 @@ export class OrganizationController {
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
   ): Promise<void> {
-    OrganizationModel.findOne({
-      where: { id: oid },
-    })
-      .then((organization) => {
-        if (!organization) {
-          return res.status(HttpStatus.NOT_FOUND).send({
-            message: ERROR_MESSAGES.organizationController.organizationNotFound,
-          });
-        }
-
-        res.status(HttpStatus.OK).send(organization);
-      })
-      .catch((err) => {
-        res.status(500).send({ message: err });
+    try {
+      const organization = await OrganizationModel.findOne({
+        where: { id: oid },
+        relations: ['semesters'],
       });
+
+      if (!organization) {
+        res.status(HttpStatus.NOT_FOUND).send({
+          message: ERROR_MESSAGES.organizationController.organizationNotFound,
+        });
+      }
+
+      res.status(HttpStatus.OK).send(organization as GetOrganizationResponse);
+    } catch (err) {
+      console.error('Error fetching organization:', err);
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        message:
+          'An unexpected error occurred while fetching the organization.',
+      });
+    }
   }
 
   @Patch(':oid/update_user_role')

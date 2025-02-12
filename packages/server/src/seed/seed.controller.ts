@@ -230,10 +230,9 @@ export class SeedController {
       // But since the semester is centered in Fall 2020,
       // the events will get filtered out since they arent in that date.
       // you will need to reseed data!
-      const semester = await SemesterFactory.create({
-        season: 'Fall',
-        year: 2023,
-      });
+
+      // comments above are from legacy implementation
+      const semester = await SemesterFactory.create();
 
       await CourseFactory.create({
         timezone: 'America/Los_Angeles',

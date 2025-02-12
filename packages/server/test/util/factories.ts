@@ -59,8 +59,11 @@ export const TACourseFactory = new Factory(UserCourseModel).attr(
 );
 
 export const SemesterFactory = new Factory(SemesterModel)
-  .attr('season', 'Fall')
-  .attr('year', 2022);
+  .attr('name', 'Test Semester')
+  .attr('startMonth', 1)
+  .attr('endMonth', 4)
+  .attr('year', 2022)
+  .attr('description', 'Test Semester Description');
 
 export const CourseFactory = new Factory(CourseModel)
   .attr('name', 'CS 304')

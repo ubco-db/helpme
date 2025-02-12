@@ -6,11 +6,11 @@ import {
   Season,
 } from '@koh/common';
 import { Injectable } from '@nestjs/common';
-import { CourseModel } from 'course/course.entity';
-import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
-import { UserCourseModel } from 'profile/user-course.entity';
-import { UserModel } from 'profile/user.entity';
-import { SemesterModel } from 'semester/semester.entity';
+import { CourseModel } from '../course/course.entity';
+import { CourseSectionMappingModel } from '../login/course-section-mapping.entity';
+import { UserCourseModel } from '../profile/user-course.entity';
+import { UserModel } from '../profile/user.entity';
+import { SemesterModel } from '../semester/semester.entity';
 import { Connection } from 'typeorm';
 import { ProfSectionGroupsModel } from './prof-section-groups.entity';
 import { khourySemesterCodes } from './last-registration-model.entity';
@@ -167,16 +167,21 @@ export class LoginCourseService {
     return { season, year };
   }
 
+  // TODO: clean up legacy implementation
   private async getSemester(khourySemester: string) {
-    const { season, year } = this.parseKhourySemester(khourySemester);
-    let semModel = await SemesterModel.findOne({ where: { season, year } });
-    if (!semModel) {
-      semModel = await SemesterModel.create({
-        season,
-        year,
-        courses: [],
-      }).save();
-    }
+    // const { season, year } = this.parseKhourySemester(khourySemester);
+    // let semModel = await SemesterModel.findOne({ where: { season, year } });
+    // if (!semModel) {
+    //   semModel = await SemesterModel.create({
+    //     season,
+    //     year,
+    //     courses: [],
+    //   }).save();
+    // }
+
+    const semModel = await SemesterModel.findOne({
+      where: { name: khourySemester },
+    });
     return semModel;
   }
 

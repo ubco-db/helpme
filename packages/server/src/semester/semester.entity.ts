@@ -32,22 +32,18 @@ export class SemesterModel extends BaseEntity {
   @Column('text', { nullable: true })
   description?: string;
 
-  @JoinColumn({ name: 'courseId' })
+  @JoinColumn({ name: 'semesterId' })
   @OneToMany((type) => CourseModel, (course) => course.semester)
   courses: CourseModel[];
-
-  @Column({ nullable: true })
-  @Exclude()
-  courseId: number;
 
   @JoinColumn({ name: 'organizationId' })
   @ManyToOne(
     (type) => OrganizationModel,
     (organization) => organization.semesters,
+    { onDelete: 'CASCADE' },
   )
   organization: OrganizationModel;
 
   @Column({ nullable: true })
-  @Exclude()
   organizationId: number;
 }
