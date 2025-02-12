@@ -30,6 +30,7 @@ import { setupIntegrationTest } from './util/testUtils';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { QuestionModel } from 'question/question.entity';
 
 describe('Course Integration', () => {
   const supertest = setupIntegrationTest(CourseModule);
@@ -864,6 +865,97 @@ describe('Course Integration', () => {
           checkinTime: justNow.toISOString(),
           forced: false,
           inProgress: true,
+          name: taName,
+          numHelped: 0,
+        },
+      ]);
+    });
+    it('should properly get the start and end time if end event is EventType.TA_CHECKED_OUT_EVENT_END', async () => {
+      const now = new Date();
+      const yesterday = new Date();
+      yesterday.setUTCHours(now.getUTCHours() - 24);
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      const professor = await UserFactory.create();
+
+      await UserCourseFactory.create({
+        user: ta,
+        role: Role.TA,
+        course,
+      });
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course,
+      });
+
+      await EventFactory.create({
+        user: ta,
+        course: course,
+        time: yesterday,
+        eventType: EventType.TA_CHECKED_IN,
+      });
+
+      const yesterdayPlusTwoHours = new Date(yesterday);
+      yesterdayPlusTwoHours.setUTCHours(yesterday.getUTCHours() + 2);
+
+      await EventFactory.create({
+        user: ta,
+        course: course,
+        time: new Date(yesterdayPlusTwoHours),
+        eventType: EventType.TA_CHECKED_OUT,
+      });
+
+      const thenThreeMoreHours = new Date(yesterdayPlusTwoHours);
+      thenThreeMoreHours.setUTCHours(yesterdayPlusTwoHours.getUTCHours() + 3);
+
+      await EventFactory.create({
+        user: ta,
+        course: course,
+        time: thenThreeMoreHours,
+        eventType: EventType.TA_CHECKED_IN,
+      });
+
+      const twelveHoursAFter = new Date(thenThreeMoreHours);
+      twelveHoursAFter.setUTCHours(thenThreeMoreHours.getUTCHours() + 12);
+
+      await EventFactory.create({
+        user: ta,
+        course: course,
+        time: twelveHoursAFter,
+        eventType: EventType.TA_CHECKED_OUT_EVENT_END,
+      });
+
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setUTCDate(twoDaysAgo.getUTCDate() - 2);
+
+      const dateNow = new Date();
+      const data = await supertest({ userId: professor.id })
+        .get(`/courses/${course.id}/ta_check_in_times`)
+        .query({
+          startDate: twoDaysAgo,
+          endDate: dateNow,
+        })
+        .expect(200);
+
+      const checkinTimes = (data.body as unknown as TACheckinTimesResponse)
+        .taCheckinTimes;
+
+      const taName = ta.firstName + ' ' + ta.lastName;
+      expect(checkinTimes).toStrictEqual([
+        {
+          checkinTime: yesterday.toISOString(),
+          checkoutTime: yesterdayPlusTwoHours.toISOString(),
+          forced: false,
+          inProgress: false,
+          name: taName,
+          numHelped: 0,
+        },
+        {
+          checkinTime: thenThreeMoreHours.toISOString(),
+          checkoutTime: twelveHoursAFter.toISOString(),
+          forced: false,
+          inProgress: false,
           name: taName,
           numHelped: 0,
         },
@@ -1909,6 +2001,85 @@ describe('Course Integration', () => {
         },
       ]);
     });
+    it('should return all students not in a queue with a task question (or vise-versa with regular questions)', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create({ firstName: 'professor' });
+      const student1 = await UserFactory.create({ firstName: 'student1' });
+      const student2 = await UserFactory.create({ firstName: 'student2' });
+      const student3 = await UserFactory.create({ firstName: 'student3' });
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: student1,
+        role: Role.STUDENT,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: student2,
+        role: Role.STUDENT,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: student3,
+        role: Role.STUDENT,
+        course: course,
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+        courseId: course.id,
+      });
+      await QuestionFactory.create({
+        queue: queue,
+        status: QuestionStatusKeys.Queued,
+        creatorId: student1.id,
+        creator: student1,
+      });
+      await QuestionFactory.create({
+        queue: queue,
+        status: QuestionStatusKeys.Resolved,
+        creator: student2,
+        creatorId: student2.id,
+      });
+      await QuestionFactory.create({
+        queue: queue,
+        status: QuestionStatusKeys.Queued,
+        creator: student3,
+        creatorId: student3.id,
+        isTaskQuestion: true,
+      });
+      const resp = await supertest({ userId: professor.id }).get(
+        `/courses/${course.id}/students_not_in_queue?with_a_task_question=true`,
+      );
+      expect(resp.status).toBe(200);
+      expect(resp.body).toEqual([
+        {
+          id: student1.id,
+          name: student1.firstName + ' ' + student1.lastName,
+        },
+        {
+          id: student2.id,
+          name: student2.firstName + ' ' + student2.lastName,
+        },
+      ]);
+      const resp2 = await supertest({ userId: professor.id }).get(
+        `/courses/${course.id}/students_not_in_queue?with_a_task_question=false`,
+      );
+
+      expect(resp2.status).toBe(200);
+      expect(resp2.body).toEqual([
+        {
+          id: student2.id,
+          name: student2.firstName + ' ' + student2.lastName,
+        },
+        {
+          id: student3.id,
+          name: student3.firstName + ' ' + student3.lastName,
+        },
+      ]);
+    });
   });
   describe('GET /courses/:id/queue_invites', () => {
     it('should return 401 if user is not authorized', async () => {
@@ -1992,69 +2163,6 @@ describe('Course Integration', () => {
         ]),
       );
     });
-  });
-
-  describe('GET /courses/:id/lms_integration', () => {
-    it.each([Role.STUDENT, Role.TA])(
-      'should return 403 when non-professor accesses route',
-      async (courseRole) => {
-        const user = await UserFactory.create();
-        const course = await CourseFactory.create();
-
-        await UserCourseModel.create({
-          userId: user.id,
-          courseId: course.id,
-          role: courseRole,
-        }).save();
-
-        const res = await supertest({ userId: user.id }).get(
-          `/courses/${course.id}/lms_integration`,
-        );
-        expect(res.statusCode).toBe(403);
-      },
-    );
-  });
-
-  describe('POST /courses/:id/lms_integration/upsert', () => {
-    it.each([Role.STUDENT, Role.TA])(
-      'should return 403 when non-professor accesses route',
-      async (courseRole) => {
-        const user = await UserFactory.create();
-        const course = await CourseFactory.create();
-
-        await UserCourseModel.create({
-          userId: user.id,
-          courseId: course.id,
-          role: courseRole,
-        }).save();
-
-        const res = await supertest({ userId: user.id }).post(
-          `/courses/${course.id}/lms_integration/upsert`,
-        );
-        expect(res.statusCode).toBe(403);
-      },
-    );
-  });
-
-  describe('DELETE /courses/:id/lms_integration/remove', () => {
-    it.each([Role.STUDENT, Role.TA])(
-      'should return 403 when non-professor accesses route',
-      async (courseRole) => {
-        const user = await UserFactory.create();
-        const course = await CourseFactory.create();
-
-        await UserCourseModel.create({
-          userId: user.id,
-          courseId: course.id,
-          role: courseRole,
-        }).save();
-
-        const res = await supertest({ userId: user.id }).delete(
-          `/courses/${course.id}/lms_integration/remove`,
-        );
-        expect(res.statusCode).toBe(403);
-      },
-    );
   });
   describe('PATCH /courses/:id/set_ta_notes/:uid', () => {
     it('should return 401 if user is not authorized', async () => {

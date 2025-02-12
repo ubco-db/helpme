@@ -3,11 +3,12 @@ import {
   parseTaskIdsFromQuestionText,
   Question,
 } from '@koh/common'
-import { Card, Col, Row, Tooltip } from 'antd'
+import { Card, Col, Row } from 'antd'
 import { getServedTime, getWaitTime } from '@/app/utils/timeFormatUtils'
 import { QuestionTagElement } from '@/app/(dashboard)/course/[cid]/components/QuestionTagElement'
 import { useState, useEffect } from 'react'
 import { cn } from '@/app/utils/generalUtils'
+import styles from '../../../(dashboard)/course/[cid]/queue/[qid]/components/QuestionCard.module.css'
 
 interface QuestionCardSimpleProps {
   question: Question
@@ -29,6 +30,9 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
   configTasks,
   className,
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [truncateText, setTruncateText] = useState(true) // after the max-height transition is finished on expanding the text, truncate it to show a `...`
+
   const tasks = question.isTaskQuestion
     ? parseTaskIdsFromQuestionText(question.text)
     : [] // gives an array of "part1","part2",etc.
@@ -58,6 +62,22 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
         className,
       )}
       classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
+      onClick={() => {
+        setIsExpanded(!isExpanded)
+        // after the max-height transition is finished on expanding the text, truncate it to show a `...`
+        // truncating the questionText before the animation is finished will cause the animation to jump
+        // Also, this logic is reversed for some reason
+        if (isExpanded) {
+          //// Collapsing the card
+          setTimeout(() => {
+            setTruncateText(true)
+          }, 300)
+        } else {
+          //// Expanding the card
+          // however, we do want to instantly remove the truncation when expanding the card
+          setTruncateText(false)
+        }
+      }}
     >
       <Row className="items-center">
         <Col flex="1 1">
@@ -88,28 +108,16 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
               }
             </div>
           ) : (
-            <Tooltip // only show tooltip if text is too long TODO: replace with expand card details feature
-              title={
-                question.text && question.text.length > 110 ? question.text : ''
-              }
-              overlayStyle={{ maxWidth: '60em' }}
+            <div
+              className={cn(
+                'childrenMarkdownFormatted',
+                styles.expandableText,
+                isExpanded ? styles.expanded : '',
+                truncateText ? 'line-clamp-1' : '',
+              )}
             >
-              <div
-                style={
-                  {
-                    // shorten question text dynamically
-                    display: '-webkit-box',
-                    WebkitLineClamp: 1,
-                    WebkitBoxOrient: 'vertical',
-                    textOverflow: 'ellipsis',
-                    overflow: 'hidden',
-                    maxWidth: '55em',
-                  } as React.CSSProperties
-                }
-              >
-                {question.text}
-              </div>
-            </Tooltip>
+              {question.text}
+            </div>
           )}
           {question.questionTypes?.map((questionType, index) => (
             <QuestionTagElement

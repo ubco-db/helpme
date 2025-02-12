@@ -233,26 +233,21 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
         ) : (
           <div>
             <Row>
-              <Tooltip // only show tooltip if text is too long
-                title={
-                  question.text && question.text.length > 110
-                    ? question.text
-                    : ''
-                }
-                overlayStyle={{ maxWidth: '60em' }}
+              <Tooltip
+                title={question.text}
+                styles={{ root: { maxWidth: '100%' } }}
               >
                 <div
                   style={
                     {
                       // shorten question text dynamically
-                      display: '-webkit-box',
-                      WebkitLineClamp: 1,
-                      WebkitBoxOrient: 'vertical',
                       textOverflow: 'ellipsis',
                       overflow: 'hidden',
-                      maxWidth: '95em',
+                      maxHeight: '1.375em',
+                      maxWidth: '100%',
                     } as React.CSSProperties
                   }
+                  className="line-clamp-1"
                 >
                   {question.text}
                 </div>

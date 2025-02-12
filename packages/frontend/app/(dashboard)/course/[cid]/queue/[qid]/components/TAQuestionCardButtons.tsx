@@ -225,7 +225,11 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
     question.status === OpenQuestionStatus.Paused
   ) {
     return (
-      <div className={className}>
+      <div
+        className={className}
+        // capture any mouse events and stop them here so they don't propagate to the parent and expand the card
+        onClick={(e) => e.stopPropagation()}
+      >
         <Popconfirm
           title="Are you sure you want to send this student back to the queue?"
           okText="Yes"
@@ -387,93 +391,95 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
       }
     })()
     return (
-      <>
-        <div className={className}>
-          <Popconfirm
-            title="Are you sure you want to delete this question from the queue?"
-            disabled={
-              !isUserCheckedIn ||
-              question.status === LimboQuestionStatus.ReQueueing
-            }
-            okText="Yes"
-            cancelText="No"
-            onConfirm={async () => {
-              await deleteQuestion()
-            }}
-          >
-            <Tooltip
-              className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
-              title={
-                isUserCheckedIn
-                  ? 'Remove From Queue'
-                  : 'You must check in to remove students from the queue'
-              }
-            >
-              <span>
-                {/* This span is a workaround for tooltip-on-disabled-button 
-              https://github.com/ant-design/ant-design/issues/9581#issuecomment-599668648 */}
-                <CircleButton
-                  customVariant="red"
-                  icon={<DeleteOutlined />}
-                  disabled={
-                    !isUserCheckedIn ||
-                    helpButtonLoading ||
-                    rephraseButtonLoading ||
-                    question.status === LimboQuestionStatus.ReQueueing
-                  }
-                  loading={deleteButtonLoading}
-                />
-              </span>
-            </Tooltip>
-          </Popconfirm>
-          {!question.isTaskQuestion && (
-            // TODO: add new buttons for task questions
-            <Tooltip
-              className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
-              title={rephraseTooltip}
-            >
-              <span>
-                <CircleButton
-                  customVariant="orange"
-                  icon={<QuestionOutlined />}
-                  onClick={sendRephraseAlert}
-                  disabled={
-                    !canRephrase ||
-                    helpButtonLoading ||
-                    deleteButtonLoading ||
-                    question.status === LimboQuestionStatus.ReQueueing
-                  }
-                  loading={rephraseButtonLoading}
-                />
-              </span>
-            </Tooltip>
-          )}
+      <div
+        className={className}
+        // capture any mouse events and stop them here so they don't propagate to the parent and expand the card
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Popconfirm
+          title="Are you sure you want to delete this question from the queue?"
+          disabled={
+            !isUserCheckedIn ||
+            question.status === LimboQuestionStatus.ReQueueing
+          }
+          okText="Yes"
+          cancelText="No"
+          onConfirm={async () => {
+            await deleteQuestion()
+          }}
+        >
           <Tooltip
             className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
-            title={helpTooltip}
+            title={
+              isUserCheckedIn
+                ? 'Remove From Queue'
+                : 'You must check in to remove students from the queue'
+            }
           >
             <span>
+              {/* This span is a workaround for tooltip-on-disabled-button 
+              https://github.com/ant-design/ant-design/issues/9581#issuecomment-599668648 */}
               <CircleButton
-                customVariant="primary"
-                icon={<Play size={22} className="shrink-0 pl-1" />}
-                onClick={() => {
-                  // message.success("timer cleared")
-                  // clearTimeout(timerCheckout.current);
-                  helpStudent()
-                }}
+                customVariant="red"
+                icon={<DeleteOutlined />}
                 disabled={
-                  !canHelp ||
+                  !isUserCheckedIn ||
+                  helpButtonLoading ||
                   rephraseButtonLoading ||
-                  deleteButtonLoading ||
                   question.status === LimboQuestionStatus.ReQueueing
                 }
-                className="flex items-center justify-center"
-                loading={helpButtonLoading}
+                loading={deleteButtonLoading}
               />
             </span>
           </Tooltip>
-        </div>
-      </>
+        </Popconfirm>
+        {!question.isTaskQuestion && (
+          // TODO: add new buttons for task questions
+          <Tooltip
+            className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
+            title={rephraseTooltip}
+          >
+            <span>
+              <CircleButton
+                customVariant="orange"
+                icon={<QuestionOutlined />}
+                onClick={sendRephraseAlert}
+                disabled={
+                  !canRephrase ||
+                  helpButtonLoading ||
+                  deleteButtonLoading ||
+                  question.status === LimboQuestionStatus.ReQueueing
+                }
+                loading={rephraseButtonLoading}
+              />
+            </span>
+          </Tooltip>
+        )}
+        <Tooltip
+          className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
+          title={helpTooltip}
+        >
+          <span>
+            <CircleButton
+              customVariant="primary"
+              icon={<Play size={22} className="shrink-0 pl-1" />}
+              onClick={() => {
+                // message.success("timer cleared")
+                // clearTimeout(timerCheckout.current);
+                helpStudent()
+              }}
+              disabled={
+                !canHelp ||
+                rephraseButtonLoading ||
+                deleteButtonLoading ||
+                question.status === LimboQuestionStatus.ReQueueing
+              }
+              className="flex items-center justify-center"
+              loading={helpButtonLoading}
+            />
+          </span>
+        </Tooltip>
+      </div>
     )
   }
 }

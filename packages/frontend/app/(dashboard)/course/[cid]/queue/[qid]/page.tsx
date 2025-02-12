@@ -625,12 +625,12 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                     onClick={() => setAddStudentsModalOpen(true)}
                     icon={<PlusOutlined />}
                   >
-                    {/* "+ Add Students to Queue" on desktop, "+ Students" on mobile */}
+                    {/* "+ Add Students to Queue" on desktop, "+ Student" on mobile */}
                     <span>
                       <span className="hidden md:inline">
-                        Add Students to Queue
+                        Add Student to Queue
                       </span>
-                      <span className="inline md:hidden">Students</span>
+                      <span className="inline md:hidden">Student</span>
                     </span>
                   </EditQueueButton>
                 </span>
@@ -900,6 +900,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               queueId={qid}
               courseId={cid}
               isQueueHybrid={queue.type === 'hybrid'}
+              isDemoQueue={isDemoQueue}
+              configTasks={configTasks}
+              assignmentId={queueConfig?.assignment_id}
               open={addStudentsModalOpen}
               onAddStudent={() => {
                 mutateQuestions()
@@ -1025,20 +1028,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                   open={studentDemo?.status === LimboQuestionStatus.CantFind}
                   leaveQueue={() => leaveQueue(true)}
                   rejoinQueue={() => rejoinQueue(true)}
-                />
-                <JoinZoomNowModal
-                  taName={studentQuestion?.taHelped?.name}
-                  open={
-                    ((queue.type === 'hybrid' && // Forces student to join zoom or requeue themselves if they are not ready
-                      studentQuestion?.location === 'Online') || // Modal closes in either case
-                      queue.type === 'online') &&
-                    !clickedZoomModal &&
-                    studentQuestion?.status === OpenQuestionStatus.Helping
-                  }
-                  notes={queue?.notes}
-                  zoomLink={queue.zoomLink ?? course?.zoomLink}
-                  onJoin={() => setClickedZoomModal(true)}
-                  setRequeuing={() => setRequeuing(false)}
                 />
               </>
             )}

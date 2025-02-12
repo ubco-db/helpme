@@ -185,7 +185,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         <Form.Item
           name="topK"
           label={
-            <Tooltip title="This number influences the max number of information blocks the chatbot would retrieve per question.">
+            <Tooltip title="This number influences the max number of information blocks the chatbot would retrieve per question. Turn this up if you think the questions would need data from a lot of different documents.">
               Top K <InfoCircleOutlined />
             </Tooltip>
           }
@@ -197,7 +197,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         <Form.Item
           name="similarityThresholdDocuments"
           label={
-            <Tooltip title="Set the minimum similarity threshold when retrieving relevant information blocks.">
+            <Tooltip title="Set the minimum similarity threshold when retrieving relevant information blocks. Turn this up if you notice that the chatbot is grabbing irrelevant documents.">
               Similarity Threshold Documents <InfoCircleOutlined />
             </Tooltip>
           }

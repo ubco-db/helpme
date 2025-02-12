@@ -327,4 +327,43 @@ describe('BackupService', () => {
       );
     });
   });
+
+  describe('deleteOldBackups', () => {
+    it('ignores .md files', () => {
+      (fs.readdir as unknown as jest.Mock).mockImplementation((dir, cb) =>
+        cb(null, ['old-backup.sql.gz', 'readme.md']),
+      );
+      service['deleteOldBackups']('/some/dir', 1);
+      expect(fs.unlink).toHaveBeenCalledTimes(1); // readme.md not unlinked
+    });
+
+    it('deletes older backups', () => {
+      (fs.readdir as unknown as jest.Mock).mockImplementation((dir, cb) =>
+        cb(null, ['old-backup.sql.gz']),
+      );
+      (fs.stat as unknown as jest.Mock).mockImplementation((filePath, cb) => {
+        cb(null, {
+          mtime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // old
+        });
+      });
+      service['deleteOldBackups']('/some/dir', 1);
+      expect(fs.unlink).toHaveBeenCalledWith(
+        expect.stringContaining('old-backup.sql.gz'),
+        expect.any(Function),
+      );
+    });
+
+    it('keeps newer backups', () => {
+      (fs.readdir as unknown as jest.Mock).mockImplementation((dir, cb) =>
+        cb(null, ['new-backup.sql.gz']),
+      );
+      (fs.stat as unknown as jest.Mock).mockImplementation((filePath, cb) => {
+        cb(null, {
+          mtime: new Date(), // new
+        });
+      });
+      service['deleteOldBackups']('/some/dir', 1);
+      expect(fs.unlink).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -11,6 +11,7 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
 import { asyncQuestionStatus, Role } from '@koh/common';
+import { UserCourseAsyncQuestionModel } from 'profile/user-course-asyncQuestion.entity';
 
 describe('AsyncQuestion Integration', () => {
   const supertest = setupIntegrationTest(asyncQuestionModule);
@@ -61,6 +62,17 @@ describe('AsyncQuestion Integration', () => {
   });
   describe('Async question creation', () => {
     it('Student can create a question', async () => {
+      const [prevRecords, prevCount] =
+        await UserCourseAsyncQuestionModel.findAndCount({
+          relations: ['userCourse', 'userCourse.user', 'userCourse.course'],
+          where: {
+            userCourse: {
+              user: { id: studentUser2.id },
+              course: { id: course.id },
+            },
+          },
+        });
+
       await supertest({ userId: studentUser.id })
         .post(`/asyncQuestions/${course.id}`)
         .send({
@@ -68,7 +80,19 @@ describe('AsyncQuestion Integration', () => {
           questionText: 'text',
         })
         .expect(201)
-        .then((response) => {
+        .then(async (response) => {
+          const [currentRecords, currentCount] =
+            await UserCourseAsyncQuestionModel.findAndCount({
+              relations: ['userCourse', 'userCourse.user', 'userCourse.course'],
+              where: {
+                userCourse: {
+                  user: { id: studentUser2.id },
+                  course: { id: course.id },
+                },
+              },
+            });
+          expect(currentCount).toBe(prevCount + 1);
+
           expect(response.body).toHaveProperty('status', 'AIAnswered');
           expect(response.body).toHaveProperty('closedAt', null);
           expect(response.body).toHaveProperty('questionText', 'text');

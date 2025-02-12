@@ -9,6 +9,8 @@ import {
   Tooltip,
   message,
   Space,
+  Segmented,
+  Popconfirm,
 } from 'antd'
 import {
   CheckCircleOutlined,
@@ -19,16 +21,26 @@ import {
 import axios from 'axios'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
+import {
+  cn,
+  convertPathnameToPageName,
+  getErrorMessage,
+  getRoleInCourse,
+} from '@/app/utils/generalUtils'
 import { Feedback } from './Feedback'
 import {
   PreDeterminedQuestion,
   Message,
   ChatbotAskResponse,
+  chatbotStartingMessageSystem,
+  chatbotStartingMessageCourse,
+  ChatbotQuestionType,
 } from '@/app/typings/chatbot'
 import { API } from '@/app/api'
-import Markdown from 'react-markdown'
 import MarkdownCustom from '@/app/components/Markdown'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { Role } from '@koh/common'
 
 const { TextArea } = Input
 
@@ -49,6 +61,10 @@ interface ChatbotProps {
   setInteractionId: React.Dispatch<React.SetStateAction<number | undefined>>
   helpmeQuestionId: number | undefined
   setHelpmeQuestionId: React.Dispatch<React.SetStateAction<number | undefined>>
+  chatbotQuestionType: ChatbotQuestionType
+  setChatbotQuestionType: React.Dispatch<
+    React.SetStateAction<ChatbotQuestionType>
+  >
 }
 
 const Chatbot: React.FC<ChatbotProps> = ({
@@ -66,6 +82,8 @@ const Chatbot: React.FC<ChatbotProps> = ({
   setInteractionId,
   helpmeQuestionId,
   setHelpmeQuestionId,
+  chatbotQuestionType,
+  setChatbotQuestionType,
 }): ReactElement => {
   const [input, setInput] = useState('')
   const { userInfo, setUserInfo } = useUserInfo()
@@ -73,12 +91,24 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const courseFeatures = useCourseFeatures(cid)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
+  const pathname = usePathname()
+  const currentPageTitle = convertPathnameToPageName(pathname)
+  const [popResetOpen, setPopResetOpen] = useState(false)
+  // used to temporarily store what question type the user is trying to change to
+  const [tempChatbotQuestionType, setTempChatbotQuestionType] =
+    useState<ChatbotQuestionType | null>(null)
+  const role = getRoleInCourse(userInfo, cid)
+
+  const courseIdToUse =
+    chatbotQuestionType === 'System'
+      ? Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) || -1
+      : cid
 
   useEffect(() => {
     if (messages.length === 1) {
       setPreDeterminedQuestions([])
       axios
-        .get(`/chat/${cid}/allSuggestedQuestions`, {
+        .get(`/chat/${courseIdToUse}/allSuggestedQuestions`, {
           headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
         })
         .then((res) => {
@@ -99,19 +129,30 @@ const Chatbot: React.FC<ChatbotProps> = ({
     }
   }, [
     userInfo,
-    cid,
+    courseIdToUse,
     setPreDeterminedQuestions,
     messages.length,
     setQuestionsLeft,
   ])
 
+  // when chatbotQuestionType changes, reset chat
+  useEffect(() => {
+    resetChat()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatbotQuestionType])
+
   const query = async () => {
     try {
       const data = {
-        question: input,
+        question:
+          chatbotQuestionType === 'System'
+            ? `${input}
+            \nThis user is currently on the ${currentPageTitle}.
+            \nThe user's role for this course is ${role === Role.PROFESSOR ? 'Professor (Staff)' : role === Role.TA ? 'TA (Staff)' : 'Student'}.`
+            : input,
         history: messages,
       }
-      const response = await fetch(`/chat/${cid}/ask`, {
+      const response = await fetch(`/chat/${courseIdToUse}/ask`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -147,7 +188,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
   }
   const createNewInteraction = async () => {
     const interaction = await API.chatbot.createInteraction({
-      courseId: cid,
+      courseId: courseIdToUse,
       userId: userInfo.id,
     })
     setInteractionId(interaction.id)
@@ -228,13 +269,15 @@ const Chatbot: React.FC<ChatbotProps> = ({
       {
         type: 'apiMessage',
         message:
-          'Hello, how can I assist you? I can help with anything course related.',
+          chatbotQuestionType === 'System'
+            ? chatbotStartingMessageSystem
+            : chatbotStartingMessageCourse,
       },
     ])
     setPreDeterminedQuestions([])
     hasAskedQuestion.current = false
     axios
-      .get(`/chat/${cid}/allSuggestedQuestions`, {
+      .get(`/chat/${courseIdToUse}/allSuggestedQuestions`, {
         headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
       })
       .then((res) => {
@@ -254,6 +297,40 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setHelpmeQuestionId(undefined)
     setInput('')
   }
+
+  const getSourceLinkButton = (
+    docName: string,
+    sourceLink: string,
+    part?: number,
+  ) => {
+    if (!sourceLink) {
+      return null
+    }
+
+    return (
+      <a
+        className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
+          sourceLink && 'hover:bg-black-300 cursor-pointer hover:text-white'
+        }`}
+        key={`${docName}-${part}`}
+        href={sourceLink}
+        // open in new tab
+        target="_blank"
+      >
+        <p className="h-fit w-fit text-xs leading-4">
+          {part ? `p. ${part}` : 'Source'}
+        </p>
+      </a>
+    )
+  }
+
+  const extractLMSLink = (content?: string) => {
+    if (!content) return undefined
+    const idx = content.indexOf('Page Link:')
+    if (idx < 0) return undefined
+    return content.substring(idx + 'Page Link:'.length).trim()
+  }
+
   if (!cid || !courseFeatures?.chatBotEnabled) {
     return <></>
   } else {
@@ -271,7 +348,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
       >
         {isOpen ? (
           <Card
-            title="Course Chatbot"
+            title="Chatbot"
             classNames={{
               header: 'pr-3',
               body: cn(
@@ -288,9 +365,58 @@ const Chatbot: React.FC<ChatbotProps> = ({
             )}
             extra={
               <>
-                <Button onClick={resetChat} danger type="link" className="mr-3">
-                  Reset Chat
-                </Button>
+                {Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) &&
+                messages.length > 1 ? (
+                  <Popconfirm
+                    title="Are you sure? this will reset the chat"
+                    open={tempChatbotQuestionType !== null}
+                    onConfirm={() => {
+                      if (tempChatbotQuestionType) {
+                        setChatbotQuestionType(tempChatbotQuestionType)
+                        setTempChatbotQuestionType(null)
+                      }
+                    }}
+                    onCancel={() => setTempChatbotQuestionType(null)}
+                    trigger={'click'}
+                  >
+                    <Segmented<ChatbotQuestionType>
+                      options={['Course', 'System']}
+                      value={chatbotQuestionType}
+                      onChange={(newValue) => {
+                        if (newValue !== chatbotQuestionType) {
+                          setTempChatbotQuestionType(newValue)
+                        }
+                      }}
+                    />
+                  </Popconfirm>
+                ) : (
+                  Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) && (
+                    <Segmented<ChatbotQuestionType>
+                      options={['Course', 'System']}
+                      value={chatbotQuestionType}
+                      onChange={(value) => {
+                        setChatbotQuestionType(value)
+                      }}
+                    />
+                  )
+                )}
+                <Popconfirm
+                  title="Are you sure you want to reset the chat?"
+                  open={popResetOpen}
+                  onOpenChange={(open) => {
+                    if (messages.length > 1) {
+                      setPopResetOpen(open)
+                    } else {
+                      // reset chat right away if there are no messages
+                      resetChat()
+                    }
+                  }}
+                  onConfirm={resetChat}
+                >
+                  <Button danger type="link" className="mr-3">
+                    Reset Chat
+                  </Button>
+                </Popconfirm>
                 {variant === 'small' && (
                   <Button
                     onClick={() => setIsOpen(false)}
@@ -375,11 +501,23 @@ const Chatbot: React.FC<ChatbotProps> = ({
                             </div>
                             <div className="flex flex-col gap-1">
                               {item.sourceDocuments &&
+                              chatbotQuestionType === 'System' ? (
+                                <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
+                                  <p className="px-2 py-1">User Guide</p>
+                                  {getSourceLinkButton(
+                                    'User Guide',
+                                    'https://github.com/ubco-db/helpme/blob/main/packages/frontend/public/userguide.md',
+                                  )}
+                                </div>
+                              ) : (
+                                item.sourceDocuments &&
                                 item.sourceDocuments.map(
                                   (sourceDocument, idx) => (
                                     <Tooltip
                                       title={
-                                        sourceDocument.type
+                                        sourceDocument.type &&
+                                        sourceDocument.type !=
+                                          'inserted_lms_document'
                                           ? sourceDocument.content
                                           : ''
                                       }
@@ -389,35 +527,32 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                         <p className="px-2 py-1">
                                           {sourceDocument.docName}
                                         </p>
+                                        {sourceDocument.type ==
+                                          'inserted_lms_document' &&
+                                          extractLMSLink(
+                                            sourceDocument.content,
+                                          ) &&
+                                          getSourceLinkButton(
+                                            sourceDocument.docName,
+                                            extractLMSLink(
+                                              sourceDocument.content,
+                                            ) ?? '',
+                                            0,
+                                          )}
                                         {sourceDocument.pageNumbers &&
                                           sourceDocument.pageNumbers.map(
-                                            (part) => (
-                                              <div
-                                                className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
-                                                  sourceDocument.sourceLink &&
-                                                  'hover:bg-black-300 cursor-pointer hover:text-white'
-                                                }`}
-                                                key={`${sourceDocument.docName}-${part}`}
-                                                onClick={() => {
-                                                  if (
-                                                    sourceDocument.sourceLink
-                                                  ) {
-                                                    window.open(
-                                                      sourceDocument.sourceLink,
-                                                    )
-                                                  }
-                                                }}
-                                              >
-                                                <p className="h-fit w-fit text-xs leading-4">
-                                                  {`p. ${part}`}
-                                                </p>
-                                              </div>
-                                            ),
+                                            (part) =>
+                                              getSourceLinkButton(
+                                                sourceDocument.docName,
+                                                sourceDocument.sourceLink,
+                                                part,
+                                              ),
                                           )}
                                       </div>
                                     </Tooltip>
                                   ),
-                                )}
+                                )
+                              )}
                             </div>
                             {item.type === 'apiMessage' &&
                               index === messages.length - 1 &&
@@ -429,7 +564,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
                       )}
                     </Fragment>
                   ))}
-
                 {preDeterminedQuestions &&
                   !isLoading &&
                   preDeterminedQuestions.map((question) => (
@@ -454,6 +588,19 @@ const Chatbot: React.FC<ChatbotProps> = ({
                   />
                 )}
                 <div ref={messagesEndRef} />
+                {chatbotQuestionType === 'Course' && messages.length > 1 && (
+                  <div>
+                    Unhappy with your answer?{' '}
+                    <Link
+                      href={{
+                        pathname: `/course/${cid}/async_centre`,
+                        query: { convertChatbotQ: true },
+                      }}
+                    >
+                      Convert to anytime question
+                    </Link>
+                  </div>
+                )}
               </div>
               <div>
                 <Space.Compact block size="large">

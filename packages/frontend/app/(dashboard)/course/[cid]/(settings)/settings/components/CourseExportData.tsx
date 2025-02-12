@@ -1,7 +1,7 @@
 'use client'
 
-import { DownloadOutlined } from '@ant-design/icons'
-import { Button, message } from 'antd'
+import { DownloadOutlined, InfoCircleOutlined } from '@ant-design/icons'
+import { Button, message, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
 import csvDownload from 'json-to-csv-export'
 import { API } from '@/app/api'
@@ -256,7 +256,7 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
     course && (
       <div className="space-y-7">
         <div className="flex items-center justify-between">
-          <span> Export all course questions in CSV</span>
+          <span> Export all queue questions in CSV</span>
           <Button
             loading={loadingQuestions}
             onClick={async () => {
@@ -279,7 +279,12 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
 
         <div className="flex items-center justify-between align-middle">
           <span>
-            Export upload CSV of all students&apos; assignment progress
+            Export CSV of all students&apos; assignment progress
+            <Tooltip
+              title={`This has to do with how you can give an assignment ID to queues with tasks that can be checked off (as opposed to regular questions). View the "Edit Queue Modal" on a queue page and hover the help icons for "Assignment ID" and "Tasks" for more information. This is not related to the LMS Assignment Synchronization feature (that is only used to upload assignments into the chatbot)`}
+            >
+              <InfoCircleOutlined className="ml-2" />
+            </Tooltip>
           </span>
           <Button
             className=""

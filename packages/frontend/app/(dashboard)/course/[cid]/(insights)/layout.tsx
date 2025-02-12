@@ -2,6 +2,7 @@ import React from 'react'
 import { Role, User } from '@koh/common'
 import { userApi } from '@/app/api/userApi'
 import { redirect } from 'next/navigation'
+import AddChatbot from '@/app/(dashboard)/components/AddChatbot'
 
 export default async function Layout({
   params,
@@ -24,10 +25,12 @@ export default async function Layout({
   }
 
   return (
-    <div className="mt-2 flex flex-col">
-      <title>HelpMe | Course Insights</title>
-      <h1 className="mb-2 hidden md:block">Course Insights</h1>
-      <div className="flex flex-1 flex-row">{children}</div>
-    </div>
+    <AddChatbot courseId={cid}>
+      <div className="mt-2 flex flex-col">
+        <title>HelpMe | Course Insights</title>
+        <h1 className="mb-2 hidden md:block">Course Insights</h1>
+        <div className="flex flex-1 flex-row">{children}</div>
+      </div>
+    </AddChatbot>
   )
 }
