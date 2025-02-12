@@ -4,8 +4,9 @@ import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { SemesterService } from './semester.service';
 import { CourseFactory, SemesterFactory } from '../../test/util/factories';
 import { CourseModel } from '../course/course.entity';
-import { Season } from '@koh/common';
 import { SemesterModel } from './semester.entity';
+
+// PAT TODO: fix test
 
 describe('SemesterService', () => {
   let service: SemesterService;

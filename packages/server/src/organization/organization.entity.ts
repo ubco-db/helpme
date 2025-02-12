@@ -10,6 +10,7 @@ import {
 import { OrganizationUserModel } from './organization-user.entity';
 import { OrganizationCourseModel } from './organization-course.entity';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
+import { SemesterModel } from '../semester/semester.entity';
 
 @Entity('organization_model')
 export class OrganizationModel extends BaseEntity {
@@ -44,12 +45,16 @@ export class OrganizationModel extends BaseEntity {
   ssoUrl: string;
 
   @Exclude()
+  @JoinColumn({ name: 'semesterId' })
+  @OneToMany((type) => SemesterModel, (semester) => semester.organization)
+  semesters: SemesterModel[];
+
+  @Exclude()
   @JoinColumn({ name: 'organizationId' })
   @OneToMany(
     (type) => OrganizationUserModel,
     (organizationUser) => organizationUser.organization,
   )
-  @JoinColumn({ name: 'organizationId' })
   organizationUsers: OrganizationUserModel[];
 
   @Exclude()
