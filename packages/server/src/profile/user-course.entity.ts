@@ -11,7 +11,6 @@ import {
 import { CourseModel } from '../course/course.entity';
 import { UserModel } from './user.entity';
 import { InsightDashboardModel } from '../insights/dashboard.entity';
-import { UserCourseAsyncQuestionModel } from './user-course-asyncQuestion.entity';
 
 @Entity('user_course_model')
 export class UserCourseModel extends BaseEntity {
@@ -44,7 +43,4 @@ export class UserCourseModel extends BaseEntity {
     (insightDashboard) => insightDashboard.userCourse,
   )
   insightDashboard?: InsightDashboardModel[];
-
-  @OneToMany((type) => UserCourseAsyncQuestionModel, (ucm) => ucm.userCourse)
-  courseAsyncQuestions?: UserCourseAsyncQuestionModel[];
 }
