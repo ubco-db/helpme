@@ -1,10 +1,9 @@
 import { GetQueueResponse, QueuePartial, SSEQueueResponse } from '@koh/common'
-import useSWR, { mutate, SWRResponse, useSWRConfig } from 'swr'
-import { useCallback, useEffect, useState } from 'react'
+import useSWR, { mutate, SWRResponse } from 'swr'
+import { useCallback, useEffect } from 'react'
 import { useEventSource } from './useEventSource'
 import { plainToClass } from 'class-transformer'
 import { API } from '../api'
-import isEqual from 'lodash/isEqual'
 
 type queueResponse = SWRResponse<QueuePartial, any>
 
@@ -22,6 +21,8 @@ interface RefreshInfo {
   onUpdates: Set<OnUpdate>
 }
 
+// Keep track of all the different Refresh information and callbacks.
+// This is a global because useQueue can be used multiple times, but SWR's onSuccess overwrites other instances
 const REFRESH_INFO: Record<string, RefreshInfo> = {}
 
 /**
@@ -32,15 +33,13 @@ function callOnUpdates(key: string) {
   refreshInfo.onUpdates.forEach((cb) => cb(refreshInfo.lastUpdated))
 }
 
+/**
+ * Get data for a queue.
+ * @param qid Queue ID to get data for
+ * @param onUpdate Optional callback to listen for when data is refetched, whether via HTTP or SSE
+ */
 export function useQueue(qid: number, onUpdate?: OnUpdate): UseQueueReturn {
-  const [queueState, setQueueState] = useState<QueuePartial | undefined>(
-    undefined,
-  )
   const key = `/api/v1/queues/${qid}`
-
-  // Access SWR's global cache
-  const { cache } = useSWRConfig()
-
   if (!(key in REFRESH_INFO)) {
     REFRESH_INFO[key] = {
       lastUpdated: new Date(),
@@ -64,23 +63,14 @@ export function useQueue(qid: number, onUpdate?: OnUpdate): UseQueueReturn {
     `/api/v1/queues/${qid}/sse`,
     'queue',
     useCallback(
-      async (data: SSEQueueResponse) => {
-        if (!data.queue) return
-
-        // Convert incoming SSE data
-        const newQueue = plainToClass(GetQueueResponse, data.queue)
-
-        // Read the current queue from SWR's cache
-        const currentQueue = cache.get(key)
-
-        // Only mutate if something actually changed
-        if (!isEqual(currentQueue?.data, newQueue)) {
-          mutate(key, newQueue, false)
+      (data: SSEQueueResponse) => {
+        if (data.queue) {
+          mutate(key, plainToClass(GetQueueResponse, data.queue), false)
           REFRESH_INFO[key].lastUpdated = new Date()
           callOnUpdates(key)
         }
       },
-      [key, cache],
+      [key],
     ),
   )
 
@@ -92,36 +82,16 @@ export function useQueue(qid: number, onUpdate?: OnUpdate): UseQueueReturn {
     key,
     useCallback(async () => API.queues.get(Number(qid)), [qid]),
     {
-      refreshInterval: isLive ? 0 : 10_000,
-      onSuccess: async (fetchedData, swrKey) => {
-        // Convert once
-        const newQueue = plainToClass(GetQueueResponse, fetchedData)
-
-        // Get current cache value
-        const currentQueue = cache.get(swrKey)
-
-        // Only mutate if something actually changed
-        if (!isEqual(currentQueue?.data, newQueue)) {
-          mutate(swrKey, newQueue, false)
-          REFRESH_INFO[swrKey].lastUpdated = new Date()
-          callOnUpdates(swrKey)
-        }
+      refreshInterval: isLive ? 0 : 10 * 1000,
+      onSuccess: (_, key) => {
+        REFRESH_INFO[key].lastUpdated = new Date()
+        callOnUpdates(key)
       },
     },
   )
 
-  useEffect(() => {
-    if (!isEqual(queue, queueState)) {
-      setQueueState(queue)
-    }
-  }, [queue])
-
-  useEffect(() => {
-    console.log('queue changed', queueState)
-  }, [queueState])
-
   return {
-    queue: queueState,
+    queue,
     queueError,
     mutateQueue,
     isLive,

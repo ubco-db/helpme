@@ -4,12 +4,12 @@ import injectWhyDidYouRender from './scripts/why-did-you-render/index.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // reactStrictMode: true,
+  reactStrictMode: false,
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
     },
-    missingSuspenseWithCSRBailout: true,
+    missingSuspenseWithCSRBailout: false,
   },
   images: {
     remotePatterns: [
@@ -20,8 +20,9 @@ const nextConfig = {
     ],
   },
   webpack: (config, context) => {
+    if (process.env.NEXT_PUBLIC_WHY_DID_YOU_RENDER === 'true') {
 		injectWhyDidYouRender(config, context)
-
+    }
 		return config;
 	}
 };

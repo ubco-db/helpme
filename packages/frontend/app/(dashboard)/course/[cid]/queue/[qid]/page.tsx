@@ -78,8 +78,8 @@ type QueuePageProps = {
 }
 
 export default function QueuePage({ params }: QueuePageProps): ReactElement {
-  const cid = useMemo(() => Number(params.cid), [params.cid])
-  const qid = useMemo(() => Number(params.qid), [params.qid])
+  const cid = Number(params.cid)
+  const qid = Number(params.qid)
   const router = useRouter()
   const { queue } = useQueue(qid)
   const isQueueHybrid = queue?.type == 'hybrid'
