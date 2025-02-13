@@ -121,20 +121,9 @@ export default function AsyncCentrePage({
   )
 
   // This endpoint will be called to update unread count back to 0 when this page is entered
+  // May seem more inefficient but this is the only way to ensure that the unread count is accurate given that userInfo no longer tracks it
   useEffect(() => {
-    if (
-      userInfo.courses.find((e) => e.course.id === courseId)?.unreadCount !== 0
-    )
-      API.course.updateUnreadAsyncCount(courseId).then(() => {
-        setUserInfo({
-          ...userInfo,
-          courses: userInfo.courses.map((course) =>
-            course.course.id === courseId
-              ? { ...course, unreadCount: 0 }
-              : course,
-          ),
-        })
-      })
+    API.course.updateUnreadAsyncCount(courseId)
   }, [])
 
   useEffect(() => {

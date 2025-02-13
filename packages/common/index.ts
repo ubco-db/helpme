@@ -964,9 +964,32 @@ export class GetOrganizationResponse {
   ssoUrl?: string
 }
 
+export type UpsertLMSOrganizationParams = {
+  apiPlatform: LMSIntegrationPlatform
+  rootUrl: string
+}
+
+export type RemoveLMSOrganizationParams = {
+  apiPlatform: LMSIntegrationPlatform
+}
+
+export type UpsertLMSCourseParams = {
+  apiPlatform: LMSIntegrationPlatform
+  apiKey: string
+  apiKeyExpiry?: Date
+  apiKeyExpiryDeleted?: boolean
+  apiCourseId: string
+}
+
+export type TestLMSIntegrationParams = {
+  apiPlatform: LMSIntegrationPlatform
+  apiKey: string
+  apiCourseId: string
+}
+
 export class LMSOrganizationIntegrationPartial {
   organizationId!: number
-  apiPlatform!: LMSIntegration
+  apiPlatform!: LMSIntegrationPlatform
   rootUrl!: string
   courseIntegrations!: LMSCourseIntegrationPartial[]
 }
@@ -974,9 +997,11 @@ export class LMSOrganizationIntegrationPartial {
 export class LMSCourseIntegrationPartial {
   courseId!: number
   course!: CoursePartial
-  apiPlatform!: LMSIntegration
+  apiPlatform!: LMSIntegrationPlatform
   apiCourseId!: string
   apiKeyExpiry!: Date
+  lmsSynchronize!: boolean
+  isExpired!: boolean
 }
 
 export type LMSCourseAPIResponse = {
@@ -985,21 +1010,40 @@ export type LMSCourseAPIResponse = {
   studentCount: number
 }
 
-export type LMSAssignmentAPIResponse = {
+export type LMSAssignment = {
   id: number
   name: string
   description: string
-  modified: Date
+  syncEnabled?: boolean
+  due?: Date
+  modified?: Date
+  uploaded?: Date
+}
+
+export type LMSAnnouncement = {
+  id: number
+  title: string
+  message: string
+  posted: Date
+  syncEnabled?: boolean
+  modified?: Date
+  uploaded?: Date
+}
+
+export type LMSFileUploadResponse = {
+  id: number
+  success: boolean
+  documentId?: string
 }
 
 export enum LMSApiResponseStatus {
-  None,
-  InvalidPlatform,
-  InvalidKey,
-  InvalidCourseId,
-  InvalidConfiguration,
-  Error,
-  Success,
+  None = '',
+  InvalidPlatform = 'The specified LMS platform is not registered with the HelpMe system.',
+  InvalidKey = 'The specified API key was not valid.',
+  InvalidCourseId = 'The specified LMS API course identifier was not valid.',
+  InvalidConfiguration = 'The specified LMS configuration was not valid.',
+  Error = 'An error occurred, operation with or connection to the LMS API failed.',
+  Success = 'Successfully contacted LMS API.',
 }
 
 export interface CourseResponse {
@@ -2419,7 +2463,8 @@ export function nameToRGB(
   return colors[Math.abs(hash) % colors.length]
 }
 
-export enum LMSIntegration {
+export enum LMSIntegrationPlatform {
+  None = 'None',
   Canvas = 'Canvas',
 }
 
@@ -2451,12 +2496,6 @@ export const ERROR_MESSAGES = {
     userNotFoundInOrganization: 'User not found in organization',
     cannotRemoveAdminRole: 'Cannot remove admin role from user',
     cannotGetAdminUser: 'Information about this user account is restricted',
-    lmsIntegrationNotFound:
-      'Learning Management System integration was not found',
-    lmsIntegrationInvalidPlatform: 'The specified API platform was invalid',
-    lmsIntegrationUrlRequired: 'Root URL is required for LMS integrations',
-    lmsIntegrationProtocolIncluded:
-      'Root URL should not include protocol (https/http)',
   },
   courseController: {
     checkIn: {
@@ -2653,5 +2692,31 @@ export const ERROR_MESSAGES = {
   },
   questionType: {
     questionTypeNotFound: 'Question type not found',
+  },
+  lmsController: {
+    noLMSIntegration:
+      'The course has no registered LMS integration, or its registered LMS integration is invalid.',
+    noAssignmentsSaved:
+      'There are no assignments from the course LMS that have been persisted to the database.',
+    invalidDocumentType:
+      'Failed to upload or delete any LMS documents to/from the chatbot, invalid document type specified.',
+    failedToUpload: 'Failed to upload any LMS documents to the chatbot.',
+    organizationCourseNotFound: 'Course has no associated organization.',
+    orgLmsIntegrationNotFound:
+      'Learning Management System integration was not found',
+    lmsIntegrationInvalidPlatform: 'The specified API platform was invalid',
+    lmsIntegrationUrlRequired: 'Root URL is required for LMS integrations',
+    lmsIntegrationProtocolIncluded:
+      'Root URL should not include protocol (https/http)',
+    orgIntegrationNotFound: 'Course organization has no LMS integrations',
+    courseLmsIntegrationNotFound: 'Course has no related LMS integration',
+    syncDisabled: 'LMS synchronization has not been enabled.',
+    failedToSync: 'Failed to synchronize course with LMS equivalent.',
+    failedToSyncOne: 'Failed to synchronize document from LMS equivalent.',
+    failedToClear: 'Failed to clear documents from HelpMe database.',
+    failedToClearOne: 'Failed to clear document from HelpMe database.',
+    lmsDocumentNotFound: 'Document was not found.',
+    cannotSyncDocumentWhenSyncDisabled:
+      'Cannot synchronize a document when synchronization is disabled.',
   },
 }

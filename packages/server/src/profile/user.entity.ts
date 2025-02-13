@@ -6,7 +6,6 @@ import {
   Column,
   Entity,
   JoinColumn,
-  JoinTable,
   ManyToMany,
   OneToMany,
   OneToOne,
@@ -25,6 +24,7 @@ import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
 import { CalendarStaffModel } from '../calendar/calendar-staff.entity';
+import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from '../asyncQuestion/asyncQuestionComment.entity';
 import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
 import { QuestionModel } from '../question/question.entity';
@@ -152,6 +152,13 @@ export class UserModel extends BaseEntity {
 
   @Column({ type: 'boolean', default: false })
   readChangeLog: boolean;
+
+  @OneToMany(
+    (type) => UnreadAsyncQuestionModel,
+    (unreadAsyncQuestion) => unreadAsyncQuestion.user,
+  )
+  @Exclude()
+  unreadAsyncQuestions: UnreadAsyncQuestionModel[];
 
   @OneToMany((type) => QuestionModel, (q) => q.creator)
   @Exclude()

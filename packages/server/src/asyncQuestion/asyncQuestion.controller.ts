@@ -42,6 +42,7 @@ import { UserModel } from 'profile/user.entity';
 import { Not } from 'typeorm';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { AsyncQuestionService } from './asyncQuestion.service';
+import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -163,19 +164,32 @@ export class asyncQuestionController {
           'comments',
           'comments.creator',
           'comments.creator.courses',
+          'viewers',
         ],
       });
 
-      // update read counts for all users in course
-      await UserCourseModel.createQueryBuilder()
-        .update(UserCourseModel)
-        .set({ unreadAsyncQuestions: () => '"unreadAsyncQuestions" + 1' })
-        .where('courseId = :courseId', { courseId: cid })
-        .andWhere('userId != :userId', { userId: userId }) // Exclude the question creator
-        .execute();
-
       await this.redisQueueService.addAsyncQuestion(`c:${cid}:aq`, newQuestion);
 
+      const usersInCourse = await UserCourseModel.find({
+        where: { courseId: cid },
+      });
+
+      if (usersInCourse?.length) {
+        await UnreadAsyncQuestionModel.createQueryBuilder()
+          .insert()
+          .into(UnreadAsyncQuestionModel)
+          .values(
+            usersInCourse.map((userCourse) => ({
+              userId: userCourse.userId,
+              courseId: cid,
+              asyncQuestion: question,
+              readLatest:
+                userCourse.userId === user.id ||
+                userCourse.role === Role.STUDENT, // if you're the creator or a student, don't mark as unread because not yet visible
+            })),
+          )
+          .execute();
+      }
       res.status(HttpStatus.CREATED).send(newQuestion);
       return;
     } catch (err) {
@@ -205,6 +219,10 @@ export class asyncQuestionController {
         'comments.creator.courses',
       ],
     });
+    // deep copy question since it changes
+    const oldQuestion: AsyncQuestionModel = JSON.parse(
+      JSON.stringify(question),
+    );
 
     if (!question) {
       throw new NotFoundException('Question Not Found');
@@ -238,11 +256,55 @@ export class asyncQuestionController {
 
     const updatedQuestion = await question.save();
 
+    // Mark as new unread for all staff if the question needs attention
+    if (
+      body.status === asyncQuestionStatus.AIAnsweredNeedsAttention &&
+      oldQuestion.status !== asyncQuestionStatus.AIAnsweredNeedsAttention
+    ) {
+      await UnreadAsyncQuestionModel.createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: questionId,
+        })
+        .andWhere('userId != :userId', { userId: user.id }) // don't notify me (question creator)
+        // Use a subquery to filter by roles
+        .andWhere(
+          `"userId" IN (
+       SELECT "user_course_model"."userId"
+       FROM "user_course_model"
+       WHERE "user_course_model"."role" IN (:...roles)
+     )`, // notify all staff
+          { roles: [Role.PROFESSOR, Role.TA] },
+        )
+        .execute();
+    }
+    // if the question is visible and they rewrote their question and got a new answer text, mark it as unread for everyone
+    if (
+      updatedQuestion.visible &&
+      body.aiAnswerText !== oldQuestion.aiAnswerText &&
+      body.questionText !== oldQuestion.questionText
+    ) {
+      await UnreadAsyncQuestionModel.createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: questionId,
+        })
+        .andWhere(
+          `userId != :userId`,
+          { userId: user.id }, // don't notify me (question creator)
+        )
+        .execute();
+    }
+
     if (body.status === asyncQuestionStatus.StudentDeleted) {
       await this.redisQueueService.deleteAsyncQuestion(
         `c:${question.courseId}:aq`,
         updatedQuestion,
       );
+      // delete all unread notifications for this question
+      await UnreadAsyncQuestionModel.delete({ asyncQuestionId: questionId });
     } else {
       await this.redisQueueService.updateAsyncQuestion(
         `c:${question.courseId}:aq`,
@@ -255,6 +317,7 @@ export class asyncQuestionController {
     return question;
   }
 
+  // check that verified equals true and something changed
   @Patch('faculty/:questionId')
   @UseGuards(AsyncQuestionRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
@@ -274,6 +337,10 @@ export class asyncQuestionController {
         'comments.creator.courses',
       ],
     });
+    // deep copy question since it changes
+    const oldQuestion: AsyncQuestionModel = JSON.parse(
+      JSON.stringify(question),
+    );
 
     if (!question) {
       throw new NotFoundException('Question Not Found');
@@ -317,7 +384,48 @@ export class asyncQuestionController {
         body.status,
       );
     }
+
     const updatedQuestion = await question.save();
+
+    // Mark as new unread for all students if the question is marked as visible
+    if (body.visible && !oldQuestion.visible) {
+      await UnreadAsyncQuestionModel.createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: questionId,
+        })
+        .andWhere('userId != :userId', { userId: user.id }) // don't notify me (staff who is making update)
+        // Use a subquery to filter by roles
+        .andWhere(
+          `"userId" IN (
+     SELECT "user_course_model"."userId"
+     FROM "user_course_model"
+     WHERE "user_course_model"."role" IN (:...roles)
+   )`, // notify all students
+          { roles: [Role.STUDENT] },
+        )
+        .execute();
+    }
+    // When the question creator gets their question human verified, notify them
+    if (
+      oldQuestion.status !== asyncQuestionStatus.HumanAnswered &&
+      !oldQuestion.verified &&
+      (body.status === asyncQuestionStatus.HumanAnswered ||
+        body.verified === true)
+    ) {
+      await UnreadAsyncQuestionModel.createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: questionId,
+        })
+        .andWhere(
+          `userId = :userId`,
+          { userId: updatedQuestion.creatorId }, // notify ONLY question creator
+        )
+        .execute();
+    }
 
     if (
       body.status === asyncQuestionStatus.TADeleted ||
@@ -327,6 +435,8 @@ export class asyncQuestionController {
         `c:${courseId}:aq`,
         updatedQuestion,
       );
+      // delete all unread notifications for this question
+      await UnreadAsyncQuestionModel.delete({ asyncQuestionId: questionId });
     } else {
       await this.redisQueueService.updateAsyncQuestion(
         `c:${courseId}:aq`,

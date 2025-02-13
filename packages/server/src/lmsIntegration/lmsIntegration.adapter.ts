@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 import {
+  LMSAnnouncement,
   LMSApiResponseStatus,
-  LMSAssignmentAPIResponse,
+  LMSAssignment,
   LMSCourseAPIResponse,
+  LMSIntegrationPlatform,
 } from '@koh/common';
+import { LMSUpload } from './lmsIntegration.service';
 
 @Injectable()
 export class LMSIntegrationAdapter {
@@ -20,6 +23,10 @@ export class LMSIntegrationAdapter {
 export abstract class AbstractLMSAdapter {
   /* eslint-disable @typescript-eslint/no-unused-vars */
   constructor(protected integration: LMSCourseIntegrationModel) {}
+
+  getPlatform(): LMSIntegrationPlatform | null {
+    return null;
+  }
 
   isImplemented(): boolean {
     return false;
@@ -45,11 +52,25 @@ export abstract class AbstractLMSAdapter {
     return null;
   }
 
-  async getAssignments(): Promise<{
+  async getAnnouncements(): Promise<{
     status: LMSApiResponseStatus;
-    assignments: LMSAssignmentAPIResponse[];
+    announcements: LMSAnnouncement[];
   }> {
     return null;
+  }
+
+  async getAssignments(): Promise<{
+    status: LMSApiResponseStatus;
+    assignments: LMSAssignment[];
+  }> {
+    return null;
+  }
+
+  getDocumentLink(documentId: number, documentType: LMSUpload): string {
+    switch (documentType) {
+      default:
+        return '';
+    }
   }
 }
 
@@ -62,6 +83,10 @@ abstract class ImplementedLMSAdapter extends AbstractLMSAdapter {
 export class BaseLMSAdapter extends AbstractLMSAdapter {}
 
 class CanvasLMSAdapter extends ImplementedLMSAdapter {
+  getPlatform(): LMSIntegrationPlatform {
+    return LMSIntegrationPlatform.Canvas;
+  }
+
   async Get(
     path: string,
   ): Promise<{ status: LMSApiResponseStatus; data?: any; nextLink?: string }> {
@@ -90,6 +115,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
         if (!response.ok) {
           switch (response.status) {
             case 401:
+            case 403:
               return { status: LMSApiResponseStatus.InvalidKey };
             case 404:
               return { status: LMSApiResponseStatus.InvalidCourseId };
@@ -102,7 +128,10 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
           });
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.log(
+          `Error contacting ${this.integration.orgIntegration.rootUrl}: ${error}`,
+        );
         return { status: LMSApiResponseStatus.Error };
       });
   }
@@ -165,9 +194,46 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     };
   }
 
+  async getAnnouncements(): Promise<{
+    status: LMSApiResponseStatus;
+    announcements: LMSAnnouncement[];
+  }> {
+    const { status, data } = await this.GetPaginated(
+      `courses/${this.integration.apiCourseId}/discussion_topics?only_announcements=true`,
+    );
+
+    if (status != LMSApiResponseStatus.Success)
+      return { status, announcements: [] };
+
+    const announcements: LMSAnnouncement[] = data
+      .filter((d: any) => d.posted_at != undefined)
+      .map((announcement: any) => {
+        return {
+          id: announcement.id,
+          title: announcement.title,
+          message: announcement.message,
+          posted:
+            announcement.posted_at != undefined &&
+            announcement.posted_at.trim() != ''
+              ? new Date(announcement.posted_at)
+              : undefined,
+        } as LMSAnnouncement;
+      });
+    announcements.sort((a0, a1) => {
+      if (a0.posted == undefined) return 1;
+      else if (a1.posted == undefined) return -1;
+      else return a0.posted.getTime() - a1.posted.getTime();
+    });
+
+    return {
+      status: LMSApiResponseStatus.Success,
+      announcements,
+    };
+  }
+
   async getAssignments(): Promise<{
     status: LMSApiResponseStatus;
-    assignments: LMSAssignmentAPIResponse[];
+    assignments: LMSAssignment[];
   }> {
     const { status, data } = await this.GetPaginated(
       `courses/${this.integration.apiCourseId}/assignments`,
@@ -176,18 +242,34 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     if (status != LMSApiResponseStatus.Success)
       return { status, assignments: [] };
 
+    const assignments: LMSAssignment[] = data
+      .filter((assignment: any) => assignment.published == true)
+      .map((assignment: any) => {
+        return {
+          id: assignment.id,
+          name: assignment.name,
+          description: assignment.description,
+          due:
+            assignment.due_at != undefined && assignment.due_at.trim() != ''
+              ? new Date(assignment.due_at)
+              : undefined,
+        } as LMSAssignment;
+      });
+
     return {
       status: LMSApiResponseStatus.Success,
-      assignments: data
-        .filter((assignment: any) => assignment.published == true)
-        .map((assignment: any) => {
-          return {
-            id: assignment.id,
-            name: assignment.name,
-            description: assignment.description,
-            modified: new Date(assignment.updated_at),
-          } satisfies LMSAssignmentAPIResponse;
-        }),
+      assignments,
     };
+  }
+
+  getDocumentLink(documentId: number, documentType: LMSUpload): string {
+    switch (documentType) {
+      case LMSUpload.Announcements:
+        return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/discussion_topics/${documentId}/`;
+      case LMSUpload.Assignments:
+        return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/assignments/${documentId}/`;
+      default:
+        return '';
+    }
   }
 }

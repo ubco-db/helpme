@@ -219,3 +219,37 @@ export function getCroppedImg(
     }
   })
 }
+
+/* Used by chatbot to pass what page the user is on when the user is asking a System question */
+export function convertPathnameToPageName(pathname: string): string {
+  const URLSegments = pathname.split('/')
+  // optimize this computer science major i dare you
+  if (URLSegments[4] === 'edit_questions') {
+    return 'Edit Questions Page (Under Course Settings)'
+  } else if (URLSegments[4] === 'chatbot_questions') {
+    return 'Edit Chatbot Questions Page (Under Course Settings)'
+  } else if (URLSegments[4] === 'chatbot_settings') {
+    return 'Chatbot Settings Page (Under Course Settings)'
+  } else if (URLSegments[4] === 'queue_invites') {
+    return 'Queue Invites Page (Under Course Settings)'
+  } else if (URLSegments[4] === 'check_in') {
+    return 'TA Check In/Out Times Page (Under Course Settings)'
+  } else if (URLSegments[4] === 'roster') {
+    return 'Roster Page (Under Course Settings)'
+  } else if (
+    URLSegments[1] === 'course' &&
+    URLSegments[3] === 'settings' &&
+    !URLSegments[4]
+  ) {
+    return 'Course Settings Page'
+  } else if (URLSegments[3] === 'async_centre') {
+    return 'Anytime Questions Page'
+  } else if (URLSegments[3] === 'queue') {
+    return 'Queue Page'
+  } else if (URLSegments[1] === 'course' && !URLSegments[3]) {
+    return 'Course Home Page'
+  } else if (URLSegments[3] === 'schedule') {
+    return 'Schedule Page'
+  }
+  return pathname
+}

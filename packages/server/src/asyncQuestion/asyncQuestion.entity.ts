@@ -18,6 +18,7 @@ import { UserModel } from '../profile/user.entity';
 import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
+import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 
 @Entity('async_question_model')
 export class AsyncQuestionModel extends BaseEntity {
@@ -93,6 +94,9 @@ export class AsyncQuestionModel extends BaseEntity {
   comments: AsyncQuestionCommentModel[];
 
   votesSum: number;
+
+  @OneToMany(() => UnreadAsyncQuestionModel, (ucm) => ucm.asyncQuestion)
+  viewers: UnreadAsyncQuestionModel[];
 
   @AfterLoad()
   sumVotes() {

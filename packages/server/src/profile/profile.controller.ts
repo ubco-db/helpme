@@ -74,7 +74,6 @@ export class ProfileController {
                 name: userCourse.course.name,
               },
               role: userCourse.role,
-              unreadCount: userCourse.unreadAsyncQuestions,
             };
           })
       : [];
