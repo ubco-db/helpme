@@ -7,6 +7,7 @@ import { AsyncQuestionModel } from './asyncQuestion.entity';
 import { UserModel } from 'profile/user.entity';
 import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
 import * as Sentry from '@sentry/nestjs';
+import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 
 @Injectable()
 export class AsyncQuestionService {
@@ -257,6 +258,84 @@ export class AsyncQuestionService {
           Sentry.captureException(err);
         });
     }
+  }
+
+  async createUnreadNotificationsForQuestion(question: AsyncQuestionModel) {
+    const usersInCourse = await UserCourseModel.find({
+      where: { courseId: question.courseId },
+    });
+
+    if (usersInCourse?.length) {
+      await UnreadAsyncQuestionModel.createQueryBuilder()
+        .insert()
+        .into(UnreadAsyncQuestionModel)
+        .values(
+          usersInCourse.map((userCourse) => ({
+            userId: userCourse.userId,
+            courseId: question.courseId,
+            asyncQuestion: question,
+            readLatest:
+              userCourse.userId === question.creatorId ||
+              userCourse.role === Role.STUDENT, // if you're the creator or a student, don't mark as unread because not yet visible
+          })),
+        )
+        .execute();
+    }
+  }
+
+  async markUnreadForRoles(
+    question: AsyncQuestionModel,
+    roles: Role[],
+    userToNotNotifyId: number,
+  ) {
+    await UnreadAsyncQuestionModel.createQueryBuilder()
+      .update(UnreadAsyncQuestionModel)
+      .set({ readLatest: false })
+      .where('asyncQuestionId = :asyncQuestionId', {
+        asyncQuestionId: question.id,
+      })
+      .andWhere('userId != :userId', { userId: userToNotNotifyId }) // don't notify me (person who called endpoint)
+      // Use a subquery to filter by roles
+      .andWhere(
+        `"userId" IN (
+           SELECT "user_course_model"."userId"
+           FROM "user_course_model"
+           WHERE "user_course_model"."role" IN (:...roles)
+        )`,
+        { roles }, // notify all specified roles
+      )
+      .execute();
+  }
+
+  async markUnreadForAll(
+    question: AsyncQuestionModel,
+    userToNotNotifyId: number,
+  ) {
+    await UnreadAsyncQuestionModel.createQueryBuilder()
+      .update(UnreadAsyncQuestionModel)
+      .set({ readLatest: false })
+      .where('asyncQuestionId = :asyncQuestionId', {
+        asyncQuestionId: question.id,
+      })
+      .andWhere(
+        `userId != :userId`,
+        { userId: userToNotNotifyId }, // don't notify me (person who called endpoint)
+      )
+      .execute();
+  }
+
+  async markUnreadForCreator(question: AsyncQuestionModel) {
+    await UnreadAsyncQuestionModel.createQueryBuilder()
+      .update(UnreadAsyncQuestionModel)
+      .set({ readLatest: false })
+      .where('asyncQuestionId = :asyncQuestionId', {
+        asyncQuestionId: question.id,
+      })
+      .andWhere(
+        `userId = :userId`,
+        { userId: question.creatorId }, // notify ONLY question creator
+      )
+      .execute();
   }
 
   /**

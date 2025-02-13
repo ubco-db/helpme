@@ -164,32 +164,14 @@ export class asyncQuestionController {
           'comments',
           'comments.creator',
           'comments.creator.courses',
-          'viewers',
         ],
       });
 
       await this.redisQueueService.addAsyncQuestion(`c:${cid}:aq`, newQuestion);
+      await this.asyncQuestionService.createUnreadNotificationsForQuestion(
+        newQuestion,
+      );
 
-      const usersInCourse = await UserCourseModel.find({
-        where: { courseId: cid },
-      });
-
-      if (usersInCourse?.length) {
-        await UnreadAsyncQuestionModel.createQueryBuilder()
-          .insert()
-          .into(UnreadAsyncQuestionModel)
-          .values(
-            usersInCourse.map((userCourse) => ({
-              userId: userCourse.userId,
-              courseId: cid,
-              asyncQuestion: question,
-              readLatest:
-                userCourse.userId === userId ||
-                userCourse.role === Role.STUDENT, // if you're the creator or a student, don't mark as unread because not yet visible
-            })),
-          )
-          .execute();
-      }
       res.status(HttpStatus.CREATED).send(newQuestion);
       return;
     } catch (err) {
@@ -261,23 +243,11 @@ export class asyncQuestionController {
       body.status === asyncQuestionStatus.AIAnsweredNeedsAttention &&
       oldQuestion.status !== asyncQuestionStatus.AIAnsweredNeedsAttention
     ) {
-      await UnreadAsyncQuestionModel.createQueryBuilder()
-        .update(UnreadAsyncQuestionModel)
-        .set({ readLatest: false })
-        .where('asyncQuestionId = :asyncQuestionId', {
-          asyncQuestionId: questionId,
-        })
-        .andWhere('userId != :userId', { userId: userId }) // don't notify me (question creator)
-        // Use a subquery to filter by roles
-        .andWhere(
-          `"userId" IN (
-       SELECT "user_course_model"."userId"
-       FROM "user_course_model"
-       WHERE "user_course_model"."role" IN (:...roles)
-     )`, // notify all staff
-          { roles: [Role.PROFESSOR, Role.TA] },
-        )
-        .execute();
+      await this.asyncQuestionService.markUnreadForRoles(
+        updatedQuestion,
+        [Role.TA, Role.PROFESSOR],
+        userId,
+      );
     }
     // if the question is visible and they rewrote their question and got a new answer text, mark it as unread for everyone
     if (
@@ -285,17 +255,7 @@ export class asyncQuestionController {
       body.aiAnswerText !== oldQuestion.aiAnswerText &&
       body.questionText !== oldQuestion.questionText
     ) {
-      await UnreadAsyncQuestionModel.createQueryBuilder()
-        .update(UnreadAsyncQuestionModel)
-        .set({ readLatest: false })
-        .where('asyncQuestionId = :asyncQuestionId', {
-          asyncQuestionId: questionId,
-        })
-        .andWhere(
-          `userId != :userId`,
-          { userId: userId }, // don't notify me (question creator)
-        )
-        .execute();
+      await this.asyncQuestionService.markUnreadForAll(updatedQuestion, userId);
     }
 
     if (body.status === asyncQuestionStatus.StudentDeleted) {
@@ -389,23 +349,11 @@ export class asyncQuestionController {
 
     // Mark as new unread for all students if the question is marked as visible
     if (body.visible && !oldQuestion.visible) {
-      await UnreadAsyncQuestionModel.createQueryBuilder()
-        .update(UnreadAsyncQuestionModel)
-        .set({ readLatest: false })
-        .where('asyncQuestionId = :asyncQuestionId', {
-          asyncQuestionId: questionId,
-        })
-        .andWhere('userId != :userId', { userId: userId }) // don't notify me (staff who is making update)
-        // Use a subquery to filter by roles
-        .andWhere(
-          `"userId" IN (
-     SELECT "user_course_model"."userId"
-     FROM "user_course_model"
-     WHERE "user_course_model"."role" IN (:...roles)
-   )`, // notify all students
-          { roles: [Role.STUDENT] },
-        )
-        .execute();
+      await this.asyncQuestionService.markUnreadForRoles(
+        updatedQuestion,
+        [Role.STUDENT],
+        userId,
+      );
     }
     // When the question creator gets their question human verified, notify them
     if (
@@ -414,17 +362,7 @@ export class asyncQuestionController {
       (body.status === asyncQuestionStatus.HumanAnswered ||
         body.verified === true)
     ) {
-      await UnreadAsyncQuestionModel.createQueryBuilder()
-        .update(UnreadAsyncQuestionModel)
-        .set({ readLatest: false })
-        .where('asyncQuestionId = :asyncQuestionId', {
-          asyncQuestionId: questionId,
-        })
-        .andWhere(
-          `userId = :userId`,
-          { userId: updatedQuestion.creatorId }, // notify ONLY question creator
-        )
-        .execute();
+      await this.asyncQuestionService.markUnreadForCreator(updatedQuestion);
     }
 
     if (
@@ -520,6 +458,9 @@ export class asyncQuestionController {
       updatedQuestion,
       comment,
     );
+
+    // new comment: mark question as unread for everyone (except the creator of the comment)
+    await this.asyncQuestionService.markUnreadForAll(updatedQuestion, user.id);
 
     // only put necessary info for the response's creator (otherwise it would send the password hash and a bunch of other unnecessary info)
     comment.creator = {
