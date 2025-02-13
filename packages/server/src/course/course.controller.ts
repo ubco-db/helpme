@@ -67,10 +67,8 @@ import { pick } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
-import { UserCourseAsyncQuestionModel } from 'profile/user-course-asyncQuestion.entity';
 import { CourseRole } from 'decorators/course-role.decorator';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
-
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
