@@ -69,6 +69,8 @@ import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { UserCourseAsyncQuestionModel } from 'profile/user-course-asyncQuestion.entity';
 import { CourseRole } from 'decorators/course-role.decorator';
+import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
+
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -1143,48 +1145,27 @@ export class CourseController {
   @UseGuards(JwtAuthGuard)
   async getUnreadAsyncCount(
     @Param('id', ParseIntPipe) courseId: number,
-    @User() userId: number,
+    @UserId() userId: number,
   ): Promise<number> {
-    const userCourse = await UserCourseModel.findOne({
-      where: { courseId, userId },
-    });
-
-    if (!userCourse) {
-      throw new ForbiddenException('User is not in the course');
-    }
-
-    const userCourseAsyncQuestions = await UserCourseAsyncQuestionModel.find({
+    const count = await UnreadAsyncQuestionModel.count({
       where: {
-        userCourse,
+        userId,
+        courseId,
         readLatest: false,
       },
     });
 
-    return userCourseAsyncQuestions.length;
+    return count;
   }
 
   @Patch(':id/unread_async_count')
   @UseGuards(JwtAuthGuard)
   async updateUnreadAsyncCount(
     @Param('id', ParseIntPipe) courseId: number,
-    @User() userId: number,
+    @UserId() userId: number,
   ): Promise<void> {
-    const userCourse = await UserCourseModel.findOne({
-      where: { courseId, userId },
-    });
-
-    if (!userCourse) {
-      throw new ForbiddenException('User is not in the course');
-    }
-
-    const userCourseAsyncQuestions = await UserCourseAsyncQuestionModel.find({
-      where: {
-        userCourse,
-      },
-    });
-
-    await UserCourseAsyncQuestionModel.update(
-      { userCourse },
+    await UnreadAsyncQuestionModel.update(
+      { userId, courseId },
       { readLatest: true },
     );
 

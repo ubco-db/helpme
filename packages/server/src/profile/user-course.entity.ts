@@ -11,7 +11,6 @@ import {
 import { CourseModel } from '../course/course.entity';
 import { UserModel } from './user.entity';
 import { InsightDashboardModel } from '../insights/dashboard.entity';
-import { UserCourseAsyncQuestionModel } from './user-course-asyncQuestion.entity';
 
 @Entity('user_course_model')
 export class UserCourseModel extends BaseEntity {
@@ -44,9 +43,6 @@ export class UserCourseModel extends BaseEntity {
     (insightDashboard) => insightDashboard.userCourse,
   )
   insightDashboard?: InsightDashboardModel[];
-
-  @OneToMany((type) => UserCourseAsyncQuestionModel, (ucm) => ucm.userCourse)
-  courseAsyncQuestions?: UserCourseAsyncQuestionModel[];
 
   /* This represents the notes that professors can put on their TA's profiles*/
   @Column({ type: 'text', nullable: true })

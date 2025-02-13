@@ -28,6 +28,7 @@ import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { CourseModel } from './course.entity';
 import { UserModel } from 'profile/user.entity';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
+import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 
 @Injectable()
 export class CourseService {
@@ -112,6 +113,10 @@ export class CourseService {
     }
     try {
       await UserCourseModel.remove(userCourse);
+      await UnreadAsyncQuestionModel.delete({
+        userId: userCourse.userId,
+        courseId: userCourse.courseId,
+      });
     } catch (err) {
       console.error(err);
       throw new HttpException(
