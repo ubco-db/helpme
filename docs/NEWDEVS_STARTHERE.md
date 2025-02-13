@@ -197,15 +197,24 @@ This section may be expanded upon in the future, but for now it might be best to
 One thing to note is that sometimes the types for the queries may be wrong.
 For example, you might want to check if the user is a TA or Prof in any course, so you do:
 ```ts
-const user: UserModel = await UserModel.findOne(userId);
+const user: UserModel = await UserModel.findOne({
+  where: {
+    id: userId
+  }
+});
 const isStaff = user.courses.some((userCourse) => userCourse.role === Role.PROFESSOR || userCourse.role === Role.TA);
 ```
 This will result in a *runtime* error (so you get no warning beforehand) because `user.courses` will be undefined because the database join was not made.
 
-You can perform the database join like so (though note that the syntax for this will change on typeorm version upgrade):
+You can perform the database join like so (see https://orkhan.gitbook.io/typeorm/docs/find-options for more details/options):
 ```ts
-const user: UserModel = await UserModel.findOne(userId, {
-      relations: ['courses'],
+const user: UserModel = await UserModel.findOne({
+      where: {
+        id: userId,
+      },
+      relations: { // this performs a join to get the user's UserCourses
+        courses: true
+      }
     });
 ```
 

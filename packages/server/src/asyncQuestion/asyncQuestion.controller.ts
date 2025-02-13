@@ -184,7 +184,7 @@ export class asyncQuestionController {
               courseId: cid,
               asyncQuestion: question,
               readLatest:
-                userCourse.userId === user.id ||
+                userCourse.userId === userId ||
                 userCourse.role === Role.STUDENT, // if you're the creator or a student, don't mark as unread because not yet visible
             })),
           )
@@ -267,7 +267,7 @@ export class asyncQuestionController {
         .where('asyncQuestionId = :asyncQuestionId', {
           asyncQuestionId: questionId,
         })
-        .andWhere('userId != :userId', { userId: user.id }) // don't notify me (question creator)
+        .andWhere('userId != :userId', { userId: userId }) // don't notify me (question creator)
         // Use a subquery to filter by roles
         .andWhere(
           `"userId" IN (
@@ -293,7 +293,7 @@ export class asyncQuestionController {
         })
         .andWhere(
           `userId != :userId`,
-          { userId: user.id }, // don't notify me (question creator)
+          { userId: userId }, // don't notify me (question creator)
         )
         .execute();
     }
@@ -395,7 +395,7 @@ export class asyncQuestionController {
         .where('asyncQuestionId = :asyncQuestionId', {
           asyncQuestionId: questionId,
         })
-        .andWhere('userId != :userId', { userId: user.id }) // don't notify me (staff who is making update)
+        .andWhere('userId != :userId', { userId: userId }) // don't notify me (staff who is making update)
         // Use a subquery to filter by roles
         .andWhere(
           `"userId" IN (
@@ -771,52 +771,56 @@ export class asyncQuestionController {
         'isTaskQuestion',
       ]);
 
-      const filteredComments = question.comments?.map((comment) => {
-        const temp = { ...comment };
-        // TODO: maybe find a more performant way of doing this (ideally in the query, and maybe try to include a SELECT to eliminate the pick() above)
-        const commenterRole =
-          comment.creator.courses.find(
-            (course) => course.courseId === question.courseId,
-          )?.role || Role.STUDENT;
+      if (!question.comments) {
+        temp.comments = [];
+      } else {
+        const filteredComments = question.comments.map((comment) => {
+          const temp = { ...comment };
+          // TODO: maybe find a more performant way of doing this (ideally in the query itself, and maybe try to include a SELECT to eliminate the pick() above. Though this may be difficult due to some of these use functions like nameToRGB or getAnonId)
+          const commenterRole =
+            comment.creator.courses.find(
+              (course) => course.courseId === question.courseId,
+            )?.role || Role.STUDENT;
 
-        temp.creator =
-          isStaff ||
-          comment.creator.id === userId ||
-          commenterRole !== Role.STUDENT
-            ? ({
-                id: comment.creator.id,
-                anonId: this.asyncQuestionService.getAnonId(
-                  comment.creator.id,
-                  question.id,
-                ),
-                colour: nameToRGB(
-                  Math.abs(comment.creatorId - question.id).toString(),
-                ),
-                name: comment.creator.name,
-                photoURL: comment.creator.photoURL,
-                isAuthor: comment.creator.id === question.creatorId,
-                courseRole: commenterRole,
-                // this is an AsyncCreator but I'm casting it to UserModel so typescript doesn't get mad
-              } as AsyncCreator as unknown as UserModel)
-            : ({
-                // don't send user name, pfp, nor userid to frontend
-                anonId: this.asyncQuestionService.getAnonId(
-                  comment.creator.id,
-                  question.id,
-                ),
-                colour: nameToRGB(
-                  Math.abs(comment.creatorId - question.id).toString(),
-                ),
-                photoURL: null,
-                isAuthor: comment.creator.id === question.creatorId,
-                courseRole: commenterRole,
-              } as AsyncCreator as unknown as UserModel);
+          temp.creator =
+            isStaff ||
+            comment.creator.id === userId ||
+            commenterRole !== Role.STUDENT
+              ? ({
+                  id: comment.creator.id,
+                  anonId: this.asyncQuestionService.getAnonId(
+                    comment.creator.id,
+                    question.id,
+                  ),
+                  colour: nameToRGB(
+                    Math.abs(comment.creatorId - question.id).toString(),
+                  ),
+                  name: comment.creator.name,
+                  photoURL: comment.creator.photoURL,
+                  isAuthor: comment.creator.id === question.creatorId,
+                  courseRole: commenterRole,
+                  // this is an AsyncCreator but I'm casting it to UserModel so typescript doesn't get mad
+                } as AsyncCreator as unknown as UserModel)
+              : ({
+                  // don't send user name, pfp, nor userid to frontend
+                  anonId: this.asyncQuestionService.getAnonId(
+                    comment.creator.id,
+                    question.id,
+                  ),
+                  colour: nameToRGB(
+                    Math.abs(comment.creatorId - question.id).toString(),
+                  ),
+                  photoURL: null,
+                  isAuthor: comment.creator.id === question.creatorId,
+                  courseRole: commenterRole,
+                } as AsyncCreator as unknown as UserModel);
 
-        delete temp.creatorId;
+          delete temp.creatorId;
 
-        return temp as unknown as AsyncQuestionCommentModel;
-      });
-      temp.comments = filteredComments;
+          return temp as unknown as AsyncQuestionCommentModel;
+        });
+        temp.comments = filteredComments;
+      }
 
       Object.assign(temp, {
         creator:
