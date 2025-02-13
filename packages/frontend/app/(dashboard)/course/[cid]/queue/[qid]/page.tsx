@@ -557,193 +557,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     }
   }, [tagGroupsEnabled, configTasks, studentAssignmentProgress])
 
-  function RenderQueueInfoCol(): ReactElement {
-    // TODO: this probably doesn't need to be a separate component inside the whole queue page.
-    if (!queue) {
-      return <></>
-    }
-    return (
-      <QueueInfoColumn
-        cid={cid}
-        queue={queue}
-        queueId={qid}
-        isStaff={isStaff}
-        tagGroupsEnabled={tagGroupsEnabled}
-        setTagGroupsEnabled={setTagGroupsEnabled}
-        hasDemos={isDemoQueue}
-        staffListHidden={staffListHidden}
-        setStaffListHidden={setStaffListHidden}
-        buttons={
-          isStaff ? (
-            <>
-              <Tooltip
-                title={
-                  (queue.isDisabled && 'Cannot check into a disabled queue!') ||
-                  (helpingQuestions &&
-                    helpingQuestions.length > 0 &&
-                    'You cannot check out while helping a student') ||
-                  (queue.isProfessorQueue &&
-                    role !== Role.PROFESSOR &&
-                    'Only professors can check into this queue')
-                }
-              >
-                <span>
-                  <TACheckinButton
-                    courseId={cid}
-                    queueId={qid}
-                    disabled={
-                      (helpingQuestions && helpingQuestions.length > 0) ||
-                      (queue.isProfessorQueue && role !== Role.PROFESSOR) ||
-                      queue.isDisabled
-                    }
-                    state={isUserCheckedIn ? 'CheckedIn' : 'CheckedOut'}
-                    className="w-full md:mb-3"
-                  />
-                </span>
-              </Tooltip>
-              <span>
-                <EditQueueButton
-                  onClick={() => setQueueSettingsModalOpen(true)}
-                  icon={<EditOutlined />}
-                >
-                  <span>
-                    <span className="hidden md:inline">Edit Queue Details</span>
-                    <span className="inline md:hidden">Edit Queue</span>
-                  </span>
-                </EditQueueButton>
-              </span>
-              <Tooltip
-                title={
-                  !isUserCheckedIn
-                    ? 'You must be checked in to add students to the queue'
-                    : ''
-                }
-              >
-                <span>
-                  <EditQueueButton
-                    disabled={!isUserCheckedIn}
-                    onClick={() => setAddStudentsModalOpen(true)}
-                    icon={<PlusOutlined />}
-                  >
-                    {/* "+ Add Students to Queue" on desktop, "+ Student" on mobile */}
-                    <span>
-                      <span className="hidden md:inline">
-                        Add Student to Queue
-                      </span>
-                      <span className="inline md:hidden">Student</span>
-                    </span>
-                  </EditQueueButton>
-                </span>
-              </Tooltip>
-              {isDemoQueue && (
-                <EditQueueButton
-                  onClick={() => setAssignmentReportModalOpen(true)}
-                  icon={<ListChecks className="mr-1" />}
-                >
-                  <span>
-                    <span className="hidden md:inline">
-                      View Students {queueConfig?.assignment_id} Progress
-                    </span>
-                    <span className="inline md:hidden">
-                      {queueConfig?.assignment_id} Progress
-                    </span>
-                  </span>
-                </EditQueueButton>
-              )}
-            </>
-          ) : (
-            <>
-              {((queue.type === 'hybrid' && // Show the "Join Zoom" button if staff is ready and student already clicked on the modal
-                studentQuestion?.location === 'Online') ||
-                queue.type === 'online') &&
-                clickedZoomModal &&
-                studentQuestion?.status === OpenQuestionStatus.Helping && (
-                  <JoinZoomButton
-                    zoomLink={queue.zoomLink ?? course?.zoomLink}
-                    textSize="sm"
-                  >
-                    Join Zoom
-                  </JoinZoomButton>
-                )}
-              <Tooltip
-                title={
-                  studentQuestion
-                    ? 'You can have only one question in the queue at a time'
-                    : queue.staffList.length < 1
-                      ? 'No staff are checked into this queue'
-                      : ''
-                }
-              >
-                <JoinQueueButton
-                  id="join-queue-button"
-                  loading={isJoinQueueModalLoading}
-                  className={!isDemoQueue ? 'w-[90%] md:w-full' : 'mx-2'}
-                  disabled={
-                    !queue?.allowQuestions ||
-                    queue?.isDisabled ||
-                    isCreateDemoModalLoading ||
-                    queue.staffList.length < 1 ||
-                    !!studentQuestion
-                  }
-                  onClick={() => {
-                    setIsJoinQueueModalLoading(true)
-                    joinQueueOpenModal(false, false)
-                    // fallback: After 3s, if the modal hasn't opened, stop the loading state
-                    setTimeout(() => {
-                      if (isJoinQueueModalLoading) {
-                        setIsJoinQueueModalLoading(false)
-                      }
-                    }, 3000)
-                  }}
-                  icon={<LoginOutlined aria-hidden="true" />}
-                >
-                  {isDemoQueue ? 'Create Question' : 'Join Queue'}
-                </JoinQueueButton>
-              </Tooltip>
-              {isDemoQueue && (
-                <Tooltip
-                  title={
-                    studentDemo
-                      ? 'You can have only one demo in the queue at a time'
-                      : queue?.staffList?.length < 1
-                        ? 'No staff are checked into this queue'
-                        : ''
-                  }
-                >
-                  <JoinQueueButton
-                    id="join-queue-button-demo"
-                    loading={isCreateDemoModalLoading}
-                    className="mx-2"
-                    disabled={
-                      !queue?.allowQuestions ||
-                      queue?.isDisabled ||
-                      isJoinQueueModalLoading ||
-                      queue.staffList.length < 1 ||
-                      !!studentDemo
-                    }
-                    onClick={() => {
-                      setIsCreateDemoModalLoading(true)
-                      joinQueueOpenModal(false, true)
-                      // fallback: After 3s, if the modal hasn't opened, stop the loading state
-                      setTimeout(() => {
-                        if (isCreateDemoModalLoading) {
-                          setIsCreateDemoModalLoading(false)
-                        }
-                      }, 3000)
-                    }}
-                    icon={<ListTodoIcon aria-hidden="true" />}
-                  >
-                    Create Demo
-                  </JoinQueueButton>
-                </Tooltip>
-              )}
-            </>
-          )
-        }
-      />
-    )
-  }
-
   if (!course) {
     return <CenteredSpinner tip="Loading Course Data..." />
   } else if (!queue) {
@@ -754,7 +567,187 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     return (
       <div className="flex h-full flex-1 flex-col md:flex-row">
         <title>{`HelpMe | ${course.name} - ${queue.room}`}</title>
-        <RenderQueueInfoCol />
+        <QueueInfoColumn
+          cid={cid}
+          queue={queue}
+          queueId={qid}
+          isStaff={isStaff}
+          tagGroupsEnabled={tagGroupsEnabled}
+          setTagGroupsEnabled={setTagGroupsEnabled}
+          hasDemos={isDemoQueue}
+          staffListHidden={staffListHidden}
+          setStaffListHidden={setStaffListHidden}
+          buttons={
+            isStaff ? (
+              <>
+                <Tooltip
+                  title={
+                    (queue.isDisabled &&
+                      'Cannot check into a disabled queue!') ||
+                    (helpingQuestions &&
+                      helpingQuestions.length > 0 &&
+                      'You cannot check out while helping a student') ||
+                    (queue.isProfessorQueue &&
+                      role !== Role.PROFESSOR &&
+                      'Only professors can check into this queue')
+                  }
+                >
+                  <span>
+                    <TACheckinButton
+                      courseId={cid}
+                      queueId={qid}
+                      disabled={
+                        (helpingQuestions && helpingQuestions.length > 0) ||
+                        (queue.isProfessorQueue && role !== Role.PROFESSOR) ||
+                        queue.isDisabled
+                      }
+                      state={isUserCheckedIn ? 'CheckedIn' : 'CheckedOut'}
+                      className="w-full md:mb-3"
+                    />
+                  </span>
+                </Tooltip>
+                <span>
+                  <EditQueueButton
+                    onClick={() => setQueueSettingsModalOpen(true)}
+                    icon={<EditOutlined />}
+                  >
+                    <span>
+                      <span className="hidden md:inline">
+                        Edit Queue Details
+                      </span>
+                      <span className="inline md:hidden">Edit Queue</span>
+                    </span>
+                  </EditQueueButton>
+                </span>
+                <Tooltip
+                  title={
+                    !isUserCheckedIn
+                      ? 'You must be checked in to add students to the queue'
+                      : ''
+                  }
+                >
+                  <span>
+                    <EditQueueButton
+                      disabled={!isUserCheckedIn}
+                      onClick={() => setAddStudentsModalOpen(true)}
+                      icon={<PlusOutlined />}
+                    >
+                      {/* "+ Add Students to Queue" on desktop, "+ Student" on mobile */}
+                      <span>
+                        <span className="hidden md:inline">
+                          Add Student to Queue
+                        </span>
+                        <span className="inline md:hidden">Student</span>
+                      </span>
+                    </EditQueueButton>
+                  </span>
+                </Tooltip>
+                {isDemoQueue && (
+                  <EditQueueButton
+                    onClick={() => setAssignmentReportModalOpen(true)}
+                    icon={<ListChecks className="mr-1" />}
+                  >
+                    <span>
+                      <span className="hidden md:inline">
+                        View Students {queueConfig?.assignment_id} Progress
+                      </span>
+                      <span className="inline md:hidden">
+                        {queueConfig?.assignment_id} Progress
+                      </span>
+                    </span>
+                  </EditQueueButton>
+                )}
+              </>
+            ) : (
+              <>
+                {((queue.type === 'hybrid' && // Show the "Join Zoom" button if staff is ready and student already clicked on the modal
+                  studentQuestion?.location === 'Online') ||
+                  queue.type === 'online') &&
+                  clickedZoomModal &&
+                  studentQuestion?.status === OpenQuestionStatus.Helping && (
+                    <JoinZoomButton
+                      zoomLink={queue.zoomLink ?? course?.zoomLink}
+                      textSize="sm"
+                    >
+                      Join Zoom
+                    </JoinZoomButton>
+                  )}
+                <Tooltip
+                  title={
+                    studentQuestion
+                      ? 'You can have only one question in the queue at a time'
+                      : queue.staffList.length < 1
+                        ? 'No staff are checked into this queue'
+                        : ''
+                  }
+                >
+                  <JoinQueueButton
+                    id="join-queue-button"
+                    loading={isJoinQueueModalLoading}
+                    className={!isDemoQueue ? 'w-[90%] md:w-full' : 'mx-2'}
+                    disabled={
+                      !queue?.allowQuestions ||
+                      queue?.isDisabled ||
+                      isCreateDemoModalLoading ||
+                      queue.staffList.length < 1 ||
+                      !!studentQuestion
+                    }
+                    onClick={() => {
+                      setIsJoinQueueModalLoading(true)
+                      joinQueueOpenModal(false, false)
+                      // fallback: After 3s, if the modal hasn't opened, stop the loading state
+                      setTimeout(() => {
+                        if (isJoinQueueModalLoading) {
+                          setIsJoinQueueModalLoading(false)
+                        }
+                      }, 3000)
+                    }}
+                    icon={<LoginOutlined aria-hidden="true" />}
+                  >
+                    {isDemoQueue ? 'Create Question' : 'Join Queue'}
+                  </JoinQueueButton>
+                </Tooltip>
+                {isDemoQueue && (
+                  <Tooltip
+                    title={
+                      studentDemo
+                        ? 'You can have only one demo in the queue at a time'
+                        : queue?.staffList?.length < 1
+                          ? 'No staff are checked into this queue'
+                          : ''
+                    }
+                  >
+                    <JoinQueueButton
+                      id="join-queue-button-demo"
+                      loading={isCreateDemoModalLoading}
+                      className="mx-2"
+                      disabled={
+                        !queue?.allowQuestions ||
+                        queue?.isDisabled ||
+                        isJoinQueueModalLoading ||
+                        queue.staffList.length < 1 ||
+                        !!studentDemo
+                      }
+                      onClick={() => {
+                        setIsCreateDemoModalLoading(true)
+                        joinQueueOpenModal(false, true)
+                        // fallback: After 3s, if the modal hasn't opened, stop the loading state
+                        setTimeout(() => {
+                          if (isCreateDemoModalLoading) {
+                            setIsCreateDemoModalLoading(false)
+                          }
+                        }, 3000)
+                      }}
+                      icon={<ListTodoIcon aria-hidden="true" />}
+                    >
+                      Create Demo
+                    </JoinQueueButton>
+                  </Tooltip>
+                )}
+              </>
+            )
+          }
+        />
         <VerticalDivider />
         <div className="flex-grow">
           {isStaff ? (
