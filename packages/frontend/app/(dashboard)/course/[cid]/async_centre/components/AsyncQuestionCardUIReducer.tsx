@@ -7,20 +7,23 @@ export type ExpandedState =
 export type UIState = {
   expandedState: ExpandedState
   truncateText: boolean
+  isPostingComment: boolean
 }
 
 export type Action =
   | { type: 'EXPAND_QUESTION' } // collapsed -> expandedNoComments
   | { type: 'COLLAPSE_QUESTION' } // expandedNoComments -> collapsed
-  | { type: 'SHOW_COMMENTS' } // collapsed OR expandedNoComments -> expandedWithComments
-  | { type: 'HIDE_COMMENTS' } // expandedWithComments -> expandedNoComments
+  | { type: 'SHOW_COMMENTS'; numOfComments: number } // collapsed OR expandedNoComments -> expandedWithComments
+  | { type: 'HIDE_COMMENTS' } // expandedWithCommentsLocked OR expandedWithComments -> expandedNoComments
   | { type: 'LOCK_EXPANDED' } // expandedWithComments -> expandedWithCommentsLocked
   | { type: 'UNLOCK_EXPANDED' } // expandedWithCommentsLocked -> expandedWithComments
-  | { type: 'SET_TRUNCATE'; truncate: boolean }
+  | { type: 'TRUNCATE_TEXT' }
+  | { type: 'SET_IS_POSTING_COMMENT'; isPostingComment: boolean }
 
 export const initialUIState: UIState = {
   expandedState: 'collapsed',
   truncateText: true,
+  isPostingComment: false,
 }
 
 /* This is a reducer that allows us to group together all the logic for changing the UI state of a question card.
@@ -60,14 +63,29 @@ export function AsyncQuestionCardUIReducer(
         state.expandedState === 'collapsed' ||
         state.expandedState === 'expandedNoComments'
       ) {
-        return { ...state, expandedState: 'expandedWithComments' }
+        // if there are no comments, set isPostingComment to true and lock the expanded state
+        if (action.numOfComments === 0) {
+          return {
+            ...state,
+            expandedState: 'expandedWithCommentsLocked',
+            isPostingComment: true,
+          }
+        } else {
+          return {
+            ...state,
+            expandedState: 'expandedWithComments',
+          }
+        }
       } else {
         return state
       }
     }
     case 'HIDE_COMMENTS': {
-      // can only go from expandedWithComments to expandedNoComments
-      if (state.expandedState === 'expandedWithComments') {
+      // can only go from expandedWithCommentsLocked or expandedWithComments to expandedNoComments
+      if (
+        state.expandedState === 'expandedWithCommentsLocked' ||
+        state.expandedState === 'expandedWithComments'
+      ) {
         return { ...state, expandedState: 'expandedNoComments' }
       } else {
         return state
@@ -89,9 +107,11 @@ export function AsyncQuestionCardUIReducer(
         return state
       }
     }
-    case 'SET_TRUNCATE': {
-      // technically I only ever use this to set truncate to true, but I wanted to leave this here as an example of how you can pass extra data to a reducer
-      return { ...state, truncateText: action.truncate }
+    case 'TRUNCATE_TEXT': {
+      return { ...state, truncateText: true }
+    }
+    case 'SET_IS_POSTING_COMMENT': {
+      return { ...state, isPostingComment: action.isPostingComment }
     }
     default: {
       console.error(

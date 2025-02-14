@@ -111,10 +111,16 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     if (uiState.expandedState === 'collapsed') {
       dispatch({ type: 'EXPAND_QUESTION' })
       setTimeout(() => {
-        dispatch({ type: 'SHOW_COMMENTS' })
+        dispatch({
+          type: 'SHOW_COMMENTS',
+          numOfComments: question.comments.length,
+        })
       }, 300)
     } else if (uiState.expandedState === 'expandedNoComments') {
-      dispatch({ type: 'SHOW_COMMENTS' })
+      dispatch({
+        type: 'SHOW_COMMENTS',
+        numOfComments: question.comments.length,
+      })
     } else if (uiState.expandedState === 'expandedWithComments') {
       // hide the comments, but don't collapse the card right away
       dispatch({ type: 'HIDE_COMMENTS' })
@@ -129,7 +135,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
       // truncating the questionText before the animation is finished will cause the animation to jump
       dispatch({ type: 'COLLAPSE_QUESTION' })
       setTimeout(() => {
-        dispatch({ type: 'SET_TRUNCATE', truncate: true })
+        dispatch({ type: 'TRUNCATE_TEXT' })
       }, 300)
     }
   }
@@ -372,6 +378,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 userCourseRole={userCourseRole}
                 question={question}
                 dispatchUIStateChange={dispatch}
+                isPostingComment={uiState.isPostingComment}
                 showStudents={showStudents}
               />
             </div>

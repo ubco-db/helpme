@@ -15,6 +15,7 @@ interface CommentSectionProps {
   userCourseRole: Role
   question: AsyncQuestion
   dispatchUIStateChange: (action: Action) => void
+  isPostingComment: boolean
   showStudents: boolean
   className?: string
 }
@@ -23,10 +24,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   userCourseRole,
   question,
   dispatchUIStateChange,
+  isPostingComment,
   showStudents,
   className,
 }) => {
-  const [showCommentTextInput, setShowCommentTextInput] = useState(false)
   const [commentInputValue, setCommentInputValue] = useState('')
   const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
   const [postCommentCancelPopoverOpen, setPostCommentCancelPopoverOpen] =
@@ -76,9 +77,17 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
   const handleCancelComment = (e?: React.MouseEvent) => {
     e?.stopPropagation()
-    setShowCommentTextInput(false)
+    dispatchUIStateChange({
+      type: 'SET_IS_POSTING_COMMENT',
+      isPostingComment: false,
+    })
     setCommentInputValue('')
-    dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
+    if (question.comments.length === 0) {
+      // if no comments were posted (e.g. they clicked "Post Comment" by accident and immediately clicked "Cancel"), immediately jump back to just 'expandedNoComments' state
+      dispatchUIStateChange({ type: 'HIDE_COMMENTS' })
+    } else {
+      dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
+    }
   }
 
   return (
@@ -100,12 +109,15 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         </div>
       )}
       <div>
-        {!showCommentTextInput && (
+        {!isPostingComment && (
           <Button
             type="primary"
             onClick={(e) => {
               e.stopPropagation()
-              setShowCommentTextInput(!showCommentTextInput)
+              dispatchUIStateChange({
+                type: 'SET_IS_POSTING_COMMENT',
+                isPostingComment: true,
+              })
               dispatchUIStateChange({ type: 'LOCK_EXPANDED' })
             }}
             className="mt-1"
@@ -113,7 +125,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             Post Comment
           </Button>
         )}
-        {showCommentTextInput && (
+        {isPostingComment && (
           <>
             <TextArea
               maxLength={10000} // same as reddit's max length
@@ -160,7 +172,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 e.stopPropagation()
                 if (commentInputValue) {
                   await handleCommentOnPost(question.id, commentInputValue)
-                  setShowCommentTextInput(false)
+                  dispatchUIStateChange({
+                    type: 'SET_IS_POSTING_COMMENT',
+                    isPostingComment: false,
+                  })
                   setCommentInputValue('')
                 }
               }}
