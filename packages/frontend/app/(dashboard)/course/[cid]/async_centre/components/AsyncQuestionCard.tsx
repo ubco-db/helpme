@@ -430,7 +430,9 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
           >
             {showAllComments
               ? 'Hide Comments'
-              : `Comments (${question.comments.length})`}
+              : question.comments.length > 0
+                ? `Comments (${question.comments.length})`
+                : `Comments`}
           </Button>
           <div className="mr-16 flex flex-grow justify-center">
             {!isExpandable ? null : isExpanded ? (
