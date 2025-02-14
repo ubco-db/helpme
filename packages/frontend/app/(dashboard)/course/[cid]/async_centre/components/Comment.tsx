@@ -37,7 +37,7 @@ const Comment: React.FC<CommentProps> = ({
   content,
   onDeleteSuccess,
   onEditSuccess,
-  setIsLockedExpanded,
+  dispatchUIStateChange,
   datetime,
   IAmStaff,
   showStudents,
@@ -160,7 +160,7 @@ const Comment: React.FC<CommentProps> = ({
                   onClick: (e) => {
                     e.domEvent.stopPropagation()
                     setIsEditing(true)
-                    setIsLockedExpanded(true)
+                    dispatchUIStateChange({ type: 'LOCK_EXPANDED' })
                   },
                   icon: <EditOutlined />,
                 },
@@ -268,7 +268,7 @@ const Comment: React.FC<CommentProps> = ({
               e.stopPropagation()
               setNewContent(content)
               setIsEditing(false)
-              setIsLockedExpanded(false)
+              dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
             }}
             danger
             variant="outlined"
@@ -291,7 +291,7 @@ const Comment: React.FC<CommentProps> = ({
                   message.success('Comment Updated')
                   onEditSuccess(newContent)
                   setIsEditing(false)
-                  setIsLockedExpanded(false)
+                  dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
                 })
                 .catch((e) => {
                   message.error(

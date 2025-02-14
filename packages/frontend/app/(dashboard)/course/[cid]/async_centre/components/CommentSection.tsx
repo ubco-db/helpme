@@ -7,13 +7,14 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 import { AsyncQuestion, AsyncQuestionComment, Role } from '@koh/common'
 import { CommentProps } from '../utils/types'
 import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
+import { Action } from './AsyncQuestionCardUIReducer'
 
 const { TextArea } = Input
 
 interface CommentSectionProps {
   userCourseRole: Role
   question: AsyncQuestion
-  setIsLockedExpanded: (isLocked: boolean) => void
+  dispatchUIStateChange: (action: Action) => void
   showStudents: boolean
   className?: string
 }
@@ -21,7 +22,7 @@ interface CommentSectionProps {
 const CommentSection: React.FC<CommentSectionProps> = ({
   userCourseRole,
   question,
-  setIsLockedExpanded,
+  dispatchUIStateChange,
   showStudents,
   className,
 }) => {
@@ -40,7 +41,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       question.comments,
       isStaff,
       showStudents,
-      setIsLockedExpanded,
+      dispatchUIStateChange,
       regenerateComments,
       regenerateCommentsFlag,
     )
@@ -49,7 +50,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     question.comments,
     isStaff,
     showStudents,
-    setIsLockedExpanded,
+    dispatchUIStateChange,
     regenerateCommentsFlag,
   ])
 
@@ -61,7 +62,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     await API.asyncQuestions
       .comment(questionId, { commentText })
       .then((newComment) => {
-        setIsLockedExpanded(false)
+        dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
         message.success('Comment posted successfully')
         newComment.creator.courseRole = userCourseRole
         question.comments.push(newComment)
@@ -77,7 +78,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     e?.stopPropagation()
     setShowCommentTextInput(false)
     setCommentInputValue('')
-    setIsLockedExpanded(false)
+    dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
   }
 
   return (
@@ -105,7 +106,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             onClick={(e) => {
               e.stopPropagation()
               setShowCommentTextInput(!showCommentTextInput)
-              setIsLockedExpanded(true)
+              dispatchUIStateChange({ type: 'LOCK_EXPANDED' })
             }}
             className="mt-1"
           >
@@ -179,7 +180,7 @@ function generateCommentProps(
   comments: AsyncQuestionComment[],
   IAmStaff: boolean,
   showStudents: boolean,
-  setIsLockedExpanded: (lockedExpanded: boolean) => void,
+  dispatchUIStateChange: (action: Action) => void,
   regenerateComments: (flag: boolean) => void,
   regenerateCommentsFlag: boolean,
 ): CommentProps[] | undefined {
@@ -211,7 +212,7 @@ function generateCommentProps(
       ),
       IAmStaff,
       showStudents,
-      setIsLockedExpanded,
+      dispatchUIStateChange,
     })
   }
 

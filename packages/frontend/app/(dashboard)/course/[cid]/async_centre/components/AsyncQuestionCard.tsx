@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
 import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common'
 import {
@@ -20,6 +20,10 @@ import CommentSection from './CommentSection'
 import { getAnonAnimal, getAvatarTooltip } from '../utils/commonAsyncFunctions'
 import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
 import styles from './AsyncQuestionCard.module.css'
+import {
+  AsyncQuestionCardUIReducer,
+  initialUIState,
+} from './AsyncQuestionCardUIReducer'
 
 const statusDisplayMap = {
   // if the question has no answer text, it will say "awaiting answer"
@@ -49,11 +53,10 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   mutateAsyncQuestions,
   showStudents,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false) // whether or not the card is expanded (not including comments)
-  const [showAllComments, setShowAllComments] = useState(false) // whether or not the comments section is expanded
-  const [isExpandable, setIsExpandable] = useState(true) // This only stops isExpanded from toggling. When showAllComments is true, this is set to false to make the card not expandable (first you must minimize comments before you can collapse the rest of the card)
-  const [isLockedExpanded, setIsLockedExpanded] = useState(false) // This stops both showAllComments and isExpanded from toggling. This is used to prevent users from collapsing the comments while they are still creating/editing one
-  const [truncateText, setTruncateText] = useState(true) // after the max-height transition is finished on expanding the text, truncate it to show a `...`
+  const [uiState, dispatch] = useReducer(
+    AsyncQuestionCardUIReducer,
+    initialUIState,
+  )
   const [voteCount, setVoteCount] = useState(question.votesSum)
   const [thisUserThisQuestionVote, setThisUserThisQuestionVote] = useState(
     question.votes?.find((vote) => vote.userId === userId)?.vote,
@@ -67,8 +70,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   // make the card expanded if it is flashing (so they immediately see their answer)
   useEffect(() => {
     if (shouldFlash) {
-      setIsExpanded(true)
-      setTruncateText(false)
+      dispatch({ type: 'EXPAND_QUESTION' })
     }
   }, [shouldFlash])
 
@@ -104,19 +106,31 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
       })
   }
 
-  const showComments = (show: boolean) => {
+  const toggleComments = () => {
     // first expand the card, then after 0.3s (animation), expand the comments
-    if (show) {
-      setIsExpanded(true)
-      setTruncateText(false)
-      setIsExpandable(false)
+    if (uiState.expandedState === 'collapsed') {
+      dispatch({ type: 'EXPAND_QUESTION' })
       setTimeout(() => {
-        setShowAllComments(true)
+        dispatch({ type: 'SHOW_COMMENTS' })
       }, 300)
-    } else {
+    } else if (uiState.expandedState === 'expandedNoComments') {
+      dispatch({ type: 'SHOW_COMMENTS' })
+    } else if (uiState.expandedState === 'expandedWithComments') {
       // hide the comments, but don't collapse the card right away
-      setShowAllComments(false)
-      setIsExpandable(true)
+      dispatch({ type: 'HIDE_COMMENTS' })
+    }
+  }
+
+  const toggleExpandQuestion = () => {
+    if (uiState.expandedState === 'collapsed') {
+      dispatch({ type: 'EXPAND_QUESTION' })
+    } else if (uiState.expandedState === 'expandedNoComments') {
+      // after the max-height transition is finished on expanding the text, truncate it to show a `...`
+      // truncating the questionText before the animation is finished will cause the animation to jump
+      dispatch({ type: 'COLLAPSE_QUESTION' })
+      setTimeout(() => {
+        dispatch({ type: 'SET_TRUNCATE', truncate: true })
+      }, 300)
     }
   }
 
@@ -143,23 +157,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
           ? 'outline outline-1 outline-offset-1 outline-yellow-500'
           : '',
       )}
-      onClick={() => {
-        if (isLockedExpanded || !isExpandable) return
-        setIsExpanded(!isExpanded)
-        // after the max-height transition is finished on expanding the text, truncate it to show a `...`
-        // truncating the questionText before the animation is finished will cause the animation to jump
-        // Also, this logic is reversed for some reason
-        if (isExpanded) {
-          //// Collapsing the card
-          setTimeout(() => {
-            setTruncateText(true)
-          }, 300)
-        } else {
-          //// Expanding the card
-          // however, we do want to instantly remove the truncation when expanding the card
-          setTruncateText(false)
-        }
-      }}
+      onClick={toggleExpandQuestion}
     >
       <Row wrap={false}>
         <Col flex="none" className="mr-1 items-center justify-center md:mr-2">
@@ -344,8 +342,12 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 className={cn(
                   'childrenMarkdownFormatted',
                   styles.expandableText,
-                  isExpanded ? styles.expanded : '',
-                  truncateText ? 'line-clamp-1' : '',
+                  uiState.expandedState === 'expandedNoComments' ||
+                    uiState.expandedState === 'expandedWithComments' ||
+                    uiState.expandedState === 'expandedWithCommentsLocked'
+                    ? styles.expanded
+                    : '',
+                  uiState.truncateText ? 'line-clamp-1' : '',
                 )}
               >
                 {<MarkdownCustom>{question.questionText ?? ''}</MarkdownCustom>}
@@ -362,11 +364,14 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
               <CommentSection
                 className={cn(
                   styles.expandableComments,
-                  showAllComments ? styles.expandedComments : '',
+                  uiState.expandedState === 'expandedWithComments' ||
+                    uiState.expandedState === 'expandedWithCommentsLocked'
+                    ? styles.expandedComments
+                    : '',
                 )}
                 userCourseRole={userCourseRole}
                 question={question}
-                setIsLockedExpanded={setIsLockedExpanded}
+                dispatchUIStateChange={dispatch}
                 showStudents={showStudents}
               />
             </div>
@@ -418,27 +423,29 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             )}
         </Col>
       </Row>
-      {!isLockedExpanded && (
+      {uiState.expandedState !== 'expandedWithCommentsLocked' && (
         <Row className="justify-around">
           <Button
-            className="text-sm"
+            className={`text-sm `}
             type="link"
             onClick={(e) => {
               e.stopPropagation()
-              showComments(!showAllComments)
+              toggleComments()
             }}
           >
-            {showAllComments
+            {uiState.expandedState === 'expandedWithComments'
               ? 'Hide Comments'
               : question.comments.length > 0
                 ? `Comments (${question.comments.length})`
-                : `Comments`}
+                : `Post Comment`}
           </Button>
           <div className="mr-16 flex flex-grow justify-center">
-            {!isExpandable ? null : isExpanded ? (
+            {uiState.expandedState ===
+            'expandedWithComments' ? null : uiState.expandedState ===
+              'expandedNoComments' ? (
               <UpOutlined />
             ) : (
-              <DownOutlined />
+              uiState.expandedState === 'collapsed' && <DownOutlined />
             )}
           </div>
         </Row>
