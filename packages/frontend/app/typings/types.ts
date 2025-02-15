@@ -1,3 +1,5 @@
+import { calendarEventLocationType } from '@koh/common'
+
 export interface LayoutProps {
   children: React.ReactNode
 }
@@ -11,7 +13,7 @@ export interface Event {
   start: Date
   end: Date
   startDate?: Date | null
-  locationType: string
+  locationType: calendarEventLocationType
   locationInPerson: string | null
   locationOnline: string | null
   startRecur?: Date | null
@@ -23,6 +25,7 @@ export interface Event {
   borderColor?: string
   textColor?: string
   staffIds?: number[]
+  staffNames?: string[] // just used for display purposes
 }
 
 /**
