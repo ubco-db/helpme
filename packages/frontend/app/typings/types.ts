@@ -94,6 +94,13 @@ export interface FullCalendarEvent {
   }): any
   toJSON?(): any
   studentsHelped?: number // used as a custom property for the TA checkin/checkout times page. Accessed with extendedProps
+  TAStatus?: TAStatus // same reason as above
+}
+
+export enum TAStatus {
+  InQueue = 'Currently in queue',
+  ForgotToCheckOut = 'Forgot to check out',
+  CheckedOut = 'Checked out',
 }
 
 export const dayToIntMapping: { [key: string]: string } = {
