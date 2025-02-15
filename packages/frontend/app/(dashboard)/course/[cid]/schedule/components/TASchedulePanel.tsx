@@ -81,6 +81,7 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
       borderColor: borderColor,
       textColor: textColor,
       staffIds: event.staffIds ?? [],
+      staffNames: event.staffNames ?? [],
     }
     if (event.endDate) {
       returnEvent['startRecur'] = event.startDate
