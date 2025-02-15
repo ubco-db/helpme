@@ -9,6 +9,7 @@ import {
   AsyncQuestion,
   nameToRGB,
   AsyncCreator,
+  UnreadAsyncQuestionResponse,
 } from '@koh/common';
 import {
   Body,
@@ -819,19 +820,19 @@ export class asyncQuestionController {
   async getUnreadAsyncCount(
     @Param('courseId', ParseIntPipe) courseId: number,
     @UserId() userId: number,
-  ): Promise<number> {
+  ): Promise<UnreadAsyncQuestionResponse> {
     const count = await UnreadAsyncQuestionModel.count({
       where: {
         userId,
         courseId,
         readLatest: false,
       },
-    });
-    return count;
+    }); // typescript says that count is just a number but sometimes its not so I'm making it 0 if its falsey
+    return { count: count ? count : 0 };
   }
 
   @Patch('unread_async_count/:courseId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard) // technically this could use a courseRolesGuard but since can only update your own unread count it doesn't really matter
   async updateUnreadAsyncCount(
     @Param('courseId', ParseIntPipe) courseId: number,
     @UserId() userId: number,

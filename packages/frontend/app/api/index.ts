@@ -76,6 +76,7 @@ import {
   TestLMSIntegrationParams,
   AsyncQuestionComment,
   AsyncQuestionCommentParams,
+  UnreadAsyncQuestionResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -448,7 +449,9 @@ class APIClient {
         AsyncQuestionComment,
         body,
       ),
-    getUnreadAsyncCount: async (courseId: number): Promise<number> =>
+    getUnreadAsyncCount: async (
+      courseId: number,
+    ): Promise<UnreadAsyncQuestionResponse> =>
       this.req('GET', `/api/v1/asyncQuestions/unread_async_count/${courseId}`),
     updateUnreadAsyncCount: async (courseId: number): Promise<void> =>
       this.req(

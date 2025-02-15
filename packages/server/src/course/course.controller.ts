@@ -38,7 +38,6 @@ import {
   UseGuards,
   UseInterceptors,
   ParseIntPipe,
-  ForbiddenException,
 } from '@nestjs/common';
 import async from 'async';
 import { Response, Request } from 'express';
@@ -63,7 +62,6 @@ import { ApplicationConfigService } from '../config/application_config.service';
 import { getManager } from 'typeorm';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
-import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)

@@ -376,6 +376,259 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(404);
     });
+    it('If question is visible, will mark the question as unread for everyone except the comment creator', async () => {
+      // must first call the create async question endpoint since that one creates the initial notifications
+      const res = await supertest({ userId: studentUser.id })
+        .post(`/asyncQuestions/${course.id}`)
+        .send({
+          questionAbstract: 'abstract',
+          questionText: 'text',
+        })
+        .expect(201);
+      const asyncQuestionFromResponse: AsyncQuestionModel = res.body;
+
+      // check to make sure everyone now has unread entities, and that its marked as unread only for staff
+      const unreadEntities = await UnreadAsyncQuestionModel.find({
+        where: {
+          courseId: course.id,
+        },
+      });
+      expect(unreadEntities.length).toBe(3); // everyone has an unread entity, only the staff ones are marked as unread
+      expect(unreadEntities).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            userId: studentUser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: true,
+          }),
+          expect.objectContaining({
+            userId: studentUser2.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: true,
+          }),
+          expect.objectContaining({
+            userId: TAuser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: false,
+          }),
+        ]),
+      );
+      // now mark question as visible
+      const asyncQuestion = await AsyncQuestionModel.findOneOrFail(
+        asyncQuestionFromResponse.id,
+      );
+      asyncQuestion.visible = true;
+      await asyncQuestion.save();
+
+      // mark it as has been read by TA
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/unread_async_count/${course.id}`)
+        .expect(200);
+
+      // now create a comment
+      await supertest({ userId: studentUser2.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({
+          commentText: 'Student comment 1',
+        })
+        .expect(201);
+      // check to make sure its marked unread for everyone except comment creator
+      const unreadEntitiesAfterComment = await UnreadAsyncQuestionModel.find({
+        where: {
+          courseId: course.id,
+        },
+      });
+      expect(unreadEntitiesAfterComment.length).toBe(3);
+      expect(unreadEntitiesAfterComment).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            userId: studentUser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: false,
+          }),
+          expect.objectContaining({
+            userId: studentUser2.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: true, // studentUser2 is comment creator, so it should still be marked as read
+          }),
+          expect.objectContaining({
+            userId: TAuser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: false,
+          }),
+        ]),
+      );
+    });
+    it('If question is not visible and comment is from staff, will mark the question as unread only for the question creator', async () => {
+      // must first call the create async question endpoint since that one creates the initial notifications
+      const res = await supertest({ userId: studentUser.id })
+        .post(`/asyncQuestions/${course.id}`)
+        .send({
+          questionAbstract: 'abstract',
+          questionText: 'text',
+        })
+        .expect(201);
+      const asyncQuestionFromResponse: AsyncQuestionModel = res.body;
+
+      // check to make sure everyone now has unread entities, and that its marked as unread only for staff
+      const unreadEntities = await UnreadAsyncQuestionModel.find({
+        where: {
+          courseId: course.id,
+        },
+      });
+      expect(unreadEntities.length).toBe(3); // everyone has an unread entity, only the staff ones are marked as unread
+      expect(unreadEntities).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            userId: studentUser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: true,
+          }),
+          expect.objectContaining({
+            userId: studentUser2.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: true,
+          }),
+          expect.objectContaining({
+            userId: TAuser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: false,
+          }),
+        ]),
+      );
+      // mark as read by TAuser
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/unread_async_count/${course.id}`)
+        .expect(200);
+
+      // now create a comment
+      await supertest({ userId: TAuser.id })
+        .post(`/asyncQuestions/comment/${asyncQuestionFromResponse.id}`)
+        .send({
+          commentText: 'FEEL THE BURN',
+        })
+        .expect(201);
+      // check to make sure its marked unread only for question creator
+      const unreadEntitiesAfterComment = await UnreadAsyncQuestionModel.find({
+        where: {
+          courseId: course.id,
+        },
+      });
+      expect(unreadEntitiesAfterComment.length).toBe(3);
+      expect(unreadEntitiesAfterComment).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            userId: studentUser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: false, // it should be marked as unread for studentUser since the comment is from staff
+          }),
+          expect.objectContaining({
+            userId: studentUser2.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: true,
+          }),
+          expect.objectContaining({
+            userId: TAuser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: true,
+          }),
+        ]),
+      );
+    });
+    it('If the question is not visible and the comment is from the question creator, will mark the question as unread for all staff', async () => {
+      // must first call the create async question endpoint since that one creates the initial notifications
+      const res = await supertest({ userId: studentUser.id })
+        .post(`/asyncQuestions/${course.id}`)
+        .send({
+          questionAbstract: 'abstract',
+          questionText: 'text',
+        })
+        .expect(201);
+      const asyncQuestionFromResponse: AsyncQuestionModel = res.body;
+
+      // check to make sure everyone now has unread entities, and that its marked as unread only for staff
+      const unreadEntities = await UnreadAsyncQuestionModel.find({
+        where: {
+          courseId: course.id,
+        },
+      });
+      expect(unreadEntities.length).toBe(3); // everyone has an unread entity, only the staff ones are marked as unread
+      expect(unreadEntities).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            userId: studentUser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: true,
+          }),
+          expect.objectContaining({
+            userId: studentUser2.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: true,
+          }),
+          expect.objectContaining({
+            userId: TAuser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: false,
+          }),
+        ]),
+      );
+      // mark as read by TAuser
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/unread_async_count/${course.id}`)
+        .expect(200);
+
+      // now create a comment
+      await supertest({ userId: studentUser.id })
+        .post(`/asyncQuestions/comment/${asyncQuestionFromResponse.id}`)
+        .send({
+          commentText: 'FEEL IT IN YOUR BONES, YOU LOVE TESTING',
+        })
+        .expect(201);
+      // check to make sure its marked unread for all staff
+      const unreadEntitiesAfterComment = await UnreadAsyncQuestionModel.find({
+        where: {
+          courseId: course.id,
+        },
+      });
+      expect(unreadEntitiesAfterComment.length).toBe(3);
+      expect(unreadEntitiesAfterComment).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            userId: studentUser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: true,
+          }),
+          expect.objectContaining({
+            userId: studentUser2.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: true,
+          }),
+          expect.objectContaining({
+            userId: TAuser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestionFromResponse.id,
+            readLatest: false, // mark unread for staff
+          }),
+        ]),
+      );
+    });
   });
 
   describe('PATCH /asyncQuestions/comment/:qid/:commentId', () => {
@@ -865,6 +1118,112 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(404);
+    });
+  });
+
+  describe('GET /asyncQuestions/unread_async_count/:courseId', () => {
+    it('should return the unread count for the user', async () => {
+      await UnreadAsyncQuestionModel.create({
+        userId: studentUser.id,
+        courseId: course.id,
+        asyncQuestionId: asyncQuestion.id,
+        readLatest: false,
+      }).save();
+      const response = await supertest({ userId: studentUser.id }).get(
+        `/asyncQuestions/unread_async_count/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      expect(response.body.count).toEqual(1);
+    });
+    it('should return 0 if there are no unread questions', async () => {
+      // case: entity is not yet created
+      const response = await supertest({ userId: studentUser2.id }).get(
+        `/asyncQuestions/unread_async_count/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      expect(response.body.count).toEqual(0);
+      // case: entity is created but readLatest is true
+      await UnreadAsyncQuestionModel.create({
+        userId: studentUser.id,
+        courseId: course.id,
+        asyncQuestionId: asyncQuestion.id,
+        readLatest: true,
+      }).save();
+      const response2 = await supertest({ userId: studentUser2.id }).get(
+        `/asyncQuestions/unread_async_count/${course.id}`,
+      );
+      expect(response2.status).toBe(200);
+      expect(response2.body.count).toEqual(0);
+    });
+    it('should return 0 if the user is not in the course', async () => {
+      const otherCourse = await CourseFactory.create();
+      const response = await supertest({ userId: studentUser.id }).get(
+        `/asyncQuestions/unread_async_count/${otherCourse.id}`,
+      );
+      expect(response.status).toBe(200);
+      expect(response.body.count).toEqual(0);
+    });
+  });
+  describe('PATCH /asyncQuestions/unread_async_count/:courseId', () => {
+    it('should mark all unread questions as read for user', async () => {
+      await UnreadAsyncQuestionModel.create({
+        userId: studentUser.id,
+        courseId: course.id,
+        asyncQuestionId: asyncQuestion.id,
+        readLatest: false,
+      }).save();
+      // create another question
+      const asyncQuestion2 = await AsyncQuestionFactory.create({
+        creator: studentUser,
+        course: course,
+        aiAnswerText: 'q2',
+      });
+      await UnreadAsyncQuestionModel.create({
+        userId: studentUser.id,
+        courseId: course.id,
+        asyncQuestionId: asyncQuestion2.id,
+        readLatest: false,
+      }).save();
+      const response = await supertest({ userId: studentUser.id }).patch(
+        `/asyncQuestions/unread_async_count/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      const unreadEntities = await UnreadAsyncQuestionModel.find({
+        where: {
+          userId: studentUser.id,
+          courseId: course.id,
+        },
+      });
+      expect(unreadEntities).toHaveLength(2);
+      expect(unreadEntities).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            userId: studentUser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestion.id,
+            readLatest: true,
+          }),
+          expect.objectContaining({
+            userId: studentUser.id,
+            courseId: course.id,
+            asyncQuestionId: asyncQuestion2.id,
+            readLatest: true,
+          }),
+        ]),
+      );
+    });
+    it('should not fail if there were no unread questions to mark read', async () => {
+      const response = await supertest({ userId: studentUser2.id }).patch(
+        `/asyncQuestions/unread_async_count/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+    });
+    it('should not fail if the user is not in the course (since it is okay because you can only update your own unread count)', async () => {
+      const otherCourse = await CourseFactory.create();
+      const response = await supertest({ userId: studentUser.id }).patch(
+        `/asyncQuestions/unread_async_count/${otherCourse.id}`,
+      );
+      expect(response.status).toBe(200);
     });
   });
 });

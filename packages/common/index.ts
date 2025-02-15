@@ -2463,6 +2463,10 @@ export function nameToRGB(
   return colors[Math.abs(hash) % colors.length]
 }
 
+export type UnreadAsyncQuestionResponse = {
+  count: number
+}
+
 export enum LMSIntegrationPlatform {
   None = 'None',
   Canvas = 'Canvas',
