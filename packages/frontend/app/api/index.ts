@@ -295,10 +295,6 @@ class APIClient {
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
     getAllQueueInvites: async (courseId: number): Promise<QueueInvite[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/queue_invites`),
-    getUnreadAsyncCount: async (courseId: number): Promise<number> =>
-      this.req('GET', `/api/v1/courses/${courseId}/unread_async_count`),
-    updateUnreadAsyncCount: async (courseId: number): Promise<void> =>
-      this.req('PATCH', `/api/v1/courses/${courseId}/unread_async_count`),
     getIntegration: async (
       courseId: number,
     ): Promise<LMSCourseIntegrationPartial> =>
@@ -451,6 +447,13 @@ class APIClient {
         `/api/v1/asyncQuestions/comment/${questionId}/${commentId}`,
         AsyncQuestionComment,
         body,
+      ),
+    getUnreadAsyncCount: async (courseId: number): Promise<number> =>
+      this.req('GET', `/api/v1/asyncQuestions/unread_async_count/${courseId}`),
+    updateUnreadAsyncCount: async (courseId: number): Promise<void> =>
+      this.req(
+        'PATCH',
+        `/api/v1/asyncQuestions/unread_async_count/${courseId}`,
       ),
   }
   questions = {

@@ -459,8 +459,23 @@ export class asyncQuestionController {
       comment,
     );
 
-    // new comment: mark question as unread for everyone (except the creator of the comment)
-    await this.asyncQuestionService.markUnreadForAll(updatedQuestion, user.id);
+    // new comment: if visible, mark question as unread for everyone (except the creator of the comment)
+    if (updatedQuestion.visible) {
+      await this.asyncQuestionService.markUnreadForAll(
+        updatedQuestion,
+        user.id,
+      );
+    } else if (myRole === Role.TA || myRole === Role.PROFESSOR) {
+      // if the question is not visible, and poster is staff, mark it as unread for the creator
+      await this.asyncQuestionService.markUnreadForCreator(updatedQuestion);
+    } else if (myRole === Role.STUDENT) {
+      // if the question is not visible, and poster is student, mark it as unread for staff
+      await this.asyncQuestionService.markUnreadForRoles(
+        updatedQuestion,
+        [Role.TA, Role.PROFESSOR],
+        user.id,
+      );
+    }
 
     // only put necessary info for the response's creator (otherwise it would send the password hash and a bunch of other unnecessary info)
     comment.creator = {
@@ -795,6 +810,36 @@ export class asyncQuestionController {
     });
 
     res.status(HttpStatus.OK).send(questions);
+    return;
+  }
+
+  // Moved from userInfo context endpoint as this updates too frequently to make sense caching it with userInfo data
+  @Get('unread_async_count/:courseId')
+  @UseGuards(JwtAuthGuard)
+  async getUnreadAsyncCount(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @UserId() userId: number,
+  ): Promise<number> {
+    const count = await UnreadAsyncQuestionModel.count({
+      where: {
+        userId,
+        courseId,
+        readLatest: false,
+      },
+    });
+    return count;
+  }
+
+  @Patch('unread_async_count/:courseId')
+  @UseGuards(JwtAuthGuard)
+  async updateUnreadAsyncCount(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @UserId() userId: number,
+  ): Promise<void> {
+    await UnreadAsyncQuestionModel.update(
+      { userId, courseId },
+      { readLatest: true },
+    );
     return;
   }
 }

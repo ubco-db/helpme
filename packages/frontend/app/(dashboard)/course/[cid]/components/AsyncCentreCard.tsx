@@ -18,7 +18,7 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
-    API.course
+    API.asyncQuestions
       .getUnreadAsyncCount(cid)
       .then((unreadCount) => setUnreadCount(unreadCount))
   }, [])
