@@ -326,9 +326,15 @@ export interface Queue {
 // Queue location/type for different queues within each course
 export type QueueTypes = 'online' | 'hybrid' | 'inPerson'
 
+export enum ExtraTAStatus {
+  HELPING_IN_ANOTHER_QUEUE = 'Helping student in another queue',
+  HELPING_IN_ANOTHER_COURSE = 'Helping student in another course',
+}
 export interface StaffMember {
   id: number
   name: string
+  helpingStudentInAnotherQueueSince?: Date
+  extraStatus?: ExtraTAStatus
   photoURL?: string
   TANotes?: string
 }

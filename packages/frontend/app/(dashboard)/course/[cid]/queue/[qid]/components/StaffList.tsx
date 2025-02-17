@@ -1,11 +1,18 @@
-import { OpenQuestionStatus, Question, QueuePartial, Role } from '@koh/common'
+import {
+  ExtraTAStatus,
+  OpenQuestionStatus,
+  Question,
+  QueuePartial,
+  Role,
+  StaffMember,
+} from '@koh/common'
 import { Badge, Button, Col, message, Popover, Row, Tooltip } from 'antd'
 import { useQuestions } from '@/app/hooks/useQuestions'
 import UserAvatar from '@/app/components/UserAvatar'
 import RenderEvery from '@/app/components/RenderEvery'
 import { formatWaitTime } from '@/app/utils/timeFormatUtils'
 import TextArea from 'antd/es/input/TextArea'
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { API } from '@/app/api'
 import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
 import { QuestionCircleOutlined } from '@ant-design/icons'
@@ -55,16 +62,16 @@ const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
             myId={userInfo.id}
             myRole={role}
             courseId={courseId}
-            taId={ta.id}
-            taName={ta.name}
-            taPhotoURL={ta.photoURL}
+            ta={ta}
             studentName={
               taToQuestions[ta.id]?.length > 1
                 ? `${taToQuestions[ta.id].length} students`
                 : taToQuestions[ta.id]?.[0]?.creator?.name
             }
-            taNotes={ta.TANotes}
-            helpedAt={taToQuestions[ta.id]?.[0]?.helpedAt}
+            helpedAt={
+              taToQuestions[ta.id]?.[0]?.helpedAt ??
+              ta.helpingStudentInAnotherQueueSince
+            }
             grouped={groups.some((g) => g.creator.id === ta.id)}
           />
         </Col>
@@ -75,13 +82,10 @@ const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
 
 interface StatusCardProps {
   courseId: number
-  taId: number
+  ta: StaffMember
   myRole?: Role
   myId?: number
-  taName?: string
-  taPhotoURL?: string
   studentName?: string
-  taNotes?: string
   helpedAt?: Date
   grouped?: boolean
 }
@@ -90,18 +94,15 @@ interface StatusCardProps {
  */
 const StatusCard: React.FC<StatusCardProps> = ({
   courseId,
-  taId,
+  ta,
   myRole,
   myId,
-  taName,
-  taPhotoURL,
-  taNotes,
   studentName,
   helpedAt,
   grouped,
 }) => {
-  const isBusy = !!helpedAt
-  const [tempTaNotes, setTempTaNotes] = useState<string | undefined>(taNotes)
+  const isBusy = !!helpedAt || !!ta.extraStatus
+  const [tempTaNotes, setTempTaNotes] = useState<string | undefined>(ta.TANotes)
   const [canSave, setCanSave] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveSuccessful, setSaveSuccessful] = useState(false)
@@ -109,7 +110,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
 
   // you can edit the notes if it's you or if you're a professor
   const shouldShowEdit =
-    myRole === Role.PROFESSOR || (myRole === Role.TA && myId === taId)
+    myRole === Role.PROFESSOR || (myRole === Role.TA && myId === ta.id)
 
   // NOTE: if you modify this popover, you might also want to make changes to the popover on the courseRosterTable
   return (
@@ -122,11 +123,11 @@ const StatusCard: React.FC<StatusCardProps> = ({
       overlayClassName="min-w-80"
       content={
         // if you can't edit it and the TA doesn't have notes, don't show anything
-        !shouldShowEdit && !taNotes ? null : (
+        !shouldShowEdit && !ta.TANotes ? null : (
           <div className="flex flex-col gap-y-2">
             {!shouldShowEdit ? (
               <div className="max-h-40 overflow-y-auto whitespace-pre-wrap">
-                {taNotes}
+                {ta.TANotes}
               </div>
             ) : (
               <>
@@ -135,7 +136,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                   autoSize={{ minRows: 4, maxRows: 7 }}
                   value={tempTaNotes}
                   onChange={(e) => {
-                    setCanSave(e.target.value !== taNotes)
+                    setCanSave(e.target.value !== ta.TANotes)
                     setTempTaNotes(e.target.value)
                   }}
                 />
@@ -147,7 +148,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                       onClick={async () => {
                         setSaveLoading(true)
                         await API.course
-                          .updateTANotes(courseId, taId, tempTaNotes ?? '')
+                          .updateTANotes(courseId, ta.id, tempTaNotes ?? '')
                           .then(() => {
                             setSaveSuccessful(true)
                             setCanSave(false)
@@ -181,7 +182,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                   </div>
                   <Button
                     onClick={() => {
-                      setTempTaNotes(taNotes)
+                      setTempTaNotes(ta.TANotes)
                       setCanSave(false)
                       setPopoverOpen(false)
                     }}
@@ -197,15 +198,15 @@ const StatusCard: React.FC<StatusCardProps> = ({
       }
       title={
         // if you can't edit it and the TA doesn't have notes, don't show anything
-        !shouldShowEdit && !taNotes ? null : (
+        !shouldShowEdit && !ta.TANotes ? null : (
           <div className="flex items-center">
-            <div>{taName} - TA Notes</div>
+            <div>{ta.name} - TA Notes</div>
             <div>
               <Tooltip
                 title={
                   myRole === Role.PROFESSOR
                     ? 'Here you can set notes on your TAs (e.g. the types of questions a TA can answer). Other users can then hover the TA to see these notes. You can also change these on the Roster page in Course Settings. TAs are able to modify their own notes.'
-                    : myRole === Role.TA && myId === taId
+                    : myRole === Role.TA && myId === ta.id
                       ? 'Here you can give yourself notes that anyone can see if they hover you. For example, you could write the types of questions you can answer. Professors can also change these notes.'
                       : 'These are notes for this TA. They are written by them or set by the professor.'
                 }
@@ -224,13 +225,13 @@ const StatusCard: React.FC<StatusCardProps> = ({
       >
         <UserAvatar
           size={48}
-          username={taName}
-          photoURL={taPhotoURL}
+          username={ta.name}
+          photoURL={ta.photoURL}
           style={{ flexShrink: 0 }}
         />
         <div className="ml-4 flex-grow">
           <Row justify="space-between">
-            <div className="font-bold text-gray-900">{taName}</div>
+            <div className="font-bold text-gray-900">{ta.name}</div>
             <span>
               <Badge status={isBusy ? 'processing' : 'success'} />
               {isBusy ? 'Busy' : 'Available'}
@@ -239,8 +240,12 @@ const StatusCard: React.FC<StatusCardProps> = ({
           <div className="mt-1 italic">
             {grouped ? (
               'Helping a group'
-            ) : isBusy ? (
-              <HelpingFor studentName={studentName} helpedAt={helpedAt} />
+            ) : isBusy && helpedAt ? (
+              <HelpingFor
+                studentName={studentName}
+                helpedAt={helpedAt}
+                extraTAStatus={ta.extraStatus}
+              />
             ) : (
               'Looking for my next student...'
             )}
@@ -253,9 +258,14 @@ const StatusCard: React.FC<StatusCardProps> = ({
 
 interface HelpingForProps {
   studentName?: string
+  extraTAStatus?: ExtraTAStatus
   helpedAt: Date
 }
-const HelpingFor: React.FC<HelpingForProps> = ({ studentName, helpedAt }) => {
+const HelpingFor: React.FC<HelpingForProps> = ({
+  studentName,
+  helpedAt,
+  extraTAStatus,
+}) => {
   // A dirty fix until we can get the serializer working properly again (i renamed `questions` in SSEQueueResponse to `queueQuestions` and renamed `queue` in ListQuestionsResponse to `questions` and stuff broke for some reason)
   let tempDate = helpedAt
   if (typeof helpedAt === 'string') {
@@ -267,6 +277,11 @@ const HelpingFor: React.FC<HelpingForProps> = ({ studentName, helpedAt }) => {
         <span>
           Helping{' '}
           <span className="text-blue-400">{studentName ?? 'a student'}</span>{' '}
+          {extraTAStatus === ExtraTAStatus.HELPING_IN_ANOTHER_COURSE ? (
+            <span className="text-red-400">in another course </span>
+          ) : extraTAStatus === ExtraTAStatus.HELPING_IN_ANOTHER_QUEUE ? (
+            <span className="text-red-400">in another queue </span>
+          ) : null}
           for{' '}
           <span className="text-blue-400">
             {formatWaitTime((Date.now() - tempDate.getTime()) / 60000)}
