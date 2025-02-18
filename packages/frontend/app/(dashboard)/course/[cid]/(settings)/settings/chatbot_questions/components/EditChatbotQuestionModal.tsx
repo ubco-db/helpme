@@ -4,7 +4,11 @@ import axios from 'axios'
 import { User } from '@koh/common'
 import { ChatbotQuestion, SourceDocument } from '../page'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { DeleteOutlined, ExclamationCircleFilled } from '@ant-design/icons'
+import {
+  DeleteOutlined,
+  ExclamationCircleFilled,
+  FileAddOutlined,
+} from '@ant-design/icons'
 
 interface FormValues {
   question: string
@@ -54,7 +58,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       .post(
         `/chat/${cid}/documentChunk`,
         {
-          documentText: values.question + '\n' + values.answer,
+          documentText: values.question + '\nAnswer:' + values.answer,
           metadata: {
             name: 'inserted Q&A',
             type: 'inserted_question',
@@ -120,11 +124,17 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
             This will treat this question and answer as a source that the AI can
             then reference and cite in future questions (a new document chunk).
           </p>
-          <p>The question&apos;s source documents are ignored</p>
+          <p>
+            The question and answer text will be whatever you have in the fields
+            right now (i.e. you do not have to click &quot;Save Changes&quot;
+            first).
+          </p>
+          <p>The question&apos;s source documents are ignored.</p>
           <p>Once inserted, this action cannot be undone.</p>
         </div>
       ),
       onOk: handleOkInsert,
+      width: 600,
       type: 'info',
       icon: <ExclamationCircleFilled className="text-blue-500" />,
       okText: 'Insert',
@@ -294,21 +304,36 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       >
         <Checkbox />
       </Form.Item>
-      <Tooltip
-        title={
-          editingRecord.inserted || successfulQAInsert
-            ? 'This question and answer has already been inserted as a new source document'
-            : "This will treat this question and answer as a source that the AI can then reference and cite in future questions (a new document chunk). The question's source documents are ignored"
+      <Form.Item
+        label="Insert Q&A as new Chatbot Document"
+        layout="horizontal"
+        tooltip={
+          <div className="flex flex-col gap-y-2">
+            <p>
+              This will treat this question and answer as a source that the AI
+              can then reference and cite in future questions (a new document
+              chunk).
+            </p>
+          </div>
         }
       >
-        <Button
-          type="default"
-          onClick={confirmInsert}
-          disabled={editingRecord.inserted || successfulQAInsert}
+        <Tooltip
+          title={
+            editingRecord.inserted || successfulQAInsert
+              ? 'This question and answer has already been inserted as a new source document'
+              : ''
+          }
         >
-          Insert Q&A as new Chatbot Document
-        </Button>
-      </Tooltip>
+          <Button
+            type="default"
+            onClick={confirmInsert}
+            disabled={editingRecord.inserted || successfulQAInsert}
+            icon={<FileAddOutlined />}
+          >
+            Insert
+          </Button>
+        </Tooltip>
+      </Form.Item>
     </Modal>
   )
 }
