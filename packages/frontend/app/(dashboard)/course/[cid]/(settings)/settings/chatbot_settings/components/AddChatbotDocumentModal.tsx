@@ -273,6 +273,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                     message: 'Please enter a valid URL.',
                   },
                 ]}
+                tooltip="When this is cited by the chatbot and a student clicks on the citation, they will be redirected to this link"
               >
                 <Input placeholder="Enter document preview URL..." />
               </Form.Item>

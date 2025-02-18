@@ -1,13 +1,26 @@
 import { useState, useEffect } from 'react'
-import { Modal, Form, Input, Button, Checkbox, message, Tooltip } from 'antd'
+import {
+  Modal,
+  Form,
+  Input,
+  Button,
+  Checkbox,
+  message,
+  Tooltip,
+  Collapse,
+  Select,
+} from 'antd'
 import axios from 'axios'
 import { User } from '@koh/common'
 import { ChatbotQuestion, SourceDocument } from '../page'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import {
+  CloseOutlined,
   DeleteOutlined,
   ExclamationCircleFilled,
   FileAddOutlined,
+  InfoCircleOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons'
 
 interface FormValues {
@@ -22,6 +35,13 @@ interface FormValues {
   }[]
 }
 
+type SelectedDocument = {
+  docId: string
+  docName: string
+  sourceLink: string
+  pageNumbers: number[]
+}
+
 interface EditChatbotQuestionModalProps {
   open: boolean
   editingRecord: ChatbotQuestion
@@ -30,6 +50,7 @@ interface EditChatbotQuestionModalProps {
   cid: number
   profile: User
   deleteQuestion: (id: string) => void
+  existingDocuments: SourceDocument[]
 }
 
 const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
@@ -40,9 +61,15 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   cid,
   profile,
   deleteQuestion,
+  existingDocuments,
 }) => {
   const [form] = Form.useForm()
   const chatbotToken = profile.chat_token.token
+
+  // stores selected documents for the question
+  const [selectedDocuments, setSelectedDocuments] = useState<
+    SelectedDocument[]
+  >([])
 
   const [successfulQAInsert, setSuccessfulQAInsert] = useState(false)
   // reset successfulQAInsert when the modal is closed
@@ -142,7 +169,6 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   }
 
   const onFinish = async (values: FormValues) => {
-    // currently, we don't allow the sourceDocuments to be added/removed in the modal since that seems really niche, but i'll leave the code here for it in case
     if (values.sourceDocuments) {
       values.sourceDocuments.forEach((doc) => {
         // Convert string to array of numbers, trimming spaces and ignoring empty entries
@@ -155,9 +181,14 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         }
       })
     }
+    const sourceDocumentsWithSelected = [
+      ...(values.sourceDocuments || []),
+      ...selectedDocuments,
+    ]
     const valuesWithId = {
       ...values,
       id: editingRecord.id,
+      sourceDocuments: sourceDocumentsWithSelected,
     }
     try {
       const response = await fetch(`/chat/${cid}/question`, {
@@ -180,6 +211,9 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       message.error('Error saving question:' + errorMessage)
     }
   }
+
+  // console.log(editingRecord)
+  console.log(form.getFieldsValue())
 
   return (
     <Modal
@@ -334,6 +368,180 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
           </Button>
         </Tooltip>
       </Form.Item>
+      <h3 className="text-base font-semibold">
+        Source Documents
+        <Tooltip title="These source documents will be displayed underneath the chatbot answer. Note that modifying these fields does NOT update the original source document, and it only modifies how the source looks for students.">
+          <QuestionCircleOutlined className="ml-1 text-gray-400" />
+        </Tooltip>
+      </h3>
+      {editingRecord.sourceDocuments &&
+        editingRecord.sourceDocuments.length > 0 && (
+          <Form.List name="sourceDocuments">
+            {(fields, { add, remove }) => (
+              <>
+                <Collapse
+                  size="small"
+                  items={fields.map(({ key, name, ...restField }) => ({
+                    key: key,
+                    label: (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          {form.getFieldValue([
+                            'sourceDocuments',
+                            name,
+                            'docName',
+                          ]) || `Document ${key + 1}`}
+                        </div>
+                        <Button
+                          icon={<CloseOutlined />}
+                          onClick={() => remove(name)}
+                          size="small"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ),
+                    children: (
+                      <div className="mb-2">
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'docName']}
+                          rules={[
+                            {
+                              required: true,
+                              message: 'Please provide a document name.',
+                            },
+                          ]}
+                          label="Display Document Name"
+                          tooltip="Display document name for students for this question"
+                        >
+                          <Input placeholder="Document Name" />
+                        </Form.Item>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'sourceLink']}
+                          rules={[
+                            {
+                              required: true,
+                              message: 'Please provide a document preview URL.',
+                            },
+                            {
+                              type: 'url',
+                              message: 'Please enter a valid URL.',
+                            },
+                          ]}
+                          label="Source Link"
+                          tooltip="When a student clicks on the citation, they will be redirected to this link"
+                        >
+                          <Input placeholder="Source Link" />
+                        </Form.Item>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'pageNumbers']}
+                          rules={[
+                            {
+                              required: true,
+                              message: 'Please provide page numbers.',
+                            },
+                            {
+                              validator: (_, value) => {
+                                if (value) {
+                                  const pageNumbersArray = value.split(
+                                    ',',
+                                  ) as string[]
+                                  if (
+                                    !pageNumbersArray ||
+                                    pageNumbersArray.length === 0
+                                  ) {
+                                    return Promise.reject(
+                                      'Please provide page numbers.',
+                                    )
+                                  }
+                                  const invalidPageNumbers = pageNumbersArray
+                                    .map((page) => page.trim())
+                                    .filter((page) => page !== '')
+                                    .map((page) => parseInt(page, 10))
+                                    .filter((page) => isNaN(page))
+                                  if (invalidPageNumbers.length > 0) {
+                                    return Promise.reject(
+                                      'Please provide valid page numbers (e.g. 1,2,3).',
+                                    )
+                                  }
+                                }
+                                return Promise.resolve()
+                              },
+                            },
+                          ]}
+                          tooltip="These page numbers are just to display to the student what page numbers the information came from."
+                          label="Display Page Numbers (comma separated)"
+                        >
+                          <Input placeholder="1,2,3" />
+                        </Form.Item>
+                      </div>
+                    ),
+                  }))}
+                />
+                <Button type="dashed" onClick={() => add()} block>
+                  Add Source Document
+                </Button>
+              </>
+            )}
+          </Form.List>
+        )}
+      <Select
+        className="my-4 w-full"
+        placeholder="Select a document to add"
+        options={existingDocuments.map((doc: SourceDocument) => ({
+          value: doc.docId,
+          label: doc.docName,
+        }))}
+        onSelect={(selectedDocId) => {
+          const selectedDoc = existingDocuments.find(
+            (doc) => doc.docId === selectedDocId,
+          )
+          if (selectedDoc) {
+            const tempSelectedDoc = {
+              docId: selectedDoc.docId ?? '',
+              docName: selectedDoc.docName,
+              sourceLink: selectedDoc.sourceLink ?? '',
+              pageNumbers: [],
+            }
+            setSelectedDocuments((prev) => {
+              const isAlreadySelected = prev.some(
+                (doc) => doc.docId === selectedDocId,
+              )
+              if (!isAlreadySelected) {
+                return [...prev, tempSelectedDoc]
+              }
+              return prev
+            })
+          } else {
+            message.error('Error selecting document: docId not found')
+          }
+        }}
+      />
+      {selectedDocuments.map((doc: SelectedDocument, index) => (
+        <div key={doc.docId}>
+          <span className="font-bold">{doc.docName}</span>
+          <Input
+            type="text"
+            placeholder="Enter page numbers (comma separated)"
+            value={doc.pageNumbers as any}
+            onChange={(e) => {
+              const updatedPageNumbers = e.target.value
+              // Split by comma, trim whitespace, filter empty strings, convert to numbers
+              const pageNumbersArray = updatedPageNumbers.split(',').map(Number)
+              setSelectedDocuments((prev: any) =>
+                prev.map((d: any, idx: number) =>
+                  idx === index
+                    ? { ...d, pageNumbers: pageNumbersArray } // array of numbers
+                    : d,
+                ),
+              )
+            }}
+          />
+        </div>
+      ))}
     </Modal>
   )
 }

@@ -1,12 +1,12 @@
 'use client'
 
-import { Button, Divider, Input, message, Modal, Table } from 'antd'
+import { Button, Divider, Input, message, Table } from 'antd'
 import { ReactElement, useCallback, useEffect, useState } from 'react'
 import ExpandableText from '@/app/components/ExpandableText'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
 import EditChatbotQuestionModal from './components/EditChatbotQuestionModal'
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
+import { EditOutlined } from '@ant-design/icons'
 import Highlighter from 'react-highlight-words'
 import AddChatbotQuestionModal from './components/AddChatbotQuestionModal'
 import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
@@ -80,7 +80,9 @@ export default function ChatbotQuestions({
   )
   const [editRecordModalOpen, setEditRecordModalOpen] = useState(false)
   const [chatQuestions, setChatQuestions] = useState<ChatbotQuestion[]>([])
-  const [existingDocuments, setExistingDocuments] = useState([])
+  const [existingDocuments, setExistingDocuments] = useState<SourceDocument[]>(
+    [],
+  )
 
   useEffect(() => {
     fetch(`/chat/${courseId}/aggregateDocuments`, {
@@ -348,6 +350,7 @@ export default function ChatbotQuestions({
             setEditRecordModalOpen(false)
           }}
           deleteQuestion={deleteQuestion}
+          existingDocuments={existingDocuments}
         />
       )}
       <div className="flex w-full items-center justify-between">
