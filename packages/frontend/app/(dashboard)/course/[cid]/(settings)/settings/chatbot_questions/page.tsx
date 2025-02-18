@@ -6,9 +6,10 @@ import ExpandableText from '@/app/components/ExpandableText'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
 import EditChatbotQuestionModal from './components/EditChatbotQuestionModal'
-import { DeleteOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import Highlighter from 'react-highlight-words'
 import AddChatbotQuestionModal from './components/AddChatbotQuestionModal'
+import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
 
 interface Loc {
   pageNumber: number
@@ -37,9 +38,10 @@ export interface SourceDocument {
 
 interface IncomingQuestionData {
   id: string
-  pageContent: string
+  pageContent: string // this is the question
   metadata: {
     answer: string
+    timestamp: string
     courseId: string
     verified: boolean
     sourceDocuments: SourceDocument[]
@@ -56,6 +58,7 @@ export interface ChatbotQuestion {
   sourceDocuments: SourceDocument[]
   suggested: boolean
   inserted?: boolean
+  createdAt: Date
 }
 
 type ChatbotQuestionsProps = {
@@ -233,27 +236,27 @@ export default function ChatbotQuestions({
       ),
     },
     {
-      title: 'Actions',
+      title: 'Date Created',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      defaultSortOrder: 'descend',
+      width: 90,
+      sorter: (a: ChatbotQuestion, b: ChatbotQuestion) => {
+        const A = a.createdAt.getTime()
+        const B = b.createdAt.getTime()
+        return A - B
+      },
+      render: (createdAt: Date) => formatDateAndTimeForExcel(createdAt),
+    },
+    {
+      // title: 'Actions',
       key: 'actions',
-      width: 100,
+      width: 50,
       render: (_: any, record: ChatbotQuestion) => (
-        <div className="flex gap-2">
-          <Button onClick={() => showEditModal(record)}>Edit</Button>
+        <div className="flex flex-col items-center justify-center gap-2">
           <Button
-            icon={<DeleteOutlined />}
-            danger
-            onClick={() => {
-              Modal.confirm({
-                title: 'Are you sure you want to delete this question?',
-                content: 'This action cannot be undone.',
-                okText: 'Yes',
-                okType: 'danger',
-                cancelText: 'No',
-                onOk() {
-                  deleteQuestion(record.id)
-                },
-              })
-            }}
+            onClick={() => showEditModal(record)}
+            icon={<EditOutlined />}
           />
         </div>
       ),
@@ -289,6 +292,7 @@ export default function ChatbotQuestions({
         sourceDocuments: question.metadata.sourceDocuments,
         suggested: question.metadata.suggested,
         inserted: question.metadata.inserted,
+        createdAt: new Date(question.metadata.timestamp),
       }))
 
       setChatQuestions(parsedQuestions)
@@ -343,6 +347,7 @@ export default function ChatbotQuestions({
             getQuestions()
             setEditRecordModalOpen(false)
           }}
+          deleteQuestion={deleteQuestion}
         />
       )}
       <div className="flex w-full items-center justify-between">

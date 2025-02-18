@@ -4,6 +4,7 @@ import axios from 'axios'
 import { User } from '@koh/common'
 import { ChatbotQuestion, SourceDocument } from '../page'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { DeleteOutlined, ExclamationCircleFilled } from '@ant-design/icons'
 
 interface FormValues {
   question: string
@@ -24,6 +25,7 @@ interface EditChatbotQuestionModalProps {
   onSuccessfulUpdate: () => void
   cid: number
   profile: User
+  deleteQuestion: (id: string) => void
 }
 
 const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
@@ -33,6 +35,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   onSuccessfulUpdate,
   cid,
   profile,
+  deleteQuestion,
 }) => {
   const [form] = Form.useForm()
   const chatbotToken = profile.chat_token.token
@@ -110,10 +113,21 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   const confirmInsert = () => {
     Modal.confirm({
       title:
-        'Are you sure you want to insert this Question and Answer into the DocumentStore?',
-      content:
-        'This will treat this question and answer as a source that the AI can then reference and cite in future questions. \nOnce inserted, this action cannot be undone.',
+        'Are you sure you want to insert this Question and Answer as a new Chatbot Document Chunk?',
+      content: (
+        <div className="flex flex-col gap-y-2">
+          <p>
+            This will treat this question and answer as a source that the AI can
+            then reference and cite in future questions (a new document chunk).
+          </p>
+          <p>The question&apos;s source documents are ignored</p>
+          <p>Once inserted, this action cannot be undone.</p>
+        </div>
+      ),
       onOk: handleOkInsert,
+      type: 'info',
+      icon: <ExclamationCircleFilled className="text-blue-500" />,
+      okText: 'Insert',
     })
   }
 
@@ -167,29 +181,40 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         autoFocus: true,
         htmlType: 'submit',
       }}
-      cancelButtonProps={{
-        danger: true,
+      width={{
+        xs: '90%',
+        sm: '85%',
+        md: '75%',
+        lg: '65%',
+        xl: '55%',
+        xxl: '45%',
       }}
       onCancel={onCancel}
       footer={(_, { OkBtn, CancelBtn }) => (
-        <div className={`flex justify-end gap-2`}>
-          <CancelBtn />
-          <Tooltip
-            title={
-              editingRecord.inserted || successfulQAInsert
-                ? 'This question and answer has already been inserted as a new source document'
-                : "This will treat this question and answer as a source that the AI can then reference and cite in future questions (a new document chunk). The question's source documents are ignored"
-            }
+        <div className="flex flex-wrap justify-between gap-2">
+          <Button
+            icon={<DeleteOutlined />}
+            danger
+            onClick={() => {
+              Modal.confirm({
+                title: 'Are you sure you want to delete this question?',
+                content: 'This action cannot be undone.',
+                okText: 'Yes',
+                okType: 'danger',
+                cancelText: 'No',
+                onOk() {
+                  deleteQuestion(editingRecord.id)
+                },
+              })
+            }}
           >
-            <Button
-              type="default"
-              onClick={confirmInsert}
-              disabled={editingRecord.inserted || successfulQAInsert}
-            >
-              Insert Q&A into DocumentStore
-            </Button>
-          </Tooltip>
-          <OkBtn />
+            {' '}
+            Delete{' '}
+          </Button>
+          <div className={`flex flex-wrap justify-end gap-2 md:gap-3`}>
+            <CancelBtn />
+            <OkBtn />
+          </div>
         </div>
       )}
       destroyOnClose
@@ -231,6 +256,19 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         layout="horizontal"
         name="verified"
         valuePropName="checked"
+        tooltip={
+          <div className="flex flex-col gap-y-2">
+            <p>
+              Answers that are marked verified will appear with a green
+              &apos;verified&apos; checkmark to students.
+            </p>
+            <p>
+              Incentive: if a future student asks a question that is similar to
+              this one, they will get this answer and get reassurance that it
+              was human verified.
+            </p>
+          </div>
+        }
       >
         <Checkbox />
       </Form.Item>
@@ -239,9 +277,38 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         layout="horizontal"
         name="suggested"
         valuePropName="checked"
+        tooltip={
+          <div className="flex flex-col gap-y-2">
+            <p>
+              When a student starts a new interaction with the chatbot, any
+              questions marked as &apos;suggested&apos; will appear for them to
+              choose if they wish. Upon them clicking a suggested question, they
+              instantly get the answer that you set here.
+            </p>
+            <p>
+              Incentive: If someone asks a question you think others might ask
+              and are happy with the answer, you can mark it as suggested.
+            </p>
+          </div>
+        }
       >
         <Checkbox />
       </Form.Item>
+      <Tooltip
+        title={
+          editingRecord.inserted || successfulQAInsert
+            ? 'This question and answer has already been inserted as a new source document'
+            : "This will treat this question and answer as a source that the AI can then reference and cite in future questions (a new document chunk). The question's source documents are ignored"
+        }
+      >
+        <Button
+          type="default"
+          onClick={confirmInsert}
+          disabled={editingRecord.inserted || successfulQAInsert}
+        >
+          Insert Q&A as new Chatbot Document
+        </Button>
+      </Tooltip>
     </Modal>
   )
 }
