@@ -8,7 +8,6 @@ import {
   message,
   Tooltip,
   Collapse,
-  Select,
 } from 'antd'
 import axios from 'axios'
 import { User } from '@koh/common'
@@ -19,7 +18,6 @@ import {
   DeleteOutlined,
   ExclamationCircleFilled,
   FileAddOutlined,
-  InfoCircleOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons'
 
@@ -35,13 +33,6 @@ interface FormValues {
   }[]
 }
 
-type SelectedDocument = {
-  docId: string
-  docName: string
-  sourceLink: string
-  pageNumbers: number[]
-}
-
 interface EditChatbotQuestionModalProps {
   open: boolean
   editingRecord: ChatbotQuestion
@@ -50,7 +41,6 @@ interface EditChatbotQuestionModalProps {
   cid: number
   profile: User
   deleteQuestion: (id: string) => void
-  existingDocuments: SourceDocument[]
 }
 
 const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
@@ -61,15 +51,9 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   cid,
   profile,
   deleteQuestion,
-  existingDocuments,
 }) => {
   const [form] = Form.useForm()
   const chatbotToken = profile.chat_token.token
-
-  // stores selected documents for the question
-  const [selectedDocuments, setSelectedDocuments] = useState<
-    SelectedDocument[]
-  >([])
 
   const [successfulQAInsert, setSuccessfulQAInsert] = useState(false)
   // reset successfulQAInsert when the modal is closed
@@ -181,14 +165,11 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         }
       })
     }
-    const sourceDocumentsWithSelected = [
-      ...(values.sourceDocuments || []),
-      ...selectedDocuments,
-    ]
+
     const valuesWithId = {
       ...values,
       id: editingRecord.id,
-      sourceDocuments: sourceDocumentsWithSelected,
+      sourceDocuments: values.sourceDocuments || [],
     }
     try {
       const response = await fetch(`/chat/${cid}/question`, {
@@ -368,7 +349,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
           </Button>
         </Tooltip>
       </Form.Item>
-      <h3 className="text-base font-semibold">
+      <h3 className="mb-1 text-base font-semibold">
         Source Documents
         <Tooltip title="These source documents will be displayed underneath the chatbot answer. Note that modifying these fields does NOT update the original source document, and it only modifies how the source looks for students.">
           <QuestionCircleOutlined className="ml-1 text-gray-400" />
@@ -378,9 +359,10 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         editingRecord.sourceDocuments.length > 0 && (
           <Form.List name="sourceDocuments">
             {(fields, { add, remove }) => (
-              <>
+              <div className="flex flex-col items-center justify-center gap-y-2">
                 <Collapse
                   size="small"
+                  className="w-full"
                   items={fields.map(({ key, name, ...restField }) => ({
                     key: key,
                     label: (
@@ -402,7 +384,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
                       </div>
                     ),
                     children: (
-                      <div className="mb-2">
+                      <>
                         <Form.Item
                           {...restField}
                           name={[name, 'docName']}
@@ -445,7 +427,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
                             },
                             {
                               validator: (_, value) => {
-                                if (value) {
+                                if (value && typeof value === 'string') {
                                   const pageNumbersArray = value.split(
                                     ',',
                                   ) as string[]
@@ -477,71 +459,21 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
                         >
                           <Input placeholder="1,2,3" />
                         </Form.Item>
-                      </div>
+                      </>
                     ),
                   }))}
                 />
-                <Button type="dashed" onClick={() => add()} block>
+                <Button
+                  type="dashed"
+                  onClick={() => add()}
+                  className="mt-2 w-1/3"
+                >
                   Add Source Document
                 </Button>
-              </>
+              </div>
             )}
           </Form.List>
         )}
-      <Select
-        className="my-4 w-full"
-        placeholder="Select a document to add"
-        options={existingDocuments.map((doc: SourceDocument) => ({
-          value: doc.docId,
-          label: doc.docName,
-        }))}
-        onSelect={(selectedDocId) => {
-          const selectedDoc = existingDocuments.find(
-            (doc) => doc.docId === selectedDocId,
-          )
-          if (selectedDoc) {
-            const tempSelectedDoc = {
-              docId: selectedDoc.docId ?? '',
-              docName: selectedDoc.docName,
-              sourceLink: selectedDoc.sourceLink ?? '',
-              pageNumbers: [],
-            }
-            setSelectedDocuments((prev) => {
-              const isAlreadySelected = prev.some(
-                (doc) => doc.docId === selectedDocId,
-              )
-              if (!isAlreadySelected) {
-                return [...prev, tempSelectedDoc]
-              }
-              return prev
-            })
-          } else {
-            message.error('Error selecting document: docId not found')
-          }
-        }}
-      />
-      {selectedDocuments.map((doc: SelectedDocument, index) => (
-        <div key={doc.docId}>
-          <span className="font-bold">{doc.docName}</span>
-          <Input
-            type="text"
-            placeholder="Enter page numbers (comma separated)"
-            value={doc.pageNumbers as any}
-            onChange={(e) => {
-              const updatedPageNumbers = e.target.value
-              // Split by comma, trim whitespace, filter empty strings, convert to numbers
-              const pageNumbersArray = updatedPageNumbers.split(',').map(Number)
-              setSelectedDocuments((prev: any) =>
-                prev.map((d: any, idx: number) =>
-                  idx === index
-                    ? { ...d, pageNumbers: pageNumbersArray } // array of numbers
-                    : d,
-                ),
-              )
-            }}
-          />
-        </div>
-      ))}
     </Modal>
   )
 }

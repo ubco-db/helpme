@@ -350,7 +350,6 @@ export default function ChatbotQuestions({
             setEditRecordModalOpen(false)
           }}
           deleteQuestion={deleteQuestion}
-          existingDocuments={existingDocuments}
         />
       )}
       <div className="flex w-full items-center justify-between">
