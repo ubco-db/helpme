@@ -140,6 +140,7 @@ export default function ChatbotSettings({
 
           {hasSelected && selectViewEnabled && (
             <Button
+              className="ml-2"
               disabled={loading}
               onClick={() => handleDeleteSelectedDocuments()}
               danger
