@@ -160,7 +160,7 @@ describe('ChatbotService', () => {
 
       const updatedQuestion = await service.editQuestion(updatedQuestionData);
 
-      expect(updatedQuestion.interactionId).toEqual(interaction2.id);
+      expect(updatedQuestion.interaction.id).toEqual(interaction2.id);
     });
   });
   afterAll(async () => {
