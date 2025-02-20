@@ -35,7 +35,7 @@ import {
   UpdateOrganizationUserRole,
   ChatbotQuestion,
   UpdateOrganizationCourseDetailsParams,
-  Interaction,
+  InteractionResponse,
   OrganizationResponse,
   DocumentParams,
   ChatbotDocument,
@@ -74,6 +74,7 @@ import {
   RemoveLMSOrganizationParams,
   UpsertLMSOrganizationParams,
   TestLMSIntegrationParams,
+  GetInteractionsAndQuestionsResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -150,19 +151,12 @@ class APIClient {
     createInteraction: async (body: {
       courseId: number
       userId: number
-    }): Promise<Interaction> =>
+    }): Promise<InteractionResponse> =>
       this.req('POST', `/api/v1/chatbot/interaction`, undefined, body),
-    getQuestions: async (
-      questionText: string,
-      pageSize: number,
-      currentPage: number,
+    getInteractionsAndQuestions: async (
       courseId: number,
-    ): Promise<ChatQuestionResponse> =>
-      this.req(
-        'GET',
-        `/api/v1/chatbot/question?questionText=${questionText}&pageSize=${pageSize}&currentPage=${currentPage}&cid=${courseId}`,
-        undefined,
-      ),
+    ): Promise<GetInteractionsAndQuestionsResponse> =>
+      this.req('GET', `/api/v1/chatbot/questions/${courseId}`),
     createQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> =>
       this.req('POST', `/api/v1/chatbot/question`, undefined, body),
     editQuestion: async (data: ChatbotQuestion): Promise<ChatbotQuestion> =>

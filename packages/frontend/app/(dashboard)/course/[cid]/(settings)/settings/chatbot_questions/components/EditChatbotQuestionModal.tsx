@@ -11,7 +11,7 @@ import {
 } from 'antd'
 import axios from 'axios'
 import { User } from '@koh/common'
-import { ChatbotQuestion, SourceDocument } from '../page'
+import { ChatbotQuestionFrontend, SourceDocument } from '../page'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import {
   CloseOutlined,
@@ -35,7 +35,7 @@ interface FormValues {
 
 interface EditChatbotQuestionModalProps {
   open: boolean
-  editingRecord: ChatbotQuestion
+  editingRecord: ChatbotQuestionFrontend
   onCancel: () => void
   onSuccessfulUpdate: () => void
   cid: number
@@ -54,6 +54,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
 }) => {
   const [form] = Form.useForm()
   const chatbotToken = profile.chat_token.token
+  const [saveLoading, setSaveLoading] = useState(false)
 
   const [successfulQAInsert, setSuccessfulQAInsert] = useState(false)
   // reset successfulQAInsert when the modal is closed
@@ -65,6 +66,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
 
   const handleOkInsert = async () => {
     const values = await form.validateFields()
+    setSaveLoading(true)
     await axios
       .post(
         `/chat/${cid}/documentChunk`,
@@ -73,7 +75,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
           metadata: {
             name: 'inserted Q&A',
             type: 'inserted_question',
-            id: editingRecord.id,
+            id: editingRecord.vectorStoreId,
             courseId: cid,
           },
         },
@@ -93,7 +95,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
             .patch(
               `/chat/${cid}/question`,
               {
-                id: editingRecord.id,
+                id: editingRecord.vectorStoreId,
                 inserted: true,
               },
               {
@@ -124,6 +126,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         const errorMessage = getErrorMessage(e)
         message.error('Failed to insert document:' + errorMessage)
       })
+    setSaveLoading(false)
   }
   const confirmInsert = () => {
     Modal.confirm({
@@ -168,7 +171,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
 
     const valuesWithId = {
       ...values,
-      id: editingRecord.id,
+      id: editingRecord.vectorStoreId,
       sourceDocuments: values.sourceDocuments || [],
     }
     try {
@@ -205,6 +208,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       okButtonProps={{
         autoFocus: true,
         htmlType: 'submit',
+        loading: saveLoading,
       }}
       width={{
         xs: '90%',
@@ -228,7 +232,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
                 okType: 'danger',
                 cancelText: 'No',
                 onOk() {
-                  deleteQuestion(editingRecord.id)
+                  deleteQuestion(editingRecord.vectorStoreId)
                 },
               })
             }}

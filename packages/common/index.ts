@@ -256,6 +256,20 @@ export interface ChatbotQuestion {
   vectorStoreId?: string
 }
 
+export interface ChatbotQuestionResponse {
+  id: number
+  vectorStoreId?: string
+  interactionId: number
+  questionText: string
+  responseText: string
+  timestamp: Date
+  userScore: number
+  suggested: boolean
+  isPreviousQuestion: boolean
+  correspondingChatbotQuestion?: any // used by chatbot_questions page on frontend. It's of type any because i'm lazy
+  timesAsked?: number // same as above
+}
+
 export interface ChatbotRequestParams {
   interactionId: number
   questionText: string
@@ -266,11 +280,10 @@ export interface ChatbotRequestParams {
   vectorStoreId: string
 }
 
-export class Interaction {
-  id!: number
-  course?: GetCourseResponse
-  user!: User
-  timestamp!: Date
+export interface InteractionResponse {
+  id: number
+  timestamp: Date
+  questions?: ChatbotQuestionResponse[]
 }
 
 export class ChatbotDocument {
@@ -279,6 +292,8 @@ export class ChatbotDocument {
   type!: string
   subDocumentIds!: string[]
 }
+
+export type GetInteractionsAndQuestionsResponse = InteractionResponse[]
 
 /**
  * Represents one of two possible roles for the global account

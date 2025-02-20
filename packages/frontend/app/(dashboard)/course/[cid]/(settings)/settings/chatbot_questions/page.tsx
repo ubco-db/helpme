@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, Divider, Input, message, Table } from 'antd'
-import { ReactElement, useCallback, useEffect, useState } from 'react'
+import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
 import ExpandableText from '@/app/components/ExpandableText'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -10,6 +10,8 @@ import { EditOutlined } from '@ant-design/icons'
 import Highlighter from 'react-highlight-words'
 import AddChatbotQuestionModal from './components/AddChatbotQuestionModal'
 import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
+import { API } from '@/app/api'
+import { ChatbotQuestionResponse } from '@koh/common' // CAREFUL this is the one returned from backend. Not to be confused with ChatbotQuestionFrontend
 
 interface Loc {
   pageNumber: number
@@ -50,15 +52,23 @@ interface IncomingQuestionData {
   }
 }
 
-export interface ChatbotQuestion {
-  id: string
+export interface ChatbotQuestionFrontend {
+  vectorStoreId: string
+  helpMeId?: number
   question: string
   answer: string
-  verified: boolean
+  verified?: boolean
   sourceDocuments: SourceDocument[]
   suggested: boolean
   inserted?: boolean
   createdAt: Date
+  timesAsked?: number | null
+  children?: ChatbotQuestionFrontend[] // this is needed by antd table for grouping interactions.
+}
+
+type ChatbotQuestionResponsePlusABit = ChatbotQuestionResponse & {
+  correspondingChatbotQuestion?: IncomingQuestionData
+  timesAsked?: number
 }
 
 type ChatbotQuestionsProps = {
@@ -72,17 +82,28 @@ export default function ChatbotQuestions({
   const [addModelOpen, setAddModelOpen] = useState(false)
   const { userInfo } = useUserInfo()
   const [search, setSearch] = useState('')
-  const [editingRecord, setEditingRecord] = useState<ChatbotQuestion | null>(
-    null,
-  )
-  const [filteredQuestions, setFilteredQuestions] = useState<ChatbotQuestion[]>(
-    [],
-  )
+  const [editingRecord, setEditingRecord] =
+    useState<ChatbotQuestionFrontend | null>(null)
   const [editRecordModalOpen, setEditRecordModalOpen] = useState(false)
-  const [chatQuestions, setChatQuestions] = useState<ChatbotQuestion[]>([])
+  const [questions, setQuestions] = useState<ChatbotQuestionFrontend[]>([])
   const [existingDocuments, setExistingDocuments] = useState<SourceDocument[]>(
     [],
   )
+  const [dataLoading, setDataLoading] = useState(false)
+
+  const filteredQuestions = useMemo(() => {
+    if (!search) {
+      return questions
+    }
+    return questions.filter((question) => {
+      return (
+        question.question.toLowerCase().includes(search.toLowerCase()) ||
+        question.children?.some((q) =>
+          q.question.toLowerCase().includes(search.toLowerCase()),
+        )
+      )
+    })
+  }, [search, questions])
 
   useEffect(() => {
     fetch(`/chat/${courseId}/aggregateDocuments`, {
@@ -101,19 +122,12 @@ export default function ChatbotQuestions({
       })
   }, [userInfo.chat_token.token, courseId])
 
-  useEffect(() => {
-    const filtered = chatQuestions.filter((q) =>
-      q.question.toLowerCase().includes(search.toLowerCase()),
-    )
-    setFilteredQuestions(filtered)
-  }, [search, chatQuestions])
-
   const columns: any[] = [
     {
       title: 'Question',
       dataIndex: 'question',
       key: 'question',
-      sorter: (a: ChatbotQuestion, b: ChatbotQuestion) => {
+      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
         const A = a.question || ''
         const B = b.question || ''
         return A.localeCompare(B)
@@ -134,7 +148,7 @@ export default function ChatbotQuestions({
       dataIndex: 'answer',
       key: 'answer',
       width: 600,
-      sorter: (a: ChatbotQuestion, b: ChatbotQuestion) => {
+      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
         const A = a.answer || ''
         const B = b.answer || ''
         return A.localeCompare(B)
@@ -195,7 +209,7 @@ export default function ChatbotQuestions({
       title: 'Verified',
       dataIndex: 'verified',
       key: 'verified',
-      sorter: (a: ChatbotQuestion, b: ChatbotQuestion) => {
+      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
         const A = a.verified ? 1 : 0
         const B = b.verified ? 1 : 0
         return B - A
@@ -204,7 +218,7 @@ export default function ChatbotQuestions({
         { text: 'Verified', value: true },
         { text: 'Not Verified', value: false },
       ],
-      onFilter: (value: boolean, record: ChatbotQuestion) =>
+      onFilter: (value: boolean, record: ChatbotQuestionFrontend) =>
         record.verified === value,
       render: (verified: boolean) => (
         <span
@@ -218,7 +232,7 @@ export default function ChatbotQuestions({
       title: 'Suggested',
       dataIndex: 'suggested',
       key: 'suggested',
-      sorter: (a: ChatbotQuestion, b: ChatbotQuestion) => {
+      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
         const A = a.suggested ? 1 : 0
         const B = b.suggested ? 1 : 0
         return B - A
@@ -227,7 +241,7 @@ export default function ChatbotQuestions({
         { text: 'Suggested', value: true },
         { text: 'Not Suggested', value: false },
       ],
-      onFilter: (value: boolean, record: ChatbotQuestion) =>
+      onFilter: (value: boolean, record: ChatbotQuestionFrontend) =>
         record.suggested === value,
       render: (suggested: boolean) => (
         <span
@@ -238,12 +252,23 @@ export default function ChatbotQuestions({
       ),
     },
     {
+      title: 'Times Asked',
+      dataIndex: 'timesAsked',
+      key: 'timesAsked',
+      width: 50,
+      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
+        const A = a.timesAsked ?? 0
+        const B = b.timesAsked ?? 0
+        return A - B
+      },
+    },
+    {
       title: 'Date Created',
       dataIndex: 'createdAt',
       key: 'createdAt',
       defaultSortOrder: 'descend',
       width: 90,
-      sorter: (a: ChatbotQuestion, b: ChatbotQuestion) => {
+      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
         const A = a.createdAt.getTime()
         const B = b.createdAt.getTime()
         return A - B
@@ -251,10 +276,9 @@ export default function ChatbotQuestions({
       render: (createdAt: Date) => formatDateAndTimeForExcel(createdAt),
     },
     {
-      // title: 'Actions',
       key: 'actions',
       width: 50,
-      render: (_: any, record: ChatbotQuestion) => (
+      render: (_: any, record: ChatbotQuestionFrontend) => (
         <div className="flex flex-col items-center justify-center gap-2">
           <Button
             onClick={() => showEditModal(record)}
@@ -265,49 +289,134 @@ export default function ChatbotQuestions({
     },
   ]
 
-  const showEditModal = (record: ChatbotQuestion) => {
+  const showEditModal = (record: ChatbotQuestionFrontend) => {
     setEditingRecord(record)
     setEditRecordModalOpen(true)
   }
 
   const getQuestions = useCallback(async () => {
+    setDataLoading(true)
+    // NOTE
+    // We store the chatbot questions in two separate backends for some reason
+    // the helpme database stores interactions and has duplicate questions
+    // the chatbot database stores .sourceDocuments and .verified and .inserted (AND is the only one updated when a question is edited AND is where added questions from AddChatbotQuestionModal go)
+    // we need to fetch both and merge them
     try {
-      const response = await fetch(`/chat/${courseId}/allQuestions`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          HMS_API_TOKEN: userInfo.chat_token.token,
-        },
-      })
+      // Fire off both requests simultaneously.
+      const [interactions, allQuestionsResponse] = await Promise.all([
+        API.chatbot.getInteractionsAndQuestions(courseId), // helpme questions
+        fetch(`/chat/${courseId}/allQuestions`, {
+          // chatbot questions
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            HMS_API_TOKEN: userInfo.chat_token.token,
+          },
+        }),
+      ])
 
-      if (!response.ok) {
-        const errorMessage = getErrorMessage(response)
+      // Check that the second response is ok.
+      if (!allQuestionsResponse.ok) {
+        const errorMessage = getErrorMessage(allQuestionsResponse)
         throw new Error(errorMessage)
       }
-      const data: IncomingQuestionData[] = await response.json() // Assuming the response is an array of questions
-      // Parse the data into the expected format
-      const parsedQuestions = data.map((question) => ({
-        id: question.id,
-        question: question.pageContent,
-        answer: question.metadata.answer,
-        verified: question.metadata.verified,
-        sourceDocuments: question.metadata.sourceDocuments,
-        suggested: question.metadata.suggested,
-        inserted: question.metadata.inserted,
-        createdAt: new Date(question.metadata.timestamp),
-      }))
 
-      setChatQuestions(parsedQuestions)
-      setFilteredQuestions(parsedQuestions)
+      const allQuestionsData: IncomingQuestionData[] =
+        await allQuestionsResponse.json()
+
+      // We need to process and merge the questions from chatbot and helpme db (in unfortunately O(n^2) time, since we basically need to manually join each chatbot question with helpme question via vectorStoreId)
+      const processedQuestions: ChatbotQuestionFrontend[] =
+        allQuestionsData
+          .map((chatbotQuestion) => {
+            // for each chatbot question, find corresponding interaction that has the chatbot question (the interaction's question must not have isPreviousQuestion)
+            let interaction = null
+            let timesAsked = 0
+            for (const tempInteraction of interactions) {
+              // the first interaction whose first question has the right id (and is not a previous question) becomes 'interaction'
+              // once the interaction is found, continue cycling through all the questions to count up timesAsked
+              if (
+                !tempInteraction.questions ||
+                tempInteraction.questions.length === 0
+              ) {
+                continue
+              }
+              if (
+                !interaction && // don't overwrite interaction if it's already set
+                tempInteraction.questions[0].vectorStoreId ===
+                  chatbotQuestion.id &&
+                !tempInteraction.questions[0].isPreviousQuestion
+              ) {
+                interaction = tempInteraction
+              }
+              // cycle through all the questions interactions
+              for (const question of tempInteraction.questions) {
+                if (question.vectorStoreId === chatbotQuestion.id) {
+                  const tempQuestion: ChatbotQuestionResponsePlusABit = question
+                  timesAsked++
+                  // this will modify the original question object
+                  tempQuestion.correspondingChatbotQuestion = chatbotQuestion // the join
+                  tempQuestion.timesAsked = timesAsked
+                }
+              }
+            }
+            if (!interaction || !interaction.questions) {
+              // if there was no corresponding interaction found (e.g. it was a manually added question), return what we can
+              return {
+                vectorStoreId: chatbotQuestion.id,
+                question: chatbotQuestion.pageContent,
+                answer: chatbotQuestion.metadata.answer,
+                verified: chatbotQuestion.metadata.verified,
+                sourceDocuments: chatbotQuestion.metadata.sourceDocuments ?? [],
+                suggested: chatbotQuestion.metadata.suggested,
+                inserted: chatbotQuestion.metadata.inserted,
+                createdAt: new Date(chatbotQuestion.metadata.timestamp),
+                timesAsked,
+              }
+            }
+
+            // add on any children (loop through the rest of the questions in each interaction and then add them as children to the first question)
+            const children = []
+            if (interaction.questions.length > 1) {
+              for (let i = 1; i < interaction.questions.length; i++) {
+                // this is probably like the only traditional for loop in the whole system lmao (I want to start from index 1)
+                const childHelpMeQuestion = interaction.questions[i]
+                if (!childHelpMeQuestion) {
+                  return null
+                }
+
+                children.push(
+                  mergeChatbotQuestions(
+                    childHelpMeQuestion,
+                    childHelpMeQuestion.correspondingChatbotQuestion,
+                    childHelpMeQuestion.timesAsked,
+                  ),
+                ) // timesAsked is null since there is no way it can be greater than 1
+              }
+            }
+
+            // finally add on the question and all of its children
+            return mergeChatbotQuestions(
+              interaction.questions[0],
+              chatbotQuestion,
+              timesAsked,
+              children.length > 0 ? children : undefined,
+            )
+          })
+          .filter((chatbotQuestion) => chatbotQuestion != null) || [] // since .map must return an array of the same length, doing .filter will remove the nulled entries
+
+      setQuestions(processedQuestions)
     } catch (e) {
       const errorMessage = getErrorMessage(e)
-      message.error('Failed to fetch questions:' + errorMessage)
+      message.error('Failed to fetch questions: ' + errorMessage)
     }
+    setDataLoading(false)
   }, [courseId, userInfo.chat_token.token])
 
   useEffect(() => {
     getQuestions()
   }, [editingRecord, getQuestions])
+
+  console.log(filteredQuestions)
 
   const deleteQuestion = async (questionId: string) => {
     try {
@@ -357,9 +466,9 @@ export default function ChatbotQuestions({
           <h3 className="m-0 p-0 text-4xl font-bold text-gray-900">
             View Chatbot Questions
           </h3>
-          <p className="text-[16px] font-medium text-gray-600">
+          <h4 className="text-[16px] font-medium text-gray-600">
             View and manage the questions being asked of your chatbot
-          </p>
+          </h4>
         </div>
         <Input
           className="flex-1"
@@ -381,7 +490,31 @@ export default function ChatbotQuestions({
         bordered
         size="small"
         dataSource={filteredQuestions}
+        loading={filteredQuestions.length === 0 && dataLoading}
       />
     </div>
   )
+}
+
+function mergeChatbotQuestions(
+  helpMeQuestion: ChatbotQuestionResponse,
+  chatbotQuestion: IncomingQuestionData | null,
+  timesAsked?: number | null,
+  children?: ChatbotQuestionFrontend[],
+): ChatbotQuestionFrontend {
+  return {
+    vectorStoreId: helpMeQuestion.vectorStoreId ?? '', // should be guaranteed to exist
+    helpMeId: helpMeQuestion.id,
+    question: chatbotQuestion?.pageContent ?? helpMeQuestion.questionText, // chatbot database question takes precedence (in general) since when you edit a question, you only edit it on chatbot database
+    answer: chatbotQuestion?.metadata.answer ?? helpMeQuestion.responseText,
+    verified: chatbotQuestion?.metadata.verified, // helpme database does not have verified
+    sourceDocuments: chatbotQuestion?.metadata.sourceDocuments ?? [], // helpme database does not have sourceDocuments
+    suggested: chatbotQuestion?.metadata.suggested ?? helpMeQuestion.suggested,
+    inserted: chatbotQuestion?.metadata.inserted, // helpme database does not have inserted
+    createdAt: new Date(
+      chatbotQuestion?.metadata.timestamp ?? helpMeQuestion.timestamp,
+    ),
+    timesAsked,
+    children,
+  }
 }

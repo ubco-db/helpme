@@ -123,4 +123,15 @@ export class ChatbotService {
 
     return await chatQuestion.remove();
   }
+
+  async getInteractionsAndQuestions(
+    courseId: number,
+  ): Promise<InteractionModel[]> {
+    const interactions = await InteractionModel.find({
+      where: { course: courseId },
+      relations: ['questions'],
+    });
+
+    return interactions;
+  }
 }
