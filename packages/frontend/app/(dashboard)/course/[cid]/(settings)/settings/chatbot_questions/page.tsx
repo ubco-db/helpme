@@ -46,16 +46,18 @@ interface IncomingQuestionData {
   pageContent: string // this is the question
   metadata: {
     answer: string
-    timestamp: string
+    timestamp?: string // i found a chatbot question without a timestamp 😭
     courseId: string
     verified: boolean
     sourceDocuments: SourceDocument[]
     suggested: boolean
     inserted?: boolean
   }
+  askedAtLeastOnce?: boolean
 }
 
 export interface ChatbotQuestionFrontend {
+  key: string
   vectorStoreId: string
   helpMeId?: number
   question: string
@@ -64,9 +66,10 @@ export interface ChatbotQuestionFrontend {
   sourceDocuments: SourceDocument[]
   suggested: boolean
   inserted?: boolean
-  createdAt: Date
+  createdAt: Date | null
   timesAsked?: number | null
   children?: ChatbotQuestionFrontend[] // this is needed by antd table for grouping interactions.
+  isChild?: boolean
 }
 
 type ChatbotQuestionResponsePlusABit = ChatbotQuestionResponse & {
@@ -222,7 +225,7 @@ export default function ChatbotQuestions({
         { text: 'Not Verified', value: false },
       ],
       onFilter: (value: boolean, record: ChatbotQuestionFrontend) =>
-        record.verified === value,
+        record.verified === value || record.isChild,
       render: (verified: boolean) => (
         <span
           className={`rounded px-2 py-1 ${verified ? 'bg-green-100' : 'bg-red-100'}`}
@@ -245,7 +248,7 @@ export default function ChatbotQuestions({
         { text: 'Not Suggested', value: false },
       ],
       onFilter: (value: boolean, record: ChatbotQuestionFrontend) =>
-        record.suggested === value,
+        record.suggested === value || record.isChild,
       render: (suggested: boolean) => (
         <span
           className={`rounded px-2 py-1 ${suggested ? 'bg-green-100' : 'bg-red-100'}`}
@@ -272,8 +275,8 @@ export default function ChatbotQuestions({
       defaultSortOrder: 'descend',
       width: 90,
       sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.createdAt.getTime()
-        const B = b.createdAt.getTime()
+        const A = a.createdAt ? a.createdAt.getTime() : 0
+        const B = b.createdAt ? b.createdAt.getTime() : 0
         return A - B
       },
       render: (createdAt: Date) => formatDateAndTimeForExcel(createdAt),
@@ -328,108 +331,10 @@ export default function ChatbotQuestions({
       const allQuestionsData: IncomingQuestionData[] =
         await allQuestionsResponse.json()
 
-      // We need to process and merge the questions from chatbot and helpme db (in unfortunately O(n^2) time, since we basically need to manually join each chatbot question with helpme question via vectorStoreId)
-      const processedQuestions: ChatbotQuestionFrontend[] = []
-      for (const chatbotQuestion of allQuestionsData) {
-        // for each chatbot question, find corresponding interaction that has the chatbot question (the interaction's question must not have isPreviousQuestion)
-        let timesAsked = 0
-        const interactionsThatStartWithThisQuestion: GetInteractionsAndQuestionsResponse =
-          []
-        let interactionWith1Length = null
-        for (const tempInteraction of interactions) {
-          // the first interaction whose first question has the right id (and is not a previous question) becomes 'interaction'
-          // once the interaction is found, continue cycling through all the questions to count up timesAsked
-          if (
-            !tempInteraction.questions ||
-            tempInteraction.questions.length === 0
-          ) {
-            continue
-          }
-          // need to merge together all 1-length interactions, but then not merge any interactions with multiple questions that start with this question
-          if (
-            !interactionWith1Length &&
-            tempInteraction.questions[0].vectorStoreId === chatbotQuestion.id &&
-            tempInteraction.questions.length === 1 &&
-            !tempInteraction.questions[0].isPreviousQuestion
-          ) {
-            interactionWith1Length = tempInteraction
-          }
-          if (
-            tempInteraction.questions[0].vectorStoreId === chatbotQuestion.id &&
-            tempInteraction.questions.length > 1
-          ) {
-            interactionsThatStartWithThisQuestion.push(tempInteraction)
-          }
-          // cycle through all the questions interactions
-          for (const question of tempInteraction.questions) {
-            if (question.vectorStoreId === chatbotQuestion.id) {
-              const tempQuestion: ChatbotQuestionResponsePlusABit = question
-              timesAsked++
-              // this will modify the original question object
-              tempQuestion.correspondingChatbotQuestion = chatbotQuestion // the join
-              tempQuestion.timesAsked = timesAsked
-            }
-          }
-        }
-
-        console.log('interactionWith1Length', interactionWith1Length)
-        if (interactionWith1Length) {
-          interactionsThatStartWithThisQuestion.push(interactionWith1Length)
-        }
-        console.log(interactionsThatStartWithThisQuestion)
-        if (interactionsThatStartWithThisQuestion.length === 0) {
-          // if there was no corresponding interaction found (e.g. it was a manually added question), return what we can
-          processedQuestions.push({
-            vectorStoreId: chatbotQuestion.id,
-            question: chatbotQuestion.pageContent,
-            answer: chatbotQuestion.metadata.answer,
-            verified: chatbotQuestion.metadata.verified,
-            sourceDocuments: chatbotQuestion.metadata.sourceDocuments ?? [],
-            suggested: chatbotQuestion.metadata.suggested,
-            inserted: chatbotQuestion.metadata.inserted,
-            createdAt: new Date(chatbotQuestion.metadata.timestamp),
-            timesAsked,
-          })
-        }
-        // loop through all the interactions that start with this question
-        for (const interaction of interactionsThatStartWithThisQuestion) {
-          if (!interaction.questions || interaction.questions.length === 0) {
-            continue
-          }
-          console.log('interaction', interaction)
-
-          // add on any children (loop through the rest of the questions in each interaction and then add them as children to the first question)
-          const children = []
-          if (interaction.questions.length > 1) {
-            for (let i = 1; i < interaction.questions.length; i++) {
-              // this is probably like the only traditional for loop in the whole system lmao (I want to start from index 1)
-              const childHelpMeQuestion = interaction.questions[i]
-              if (!childHelpMeQuestion) {
-                continue
-              }
-
-              children.push(
-                mergeChatbotQuestions(
-                  childHelpMeQuestion,
-                  childHelpMeQuestion.correspondingChatbotQuestion,
-                  childHelpMeQuestion.timesAsked,
-                ),
-              ) // timesAsked is null since there is no way it can be greater than 1
-            }
-          }
-
-          // finally add on the question and all of its children
-          processedQuestions.push(
-            mergeChatbotQuestions(
-              interaction.questions[0],
-              chatbotQuestion,
-              timesAsked,
-              children.length > 0 ? children : undefined,
-            ),
-          )
-        }
-      }
-      console.log('processedQuestions', processedQuestions)
+      const processedQuestions = processQuestions(
+        interactions,
+        allQuestionsData,
+      )
 
       setQuestions(processedQuestions)
     } catch (e) {
@@ -443,7 +348,7 @@ export default function ChatbotQuestions({
     getQuestions()
   }, [editingRecord, getQuestions])
 
-  console.log(filteredQuestions)
+  console.log('filteredQuesitons', filteredQuestions)
 
   const deleteQuestion = async (questionId: string) => {
     try {
@@ -524,24 +429,195 @@ export default function ChatbotQuestions({
 }
 
 function mergeChatbotQuestions(
-  helpMeQuestion: ChatbotQuestionResponse,
+  helpMeQuestion: ChatbotQuestionResponse | null,
   chatbotQuestion: IncomingQuestionData | null,
   timesAsked?: number | null,
   children?: ChatbotQuestionFrontend[],
+  isChild?: boolean,
 ): ChatbotQuestionFrontend {
   return {
-    vectorStoreId: helpMeQuestion.vectorStoreId ?? '', // should be guaranteed to exist
-    helpMeId: helpMeQuestion.id,
-    question: chatbotQuestion?.pageContent ?? helpMeQuestion.questionText, // chatbot database question takes precedence (in general) since when you edit a question, you only edit it on chatbot database
-    answer: chatbotQuestion?.metadata.answer ?? helpMeQuestion.responseText,
+    key:
+      (helpMeQuestion?.vectorStoreId ?? '') +
+      helpMeQuestion?.id.toString() +
+      (children && children.length > 0 ? children[0].key : ''),
+    vectorStoreId: helpMeQuestion?.vectorStoreId ?? '', // should be guaranteed to exist
+    helpMeId: helpMeQuestion?.id || -1,
+    question:
+      chatbotQuestion?.pageContent ?? helpMeQuestion?.questionText ?? 'error', // chatbot database question takes precedence (in general) since when you edit a question, you only edit it on chatbot database
+    answer:
+      chatbotQuestion?.metadata.answer ??
+      helpMeQuestion?.responseText ??
+      'error',
     verified: chatbotQuestion?.metadata.verified, // helpme database does not have verified
     sourceDocuments: chatbotQuestion?.metadata.sourceDocuments ?? [], // helpme database does not have sourceDocuments
-    suggested: chatbotQuestion?.metadata.suggested ?? helpMeQuestion.suggested,
+    suggested:
+      chatbotQuestion?.metadata.suggested ?? helpMeQuestion?.suggested ?? false,
     inserted: chatbotQuestion?.metadata.inserted, // helpme database does not have inserted
-    createdAt: new Date(
-      helpMeQuestion.timestamp ?? chatbotQuestion?.metadata.timestamp, // prioritize the helpme database for this one (since it stores duplicates n stuff)
-    ),
+    createdAt: helpMeQuestion?.timestamp
+      ? new Date(
+          helpMeQuestion.timestamp, // prioritize the helpme database for this one (since it stores duplicates n stuff)
+        )
+      : chatbotQuestion?.metadata.timestamp
+        ? new Date(chatbotQuestion.metadata.timestamp)
+        : null,
     timesAsked,
     children,
+    isChild,
   }
+}
+
+function processQuestions(
+  interactions: GetInteractionsAndQuestionsResponse,
+  allQuestionsData: IncomingQuestionData[],
+): ChatbotQuestionFrontend[] {
+  // We need to process and merge the questions from chatbot and helpme db (in unfortunately O(n^2) time, since we basically need to manually join each chatbot question with helpme question via vectorStoreId)
+  const processedQuestions: ChatbotQuestionFrontend[] = []
+  for (const chatbotQuestion of allQuestionsData) {
+    // for each chatbot question, find ALL interactions that have this chatbot question
+    let timesAsked = 0
+    const interactionsWithThisQuestion: GetInteractionsAndQuestionsResponse = []
+    let mostRecentlyAskedHelpMeVersion: ChatbotQuestionResponse | null = null
+    for (const tempInteraction of interactions) {
+      if (
+        !tempInteraction.questions ||
+        tempInteraction.questions.length === 0
+      ) {
+        continue
+      }
+
+      // cycle through all the questions interactions
+      let hasAlreadyBeenAdded = false
+      for (const helpMeQuestion of tempInteraction.questions) {
+        if (helpMeQuestion.vectorStoreId === chatbotQuestion.id) {
+          // a match
+          if (!hasAlreadyBeenAdded) {
+            // to not add the same interaction multiple times
+            interactionsWithThisQuestion.push(tempInteraction)
+            hasAlreadyBeenAdded = true
+          }
+          if (
+            !mostRecentlyAskedHelpMeVersion ||
+            mostRecentlyAskedHelpMeVersion.timestamp < helpMeQuestion.timestamp
+          ) {
+            mostRecentlyAskedHelpMeVersion = helpMeQuestion
+          }
+
+          const tempHelpMeQuestion: ChatbotQuestionResponsePlusABit =
+            helpMeQuestion
+          timesAsked++
+          // this will modify the original question object
+          tempHelpMeQuestion.correspondingChatbotQuestion = chatbotQuestion // the join
+          // tempHelpMeQuestion.timesAsked = timesAsked
+        }
+      }
+    }
+
+    if (interactionsWithThisQuestion.length === 0) {
+      // if there was no corresponding interaction found (e.g. it was a manually added question), return what we can
+      processedQuestions.push({
+        key: chatbotQuestion.id,
+        vectorStoreId: chatbotQuestion.id,
+        question: chatbotQuestion.pageContent,
+        answer: chatbotQuestion.metadata.answer,
+        verified: chatbotQuestion.metadata.verified,
+        sourceDocuments: chatbotQuestion.metadata.sourceDocuments ?? [],
+        suggested: chatbotQuestion.metadata.suggested,
+        inserted: chatbotQuestion.metadata.inserted,
+        createdAt: chatbotQuestion.metadata.timestamp
+          ? new Date(chatbotQuestion.metadata.timestamp)
+          : null,
+        timesAsked,
+      })
+    }
+
+    // Now for the children:
+    // - if if there are more than 1 interaction for this chatbot question, it will first show the chatbot question and then its children will be all the interactions and their children will be all the questions
+    // - if there is only 1 interaction for this chatbot question, it will be the first question and its children will be all the other questions in the interaction
+    if (interactionsWithThisQuestion.length > 1) {
+      const children = []
+      for (const interaction of interactionsWithThisQuestion) {
+        // if the interaction is only a single question long, don't add it
+        if (!interaction.questions || interaction.questions.length <= 1) {
+          continue
+        }
+        const grandchildren = []
+        for (let i = 1; i < interaction.questions.length; i++) {
+          const childHelpMeQuestion = interaction.questions[i]
+          if (!childHelpMeQuestion) {
+            continue
+          }
+
+          grandchildren.push(
+            mergeChatbotQuestions(
+              childHelpMeQuestion,
+              childHelpMeQuestion.correspondingChatbotQuestion,
+              null, // timesAsked is null since its not really helpful information to show in this case
+              undefined,
+              true,
+            ),
+          )
+        }
+        // for each child, they are the first question in an interaction and all of their children are the rest of the questions in the interaction
+        children.push(
+          mergeChatbotQuestions(
+            interaction.questions[0],
+            interaction.questions[0].correspondingChatbotQuestion,
+            null,
+            grandchildren.length > 0 ? grandchildren : undefined,
+            true,
+          ),
+        )
+      }
+      // finally add on the question and all of its children
+      processedQuestions.push(
+        mergeChatbotQuestions(
+          mostRecentlyAskedHelpMeVersion, // the mostRecentlyAskedHelpMeVersion is just to grab the createdAt date for it
+          chatbotQuestion,
+          timesAsked,
+          children.length > 0 ? children : undefined,
+        ),
+      )
+    } else if (interactionsWithThisQuestion.length === 1) {
+      const interaction = interactionsWithThisQuestion[0]
+      if (
+        !interaction.questions ||
+        interaction.questions.length === 0 ||
+        interaction.questions[0].vectorStoreId !== chatbotQuestion.id
+      ) {
+        // don't show the interaction if it doesn't have the chatbot question as the first question
+        continue
+      }
+
+      const children = []
+      if (interaction.questions.length > 1) {
+        for (let i = 1; i < interaction.questions.length; i++) {
+          const childHelpMeQuestion = interaction.questions[i]
+          if (!childHelpMeQuestion) {
+            continue
+          }
+
+          children.push(
+            mergeChatbotQuestions(
+              childHelpMeQuestion,
+              childHelpMeQuestion.correspondingChatbotQuestion,
+              null,
+              undefined,
+              true,
+            ),
+          )
+        }
+      }
+
+      // finally add on the question and all of its children
+      processedQuestions.push(
+        mergeChatbotQuestions(
+          interaction.questions[0],
+          chatbotQuestion,
+          timesAsked,
+          children.length > 0 ? children : undefined,
+        ),
+      )
+    }
+  }
+  return processedQuestions
 }

@@ -126,7 +126,9 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         const errorMessage = getErrorMessage(e)
         message.error('Failed to insert document:' + errorMessage)
       })
-    setSaveLoading(false)
+      .finally(() => {
+        setSaveLoading(false)
+      })
   }
   const confirmInsert = () => {
     Modal.confirm({
@@ -195,9 +197,6 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       message.error('Error saving question:' + errorMessage)
     }
   }
-
-  // console.log(editingRecord)
-  console.log(form.getFieldsValue())
 
   return (
     <Modal
