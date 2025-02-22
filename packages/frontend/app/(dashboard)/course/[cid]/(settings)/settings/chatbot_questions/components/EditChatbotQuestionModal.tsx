@@ -20,6 +20,7 @@ import {
   FileAddOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons'
+import MarkdownGuideTooltipBody from './MarkdownGuideTooltipBody'
 
 interface FormValues {
   question: string
@@ -274,6 +275,12 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       </Form.Item>
       <Form.Item
         name="answer"
+        tooltip={{
+          title: <MarkdownGuideTooltipBody />,
+          classNames: {
+            body: 'min-w-[420px]',
+          },
+        }}
         label="Answer"
         rules={[{ required: true, message: 'Please input the answer text' }]}
       >
