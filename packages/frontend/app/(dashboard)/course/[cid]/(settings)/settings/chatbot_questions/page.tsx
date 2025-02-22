@@ -6,59 +6,17 @@ import ExpandableText from '@/app/components/ExpandableText'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
 import EditChatbotQuestionModal from './components/EditChatbotQuestionModal'
-import {
-  EditOutlined,
-  MinusCircleTwoTone,
-  PlusCircleTwoTone,
-} from '@ant-design/icons'
+import { EditOutlined } from '@ant-design/icons'
 import Highlighter from 'react-highlight-words'
 import AddChatbotQuestionModal from './components/AddChatbotQuestionModal'
 import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
 import { API } from '@/app/api'
 import {
-  ChatbotQuestionResponse,
+  ChatbotQuestionResponseChatbotDB,
+  ChatbotQuestionResponseHelpMeDB,
   GetInteractionsAndQuestionsResponse,
-} from '@koh/common' // CAREFUL this is the one returned from backend. Not to be confused with ChatbotQuestionFrontend
-
-interface Loc {
-  pageNumber: number
-}
-
-export interface SourceDocument {
-  id?: string
-  metadata?: {
-    loc?: Loc
-    name: string
-    type?: string
-    source?: string
-    courseId?: string
-  }
-  type?: string
-  // TODO: is it content or pageContent? since this file uses both. EDIT: It seems to be both/either. Gross.
-  content?: string
-  pageContent: string
-  docName: string
-  docId?: string // no idea if this exists in the actual data EDIT: yes it does, sometimes
-  pageNumbers?: number[] // same with this, but this might only be for the edit question modal
-  pageNumbersString?: string // used only for the edit question modal
-  sourceLink?: string
-  pageNumber?: number
-}
-
-interface IncomingQuestionData {
-  id: string
-  pageContent: string // this is the question
-  metadata: {
-    answer: string
-    timestamp?: string // i found a chatbot question without a timestamp 😭
-    courseId: string
-    verified: boolean
-    sourceDocuments: SourceDocument[]
-    suggested: boolean
-    inserted?: boolean
-  }
-  askedAtLeastOnce?: boolean
-}
+  SourceDocument,
+} from '@koh/common'
 
 export interface ChatbotQuestionFrontend {
   key: string
@@ -74,11 +32,6 @@ export interface ChatbotQuestionFrontend {
   timesAsked?: number | null
   children?: ChatbotQuestionFrontend[] // this is needed by antd table for grouping interactions.
   isChild?: boolean
-}
-
-type ChatbotQuestionResponsePlusABit = ChatbotQuestionResponse & {
-  correspondingChatbotQuestion?: IncomingQuestionData
-  timesAsked?: number
 }
 
 type ChatbotQuestionsProps = {
@@ -258,7 +211,7 @@ export default function ChatbotQuestions({
       ),
     },
     {
-      title: 'Suggested',
+      title: 'Sugg-ested',
       dataIndex: 'suggested',
       key: 'suggested',
       sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
@@ -351,7 +304,7 @@ export default function ChatbotQuestions({
         throw new Error(errorMessage)
       }
 
-      const allQuestionsData: IncomingQuestionData[] =
+      const allQuestionsData: ChatbotQuestionResponseChatbotDB[] =
         await allQuestionsResponse.json()
 
       const processedQuestions = processQuestions(
@@ -370,8 +323,6 @@ export default function ChatbotQuestions({
   useEffect(() => {
     getQuestions()
   }, [editingRecord, getQuestions])
-
-  console.log('filteredQuesitons', filteredQuestions)
 
   const deleteQuestion = async (questionId: string) => {
     try {
@@ -446,56 +397,6 @@ export default function ChatbotQuestions({
         size="small"
         dataSource={filteredQuestions}
         loading={filteredQuestions.length === 0 && dataLoading}
-        // expandable={{
-        //   expandedRowKeys: expandedRowKeys,
-        //   expandIcon: ({ expanded, onExpand, record }) =>
-        //     !record.children ? null : !record.children[0].children ? (expanded ? (
-        //       <Button
-        //         className=' bg-sky-100' onClick={e => {
-        //           e.stopPropagation()
-        //           handleRowExpand(record)
-        //         }}
-        //         size="small"
-        //       >
-        //         Hide Full Conversation
-        //       </Button>
-        //     ) : (
-        //       <Tooltip title='Show the full conversation the student had'>
-        //       <Button
-        //         className=' bg-sky-100' onClick={e => {
-        //           e.stopPropagation()
-        //           handleRowExpand(record)
-        //         }}
-        //         size='small'
-        //       >
-        //         Show Full Conversation
-        //       </Button>
-        //         </Tooltip>
-        //     )) :
-        //       (expanded ? (
-        //         <Button
-        //           className=' bg-sky-200' onClick={e => {
-        //             e.stopPropagation()
-        //             handleRowExpand(record)
-        //           }}
-        //           size="small"
-        //         >
-        //           Hide Conversations
-        //         </Button>
-        //       ) : (
-        //         <Tooltip title='Show all conversations of 2 or more messages that have this question'>
-        //         <Button
-        //           className=' bg-sky-200' onClick={e => {
-        //             e.stopPropagation()
-        //             handleRowExpand(record)
-        //           }}
-        //           size='small'
-        //         >
-        //           Show Conversations
-        //         </Button>
-        //         </Tooltip>
-        //       ))
-        // }}
         expandable={{
           expandedRowKeys: expandedRowKeys,
           expandIcon: ({ expanded, record }) =>
@@ -549,8 +450,8 @@ export default function ChatbotQuestions({
 }
 
 function mergeChatbotQuestions(
-  helpMeQuestion: ChatbotQuestionResponse | null,
-  chatbotQuestion: IncomingQuestionData | null,
+  helpMeQuestion: ChatbotQuestionResponseHelpMeDB | null,
+  chatbotQuestion?: ChatbotQuestionResponseChatbotDB | null,
   timesAsked?: number | null,
   children?: ChatbotQuestionFrontend[],
   isChild?: boolean,
@@ -590,7 +491,7 @@ function mergeChatbotQuestions(
 
 function processQuestions(
   interactions: GetInteractionsAndQuestionsResponse,
-  allQuestionsData: IncomingQuestionData[],
+  allQuestionsData: ChatbotQuestionResponseChatbotDB[],
 ): ChatbotQuestionFrontend[] {
   // We need to process and merge the questions from chatbot and helpme db (in unfortunately O(n^2) time, since we basically need to manually join each chatbot question with helpme question via vectorStoreId)
   const processedQuestions: ChatbotQuestionFrontend[] = []
@@ -598,7 +499,8 @@ function processQuestions(
     // for each chatbot question, find ALL interactions that have this chatbot question
     let timesAsked = 0
     const interactionsWithThisQuestion: GetInteractionsAndQuestionsResponse = []
-    let mostRecentlyAskedHelpMeVersion: ChatbotQuestionResponse | null = null
+    let mostRecentlyAskedHelpMeVersion: ChatbotQuestionResponseHelpMeDB | null =
+      null
     for (const tempInteraction of interactions) {
       if (
         !tempInteraction.questions ||
@@ -624,18 +526,15 @@ function processQuestions(
             mostRecentlyAskedHelpMeVersion = helpMeQuestion
           }
 
-          const tempHelpMeQuestion: ChatbotQuestionResponsePlusABit =
-            helpMeQuestion
           timesAsked++
           // this will modify the original question object
-          tempHelpMeQuestion.correspondingChatbotQuestion = chatbotQuestion // the join
-          // tempHelpMeQuestion.timesAsked = timesAsked
+          helpMeQuestion.correspondingChatbotQuestion = chatbotQuestion // the join
         }
       }
     }
 
     if (interactionsWithThisQuestion.length === 0) {
-      // if there was no corresponding interaction found (e.g. it was a manually added question), return what we can
+      // if there was no corresponding interaction found (e.g. it was a manually added question or anytime question), return what we can
       processedQuestions.push({
         key: chatbotQuestion.id,
         vectorStoreId: chatbotQuestion.id,
@@ -652,13 +551,13 @@ function processQuestions(
       })
     }
 
-    // Now for the children:
-    // - if if there are more than 1 interaction for this chatbot question, it will first show the chatbot question and then its children will be all the interactions and their children will be all the questions
+    // Now for the children (if you give an antd table item a list of children, it will auto-create sub rows for them):
+    // - if if there are more than 1 interaction for this chatbot question, it will first show the chatbot question and then its children will be all the interactions (children) and their children will be all the questions (grandchildren)
     // - if there is only 1 interaction for this chatbot question, it will be the first question and its children will be all the other questions in the interaction
     if (interactionsWithThisQuestion.length > 1) {
       const children = []
       for (const interaction of interactionsWithThisQuestion) {
-        // if the interaction is only a single question long, don't add it
+        // if the interaction is only a single question long, don't add it (since the parent table item *is* this question)
         if (!interaction.questions || interaction.questions.length <= 1) {
           continue
         }
@@ -700,16 +599,17 @@ function processQuestions(
         ),
       )
     } else if (interactionsWithThisQuestion.length === 1) {
+      // now for case if there is only 1 interaction for this chatbot db question
       const interaction = interactionsWithThisQuestion[0]
       if (
         !interaction.questions ||
         interaction.questions.length === 0 ||
-        interaction.questions[0].vectorStoreId !== chatbotQuestion.id
+        interaction.questions[0].vectorStoreId !== chatbotQuestion.id // don't show the interaction if it doesn't have the chatbot db question as the first question (to avoid duplicates)
       ) {
-        // don't show the interaction if it doesn't have the chatbot question as the first question
         continue
       }
 
+      // make the children all the other questions in the interaction
       const children = []
       if (interaction.questions.length > 1) {
         for (let i = 1; i < interaction.questions.length; i++) {

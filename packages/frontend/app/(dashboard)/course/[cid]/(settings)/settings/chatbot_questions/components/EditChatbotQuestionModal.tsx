@@ -10,8 +10,8 @@ import {
   Collapse,
 } from 'antd'
 import axios from 'axios'
-import { User } from '@koh/common'
-import { ChatbotQuestionFrontend, SourceDocument } from '../page'
+import { SourceDocument, User } from '@koh/common'
+import { ChatbotQuestionFrontend } from '../page'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import {
   CloseOutlined,

@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Checkbox, Form, Input, Modal, Select, message } from 'antd'
-import { SourceDocument } from '../page'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
 import MarkdownGuideTooltipBody from './MarkdownGuideTooltipBody'
+import { SourceDocument } from '@koh/common'
 
 interface FormValues {
   question: string

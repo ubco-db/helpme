@@ -256,7 +256,8 @@ export interface ChatbotQuestion {
   vectorStoreId?: string
 }
 
-export interface ChatbotQuestionResponse {
+// comes from chatbot db
+export interface ChatbotQuestionResponseHelpMeDB {
   id: number
   vectorStoreId?: string
   interactionId: number
@@ -266,8 +267,50 @@ export interface ChatbotQuestionResponse {
   userScore: number
   suggested: boolean
   isPreviousQuestion: boolean
-  correspondingChatbotQuestion?: any // used by chatbot_questions page on frontend. It's of type any because i'm lazy
+  correspondingChatbotQuestion?: ChatbotQuestionResponseChatbotDB // used by chatbot_questions page on frontend. It's of type any because i'm lazy
   timesAsked?: number // same as above
+}
+
+// comes from chatbot db
+export interface ChatbotQuestionResponseChatbotDB {
+  id: string
+  pageContent: string // this is the question
+  metadata: {
+    answer: string
+    timestamp?: string // i found a chatbot question without a timestamp 😭
+    courseId: string
+    verified: boolean
+    sourceDocuments: SourceDocument[]
+    suggested: boolean
+    inserted?: boolean
+  }
+  askedAtLeastOnce?: boolean
+}
+
+interface Loc {
+  pageNumber: number
+}
+
+// source document return type (from chatbot db)
+export interface SourceDocument {
+  id?: string
+  metadata?: {
+    loc?: Loc
+    name: string
+    type?: string
+    source?: string
+    courseId?: string
+  }
+  type?: string
+  // TODO: is it content or pageContent? since this file uses both. EDIT: It seems to be both/either. Gross.
+  content?: string
+  pageContent: string
+  docName: string
+  docId?: string // no idea if this exists in the actual data EDIT: yes it does, sometimes
+  pageNumbers?: number[] // same with this, but this might only be for the edit question modal
+  pageNumbersString?: string // used only for the edit question modal
+  sourceLink?: string
+  pageNumber?: number
 }
 
 export interface ChatbotRequestParams {
@@ -283,7 +326,7 @@ export interface ChatbotRequestParams {
 export interface InteractionResponse {
   id: number
   timestamp: Date
-  questions?: ChatbotQuestionResponse[]
+  questions?: ChatbotQuestionResponseHelpMeDB[]
 }
 
 export class ChatbotDocument {

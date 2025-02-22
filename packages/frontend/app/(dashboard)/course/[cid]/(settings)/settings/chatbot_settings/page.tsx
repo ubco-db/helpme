@@ -4,12 +4,12 @@ import { Button, Input, Pagination, Progress, Table, message } from 'antd'
 import { ReactElement, useCallback, useEffect, useState } from 'react'
 import axios from 'axios'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { SourceDocument } from '../chatbot_questions/page'
 import Link from 'next/link'
 import { TableRowSelection } from 'antd/es/table/interface'
 import ChatbotSettingsModal from './components/ChatbotSettingsModal'
 import Highlighter from 'react-highlight-words'
 import AddChatbotDocumentModal from './components/AddChatbotDocumentModal'
+import { SourceDocument } from '@koh/common'
 
 export interface ChatbotDocument {
   id: number
