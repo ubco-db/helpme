@@ -1,12 +1,16 @@
 'use client'
 
-import { Button, Divider, Input, message, Table } from 'antd'
+import { Button, Divider, Input, message, Table, Tooltip } from 'antd'
 import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
 import ExpandableText from '@/app/components/ExpandableText'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
 import EditChatbotQuestionModal from './components/EditChatbotQuestionModal'
-import { EditOutlined } from '@ant-design/icons'
+import {
+  EditOutlined,
+  MinusCircleTwoTone,
+  PlusCircleTwoTone,
+} from '@ant-design/icons'
 import Highlighter from 'react-highlight-words'
 import AddChatbotQuestionModal from './components/AddChatbotQuestionModal'
 import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
@@ -96,6 +100,25 @@ export default function ChatbotQuestions({
     [],
   )
   const [dataLoading, setDataLoading] = useState(false)
+
+  // choosing to manually control which antd table rows are expanded so that we can expand all children conversations when they click "show conversations"
+  const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([])
+  const handleRowExpand = (record: ChatbotQuestionFrontend) => {
+    let keys = [...expandedRowKeys]
+    const parentKey = record.key
+    const childKeys = record.children
+      ? record.children.map((child) => child.key)
+      : []
+
+    if (keys.includes(parentKey)) {
+      // already expanded, so collapse parent and remove its children
+      keys = keys.filter((key) => key !== parentKey && !childKeys.includes(key))
+    } else {
+      // expand parent and add children keys too.
+      keys.push(parentKey, ...childKeys)
+    }
+    setExpandedRowKeys(keys)
+  }
 
   const filteredQuestions = useMemo(() => {
     if (!search) {
@@ -423,6 +446,103 @@ export default function ChatbotQuestions({
         size="small"
         dataSource={filteredQuestions}
         loading={filteredQuestions.length === 0 && dataLoading}
+        // expandable={{
+        //   expandedRowKeys: expandedRowKeys,
+        //   expandIcon: ({ expanded, onExpand, record }) =>
+        //     !record.children ? null : !record.children[0].children ? (expanded ? (
+        //       <Button
+        //         className=' bg-sky-100' onClick={e => {
+        //           e.stopPropagation()
+        //           handleRowExpand(record)
+        //         }}
+        //         size="small"
+        //       >
+        //         Hide Full Conversation
+        //       </Button>
+        //     ) : (
+        //       <Tooltip title='Show the full conversation the student had'>
+        //       <Button
+        //         className=' bg-sky-100' onClick={e => {
+        //           e.stopPropagation()
+        //           handleRowExpand(record)
+        //         }}
+        //         size='small'
+        //       >
+        //         Show Full Conversation
+        //       </Button>
+        //         </Tooltip>
+        //     )) :
+        //       (expanded ? (
+        //         <Button
+        //           className=' bg-sky-200' onClick={e => {
+        //             e.stopPropagation()
+        //             handleRowExpand(record)
+        //           }}
+        //           size="small"
+        //         >
+        //           Hide Conversations
+        //         </Button>
+        //       ) : (
+        //         <Tooltip title='Show all conversations of 2 or more messages that have this question'>
+        //         <Button
+        //           className=' bg-sky-200' onClick={e => {
+        //             e.stopPropagation()
+        //             handleRowExpand(record)
+        //           }}
+        //           size='small'
+        //         >
+        //           Show Conversations
+        //         </Button>
+        //         </Tooltip>
+        //       ))
+        // }}
+        expandable={{
+          expandedRowKeys: expandedRowKeys,
+          expandIcon: ({ expanded, record }) =>
+            !record.children ? null : !record.children[0].children ? (
+              expanded ? (
+                <button
+                  className=" ant-table-row-expand-icon ant-table-row-expand-icon-expanded bg-sky-100"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleRowExpand(record)
+                  }}
+                  aria-expanded="true"
+                />
+              ) : (
+                <Tooltip title="Show the full conversation the student had">
+                  <button
+                    className="ant-table-row-expand-icon ant-table-row-expand-icon-collapsed bg-sky-100"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleRowExpand(record)
+                    }}
+                    aria-expanded="false"
+                  />
+                </Tooltip>
+              )
+            ) : expanded ? (
+              <button
+                className="ant-table-row-expand-icon ant-table-row-expand-icon-expanded bg-sky-200"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleRowExpand(record)
+                }}
+                aria-expanded="true"
+              />
+            ) : (
+              <Tooltip title="Show all conversations of 2 or more messages that have this question">
+                <button
+                  className="ant-table-row-expand-icon ant-table-row-expand-icon-collapsed bg-sky-200"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleRowExpand(record)
+                  }}
+                  aria-expanded="false"
+                />
+              </Tooltip>
+            ),
+        }}
       />
     </div>
   )
@@ -436,10 +556,12 @@ function mergeChatbotQuestions(
   isChild?: boolean,
 ): ChatbotQuestionFrontend {
   return {
+    // key must be unique for each row in the table (otherwise weird react re-render things happen)
     key:
       (helpMeQuestion?.vectorStoreId ?? '') +
       helpMeQuestion?.id.toString() +
-      (children && children.length > 0 ? children[0].key : ''),
+      (children && children.length > 0 ? children[0].key : '') +
+      (isChild ? 'child' : ''),
     vectorStoreId: helpMeQuestion?.vectorStoreId ?? '', // should be guaranteed to exist
     helpMeId: helpMeQuestion?.id || -1,
     question:
