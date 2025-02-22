@@ -14,8 +14,13 @@ export class QueueRolesGuard extends RolesGuard {
       throw new NotFoundException(ERROR_MESSAGES.queueRoleGuard.queueNotFound);
     }
     const courseId = queue.courseId ?? request.params.cid ?? null;
-    const user = await UserModel.findOne(request.user.userId, {
-      relations: ['courses'],
+    const user = await UserModel.findOne({
+      where: {
+        id: request.user.userId,
+      },
+      relations: {
+        courses: true,
+      },
     });
 
     return { courseId, user };

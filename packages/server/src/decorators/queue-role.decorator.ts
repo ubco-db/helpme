@@ -11,8 +11,13 @@ export const QueueRole = createParamDecorator(
     const request = ctx.switchToHttp().getRequest();
     const queue = await QueueModel.findOne(request.params.queueId);
     const courseId = queue?.courseId;
-    const user = await UserModel.findOne(request.user.userId, {
-      relations: ['courses'],
+    const user = await UserModel.findOne({
+      where: {
+        id: request.user.userId,
+      },
+      relations: {
+        courses: true,
+      },
     });
 
     const userCourse = user.courses.find((course) => {

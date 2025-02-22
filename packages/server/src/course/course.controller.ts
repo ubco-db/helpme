@@ -25,24 +25,24 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpException,
   HttpStatus,
   NotFoundException,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
-  Res,
   Req,
+  Res,
   UnauthorizedException,
   UseGuards,
   UseInterceptors,
-  ParseIntPipe,
-  ForbiddenException,
 } from '@nestjs/common';
 import async from 'async';
-import { Response, Request } from 'express';
+import { Request, Response } from 'express';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Roles } from '../decorators/roles.decorator';
@@ -62,7 +62,7 @@ import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
 import { ApplicationConfigService } from '../config/application_config.service';
-import { Not, getManager } from 'typeorm';
+import { getManager, Not } from 'typeorm';
 import { pick } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
@@ -276,8 +276,16 @@ export class CourseController {
     @User() user: UserModel,
   ): Promise<GetCourseResponse> {
     // TODO: for all course endpoint, check if they're a student or a TA
-    const course = await CourseModel.findOne(id, {
-      relations: ['queues', 'queues.staffList', 'organizationCourse'],
+    const course = await CourseModel.findOne({
+      where: {
+        id: id,
+      },
+      relations: {
+        queues: {
+          staffList: true,
+        },
+        organizationCourse: true,
+      },
     });
     if (course === null || course === undefined) {
       console.error(
@@ -373,7 +381,11 @@ export class CourseController {
       organizationCourse: organization,
     };
     try {
-      course_response.crns = await CourseSectionMappingModel.find({ course });
+      course_response.crns = await CourseSectionMappingModel.find({
+        where: {
+          course: course,
+        },
+      });
     } catch (err) {
       console.error(
         ERROR_MESSAGES.courseController.courseOfficeHourError +
@@ -439,9 +451,11 @@ export class CourseController {
     }
 
     const queue = await QueueModel.findOne({
-      room,
-      courseId,
-      isDisabled: false,
+      where: {
+        room: room,
+        courseId: courseId,
+        isDisabled: false,
+      },
     });
 
     if (queue) {
@@ -457,7 +471,9 @@ export class CourseController {
       );
     }
     const queuesCount = await QueueModel.count({
-      courseId,
+      where: {
+        courseId: courseId,
+      },
     });
 
     if (queuesCount >= this.appConfig.get('max_queues_per_course')) {
@@ -525,13 +541,15 @@ export class CourseController {
     @Param('qid', ParseIntPipe) qid: number,
     @User() user: UserModel,
   ): Promise<QueuePartial> {
-    const queue = await QueueModel.findOne(
-      {
+    const queue = await QueueModel.findOne({
+      where: {
         id: qid,
         isDisabled: false,
       },
-      { relations: ['staffList'] },
-    );
+      relations: {
+        staffList: true,
+      },
+    });
 
     const userCourseModel = await UserCourseModel.findOne({
       where: {
@@ -627,13 +645,15 @@ export class CourseController {
     @Param('qid') qid: number,
     @User() user: UserModel,
   ): Promise<TACheckoutResponse> {
-    const queue = await QueueModel.findOne(
-      {
+    const queue = await QueueModel.findOne({
+      where: {
         id: qid,
         isDisabled: false,
       },
-      { relations: ['staffList'] },
-    );
+      relations: {
+        staffList: true,
+      },
+    });
 
     if (queue === undefined || queue === null) {
       throw new HttpException(
@@ -829,14 +849,13 @@ export class CourseController {
       search = '';
     }
     const roles = role === 'staff' ? [Role.TA, Role.PROFESSOR] : [role];
-    const users = await this.courseService.getUserInfo(
+    return await this.courseService.getUserInfo(
       courseId,
       page,
       pageSize,
       search,
       roles,
     );
-    return users;
   }
 
   @Post('enroll_by_invite_code/:code')
@@ -942,7 +961,11 @@ export class CourseController {
       return;
     }
 
-    const course = await CourseModel.findOne({ id: courseId });
+    const course = await CourseModel.findOne({
+      where: {
+        id: courseId,
+      },
+    });
 
     await this.courseService
       .addStudentToCourse(course, user)
@@ -973,7 +996,12 @@ export class CourseController {
     @Param('role') role: Role,
     @Res() res: Response,
   ): Promise<void> {
-    const user = await UserCourseModel.findOne({ userId, courseId });
+    const user = await UserCourseModel.findOne({
+      where: {
+        userId: userId,
+        courseId: courseId,
+      },
+    });
 
     if (!user) {
       res.status(HttpStatus.NOT_FOUND).send({ message: 'User not found' });

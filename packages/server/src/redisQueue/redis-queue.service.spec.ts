@@ -1,16 +1,16 @@
-import { RedisModule } from 'nestjs-redis';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { RedisQueueService } from './redis-queue.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { asyncQuestionStatus } from '@koh/common';
 import Redis from 'ioredis';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 describe('RedisQueueService', () => {
   let service: RedisQueueService;
   let redis: Redis;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     redis = new Redis();
@@ -22,26 +22,25 @@ describe('RedisQueueService', () => {
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
-        RedisModule.register([
-          { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
-          { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
-          { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
-        ]),
+        RedisModule.forRoot({
+          type: 'single',
+          url: `redis://${process.env.REDIS_HOST || 'localhost'}:6379`,
+        }),
         RedisQueueService,
       ],
     }).compile();
 
     service = module.get<RedisQueueService>(RedisQueueService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  afterAll(async () => {
+    await dataSource.destroy();
   });
 
-  afterEach(async () => {
+  beforeEach(async () => {
     await redis.flushall();
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('setAsyncQuestions', () => {

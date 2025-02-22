@@ -53,7 +53,11 @@ export class MailServicesController {
 
     if (!subscription) {
       // If no subscription exists, create a new one
-      const mailService = await MailServiceModel.findOne(id);
+      const mailService = await MailServiceModel.findOne({
+        where: {
+          id: id,
+        },
+      });
       if (!mailService) {
         throw new HttpException('Invalid mail service', HttpStatus.BAD_REQUEST);
       }

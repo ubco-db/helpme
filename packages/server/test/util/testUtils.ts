@@ -3,10 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModuleBuilder } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RedisModule } from 'nestjs-redis';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { NotificationService } from 'notification/notification.service';
 import * as supertest from 'supertest';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { addGlobalsToApp } from '../../src/bootstrap';
 import { LoginModule } from '../../src/login/login.module';
 import { ApplicationConfigService } from 'config/application_config.service';
@@ -26,7 +26,6 @@ export const TestTypeOrmModule = TypeOrmModule.forRoot({
   database: 'test',
   entities: ['./**/*.entity.ts'],
   synchronize: true,
-  keepConnectionAlive: true,
 });
 
 export const TestConfigModule = ConfigModule.forRoot({
@@ -41,7 +40,7 @@ export function setupIntegrationTest(
 ): (u?: SupertestOptions) => supertest.SuperTest<supertest.Test> {
   let app: INestApplication;
   let jwtService: JwtService;
-  let conn: Connection;
+  let dataSource: DataSource;
   let appConfig: ApplicationConfigService;
   let schedulerRegistry: SchedulerRegistry;
 
@@ -55,11 +54,10 @@ export function setupIntegrationTest(
         TestConfigModule,
         ApplicationConfigModule,
         ScheduleModule.forRoot(),
-        RedisModule.register([
-          { name: 'pub' },
-          { name: 'sub' },
-          { name: 'db' },
-        ]),
+        RedisModule.forRoot({
+          type: 'single',
+          url: '',
+        }),
       ],
     });
 
@@ -74,7 +72,7 @@ export function setupIntegrationTest(
     appConfig = testModule.get<ApplicationConfigService>(
       ApplicationConfigService,
     );
-    conn = testModule.get<Connection>(Connection);
+    dataSource = testModule.get<DataSource>(DataSource);
 
     await appConfig.loadConfig();
     await app.init();
@@ -83,11 +81,11 @@ export function setupIntegrationTest(
 
   afterAll(async () => {
     await app.close();
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
     await clearAllCronJobs(schedulerRegistry);
   });
 

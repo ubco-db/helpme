@@ -1,38 +1,38 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
-  Delete,
   Query,
   Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
 import {
+  COURSE_TIMEZONES,
+  CourseResponse,
+  CourseSettingsRequestBody,
   ERROR_MESSAGES,
   GetOrganizationUserResponse,
+  OrganizationProfessor,
   OrganizationResponse,
   OrganizationRole,
+  OrgUser,
   Role,
   UpdateOrganizationCourseDetailsParams,
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
   UpdateProfileParams,
   UserRole,
-  COURSE_TIMEZONES,
-  CourseSettingsRequestBody,
-  OrganizationProfessor,
-  CourseResponse,
-  OrgUser,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -52,13 +52,12 @@ import * as path from 'path';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SemesterModel } from 'semester/semester.entity';
-import { getManager, In } from 'typeorm';
+import { DeepPartial, getManager, In } from 'typeorm';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
-import _ from 'lodash';
 import * as sharp from 'sharp';
 import { UserId } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
@@ -346,7 +345,7 @@ export class OrganizationController {
       });
     }
 
-    const course = {
+    const course: DeepPartial<CourseModel> = {
       name: courseDetails.name,
       coordinator_email: courseDetails.coordinator_email,
       sectionGroupName: courseDetails.sectionGroupName,
@@ -355,7 +354,7 @@ export class OrganizationController {
       enabled: true,
     };
     try {
-      const newCourse = await CourseModel.create(course).save();
+      const newCourse = await CourseModel.create<CourseModel>(course).save();
 
       if (courseDetails.profIds)
         for (const profId of courseDetails.profIds) {
@@ -550,13 +549,11 @@ export class OrganizationController {
     }
 
     if (!semester) {
-      const newSemester = await SemesterModel.create({
+      courseInfo.course.semester = await SemesterModel.create({
         season: semesterDetails[0],
         year: parseInt(semesterDetails[1]),
         courses: [courseInfo.course],
       }).save();
-
-      courseInfo.course.semester = newSemester;
       await courseInfo.course.save();
     } else {
       courseInfo.course.semester = semester;
@@ -1459,14 +1456,7 @@ export class OrganizationController {
       search = '';
     }
 
-    const users = await this.organizationService.getUsers(
-      oid,
-      page,
-      pageSize,
-      search,
-    );
-
-    return users;
+    return await this.organizationService.getUsers(oid, page, pageSize, search);
   }
 
   @Get(':oid/get_courses/:page?')
@@ -1483,14 +1473,12 @@ export class OrganizationController {
       search = '';
     }
 
-    const courses = await this.organizationService.getCourses(
+    return await this.organizationService.getCourses(
       oid,
       page,
       pageSize,
       search,
     );
-
-    return courses;
   }
 
   @Get(':oid/get_professors/:courseId')

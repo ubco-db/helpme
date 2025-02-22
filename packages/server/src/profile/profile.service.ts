@@ -6,7 +6,7 @@ import {
 } from 'login/last-registration-model.entity';
 import { LoginCourseService } from 'login/login-course.service';
 import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { UserModel } from './user.entity';
 import { QuestionModel } from 'question/question.entity';
 import { MailService } from 'mail/mail.service';
@@ -14,7 +14,7 @@ import { MailService } from 'mail/mail.service';
 @Injectable()
 export class ProfileService {
   constructor(
-    private connection: Connection,
+    private dataSource: DataSource,
     private mailService: MailService,
     private loginCourseService: LoginCourseService,
   ) {}

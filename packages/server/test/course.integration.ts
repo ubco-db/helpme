@@ -30,7 +30,6 @@ import { setupIntegrationTest } from './util/testUtils';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
-import { QuestionModel } from 'question/question.entity';
 
 describe('Course Integration', () => {
   const supertest = setupIntegrationTest(CourseModule);
@@ -370,7 +369,7 @@ describe('Course Integration', () => {
       });
 
       expect(
-        (await QueueModel.findOne({}, { relations: ['staffList'] })).staffList
+        (await QueueModel.findOne({ relations: { staffList: true } })).staffList
           .length,
       ).toEqual(1);
 
@@ -379,7 +378,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ relations: { staffList: true } }),
       ).toMatchObject({
         staffList: [],
       });
@@ -418,7 +417,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ relations: { staffList: true } }),
       ).toMatchObject({
         staffList: [],
       });
@@ -456,7 +455,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ relations: { staffList: true } }),
       ).toMatchObject({
         staffList: [],
       });
@@ -485,7 +484,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ relations: { staffList: true } }),
       ).toMatchObject({
         staffList: [ta2],
       });
@@ -524,7 +523,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ relations: { staffList: true } }),
       ).toMatchObject({
         staffList: [],
       });
@@ -563,9 +562,9 @@ describe('Course Integration', () => {
         .send({ notes: 'ta queue', isProfessorQueue: false })
         .expect(201);
 
-      const q1 = await QueueModel.findOne({ room: 'abcd1' });
-      const q2 = await QueueModel.findOne({ room: 'abcd2' });
-      const q3 = await QueueModel.findOne({ room: 'abcd3' });
+      const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
+      const q2 = await QueueModel.findOne({ where: { room: 'abcd2' } });
+      const q3 = await QueueModel.findOne({ where: { room: 'abcd3' } });
 
       expect(q1).toBeDefined();
       expect(q2).toBeDefined();
@@ -657,7 +656,7 @@ describe('Course Integration', () => {
         })
         .expect(201);
 
-      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
       expect(q1.config).toEqual(exampleConfig);
     });
 
@@ -675,7 +674,7 @@ describe('Course Integration', () => {
         })
         .expect(400);
 
-      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
       expect(q1).toEqual(undefined);
     });
 
@@ -706,7 +705,7 @@ describe('Course Integration', () => {
         })
         .expect(201);
 
-      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
       expect(q1.config).toEqual(exampleConfig);
 
       const questionTypes = await QuestionTypeModel.find({
@@ -749,7 +748,7 @@ describe('Course Integration', () => {
         })
         .expect(400);
 
-      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
       expect(q1).toBeUndefined();
 
       const questionTypes = await QuestionTypeModel.find({
@@ -1585,11 +1584,10 @@ describe('Course Integration', () => {
     let course;
     let student;
     let professor;
-    let courseSettings;
 
     beforeEach(async () => {
       course = await CourseFactory.create();
-      courseSettings = await CourseSettingsFactory.create({
+      await CourseSettingsFactory.create({
         course: course,
       });
 
@@ -1910,7 +1908,7 @@ describe('Course Integration', () => {
       const professor = await UserFactory.create();
       const student1 = await UserFactory.create();
       const student2 = await UserFactory.create();
-      const student3 = await UserFactory.create();
+
       await UserCourseFactory.create({
         user: professor,
         role: Role.PROFESSOR,

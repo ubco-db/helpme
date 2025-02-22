@@ -53,13 +53,12 @@ export class QuestionTypeService {
     transactionalEntityManager: EntityManager,
   ): Promise<void> {
     // update the queue's config to include the new question type
-    const queue = await transactionalEntityManager.findOne(
-      QueueModel,
-      queueId,
-      {
-        lock: { mode: 'pessimistic_write' },
+    const queue = await transactionalEntityManager.findOne(QueueModel, {
+      where: {
+        id: queueId,
       },
-    );
+      lock: { mode: 'pessimistic_write' },
+    });
     if (!queue) {
       throw new NotFoundException(`Queue ${queueId} not found`);
     }

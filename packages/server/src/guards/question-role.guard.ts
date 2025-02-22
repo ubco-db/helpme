@@ -35,7 +35,11 @@ export class QuestionRolesGuard extends RolesGuard {
       );
     }
 
-    const queue = await QueueModel.findOne(queueId);
+    const queue = await QueueModel.findOne({
+      where: {
+        id: queueId,
+      },
+    });
 
     // You cannot interact with a question in a nonexistent queue
     if (!queue) {
@@ -44,8 +48,13 @@ export class QuestionRolesGuard extends RolesGuard {
       );
     }
     const courseId = queue.courseId;
-    const user = await UserModel.findOne(request.user.userId, {
-      relations: ['courses'],
+    const user = await UserModel.findOne({
+      where: {
+        id: request.user.userId,
+      },
+      relations: {
+        courses: true,
+      },
     });
 
     return { courseId, user };

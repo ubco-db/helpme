@@ -11,13 +11,13 @@ import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { UserModel } from 'profile/user.entity';
 import { SemesterModel } from 'semester/semester.entity';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { ProfSectionGroupsModel } from './prof-section-groups.entity';
 import { khourySemesterCodes } from './last-registration-model.entity';
 
 @Injectable()
 export class LoginCourseService {
-  constructor(private connection: Connection) {}
+  constructor(private dataSource: DataSource) {}
 
   public async addUserFromKhoury(info: KhouryDataParams): Promise<UserModel> {
     let user: UserModel;

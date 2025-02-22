@@ -33,7 +33,11 @@ export class CalendarController {
     @Body() body: Calendar,
     @Param('cid', ParseIntPipe) cid: number,
   ): Promise<CalendarModel> {
-    const course = await CourseModel.findOne(cid);
+    const course = await CourseModel.findOne({
+      where: {
+        id: cid,
+      },
+    });
     if (!course) {
       throw new HttpException(
         ERROR_MESSAGES.courseController.courseNotFound,
@@ -105,11 +109,18 @@ export class CalendarController {
   @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async updateEvent(
-    @Param('calId', ParseIntPipe) calId: string,
+    @Param('calId', ParseIntPipe) calId: number,
     @Param('cid', ParseIntPipe) cid: number,
     @Body() body: Partial<Calendar>,
   ): Promise<CalendarModel> {
-    const event = await CalendarModel.findOne(calId, { relations: ['staff'] });
+    const event = await CalendarModel.findOne({
+      where: {
+        id: calId,
+      },
+      relations: {
+        staff: true,
+      },
+    });
     if (!event) {
       console.error('Event not found with calID: ' + calId);
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
@@ -183,8 +194,14 @@ export class CalendarController {
   ): Promise<Calendar[]> {
     const events: (CalendarModel & { staffIds?: number[] })[] =
       await CalendarModel.find({
-        where: { course: cid },
-        relations: ['staff'],
+        where: {
+          course: {
+            id: cid,
+          },
+        },
+        relations: {
+          staff: true,
+        },
       });
     // reduce staff from [{userId: 1, calendarId: 2}, {userId: 3, calendarId: 2}] to [1, 3]
     events.forEach((event) => {
@@ -211,8 +228,14 @@ export class CalendarController {
     const dayOfWeek = targetDate.getDay().toString();
     // Retrieve all events for the given course
     const events = await CalendarModel.find({
-      where: { course: cid },
-      relations: ['staff'],
+      where: {
+        course: {
+          id: cid,
+        },
+      },
+      relations: {
+        staff: true,
+      },
     });
     // Filter to get events occurring on the target date
     const filteredEvents: (CalendarModel & { staffIds?: number[] })[] =
@@ -244,8 +267,13 @@ export class CalendarController {
   async deleteCalendarEvent(
     @Param('eventId', ParseIntPipe) eventId: number,
   ): Promise<CalendarModel> {
-    const event = await CalendarModel.findOne(eventId, {
-      relations: ['staff'],
+    const event = await CalendarModel.findOne({
+      where: {
+        id: eventId,
+      },
+      relations: {
+        staff: true,
+      },
     });
     if (!event) {
       console.error('Event not found');

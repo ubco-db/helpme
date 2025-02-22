@@ -4,11 +4,12 @@ import { asyncQuestionController } from './asyncQuestion.controller';
 import { asyncQuestionService } from './asyncQuestion.service';
 import { MailModule, MailTestingModule } from 'mail/mail.module';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { RedisQueueModule } from '../redisQueue/redis-queue.module';
 
 @Module({
   controllers: [asyncQuestionController],
   providers: [asyncQuestionService, RedisQueueService],
-  imports: [NotificationModule, MailModule, RedisQueueService],
+  imports: [NotificationModule, MailModule, RedisQueueModule],
   exports: [asyncQuestionService],
 })
 export class asyncQuestionModule {}

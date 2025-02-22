@@ -1,4 +1,4 @@
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { OrganizationService } from './organization.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
@@ -14,7 +14,7 @@ import { UserCourseModel } from 'profile/user-course.entity';
 
 describe('OrganizationService', () => {
   let service: OrganizationService;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -22,15 +22,15 @@ describe('OrganizationService', () => {
       providers: [OrganizationService],
     }).compile();
     service = module.get<OrganizationService>(OrganizationService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('getOrganizationAndRoleByUserId', () => {

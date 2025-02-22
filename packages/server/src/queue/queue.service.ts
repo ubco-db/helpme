@@ -1,7 +1,7 @@
 import {
   decodeBase64,
-  LimboQuestionStatus,
   generateTagIdFromName,
+  LimboQuestionStatus,
   ListQuestionsResponse,
   OpenQuestionStatus,
   PublicQueueInvite,
@@ -43,8 +43,13 @@ export class QueueService {
   ) {}
 
   async getQueue(queueId: number): Promise<QueueModel> {
-    const queue = await QueueModel.findOne(queueId, {
-      relations: ['staffList'],
+    const queue = await QueueModel.findOne({
+      where: {
+        id: queueId,
+      },
+      relations: {
+        staffList: true,
+      },
     });
     await queue.checkIsOpen();
     await queue.addQueueSize();
@@ -381,30 +386,30 @@ export class QueueService {
       return acc;
     }, {});
 
-    const newConfig = {
+    // save the new config (not using the updateQueueConfigAndTags function because we don't want to create new question types)
+    queue.config = {
       ...oldConfig,
       tags: {
         ...oldConfig.tags,
         ...newTagsObject,
       },
     };
-
-    // save the new config (not using the updateQueueConfigAndTags function because we don't want to create new question types)
-    queue.config = newConfig;
     await queue.save();
 
-    const message = `Retroactively added ${newTags
+    return `Retroactively added ${newTags
       .map((questionType) => questionType.name)
       .join(', ')} to the queue config`;
-
-    return message;
   }
 
   /**
    * Creates a new queue invite for the given queue
    */
   async createQueueInvite(queueId: number): Promise<void> {
-    const queueInvite = await QueueInviteModel.findOne(queueId);
+    const queueInvite = await QueueInviteModel.findOne({
+      where: {
+        queueId: queueId,
+      },
+    });
 
     // make sure queue does not already have a queue invite
     if (queueInvite) {
@@ -428,7 +433,11 @@ export class QueueService {
    * Deletes a queue invite for the given queue
    */
   async deleteQueueInvite(queueId: number): Promise<void> {
-    const queueInvite = await QueueInviteModel.findOne(queueId);
+    const queueInvite = await QueueInviteModel.findOne({
+      where: {
+        queueId: queueId,
+      },
+    });
 
     // make sure queue has a queue invite
     if (!queueInvite) {
@@ -454,7 +463,11 @@ export class QueueService {
     queueId: number,
     newQueueInvite: QueueInviteParams,
   ): Promise<void> {
-    const queueInvite = await QueueInviteModel.findOne(queueId);
+    const queueInvite = await QueueInviteModel.findOne({
+      where: {
+        queueId: queueId,
+      },
+    });
 
     // make sure queue has a queue invite
     if (!queueInvite) {
@@ -505,8 +518,16 @@ export class QueueService {
       throw new NotFoundException(); // while technically you should return a 400 if the inviteCode is wrong, instead returning a 404 is more sneaky since the user needs both the id AND invite
     }
 
-    const queue = await QueueModel.findOne(queueId, {
-      relations: ['course', 'course.organizationCourse', 'staffList'],
+    const queue = await QueueModel.findOne({
+      where: {
+        id: queueId,
+      },
+      relations: {
+        course: {
+          organizationCourse: true,
+        },
+        staffList: true,
+      },
     });
 
     if (!queue) {
@@ -583,10 +604,6 @@ export class QueueService {
       return false;
     }
 
-    if (queueInvite.isQuestionsVisible) {
-      return true;
-    } else {
-      return false;
-    }
+    return queueInvite.isQuestionsVisible;
   }
 }

@@ -33,7 +33,9 @@ describe('Queue Invite Integration', () => {
         .expect(201);
 
       const invite = await QueueInviteModel.findOne({
-        queueId: queue.id,
+        where: {
+          queueId: queue.id,
+        },
       });
       expect(invite).toBeTruthy();
       expect(invite.queueId).toEqual(queue.id);
@@ -92,7 +94,9 @@ describe('Queue Invite Integration', () => {
         .expect(204);
 
       const invite = await QueueInviteModel.findOne({
-        queueId: queue.id,
+        where: {
+          queueId: queue.id,
+        },
       });
       expect(invite).toBeFalsy();
     });
@@ -147,7 +151,9 @@ describe('Queue Invite Integration', () => {
         .expect(200);
 
       const updatedInvite = await QueueInviteModel.findOne({
-        queueId: queue.id,
+        where: {
+          queueId: queue.id,
+        },
       });
 
       expect(updatedInvite).toBeTruthy();

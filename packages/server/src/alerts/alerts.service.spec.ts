@@ -1,6 +1,5 @@
 import { AlertType } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Connection } from 'typeorm';
 import {
   AlertFactory,
   CourseFactory,
@@ -13,10 +12,11 @@ import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { AlertModel } from './alerts.entity';
 import { AlertsService } from './alerts.service';
 import { QueueModel } from '../queue/queue.entity';
+import { DataSource } from 'typeorm';
 
 describe('Alerts service', () => {
   let service: AlertsService;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -25,15 +25,15 @@ describe('Alerts service', () => {
     }).compile();
 
     service = module.get<AlertsService>(AlertsService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   async function createAlerts(queue: QueueModel): Promise<AlertModel> {

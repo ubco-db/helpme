@@ -1,8 +1,7 @@
-import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
-
+import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { ClosedQuestionStatus, Heatmap, timeDiffInMins } from '@koh/common';
-import moment = require('moment');
 import { CourseModel } from './course.entity';
 import { MoreThan } from 'typeorm';
 import { QuestionModel } from '../question/question.entity';
@@ -10,6 +9,7 @@ import { EventModel } from '../profile/event-model.entity';
 import { Command, Positional } from 'nestjs-command';
 import { inRange, mean, range } from 'lodash';
 import 'moment-timezone';
+import moment = require('moment');
 
 function arrayRotate(arr, count) {
   count -= arr.length * Math.floor(count / arr.length);
@@ -27,7 +27,7 @@ export class HeatmapService {
     return this.cacheManager.wrap(
       `heatmap/${courseId}`,
       () => this._getHeatmapFor(courseId),
-      { ttl: cacheLengthInSeconds },
+      cacheLengthInSeconds,
     );
   }
 
@@ -54,14 +54,23 @@ export class HeatmapService {
     }
 
     const taEvents = await EventModel.find({
-      where: { time: MoreThan(recent), courseId },
+      where: {
+        time: MoreThan(new Date(recent)),
+        courseId: courseId,
+      },
     });
 
     if (taEvents.length === 0) {
       return false;
     }
 
-    const tz = (await CourseModel.findOne({ id: courseId })).timezone;
+    const tz = (
+      await CourseModel.findOne({
+        where: {
+          id: courseId,
+        },
+      })
+    ).timezone;
 
     function extractTimestamps(taEvents: EventModel[]) {
       const hours = [];
@@ -249,7 +258,7 @@ export class HeatmapService {
       }
     }
 
-    const h: Heatmap = timepointBuckets.map((samples, i) => {
+    return timepointBuckets.map((samples, i) => {
       if (samples.length > 0) {
         return mean(samples);
       } else if (wereHoursDuringBucket[i]) {
@@ -258,13 +267,11 @@ export class HeatmapService {
         return -1;
       }
     });
-    return h;
   }
 
   @Command({
     command: 'heatmap:generate <courseId>',
     describe: 'generate heatmap for a course',
-    autoExit: true,
   })
   async create(
     @Positional({

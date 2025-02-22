@@ -78,7 +78,7 @@ export class QuestionController {
     if (questions === undefined) {
       throw new NotFoundException();
     }
-    const questionRes = questions.map((q) => {
+    return questions.map((q) => {
       const temp = pick(q, [
         'id',
         'queueId',
@@ -100,7 +100,6 @@ export class QuestionController {
       });
       return temp;
     });
-    return questionRes;
   }
 
   @Post('TAcreate/:userId')
@@ -387,7 +386,11 @@ export class QuestionController {
       ) {
         let queue: QueueModel;
         try {
-          queue = await QueueModel.findOneOrFail(question.queueId);
+          queue = await QueueModel.findOneOrFail({
+            where: {
+              id: question.queueId,
+            },
+          });
         } catch (err) {
           throw new NotFoundException(
             ERROR_MESSAGES.questionController.studentTaskProgress.queueDoesNotExist,
@@ -465,7 +468,11 @@ export class QuestionController {
       ) {
         let queue: QueueModel;
         try {
-          queue = await QueueModel.findOneOrFail(question.queueId);
+          queue = await QueueModel.findOneOrFail({
+            where: {
+              id: question.queueId,
+            },
+          });
         } catch (err) {
           throw new NotFoundException(
             ERROR_MESSAGES.questionController.studentTaskProgress.queueDoesNotExist,
@@ -556,8 +563,13 @@ export class QuestionController {
   async notify(
     @Param('questionId', ParseIntPipe) questionId: number,
   ): Promise<void> {
-    const question = await QuestionModel.findOne(questionId, {
-      relations: ['queue'],
+    const question = await QuestionModel.findOne({
+      where: {
+        id: questionId,
+      },
+      relations: {
+        queue: true,
+      },
     });
 
     if (question === undefined || question === null) {

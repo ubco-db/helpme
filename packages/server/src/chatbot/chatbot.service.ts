@@ -42,8 +42,16 @@ export class ChatbotService {
   // filePath currently relative
 
   async createInteraction(data: InteractionParams): Promise<InteractionModel> {
-    const course = await CourseModel.findOne(data.courseId);
-    const user = await UserModel.findOne(data.userId);
+    const course = await CourseModel.findOne({
+      where: {
+        id: data.courseId,
+      },
+    });
+    const user = await UserModel.findOne({
+      where: {
+        id: data.userId,
+      },
+    });
 
     if (!course) {
       throw new HttpException(
@@ -75,7 +83,11 @@ export class ChatbotService {
       );
     }
 
-    const interaction = await InteractionModel.findOne(data.interactionId);
+    const interaction = await InteractionModel.findOne({
+      where: {
+        id: data.interactionId,
+      },
+    });
     if (!interaction) {
       throw new HttpException(
         'Interaction not found based on the provided ID.',
@@ -99,7 +111,11 @@ export class ChatbotService {
   }
 
   async editQuestion(data: ChatbotQuestion): Promise<ChatbotQuestionModel> {
-    const question = await ChatbotQuestionModel.findOne(data.id);
+    const question = await ChatbotQuestionModel.findOne({
+      where: {
+        id: data.id,
+      },
+    });
     if (!question) {
       throw new HttpException(
         'Question not found based on the provided ID.',
@@ -112,7 +128,11 @@ export class ChatbotService {
   }
 
   async deleteQuestion(questionId: number) {
-    const chatQuestion = await ChatbotQuestionModel.findOne(questionId);
+    const chatQuestion = await ChatbotQuestionModel.findOne({
+      where: {
+        id: questionId,
+      },
+    });
 
     if (!chatQuestion) {
       throw new HttpException(

@@ -7,7 +7,6 @@ export class BackfillMakeEmptyPhotoURLNull {
   @Command({
     command: 'backfill:make-empty-photoURL-null',
     describe: 'changes empty string photoURLs to null',
-    autoExit: true,
   })
   async fix(): Promise<void> {
     let countOfChanged = 0;

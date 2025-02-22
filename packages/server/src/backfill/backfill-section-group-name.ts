@@ -8,7 +8,6 @@ export class BackfillSectionGroupName {
     command: 'backfill:section-group-name',
     describe:
       'set the sectionGroupName of older courses as the same as the course name',
-    autoExit: true,
   })
   async fix(): Promise<void> {
     const result = await CourseModel.createQueryBuilder()
