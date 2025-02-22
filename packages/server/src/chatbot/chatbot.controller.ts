@@ -49,10 +49,11 @@ export class ChatbotController {
     return await this.ChatbotService.editQuestion(body);
   }
 
-  @Delete('question')
-  async deleteQuestion(@Body() body: { questionId: number }) {
-    return await this.ChatbotService.deleteQuestion(body.questionId);
-  }
+  // unused
+  // @Delete('question')
+  // async deleteQuestion(@Body() body: { questionId: number }) {
+  //   return await this.ChatbotService.deleteQuestion(body.questionId);
+  // }
 
   @Get('questions/:courseId')
   @UseGuards(CourseRolesGuard)

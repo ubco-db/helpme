@@ -161,28 +161,8 @@ class APIClient {
       this.req('POST', `/api/v1/chatbot/question`, undefined, body),
     editQuestion: async (data: ChatbotQuestion): Promise<ChatbotQuestion> =>
       this.req('PATCH', `/api/v1/chatbot/question`, undefined, data),
-    deleteQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> =>
-      this.req('DELETE', `/api/v1/chatbot/question`, undefined, body),
-    getDocuments: async (
-      courseId: number,
-      searchText: string,
-      pageSize: number,
-      currentPage: number,
-    ): Promise<ChatQuestionResponse> =>
-      this.req(
-        'GET',
-        `/api/v1/chatbot/${courseId}/document?searchText=${searchText}&pageSize=${pageSize}&currentPage=${currentPage}`,
-        undefined,
-      ),
-    addDocument: async (body: {
-      data: DocumentParams
-      courseId: number
-    }): Promise<ChatbotDocument> =>
-      this.req('POST', `/api/v1/chatbot/document`, undefined, body),
-    deleteDocument: async (body: {
-      documentId: number
-    }): Promise<ChatbotDocument> =>
-      this.req('DELETE', `/api/v1/chatbot/document`, undefined, body),
+    // deleteQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> => unused
+    //   this.req('DELETE', `/api/v1/chatbot/question`, undefined, body),
   }
 
   course = {

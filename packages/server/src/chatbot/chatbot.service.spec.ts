@@ -8,6 +8,7 @@ import {
   InteractionFactory,
 } from '../../test/util/factories';
 import { ChatbotQuestion } from '@koh/common';
+import { ChatbotQuestionModel } from './question.entity';
 
 describe('ChatbotService', () => {
   let service: ChatbotService;
@@ -158,7 +159,12 @@ describe('ChatbotService', () => {
         userScore: 3,
       };
 
-      const updatedQuestion = await service.editQuestion(updatedQuestionData);
+      await service.editQuestion(updatedQuestionData);
+
+      const updatedQuestion = await ChatbotQuestionModel.findOne(
+        originalQuestion.id,
+        { relations: ['interaction'] },
+      );
 
       expect(updatedQuestion.interaction.id).toEqual(interaction2.id);
     });
