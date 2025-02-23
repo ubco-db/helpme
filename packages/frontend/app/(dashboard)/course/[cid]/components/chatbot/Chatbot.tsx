@@ -210,16 +210,18 @@ const Chatbot: React.FC<ChatbotProps> = ({
     const result: ChatbotAskResponse = await query()
 
     const answer = result ? result.answer : "Sorry, I couldn't find the answer"
+    const { thinkText, cleanAnswer } = parseThinkBlock(answer)
     const sourceDocuments = result ? result.sourceDocuments : []
     setMessages((prevMessages: Message[]) => [
       ...prevMessages,
       { type: 'userMessage', message: input },
       {
         type: 'apiMessage',
-        message: answer,
+        message: thinkText ? cleanAnswer : answer,
         verified: result ? result.verified : true,
         sourceDocuments: sourceDocuments ? sourceDocuments : [],
         questionId: result ? result.questionId : undefined,
+        thinkText: thinkText,
       },
     ])
 
@@ -239,15 +241,17 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const answerPreDeterminedQuestion = async (
     question: PreDeterminedQuestion,
   ) => {
+    const { thinkText, cleanAnswer } = parseThinkBlock(question.metadata.answer)
     setMessages((prevMessages) => [
       ...prevMessages,
       { type: 'userMessage', message: question.pageContent },
       {
         type: 'apiMessage',
-        message: question.metadata.answer,
+        message: thinkText ? cleanAnswer : question.metadata.answer,
         verified: question.metadata.verified,
         sourceDocuments: question.metadata.sourceDocuments,
         questionId: question.id,
+        thinkText: thinkText,
       },
     ])
     setPreDeterminedQuestions([])
@@ -257,7 +261,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
       vectorStoreId: question.id,
       interactionId: currentInteractionId,
       questionText: question.pageContent,
-      responseText: question.metadata.answer,
+      responseText: question.metadata.answer, // store full question (including think text) in db
       userScore: 0,
       isPreviousQuestion: true,
     })
@@ -465,11 +469,28 @@ const Chatbot: React.FC<ChatbotProps> = ({
                         </div>
                       ) : (
                         <div className="group mb-3 flex flex-grow items-start">
-                          <Avatar
-                            size="small"
-                            className="min-w-6"
-                            icon={<RobotOutlined />}
-                          />
+                          {item.thinkText ? (
+                            <Tooltip
+                              title={'Chatbot thoughts: ' + item.thinkText}
+                            >
+                              <div className="relative inline-block">
+                                <Avatar
+                                  size="small"
+                                  className="min-w-6"
+                                  icon={<RobotOutlined />}
+                                />
+                                <div className="absolute right-0 top-0 -translate-y-1/4 translate-x-1/4 transform text-xs">
+                                  🧠
+                                </div>
+                              </div>
+                            </Tooltip>
+                          ) : (
+                            <Avatar
+                              size="small"
+                              className="min-w-6"
+                              icon={<RobotOutlined />}
+                            />
+                          )}
                           <div className="ml-2 flex flex-col gap-1">
                             <div className="flex items-start gap-2">
                               <div
@@ -656,3 +677,19 @@ const Chatbot: React.FC<ChatbotProps> = ({
 }
 
 export default Chatbot
+
+function parseThinkBlock(answer: string) {
+  // Look for <think>...</think> (the "s" flag lets it match across multiple lines)
+  const thinkRegex = /<think>([\s\S]*?)<\/think>/
+  const match = answer.match(thinkRegex)
+
+  if (!match) {
+    // No <think> block, return the text unchanged
+    return { thinkText: null, cleanAnswer: answer }
+  }
+
+  const thinkText = match[1].trim()
+  const cleanAnswer = answer.replace(thinkRegex, '').trim()
+
+  return { thinkText, cleanAnswer }
+}
