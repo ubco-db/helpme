@@ -267,7 +267,7 @@ export interface ChatbotQuestionResponseHelpMeDB {
   userScore: number
   suggested: boolean
   isPreviousQuestion: boolean
-  correspondingChatbotQuestion?: ChatbotQuestionResponseChatbotDB // used by chatbot_questions page on frontend. It's of type any because i'm lazy
+  correspondingChatbotQuestion?: ChatbotQuestionResponseChatbotDB // used by chatbot_questions page on frontend
   timesAsked?: number // same as above
 }
 
@@ -284,7 +284,10 @@ export interface ChatbotQuestionResponseChatbotDB {
     suggested: boolean
     inserted?: boolean
   }
-  askedAtLeastOnce?: boolean
+  userScoreTotal?: number // NOT returned from db, it's calculated and used by chatbot_questions page on frontend
+  timesAsked?: number // same as above
+  interactionsWithThisQuestion?: InteractionResponse[] // same as above
+  mostRecentlyAskedHelpMeVersion?: ChatbotQuestionResponseHelpMeDB | null // same as above
 }
 
 interface Loc {

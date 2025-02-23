@@ -27,6 +27,7 @@ export interface ChatbotQuestionFrontend {
   verified?: boolean
   sourceDocuments: SourceDocument[]
   suggested: boolean
+  userScore?: number
   inserted?: boolean
   createdAt: Date | null
   timesAsked?: number | null
@@ -149,7 +150,7 @@ export default function ChatbotQuestions({
             <div className="flex flex-col gap-1">
               {sourceDocuments.map((doc, index) => (
                 <div
-                  className="flex w-fit max-w-[280px] flex-col overflow-hidden rounded-xl bg-slate-100 p-2"
+                  className="flex w-fit max-w-[260px] flex-col overflow-hidden rounded-xl bg-slate-100 p-2"
                   key={index}
                 >
                   <div className="truncate font-semibold">
@@ -165,7 +166,7 @@ export default function ChatbotQuestions({
                       <span>{doc.docName}</span>
                     )}
                   </div>
-                  <div className="mt-1 flex  gap-1 text-xs">
+                  <div className="mt-1 flex gap-1 text-xs">
                     {doc.pageNumber ? (
                       <div
                         key={`${doc.docName}-${doc.pageNumber}`}
@@ -243,6 +244,29 @@ export default function ChatbotQuestions({
         const B = b.timesAsked ?? 0
         return A - B
       },
+    },
+    {
+      title: 'User Score',
+      dataIndex: 'userScore',
+      key: 'userScore',
+      width: 50,
+      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
+        const A = a.userScore ?? 0
+        const B = b.userScore ?? 0
+        return A - B
+      },
+      render: (userScore?: number | null) =>
+        userScore && userScore !== 0 ? (
+          <span
+            className={`rounded px-2 py-1 ${
+              userScore > 0
+                ? `bg-green-${100 * Math.min(Math.ceil(userScore / 2), 8)}`
+                : `bg-red-${100 * Math.min(Math.ceil(-userScore / 2), 8)}`
+            }`}
+          >
+            {userScore}
+          </span>
+        ) : null,
     },
     {
       title: 'Last Asked',
@@ -343,6 +367,11 @@ export default function ChatbotQuestions({
 
   return (
     <div className="md:mr-2">
+      <title>{`HelpMe | Editing ${userInfo.courses.find((e) => e.course.id === courseId)?.course.name ?? ''} Chatbot Questions`}</title>
+      {/* Tailwind color classes used (this will ensure the tailwind parser sees these classes being used and doesn't remove them): 
+          bg-green-100 bg-green-200 bg-green-300 bg-green-400 bg-green-500 bg-green-600 bg-green-700 bg-green-800
+          bg-red-100 bg-red-200 bg-red-300 bg-red-400 bg-red-500 bg-red-600 bg-red-700 bg-red-800
+      */}
       <AddChatbotQuestionModal
         open={addModelOpen}
         courseId={courseId}
@@ -450,11 +479,12 @@ export default function ChatbotQuestions({
 }
 
 function mergeChatbotQuestions(
-  helpMeQuestion: ChatbotQuestionResponseHelpMeDB | null,
+  helpMeQuestion?: ChatbotQuestionResponseHelpMeDB | null,
   chatbotQuestion?: ChatbotQuestionResponseChatbotDB | null,
   timesAsked?: number | null,
   children?: ChatbotQuestionFrontend[],
   isChild?: boolean,
+  userScore?: number,
 ): ChatbotQuestionFrontend {
   return {
     // key must be unique for each row in the table (otherwise weird react re-render things happen)
@@ -483,6 +513,7 @@ function mergeChatbotQuestions(
       : chatbotQuestion?.metadata.timestamp
         ? new Date(chatbotQuestion.metadata.timestamp)
         : null,
+    userScore,
     timesAsked,
     children,
     isChild,
@@ -493,14 +524,14 @@ function processQuestions(
   interactions: GetInteractionsAndQuestionsResponse,
   allQuestionsData: ChatbotQuestionResponseChatbotDB[],
 ): ChatbotQuestionFrontend[] {
+  //
+  // The Join
+  //
   // We need to process and merge the questions from chatbot and helpme db (in unfortunately O(n^2) time, since we basically need to manually join each chatbot question with helpme question via vectorStoreId)
+  // (there are basically 0 to many helpme db questions for each chatbot db question)
   const processedQuestions: ChatbotQuestionFrontend[] = []
   for (const chatbotQuestion of allQuestionsData) {
     // for each chatbot question, find ALL interactions that have this chatbot question
-    let timesAsked = 0
-    const interactionsWithThisQuestion: GetInteractionsAndQuestionsResponse = []
-    let mostRecentlyAskedHelpMeVersion: ChatbotQuestionResponseHelpMeDB | null =
-      null
     for (const tempInteraction of interactions) {
       if (
         !tempInteraction.questions ||
@@ -516,23 +547,40 @@ function processQuestions(
           // a match
           if (!hasAlreadyBeenAdded) {
             // to not add the same interaction multiple times
-            interactionsWithThisQuestion.push(tempInteraction)
+            if (!chatbotQuestion.interactionsWithThisQuestion) {
+              chatbotQuestion.interactionsWithThisQuestion = []
+            }
+            chatbotQuestion.interactionsWithThisQuestion.push(tempInteraction)
             hasAlreadyBeenAdded = true
           }
           if (
-            !mostRecentlyAskedHelpMeVersion ||
-            mostRecentlyAskedHelpMeVersion.timestamp < helpMeQuestion.timestamp
+            !chatbotQuestion.mostRecentlyAskedHelpMeVersion ||
+            chatbotQuestion.mostRecentlyAskedHelpMeVersion.timestamp <
+              helpMeQuestion.timestamp
           ) {
-            mostRecentlyAskedHelpMeVersion = helpMeQuestion
+            chatbotQuestion.mostRecentlyAskedHelpMeVersion = helpMeQuestion
           }
 
-          timesAsked++
           // this will modify the original question object
+          chatbotQuestion.timesAsked = (chatbotQuestion.timesAsked ?? 0) + 1
           helpMeQuestion.correspondingChatbotQuestion = chatbotQuestion // the join
+          chatbotQuestion.userScoreTotal =
+            (chatbotQuestion.userScoreTotal ?? 0) + helpMeQuestion.userScore
         }
       }
     }
+  }
 
+  //
+  // Formatting the data nicely for the antd table
+  //
+  // this is something like O(n) time since it's just looping over the processed chatbot questions and all of their interactions
+  for (const chatbotQuestion of allQuestionsData) {
+    const timesAsked = chatbotQuestion.timesAsked
+    const mostRecentlyAskedHelpMeVersion =
+      chatbotQuestion.mostRecentlyAskedHelpMeVersion
+    const interactionsWithThisQuestion =
+      chatbotQuestion.interactionsWithThisQuestion ?? []
     if (interactionsWithThisQuestion.length === 0) {
       // if there was no corresponding interaction found (e.g. it was a manually added question or anytime question), return what we can
       processedQuestions.push({
@@ -568,6 +616,13 @@ function processQuestions(
             continue
           }
 
+          // if ((childHelpMeQuestion.correspondingChatbotQuestion !== undefined && childHelpMeQuestion.correspondingChatbotQuestion.userScoreTotal !== undefined) && (childHelpMeQuestion.correspondingChatbotQuestion.userScoreTotal === -1)) {
+          // console.log(JSON.parse(JSON.stringify(childHelpMeQuestion)));
+          // console.log(childHelpMeQuestion)
+          // console.log(JSON.parse(JSON.stringify(childHelpMeQuestion.correspondingChatbotQuestion)));
+          // console.log(childHelpMeQuestion.correspondingChatbotQuestion)
+          // }
+
           grandchildren.push(
             mergeChatbotQuestions(
               childHelpMeQuestion,
@@ -575,6 +630,11 @@ function processQuestions(
               null, // timesAsked is null since its not really helpful information to show in this case
               undefined,
               true,
+              chatbotQuestion !==
+                childHelpMeQuestion.correspondingChatbotQuestion
+                ? childHelpMeQuestion.correspondingChatbotQuestion
+                    ?.userScoreTotal
+                : undefined,
             ),
           )
         }
@@ -586,6 +646,11 @@ function processQuestions(
             null,
             grandchildren.length > 0 ? grandchildren : undefined,
             true,
+            chatbotQuestion !==
+              interaction.questions[0].correspondingChatbotQuestion
+              ? interaction.questions[0].correspondingChatbotQuestion
+                  ?.userScoreTotal
+              : undefined,
           ),
         )
       }
@@ -596,6 +661,8 @@ function processQuestions(
           chatbotQuestion,
           timesAsked,
           children.length > 0 ? children : undefined,
+          false,
+          chatbotQuestion.userScoreTotal,
         ),
       )
     } else if (interactionsWithThisQuestion.length === 1) {
@@ -625,6 +692,7 @@ function processQuestions(
               null,
               undefined,
               true,
+              childHelpMeQuestion.correspondingChatbotQuestion?.userScoreTotal,
             ),
           )
         }
@@ -637,6 +705,8 @@ function processQuestions(
           chatbotQuestion,
           timesAsked,
           children.length > 0 ? children : undefined,
+          false,
+          chatbotQuestion.userScoreTotal,
         ),
       )
     }
