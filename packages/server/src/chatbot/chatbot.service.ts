@@ -108,9 +108,18 @@ export class ChatbotService {
     }
     Object.assign(question, data);
     if (data.interactionId) {
-      question.interaction = await InteractionModel.findOne(data.interactionId);
+      const tempInteraction = await InteractionModel.findOne(
+        data.interactionId,
+      );
+      if (!tempInteraction) {
+        throw new HttpException(
+          'Interaction not found based on the provided ID.',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      question.interaction = tempInteraction;
     }
-    question.save();
+    await question.save();
     return question;
   }
 
