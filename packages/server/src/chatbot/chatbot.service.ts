@@ -107,6 +107,9 @@ export class ChatbotService {
       );
     }
     Object.assign(question, data);
+    if (data.interactionId) {
+      question.interaction = await InteractionModel.findOne(data.interactionId);
+    }
     question.save();
     return question;
   }
