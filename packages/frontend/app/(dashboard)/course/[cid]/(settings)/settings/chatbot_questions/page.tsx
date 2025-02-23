@@ -275,8 +275,8 @@ export default function ChatbotQuestions({
       defaultSortOrder: 'descend',
       width: 90,
       sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.createdAt ? a.createdAt.getTime() : 0
-        const B = b.createdAt ? b.createdAt.getTime() : 0
+        const A = a.createdAt && !a.isChild ? a.createdAt.getTime() : 0
+        const B = b.createdAt && !b.isChild ? b.createdAt.getTime() : 0
         return A - B
       },
       render: (createdAt: Date) => formatDateAndTimeForExcel(createdAt),
@@ -616,13 +616,6 @@ function processQuestions(
             continue
           }
 
-          // if ((childHelpMeQuestion.correspondingChatbotQuestion !== undefined && childHelpMeQuestion.correspondingChatbotQuestion.userScoreTotal !== undefined) && (childHelpMeQuestion.correspondingChatbotQuestion.userScoreTotal === -1)) {
-          // console.log(JSON.parse(JSON.stringify(childHelpMeQuestion)));
-          // console.log(childHelpMeQuestion)
-          // console.log(JSON.parse(JSON.stringify(childHelpMeQuestion.correspondingChatbotQuestion)));
-          // console.log(childHelpMeQuestion.correspondingChatbotQuestion)
-          // }
-
           grandchildren.push(
             mergeChatbotQuestions(
               childHelpMeQuestion,
@@ -638,6 +631,12 @@ function processQuestions(
             ),
           )
         }
+        grandchildren.sort((a, b) => {
+          const aTime = a.createdAt?.getTime() ?? 0
+          const bTime = b.createdAt?.getTime() ?? 0
+          return aTime - bTime // ascending order
+        })
+
         // for each child, they are the first question in an interaction and all of their children are the rest of the questions in the interaction
         children.push(
           mergeChatbotQuestions(
@@ -654,6 +653,12 @@ function processQuestions(
           ),
         )
       }
+
+      children.sort((a, b) => {
+        const aTime = a.createdAt?.getTime() ?? 0
+        const bTime = b.createdAt?.getTime() ?? 0
+        return bTime - aTime // descending order
+      })
       // finally add on the question and all of its children
       processedQuestions.push(
         mergeChatbotQuestions(
@@ -697,6 +702,11 @@ function processQuestions(
           )
         }
       }
+      children.sort((a, b) => {
+        const aTime = a.createdAt?.getTime() ?? 0
+        const bTime = b.createdAt?.getTime() ?? 0
+        return aTime - bTime // ascending order
+      })
 
       // finally add on the question and all of its children
       processedQuestions.push(
