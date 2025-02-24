@@ -22,6 +22,7 @@ import { API } from '@/app/api'
 import Image from 'next/image'
 import ImageCropperModal from '@/app/(dashboard)/components/ImageCropperModal'
 import { SemesterPartial } from '@koh/common'
+import { CreateSemesterModal } from './components/CreateSemesterModal'
 
 export default function SettingsPage(): ReactElement {
   const [formGeneral] = Form.useForm()
@@ -46,7 +47,8 @@ export default function SettingsPage(): ReactElement {
   const [organizationSemesters, setOrganizationSemesters] = useState<
     SemesterPartial[]
   >([])
-  const [isSemesterModalOpen, setIsSemesterModalOpen] = useState(false)
+  const [isSemesterCreationModalOpen, setIsSemesterCreationModalOpen] =
+    useState(false)
 
   useEffect(() => {
     const fetchDataAsync = async () => {
@@ -58,7 +60,17 @@ export default function SettingsPage(): ReactElement {
       setOrganizationName(response.name)
       setOrganizationDescription(response.description)
       setOrganizationWebsiteUrl(response.websiteUrl)
-      setOrganizationSemesters(response.semesters)
+      setOrganizationSemesters(
+        response.semesters.map((s: SemesterPartial) => {
+          return {
+            id: s.id,
+            name: s.name,
+            startDate: new Date(s.startDate),
+            endDate: new Date(s.endDate),
+            description: s.description,
+          }
+        }),
+      )
     }
 
     fetchDataAsync()
@@ -148,12 +160,11 @@ export default function SettingsPage(): ReactElement {
       }
       semesterForm.setFieldsValue({
         name: semester.name,
-        year: semester.year,
-        startMonth: semester.startMonth,
-        endMonth: semester.endMonth,
+        startDate: semester.startDate,
+        endDate: semester.endDate,
         description: semester.description,
       })
-      setIsSemesterModalOpen(true)
+      setIsSemesterCreationModalOpen(true)
     }
   }
 
@@ -336,172 +347,64 @@ export default function SettingsPage(): ReactElement {
         </Form>
       </Card>
 
-      <Card title="Semester Management" bordered={true} className="w-full">
-        <Row gutter={[16, 16]}>
-          {organizationSemesters && organizationSemesters.length > 0 ? (
-            organizationSemesters.map((semester, index) => (
-              <Col xs={24} sm={12} md={8} lg={6} key={semester.id}>
-                <Card
-                  title={semester.name}
-                  bordered
-                  actions={[
-                    <Button
-                      type="link"
-                      key="edit"
-                      onClick={() => handleEditSemester(semester.id)}
-                    >
-                      Edit
-                    </Button>,
-                    <Button
-                      danger
-                      type="link"
-                      key="delete"
-                      onClick={() => handleDeleteSemester(semester.id)}
-                    >
-                      Delete
-                    </Button>,
-                  ]}
+      <Card title="Semester Management" bordered className="w-full">
+        {organizationSemesters && organizationSemesters.length > 0 ? (
+          organizationSemesters
+            .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
+            .map((semester) => (
+              <Card.Grid
+                key={semester.id}
+                className="flex w-[50%] flex-col gap-2 text-center transition-none"
+                onClick={() => handleEditSemester(semester.id)}
+              >
+                <h3 className="text-lg font-semibold">{semester.name}</h3>
+                <p>
+                  <span className="font-semibold">Start Date:</span>{' '}
+                  {semester.startDate.toDateString()}
+                </p>
+                <p>
+                  <span className="font-semibold">End Date:</span>{' '}
+                  {semester.endDate.toDateString()}
+                </p>
+                {semester.description && (
+                  <p>
+                    <span className="font-semibold">Description:</span>{' '}
+                    {semester.description}
+                  </p>
+                )}
+                <Button
+                  danger
+                  type="primary"
+                  onClick={() => handleDeleteSemester(semester.id)}
+                  className="mt-2"
                 >
-                  <p>
-                    <strong>Year:</strong> {semester.year}
-                  </p>
-                  <p>
-                    <strong>Start Month:</strong> {semester.startMonth}
-                  </p>
-                  <p>
-                    <strong>End Month:</strong> {semester.endMonth}
-                  </p>
-                  {semester.description && (
-                    <p>
-                      <strong>Description:</strong> {semester.description}
-                    </p>
-                  )}
-                </Card>
-              </Col>
+                  Delete
+                </Button>
+              </Card.Grid>
             ))
-          ) : (
-            <Col span={24} className="text-center">
-              No semesters added yet. Click the button below to add a new
-              semester.
-            </Col>
-          )}
+        ) : (
+          <Card.Grid className="w-[50%] text-center">
+            No semesters added yet. Click the button below to add a new
+            semester.
+          </Card.Grid>
+        )}
 
-          {/* Add Semester Button */}
-          <Col xs={24} sm={12} md={8} lg={6}>
-            <Button
-              type="dashed"
-              onClick={() => {
-                setIsSemesterModalOpen(true)
-              }}
-            >
-              + Add New Semester
-            </Button>
-          </Col>
-        </Row>
-
-        {/* Semester Modal Placeholder */}
-        {isSemesterModalOpen && (
-          <Modal
-            title="Add New Semester"
-            visible={isSemesterModalOpen}
-            onCancel={() => setIsSemesterModalOpen(false)}
-            onOk={handleAddSemester}
-            okText="Save"
-            cancelText="Cancel"
+        <Card.Grid className="w-[50%] text-center">
+          <Button
+            type="dashed"
+            onClick={() => setIsSemesterCreationModalOpen(true)}
           >
-            {/* Add your form inputs for semester here */}
-            <Form layout="vertical" form={semesterForm}>
-              <Form.Item
-                label="Semester Name"
-                name="name"
-                rules={[
-                  { required: true, message: 'Please enter the semester name' },
-                ]}
-              >
-                <Input placeholder="e.g., Fall 2024" />
-              </Form.Item>
+            + Add New Semester
+          </Button>
+        </Card.Grid>
 
-              <Form.Item
-                label="Year"
-                name="year"
-                rules={[{ required: true, message: 'Please select a year' }]}
-              >
-                <Select placeholder="Select Year">
-                  {/* grab all years in a 5 year "radius" to current year */}
-                  {Array.from(
-                    { length: 10 },
-                    (_, i) => new Date().getFullYear() + i - 5,
-                  ).map((year) => (
-                    <Select.Option key={year} value={year}>
-                      {year}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item
-                label="Start Month"
-                name="startMonth"
-                rules={[
-                  { required: true, message: 'Please select a start month' },
-                ]}
-              >
-                <Select placeholder="Select Start Month">
-                  {[
-                    'January',
-                    'February',
-                    'March',
-                    'April',
-                    'May',
-                    'June',
-                    'July',
-                    'August',
-                    'September',
-                    'October',
-                    'November',
-                    'December',
-                  ].map((month, index) => (
-                    <Select.Option key={index + 1} value={index + 1}>
-                      {month}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item
-                label="End Month"
-                name="endMonth"
-                rules={[
-                  { required: true, message: 'Please select an end month' },
-                ]}
-              >
-                <Select placeholder="Select End Month">
-                  {[
-                    'January',
-                    'February',
-                    'March',
-                    'April',
-                    'May',
-                    'June',
-                    'July',
-                    'August',
-                    'September',
-                    'October',
-                    'November',
-                    'December',
-                  ].map((month, index) => (
-                    <Select.Option key={index + 1} value={index + 1}>
-                      {month}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item label="Description" name="description">
-                <TextArea rows={3} placeholder="Optional description" />
-              </Form.Item>
-            </Form>
-          </Modal>
+        {isSemesterCreationModalOpen && (
+          <CreateSemesterModal
+            isSemesterCreationModalOpen={isSemesterCreationModalOpen}
+            setIsSemesterCreationModalOpen={setIsSemesterCreationModalOpen}
+            handleAddSemester={handleAddSemester}
+            semesterForm={semesterForm}
+          />
         )}
       </Card>
 

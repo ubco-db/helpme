@@ -8,6 +8,6 @@ import { ApplicationConfigModule } from '../config/application_config.module';
 @Module({
   controllers: [SemesterController],
   providers: [SemesterService],
-  imports: [ApplicationConfigModule],
+  imports: [],
 })
 export class SemesterModule {}

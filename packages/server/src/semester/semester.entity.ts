@@ -9,7 +9,6 @@ import {
 } from 'typeorm';
 import { CourseModel } from '../course/course.entity';
 import { OrganizationModel } from '../organization/organization.entity';
-import { Exclude } from 'class-transformer';
 
 @Entity('semester_model')
 export class SemesterModel extends BaseEntity {
@@ -19,15 +18,11 @@ export class SemesterModel extends BaseEntity {
   @Column('text')
   name: string;
 
-  // Integers from 1 to 12 to represent months
-  @Column('integer')
-  startMonth: number;
+  @Column('date')
+  startDate: Date;
 
-  @Column('integer')
-  endMonth: number;
-
-  @Column('integer')
-  year: number;
+  @Column('date')
+  endDate: Date;
 
   @Column('text', { nullable: true })
   description?: string;

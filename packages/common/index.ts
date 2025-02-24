@@ -1599,9 +1599,8 @@ export class EditCourseInfoParams {
 export class SemesterPartial {
   id!: number
   name!: string
-  startMonth!: number
-  endMonth!: number
-  year!: number
+  startDate!: Date
+  endDate!: Date
   description?: string
 }
 

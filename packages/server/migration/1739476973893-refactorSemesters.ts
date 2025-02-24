@@ -1,20 +1,21 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class refactorSemesters1739379496937 implements MigrationInterface {
-  name = 'refactorSemesters1739379496937';
+export class refactorSemesters1739476973893 implements MigrationInterface {
+  name = 'refactorSemesters1739476973893';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "semester_model" DROP COLUMN "season"`,
     );
+    await queryRunner.query(`ALTER TABLE "semester_model" DROP COLUMN "year"`);
     await queryRunner.query(
       `ALTER TABLE "semester_model" ADD "name" text NOT NULL`,
     );
     await queryRunner.query(
-      `ALTER TABLE "semester_model" ADD "startMonth" integer NOT NULL`,
+      `ALTER TABLE "semester_model" ADD "startDate" date NOT NULL`,
     );
     await queryRunner.query(
-      `ALTER TABLE "semester_model" ADD "endMonth" integer NOT NULL`,
+      `ALTER TABLE "semester_model" ADD "endDate" date NOT NULL`,
     );
     await queryRunner.query(
       `ALTER TABLE "semester_model" ADD "description" text`,
@@ -38,12 +39,15 @@ export class refactorSemesters1739379496937 implements MigrationInterface {
       `ALTER TABLE "semester_model" DROP COLUMN "description"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "semester_model" DROP COLUMN "endMonth"`,
+      `ALTER TABLE "semester_model" DROP COLUMN "endDate"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "semester_model" DROP COLUMN "startMonth"`,
+      `ALTER TABLE "semester_model" DROP COLUMN "startDate"`,
     );
     await queryRunner.query(`ALTER TABLE "semester_model" DROP COLUMN "name"`);
+    await queryRunner.query(
+      `ALTER TABLE "semester_model" ADD "year" integer NOT NULL`,
+    );
     await queryRunner.query(
       `ALTER TABLE "semester_model" ADD "season" text NOT NULL`,
     );
