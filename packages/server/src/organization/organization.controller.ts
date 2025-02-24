@@ -630,6 +630,17 @@ export class OrganizationController {
           }
         }
       }
+
+      const members = await UserCourseModel.find({
+        where: {
+          courseId: cid,
+        },
+      });
+
+      // clear cache of all members of the course
+      members.forEach(async (m) => {
+        await this.redisProfileService.deleteProfile(`u:${m.user.id}`);
+      });
     } catch (err) {
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
         message: err,

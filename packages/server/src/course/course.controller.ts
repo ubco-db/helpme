@@ -918,7 +918,6 @@ export class CourseController {
       });
 
     // Delete old cached record if changed
-    // TODO: see if manipulating the cached data instead of refetching is more efficient
     await this.redisProfileService.deleteProfile(`u:${user.id}`);
     return;
   }
