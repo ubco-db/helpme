@@ -221,6 +221,7 @@ export default function ChatbotQuestions({
       ),
     },
     {
+      // the dash was put there so that it would line-break (horizontal space is really valuable for this table)
       title: 'Sugg-ested',
       dataIndex: 'suggested',
       key: 'suggested',
