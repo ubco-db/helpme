@@ -317,7 +317,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
             <p>
               When a student starts a new interaction with the chatbot, any
               questions marked as &apos;suggested&apos; will appear for them to
-              choose if they wish. Upon them clicking a suggested question, they
+              choose if they wish. Upon clicking a suggested question, they
               instantly get the answer that you set here.
             </p>
             <p>

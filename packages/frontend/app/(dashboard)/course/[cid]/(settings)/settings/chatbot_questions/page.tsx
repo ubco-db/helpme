@@ -200,16 +200,24 @@ export default function ChatbotQuestions({
       },
       filters: [
         { text: 'Verified', value: true },
-        { text: 'Not Verified', value: false },
+        { text: 'Unverified', value: false },
       ],
       onFilter: (value: boolean, record: ChatbotQuestionFrontend) =>
         record.verified === value || record.isChild,
       render: (verified: boolean) => (
-        <span
-          className={`rounded px-2 py-1 ${verified ? 'bg-green-100' : 'bg-red-100'}`}
+        <Tooltip
+          title={
+            verified
+              ? 'This question is marked as verified by a human and will appear as such to students that ask this question'
+              : 'This question is not marked as verified. Marking it as verified will make it appear as such to students that ask this question. To modify this, you can click the edit button to the right'
+          }
         >
-          {verified ? 'Verified' : 'Unverified'}
-        </span>
+          <span
+            className={`rounded px-2 py-1 ${verified ? 'bg-green-100' : 'bg-red-100'}`}
+          >
+            {verified ? 'Verified' : 'Unverified'}
+          </span>
+        </Tooltip>
       ),
     },
     {
@@ -228,11 +236,19 @@ export default function ChatbotQuestions({
       onFilter: (value: boolean, record: ChatbotQuestionFrontend) =>
         record.suggested === value || record.isChild,
       render: (suggested: boolean) => (
-        <span
-          className={`rounded px-2 py-1 ${suggested ? 'bg-green-100' : 'bg-red-100'}`}
+        <Tooltip
+          title={
+            suggested
+              ? 'This question is marked as suggested and will appear when users start new conversations with the chatbot'
+              : 'This question is not marked as suggested. Marking it as suggested will make it appear when users start a new conversation with the chatbot. To modify this, you can click the edit button to the right'
+          }
         >
-          {suggested ? 'Yes' : 'No'}
-        </span>
+          <span
+            className={`rounded px-2 py-1 ${suggested ? 'bg-green-100' : 'bg-red-100'}`}
+          >
+            {suggested ? 'Yes' : 'No'}
+          </span>
+        </Tooltip>
       ),
     },
     {
