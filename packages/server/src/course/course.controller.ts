@@ -39,6 +39,7 @@ import {
   UseGuards,
   UseInterceptors,
   ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import async from 'async';
 import { Response, Request } from 'express';
@@ -67,6 +68,7 @@ import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
+import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -1160,25 +1162,34 @@ export class CourseController {
     return;
   }
 
+  // Moved from userInfo context endpoint as this updates too frequently to make sense caching it with userInfo data
+  @Get(':id/unread_async_count')
+  @UseGuards(JwtAuthGuard)
+  async getUnreadAsyncCount(
+    @Param('id', ParseIntPipe) courseId: number,
+    @UserId() userId: number,
+  ): Promise<number> {
+    const count = await UnreadAsyncQuestionModel.count({
+      where: {
+        userId,
+        courseId,
+        readLatest: false,
+      },
+    });
+
+    return count;
+  }
+
   @Patch(':id/unread_async_count')
   @UseGuards(JwtAuthGuard)
   async updateUnreadAsyncCount(
     @Param('id', ParseIntPipe) courseId: number,
-    @User() user: UserModel,
+    @UserId() userId: number,
   ): Promise<void> {
-    const userCourse = await UserCourseModel.findOne({
-      where: {
-        user,
-        courseId,
-      },
-    });
-
-    if (!userCourse) {
-      throw new NotFoundException('UserCourse not found');
-    }
-
-    userCourse.unreadAsyncQuestions = 0;
-    await userCourse.save();
+    await UnreadAsyncQuestionModel.update(
+      { userId, courseId },
+      { readLatest: true },
+    );
 
     return;
   }

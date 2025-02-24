@@ -105,7 +105,7 @@ export class BackupService {
     }
   }
 
-  // Daily Uploads Backup Task - Keeps rolling backups for 5 days
+  // 4-day Uploads Backup Task - Keeps rolling backups for 12 days (3 backups)
   @Cron('0 0 */4 * *')
   async handleDailyUploadsBackup() {
     try {
@@ -131,7 +131,7 @@ export class BackupService {
         } else {
           console.log(`Uploads backup saved: ${backupFile}`);
           // Retain only the last 3 backups (the last 12 days)
-          this.deleteOldBackups(backupDir, 2);
+          this.deleteOldBackups(backupDir, 12);
         }
       });
     } catch (error) {
