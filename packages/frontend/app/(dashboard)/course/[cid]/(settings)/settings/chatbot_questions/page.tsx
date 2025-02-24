@@ -17,6 +17,7 @@ import {
   GetInteractionsAndQuestionsResponse,
   SourceDocument,
 } from '@koh/common'
+import { ThumbsDown, ThumbsUp } from 'lucide-react'
 
 export interface ChatbotQuestionFrontend {
   key: string
@@ -257,15 +258,59 @@ export default function ChatbotQuestions({
       },
       render: (userScore?: number | null) =>
         userScore && userScore !== 0 ? (
-          <span
-            className={`rounded px-2 py-1 ${
+          <Tooltip
+            title={
               userScore > 0
-                ? `bg-green-${100 * Math.min(Math.ceil(userScore / 2), 8)}`
-                : `bg-red-${100 * Math.min(Math.ceil(-userScore / 2), 8)}`
-            }`}
+                ? `${userScore} user${userScore > 1 ? 's' : ''} who have asked this question gave it a thumbs up`
+                : `${-userScore} user${-userScore > 1 ? 's' : ''} who have asked this question gave it a thumbs down`
+            }
           >
-            {userScore}
-          </span>
+            <span
+              className={`rounded px-2 py-1 ${
+                userScore > 0
+                  ? `bg-green-${100 * Math.min(Math.ceil(userScore / 2), 8)}`
+                  : `bg-red-${100 * Math.min(Math.ceil(-userScore / 2), 8)}`
+              }`}
+            >
+              {userScore > 0 ? (
+                userScore === 1 ? (
+                  <ThumbsUp
+                    size={16}
+                    className="mb-1 inline"
+                    color="#000000"
+                    fill="#61da81"
+                  />
+                ) : (
+                  <>
+                    {userScore}
+                    <ThumbsUp
+                      size={16}
+                      className="mb-1 ml-1 inline"
+                      color="#000000"
+                      fill="#61da81"
+                    />
+                  </>
+                )
+              ) : userScore === -1 ? (
+                <ThumbsDown
+                  size={16}
+                  className="mb-1 inline"
+                  color="#000000"
+                  fill="#e06666"
+                />
+              ) : (
+                <>
+                  {userScore}
+                  <ThumbsDown
+                    size={16}
+                    className="mb-1 ml-1 inline"
+                    color="#000000"
+                    fill="#e06666"
+                  />
+                </>
+              )}
+            </span>
+          </Tooltip>
         ) : null,
     },
     {
