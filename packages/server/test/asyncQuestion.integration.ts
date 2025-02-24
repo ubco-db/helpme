@@ -11,7 +11,7 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
 import { asyncQuestionStatus, Role } from '@koh/common';
-import { UserCourseAsyncQuestionModel } from 'profile/user-course-asyncQuestion.entity';
+import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 
 describe('AsyncQuestion Integration', () => {
   const { supertest } = setupIntegrationTest(asyncQuestionModule);
@@ -63,13 +63,10 @@ describe('AsyncQuestion Integration', () => {
   describe('Async question creation', () => {
     it('Student can create a question', async () => {
       const [prevRecords, prevCount] =
-        await UserCourseAsyncQuestionModel.findAndCount({
-          relations: ['userCourse', 'userCourse.user', 'userCourse.course'],
+        await UnreadAsyncQuestionModel.findAndCount({
           where: {
-            userCourse: {
-              user: { id: studentUser2.id },
-              course: { id: course.id },
-            },
+            userId: studentUser2.id,
+            courseId: course.id,
           },
         });
 
@@ -82,13 +79,10 @@ describe('AsyncQuestion Integration', () => {
         .expect(201)
         .then(async (response) => {
           const [currentRecords, currentCount] =
-            await UserCourseAsyncQuestionModel.findAndCount({
-              relations: ['userCourse', 'userCourse.user', 'userCourse.course'],
+            await UnreadAsyncQuestionModel.findAndCount({
               where: {
-                userCourse: {
-                  user: { id: studentUser2.id },
-                  course: { id: course.id },
-                },
+                userId: studentUser2.id,
+                courseId: course.id,
               },
             });
           expect(currentCount).toBe(prevCount + 1);
