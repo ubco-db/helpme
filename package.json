@@ -10,7 +10,6 @@
     "test": "yarn workspace @koh/server test",
     "test:unit": "yarn workspace @koh/server test:unit",
     "test:integration": "yarn workspace @koh/server test:integration",
-    "test:ci": "yarn workspace @koh/server test:ci",
     "test:cov": "yarn workspace @koh/server test:cov",
     "test:update-snapshots": "yarn workspace @koh/server test:update-snapshots",
     "typeorm": "yarn workspace @koh/server typeorm",
