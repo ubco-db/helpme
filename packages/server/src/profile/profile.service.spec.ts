@@ -20,6 +20,9 @@ const mockedCheckDiskSpace = checkDiskSpace as jest.MockedFunction<
   typeof checkDiskSpace
 >;
 
+jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+jest.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
+
 jest.mock('sharp', () => {
   const mockSharpInstance = {
     resize: jest.fn().mockReturnThis(),
