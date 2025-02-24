@@ -58,9 +58,16 @@ export const TACourseFactory = new Factory(UserCourseModel).attr(
   Role.TA,
 );
 
+export const OrganizationFactory = new Factory(OrganizationModel)
+  .attr('name', 'UBCO')
+  .attr('description', 'UBC Okanagan');
+
 export const SemesterFactory = new Factory(SemesterModel)
-  .attr('season', 'Fall')
-  .attr('year', 2022);
+  .attr('name', 'Test Semester')
+  .attr('startDate', new Date('2020-09-01'))
+  .attr('endDate', new Date('2022-12-31'))
+  .attr('description', 'Test Semester Description')
+  .assocOne('organization', OrganizationFactory);
 
 export const CourseFactory = new Factory(CourseModel)
   .attr('name', 'CS 304')
@@ -169,10 +176,6 @@ export const AsyncQuestionFactory = new Factory(AsyncQuestionModel)
   .attr('visible', false)
   .attr('verified', false)
   .attr('createdAt', new Date());
-
-export const OrganizationFactory = new Factory(OrganizationModel)
-  .attr('name', 'UBCO')
-  .attr('description', 'UBC Okanagan');
 
 export const InteractionFactory = new Factory(InteractionModel)
   .assocOne('course', CourseFactory)

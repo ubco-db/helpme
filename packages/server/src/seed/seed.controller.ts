@@ -227,6 +227,12 @@ export class SeedController {
       where: { name: 'CS 304' },
     });
 
+    const organization = await OrganizationFactory.create({
+      name: 'UBCO',
+      description: 'UBC Okanagan',
+      legacyAuthEnabled: true,
+    });
+
     if (!courseExists) {
       // possible collision:
       // If the dev env is active at midnight, the cron job will rescrape events from the ical which
@@ -234,14 +240,18 @@ export class SeedController {
       // But since the semester is centered in Fall 2020,
       // the events will get filtered out since they arent in that date.
       // you will need to reseed data!
+
+      // comments above are from legacy implementation
       const semester = await SemesterFactory.create({
-        season: 'Fall',
-        year: 2023,
+        organization: organization,
+        startDate: new Date('2020-09-01'),
+        endDate: new Date('2020-12-31'),
+        name: 'Fall 2020',
       });
 
       await CourseFactory.create({
         timezone: 'America/Los_Angeles',
-        semesterId: semester.id,
+        semester: semester,
       });
     }
 
@@ -251,6 +261,7 @@ export class SeedController {
 
     await CourseSettingsFactory.create({
       course: course,
+      courseId: course.id,
       chatBotEnabled: true,
       asyncQueueEnabled: true,
       adsEnabled: true,
@@ -402,11 +413,6 @@ export class SeedController {
         isSubscribed: true,
         user: user5,
         service: facultyMailService,
-      });
-      const organization = await OrganizationFactory.create({
-        name: 'UBCO',
-        description: 'UBC Okanagan',
-        legacyAuthEnabled: true,
       });
 
       await OrganizationUserFactory.create({

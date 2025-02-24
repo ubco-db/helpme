@@ -8,7 +8,9 @@ import {
   Form,
   Input,
   message,
+  Modal,
   Row,
+  Select,
   Spin,
   Switch,
 } from 'antd'
@@ -19,6 +21,8 @@ import { Organization } from '@/app/typings/organization'
 import { API } from '@/app/api'
 import Image from 'next/image'
 import ImageCropperModal from '@/app/(dashboard)/components/ImageCropperModal'
+import { SemesterPartial } from '@koh/common'
+import { CreateSemesterModal } from './components/CreateSemesterModal'
 
 export default function SettingsPage(): ReactElement {
   const [formGeneral] = Form.useForm()
@@ -40,6 +44,11 @@ export default function SettingsPage(): ReactElement {
   const [organizationWebsiteUrl, setOrganizationWebsiteUrl] = useState(
     organization?.websiteUrl,
   )
+  const [organizationSemesters, setOrganizationSemesters] = useState<
+    SemesterPartial[]
+  >([])
+  const [isSemesterCreationModalOpen, setIsSemesterCreationModalOpen] =
+    useState(false)
 
   useEffect(() => {
     const fetchDataAsync = async () => {
@@ -51,6 +60,17 @@ export default function SettingsPage(): ReactElement {
       setOrganizationName(response.name)
       setOrganizationDescription(response.description)
       setOrganizationWebsiteUrl(response.websiteUrl)
+      setOrganizationSemesters(
+        response.semesters.map((s: SemesterPartial) => {
+          return {
+            id: s.id,
+            name: s.name,
+            startDate: new Date(s.startDate),
+            endDate: new Date(s.endDate),
+            description: s.description,
+          }
+        }),
+      )
     }
 
     fetchDataAsync()
@@ -124,9 +144,37 @@ export default function SettingsPage(): ReactElement {
       })
   }
 
+  // for semester management
+  const [semesterForm] = Form.useForm()
+
+  const handleAddSemester = async () => {
+    return
+  }
+
+  const handleEditSemester = (semesterId: number) => {
+    {
+      const semester = organizationSemesters.find((s) => s.id === semesterId)
+      if (!semester) {
+        message.error('Semester not found')
+        return
+      }
+      semesterForm.setFieldsValue({
+        name: semester.name,
+        startDate: semester.startDate,
+        endDate: semester.endDate,
+        description: semester.description,
+      })
+      setIsSemesterCreationModalOpen(true)
+    }
+  }
+
+  const handleDeleteSemester = (semesterId: number) => {
+    return
+  }
+
   return organization ? (
-    <>
-      <Card title="General" bordered={true}>
+    <div className="flex flex-col items-center gap-3">
+      <Card title="General" bordered={true} className="w-full">
         <Form
           form={formGeneral}
           onFinish={updateGeneral}
@@ -182,7 +230,7 @@ export default function SettingsPage(): ReactElement {
         </Form>
       </Card>
 
-      <Card title="Logo & Banner" bordered={true} className="mt-3">
+      <Card title="Logo & Banner" bordered={true} className="w-full">
         <Form layout="vertical">
           <Row className="flex justify-around">
             <Form.Item label="Logo">
@@ -299,11 +347,68 @@ export default function SettingsPage(): ReactElement {
         </Form>
       </Card>
 
-      <Card
-        title="SSO"
-        bordered={true}
-        style={{ marginTop: 10, marginBottom: 10 }}
-      >
+      <Card title="Semester Management" bordered className="w-full">
+        {organizationSemesters && organizationSemesters.length > 0 ? (
+          organizationSemesters
+            .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
+            .map((semester) => (
+              <Card.Grid
+                key={semester.id}
+                className="flex w-[50%] flex-col gap-2 text-center transition-none"
+                onClick={() => handleEditSemester(semester.id)}
+              >
+                <h3 className="text-lg font-semibold">{semester.name}</h3>
+                <p>
+                  <span className="font-semibold">Start Date:</span>{' '}
+                  {semester.startDate.toDateString()}
+                </p>
+                <p>
+                  <span className="font-semibold">End Date:</span>{' '}
+                  {semester.endDate.toDateString()}
+                </p>
+                {semester.description && (
+                  <p>
+                    <span className="font-semibold">Description:</span>{' '}
+                    {semester.description}
+                  </p>
+                )}
+                <Button
+                  danger
+                  type="primary"
+                  onClick={() => handleDeleteSemester(semester.id)}
+                  className="mt-2"
+                >
+                  Delete
+                </Button>
+              </Card.Grid>
+            ))
+        ) : (
+          <Card.Grid className="w-[50%] text-center">
+            No semesters added yet. Click the button below to add a new
+            semester.
+          </Card.Grid>
+        )}
+
+        <Card.Grid className="w-[50%] text-center">
+          <Button
+            type="dashed"
+            onClick={() => setIsSemesterCreationModalOpen(true)}
+          >
+            + Add New Semester
+          </Button>
+        </Card.Grid>
+
+        {isSemesterCreationModalOpen && (
+          <CreateSemesterModal
+            isSemesterCreationModalOpen={isSemesterCreationModalOpen}
+            setIsSemesterCreationModalOpen={setIsSemesterCreationModalOpen}
+            handleAddSemester={handleAddSemester}
+            semesterForm={semesterForm}
+          />
+        )}
+      </Card>
+
+      <Card title="SSO" bordered={true} className="w-full">
         <Form layout="vertical">
           <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
             <Col xs={{ span: 24 }} sm={{ span: 12 }}>
@@ -334,7 +439,7 @@ export default function SettingsPage(): ReactElement {
           </Row>
         </Form>
       </Card>
-    </>
+    </div>
   ) : (
     <Spin />
   )
