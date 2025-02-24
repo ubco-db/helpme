@@ -14,7 +14,8 @@ import { asyncQuestionStatus, Role } from '@koh/common';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 
 describe('AsyncQuestion Integration', () => {
-  const supertest = setupIntegrationTest(asyncQuestionModule);
+  const { supertest, getTestModule } =
+    setupIntegrationTest(asyncQuestionModule);
   let course: CourseModel;
   let TAuser: UserModel;
   let studentUser: UserModel;

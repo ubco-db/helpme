@@ -13,7 +13,7 @@ import { QueueModel } from '../src/queue/queue.entity';
 import { ERROR_MESSAGES } from '@koh/common';
 
 describe('QuestionType Integration', () => {
-  const supertest = setupIntegrationTest(QuestionTypeModule);
+  const { supertest, getTestModule } = setupIntegrationTest(QuestionTypeModule);
   const exampleConfig = {
     fifo_queue_view_enabled: true,
     tag_groups_queue_view_enabled: true,

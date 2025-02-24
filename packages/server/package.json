@@ -121,6 +121,7 @@
     "jest": "29.1.2",
     "prettier": "^3.0.3",
     "razzle-start-server-webpack-plugin": "4.0.0-canary.7",
+    "redis-memory-server": "^0.12.1",
     "supertest": "^4.0.2",
     "ts-jest": "^29.1.2",
     "ts-loader": "^8.0.10",

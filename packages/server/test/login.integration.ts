@@ -26,7 +26,7 @@ const mockJWT = {
 };
 
 describe('Login Integration', () => {
-  const supertest = setupIntegrationTest(
+  const { supertest, getTestModule } = setupIntegrationTest(
     LoginModule,
     (t: TestingModuleBuilder) =>
       t.overrideProvider(JwtService).useValue(mockJWT),

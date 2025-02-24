@@ -106,7 +106,7 @@ export class MockJwtAuthGuard {
 }
 
 describe('Auth Integration', () => {
-  const supertest = setupIntegrationTest(
+  const { supertest, getTestModule } = setupIntegrationTest(
     AuthModule,
     (t: TestingModuleBuilder) =>
       t
