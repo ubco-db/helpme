@@ -116,8 +116,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
         title={
           queueChatData && queueChatData.staff && queueChatData.student
             ? isStaff
-              ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName ?? ''}`
-              : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName ?? ''}`
+              ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
+              : `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
             : 'Loading...'
         }
         classNames={{
@@ -144,8 +144,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
               please remain respectful. Chat messages will remain until your
               question is resolved.
             </div>
-            {queueChatData!.messages &&
-              queueChatData!.messages.map((message, index) => {
+            {queueChatData.messages &&
+              queueChatData.messages.map((message, index) => {
                 return (
                   <Fragment key={index}>
                     {/* checks if you are the one sending the message */}
@@ -172,13 +172,13 @@ const QueueChat: React.FC<QueueChatProps> = ({
                           size="small"
                           username={
                             message.isStaff
-                              ? queueChatData!.staff.firstName
-                              : queueChatData!.student.firstName
+                              ? queueChatData.staff.firstName
+                              : queueChatData.student.firstName
                           }
                           photoURL={
                             message.isStaff
-                              ? queueChatData!.staff.photoURL
-                              : queueChatData!.student.photoURL
+                              ? queueChatData.staff.photoURL
+                              : queueChatData.student.photoURL
                           }
                         />
                       </div>
@@ -188,13 +188,13 @@ const QueueChat: React.FC<QueueChatProps> = ({
                           size="small"
                           username={
                             message.isStaff
-                              ? queueChatData!.staff.firstName
-                              : queueChatData!.student.firstName
+                              ? queueChatData.staff.firstName
+                              : queueChatData.student.firstName
                           }
                           photoURL={
                             message.isStaff
-                              ? queueChatData!.staff.photoURL
-                              : queueChatData!.student.photoURL
+                              ? queueChatData.staff.photoURL
+                              : queueChatData.student.photoURL
                           }
                         />
                         <div className="flex max-w-[70%] flex-col rounded-xl bg-slate-100 p-2 text-slate-900">
@@ -268,8 +268,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
         >
           {queueChatData && queueChatData.staff && queueChatData.student
             ? isStaff
-              ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName ?? ''}`
-              : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName ?? ''}`
+              ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
+              : `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
             : 'Loading...'}
         </Button>
       </Badge>
@@ -283,8 +283,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
         title={
           queueChatData && queueChatData.staff && queueChatData.student
             ? isStaff
-              ? `${queueChatData!.student.firstName} ${queueChatData!.student.lastName ?? ''}`
-              : `${queueChatData!.staff.firstName} ${queueChatData!.staff.lastName ?? ''}`
+              ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
+              : `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
             : 'Loading...'
         }
       >
