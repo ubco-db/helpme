@@ -1,6 +1,5 @@
 import { Fragment, ReactElement, useEffect, useRef, useState } from 'react'
 import { Alert, Badge, Button, Card, message, Space } from 'antd'
-import { Role } from '@koh/common'
 import UserAvatar from '@/app/components/UserAvatar'
 import { MessageCircleMore } from 'lucide-react'
 import TextArea from 'antd/es/input/TextArea'
@@ -10,26 +9,22 @@ import { CloseOutlined } from '@ant-design/icons'
 import { Tooltip } from 'antd'
 
 interface QueueChatProps {
-  role: Role
   queueId: number
   questionId: number
   isMobile: boolean
   hidden: boolean
-  hideDrawerOnMobile?: boolean
-  fixed?: boolean
+  isStaff: boolean
   announceNewMessage?: (newCount: number) => void
   onOpen?: () => void
   onClose?: () => void
 }
 
 const QueueChat: React.FC<QueueChatProps> = ({
-  role,
   queueId,
   questionId,
   isMobile,
   hidden,
-  hideDrawerOnMobile = false,
-  fixed = true,
+  isStaff,
   announceNewMessage = (newCount: number) => {
     return
   },
@@ -65,7 +60,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
       return
     }
     if (!isMobile) {
-      // This is for desktop's default behaviour (auto open the chat) -- mobile has css to handle this
+      // This is for desktop's default behavior (auto open the chat) -- mobile has css to handle this
       setIsOpen(true)
       resetNewMessageCount()
       onOpen()
@@ -73,8 +68,6 @@ const QueueChat: React.FC<QueueChatProps> = ({
       announceNewMessage(newMessageCount) // For mobile "view chats" button in queue page to know there are new messages
     }
   }, [newMessageCount, setIsOpen])
-
-  const isStaff = role === Role.PROFESSOR || role === Role.TA
 
   const sendMessage = async () => {
     setIsLoading(true)
@@ -98,7 +91,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     return (
       <Alert
         style={{ zIndex: 1050 }}
-        className={`${fixed ? 'fixed ' : ''} bottom-0 right-0 box-border overflow-y-auto`}
+        className={`${!isStaff ? 'fixed ' : ''} bottom-0 right-0 box-border overflow-y-auto`}
         message={`Chat data is not available.`}
         description="Please try again later or contact support if the issue persists."
         type="warning"
@@ -109,7 +102,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
 
   return isOpen ? (
     <div
-      className={`${fixed ? 'fixed ' : ''}bottom-0 right-0 z-50 box-border w-full md:bottom-8 md:max-w-[400px]`}
+      className={`${!isStaff ? 'fixed ' : ''}bottom-0 right-0 z-50 box-border w-full md:bottom-8 md:max-w-[400px]`}
       style={{ zIndex: 1050 }}
     >
       <Card
@@ -254,7 +247,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
       <Badge
         count={newMessageCount}
         style={{ zIndex: 1050 }}
-        className={`${hidden ? 'hidden ' : ''}${isStaff ? 'w-full ' : `${fixed ? `fixed ` : ''}bottom-5 right-5`}`}
+        className={`${hidden ? 'hidden ' : ''}${isStaff ? 'w-full ' : `${!isStaff ? `fixed ` : ''}bottom-5 right-5`}`}
         overflowCount={99}
       >
         <Button
@@ -274,18 +267,16 @@ const QueueChat: React.FC<QueueChatProps> = ({
         </Button>
       </Badge>
     </div>
-  ) : hideDrawerOnMobile ? (
+  ) : !isStaff ? (
     // Instead of having a drawer with all queue chats, just show a button (pretty much just for students)
     <div
-      className={`${hidden ? 'hidden ' : ''}${fixed ? `fixed ` : ''}bottom-8 left-2 right-3 flex justify-end`}
+      className={`${hidden ? 'hidden ' : ''} fixed bottom-8 left-2 right-3 flex justify-end`}
       style={{ zIndex: 1050 }}
     >
       <Tooltip
         title={
           queueChatData && queueChatData.staff && queueChatData.student
-            ? isStaff
-              ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
-              : `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+            ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
             : 'Loading...'
         }
       >
@@ -298,14 +289,11 @@ const QueueChat: React.FC<QueueChatProps> = ({
             setIsOpen(true)
             onOpen()
           }}
-        ></Button>
+        />
       </Tooltip>
     </div>
   ) : (
-    <div
-      className={`${fixed ? `fixed ` : ''}bottom-8 testeeee3 left-2 right-3 flex justify-end`}
-      style={{ zIndex: 1050 }}
-    >
+    <div className="mb-7" style={{ zIndex: 1050 }}>
       <Button
         type="primary"
         size="large"
@@ -318,9 +306,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
         }}
       >
         {queueChatData && queueChatData.staff && queueChatData.student
-          ? isStaff
-            ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
-            : `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+          ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
           : 'Loading...'}
       </Button>
     </div>

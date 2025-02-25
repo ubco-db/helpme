@@ -983,9 +983,8 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                           key={question.id}
                           queueId={qid}
                           questionId={question.id}
-                          role={role}
                           isMobile={isMobile}
-                          fixed={false}
+                          isStaff={isStaff}
                           announceNewMessage={(newCount: number) =>
                             setNewMessagesInQueueChats(
                               (prevCount) => prevCount + newCount,
@@ -1033,7 +1032,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                             setMobileQueueChatOpen(true)
                             setNewMessagesInQueueChats(0)
                           }}
-                        ></Button>
+                        />
                       </Badge>
                     </Popover>
                   </div>
@@ -1041,7 +1040,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               </>
             ) : (
               <div
-                className={`fixed bottom-8 right-0 box-border max-h-[70vh] ${renderSmallChatbot ? 'md:right-[9.5rem]' : 'md:right-1'}`}
+                className={`fixed bottom-1 right-0 box-border max-h-[70vh] ${isChatbotOpen ? 'md:right-[408px]' : 'md:right-[9.5rem]'}`}
               >
                 <div
                   className={
@@ -1054,15 +1053,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                         key={question.id}
                         queueId={qid}
                         questionId={question.id}
-                        role={role}
                         isMobile={isMobile}
-                        fixed={false}
-                        hidden={isMobile && isChatbotOpen}
-                        onOpen={() => {
-                          setChatbotOpen(false)
-                          setRenderSmallChatbot(false)
-                        }}
-                        onClose={() => setRenderSmallChatbot(true)}
+                        isStaff={isStaff}
+                        hidden={false}
                       />
                     )
                   })}
@@ -1185,10 +1178,8 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               <QueueChat
                 queueId={qid}
                 questionId={studentQuestion.id}
-                role={role}
-                hideDrawerOnMobile={true}
                 isMobile={isMobile}
-                fixed={true}
+                isStaff={isStaff}
                 hidden={isMobile && isChatbotOpen}
                 onOpen={() => {
                   setChatbotOpen(false)
@@ -1201,10 +1192,8 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               <QueueChat
                 queueId={qid}
                 questionId={studentDemo.id}
-                role={role}
-                hideDrawerOnMobile={true}
                 isMobile={isMobile}
-                fixed={true}
+                isStaff={isStaff}
                 hidden={isMobile && isChatbotOpen}
                 onOpen={() => {
                   setChatbotOpen(false)
