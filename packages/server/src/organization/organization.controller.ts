@@ -635,6 +635,7 @@ export class OrganizationController {
         where: {
           courseId: cid,
         },
+        relations: ['user'],
       });
 
       // clear cache of all members of the course
