@@ -88,16 +88,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   }
 
   if (!queueChatData || queueChatError) {
-    return (
-      <Alert
-        style={{ zIndex: 1050 }}
-        className={`${!isStaff ? 'fixed ' : ''} bottom-0 right-0 box-border overflow-y-auto`}
-        message={`Chat data is not available.`}
-        description="Please try again later or contact support if the issue persists."
-        type="warning"
-        showIcon
-      />
-    )
+    return <></>
   }
 
   return isOpen ? (
