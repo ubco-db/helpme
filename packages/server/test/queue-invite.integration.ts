@@ -14,7 +14,7 @@ import { setupIntegrationTest } from './util/testUtils';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
 
 describe('Queue Invite Integration', () => {
-  const supertest = setupIntegrationTest(QueueModule);
+  const { supertest, getTestModule } = setupIntegrationTest(QueueModule);
 
   describe('POST /queueInvites/:id', () => {
     it('returns 401 when the user is not logged in', async () => {

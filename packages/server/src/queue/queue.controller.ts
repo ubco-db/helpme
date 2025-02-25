@@ -91,7 +91,7 @@ export class QueueController {
       let queueQuestions: any;
 
       if (Object.keys(queueKeys).length === 0) {
-        console.log('Fetching from database');
+        console.log('Fetching queue questions from database');
 
         queueQuestions = await this.queueService.getQuestions(queueId);
         if (queueQuestions)
@@ -100,7 +100,7 @@ export class QueueController {
             queueQuestions,
           );
       } else {
-        console.log('Fetching from Redis');
+        console.log('Fetching queue questions from Redis');
         queueQuestions = queueKeys.questions;
       }
 

@@ -64,8 +64,9 @@ import { ConfigService } from '@nestjs/config';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { Not, getManager } from 'typeorm';
 import { pick } from 'lodash';
-import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 
@@ -79,6 +80,7 @@ export class CourseController {
     private courseService: CourseService,
     private queueCleanService: QueueCleanService,
     private redisQueueService: RedisQueueService,
+    private redisProfileService: RedisProfileService,
     private readonly appConfig: ApplicationConfigService,
   ) {}
 
@@ -397,7 +399,25 @@ export class CourseController {
     @Param('id', ParseIntPipe) courseId: number,
     @Body() coursePatch: EditCourseInfoParams,
   ): Promise<void> {
-    await this.courseService.editCourse(courseId, coursePatch);
+    await this.courseService
+      .editCourse(courseId, coursePatch)
+      .then(async () => {
+        const course = await CourseModel.findOne({
+          where: {
+            courseId,
+          },
+          relations: ['userCourses'],
+        });
+
+        // Won't be a costly operation since courses are not modified often
+        if (course) {
+          course.userCourses.map(async (userCourse) => {
+            await this.redisProfileService.deleteProfile(
+              `u:${userCourse.user.id}`,
+            );
+          });
+        }
+      });
   }
 
   @Post(':id/create_queue/:room')
@@ -896,6 +916,9 @@ export class CourseController {
       .catch((err) => {
         res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
       });
+
+    // Delete old cached record if changed
+    await this.redisProfileService.deleteProfile(`u:${user.id}`);
     return;
   }
 

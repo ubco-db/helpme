@@ -63,11 +63,13 @@ import * as sharp from 'sharp';
 import { UserId } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
+import { RedisProfileService } from '../redisProfile/redis-profile.service';
 
 @Controller('organization')
 export class OrganizationController {
   constructor(
     private organizationService: OrganizationService,
+    private redisProfileService: RedisProfileService,
     private schedulerRegistry: SchedulerRegistry,
   ) {}
 
@@ -628,6 +630,18 @@ export class OrganizationController {
           }
         }
       }
+
+      const members = await UserCourseModel.find({
+        where: {
+          courseId: cid,
+        },
+        relations: ['user'],
+      });
+
+      // clear cache of all members of the course
+      members.forEach(async (m) => {
+        await this.redisProfileService.deleteProfile(`u:${m.user.id}`);
+      });
     } catch (err) {
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
         message: err,
@@ -1262,6 +1276,10 @@ export class OrganizationController {
 
     await this.organizationService
       .deleteUserCourses(uid, userCourses)
+      .then(async () => {
+        // Delete the user's old profile data from redis
+        await this.redisProfileService.deleteProfile(`u:${uid}`);
+      })
       .then(() => {
         return res.status(HttpStatus.OK).send({
           message: 'User courses deleted',
@@ -1284,11 +1302,11 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async deleteUserProfilePicture(
     @Res() res: Response,
-    @Param('uid', ParseIntPipe) oid: number,
+    @Param('uid', ParseIntPipe) uid: number,
   ): Promise<Response<void>> {
     const userInfo = await OrganizationUserModel.findOne({
       where: {
-        userId: oid,
+        userId: uid,
       },
       relations: ['organizationUser'],
     });
@@ -1322,6 +1340,9 @@ export class OrganizationController {
         } else {
           userInfo.organizationUser.photoURL = null;
           await userInfo.organizationUser.save();
+
+          await this.redisProfileService.deleteProfile(`u:${uid}`);
+
           return res.status(HttpStatus.OK).send({
             message: 'Profile picture deleted',
           });
@@ -1407,6 +1428,10 @@ export class OrganizationController {
 
     await userInfo.organizationUser
       .save()
+      .then(async () => {
+        // Delete the user's old profile data from redis
+        await this.redisProfileService.deleteProfile(`u:${uid}`);
+      })
       .then(() => {
         return res.status(HttpStatus.OK).send({
           message: 'User info updated',

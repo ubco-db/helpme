@@ -10,7 +10,7 @@ import { setupIntegrationTest } from './util/testUtils';
 import { ChatbotQuestionModel } from 'chatbot/question.entity';
 
 describe('ChatbotController Integration', () => {
-  const supertest = setupIntegrationTest(ChatbotModule);
+  const { supertest, getTestModule } = setupIntegrationTest(ChatbotModule);
 
   it('should create an interaction', async () => {
     const user = await UserFactory.create();

@@ -19,7 +19,7 @@ import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 
 describe('Organization Integration', () => {
-  const supertest = setupIntegrationTest(OrganizationModule);
+  const { supertest, getTestModule } = setupIntegrationTest(OrganizationModule);
 
   describe('POST /organization/:oid/populate_chat_token_table', () => {
     it('should return 401 when user is not logged in', async () => {

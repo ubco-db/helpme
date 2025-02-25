@@ -14,7 +14,8 @@ import { CourseModel } from '../src/course/course.entity';
 import { UserModel } from '../src/profile/user.entity';
 
 describe('Lms Integration Integrations', () => {
-  const supertest = setupIntegrationTest(LmsIntegrationModule);
+  const { supertest, getTestModule } =
+    setupIntegrationTest(LmsIntegrationModule);
 
   let prof: UserModel;
   let course: CourseModel;

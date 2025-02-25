@@ -1,9 +1,9 @@
 import { INestApplication, Type } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Test, TestingModuleBuilder } from '@nestjs/testing';
+import { Test, TestingModule, TestingModuleBuilder } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RedisModule } from 'nestjs-redis';
+import { RedisModule, RedisService } from 'nestjs-redis';
 import { NotificationService } from 'notification/notification.service';
 import * as supertest from 'supertest';
 import { Connection } from 'typeorm';
@@ -12,6 +12,8 @@ import { LoginModule } from '../../src/login/login.module';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { ApplicationConfigModule } from 'config/application_config.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
+import { RedisMemoryServer } from 'redis-memory-server';
+import { Redis } from 'ioredis';
 
 export interface SupertestOptions {
   userId?: number;
@@ -24,7 +26,7 @@ export const TestTypeOrmModule = TypeOrmModule.forRoot({
   username: process.env.POSTGRES_USER || 'helpme',
   password: process.env.TESTDBPASS || 'mysecretpassword',
   database: 'test',
-  entities: ['./**/*.entity.ts'],
+  entities: ['./**/*.entity.ts', '../../src/**/*.entity.ts'],
   synchronize: true,
   keepConnectionAlive: true,
 });
@@ -38,14 +40,46 @@ export function setupIntegrationTest(
   module: Type<any>,
   modifyModule?: ModuleModifier,
   additionalModules: Type<any>[] = [],
-): (u?: SupertestOptions) => supertest.SuperTest<supertest.Test> {
+): {
+  supertest: (u?: SupertestOptions) => supertest.SuperTest<supertest.Test>;
+  getTestModule: () => TestingModule;
+} {
   let app: INestApplication;
   let jwtService: JwtService;
   let conn: Connection;
   let appConfig: ApplicationConfigService;
   let schedulerRegistry: SchedulerRegistry;
+  let testModule: TestingModule;
+  let redisService: RedisService;
+
+  let redisTestServer: RedisMemoryServer;
+  let redisHost: string;
+  let redisPort: number;
 
   beforeAll(async () => {
+    if (!process.env.CI) {
+      // For local testing, start a Redis in-memory server
+      console.log('Starting Redis in-memory server');
+      try {
+        redisTestServer = new RedisMemoryServer();
+        redisHost = await redisTestServer.getHost();
+        redisPort = await redisTestServer.getPort();
+      } catch (err) {
+        console.error('Error initializing redis test container:', err);
+        throw err;
+      }
+    } else {
+      // For CI, use the provided Redis server from actions
+      console.log(
+        `Using CI Redis server: ${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
+      );
+      redisHost = process.env.REDIS_HOST || 'localhost';
+      redisPort = process.env.REDIS_PORT
+        ? parseInt(process.env.REDIS_PORT)
+        : 6379;
+    }
+
+    // Create the testing module
     let testModuleBuilder = Test.createTestingModule({
       imports: [
         ...additionalModules,
@@ -56,9 +90,9 @@ export function setupIntegrationTest(
         ApplicationConfigModule,
         ScheduleModule.forRoot(),
         RedisModule.register([
-          { name: 'pub' },
-          { name: 'sub' },
-          { name: 'db' },
+          { name: 'pub', host: redisHost, port: redisPort },
+          { name: 'sub', host: redisHost, port: redisPort },
+          { name: 'db', host: redisHost, port: redisPort },
         ]),
       ],
     });
@@ -66,7 +100,9 @@ export function setupIntegrationTest(
     if (modifyModule) {
       testModuleBuilder = modifyModule(testModuleBuilder);
     }
-    const testModule = await testModuleBuilder.compile();
+    testModule = await testModuleBuilder.compile();
+
+    // Create and configure the application
 
     app = testModule.createNestApplication();
     addGlobalsToApp(app);
@@ -75,29 +111,54 @@ export function setupIntegrationTest(
       ApplicationConfigService,
     );
     conn = testModule.get<Connection>(Connection);
+    redisService = testModule.get<RedisService>(RedisService);
 
     await appConfig.loadConfig();
     await app.init();
     schedulerRegistry = testModule.get<SchedulerRegistry>(SchedulerRegistry);
-  });
+
+    // Ensure Redis is connected before proceeding
+    await ensureRedisConnected(redisService.getClient('db'));
+  }, 10000);
 
   afterAll(async () => {
     await app.close();
     await conn.close();
+    await redisService.getClient('db').quit();
+
+    if (redisTestServer) {
+      await redisTestServer.stop();
+    }
   });
 
   beforeEach(async () => {
     await conn.synchronize(true);
     await clearAllCronJobs(schedulerRegistry);
+    await testModule.get<RedisService>(RedisService).getClient('db').flushall();
   });
 
-  return (options?: SupertestOptions): supertest.SuperTest<supertest.Test> => {
-    const agent = supertest.agent(app.getHttpServer());
-    if (options?.userId) {
-      const token = jwtService.sign({ userId: options.userId });
-      agent.set('Cookie', [`auth_token=${token}`]);
-    }
-    return agent;
+  return {
+    // Supertest agent
+    supertest: (
+      options?: SupertestOptions,
+    ): supertest.SuperTest<supertest.Test> => {
+      const agent = supertest.agent(app.getHttpServer());
+      if (options?.userId) {
+        const token = jwtService.sign({ userId: options.userId });
+        agent.set('Cookie', [`auth_token=${token}`]);
+      }
+      return agent;
+    },
+
+    // Lazy getter for the test module since it is initialized in beforeAll block
+    getTestModule: () => {
+      if (!testModule) {
+        throw new Error(
+          'TestModule has not been initialized yet. Ensure `beforeAll` has run.',
+        );
+      }
+      return testModule;
+    },
   };
 }
 
@@ -121,4 +182,22 @@ export async function clearAllCronJobs(
   cronJobs.forEach((_, jobName) => {
     schedulerRegistry.deleteCronJob(jobName);
   });
+}
+
+async function ensureRedisConnected(redisClient: Redis, retries = 5) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const pingResponse = await redisClient.ping();
+      if (pingResponse === 'PONG') {
+        // Connected successfully, don't log anything
+        return;
+      }
+    } catch (err) {
+      console.warn(
+        `Failed to establish connection to redis server. Retrying Redis connection... (${i + 1}/${retries})`,
+      );
+    }
+    await new Promise((res) => setTimeout(res, 1000)); // Wait 1 second before retrying
+  }
+  throw new Error('Failed to connect to Redis after multiple attempts.');
 }
