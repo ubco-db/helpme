@@ -15,7 +15,7 @@ interface QueueChatProps {
   questionId: number
   isMobile: boolean
   hidden: boolean
-  singleton?: boolean
+  hideDrawerOnMobile?: boolean
   fixed?: boolean
   announceNewMessage?: (newCount: number) => void
   onOpen?: () => void
@@ -28,7 +28,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   questionId,
   isMobile,
   hidden,
-  singleton = false,
+  hideDrawerOnMobile = false,
   fixed = true,
   announceNewMessage = (newCount: number) => {
     return
@@ -254,7 +254,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
       <Badge
         count={newMessageCount}
         style={{ zIndex: 1050 }}
-        className={`${hidden ? 'hidden ' : ''}${isStaff ? 'w-full ' : `${fixed ? `fixed ` : ''}bottom-5 right-5 `}`}
+        className={`${hidden ? 'hidden ' : ''}${isStaff ? 'w-full ' : `${fixed ? `fixed ` : ''}bottom-5 right-5`}`}
         overflowCount={99}
       >
         <Button
@@ -274,9 +274,10 @@ const QueueChat: React.FC<QueueChatProps> = ({
         </Button>
       </Badge>
     </div>
-  ) : singleton ? (
+  ) : hideDrawerOnMobile ? (
+    // Instead of having a drawer with all queue chats, just show a button (pretty much just for students)
     <div
-      className={`${fixed ? `fixed ` : ''}bottom-8 left-2 right-3 flex justify-end`}
+      className={`${hidden ? 'hidden ' : ''}${fixed ? `fixed ` : ''}bottom-8 left-2 right-3 flex justify-end`}
       style={{ zIndex: 1050 }}
     >
       <Tooltip
@@ -302,7 +303,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     </div>
   ) : (
     <div
-      className={`${fixed ? `fixed ` : ''}bottom-8 left-2 right-3 flex justify-end`}
+      className={`${fixed ? `fixed ` : ''}bottom-8 testeeee3 left-2 right-3 flex justify-end`}
       style={{ zIndex: 1050 }}
     >
       <Button
