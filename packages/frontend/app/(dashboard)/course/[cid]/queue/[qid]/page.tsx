@@ -1181,11 +1181,16 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 isMobile={isMobile}
                 isStaff={isStaff}
                 hidden={isMobile && isChatbotOpen}
+                isChatbotOpen={isChatbotOpen}
                 onOpen={() => {
-                  setChatbotOpen(false)
-                  setRenderSmallChatbot(false)
+                  if (isMobile) {
+                    setChatbotOpen(false)
+                    setRenderSmallChatbot(false)
+                  }
                 }}
-                onClose={() => setRenderSmallChatbot(true)}
+                onClose={() => {
+                  if (isMobile) setRenderSmallChatbot(true)
+                }}
               />
             ) : studentDemo &&
               studentDemo.status == OpenQuestionStatus.Helping ? (
@@ -1195,11 +1200,16 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 isMobile={isMobile}
                 isStaff={isStaff}
                 hidden={isMobile && isChatbotOpen}
+                isChatbotOpen={isChatbotOpen}
                 onOpen={() => {
-                  setChatbotOpen(false)
-                  setRenderSmallChatbot(false)
+                  if (isMobile) {
+                    setChatbotOpen(false)
+                    setRenderSmallChatbot(false)
+                  }
                 }}
-                onClose={() => setRenderSmallChatbot(true)}
+                onClose={() => {
+                  if (isMobile) setRenderSmallChatbot(true)
+                }}
               />
             ) : null}
           </>

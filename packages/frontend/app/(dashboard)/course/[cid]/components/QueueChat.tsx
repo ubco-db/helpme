@@ -1,5 +1,5 @@
 import { Fragment, ReactElement, useEffect, useRef, useState } from 'react'
-import { Alert, Badge, Button, Card, message, Space } from 'antd'
+import { Badge, Button, Card, message, Space } from 'antd'
 import UserAvatar from '@/app/components/UserAvatar'
 import { MessageCircleMore } from 'lucide-react'
 import TextArea from 'antd/es/input/TextArea'
@@ -7,6 +7,7 @@ import { API } from '@/app/api'
 import { useQueueChat } from '@/app/hooks/useQueueChat'
 import { CloseOutlined } from '@ant-design/icons'
 import { Tooltip } from 'antd'
+import { cn } from '@/app/utils/generalUtils'
 
 interface QueueChatProps {
   queueId: number
@@ -14,6 +15,7 @@ interface QueueChatProps {
   isMobile: boolean
   hidden: boolean
   isStaff: boolean
+  isChatbotOpen?: boolean
   announceNewMessage?: (newCount: number) => void
   onOpen?: () => void
   onClose?: () => void
@@ -25,6 +27,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   isMobile,
   hidden,
   isStaff,
+  isChatbotOpen = false,
   announceNewMessage = (newCount: number) => {
     return
   },
@@ -93,7 +96,11 @@ const QueueChat: React.FC<QueueChatProps> = ({
 
   return isOpen ? (
     <div
-      className={`${!isStaff ? 'fixed ' : ''}bottom-0 right-0 z-50 box-border w-full md:bottom-8 md:max-w-[400px]`}
+      className={cn(
+        !isStaff ? 'fixed bottom-0 right-[1px] md:bottom-1 md:right-1' : '',
+        !isStaff && isChatbotOpen ? 'md:right-[408px]' : 'md:right-40',
+        'z-50 box-border w-full md:max-w-[400px]',
+      )}
       style={{ zIndex: 1050 }}
     >
       <Card
@@ -233,7 +240,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
         </div>
       </Card>
     </div>
-  ) : isMobile ? (
+  ) : isMobile && isStaff ? (
+    // For mobile staff view, the queue chats go inside a drawer so this will look a little different
     <div style={{ zIndex: 1050, width: '100%', padding: '0.75rem' }}>
       <Badge
         count={newMessageCount}
@@ -259,23 +267,35 @@ const QueueChat: React.FC<QueueChatProps> = ({
       </Badge>
     </div>
   ) : !isStaff ? (
-    // Instead of having a drawer with all queue chats, just show a button (pretty much just for students)
+    // if you're a student, show the pfp of the TA helping you as the button
     <div
-      className={`${hidden ? 'hidden ' : ''} fixed bottom-8 left-2 right-3 flex justify-end`}
+      className={cn(
+        hidden ? 'hidden ' : '',
+        isChatbotOpen ? 'md:right-[408px]' : 'md:right-40',
+        'fixed bottom-5 right-5 md:bottom-8',
+      )}
       style={{ zIndex: 1050 }}
     >
       <Tooltip
         title={
-          queueChatData && queueChatData.staff && queueChatData.student
-            ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
-            : 'Loading...'
+          queueChatData && queueChatData.staff
+            ? `Message ${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+            : 'Message TA'
         }
       >
         <Button
           type="primary"
           size="large"
-          className={`box-border rounded-full p-6 shadow-lg`}
-          icon={<MessageCircleMore />}
+          // GIVE SHADOW PLS
+          className="outline-helpmeblue-light rounded-full p-6 shadow-2xl shadow-white outline-offset-2 hover:outline focus:outline md:p-7"
+          icon={
+            <UserAvatar
+              size={isMobile ? 54 : 60}
+              className=""
+              photoURL={queueChatData.staff.photoURL}
+              username={`${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`}
+            />
+          }
           onClick={() => {
             setIsOpen(true)
             onOpen()
@@ -284,23 +304,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
       </Tooltip>
     </div>
   ) : (
-    <div className="mb-7" style={{ zIndex: 1050 }}>
-      <Button
-        type="primary"
-        size="large"
-        className="rounded-sm"
-        icon={<MessageCircleMore />}
-        onClick={() => {
-          setIsOpen(true)
-          resetNewMessageCount()
-          onOpen()
-        }}
-      >
-        {queueChatData && queueChatData.staff && queueChatData.student
-          ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
-          : 'Loading...'}
-      </Button>
-    </div>
+    <></>
   )
 }
 export default QueueChat
