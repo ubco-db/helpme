@@ -39,6 +39,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
   },
 }): ReactElement => {
   const [isOpen, setIsOpen] = useState<boolean>(isMobile ? false : true)
+  const [hasStudentEverOpenedIt, setHasStudentEverOpenedIt] =
+    useState<boolean>(false)
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const {
@@ -282,11 +284,18 @@ const QueueChat: React.FC<QueueChatProps> = ({
             ? `Message ${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
             : 'Message TA'
         }
+        placement={isMobile ? 'left' : 'top'}
+        open={isMobile && !hasStudentEverOpenedIt ? true : undefined}
       >
         <Button
           type="primary"
           size="large"
-          className="outline-helpmeblue-light rounded-full p-6 shadow-md shadow-slate-400 outline-offset-2 hover:outline focus:outline md:p-7"
+          className={cn(
+            'ring-helpmeblue-light ring-offset-2 hover:ring focus:ring',
+            'shadow-lg shadow-slate-400',
+            'outline-3 outline-helpmeblue/50 outline md:outline-2',
+            'rounded-full p-6 md:p-7 ',
+          )}
           icon={
             <UserAvatar
               size={isMobile ? 54 : 60}
@@ -297,6 +306,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
           }
           onClick={() => {
             setIsOpen(true)
+            setHasStudentEverOpenedIt(true)
             onOpen()
           }}
         />
