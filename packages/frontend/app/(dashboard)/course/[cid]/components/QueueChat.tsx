@@ -252,7 +252,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
         <Button
           type="primary"
           size="large"
-          className={`z-50 w-full rounded-sm`}
+          className={`z-50 w-full rounded-sm shadow-md`}
           onClick={() => {
             setIsOpen(true)
             onOpen()
@@ -286,8 +286,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
         <Button
           type="primary"
           size="large"
-          // GIVE SHADOW PLS
-          className="outline-helpmeblue-light rounded-full p-6 shadow-2xl shadow-white outline-offset-2 hover:outline focus:outline md:p-7"
+          className="outline-helpmeblue-light rounded-full p-6 shadow-md shadow-slate-400 outline-offset-2 hover:outline focus:outline md:p-7"
           icon={
             <UserAvatar
               size={isMobile ? 54 : 60}
@@ -304,7 +303,24 @@ const QueueChat: React.FC<QueueChatProps> = ({
       </Tooltip>
     </div>
   ) : (
-    <></>
+    // desktop for staff
+    <div className="mb-7">
+      <Button
+        type="primary"
+        size="large"
+        className="rounded-sm shadow-md shadow-slate-400"
+        icon={<MessageCircleMore />}
+        onClick={() => {
+          setIsOpen(true)
+          resetNewMessageCount()
+          onOpen()
+        }}
+      >
+        {queueChatData && queueChatData.staff && queueChatData.student
+          ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
+          : 'Loading...'}
+      </Button>
+    </div>
   )
 }
 export default QueueChat

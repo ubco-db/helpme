@@ -338,7 +338,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
       <div
         className={cn(
           variant === 'small'
-            ? 'fixed bottom-1 z-50 max-h-[90vh] w-screen md:right-1 md:max-w-[400px]'
+            ? 'fixed bottom-0 z-50 max-h-[90vh] w-screen md:bottom-1 md:right-1 md:max-w-[400px]'
             : variant === 'big'
               ? 'flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
               : variant === 'huge'
@@ -639,15 +639,14 @@ const Chatbot: React.FC<ChatbotProps> = ({
       </div>
     ) : (
       <div
-        className="fixed bottom-5 overflow-visible md:bottom-8 md:right-1 md:flex md:justify-end"
+        className="fixed bottom-5 md:bottom-8 md:right-1 md:flex md:justify-end"
         style={{ zIndex: 1050 }}
       >
         <Button
           type="primary"
           icon={<Bot className="mt-0.5" />}
           size="large"
-          // WHY CAN'T YOU JUST HAVE A SHADOW AHHHHH
-          className="z-50 mx-5 hidden overflow-visible rounded-sm opacity-100 !shadow-2xl shadow-black md:flex"
+          className="z-50 mx-5 hidden rounded-sm shadow-md shadow-slate-400 md:flex"
           onClick={() => setIsOpen(true)}
         >
           Chatbot
@@ -656,7 +655,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
           type="primary"
           icon={<Bot className="mt-0.5" />}
           size="large"
-          className="z-50 mx-5 overflow-visible rounded-full p-6 opacity-100 !shadow-2xl shadow-black  md:hidden"
+          className="z-50 mx-5 rounded-full p-6 shadow-md shadow-slate-400 md:hidden"
           onClick={() => setIsOpen(true)}
         />
       </div>
