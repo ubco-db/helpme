@@ -19,7 +19,6 @@ import {
   Get,
   HttpException,
   HttpStatus,
-  Logger,
   NotFoundException,
   Param,
   ParseIntPipe,
@@ -48,7 +47,6 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { QueueService } from '../queue/queue.service';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QuestionService } from './question.service';
-import { QueueChatService } from 'queueChats/queue-chats.service';
 
 // NOTE: FIXME: EVERY REQUEST INTO QUESTIONCONTROLLER REQUIRES THE BODY TO HAVE A
 // FIELD questionId OR queueId! If not, stupid weird untraceable bugs will happen
@@ -62,7 +60,6 @@ export class QuestionController {
     private questionService: QuestionService,
     private queueService: QueueService,
     private redisQueueService: RedisQueueService,
-    private QueueChatService: QueueChatService,
   ) {}
 
   @Get('allQuestions/:cid')

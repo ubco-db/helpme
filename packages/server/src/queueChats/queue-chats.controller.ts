@@ -12,13 +12,15 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { QueueChatService } from './queue-chats.service';
-import { User, UserId } from 'decorators/user.decorator';
-import { UserModel } from 'profile/user.entity';
+import { UserId } from 'decorators/user.decorator';
 import { Response } from 'express-serve-static-core';
 import { QueueRole } from 'decorators/queue-role.decorator';
 import { ERROR_MESSAGES, Role } from '@koh/common';
 import { QueueChatSSEService } from './queue-chats-sse.service';
 
+/* Note that these endpoints are special in that they don't have any Roles guards.
+  Instead, these endpoints use .checkPermissions() which only allows the chat's TA and student to call these endpoints.
+*/
 @Controller('queueChats')
 @UseGuards(JwtAuthGuard)
 export class QueueChatController {
@@ -28,11 +30,10 @@ export class QueueChatController {
   ) {}
 
   @Get(':queueId/:questionId')
-  @UseGuards(JwtAuthGuard)
   async getQueueChat(
     @Param('queueId') queueId: number,
     @Param('questionId') questionId: number,
-    @User() user: UserModel,
+    @UserId() userId: number,
   ) {
     const chatData = await this.queueChatService.getChatData(
       queueId,
@@ -46,7 +47,7 @@ export class QueueChatController {
     }
 
     await this.queueChatService
-      .checkPermissions(queueId, questionId, user.id)
+      .checkPermissions(queueId, questionId, userId)
       .then((allowedToRetrieve) => {
         if (!allowedToRetrieve) {
           throw new HttpException(
@@ -89,11 +90,10 @@ export class QueueChatController {
   }
 
   @Patch(':queueId/:questionId')
-  @UseGuards(JwtAuthGuard)
   async sendMessage(
     @Param('queueId') queueId: number,
     @Param('questionId') questionId: number,
-    @User() user: UserModel,
+    @UserId() userId: number,
     @Body('message') message: string,
   ) {
     const metadata = await this.queueChatService.getChatMetadata(
@@ -110,7 +110,7 @@ export class QueueChatController {
     const allowedToSend = await this.queueChatService.checkPermissions(
       queueId,
       questionId,
-      user.id,
+      userId,
     );
     if (!allowedToSend) {
       throw new HttpException(
@@ -119,7 +119,7 @@ export class QueueChatController {
       );
     }
     try {
-      const isStaff = user.id === metadata.staff.id;
+      const isStaff = userId === metadata.staff.id;
       await this.queueChatService.sendMessage(
         queueId,
         questionId,
