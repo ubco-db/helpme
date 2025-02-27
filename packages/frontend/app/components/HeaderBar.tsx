@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
 import {
   NavigationMenu,
@@ -120,6 +120,7 @@ const NavBar = ({
   courseId,
   isAQueuePage,
   isACourseSettingsPage,
+  setIsDrawerOpen,
   isProfilePage = false,
   orientation = 'horizontal',
 }: {
@@ -127,6 +128,7 @@ const NavBar = ({
   courseId: number | null
   isAQueuePage: boolean
   isACourseSettingsPage: boolean
+  setIsDrawerOpen?: React.Dispatch<React.SetStateAction<boolean>>
   isProfilePage?: boolean
   orientation?: 'horizontal' | 'vertical'
 }) => {
@@ -174,6 +176,7 @@ const NavBar = ({
             aria-hidden="true"
             className="hidden md:block"
             tabIndex={-1}
+            onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
           >
             {/* This organization logo is only visible on desktop */}
             <Image
@@ -188,7 +191,11 @@ const NavBar = ({
           {course ? (
             <>
               <NavigationMenuItem>
-                <Link className="!font-bold " href={`/course/${courseId}`}>
+                <Link
+                  className="!font-bold "
+                  href={`/course/${courseId}`}
+                  onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                >
                   {/* <House strokeWidth={1.5} className='mr-3' /> */}
                   <HomeOutlined className="mr-3 text-2xl" />
                   {course.name}
@@ -220,6 +227,9 @@ const NavBar = ({
                           key={queue.id}
                           title={queue.room}
                           href={`/course/${courseId}/queue/${queue.id}`}
+                          onClick={() =>
+                            setIsDrawerOpen && setIsDrawerOpen(false)
+                          }
                         >
                           <>
                             {`${queue.staffList.length > 0 ? `${queue.staffList.length} staff checked in` : ''}`}
@@ -234,7 +244,10 @@ const NavBar = ({
               )}
               {courseFeatures?.asyncQueueEnabled && (
                 <NavigationMenuItem>
-                  <Link href={`/course/${courseId}/async_centre`}>
+                  <Link
+                    href={`/course/${courseId}/async_centre`}
+                    onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                  >
                     <MessageCircleQuestion strokeWidth={1.5} className="mr-3" />
                     Anytime Qs
                   </Link>
@@ -242,7 +255,10 @@ const NavBar = ({
               )}
               {courseFeatures?.queueEnabled && (
                 <NavigationMenuItem>
-                  <Link href={`/course/${courseId}/schedule`}>
+                  <Link
+                    href={`/course/${courseId}/schedule`}
+                    onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                  >
                     <CalendarDays strokeWidth={1.5} className="mr-3" />
                     Schedule
                   </Link>
@@ -259,6 +275,7 @@ const NavBar = ({
                 >
                   <Link
                     href={`/course/${courseId}/settings${role === Role.TA ? '/edit_questions' : ''}`}
+                    onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
                   >
                     <Settings strokeWidth={1.5} className="mr-3" />
                     Course Settings
@@ -267,14 +284,20 @@ const NavBar = ({
               )}
               {role === Role.PROFESSOR && (
                 <NavigationMenuItem>
-                  <Link href={`/course/${courseId}/insights`}>
+                  <Link
+                    href={`/course/${courseId}/insights`}
+                    onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                  >
                     <LineChart strokeWidth={1.5} className="mr-3" />
                     Insights
                   </Link>
                 </NavigationMenuItem>
               )}
               <NavigationMenuItem>
-                <Link href={`/courses`}>
+                <Link
+                  href={`/courses`}
+                  onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                >
                   <Undo2 strokeWidth={1.5} className="mr-3" />
                   My Courses
                 </Link>
@@ -289,6 +312,7 @@ const NavBar = ({
                     className="md:pl-8"
                     onClick={() => {
                       router.back()
+                      if (setIsDrawerOpen) setIsDrawerOpen(false)
                     }}
                   >
                     <Undo2 strokeWidth={1.5} className="mr-3" />
@@ -297,14 +321,22 @@ const NavBar = ({
                 </NavigationMenuItem>
               )}
               <NavigationMenuItem>
-                <Link href="/courses" className="md:pl-8">
+                <Link
+                  href="/courses"
+                  className="md:pl-8"
+                  onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                >
                   My Courses
                 </Link>
               </NavigationMenuItem>
               {userInfo?.organization?.organizationRole ===
                 OrganizationRole.ADMIN && (
                 <NavigationMenuItem>
-                  <Link className="md:pl-8" href="/organization/settings">
+                  <Link
+                    className="md:pl-8"
+                    href="/organization/settings"
+                    onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                  >
                     Organization Settings
                   </Link>
                 </NavigationMenuItem>
@@ -339,7 +371,11 @@ const NavBar = ({
           {/* MOBILE ONLY PART OF NAVBAR */}
           <div className="!mb-2 !mt-auto -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
           <NavigationMenuItem className="md:hidden">
-            <Link href="/profile" className="!pl-0">
+            <Link
+              href="/profile"
+              className="!pl-0"
+              onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+            >
               <SelfAvatar size={40} className="mr-2" />
               {userInfo?.firstName}
             </Link>
@@ -349,6 +385,7 @@ const NavBar = ({
               title="Are you sure you want to log out?"
               onConfirm={() => {
                 router.push('/api/v1/logout')
+                if (setIsDrawerOpen) setIsDrawerOpen(false)
               }}
               okText="Yes"
               cancelText="No"
@@ -381,6 +418,7 @@ const NavBar = ({
  */
 const HeaderBar: React.FC = () => {
   const { userInfo } = useUserInfo()
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 768px)')
   // This is not the usual way to get the courseId from the URL
   // (normally you're supposed to use `params` for the page.tsx and then pass it down as a prop).
@@ -461,7 +499,11 @@ const HeaderBar: React.FC = () => {
           </h2>
         )}
       </div>
-      <Drawer direction="left">
+      <Drawer
+        direction="left"
+        open={isDrawerOpen}
+        onOpenChange={setIsDrawerOpen}
+      >
         <DrawerTrigger>
           <MenuIcon size={40} className="ml-2" />
         </DrawerTrigger>
@@ -488,6 +530,7 @@ const HeaderBar: React.FC = () => {
               isACourseSettingsPage={isACourseSettingsPage}
               orientation="vertical"
               isProfilePage={isProfilePage}
+              setIsDrawerOpen={setIsDrawerOpen}
             />
           </div>
         </DrawerContent>
