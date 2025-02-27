@@ -282,6 +282,20 @@ const NavBar = ({
             </>
           ) : !courseId ? (
             <>
+              {isProfilePage && (
+                <NavigationMenuItem>
+                  <Link
+                    href=""
+                    className="md:pl-8"
+                    onClick={() => {
+                      router.back()
+                    }}
+                  >
+                    <Undo2 strokeWidth={1.5} className="mr-3" />
+                    Back
+                  </Link>
+                </NavigationMenuItem>
+              )}
               <NavigationMenuItem>
                 <Link href="/courses" className="md:pl-8">
                   My Courses
@@ -473,6 +487,7 @@ const HeaderBar: React.FC = () => {
               isAQueuePage={isAQueuePage}
               isACourseSettingsPage={isACourseSettingsPage}
               orientation="vertical"
+              isProfilePage={isProfilePage}
             />
           </div>
         </DrawerContent>
