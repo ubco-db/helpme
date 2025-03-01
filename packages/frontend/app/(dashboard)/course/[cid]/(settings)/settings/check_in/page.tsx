@@ -8,9 +8,10 @@ import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
 import dayGridPlugin from '@fullcalendar/daygrid'
-import { message, Spin } from 'antd'
-import { FullCalendarEvent } from '@/app/typings/types'
+import { message, Spin, Tooltip } from 'antd'
+import { FullCalendarEvent, TAStatus } from '@/app/typings/types'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
+import { format } from 'date-fns'
 
 type TACheckInCheckOutTimesProps = {
   params: { cid: string }
@@ -70,11 +71,7 @@ export default function TACheckInCheckOutTimes({
       ? new Date(event.checkoutTime)
       : new Date()
     const returnEvent: FullCalendarEvent = {
-      title: event.inProgress
-        ? `TA currently in queue: ${event.name} - ${event.numHelped} helped`
-        : event.forced
-          ? `TA forgot to check out: ${event.name} - ${event.numHelped} helped`
-          : `${event.name} - ${event.numHelped} helped`,
+      title: event.name,
       start: startDate,
       backgroundColor: event.inProgress
         ? '#087837'
@@ -83,6 +80,11 @@ export default function TACheckInCheckOutTimes({
           : undefined,
       end: endDate,
       studentsHelped: event.numHelped,
+      TAStatus: event.inProgress
+        ? TAStatus.InQueue
+        : event.forced
+          ? TAStatus.ForgotToCheckOut
+          : TAStatus.CheckedOut,
     }
     return returnEvent
   }
@@ -125,6 +127,57 @@ export default function TACheckInCheckOutTimes({
             }}
             height="54em"
             timeZone="local"
+            eventContent={(info) => {
+              const event = info.event
+              const extendedProps = info.event
+                .extendedProps as FullCalendarEvent
+              const TAName = event.title
+              const formattedStart = event.start
+                ? format(event.start, 'h:mm')
+                : ''
+              const formattedEnd = event.end ? format(event.end, 'h:mm') : ''
+              const formattedStartWithAmPm = event.start
+                ? format(event.start, 'h:mmaaa')
+                : ''
+              const formattedEndWithAmPm = event.end
+                ? format(event.end, 'h:mmaaa')
+                : ''
+
+              return (
+                <Tooltip
+                  title={
+                    <div>
+                      <p className="text-base">{TAName}</p>
+                      <p>
+                        {formattedStartWithAmPm} - {formattedEndWithAmPm}
+                      </p>
+                      <p>
+                        {extendedProps.studentsHelped} helped
+                        {extendedProps.TAStatus === TAStatus.InQueue
+                          ? ' so far'
+                          : ''}
+                      </p>
+                      {extendedProps.TAStatus !== TAStatus.CheckedOut && (
+                        <p>{extendedProps.TAStatus}</p>
+                      )}
+                    </div>
+                  }
+                >
+                  <div className="flex h-full max-h-full flex-col gap-y-0.5 overflow-hidden">
+                    <p className="font-weight-lighter text-xs">
+                      {formattedStart} - {formattedEnd}
+                    </p>
+                    <p>{TAName}</p>
+                    <p className="text-xs">
+                      {extendedProps.studentsHelped} helped
+                      {extendedProps.TAStatus === TAStatus.InQueue
+                        ? ' so far'
+                        : ''}
+                    </p>
+                  </div>
+                </Tooltip>
+              )
+            }}
           />
         </div>
         {tasWhoAreBusy.length ? (

@@ -26,6 +26,7 @@ export default function SchedulePage({ params }: SchedulePageProps) {
   const role = getRoleInCourse(userInfo, cid)
   return (
     <div className="mb-5 mt-8">
+      <title>{`HelpMe | ${userInfo.courses.find((e) => e.course.id === cid)?.course.name ?? ''} - Schedule`}</title>
       {role === Role.PROFESSOR ? (
         <TAFacultySchedulePanel courseId={cid} />
       ) : (

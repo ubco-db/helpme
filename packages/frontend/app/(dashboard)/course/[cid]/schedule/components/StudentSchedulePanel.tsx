@@ -3,14 +3,19 @@ import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
 import dayGridPlugin from '@fullcalendar/daygrid'
-import { message, Spin } from 'antd'
+import { message, Popconfirm, Spin, Tooltip } from 'antd'
 import { API } from '@/app/api'
 import { format } from 'date-fns'
-import { Calendar } from '@koh/common'
+import {
+  Calendar,
+  calendarEventLocationType,
+  getCalendarEventLocationTypeFormatted,
+} from '@koh/common'
 import { Event } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 import tinycolor from 'tinycolor2'
+import EventTooltip from './EventTooltip'
 
 type ScheduleProps = {
   courseId: number
@@ -69,6 +74,7 @@ const StudentSchedulePanel: React.FC<ScheduleProps> = ({
       backgroundColor: event.color ?? '#3788d8',
       borderColor: borderColor,
       textColor: textColor,
+      staffNames: event.staffNames ?? [],
     }
     if (event.endDate) {
       returnEvent['endRecur'] = event.endDate
@@ -121,6 +127,7 @@ const StudentSchedulePanel: React.FC<ScheduleProps> = ({
           }}
           height="57em"
           timeZone="local"
+          eventContent={(info) => <EventTooltip info={info} />} // custom event tooltip
         />
       </div>
     </div>

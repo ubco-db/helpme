@@ -14,6 +14,7 @@ import { Calendar } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 import tinycolor from 'tinycolor2'
+import EventTooltip from './EventTooltip'
 
 type ScheduleProps = {
   courseId: number
@@ -80,6 +81,7 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
       borderColor: borderColor,
       textColor: textColor,
       staffIds: event.staffIds ?? [],
+      staffNames: event.staffNames ?? [],
     }
     if (event.endDate) {
       returnEvent['startRecur'] = event.startDate
@@ -172,6 +174,7 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
                 spinnerRef.current.style.display = loading ? 'flex' : 'none'
             }}
             height={condensed ? '56.5em' : '60em'}
+            eventContent={(info) => <EventTooltip info={info} />} // custom event tooltip
           />
           <EditEventModal
             visible={editModalVisible}
