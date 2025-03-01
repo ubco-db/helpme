@@ -75,12 +75,15 @@ export class OrgOrCourseRolesGuard implements CanActivate {
     return true;
   }
 
+  /* Returns false if the course does not exist, if they are not in the course, or if they have the wrong role.
+  This is because ultimately I opted for having better performance with having less queries with the tradeoff of less-granular error messages.
+  Same mantra goes for matchOrgRoles
+  */
   async matchCourseRoles(
     roles: string[],
     userId: number,
     courseId: number,
   ): Promise<boolean> {
-    // first, use query builder to check if they have the right course roles
     try {
       await UserCourseModel.findOneOrFail({
         where: {
