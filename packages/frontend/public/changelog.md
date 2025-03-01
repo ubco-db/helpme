@@ -42,6 +42,7 @@
 - Fixed an issue where professors that lack the corresponding "organization professor" role would not be able to access the course settings
 - Fixed an issue where your Anytime question would start as non-expanded after receiving a new answer (resulting in a scenario where you would need to always click to expand your new question after creating it to see the answer)
 - Fixed an issue in some cases where users did not start as subscribed to email notifications by default
+- Tweaked what is considered an "update" for the Anytime Question Hub (for showing how many updates there are on the Course Home Page)
 - Added/changed various tooltips and reworked some UI around the chatbot pages to hopefully be more user-friendly
 - Fixed an issue you would not be notified if there was an error during chatbot course document upload
 - Fixed an issue where certain documents with null bytes were unable to be processed during chatbot course document upload
