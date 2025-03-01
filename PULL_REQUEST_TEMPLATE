@@ -13,6 +13,8 @@ Closes # (issue number)
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
 - [ ] This change requires a documentation update
 - [ ] This requires a run of `yarn install`
+- [ ] This change requires an addition/change to the production .env variables. These changes are below:
+- [ ] This change requires developers to add new .env variables. The file and variables needed are below:
 - [ ] This change requires a database query to update old data on production. This query is below:
 
 

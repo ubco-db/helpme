@@ -119,7 +119,7 @@ const DevPage: React.FC = () => {
 
         <div>
           <h3 className="mb-2 block font-semibold text-gray-700">
-            Populate Subscription Table
+            Populate Email Subscriptions Table
           </h3>
           <Button
             type="primary"

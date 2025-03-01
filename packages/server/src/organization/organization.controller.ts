@@ -150,7 +150,11 @@ export class OrganizationController {
       const entityManager = getManager();
 
       // Get all users for the organization with their highest role
-      const orgUsers = await entityManager.query(
+      // update: this query can probably be updated to just grab userids of all org users but this is a admin route so me
+      const orgUsers: {
+        userId: number;
+        role: 'professor' | 'admin' | 'member';
+      }[] = await entityManager.query(
         `
   SELECT ou."userId",
          CASE
@@ -176,25 +180,14 @@ export class OrganizationController {
       // Prepare arrays for bulk insert
       const subscriptionsToInsert = [];
 
+      // instead of subscribing users to specific services based on their role, we are going to subscribe them to all services
+      // And then we will simply add the staff checks to the controllers that send the emails
+      // This is because roles are not static, and that it would be a lot more annoying to adjust all the endpoints that update roles to also update their subscription.
+      // It's just a lot easier to check their role at the time the email needs to be sent then syncing this
+
       for (const user of orgUsers) {
         for (const service of mailServices) {
-          let shouldSubscribe = true;
-          let isEnabled = true;
-
-          if (
-            user.role === 'member' &&
-            !['ta', 'professor'].includes(user.role)
-          ) {
-            // Members who are not TAs or professors only subscribe to member services
-            shouldSubscribe = service.mailType === 'member';
-          } else {
-            // Admins, TAs, and professors subscribe to all, but member services are disabled
-            isEnabled = service.mailType !== 'member';
-          }
-
-          if (shouldSubscribe) {
-            subscriptionsToInsert.push([user.userId, service.id, isEnabled]);
-          }
+          subscriptionsToInsert.push([user.userId, service.id, true]);
         }
       }
 

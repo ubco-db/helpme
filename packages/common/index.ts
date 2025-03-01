@@ -67,7 +67,6 @@ export class User {
   sid?: number
   includeDefaultMessage!: boolean
   courses!: UserCourse[]
-  pendingCourses?: KhouryProfCourse[]
   desktopNotifsEnabled!: boolean
   @Type(() => DesktopNotifPartial)
   desktopNotifs!: DesktopNotifPartial[]
@@ -136,7 +135,7 @@ export class UserPartial {
 
   @IsOptional()
   @IsString()
-  name?: string
+  name!: string
 
   @IsString()
   @IsOptional()
@@ -222,6 +221,8 @@ export enum MailServiceType {
   ASYNC_QUESTION_FLAGGED = 'async_question_flagged',
   ASYNC_QUESTION_STATUS_CHANGED = 'async_question_status_changed',
   ASYNC_QUESTION_UPVOTED = 'async_question_upvoted',
+  ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST = 'async_question_new_comment_on_my_post',
+  ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
 }
 /**
  * Represents one of three possible user roles in a course.
@@ -580,12 +581,23 @@ export class QuestionGroup {
   //Might want to add a list of students in group so they can be added without a question
 }
 
+export type AsyncCreator = {
+  id?: number
+  anonId: number
+  name?: string
+  photoURL?: string
+  email?: string
+  courseRole: Role
+  isAuthor?: boolean
+  colour: string // hex string (generated from nameToRGB())
+}
+
 /**
  * This AsyncQuestion is one that is already created and not used for sending data to the server (hence why there's no decorators). Used on frontend.
  */
 export type AsyncQuestion = {
   id: number
-  creator: UserPartial
+  creator: AsyncCreator
   questionText?: string
   creatorId?: number
   taHelped?: User
@@ -599,6 +611,7 @@ export type AsyncQuestion = {
   visible?: boolean
   verified: boolean
   votes?: AsyncQuestionVotes[]
+  comments: AsyncQuestionComment[]
   votesSum: number
 }
 
@@ -678,6 +691,24 @@ export class AsyncQuestionVotes {
   vote!: number
 }
 
+export class AsyncQuestionComment {
+  id!: number
+
+  questionId!: number
+
+  creator!: AsyncCreator
+
+  commentText!: string
+
+  @Type(() => Date)
+  createdAt!: Date
+}
+
+export class AsyncQuestionCommentParams {
+  @IsString()
+  commentText!: string
+}
+
 export class Image {
   @IsOptional()
   @IsInt()
@@ -735,63 +766,6 @@ export class UBCOuserParam {
 
   @IsInt()
   organizationId!: number
-}
-export class KhouryDataParams {
-  @IsString()
-  email!: string
-
-  @IsString()
-  password!: string
-
-  @IsString()
-  first_name!: string
-
-  @IsString()
-  last_name!: string
-
-  @IsInt()
-  campus!: number
-
-  @IsOptional()
-  @IsString()
-  photo_url!: string
-
-  @IsOptional()
-  @IsDefined() // TODO: use ValidateNested instead, for some reason it's crunked
-  courses!: KhouryCourse[] | KhouryProfCourse[]
-}
-
-export class KhouryCourse {
-  @IsInt()
-  crn!: number
-
-  @IsString()
-  semester!: string
-
-  @IsEnum(String)
-  role!: 'TA' | 'Student'
-}
-
-export class KhouryProfCourse {
-  // List of CRN's in the section group
-  @IsArray()
-  crns!: number[]
-
-  @IsString()
-  semester!: string
-
-  // Section group name
-  @IsString()
-  name!: string
-}
-
-export function isKhouryCourse(
-  c: KhouryCourse | KhouryProfCourse,
-): c is KhouryCourse {
-  return (
-    (c as KhouryCourse).role !== undefined &&
-    (c as KhouryCourse).crn !== undefined
-  )
 }
 
 export enum calendarEventLocationType {
@@ -1767,7 +1741,6 @@ export type MailServiceWithSubscription = {
   id: number
   mailType: OrganizationRole
   name: string
-  content: string
   isSubscribed: boolean
 }
 
@@ -2396,6 +2369,104 @@ export function decodeBase64(str: string) {
   return Buffer.from(str, 'base64').toString('utf-8')
 }
 
+// TODO: Delete these old pfp colours on a new semester. They are only left here so that people's current colour won't randomly change
+export const classicPFPColours = [
+  '#1abc9c',
+  '#2ecc71',
+  '#3498db',
+  '#9b59b6',
+  '#34495e',
+  '#16a085',
+  '#27ae60',
+  '#2980b9',
+  '#8e44ad',
+  '#2c3e50',
+  '#f1c40f',
+  '#e67e22',
+  '#e74c3c',
+  '#95a5a6',
+  '#f39c12',
+  '#d35400',
+  '#c0392b',
+  '#bdc3c7',
+  '#7f8c8d',
+]
+
+// colours pallet extended with names courtesy of o1
+const extendedPFPColours = [
+  '#1abc9c', // Turquoise
+  '#2ecc71', // Emerald
+  '#3498db', // Peter River
+  '#9b59b6', // Amethyst
+  '#34495e', // Wet Asphalt
+  '#16a085', // Green Sea
+  '#27ae60', // Nephritis
+  '#2980b9', // Belize Hole
+  '#8e44ad', // Wisteria
+  '#2c3e50', // Midnight Blue
+  '#f1c40f', // Sun Flower
+  '#e67e22', // Carrot
+  '#e74c3c', // Alizarin
+  '#95a5a6', // Concrete
+  '#f39c12', // Orange
+  '#d35400', // Pumpkin
+  '#c0392b', // Pomegranate
+  '#bdc3c7', // Silver
+  '#7f8c8d', // Asbestos
+  '#6C3483', // Dark Purple
+  '#154360', // Deep Navy
+  '#7D6608', // Dark Gold
+  '#6E2C00', // Brown
+  '#4A235A', // Purple
+  '#512E5F', // Grape
+  '#4D5656', // Slate Gray
+  '#5D6D7E', // Grayish Blue
+  '#2E4053', // Grayish Navy
+  '#78281F', // Dark Red
+  '#9C640C', // Dark Ochre
+  '#145A32', // Forest Green
+  '#21618C', // Steel Blue
+  '#9B1B1B', // Maroon
+  '#7A613E', // Cocoa
+  '#5B2C6F', // Dark Orchid
+  '#1B4F72', // Navy Teal
+  '#873600', // Burnt Orange
+  '#7B241C', // Earth Red
+  '#943126', // Redwood
+  '#239B56', // Jade
+  '#17202A', // Carbon
+  '#1F618D', // Dusk Blue
+  '#2E86C1', // Cerulean
+  '#85C1E9', // Light Cerulean
+  '#F5B041', // Light Orange
+  '#B7950B', // Mustard
+  '#7E5109', // Toffee
+  '#A93226', // Crimson
+  '#5A2E2E', // Ruby Brown
+  '#0097A7', // Dark Teal
+]
+
+export function nameToRGB(
+  str: string,
+  colors: string[] = extendedPFPColours,
+): string {
+  if (!str) {
+    throw new Error('Input string cannot be empty')
+  }
+
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i)
+    hash |= 0 // Convert to 32bit integer
+  }
+
+  return colors[Math.abs(hash) % colors.length]
+}
+
+export type UnreadAsyncQuestionResponse = {
+  count: number
+}
+
 export enum LMSIntegrationPlatform {
   None = 'None',
   Canvas = 'Canvas',
@@ -2476,6 +2547,15 @@ export const ERROR_MESSAGES = {
     crnAlreadyRegistered: (crn: number, courseId: number): string =>
       `The CRN ${crn} already exists for another course with course id ${courseId}`,
     organizationNotFound: 'Course has no related organization',
+    orgIntegrationNotFound: 'Course organization has no LMS integrations',
+    lmsIntegrationNotFound: 'Course has no related LMS integrations',
+  },
+  asyncQuestionController: {
+    comments: {
+      commentNotFound: 'Comment not found',
+      forbiddenUpdate: 'Only you can update your own comment',
+      forbiddenDelete: 'Only you can delete your own comment (or staff)',
+    },
   },
   questionController: {
     createQuestion: {

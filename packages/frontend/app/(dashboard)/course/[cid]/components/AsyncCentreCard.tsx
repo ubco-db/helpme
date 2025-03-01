@@ -3,7 +3,7 @@
 import { API } from '@/app/api'
 import { Card } from 'antd'
 import Link from 'next/link'
-import React, { ReactElement, use, useEffect, useState } from 'react'
+import React, { ReactElement, useEffect, useState } from 'react'
 import { Tooltip } from 'antd'
 
 interface AsyncCentreCardProps {
@@ -18,9 +18,9 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
-    API.course
+    API.asyncQuestions
       .getUnreadAsyncCount(cid)
-      .then((unreadCount) => setUnreadCount(unreadCount))
+      .then((res) => setUnreadCount(res.count))
   }, [])
 
   return (
