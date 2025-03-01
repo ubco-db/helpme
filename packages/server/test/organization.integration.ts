@@ -3,8 +3,11 @@ import { setupIntegrationTest } from './util/testUtils';
 import {
   CourseFactory,
   mailServiceFactory,
+  OrganizationCourseFactory,
   OrganizationFactory,
+  OrganizationUserFactory,
   SemesterFactory,
+  UserCourseFactory,
   UserFactory,
 } from './util/factories';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -926,7 +929,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin', async () => {
+    it('should return 403 when user lacks sufficient role', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
@@ -934,18 +937,18 @@ describe('Organization Integration', () => {
       await OrganizationUserModel.create({
         userId: user.id,
         organizationId: organization.id,
-      }).save();
+      }).save(); // not a prof
 
       await OrganizationCourseModel.create({
         courseId: course.id,
         organizationId: organization.id,
-      }).save();
+      }).save(); // not a prof nor admin
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/update_course/${course.id}`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 404 when course not found', async () => {
@@ -1118,7 +1121,7 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(400);
     });
 
-    it('should return 200 when course is updated', async () => {
+    it('should return 200 when course is updated (org admin)', async () => {
       const user = await UserFactory.create();
       const professor1 = await UserFactory.create();
       const professor2 = await UserFactory.create();
@@ -1148,6 +1151,77 @@ describe('Organization Integration', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Course updated successfully');
+    });
+    it('should return 200 when course is updated (course professor)', async () => {
+      const user = await UserFactory.create();
+      const professor1 = await UserFactory.create();
+      const professor2 = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+        role: OrganizationRole.PROFESSOR,
+      }).save();
+
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+
+      await UserCourseModel.create({
+        userId: user.id,
+        courseId: course.id,
+        role: Role.PROFESSOR,
+      }).save();
+
+      const res = await supertest({ userId: user.id })
+        .patch(`/organization/${organization.id}/update_course/${course.id}`)
+        .send({
+          name: 'newName',
+          timezone: 'America/Los_Angeles',
+          sectionGroupName: 'test',
+          semesterName: 'Fall,2021',
+          profIds: [professor1.id, professor2.id],
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Course updated successfully');
+    });
+    it('should prevent org professors who are a student in the course from updating the course', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+        role: OrganizationRole.PROFESSOR, // org professor
+      }).save();
+
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+
+      await UserCourseModel.create({
+        userId: user.id,
+        courseId: course.id,
+        role: Role.STUDENT, // course student
+      }).save();
+
+      const res = await supertest({ userId: user.id })
+        .patch(`/organization/${organization.id}/update_course/${course.id}`)
+        .send({
+          name: 'newName',
+          timezone: 'America/Los_Angeles',
+          sectionGroupName: 'test',
+          semesterName: 'Fall,2021',
+          profIds: [user.id], // try to make me the only prof in the course
+        });
+
+      expect(res.status).toBe(403);
     });
   });
 
@@ -1582,8 +1656,7 @@ describe('Organization Integration', () => {
 
       expect(response.status).toBe(401);
     });
-
-    it('should return 401 when user is not admin', async () => {
+    it('should return 403 when user is not admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
@@ -1602,10 +1675,9 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/get_course/${course.id}`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
-
-    it('should return 404 when course is not found', async () => {
+    it('should return 404 when course is not found (and user is admin)', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -1617,6 +1689,155 @@ describe('Organization Integration', () => {
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_course/0`,
+      );
+
+      expect(res.status).toBe(404);
+    });
+    it('should return 404 when course is not found (and user is course prof)', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization,
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+      await UserCourseFactory.create({
+        user,
+        course,
+        role: Role.PROFESSOR,
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/0`,
+      );
+
+      expect(res.status).toBe(404);
+    });
+    it('should return 200 when course is found and user is admin', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization,
+        role: OrganizationRole.ADMIN,
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`,
+      );
+
+      expect(res.status).toBe(200);
+    });
+    it('OrgOrCourseRolesGuard: should return 200 when the user is an org member but course professor', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization,
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+      await UserCourseFactory.create({
+        user,
+        course,
+        role: Role.PROFESSOR,
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`,
+      );
+
+      expect(res.status).toBe(200);
+    });
+    it('OrgOrCourseRolesGuard: should return 403 when the user is an org member and course student', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+      }).save();
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+      await UserCourseModel.create({
+        userId: user.id,
+        courseId: course.id,
+        role: Role.STUDENT,
+      }).save();
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`,
+      );
+
+      expect(res.status).toBe(403);
+    });
+    it('OrgOrCourseRolesGuard: should return 404 when the user is an org prof in one org and member in the main org', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      const otherOrganization = await OrganizationFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: otherOrganization,
+        role: OrganizationRole.PROFESSOR, // prof in other org
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`,
+      );
+
+      expect(res.status).toBe(404);
+    });
+    it('OrgOrCourseRolesGuard: should return 404 when the user is a course prof in one org and a member in the main org', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      const otherCourse = await CourseFactory.create();
+      const otherOrganization = await OrganizationFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: otherOrganization, // a member in other org
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+      await OrganizationCourseFactory.create({
+        course: otherCourse,
+        organization: otherOrganization,
+      });
+      await UserCourseFactory.create({
+        user,
+        course: otherCourse,
+        role: Role.PROFESSOR, // they are a course prof in other org
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`, // try to access main org's course
       );
 
       expect(res.status).toBe(404);
@@ -1975,24 +2196,43 @@ describe('Organization Integration', () => {
 
       expect(response.status).toBe(401);
     });
-
-    it('should return 401 when is not admin', async () => {
+    it('should not remove users from their courses if they lack sufficient role', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      const userTwo = await UserFactory.create();
 
       await OrganizationUserModel.create({
         userId: user.id,
         organizationId: organization.id,
       }).save();
+      await OrganizationUserModel.create({
+        userId: userTwo.id,
+        organizationId: organization.id,
+      }).save();
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+      await UserCourseModel.create({
+        userId: userTwo.id,
+        courseId: course.id,
+      }).save();
 
-      const res = await supertest({ userId: user.id }).delete(
-        `/organization/${organization.id}/drop_user_courses/1`,
-      );
+      const res = await supertest({ userId: user.id })
+        .delete(
+          `/organization/${organization.id}/drop_user_courses/${userTwo.id}`,
+        )
+        .send([course.id]);
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
+      // check to make sure the user is still in the course
+      const userCourses = await UserCourseModel.find({
+        where: { userId: userTwo.id },
+      });
+      expect(userCourses.length).toBe(1);
     });
-
-    it('should return 400 when body userCourses is empty', async () => {
+    it('should return 404 when no courses specified', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const userTwo = await UserFactory.create();
@@ -2014,11 +2254,9 @@ describe('Organization Integration', () => {
         )
         .send([]);
 
-      expect(res.status).toBe(400);
-      expect(res.body.message).toBe("User doesn't have any courses to delete");
+      expect(res.status).toBe(404);
     });
-
-    it('should return 401 when user to update is organization admin', async () => {
+    it('should return 403 when user to update is organization admin', async () => {
       const user = await UserFactory.create();
       const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
@@ -2041,16 +2279,25 @@ describe('Organization Integration', () => {
         organizationId: organization.id,
       }).save();
 
+      await UserCourseModel.create({
+        userId: userTwo.id,
+        courseId: course.id,
+      }).save();
+
       const res = await supertest({ userId: user.id })
         .delete(
           `/organization/${organization.id}/drop_user_courses/${userTwo.id}`,
         )
         .send([course.id]);
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
+      // check to make sure the user is still in the course
+      const userCourses = await UserCourseModel.find({
+        where: { userId: userTwo.id },
+      });
+      expect(userCourses.length).toBe(1);
     });
-
-    it('should return 401 when user to update is global admin', async () => {
+    it('should return 403 when user to update is global admin', async () => {
       const user = await UserFactory.create();
       const userTwo = await UserFactory.create({
         userRole: UserRole.ADMIN,
@@ -2074,20 +2321,30 @@ describe('Organization Integration', () => {
         organizationId: organization.id,
       }).save();
 
+      await UserCourseModel.create({
+        userId: userTwo.id,
+        courseId: course.id,
+      }).save();
+
       const res = await supertest({ userId: user.id })
         .delete(
           `/organization/${organization.id}/drop_user_courses/${userTwo.id}`,
         )
         .send([course.id]);
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
+      // check to make sure the user is still in the course
+      const userCourses = await UserCourseModel.find({
+        where: { userId: userTwo.id },
+      });
+      expect(userCourses.length).toBe(1);
     });
-
-    it('should return 200 when user courses are deleted', async () => {
+    it('should allow admins to drop a user from multiple courses', async () => {
       const user = await UserFactory.create();
       const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
+      const course2 = await CourseFactory.create();
 
       await OrganizationUserModel.create({
         userId: user.id,
@@ -2104,23 +2361,35 @@ describe('Organization Integration', () => {
         courseId: course.id,
         organizationId: organization.id,
       }).save();
+      await OrganizationCourseModel.create({
+        courseId: course2.id,
+        organizationId: organization.id,
+      }).save();
 
       await UserCourseModel.create({
         userId: userTwo.id,
         courseId: course.id,
+      }).save();
+      await UserCourseModel.create({
+        userId: userTwo.id,
+        courseId: course2.id,
       }).save();
 
       const res = await supertest({ userId: user.id })
         .delete(
           `/organization/${organization.id}/drop_user_courses/${userTwo.id}`,
         )
-        .send([course.id]);
+        .send([course.id, course2.id]);
 
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('User courses deleted');
+      // check to make sure the user is no longer in the courses
+      const userCourses = await UserCourseModel.find({
+        where: { userId: userTwo.id },
+      });
+      expect(userCourses.length).toBe(0);
     });
-
-    it('Should allow organization professors to drop students from their courses', async () => {
+    it('Should allow org+course professors to drop students from their courses', async () => {
       const professor = await UserFactory.create();
       const student = await UserFactory.create();
       const organization = await OrganizationFactory.create();
@@ -2129,7 +2398,7 @@ describe('Organization Integration', () => {
       await OrganizationUserModel.create({
         userId: professor.id,
         organizationId: organization.id,
-        role: OrganizationRole.PROFESSOR,
+        role: OrganizationRole.PROFESSOR, // org professor
       }).save();
       await OrganizationUserModel.create({
         userId: student.id,
@@ -2144,6 +2413,7 @@ describe('Organization Integration', () => {
       await UserCourseModel.create({
         userId: professor.id,
         courseId: course.id,
+        role: Role.PROFESSOR, // also course professor (you need to be a course professor in the course in order to drop students)
       }).save();
       await UserCourseModel.create({
         userId: student.id,
@@ -2158,8 +2428,123 @@ describe('Organization Integration', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('User courses deleted');
+      // check to make sure the user is no longer in the course
+      const userCourses = await UserCourseModel.find({
+        where: { userId: student.id },
+      });
+      expect(userCourses.length).toBe(0);
     });
-    it('Should return 401 when a professor tries to drop a student from a course they are not teaching', async () => {
+    it('Should allow course professors to drop students from their courses', async () => {
+      const professor = await UserFactory.create();
+      const student = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: professor.id,
+        organizationId: organization.id,
+      }).save(); // org member
+      await OrganizationUserModel.create({
+        userId: student.id,
+        organizationId: organization.id,
+      }).save();
+
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+
+      await UserCourseModel.create({
+        userId: professor.id,
+        courseId: course.id,
+        role: Role.PROFESSOR, // but course professor
+      }).save();
+      await UserCourseModel.create({
+        userId: student.id,
+        courseId: course.id,
+      }).save();
+
+      const res = await supertest({ userId: professor.id })
+        .delete(
+          `/organization/${organization.id}/drop_user_courses/${student.id}`,
+        )
+        .send([course.id]);
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('User courses deleted');
+      // check to make sure the user is no longer in the course
+      const userCourses = await UserCourseModel.find({
+        where: { userId: student.id },
+      });
+      expect(userCourses.length).toBe(0);
+    });
+    it('Should not drop the student if the prof is not in all courses', async () => {
+      const professor = await UserFactory.create();
+      const student = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      const course2 = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: professor.id,
+        organizationId: organization.id,
+      }).save();
+      await OrganizationUserModel.create({
+        userId: student.id,
+        organizationId: organization.id,
+      }).save();
+
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+      await OrganizationCourseModel.create({
+        courseId: course2.id,
+        organizationId: organization.id,
+      }).save();
+
+      await UserCourseModel.create({
+        userId: professor.id,
+        courseId: course.id,
+        role: Role.PROFESSOR,
+      }).save();
+      await UserCourseModel.create({
+        userId: student.id,
+        courseId: course.id,
+      }).save();
+      await UserCourseModel.create({
+        userId: student.id,
+        courseId: course2.id,
+      }).save();
+
+      const res = await supertest({ userId: professor.id })
+        .delete(
+          `/organization/${organization.id}/drop_user_courses/${student.id}`,
+        )
+        .send([course.id, course2.id]); // just in case you are curious, there is no case on the frontend where course profs area able to remove students outside of their course, this is just for robustness sake
+
+      expect(res.status).toBe(403);
+      // check to make sure the user is no longer in the course (but still in the other one)
+      const userCourses = await UserCourseModel.find({
+        where: { userId: student.id },
+      });
+      expect(userCourses.length).toBe(2);
+
+      // now just try to drop them from the other course
+      const res2 = await supertest({ userId: professor.id })
+        .delete(
+          `/organization/${organization.id}/drop_user_courses/${student.id}`,
+        )
+        .send([course2.id]);
+
+      expect(res2.status).toBe(403);
+      // check to make sure the user is still in the course
+      const userCourses2 = await UserCourseModel.find({
+        where: { userId: student.id },
+      });
+      expect(userCourses2.length).toBe(2);
+    });
+    it('Should return 403 when a professor tries to drop a student from a course they are not teaching', async () => {
       const professor = await UserFactory.create();
       const student = await UserFactory.create();
       const organization = await OrganizationFactory.create();
@@ -2199,7 +2584,12 @@ describe('Organization Integration', () => {
         )
         .send([course.id]);
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
+      // check to make sure no one was dropped
+      const userCourses = await UserCourseModel.find({
+        where: { userId: student.id },
+      });
+      expect(userCourses.length).toBe(1);
     });
   });
 

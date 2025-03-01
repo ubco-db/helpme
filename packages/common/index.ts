@@ -2645,6 +2645,15 @@ export const ERROR_MESSAGES = {
       `You must have one of roles [${roles.join(
         ', ',
       )}] to access this information`,
+    mustBeRoleToAccessExtended: (
+      courseRoles: string[],
+      orgRoles: string[],
+    ): string =>
+      `You must have one of the Course roles [${courseRoles.join(
+        ', ',
+      )}] or Organization roles [${orgRoles.join(
+        ', ',
+      )}] to access this information`,
     mustBeRoleToJoinCourse: (roles: string[]): string =>
       `You must have one of roles [${roles.join(', ')}] to access this course`,
   },
