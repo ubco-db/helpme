@@ -193,7 +193,6 @@ export default function SettingsPage(): ReactElement {
                 <Col className="flex flex-col items-center justify-center">
                   <Row className="min-h-[300px]">
                     <Image
-                      unoptimized
                       width={300}
                       height={300}
                       alt="Organization Logo"
@@ -247,7 +246,6 @@ export default function SettingsPage(): ReactElement {
                 <Col className="flex flex-col items-center justify-center">
                   <Row className="flex min-h-[300px] items-center">
                     <Image
-                      unoptimized
                       width={300}
                       height={300}
                       alt="Organization Banner"

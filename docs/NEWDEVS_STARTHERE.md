@@ -11,6 +11,16 @@
       - [Tailwind and CSS](#tailwind-and-css)
       - [JSX](#jsx)
     - [Backend](#backend)
+      - [Nest.js files](#nestjs-files)
+      - [Redis](#redis)
+      - [Guards and `@Roles`](#guards-and-roles)
+      - [`@User` and `@UserId` decorators](#user-and-userid-decorators)
+      - [Why some endpoints have `@Res` and some don't](#why-some-endpoints-have-res-and-some-dont)
+        - [Ways to return errors/http status codes + messages](#ways-to-return-errorshttp-status-codes--messages)
+      - [TypeORM](#typeorm)
+      - [Testing](#testing)
+        - [What is mocking?](#what-is-mocking)
+        - [To mock or not to mock?](#to-mock-or-not-to-mock)
 - [History](#history)
 - [TODO](#todo)
   - [For the whole project](#for-the-whole-project)
@@ -109,19 +119,118 @@ Want to conditionally render something like an `elseif` statement? Do: `{conditi
 
 ### Backend
 
-`module` - I believe this is only for nestjs for connecting the service to the controller, but maybe you can do some other cool stuff here.
+#### Nest.js files
 
-`controller` - Defines an endpoint and the various calls you can make to it. Takes in requests, does business logic, and then sends a response (please use `@Res` for sending a response, as it is more flexible). They're supposed to be fairly lightweight and not call the database directly; however, nearly all of our endpoints are implemented incorrectly where the entire endpoint is written in the controller. Integration tests test these.
+`module` - Used by nest.js to figure out what services each controller/service needs. You usually don't need to touch these unless you are making a new controller or service file.
+- **Advanced**: Inside the module, you can specify multiple things:
+  - **controllers**: all controllers for this module. Each module should have maybe 1-2 controllers (e.g. queue.module.ts has QueueController and QueueInviteController)
+  - **providers**: these are all the services that all your services, controllers, or *services' dependencies* depend on.
+    - E.g. In queue.module, if QueueService needs QuestionService, and QuestionService needs AlertsService, then you must put QueueService,QuestionService, *and* AlertsService as providers
+      - However, you can also make question.module, which is an **import** in queue.module, **export** AlertsService and it should automatically be made a provider
+  - **imports**: these are *modules* that you must import if you want access to the services said module exports (e.g. you want to use some function from question.service, so you must add QuestionModule as an import)
+  - **forwardRef** - Used to resolve a circular dependency where two modules depend on each other
+
+`controller` - Defines an endpoint and the various calls you can make to it. Takes in requests, does business logic, and then sends a response. They're supposed to be fairly lightweight and not call the database directly; however, nearly all of our endpoints are implemented incorrectly where the entire endpoint is written in the controller. Integration tests test these.
 
 `service` - These define methods that make calls to the database. Unit tests test these.
 
-`entity` - These define the database schema. If you make any changes to these, be sure to make a migration (see `DEVELOPING.md`) 
+`entity` - These define the database schema. If you make any changes to these, be sure to make a migration (see `DEVELOPING.md`). If you are making a new entity, be sure to add it inside `ormconfig.ts`!
+
+#### Redis
 
 `redis` - A fast, in-memory database that we use for caching frequently accessed data. Sometimes, there can be issues where the redis database is not in sync with the actual database. If this happens, follow these steps to flush the redis cache:
 1. Open the redis container in docker desktop and go to the "Exec" tab
 2. Run `redis-cli` to open the redis command line
 3. Run `flushall` to flush the cache
 
+#### Guards and `@Roles`
+
+Guards are a thing from Nest.js. They are basically pretty functions that you can "decorate" at the top of your function rather than in the function body. 
+
+Some that you will see are jwtAuthGuard (checks if user is logged in) as well as emailVerifiedGuard (only users with verified email can access this endpoint). 
+
+One special one to note is CourseRolesGuard (only users in the course with the specified role may call this endpoint), which requires one of the params to have a name of courseId, id, or cid. Without one of these params, it will think none is provided and will error (so the endpoint must take one of these in order to function). 
+This guard (as well as others) will interact with the `@Roles` decorator, which specifies which roles CourseRolesGuard will take.
+- Note that without a decorator to consume the roles (CourseRolesGuard, AsyncQuestionRolesGuard, OrganizationRolesGuard, etc.), `@Roles` *will not do anything* (think of `@Roles` like an argument to a function)
+
+#### `@User` and `@UserId` decorators
+
+Want the user details of the user that called the endpoint? Add a `@User` as one of the parameters to the controller function.
+
+If you only need the userId of the user that called the endpoint, use the `@UserId` parameter instead as it won't perform a database query.
+
+#### Why some endpoints have `@Res` and some don't
+
+So the first thing to understand is Nest.js is built off of express.js (or at least our version is).
+
+`@Res` is a thing from express that allows you to send responses from your endpoints.
+e.g. `res.status(200).send(updatedQuestion)`
+
+You would also send all your errors this way, e.g. `res.status(404).send("Question Not Found")`
+
+However, Nest.js adds some other ways of doing things so you don't need to use `@Res`:
+- You can throw different types of HttpExceptions (see next section)
+- To return a response, just use `return`
+  - e.g. `return updatedQuestion`
+    - This will automatically be a 200 status response
+
+##### Ways to return errors/http status codes + messages
+
+There are multiple ways to make your endpoints give different errors/status codes. There's no real difference. Nest.js will catch any uncaught errors and return the corresponding error code and given message.
+- `throw new xyzException("Some message")` - recommended (simple)
+  - e.g. `throw new BadRequestException("SomeField must not be empty")`
+  - Note that these exceptions must be instance of an HttpException (regular exceptions like FileNotFound will become 500 errors)
+- `throw new HttpException("Some message", HttpStatus.NOT_FOUND)`
+- `res.status(status code).send(an object or message text)`
+  - e.g. `res.status(201).send(newlyCreatedComment)`
+  - note you will need to add the `@Res()` decorator at the top of the controller
+  - This also lets you return other status codes (e.g. 201 Created) and is not just limited to errors
+
+#### TypeORM
+
+ORM stands for Object-Relational Mapping. It's used to transform database rows into javascript objects. There are many ORMs out there, but long ago the original devs chose TypeORM as their ORM of choice (probably because it's one of the first listed ORMs in the Nest.js docs).
+
+Note that we are currently on an outdated version of it (0.2.x) and the newest version is 0.3.x, meaning that a lot of the docs or code you may see elsewhere (e.g. generated by copilot) may not work with our version. Though, we are working to update it real soon (check the package.json in /server to see if its updated. If it is please remove this section).
+
+This section may be expanded upon in the future, but for now it might be best to just look at how other services/controllers do queries and kinda copy that.
+
+One thing to note is that sometimes the types for the queries may be wrong.
+For example, you might want to check if the user is a TA or Prof in any course, so you do:
+```ts
+const user: UserModel = await UserModel.findOne({
+  where: {
+    id: userId
+  }
+});
+const isStaff = user.courses.some((userCourse) => userCourse.role === Role.PROFESSOR || userCourse.role === Role.TA);
+```
+This will result in a *runtime* error (so you get no warning beforehand) because `user.courses` will be undefined because the database join was not made.
+
+You can perform the database join like so (see https://orkhan.gitbook.io/typeorm/docs/find-options for more details/options):
+```ts
+const user: UserModel = await UserModel.findOne({
+      where: {
+        id: userId,
+      },
+      relations: { // this performs a join to get the user's UserCourses
+        courses: true
+      }
+    });
+```
+
+#### Testing
+
+##### What is mocking?
+
+Mocking is when you replace one function with another "mock" function instead. This mock function is usually just an empty function, but you can have it return something too (e.g. dummy data).
+
+##### To mock or not to mock?
+
+In general, it is recommended to only mock if you absolutely have to. For example, maybe you are testing a function that sends an email using EmailService, but you don't actually want to send emails out, so instead you can mock the sendEmail function and purely just check to make sure that sendEmail is being called with the right arguments.
+
+Another example where you might need to mock is if you are dealing with a technology/library that doesn't play nice with jest for whatever reason (e.g. maybe redis or cron).
+
+In general though, try not to mock (e.g. don't mock database calls/returns). This is because mocking eliminates one of the key benefits of testing: knowing what things break after a change (aka regression testing). If you mock someone else's function but then they change something about it (like its parameters), the tests may still pass even though they should have failed. Another example is when you update a package and they adjust their APIs or behaviour but since you mocked their functions the test still pass instead of failing.
 
 # History
 
