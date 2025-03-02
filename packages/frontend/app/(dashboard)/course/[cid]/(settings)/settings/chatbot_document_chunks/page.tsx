@@ -3,13 +3,13 @@
 import { useState, useEffect, ReactElement, useCallback } from 'react'
 import { Table, Button, Modal, Input, Form, message } from 'antd'
 import axios from 'axios'
-import { SourceDocument } from '../chatbot_questions/page'
 import { useUserInfo } from '@/app/contexts/userContext'
 import Link from 'next/link'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import Highlighter from 'react-highlight-words'
 import ExpandableText from '@/app/components/ExpandableText'
 import EditDocumentChunkModal from './components/EditChatbotDocumentChunkModal'
+import { SourceDocument } from '@koh/common'
 
 interface FormValues {
   content: string

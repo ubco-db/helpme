@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Checkbox, Form, Input, Modal, Select, message } from 'antd'
-import { SourceDocument } from '../page'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
+import MarkdownGuideTooltipBody from './MarkdownGuideTooltipBody'
+import { SourceDocument } from '@koh/common'
 
 interface FormValues {
   question: string
@@ -106,6 +107,12 @@ const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
       <Form.Item
         name="answer"
         label="Answer"
+        tooltip={{
+          title: <MarkdownGuideTooltipBody />,
+          classNames: {
+            body: 'min-w-[420px]',
+          },
+        }}
         rules={[{ required: true, message: 'Please input the answer text' }]}
       >
         <Input.TextArea autoSize={{ minRows: 1, maxRows: 8 }} />
@@ -126,11 +133,11 @@ const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
       >
         <Checkbox />
       </Form.Item>
-      <span className="text-lg font-bold">Source Documents</span>
-
+      <span className="text-base font-bold">Source Documents</span>
       <Select
         className="my-4 w-full"
         placeholder="Select a document to add"
+        mode="multiple"
         onSelect={(selectedDocId) => {
           const selectedDoc = existingDocuments.find(
             (doc) => doc.docId === selectedDocId,
