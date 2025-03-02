@@ -38,6 +38,7 @@ import {
   UseGuards,
   UseInterceptors,
   ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import async from 'async';
 import { Response, Request } from 'express';
@@ -62,6 +63,8 @@ import { ApplicationConfigService } from '../config/application_config.service';
 import { getManager } from 'typeorm';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
+import { CourseRole } from 'decorators/course-role.decorator';
+import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -171,7 +174,6 @@ export class CourseController {
     }
 
     // Use raw query for performance (avoid entity instantiation and serialization)
-
     try {
       course.heatmap = await this.heatmapService.getCachedHeatmapFor(id);
     } catch (err) {
@@ -1017,5 +1019,60 @@ export class CourseController {
 
     res.status(200).send(queueInvites);
     return;
+  }
+
+  // Moved from userInfo context endpoint as this updates too frequently to make sense caching it with userInfo data
+  @Get(':id/unread_async_count')
+  @UseGuards(JwtAuthGuard)
+  async getUnreadAsyncCount(
+    @Param('id', ParseIntPipe) courseId: number,
+    @UserId() userId: number,
+  ): Promise<number> {
+    const count = await UnreadAsyncQuestionModel.count({
+      where: {
+        userId,
+        courseId,
+        readLatest: false,
+      },
+    });
+
+    return count;
+  }
+
+  @Patch(':id/unread_async_count')
+  @UseGuards(JwtAuthGuard)
+  async updateUnreadAsyncCount(
+    @Param('id', ParseIntPipe) courseId: number,
+    @UserId() userId: number,
+  ): Promise<void> {
+    await UnreadAsyncQuestionModel.update(
+      { userId, courseId },
+      { readLatest: true },
+    );
+
+    return;
+  }
+
+  @Patch(':id/set_ta_notes/:uid')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async setTANotes(
+    @Param('id', ParseIntPipe) courseId: number,
+    @Param('uid', ParseIntPipe) userId: number,
+    @User() myUser: UserModel,
+    @CourseRole() myRole: Role,
+    @Body() body: { notes: string },
+  ): Promise<void> {
+    if (myRole === Role.TA && myUser.id !== userId) {
+      throw new ForbiddenException('You can only set notes for yourself');
+    }
+    const userCourse = await UserCourseModel.findOne({
+      where: { courseId, userId },
+    });
+    if (!userCourse) {
+      throw new NotFoundException('TA not found');
+    }
+    userCourse.TANotes = body.notes;
+    await userCourse.save();
   }
 }
