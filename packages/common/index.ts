@@ -1597,10 +1597,26 @@ export class EditCourseInfoParams {
 }
 
 export class SemesterPartial {
-  id!: number
+  @IsOptional()
+  @IsInt()
+  id?: number
+
+  @IsString()
+  @IsNotEmpty()
   name!: string
+
+  @IsNotEmpty()
+  @IsDate()
+  @Type(() => Date)
   startDate!: Date
+
+  @IsNotEmpty()
+  @IsDate()
+  @Type(() => Date)
   endDate!: Date
+
+  @IsOptional()
+  @IsString()
   description?: string
 }
 

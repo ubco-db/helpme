@@ -15,6 +15,7 @@ import {
   Switch,
 } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
+import dayjs from 'dayjs'
 import { ReactElement, useEffect, useState } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { Organization } from '@/app/typings/organization'
@@ -22,7 +23,8 @@ import { API } from '@/app/api'
 import Image from 'next/image'
 import ImageCropperModal from '@/app/(dashboard)/components/ImageCropperModal'
 import { SemesterPartial } from '@koh/common'
-import { CreateSemesterModal } from './components/CreateSemesterModal'
+import { SemesterModal } from './components/SemesterModal'
+import DeleteConfirmationModal from './components/DeleteConfirmationModal'
 
 export default function SettingsPage(): ReactElement {
   const [formGeneral] = Form.useForm()
@@ -47,9 +49,15 @@ export default function SettingsPage(): ReactElement {
   const [organizationSemesters, setOrganizationSemesters] = useState<
     SemesterPartial[]
   >([])
+  const [currentSemesterId, setCurrentSemesterId] = useState<number>(-1) // -1 represents nothing being selected
+  const [deletionSemesterName, setDeletionSemesterName] = useState<string>('')
   const [isSemesterCreationModalOpen, setIsSemesterCreationModalOpen] =
     useState(false)
-
+  const [isSemesterEditModalOpen, setIsSemesterEditModalOpen] = useState(false)
+  const [
+    isConfirmSemesterDeleteModalOpen,
+    setIsConfirmSemesterDeleteModalOpen,
+  ] = useState(false)
   useEffect(() => {
     const fetchDataAsync = async () => {
       const response = await API.organizations.get(
@@ -148,10 +156,47 @@ export default function SettingsPage(): ReactElement {
   const [semesterForm] = Form.useForm()
 
   const handleAddSemester = async () => {
-    return
+    const formValues = await semesterForm.validateFields()
+    const semesterName = formValues.name as string
+    const semesterStartDate = formValues.startDate as dayjs.Dayjs
+    const semesterEndDate = formValues.endDate as dayjs.Dayjs
+    const semesterDescription = formValues.description as string
+
+    if (semesterName.length < 3) {
+      message.error('Semester name must be at least 3 characters')
+      return
+    }
+
+    if (semesterDescription && semesterDescription.length < 10) {
+      message.error('Semester description must be at least 10 characters')
+      return
+    }
+
+    if (semesterStartDate.valueOf() >= semesterEndDate.valueOf()) {
+      message.error('Semester start date must be before end date')
+      return
+    }
+
+    const semesterDetails: SemesterPartial = {
+      name: semesterName,
+      startDate: semesterStartDate.toDate(),
+      endDate: semesterEndDate.toDate(),
+      description: semesterDescription,
+    }
+
+    await API.semesters
+      .create(organization?.id ?? -1, semesterDetails)
+      .then(() => {
+        setIsSemesterCreationModalOpen(false)
+        message.success('Semester created successfully')
+        setOrganizationSemesters((prev) => [...prev, semesterDetails])
+      })
+      .catch((error) => {
+        message.error(error.response.data.message)
+      })
   }
 
-  const handleEditSemester = (semesterId: number) => {
+  const handleOpenEditSemesterModal = (semesterId: number) => {
     {
       const semester = organizationSemesters.find((s) => s.id === semesterId)
       if (!semester) {
@@ -160,16 +205,86 @@ export default function SettingsPage(): ReactElement {
       }
       semesterForm.setFieldsValue({
         name: semester.name,
-        startDate: semester.startDate,
-        endDate: semester.endDate,
+        startDate: dayjs(semester.startDate),
+        endDate: dayjs(semester.endDate),
         description: semester.description,
       })
-      setIsSemesterCreationModalOpen(true)
+      setCurrentSemesterId(semesterId)
+      setIsSemesterEditModalOpen(true)
     }
   }
 
-  const handleDeleteSemester = (semesterId: number) => {
-    return
+  const handleEditSemester = async () => {
+    const formValues = await semesterForm.validateFields()
+    const semesterName = formValues.name
+    const semesterStartDate = formValues.startDate
+    const semesterEndDate = formValues.endDate
+    const semesterDescription = formValues.description
+
+    if (semesterName.length < 3) {
+      message.error('Semester name must be at least 3 characters')
+      return
+    }
+
+    if (semesterDescription && semesterDescription.length < 10) {
+      message.error('Semester description must be at least 10 characters')
+      return
+    }
+
+    if (semesterStartDate >= semesterEndDate) {
+      message.error('Semester start date must be before end date')
+      return
+    }
+
+    const semesterDetails: SemesterPartial = {
+      name: semesterName,
+      startDate: semesterStartDate,
+      endDate: semesterEndDate,
+      description: semesterDescription,
+    }
+
+    await API.semesters
+      .edit(organization?.id ?? -1, currentSemesterId, semesterDetails)
+      .then(() => {
+        setIsSemesterEditModalOpen(false)
+        setCurrentSemesterId(-1)
+        message.success('Semester updated successfully')
+        setOrganizationSemesters((prev) => {
+          const index = prev.findIndex((s) => s.id === semesterDetails.id)
+          prev[index] = semesterDetails
+          return prev
+        })
+      })
+      .catch((error) => {
+        const errorMessage = error.response.data.message
+
+        message.error(errorMessage)
+      })
+  }
+
+  const handleConfirmSemesterDelete = (
+    semesterId: number,
+    semesterName: string,
+  ) => {
+    setCurrentSemesterId(semesterId)
+    setDeletionSemesterName(semesterName)
+    setIsConfirmSemesterDeleteModalOpen(true)
+  }
+
+  const handleDeleteSemester = async (semesterId: number) => {
+    await API.semesters
+      .delete(organization?.id ?? -1, semesterId)
+      .then(() => {
+        setCurrentSemesterId(-1)
+        setDeletionSemesterName('')
+        message.success('Semester deleted successfully')
+        setOrganizationSemesters((prev) =>
+          prev.filter((s) => s.id !== semesterId),
+        )
+      })
+      .catch((error) => {
+        message.error(error.response.data.message)
+      })
   }
 
   return organization ? (
@@ -354,8 +469,8 @@ export default function SettingsPage(): ReactElement {
             .map((semester) => (
               <Card.Grid
                 key={semester.id}
-                className="flex w-[50%] flex-col gap-2 text-center transition-none"
-                onClick={() => handleEditSemester(semester.id)}
+                className="flex w-[50%] flex-col justify-between gap-2 text-center transition-none"
+                onClick={() => handleOpenEditSemesterModal(semester.id!)}
               >
                 <h3 className="text-lg font-semibold">{semester.name}</h3>
                 <p>
@@ -375,7 +490,10 @@ export default function SettingsPage(): ReactElement {
                 <Button
                   danger
                   type="primary"
-                  onClick={() => handleDeleteSemester(semester.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleConfirmSemesterDelete(semester.id!, semester.name)
+                  }}
                   className="mt-2"
                 >
                   Delete
@@ -399,11 +517,32 @@ export default function SettingsPage(): ReactElement {
         </Card.Grid>
 
         {isSemesterCreationModalOpen && (
-          <CreateSemesterModal
-            isSemesterCreationModalOpen={isSemesterCreationModalOpen}
-            setIsSemesterCreationModalOpen={setIsSemesterCreationModalOpen}
-            handleAddSemester={handleAddSemester}
+          <SemesterModal
+            isSemesterModalOpen={isSemesterCreationModalOpen}
+            setIsSemesterModalOpen={setIsSemesterCreationModalOpen}
+            handleSubmit={handleAddSemester}
             semesterForm={semesterForm}
+            creatingSemester={true}
+          />
+        )}
+        {isSemesterEditModalOpen && (
+          <SemesterModal
+            isSemesterModalOpen={isSemesterEditModalOpen}
+            setIsSemesterModalOpen={setIsSemesterEditModalOpen}
+            handleSubmit={handleEditSemester}
+            semesterForm={semesterForm}
+            creatingSemester={true}
+          />
+        )}
+        {isConfirmSemesterDeleteModalOpen && (
+          <DeleteConfirmationModal
+            isOpen={isConfirmSemesterDeleteModalOpen}
+            semesterName={deletionSemesterName}
+            onConfirm={() => {
+              handleDeleteSemester(currentSemesterId)
+              setIsConfirmSemesterDeleteModalOpen(false)
+            }}
+            onCancel={() => setIsConfirmSemesterDeleteModalOpen(false)}
           />
         )}
       </Card>

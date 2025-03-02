@@ -3,25 +3,32 @@ import { Modal, Form, Input, DatePicker, FormInstance } from 'antd'
 
 const { TextArea } = Input
 
-interface CreateSemesterModalProps {
-  isSemesterCreationModalOpen: boolean
-  setIsSemesterCreationModalOpen: (open: boolean) => void
-  handleAddSemester: () => void
+interface SemesterModal {
+  isSemesterModalOpen: boolean
+  setIsSemesterModalOpen: (open: boolean) => void
+  handleSubmit: () => void
   semesterForm: FormInstance<any>
+  creatingSemester: boolean
 }
 
-export const CreateSemesterModal: React.FC<CreateSemesterModalProps> = ({
-  isSemesterCreationModalOpen,
-  setIsSemesterCreationModalOpen,
-  handleAddSemester,
+export const SemesterModal: React.FC<SemesterModal> = ({
+  isSemesterModalOpen,
+  setIsSemesterModalOpen,
+  handleSubmit,
   semesterForm,
+  creatingSemester,
 }) => {
+  const handleCloseModal = () => {
+    semesterForm.resetFields()
+    setIsSemesterModalOpen(false)
+  }
+
   return (
     <Modal
-      title="Add New Semester"
-      visible={isSemesterCreationModalOpen}
-      onCancel={() => setIsSemesterCreationModalOpen(false)}
-      onOk={handleAddSemester}
+      title={`${creatingSemester ? 'Add New' : 'Edit'} Semester`}
+      open={isSemesterModalOpen}
+      onCancel={handleCloseModal}
+      onOk={handleSubmit}
       okText="Save"
       cancelText="Cancel"
     >
