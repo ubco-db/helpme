@@ -26,6 +26,9 @@ import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
 import { QueueChatsModel } from '../queueChats/queue-chats.entity';
 import { CalendarStaffModel } from '../calendar/calendar-staff.entity';
 import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question.entity';
+import { AsyncQuestionCommentModel } from '../asyncQuestion/asyncQuestionComment.entity';
+import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
+import { QuestionModel } from '../question/question.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -165,4 +168,16 @@ export class UserModel extends BaseEntity {
   )
   @Exclude()
   unreadAsyncQuestions: UnreadAsyncQuestionModel[];
+
+  @OneToMany((type) => QuestionModel, (q) => q.creator)
+  @Exclude()
+  questions: QuestionModel[];
+
+  @OneToMany((type) => AsyncQuestionModel, (aq) => aq.creator)
+  @Exclude()
+  asyncQuestions: AsyncQuestionModel[];
+
+  @OneToMany((type) => AsyncQuestionCommentModel, (aqc) => aqc.creator)
+  @Exclude()
+  asyncQuestionComments: CalendarStaffModel[];
 }

@@ -30,7 +30,6 @@ import { setupIntegrationTest } from './util/testUtils';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
-import { QuestionModel } from 'question/question.entity';
 
 describe('Course Integration', () => {
   const { supertest } = setupIntegrationTest(CourseModule);

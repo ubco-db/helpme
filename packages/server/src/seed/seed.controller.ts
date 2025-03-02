@@ -8,7 +8,6 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AlertModel } from 'alerts/alerts.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { LastRegistrationModel } from 'login/last-registration-model.entity';
-import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
 import { DesktopNotifModel } from 'notification/desktop-notif.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -155,7 +154,6 @@ export class SeedController {
     await this.seedService.deleteAll(UserSubscriptionModel);
     await this.seedService.deleteAll(OrganizationUserModel);
     await this.seedService.deleteAll(LastRegistrationModel);
-    await this.seedService.deleteAll(ProfSectionGroupsModel);
     await this.seedService.deleteAll(QuestionModel);
     await this.seedService.deleteAll(AsyncQuestionModel);
     await this.seedService.deleteAll(QuestionGroupModel);
@@ -203,27 +201,33 @@ export class SeedController {
       mailType: OrganizationRole.PROFESSOR,
       serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
       name: 'Notify when a new anytime question is flagged as needing attention',
-      content: 'A student is requesting for help with an anytime question',
     });
     const studentMailService = await mailServiceFactory.create({
       mailType: OrganizationRole.MEMBER,
       serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
       name: 'Notify when your anytime question has been answered by faculty',
-      content: 'Your anytime question has been answered by faculty',
     });
 
     const studentMailService2 = await mailServiceFactory.create({
       mailType: OrganizationRole.MEMBER,
       serviceType: MailServiceType.ASYNC_QUESTION_STATUS_CHANGED,
       name: 'Notify when the status of your anytime question has changed',
-      content: 'The status of your anytime question has been updated',
     });
 
     const studentMailService3 = await mailServiceFactory.create({
       mailType: OrganizationRole.MEMBER,
       serviceType: MailServiceType.ASYNC_QUESTION_UPVOTED,
       name: 'Notify when your anytime question has been upvoted',
-      content: 'Your anytime question has received an upvote',
+    });
+    const studentMailService4 = await mailServiceFactory.create({
+      mailType: OrganizationRole.MEMBER,
+      serviceType: MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST,
+      name: 'Notify when someone comments on your anytime question',
+    });
+    const studentMailService5 = await mailServiceFactory.create({
+      mailType: OrganizationRole.MEMBER,
+      serviceType: MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST,
+      name: 'Notify when someone comments on an anytime question you commented on',
     });
     const courseExists = await CourseModel.findOne({
       where: { name: 'CS 304' },
@@ -283,23 +287,30 @@ export class SeedController {
         role: Role.STUDENT,
         course: course,
       });
-
       await userSubscriptionFactory.create({
         isSubscribed: true,
         user: user1,
         service: studentMailService,
       });
-
       await userSubscriptionFactory.create({
         isSubscribed: true,
         user: user1,
         service: studentMailService2,
       });
-
       await userSubscriptionFactory.create({
         isSubscribed: true,
         user: user1,
         service: studentMailService3,
+      });
+      await userSubscriptionFactory.create({
+        isSubscribed: true,
+        user: user1,
+        service: studentMailService4,
+      });
+      await userSubscriptionFactory.create({
+        isSubscribed: true,
+        user: user1,
+        service: studentMailService5,
       });
 
       // Student 2

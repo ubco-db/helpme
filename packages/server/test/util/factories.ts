@@ -19,7 +19,6 @@ import { UserModel } from '../../src/profile/user.entity';
 import { QuestionModel } from '../../src/question/question.entity';
 import { QueueModel } from '../../src/queue/queue.entity';
 import { LastRegistrationModel } from 'login/last-registration-model.entity';
-import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
 import { OrganizationModel } from '../../src/organization/organization.entity';
 import { InteractionModel } from '../../src/chatbot/interaction.entity';
 import { OrganizationCourseModel } from '../../src/organization/organization-course.entity';
@@ -40,6 +39,7 @@ import { LMSOrganizationIntegrationModel } from '../../src/lmsIntegration/lmsOrg
 import { LMSCourseIntegrationModel } from '../../src/lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from '../../src/lmsIntegration/lmsAssignment.entity';
 import { CalendarStaffModel } from '../../src/calendar/calendar-staff.entity';
+import { AsyncQuestionCommentModel } from '../../src/asyncQuestion/asyncQuestionComment.entity';
 import { QueueChatsModel } from '../../src/queueChats/queue-chats.entity';
 
 export const UserFactory = new Factory(UserModel)
@@ -47,6 +47,7 @@ export const UserFactory = new Factory(UserModel)
   .attr('firstName', 'User')
   .attr('lastName', 'Person')
   .attr('emailVerified', true)
+  .attr('photoURL', 'https://example.com')
   .attr('hideInsights', []);
 
 export const StudentCourseFactory = new Factory(UserCourseModel).attr(
@@ -142,10 +143,6 @@ export const LastRegistrationFactory = new Factory(LastRegistrationModel)
   .attr('lastRegisteredSemester', '202210') // Fall 2022
   .assocOne('prof', UserFactory);
 
-export const ProfSectionGroupsFactory = new Factory(ProfSectionGroupsModel)
-  .assocOne('prof', UserFactory)
-  .attr('sectionGroups', []);
-
 export const AlertFactory = new Factory(AlertModel)
   .attr('alertType', AlertType.REPHRASE_QUESTION)
   .attr('sent', new Date(Date.now() - 86400000))
@@ -169,7 +166,15 @@ export const AsyncQuestionFactory = new Factory(AsyncQuestionModel)
   .attr('status', asyncQuestionStatus.AIAnswered)
   .attr('visible', false)
   .attr('verified', false)
-  .attr('createdAt', new Date());
+  .attr('createdAt', new Date('2025-01-01T00:00:00.000Z'));
+
+export const AsyncQuestionCommentFactory = new Factory(
+  AsyncQuestionCommentModel,
+)
+  .attr('commentText', 'some comment')
+  .attr('createdAt', new Date('2025-01-02T00:00:00.000Z'))
+  .assocOne('question', AsyncQuestionFactory)
+  .assocOne('creator', UserFactory);
 
 export const OrganizationFactory = new Factory(OrganizationModel)
   .attr('name', 'UBCO')
@@ -203,8 +208,7 @@ export const StudentTaskProgressFactory = new Factory(StudentTaskProgressModel)
 export const mailServiceFactory = new Factory(MailServiceModel)
   .attr('mailType', OrganizationRole.PROFESSOR)
   .attr('serviceType', MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED)
-  .attr('name', 'async_question_created')
-  .attr('content', 'A new async question is asked, and the student is asking');
+  .attr('name', 'async_question_created');
 
 export const userSubscriptionFactory = new Factory(UserSubscriptionModel)
   .attr('isSubscribed', true)

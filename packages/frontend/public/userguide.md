@@ -225,10 +225,6 @@ To get help from a TA, join a queue with staff checked in and they will help you
 
 Once you start getting helped, a popup modal should show with a link to the zoom meeting. Otherwise, it may be posted in the queue notes on the top left side of your screen (desktop) or near the middle (mobile).
 
-### How can I delete an Anytime question?
-
-Anytime questions can only be edited or deleted before responding with "Satisfied" or "Still need faculty Help". This is because emails are sent out to staff after clicking "Still need faculty Help" and cannot be edited/deleted. On the bright side, if the staff member likes your question enough, they might mark it public so other students may see it (but you will still remain anonymous).
-
 ## Staff FAQ
 
 ### How do I get started as a professor?

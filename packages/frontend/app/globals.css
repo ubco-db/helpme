@@ -204,23 +204,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 
-/* Initial state */
-.expandable-text {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-height: 1.2rem;
-  /* only slow down near the very end of the transition */
-  transition: max-height 0.3s cubic-bezier(0,1,0,1); 
-}
-
-/* Expanded state */
-.expandable-text.expanded {
-  max-height: 300vh !important;
-  /* only slow down near the very start of the transition */
-  transition: max-height 0.3s cubic-bezier(1,0,1,0)
-}
-
 .time-graph-container .popularTimes__bar {
   cursor: pointer
 }
@@ -245,6 +228,14 @@ background: rgb(47, 76, 128) !important;
 }
 .asyncCentreCard:hover .ant-card-head, a:focus .asyncCentreCard .ant-card-head {
   background: rgb(70, 76, 121) !important;
+}
+
+/* If you have a popconfirm in a dropdown (antd), only clicking the text will trigger the popconfirm. This is to get around that.
+Also add 'px-3 py-[5px]' to the dropdown label's element so that it looks like other dropdown items.
+Here's the issue on antd's github: https://github.com/ant-design/ant-design/issues/22578
+*/
+.ant-dropdown-menu-item.this-dropdown-has-popconfirm {
+  padding: 0 !important;
 }
 
 /*

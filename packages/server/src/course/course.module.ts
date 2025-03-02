@@ -1,7 +1,6 @@
 import { CacheModule, Module } from '@nestjs/common';
 import { QueueModule } from '../queue/queue.module';
 import { LoginModule } from '../login/login.module';
-import { LoginCourseService } from '../login/login-course.service';
 import { CourseController } from './course.controller';
 import { CourseService } from './course.service';
 import { HeatmapService } from './heatmap.service';
@@ -20,7 +19,6 @@ import { QueueCleanService } from '../queue/queue-clean/queue-clean.service';
     RedisQueueService,
   ],
   providers: [
-    LoginCourseService,
     HeatmapService,
     CourseService,
     RedisQueueService,

@@ -135,11 +135,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
     messages.length,
     setQuestionsLeft,
   ])
-  // when chatbotQuestionType changes, reset chat
-  useEffect(() => {
-    resetChat()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatbotQuestionType])
 
   const query = async () => {
     try {
@@ -264,35 +259,20 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setHelpmeQuestionId(helpmeQuestion.id)
   }
 
-  const resetChat = () => {
+  /* newChatbotQuestionType was added to allow us to reset the chat using a new chatbotQuestionType.
+  The reason being is that you can't just setChatbotQuestionType and then call resetChat because the resetChat call will finish before react updates the state
+  */
+  const resetChat = (newChatbotQuestionType?: string) => {
     setMessages([
       {
         type: 'apiMessage',
         message:
-          chatbotQuestionType === 'System'
+          (newChatbotQuestionType ?? chatbotQuestionType) === 'System'
             ? chatbotStartingMessageSystem
             : chatbotStartingMessageCourse,
       },
     ])
-    setPreDeterminedQuestions([])
     hasAskedQuestion.current = false
-    axios
-      .get(`/chat/${courseIdToUse}/allSuggestedQuestions`, {
-        headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
-      })
-      .then((res) => {
-        setPreDeterminedQuestions(
-          res.data.map((question: PreDeterminedQuestion) => ({
-            id: question.id,
-            pageContent: question.pageContent,
-            metadata: question.metadata,
-          })),
-        )
-      })
-      .catch((err) => {
-        const errorMessage = getErrorMessage(err)
-        message.error('Failed to load suggested questions: ' + errorMessage)
-      })
     setInteractionId(undefined)
     setHelpmeQuestionId(undefined)
     setInput('')
@@ -374,6 +354,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     if (tempChatbotQuestionType) {
                       setChatbotQuestionType(tempChatbotQuestionType)
                       setTempChatbotQuestionType(null)
+                      resetChat(tempChatbotQuestionType)
                     }
                   }}
                   onCancel={() => setTempChatbotQuestionType(null)}
@@ -396,6 +377,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     value={chatbotQuestionType}
                     onChange={(value) => {
                       setChatbotQuestionType(value)
+                      resetChat(value)
                     }}
                   />
                 )
@@ -411,7 +393,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     resetChat()
                   }
                 }}
-                onConfirm={resetChat}
+                onConfirm={() => resetChat()}
               >
                 <Button danger type="link" className="mr-3">
                   Reset Chat
