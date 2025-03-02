@@ -6,7 +6,6 @@ import {
   ListQuestionsResponse,
   OpenQuestionStatus,
   QueueConfig,
-  QueueInviteParams,
   Role,
   UpdateQueueParams,
   isCycleInTasks,

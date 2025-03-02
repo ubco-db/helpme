@@ -15,6 +15,10 @@ export class StripUndefinedPipe implements PipeTransform {
   }
 
   private dropUndefined(obj: unknown) {
+    if (typeof obj !== 'object' || obj === null) {
+      return; // Ignore non-objects and null
+    }
+
     for (const key of Object.keys(obj)) {
       if (obj[key] === undefined) {
         delete obj[key];

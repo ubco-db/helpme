@@ -25,7 +25,7 @@ import { MailServiceModel } from 'mail/mail-services.entity';
     The reason why these aren't in asyncQuestion.integration.ts is these have different setups and mocks and separating them helps keep it organised.
 */
 describe('AsyncQuestion Integration - Email Tests', () => {
-  const supertest = setupIntegrationTest(
+  const { supertest } = setupIntegrationTest(
     asyncQuestionModule,
     overrideEmailService,
   );

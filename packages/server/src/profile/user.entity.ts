@@ -23,6 +23,7 @@ import { UserTokenModel } from './user-token.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
+import { QueueChatsModel } from '../queueChats/queue-chats.entity';
 import { CalendarStaffModel } from '../calendar/calendar-staff.entity';
 import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from '../asyncQuestion/asyncQuestionComment.entity';
@@ -145,6 +146,14 @@ export class UserModel extends BaseEntity {
   )
   @Exclude()
   taskProgress: StudentTaskProgressModel[];
+
+  @OneToMany(() => QueueChatsModel, (queueChat) => queueChat.staff)
+  @Exclude()
+  staffChats: QueueChatsModel[];
+
+  @OneToMany(() => QueueChatsModel, (queueChat) => queueChat.student)
+  @Exclude()
+  studentChats: QueueChatsModel[];
 
   @OneToMany((type) => CalendarStaffModel, (csm) => csm.user)
   @Exclude()

@@ -27,6 +27,7 @@ import { QueueModel } from '../queue/queue.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 import { QueueService } from '../queue/queue.service';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { QueueChatService } from 'queueChats/queue-chats.service';
 
 @Injectable()
 export class QuestionService {
@@ -34,6 +35,7 @@ export class QuestionService {
     private notifService: NotificationService,
     public queueService: QueueService,
     public redisQueueService: RedisQueueService,
+    public readonly queueChatService: QueueChatService,
   ) {}
 
   async changeStatus(
@@ -62,18 +64,6 @@ export class QuestionService {
       }
     }
 
-    const validTransition = question.changeStatus(newStatus, myRole);
-    if (!validTransition) {
-      throw new UnauthorizedException(
-        ERROR_MESSAGES.questionController.updateQuestion.fsmViolation(
-          myRole,
-          oldStatus,
-          newStatus,
-        ),
-      );
-    }
-
-    // Set TA as taHelped when the TA starts helping the student
     const isBecomingHelped =
       oldStatus !== OpenQuestionStatus.Helping &&
       newStatus === OpenQuestionStatus.Helping;
@@ -89,7 +79,21 @@ export class QuestionService {
     const isBecomingWaiting =
       !waitingStatuses.includes(oldStatus) &&
       waitingStatuses.includes(newStatus);
+    const isResolving = newStatus === ClosedQuestionStatus.Resolved;
+    const isFirstHelped = isBecomingHelped && !question.firstHelpedAt;
 
+    const validTransition = question.changeStatus(newStatus, myRole);
+    if (!validTransition) {
+      throw new UnauthorizedException(
+        ERROR_MESSAGES.questionController.updateQuestion.fsmViolation(
+          myRole,
+          oldStatus,
+          newStatus,
+        ),
+      );
+    }
+
+    // Set TA as taHelped when the TA starts helping the student
     const now = new Date();
     if (isBecomingHelped || isBecomingClosedFromWaiting) {
       question.taHelped = await UserModel.findOne({ where: { id: userId } });
@@ -137,6 +141,30 @@ export class QuestionService {
       if (question.group) question.group = null;
       else question.groupId = null;
     }
+
+    // For Queue Chats
+    try {
+      if (isResolving) {
+        // Save chat metadata in database (if messages were exchanged)
+        await this.queueChatService.endChat(question.queueId, question.id);
+      } else if (newStatus in ClosedQuestionStatus) {
+        // Don't save chat metadata in database
+        await this.queueChatService.clearChat(question.queueId, question.id);
+      } else if (isFirstHelped) {
+        // Create chat metadata in Redis
+        await this.queueChatService.createChat(
+          question.queueId,
+          question.taHelped,
+          question,
+        );
+      }
+    } catch (err) {
+      throw new HttpException(
+        ERROR_MESSAGES.questionService.queueChatUpdateFailure,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
     try {
       await question.save();
     } catch (err) {

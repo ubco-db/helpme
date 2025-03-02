@@ -10,7 +10,7 @@ import { setupIntegrationTest } from './util/testUtils';
 import { StudentTaskProgressModule } from 'studentTaskProgress/studentTaskProgress.module';
 
 describe('StudentTaskProgress Integration', () => {
-  const supertest = setupIntegrationTest(StudentTaskProgressModule);
+  const { supertest } = setupIntegrationTest(StudentTaskProgressModule);
   describe('GET /studentTaskProgress/student/:userId/:courseId/:assignmentName', () => {
     it('should return 401 if user is not authorized', async () => {
       await supertest()

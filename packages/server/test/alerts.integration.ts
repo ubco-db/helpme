@@ -13,7 +13,7 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 
 describe('Alerts Integration', () => {
-  const supertest = setupIntegrationTest(AlertsModule);
+  const { supertest } = setupIntegrationTest(AlertsModule);
 
   describe('GET /alerts', () => {
     it('returns whatever alerts are in the db for this course and user', async () => {

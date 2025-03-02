@@ -17,6 +17,7 @@ import {
 
 interface ChatbotContextType {
   setCid: React.Dispatch<React.SetStateAction<number | null>>
+  renderSmallChatbot: boolean
   setRenderSmallChatbot: React.Dispatch<React.SetStateAction<boolean>>
   preDeterminedQuestions: PreDeterminedQuestion[]
   setPreDeterminedQuestions: React.Dispatch<
@@ -40,6 +41,7 @@ interface ChatbotContextType {
 
 const chatbotContext = createContext<ChatbotContextType>({
   setCid: () => {},
+  renderSmallChatbot: false,
   setRenderSmallChatbot: () => {},
   preDeterminedQuestions: [],
   setPreDeterminedQuestions: () => {},
@@ -69,7 +71,7 @@ interface ChatbotContextProviderProps {
 }
 
 /**
- * This provider will display the "Chat Now!" chatbot on the page.
+ * This provider will display the chatbot button on the page.
  * It also exports all of the state to allow you to put another Chatbot component outside this provider.
  * This is done so that the all Chatbot components share the same messages (so it the history won't be different between the components)
  * IMPORTANT: Any new Chatbot state that you do NOT want to be reset, put it here instead of inside the Chatbot component.
@@ -117,6 +119,7 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
 
   const values = {
     setCid,
+    renderSmallChatbot,
     setRenderSmallChatbot,
     preDeterminedQuestions,
     setPreDeterminedQuestions,

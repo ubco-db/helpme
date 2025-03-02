@@ -17,7 +17,7 @@ import { AsyncQuestionVotesModel } from 'asyncQuestion/asyncQuestionVotes.entity
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 
 describe('AsyncQuestion Integration', () => {
-  const supertest = setupIntegrationTest(
+  const { supertest } = setupIntegrationTest(
     asyncQuestionModule,
     overrideRedisQueue,
   );
