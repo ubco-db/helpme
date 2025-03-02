@@ -2,9 +2,6 @@ import {
   StudentCourseFactory,
   UserFactory,
   CourseFactory,
-  ProfSectionGroupsFactory,
-  CourseSectionFactory,
-  LastRegistrationFactory,
   OrganizationFactory,
   ChatTokenFactory,
 } from './util/factories';

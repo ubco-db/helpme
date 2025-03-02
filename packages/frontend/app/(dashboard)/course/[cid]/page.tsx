@@ -189,7 +189,7 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                 (!courseFeatures.chatBotEnabled ||
                   courseFeatures.scheduleOnFrontPage) ? (
                   <>
-                    {role === Role.PROFESSOR || role === Role.TA ? (
+                    {role === Role.PROFESSOR ? (
                       <TAFacultySchedulePanel courseId={cid} condensed={true} />
                     ) : (
                       <StudentSchedulePanel courseId={cid} />
