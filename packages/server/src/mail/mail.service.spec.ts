@@ -4,8 +4,9 @@ import { MailService } from './mail.service';
 import { MailServiceModel } from './mail-services.entity';
 import { UserModel } from 'profile/user.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException } from '@nestjs/common';
 import { Role, OrganizationRole, MailServiceType } from '@koh/common';
+import * as Common from '@koh/common';
 
 describe('MailService', () => {
   let service: MailService;
@@ -26,6 +27,9 @@ describe('MailService', () => {
 
     service = module.get<MailService>(MailService);
     mailerService = module.get<MailerService>(MailerService);
+    // mock isProd to true so that it actually calls mailerService's sendMail (instead of writing to file)
+    // this is fine since sendMail is mocked above. BE CAREFUL modifying these tests so you don't accidentally send emails
+    jest.spyOn(Common, 'isProd').mockReturnValue(true);
   });
 
   it('should be defined', () => {
@@ -73,10 +77,6 @@ describe('MailService', () => {
         content: 'Thank you for joining us.',
       };
 
-      jest.spyOn(MailServiceModel, 'findOne').mockResolvedValue({
-        content: 'Default Content',
-      } as MailServiceModel);
-
       await service.sendEmail(emailPost);
 
       expect(mailerService.sendMail).toHaveBeenCalledWith({
@@ -85,14 +85,6 @@ describe('MailService', () => {
         subject: emailPost.subject,
         html: expect.stringContaining(emailPost.content),
       });
-    });
-
-    it('should throw an error if mail type is not found', async () => {
-      jest.spyOn(MailServiceModel, 'findOne').mockResolvedValue(null);
-
-      await expect(
-        service.sendEmail({ type: 'INVALID_TYPE' } as any),
-      ).rejects.toThrow(HttpException);
     });
   });
 

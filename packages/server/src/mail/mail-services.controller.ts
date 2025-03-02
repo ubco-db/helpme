@@ -7,6 +7,7 @@ import {
   HttpException,
   HttpStatus,
   Body,
+  BadRequestException,
 } from '@nestjs/common';
 import { MailService } from './mail.service';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
@@ -55,7 +56,7 @@ export class MailServicesController {
       // If no subscription exists, create a new one
       const mailService = await MailServiceModel.findOne(id);
       if (!mailService) {
-        throw new HttpException('Invalid mail service', HttpStatus.BAD_REQUEST);
+        throw new BadRequestException('Invalid mail service');
       }
 
       subscription = new UserSubscriptionModel();

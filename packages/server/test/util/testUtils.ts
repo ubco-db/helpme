@@ -12,6 +12,8 @@ import { LoginModule } from '../../src/login/login.module';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { ApplicationConfigModule } from 'config/application_config.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
+import { RedisQueueService } from 'redisQueue/redis-queue.service';
+import { MailService } from 'mail/mail.service';
 
 export interface SupertestOptions {
   userId?: number;
@@ -122,3 +124,41 @@ export async function clearAllCronJobs(
     schedulerRegistry.deleteCronJob(jobName);
   });
 }
+
+export const mockRedisQueueService = {
+  setAsyncQuestions: jest.fn(),
+  setQuestions: jest.fn(),
+  updateAsyncQuestion: jest.fn(),
+  deleteAsyncQuestion: jest.fn(),
+  addAsyncQuestion: jest.fn(),
+  getKey: jest.fn().mockResolvedValue([]),
+  deleteKey: jest.fn(),
+};
+
+export const overrideRedisQueue: ModuleModifier = (builder) =>
+  builder.overrideProvider(RedisQueueService).useValue(mockRedisQueueService);
+
+export const mockEmailService = {
+  sendEmail: jest.fn().mockImplementation(() => Promise.resolve()),
+};
+
+export const overrideEmailService: ModuleModifier = (builder) =>
+  builder.overrideProvider(MailService).useValue(mockEmailService);
+/* Takes an array of emails (receivers) and type of email (types)*/
+export const expectEmailSent = (receivers: string[], types: string[]): void => {
+  expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(receivers.length);
+  const calls = mockEmailService.sendEmail.mock.calls.map((args) => args[0]);
+  // expect that each receiver was sent an email of the correct type
+  expect(calls).toEqual(
+    expect.arrayContaining(
+      receivers.map((item, i) =>
+        expect.objectContaining({
+          receiver: receivers[i],
+          type: types[i],
+        }),
+      ),
+    ),
+  );
+};
+export const expectEmailNotSent = (): void =>
+  expect(mockEmailService.sendEmail).not.toHaveBeenCalled();

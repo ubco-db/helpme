@@ -31,13 +31,14 @@ export class AuthService {
 
   async createStudentSubscriptions(userId: number): Promise<void> {
     try {
-      const memberMailServices = await MailServiceModel.find({
-        where: { mailType: 'member' },
-      });
-      if (!memberMailServices) {
+      const allMailServices = await MailServiceModel.find();
+      if (!allMailServices) {
+        console.error(
+          "For some reason there are no mail services in the database. Please check the database and populate them if you haven't.",
+        );
         return;
       }
-      const subscriptions = memberMailServices.map((service) => {
+      const subscriptions = allMailServices.map((service) => {
         const subscription = new UserSubscriptionModel();
         subscription.userId = userId;
         subscription.serviceId = service.id;
