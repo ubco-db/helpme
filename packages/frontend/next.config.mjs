@@ -1,4 +1,7 @@
 import {withSentryConfig} from "@sentry/nextjs";
+
+import injectWhyDidYouRender from './scripts/why-did-you-render/index.mjs';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false, // disabled since it messes with antd forms unfortunately
@@ -28,6 +31,12 @@ const nextConfig = {
       }
     ],
   },
+  webpack: (config, context) => {
+    if (process.env.NEXT_PUBLIC_WHY_DID_YOU_RENDER === 'true') {
+		injectWhyDidYouRender(config, context)
+    }
+		return config;
+	}
 };
 
 export default withSentryConfig(nextConfig, {

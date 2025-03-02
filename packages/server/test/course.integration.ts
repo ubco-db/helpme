@@ -2163,4 +2163,122 @@ describe('Course Integration', () => {
       );
     });
   });
+  describe('PATCH /courses/:id/set_ta_notes/:uid', () => {
+    it('should return 401 if user is not authorized', async () => {
+      await supertest().patch(`/courses/1/set_ta_notes/1`).expect(401);
+    });
+    it('should not allow students to access the endpoint', async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      const ta = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: student,
+        role: Role.STUDENT,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: ta,
+        role: Role.TA,
+        course: course,
+      });
+      const resp = await supertest({ userId: student.id })
+        .patch(`/courses/${course.id}/set_ta_notes/${ta.id}`)
+        .send({ notes: 'This is a test note' });
+
+      expect(resp.status).toBe(403);
+
+      // fetch ta notes to from db to see if updated (shouldn't be)
+      const updatedTa = await UserCourseModel.findOne({
+        where: { userId: ta.id, courseId: course.id },
+      });
+      expect(updatedTa.TANotes).not.toEqual('This is a test note');
+    });
+    it('should return 404 if course is not found', async () => {
+      const professor = await UserFactory.create();
+      await supertest({ userId: professor.id })
+        .patch(`/courses/1/set_ta_notes/1`)
+        .send({ notes: 'This is a test note' })
+        .expect(404);
+    });
+    it('should return 404 if the user is not in the course', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      await supertest({ userId: professor.id })
+        .patch(`/courses/${course.id}/set_ta_notes/1`)
+        .send({ notes: 'This is a test note' })
+        .expect(404);
+    });
+    it('should allow professors to edit the TA notes for any TA', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      const ta = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: ta,
+        role: Role.TA,
+        course: course,
+      });
+      const resp = await supertest({ userId: professor.id })
+        .patch(`/courses/${course.id}/set_ta_notes/${ta.id}`)
+        .send({ notes: 'This is a test note' });
+
+      expect(resp.status).toBe(200);
+
+      // fetch ta notes to from db to see if updated
+      const updatedTa = await UserCourseModel.findOne({
+        where: { userId: ta.id, courseId: course.id },
+      });
+      expect(updatedTa.TANotes).toEqual('This is a test note');
+    });
+    it('should allow TAs to modify their own notes', async () => {
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: ta,
+        role: Role.TA,
+        course: course,
+      });
+      const resp = await supertest({ userId: ta.id })
+        .patch(`/courses/${course.id}/set_ta_notes/${ta.id}`)
+        .send({ notes: 'This is a test note' });
+
+      expect(resp.status).toBe(200);
+
+      // fetch ta notes to from db to see if updated
+      const updatedTa = await UserCourseModel.findOne({
+        where: { userId: ta.id, courseId: course.id },
+      });
+      expect(updatedTa.TANotes).toEqual('This is a test note');
+    });
+    it('should not allow TAs to modify other TAs notes', async () => {
+      const course = await CourseFactory.create();
+      const ta1 = await UserFactory.create();
+      const ta2 = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: ta1,
+        role: Role.TA,
+        course: course,
+      });
+      await UserCourseFactory.create({
+        user: ta2,
+        role: Role.TA,
+        course: course,
+      });
+      const resp = await supertest({ userId: ta1.id })
+        .patch(`/courses/${course.id}/set_ta_notes/${ta2.id}`)
+        .send({ notes: 'This is a test note' });
+
+      expect(resp.status).toBe(403);
+
+      // fetch ta notes to from db to see if updated (shouldn't be)
+      const updatedTa = await UserCourseModel.findOne({
+        where: { userId: ta2.id, courseId: course.id },
+      });
+      expect(updatedTa.TANotes).not.toEqual('This is a test note');
+    });
+  });
 });
