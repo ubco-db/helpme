@@ -1021,38 +1021,6 @@ export class CourseController {
     return;
   }
 
-  // Moved from userInfo context endpoint as this updates too frequently to make sense caching it with userInfo data
-  @Get(':id/unread_async_count')
-  @UseGuards(JwtAuthGuard)
-  async getUnreadAsyncCount(
-    @Param('id', ParseIntPipe) courseId: number,
-    @UserId() userId: number,
-  ): Promise<number> {
-    const count = await UnreadAsyncQuestionModel.count({
-      where: {
-        userId,
-        courseId,
-        readLatest: false,
-      },
-    });
-
-    return count;
-  }
-
-  @Patch(':id/unread_async_count')
-  @UseGuards(JwtAuthGuard)
-  async updateUnreadAsyncCount(
-    @Param('id', ParseIntPipe) courseId: number,
-    @UserId() userId: number,
-  ): Promise<void> {
-    await UnreadAsyncQuestionModel.update(
-      { userId, courseId },
-      { readLatest: true },
-    );
-
-    return;
-  }
-
   @Patch(':id/set_ta_notes/:uid')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
