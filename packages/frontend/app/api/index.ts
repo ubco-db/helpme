@@ -60,6 +60,7 @@ import {
   QueueInviteParams,
   PublicQueueInvite,
   QueueInvite,
+  GetQueueChatResponse,
   InsightDashboardPartial,
   InsightDetail,
   LMSCourseIntegrationPartial,
@@ -599,6 +600,30 @@ class APIClient {
       code: string,
     ): Promise<GetQueueResponse> =>
       this.req('GET', `/api/v1/queueInvites/${queueId}/${code}/queue`),
+  }
+
+  queueChats = {
+    index: async (
+      queueId: number,
+      questionId: number,
+    ): Promise<GetQueueChatResponse> =>
+      this.req(
+        'GET',
+        `/api/v1/queueChats/${queueId}/${questionId}`,
+        GetQueueChatResponse,
+      ),
+    sendMessage: async (
+      queueId: number,
+      questionId: number,
+      message: string,
+    ): Promise<void> => {
+      this.req(
+        'PATCH',
+        `/api/v1/queueChats/${queueId}/${questionId}`,
+        undefined,
+        { message },
+      )
+    },
   }
 
   notif = {

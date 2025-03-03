@@ -4,7 +4,7 @@ import { DesktopNotifModel } from '../src/notification/desktop-notif.entity';
 import { NotificationModule } from '../src/notification/notification.module';
 
 describe('Notif Integration', () => {
-  const supertest = setupIntegrationTest(NotificationModule);
+  const { supertest } = setupIntegrationTest(NotificationModule);
 
   describe('GET /notifications/desktop/credentials', () => {
     it('gets a public key', async () => {
