@@ -815,6 +815,20 @@ export enum calendarEventLocationType {
   online = 'online',
   hybrid = 'hybrid',
 }
+export function getCalendarEventLocationTypeFormatted(
+  locationType: calendarEventLocationType,
+): string {
+  switch (locationType) {
+    case calendarEventLocationType.inPerson:
+      return 'In-Person'
+    case calendarEventLocationType.online:
+      return 'Online'
+    case calendarEventLocationType.hybrid:
+      return 'Hybrid'
+    default:
+      return ''
+  }
+}
 export class Calendar {
   @IsInt()
   @IsOptional()
@@ -872,6 +886,11 @@ export class Calendar {
   @IsArray()
   @IsNumber({}, { each: true })
   staffIds?: number[]
+
+  @IsArray()
+  @IsOptional()
+  @IsString({ each: true })
+  staffNames?: string[]
 }
 
 export class questions {
