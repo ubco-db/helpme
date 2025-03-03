@@ -37,13 +37,15 @@ const FooterBar: React.FC = () => {
     >
       <div>
         <a
+          aria-hidden="true"
+          tabIndex={-1}
           className="cursor-pointer "
           onClick={() => {
             setIsChangelogOpen(true)
             IReadTheChangelog()
           }}
         >
-          Version 1.2.3{' '}
+          Version 1.4.0{' '}
           {userInfo.readChangeLog === false && (
             <span className="text-green-500">(New Changes!)</span>
           )}
@@ -57,6 +59,8 @@ const FooterBar: React.FC = () => {
       <div>
         Found a bug? Have a suggestion? We welcome your feedback:
         <a
+          aria-hidden="true"
+          tabIndex={-1}
           href="mailto:adam.fipke@ubc.ca"
           className="ml-1 text-blue-600 underline"
         >

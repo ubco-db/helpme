@@ -25,6 +25,7 @@ import {
   cn,
   convertPathnameToPageName,
   getErrorMessage,
+  getRoleInCourse,
 } from '@/app/utils/generalUtils'
 import { Feedback } from './Feedback'
 import {
@@ -39,6 +40,8 @@ import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Role } from '@koh/common'
+import { Bot } from 'lucide-react'
 
 const { TextArea } = Input
 
@@ -95,6 +98,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
   // used to temporarily store what question type the user is trying to change to
   const [tempChatbotQuestionType, setTempChatbotQuestionType] =
     useState<ChatbotQuestionType | null>(null)
+  const role = getRoleInCourse(userInfo, cid)
 
   const courseIdToUse =
     chatbotQuestionType === 'System'
@@ -132,17 +136,14 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setQuestionsLeft,
   ])
 
-  // when chatbotQuestionType changes, reset chat
-  useEffect(() => {
-    resetChat()
-  }, [chatbotQuestionType])
-
   const query = async () => {
     try {
       const data = {
         question:
           chatbotQuestionType === 'System'
-            ? `${input}\nThis user is currently on the ${currentPageTitle}`
+            ? `${input}
+            \nThis user is currently on the ${currentPageTitle}.
+            \nThe user's role for this course is ${role === Role.PROFESSOR ? 'Professor (Staff)' : role === Role.TA ? 'TA (Staff)' : 'Student'}.`
             : input,
         history: messages,
       }
@@ -195,25 +196,27 @@ const Chatbot: React.FC<ChatbotProps> = ({
       setPreDeterminedQuestions([]) // clear predetermined questions upon the first question
     }
 
+    setIsLoading(true)
     let currentInteractionId = interactionId
     if (!currentInteractionId) {
       currentInteractionId = await createNewInteraction()
     }
-    setIsLoading(true)
 
     const result: ChatbotAskResponse = await query()
 
     const answer = result ? result.answer : "Sorry, I couldn't find the answer"
+    const { thinkText, cleanAnswer } = parseThinkBlock(answer)
     const sourceDocuments = result ? result.sourceDocuments : []
     setMessages((prevMessages: Message[]) => [
       ...prevMessages,
       { type: 'userMessage', message: input },
       {
         type: 'apiMessage',
-        message: answer,
+        message: thinkText ? cleanAnswer : answer,
         verified: result ? result.verified : true,
         sourceDocuments: sourceDocuments ? sourceDocuments : [],
         questionId: result ? result.questionId : undefined,
+        thinkText: thinkText,
       },
     ])
 
@@ -233,15 +236,17 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const answerPreDeterminedQuestion = async (
     question: PreDeterminedQuestion,
   ) => {
+    const { thinkText, cleanAnswer } = parseThinkBlock(question.metadata.answer)
     setMessages((prevMessages) => [
       ...prevMessages,
       { type: 'userMessage', message: question.pageContent },
       {
         type: 'apiMessage',
-        message: question.metadata.answer,
+        message: thinkText ? cleanAnswer : question.metadata.answer,
         verified: question.metadata.verified,
         sourceDocuments: question.metadata.sourceDocuments,
         questionId: question.id,
+        thinkText: thinkText,
       },
     ])
     setPreDeterminedQuestions([])
@@ -251,42 +256,27 @@ const Chatbot: React.FC<ChatbotProps> = ({
       vectorStoreId: question.id,
       interactionId: currentInteractionId,
       questionText: question.pageContent,
-      responseText: question.metadata.answer,
+      responseText: question.metadata.answer, // store full question (including think text) in db
       userScore: 0,
       isPreviousQuestion: true,
     })
     setHelpmeQuestionId(helpmeQuestion.id)
   }
 
-  const resetChat = () => {
+  /* newChatbotQuestionType was added to allow us to reset the chat using a new chatbotQuestionType.
+  The reason being is that you can't just setChatbotQuestionType and then call resetChat because the resetChat call will finish before react updates the state
+  */
+  const resetChat = (newChatbotQuestionType?: string) => {
     setMessages([
       {
         type: 'apiMessage',
         message:
-          chatbotQuestionType === 'System'
+          (newChatbotQuestionType ?? chatbotQuestionType) === 'System'
             ? chatbotStartingMessageSystem
             : chatbotStartingMessageCourse,
       },
     ])
-    setPreDeterminedQuestions([])
     hasAskedQuestion.current = false
-    axios
-      .get(`/chat/${courseIdToUse}/allSuggestedQuestions`, {
-        headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
-      })
-      .then((res) => {
-        setPreDeterminedQuestions(
-          res.data.map((question: PreDeterminedQuestion) => ({
-            id: question.id,
-            pageContent: question.pageContent,
-            metadata: question.metadata,
-          })),
-        )
-      })
-      .catch((err) => {
-        const errorMessage = getErrorMessage(err)
-        message.error('Failed to load suggested questions: ' + errorMessage)
-      })
     setInteractionId(undefined)
     setHelpmeQuestionId(undefined)
     setInput('')
@@ -328,325 +318,368 @@ const Chatbot: React.FC<ChatbotProps> = ({
   if (!cid || !courseFeatures?.chatBotEnabled) {
     return <></>
   } else {
-    return (
+    return isOpen ? (
       <div
         className={cn(
           variant === 'small'
-            ? 'fixed bottom-5 z-50 max-h-[90vh] w-screen md:right-5 md:max-w-[400px]'
+            ? 'fixed bottom-0 z-50 max-h-[90vh] w-screen md:bottom-1 md:right-1 md:max-w-[400px]'
             : variant === 'big'
               ? 'flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
               : variant === 'huge'
                 ? 'flex h-[90vh] w-screen flex-col overflow-auto md:w-[90%]'
                 : '',
         )}
+        style={{ zIndex: 1050 }}
       >
-        {isOpen ? (
-          <Card
-            title="Chatbot"
-            classNames={{
-              header: 'pr-3',
-              body: cn(
-                'px-4 pb-4',
-                variant === 'big' || variant === 'huge'
-                  ? 'flex flex-col flex-auto'
-                  : '',
-              ),
-            }}
-            className={cn(
+        <Card
+          title="Chatbot"
+          classNames={{
+            header: 'pr-3',
+            body: cn(
+              'px-4 pb-4',
               variant === 'big' || variant === 'huge'
-                ? 'flex w-full flex-auto flex-col overflow-y-auto'
+                ? 'flex flex-col flex-auto'
                 : '',
-            )}
-            extra={
-              <>
-                {courseIdToUse !== -1 && messages.length > 1 ? (
-                  <Popconfirm
-                    title="Are you sure? this will reset the chat"
-                    open={tempChatbotQuestionType !== null}
-                    onConfirm={() => {
-                      if (tempChatbotQuestionType) {
-                        setChatbotQuestionType(tempChatbotQuestionType)
-                        setTempChatbotQuestionType(null)
-                      }
-                    }}
-                    onCancel={() => setTempChatbotQuestionType(null)}
-                    trigger={'click'}
-                  >
-                    <Segmented<ChatbotQuestionType>
-                      options={['Course', 'System']}
-                      value={chatbotQuestionType}
-                      onChange={(newValue) => {
-                        if (newValue !== chatbotQuestionType) {
-                          setTempChatbotQuestionType(newValue)
-                        }
-                      }}
-                      // onClick={(e) => {e.stopPropagation()}}
-                    />
-                  </Popconfirm>
-                ) : (
-                  courseIdToUse !== -1 && (
-                    <Segmented<ChatbotQuestionType>
-                      options={['Course', 'System']}
-                      value={chatbotQuestionType}
-                      onChange={(value) => {
-                        setChatbotQuestionType(value)
-                      }}
-                    />
-                  )
-                )}
+            ),
+          }}
+          className={cn(
+            variant === 'big' || variant === 'huge'
+              ? 'flex w-full flex-auto flex-col overflow-y-auto'
+              : '',
+          )}
+          extra={
+            <>
+              {Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) &&
+              messages.length > 1 ? (
                 <Popconfirm
-                  title="Are you sure you want to reset the chat?"
-                  open={popResetOpen}
-                  onOpenChange={(open) => {
-                    if (messages.length > 1) {
-                      setPopResetOpen(open)
-                    } else {
-                      // reset chat right away if there are no messages
-                      resetChat()
+                  title="Are you sure? this will reset the chat"
+                  open={tempChatbotQuestionType !== null}
+                  onConfirm={() => {
+                    if (tempChatbotQuestionType) {
+                      setChatbotQuestionType(tempChatbotQuestionType)
+                      setTempChatbotQuestionType(null)
+                      resetChat(tempChatbotQuestionType)
                     }
                   }}
-                  onConfirm={resetChat}
+                  onCancel={() => setTempChatbotQuestionType(null)}
+                  trigger={'click'}
                 >
-                  <Button danger type="link" className="mr-3">
-                    Reset Chat
-                  </Button>
-                </Popconfirm>
-                {variant === 'small' && (
-                  <Button
-                    onClick={() => setIsOpen(false)}
-                    type="text"
-                    icon={<CloseOutlined />}
+                  <Segmented<ChatbotQuestionType>
+                    options={['Course', 'System']}
+                    value={chatbotQuestionType}
+                    onChange={(newValue) => {
+                      if (newValue !== chatbotQuestionType) {
+                        setTempChatbotQuestionType(newValue)
+                      }
+                    }}
                   />
-                )}
-              </>
-            }
+                </Popconfirm>
+              ) : (
+                Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) && (
+                  <Segmented<ChatbotQuestionType>
+                    options={['Course', 'System']}
+                    value={chatbotQuestionType}
+                    onChange={(value) => {
+                      setChatbotQuestionType(value)
+                      resetChat(value)
+                    }}
+                  />
+                )
+              )}
+              <Popconfirm
+                title="Are you sure you want to reset the chat?"
+                open={popResetOpen}
+                onOpenChange={(open) => {
+                  if (messages.length > 1) {
+                    setPopResetOpen(open)
+                  } else {
+                    // reset chat right away if there are no messages
+                    resetChat()
+                  }
+                }}
+                onConfirm={() => resetChat()}
+              >
+                <Button danger type="link" className="mr-3">
+                  Reset Chat
+                </Button>
+              </Popconfirm>
+              {variant === 'small' && (
+                <Button
+                  onClick={() => setIsOpen(false)}
+                  type="text"
+                  icon={<CloseOutlined />}
+                />
+              )}
+            </>
+          }
+        >
+          <div
+            className={cn(
+              variant === 'big' || variant === 'huge'
+                ? 'flex flex-auto flex-col justify-between'
+                : '',
+            )}
           >
             <div
               className={cn(
-                variant === 'big' || variant === 'huge'
-                  ? 'flex flex-auto flex-col justify-between'
-                  : '',
+                'overflow-y-auto',
+                variant === 'small' ? 'max-h-[70vh]' : 'grow-1',
               )}
             >
-              <div
-                className={cn(
-                  'overflow-y-auto',
-                  variant === 'small' ? 'max-h-[70vh]' : 'grow-1',
-                )}
-              >
-                {messages &&
-                  messages.map((item, index) => (
-                    <Fragment key={index}>
-                      {item.type === 'userMessage' ? (
-                        <div className="align-items-start m-1 mb-3 flex justify-end">
-                          <div
-                            className={cn(
-                              'childrenMarkdownFormatted mr-2 rounded-xl bg-blue-900 px-3 py-2 text-white',
-                              variant === 'small'
-                                ? 'max-w-[300px]'
-                                : 'max-w-[90%]',
-                            )}
-                          >
-                            <MarkdownCustom variant="blue">
-                              {item.message ?? ''}
-                            </MarkdownCustom>
-                          </div>
-                          <Avatar
-                            size="small"
-                            className="min-w-6"
-                            icon={<UserOutlined />}
-                          />
+              {messages &&
+                messages.map((item, index) => (
+                  <Fragment key={index}>
+                    {item.type === 'userMessage' ? (
+                      <div className="align-items-start m-1 mb-3 flex justify-end">
+                        <div
+                          className={cn(
+                            'childrenMarkdownFormatted mr-2 rounded-xl bg-blue-900 px-3 py-2 text-white',
+                            variant === 'small'
+                              ? 'max-w-[300px]'
+                              : 'max-w-[90%]',
+                          )}
+                        >
+                          <MarkdownCustom variant="blue">
+                            {item.message ?? ''}
+                          </MarkdownCustom>
                         </div>
-                      ) : (
-                        <div className="group mb-3 flex flex-grow items-start">
+                        <Avatar
+                          size="small"
+                          className="min-w-6"
+                          icon={<UserOutlined />}
+                        />
+                      </div>
+                    ) : (
+                      <div className="group mb-3 flex flex-grow items-start">
+                        {item.thinkText ? (
+                          <Tooltip
+                            title={'Chatbot thoughts: ' + item.thinkText}
+                          >
+                            <div className="relative inline-block">
+                              <Avatar
+                                size="small"
+                                className="min-w-6"
+                                icon={<RobotOutlined />}
+                              />
+                              <div className="absolute right-0 top-0 -translate-y-1/4 translate-x-1/4 transform text-xs">
+                                🧠
+                              </div>
+                            </div>
+                          </Tooltip>
+                        ) : (
                           <Avatar
                             size="small"
                             className="min-w-6"
                             icon={<RobotOutlined />}
                           />
-                          <div className="ml-2 flex flex-col gap-1">
-                            <div className="flex items-start gap-2">
-                              <div
-                                className={cn(
-                                  'childrenMarkdownFormatted rounded-xl px-3 py-2',
-                                  item.verified
-                                    ? 'bg-green-100'
-                                    : 'bg-slate-100',
-                                  variant === 'small'
-                                    ? 'max-w-[280px]'
-                                    : 'max-w-[90%]',
-                                )}
-                              >
-                                <MarkdownCustom variant="lightblue">
-                                  {item.message ?? ''}
-                                </MarkdownCustom>
-                                {item.verified && (
-                                  <Tooltip title="A similar question has been asked before, and the answer has been verified by a faculty member">
-                                    <CheckCircleOutlined
-                                      style={{
-                                        color: 'green',
-                                        fontSize: '20px',
-                                        marginLeft: '2px',
-                                      }}
-                                    />
-                                  </Tooltip>
+                        )}
+                        <div className="ml-2 flex flex-col gap-1">
+                          <div className="flex items-start gap-2">
+                            <div
+                              className={cn(
+                                'childrenMarkdownFormatted rounded-xl px-3 py-2',
+                                item.verified ? 'bg-green-100' : 'bg-slate-100',
+                                variant === 'small'
+                                  ? 'max-w-[280px]'
+                                  : 'max-w-[90%]',
+                              )}
+                            >
+                              <MarkdownCustom variant="lightblue">
+                                {item.message ?? ''}
+                              </MarkdownCustom>
+                              {item.verified && (
+                                <Tooltip title="A similar question has been asked before, and the answer has been verified by a faculty member">
+                                  <CheckCircleOutlined
+                                    style={{
+                                      color: 'green',
+                                      fontSize: '20px',
+                                      marginLeft: '2px',
+                                    }}
+                                  />
+                                </Tooltip>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            {item.sourceDocuments &&
+                            chatbotQuestionType === 'System' ? (
+                              <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
+                                <p className="px-2 py-1">User Guide</p>
+                                {getSourceLinkButton(
+                                  'User Guide',
+                                  'https://github.com/ubco-db/helpme/blob/main/packages/frontend/public/userguide.md',
                                 )}
                               </div>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              {item.sourceDocuments &&
-                              chatbotQuestionType === 'System' ? (
-                                <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
-                                  <p className="px-2 py-1">User Guide</p>
-                                  {getSourceLinkButton(
-                                    'User Guide',
-                                    'https://github.com/ubco-db/helpme/blob/main/packages/frontend/public/userguide.md',
-                                  )}
-                                </div>
-                              ) : (
-                                item.sourceDocuments &&
-                                item.sourceDocuments.map(
-                                  (sourceDocument, idx) => (
-                                    <Tooltip
-                                      title={
-                                        sourceDocument.type &&
-                                        sourceDocument.type !=
-                                          'inserted_lms_document'
-                                          ? sourceDocument.content
-                                          : ''
-                                      }
-                                      key={idx}
-                                    >
-                                      <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
-                                        <p className="px-2 py-1">
-                                          {sourceDocument.docName}
-                                        </p>
-                                        {sourceDocument.type ==
-                                          'inserted_lms_document' &&
+                            ) : (
+                              item.sourceDocuments &&
+                              item.sourceDocuments.map(
+                                (sourceDocument, idx) => (
+                                  <Tooltip
+                                    title={
+                                      sourceDocument.type &&
+                                      sourceDocument.type !=
+                                        'inserted_lms_document'
+                                        ? sourceDocument.content
+                                        : ''
+                                    }
+                                    key={idx}
+                                  >
+                                    <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
+                                      <p className="px-2 py-1">
+                                        {sourceDocument.docName}
+                                      </p>
+                                      {sourceDocument.type ==
+                                        'inserted_lms_document' &&
+                                        extractLMSLink(
+                                          sourceDocument.content,
+                                        ) &&
+                                        getSourceLinkButton(
+                                          sourceDocument.docName,
                                           extractLMSLink(
                                             sourceDocument.content,
-                                          ) &&
+                                          ) ?? '',
+                                          0,
+                                        )}
+                                      {sourceDocument.pageNumbers &&
+                                        sourceDocument.pageNumbers.map((part) =>
                                           getSourceLinkButton(
                                             sourceDocument.docName,
-                                            extractLMSLink(
-                                              sourceDocument.content,
-                                            ) ?? '',
-                                            0,
-                                          )}
-                                        {sourceDocument.pageNumbers &&
-                                          sourceDocument.pageNumbers.map(
-                                            (part) =>
-                                              getSourceLinkButton(
-                                                sourceDocument.docName,
-                                                sourceDocument.sourceLink,
-                                                part,
-                                              ),
-                                          )}
-                                      </div>
-                                    </Tooltip>
-                                  ),
-                                )
-                              )}
-                            </div>
-                            {item.type === 'apiMessage' &&
-                              index === messages.length - 1 &&
-                              index !== 0 && (
-                                <Feedback questionId={helpmeQuestionId ?? 0} />
-                              )}
+                                            sourceDocument.sourceLink,
+                                            part,
+                                          ),
+                                        )}
+                                    </div>
+                                  </Tooltip>
+                                ),
+                              )
+                            )}
                           </div>
+                          {item.type === 'apiMessage' &&
+                            index === messages.length - 1 &&
+                            index !== 0 && (
+                              <Feedback questionId={helpmeQuestionId ?? 0} />
+                            )}
                         </div>
-                      )}
-                    </Fragment>
-                  ))}
-                {preDeterminedQuestions &&
-                  !isLoading &&
-                  preDeterminedQuestions.map((question) => (
-                    <div
-                      className="align-items-start m-1 mb-1 flex justify-end"
-                      key={question.id || question.pageContent}
-                    >
-                      <div
-                        onClick={() => answerPreDeterminedQuestion(question)}
-                        className="mr-2 max-w-[300px] cursor-pointer rounded-xl border-2 border-blue-900 bg-transparent px-3 py-2 text-blue-900 transition hover:bg-blue-900 hover:text-white"
-                      >
-                        {question.pageContent}
                       </div>
-                    </div>
-                  ))}
-                {isLoading && (
-                  <Spin
-                    style={{
-                      display: 'block',
-                      marginBottom: '10px',
-                    }}
-                  />
-                )}
-                <div ref={messagesEndRef} />
-                {chatbotQuestionType === 'Course' && messages.length > 1 && (
-                  <div>
-                    Unhappy with your answer?{' '}
-                    <Link
-                      href={{
-                        pathname: `/course/${cid}/async_centre`,
-                        query: { convertChatbotQ: true },
-                      }}
-                    >
-                      Convert to anytime question
-                    </Link>
-                  </div>
-                )}
-              </div>
-              <div>
-                <Space.Compact block size="large">
-                  <TextArea
-                    id="chatbot-input"
-                    autoSize={{ minRows: 1.35, maxRows: 20 }}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    className="rounded-r-none"
-                    placeholder="Ask something... (Shift+Enter for new line)"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        if (input.trim().length > 0 && !isLoading) {
-                          handleAsk()
-                        }
-                      }
-                    }}
-                  />
-                  <Button
-                    type="primary"
-                    onClick={handleAsk}
-                    disabled={input.trim().length === 0 || isLoading}
+                    )}
+                  </Fragment>
+                ))}
+              {preDeterminedQuestions &&
+                !isLoading &&
+                preDeterminedQuestions.map((question) => (
+                  <div
+                    className="align-items-start m-1 mb-1 flex justify-end"
+                    key={question.id || question.pageContent}
                   >
-                    Ask
-                  </Button>
-                </Space.Compact>
-                {userInfo.chat_token && questionsLeft < 100 && (
-                  <Card.Meta
-                    description={`You can ask the chatbot ${questionsLeft} more question${
-                      questionsLeft > 1 ? 's' : ''
-                    } today`}
-                    className="mt-3"
-                  />
-                )}
-              </div>
+                    <div
+                      onClick={() => answerPreDeterminedQuestion(question)}
+                      className="mr-2 max-w-[300px] cursor-pointer rounded-xl border-2 border-blue-900 bg-transparent px-3 py-2 text-blue-900 transition hover:bg-blue-900 hover:text-white"
+                    >
+                      {question.pageContent}
+                    </div>
+                  </div>
+                ))}
+              {isLoading && (
+                <Spin
+                  style={{
+                    display: 'block',
+                    marginBottom: '10px',
+                  }}
+                />
+              )}
+              <div ref={messagesEndRef} />
+              {chatbotQuestionType === 'Course' && messages.length > 1 && (
+                <div>
+                  Unhappy with your answer?{' '}
+                  <Link
+                    href={{
+                      pathname: `/course/${cid}/async_centre`,
+                      query: { convertChatbotQ: true },
+                    }}
+                  >
+                    Convert to anytime question
+                  </Link>
+                </div>
+              )}
             </div>
-          </Card>
-        ) : (
-          <Button
-            type="primary"
-            icon={<RobotOutlined />}
-            size="large"
-            className="mx-5 rounded-sm"
-            onClick={() => setIsOpen(true)}
-          >
-            Chat now!
-          </Button>
-        )}
+            <div>
+              <Space.Compact block size="large">
+                <TextArea
+                  id="chatbot-input"
+                  autoSize={{ minRows: 1.35, maxRows: 20 }}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  className="rounded-r-none"
+                  placeholder="Ask something... (Shift+Enter for new line)"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      if (input.trim().length > 0 && !isLoading) {
+                        handleAsk()
+                      }
+                    }
+                  }}
+                />
+                <Button
+                  type="primary"
+                  onClick={handleAsk}
+                  disabled={input.trim().length === 0 || isLoading}
+                >
+                  Ask
+                </Button>
+              </Space.Compact>
+              {userInfo.chat_token && questionsLeft < 100 && (
+                <Card.Meta
+                  description={`You can ask the chatbot ${questionsLeft} more question${
+                    questionsLeft > 1 ? 's' : ''
+                  } today`}
+                  className="mt-3"
+                />
+              )}
+            </div>
+          </div>
+        </Card>
+      </div>
+    ) : (
+      <div
+        className="fixed bottom-5 md:bottom-8 md:right-1 md:flex md:justify-end"
+        style={{ zIndex: 1050 }}
+      >
+        <Button
+          type="primary"
+          icon={<Bot className="mt-0.5" />}
+          size="large"
+          className="z-50 mx-5 hidden rounded-sm shadow-md shadow-slate-400 md:flex"
+          onClick={() => setIsOpen(true)}
+        >
+          Chatbot
+        </Button>
+        <Button
+          type="primary"
+          icon={<Bot className="mt-0.5" />}
+          size="large"
+          className="z-50 mx-5 rounded-full p-6 shadow-md shadow-slate-400 md:hidden"
+          onClick={() => setIsOpen(true)}
+        />
       </div>
     )
   }
 }
 
 export default Chatbot
+
+function parseThinkBlock(answer: string) {
+  // Look for <think>...</think> (the "s" flag lets it match across multiple lines)
+  const thinkRegex = /<think>([\s\S]*?)<\/think>/
+  const match = answer.match(thinkRegex)
+
+  if (!match) {
+    // No <think> block, return the text unchanged
+    return { thinkText: null, cleanAnswer: answer }
+  }
+
+  const thinkText = match[1].trim()
+  const cleanAnswer = answer.replace(thinkRegex, '').trim()
+
+  return { thinkText, cleanAnswer }
+}

@@ -2,9 +2,6 @@ import {
   StudentCourseFactory,
   UserFactory,
   CourseFactory,
-  ProfSectionGroupsFactory,
-  CourseSectionFactory,
-  LastRegistrationFactory,
   OrganizationFactory,
   ChatTokenFactory,
 } from './util/factories';
@@ -15,7 +12,7 @@ import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { AccountType } from '@koh/common';
 
 describe('Profile Integration', () => {
-  const supertest = setupIntegrationTest(ProfileModule);
+  const { supertest } = setupIntegrationTest(ProfileModule);
 
   describe('GET /profile', () => {
     it('returns the logged-in user profile', async () => {
@@ -62,7 +59,6 @@ describe('Profile Integration', () => {
             name: 'CS 2500',
           },
           role: 'student',
-          unreadCount: 0,
         },
       ]);
     });

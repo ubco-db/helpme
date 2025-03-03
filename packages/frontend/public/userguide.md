@@ -4,7 +4,8 @@
 
 ### What is this system? And what are the major features of it and why should I use it?
 
-This is the HelpMe course help system.
+This is the HelpMe course help system. It is an education system designed to help alleviate some of the painful parts of managing courses.
+Using HelpMe does not cost anything and is completely free (it is primarily developed by students from UBC Okanagan).
 
 There are 3 main features of the system:
 - Queues
@@ -59,7 +60,7 @@ The navigation elements are as follows:
   - On the course page on the left side there is a list of queues with a list of which staff are checked into each queue (a queue with checked-in staff have an animated border). 
   - Just below this list of queues there is a card that takes you to the Anytime Question Hub. 
   - And just below that is a graph that shows estimated wait times at various times at various times of the week. 
-  - On the right side of the course page, depending on how the professor customizes it, there will either be a window for the course chatbot or a condensed view of the schedule. If you see the schedule, at the bottom-right of the page there will be a little "Chat Now" button that also opens up the course chatbot. 
+  - On the right side of the course page, depending on how the professor customizes it, there will either be a window for the course chatbot or a condensed view of the schedule. If you see the schedule, at the bottom-right corner of the page there will be a little "Chatbot" button that also opens up the course chatbot. 
 - **Queue Page**: 
   - On the left side of the page (on desktop) is the Queue Info Column, which looks different for staff and students. This column gets transformed to be at the top of the page on mobile. The breakdown for what this column has for staff and students is as follows:
     - Staff:
@@ -103,7 +104,7 @@ The navigation elements are as follows:
       - If the question is still being drafted (in an unfinished state), the question card will have "Unfinished Question" in larger text on the question card.
   - Once a student is helped, a popup modal will show telling the student that they are now being helped. If the queue is online (or hybrid and the question is online), the student will be told to join the zoom meeting via the link set in the Edit Queue Details popup modal.
   - There is also a little "First In First Out"/"Tag Groups" toggle at the top-right that will either show the queue as a regular FIFO queue or to group all the questions by their tag (default is FIFO), and this can be useful if you want to say answer all the "Part 4" questions before the "Part 3" questions of your lab, that way you can keep your mind in the same mindset to help questions faster. Students can also be on "Tag Groups" mode, allowing them to just 1-click join a tag group. These two views (and the default view) can be modified in the queue config.
-  - At the bottom-right side of the page is a little "Chat now!" blue button which will open up the chatbot modal
+  - At the bottom-corner of the page is a little "chatbot" blue button which will open up the chatbot modal
 - **Anytime Qs**/**Anytime Question Hub Page**:
   - On the left side of the page is a blue button to "Post Question". Clicking this will open a popup modal asking for the question abstract (short summary), the question text, and the categories the question falls under (question tags). Once posted, students will immediately get an AI answer and can choose whether or not they are satisfied with said answer, in which staff will be notified to come give a human answer.
     - Note that staff also have the option to do this so that they can better learn the system or for their own demonstration purposes. It's not really intended to be used by staff.
@@ -124,7 +125,7 @@ The navigation elements are as follows:
 - **Schedule Page**:
   - For students, this page can be viewed to see what times certain events are (such as lab/office hour times or what TA is in at what times)
   - For staff, here you can create recurring or one-time events. You can also assign staff to these events so they get prompted and auto-checked out when the event ends (strongly recommended). You can click and drag on the calendar to create an event or you can click the "Add Event" button at the top-right.
-  - At the bottom-right side of the page is a little "Chat now!" blue button which will open up the chatbot modal
+  - At the bottom corner of the page is a little "Chatbot" blue button which will open up the chatbot modal
 - **Course Settings** (staff-only):
   - General Settings (professor-only)
     - Can customize the course name, coordinator email, section group name, course-wide zoom link, timezone, semester, and professors
@@ -184,7 +185,7 @@ For queue questions:
 5. Once the staff member starts helping you, either you will go to the staff member or the staff member will come to you (or if it's online/hybrid, you will need to join the Zoom or Teams meeting. You should get a popup modal with a link you can click to do so). 
 
 For chatbot questions:
-1. If you are on the course page, there should be a big chatbot window where you can ask chatbot questions. Otherwise, there is a little blue "Chat Now!" button at the bottom-right of the screen on most pages that you can chat with.
+1. If you are on the course page, there should be a big chatbot window where you can ask chatbot questions. Otherwise, there is a little blue "Chatbot" button at the bottom-corner of the screen on most pages that you can chat with.
 
 For anytime questions:
 1. You must be on the Anytime Question Hub page (can click the "Anytime Qs" on the navbar). There, you should see a large blue "Post Question" button that you can click.
@@ -224,10 +225,6 @@ To get help from a TA, join a queue with staff checked in and they will help you
 
 Once you start getting helped, a popup modal should show with a link to the zoom meeting. Otherwise, it may be posted in the queue notes on the top left side of your screen (desktop) or near the middle (mobile).
 
-### How can I delete an Anytime question?
-
-Anytime questions can only be edited or deleted before responding with "Satisfied" or "Still need faculty Help". This is because emails are sent out to staff after clicking "Still need faculty Help" and cannot be edited/deleted. On the bright side, if the staff member likes your question enough, they might mark it public so other students may see it (but you will still remain anonymous).
-
 ## Staff FAQ
 
 ### How do I get started as a professor?
@@ -238,7 +235,7 @@ Anytime questions can only be edited or deleted before responding with "Satisfie
 4. You will now want to modify your course invite link and share it so that students can join your course. To do so, go to the "Course Settings" tab and under "General Settings" modify the Course Invite Link code to something of your choosing, click the big blue "Update Invite Code" button, and then copy the link and share it with your students. Additionally, you can create Queue Invites under Course Settings -> Queue Invites and these are essentially the same as the course invite except they will send the student directly into the queue (instead of the course page) and will also display a preview of the queue (how many students are in it, any checked in staff) before the students log in (allowing them to preview how busy the queue is before needing to login). You can also click "Print QR Code" to print a QR code of this invite that you could then post outside your office (especially useful for busy hybrid office-hours). The professor can also go onto the queue invite page, and upon clicking a little blue switch at the bottom of the page, will show a QR code, which you can then show on a projector screen so that students can just scan the QR code to join the queue (useful for in-person labs).
 5. Once someone joins the course, you can view them under Course Settings -> Course Roster. For your TAs, they must first join the course (their role will default to student), and then you can promote them to the TA role under this page.
 6. Once you have all your TAs in your course, it is recommended you go into the Schedule page and add events (probably recurring) for your office hours and labs. It is strongly recommended to assign staff members to said events, as they will get auto-checked out when the event ends (which will also prompt any leftover students whether they would want to leave or stay when the last TA leaves, essentially cleaning the queue which is important for data collection insights). You can assign yourself to said events too, to save you the need to remember to check out.
-7. You can customize the chatbot under Course Settings -> Chatbot Settings. Here you can adjust what model is being used, the initial prompt (it is recommended to adjust this and say what the course is and some learning outcomes and how you want the chatbot to respond (e.g. don't just give the answer, try to give hints to help their understanding)). The most important part here is this is where you can upload your course documents (syllabus, slides, lab manuals, assignments, etc.). Any documents uploaded here will be "chunked" into pieces and cited when the users ask the chatbot questions. You can view/modify the chatbot chunks under "Chatbot Document Chunks". You can also view/modify users' chatbot questions under "Edit Chatbot Questions". The reasons why you would want to modify a chatbot question is it may be asked again in the future and you can mark a question as "Suggested" which will be shown as a suggested question in chatbot windows.
+7. You can customize the chatbot under Course Settings -> Chatbot Settings. Here you can adjust what LLM model is being used, the initial prompt (it is recommended to adjust this and say what the course is and some learning outcomes and how you want the chatbot to respond (e.g. don't just give the answer, try to give hints to help their understanding)), top k (the max number of documents that the RAG system will retrieve), similarity threshold (how relevant the document must be to be retrieved by the RAG). The most important part here is this is where you can upload your course documents (syllabus, slides, lab manuals, assignments, etc.). Any documents uploaded here will be "chunked" into pieces and cited when the users ask the chatbot questions. You can view/modify the chatbot chunks under "Chatbot Document Chunks". You can also view/modify users' chatbot questions under "Edit Chatbot Questions". The reasons why you would want to modify a chatbot question is it may be asked again in the future and you can mark a question as "Suggested" which will be shown as a suggested question in chatbot windows.
 8. The anytime question hub does not need much customization, but you can give it question tags under "Anytime Qs" -> "Settings"
 9. Lastly, you may want to sign up for notifications by going under "Your Name" -> "Profile" -> "Notifications" -> enable Browser Notifications and Email Notifications of your choosing.
 
@@ -297,3 +294,11 @@ The schedule page lets you create events. These can be one-time events or recurr
 
 The main advantage to creating events is you can assign your staff members to these events, which will cause them to auto-checkout once the event ends (saving you the need to remember to checkout). It is **strongly** recommended to do this at the start of your course.
 
+
+### What is student assignment progress?
+
+So in HelpMe there exists a feature under the "Edit Queue Details" modal where you can assign an assignment ID of your choosing to a queue as well as tasks for your students to complete (students will have the option of creating a "Demo" in which you can check off which parts they got done). On a queue page, there is an option to "View {assignment_ID} Progress" which will show every students' progress so far in the assignment that you have created. Under Course Settings -> Export Data there is an option to "Export CSV of all students' assignment progress".
+
+The idea behind the feature is how in some labs there may be parts that require the TA to come "check-off" at some point before they leave the lab (e.g. chemistry/engineering/physics lab experiment). When a student is ready to have a part of the lab ready to be checked off they can create a "Demo", which is in the same queue as regular questions but can be differentiated and prioritized. Once you are helping them, you can select what parts they have finished, and that gets stored as "student assignment progress". You can think that each "task" may be a part of the lab that needs to be checked off, and any tasks that need to be looked at *before the student can continue working on the lab* are considered "Blocking Tasks" (by default, a task is not blocking, meaning that students can enter the queue with tasks 1, 2, and 3 all ready to be checked). This feature is totally optional.
+
+There is currently **no** integration made between the LMS (Canvas) integration assignments and these assignments. From synchronizing your LMS system (Canvas), your assignments descriptions will be automatically uploaded to the Course Chatbot, which can then be queried when the students ask the chatbot questions. But this LMS feature currently has nothing to do with student assignment progress and are completely separated systems.

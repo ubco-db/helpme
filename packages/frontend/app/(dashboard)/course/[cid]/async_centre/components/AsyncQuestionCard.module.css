@@ -1,0 +1,56 @@
+/* If you're curious about this .module.css file, it's a Next.js thing where you can import css to specific components (rather than having it global).
+    For more details, see https://nextjs.org/learn/dashboard-app/css-styling
+*/
+
+/* Initial state for expandable text (used in async question cards) */
+.expandableText {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 1.2rem;
+    /* only slow down near the very end of the transition */
+    transition: max-height 0.3s cubic-bezier(0,1,0,1); 
+  }
+  
+  /* Expanded state for async question content
+    Max heights are as follows:
+    - 3 screens for desktop 
+    - 6 screens for mobile 
+  */
+  .expandableText.expanded {
+    max-height: 300vh !important;
+    /* only slow down near the very start of the transition */
+    transition: max-height 0.3s cubic-bezier(1,0.05,1,0)
+  }
+  @media (max-width: 768px) {
+    .expandableText.expanded {
+      max-height: 600vh !important;
+      transition: max-height 0.6s cubic-bezier(1,0.05,1,0)
+    }
+  }
+  
+  /* Initial state for the comments in the async question cards */
+  .expandableComments {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 0rem;
+    /* only slow down near the very end of the transition */
+    transition: max-height 0.3s cubic-bezier(0,1,0,1); 
+  }
+  /* Expanded state for async question comments
+    Max heights are as follows:
+    - 10 screens for desktop
+    - 20 screens for mobile
+  */
+  .expandableComments.expandedComments {
+    max-height: 1000vh !important;
+    transition: max-height 0.3s cubic-bezier(1,0.05,1,0)
+  }
+  @media (max-width: 768px) {
+    .expandableComments.expandedComments {
+      max-height: 2000vh !important;
+      transition: max-height 0.6s cubic-bezier(1,0.05,1,0)
+    }
+  }
+  

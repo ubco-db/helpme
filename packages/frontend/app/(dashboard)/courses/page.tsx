@@ -27,7 +27,6 @@ export default function CoursesPage(): ReactElement {
           alt="Organization Logo"
           width={80}
           height={80}
-          unoptimized //needed otherwise next.js won't retrieve the url properly
         />
         <div>
           <h1>{userInfo?.organization?.organizationName}</h1>

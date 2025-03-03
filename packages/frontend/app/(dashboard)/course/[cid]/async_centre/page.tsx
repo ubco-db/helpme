@@ -7,7 +7,7 @@ import {
   asyncQuestionStatus,
 } from '@koh/common'
 import React, { ReactElement, useCallback, useEffect, useState } from 'react'
-import { Button, Popover, Segmented, Select, Tooltip } from 'antd'
+import { Button, Checkbox, Popover, Segmented, Select, Tooltip } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getRoleInCourse } from '@/app/utils/generalUtils'
 import { useAsnycQuestions } from '@/app/hooks/useAsyncQuestions'
@@ -25,6 +25,7 @@ import {
   EyeInvisibleOutlined,
   EyeOutlined,
   FilterOutlined,
+  QuestionCircleOutlined,
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons'
@@ -55,6 +56,7 @@ export default function AsyncCentrePage({
   const [editAsyncCentreModalOpen, setEditAsyncCentreModalOpen] =
     useState(false)
   const [questionTypes] = useQuestionTypes(courseId, null)
+  const [showStudents, setShowStudents] = useState(false) // for when staff want to de-anonymize students on their end to see who posted what
 
   // chatbot
   const { setCid, setRenderSmallChatbot, messages } = useChatbotContext()
@@ -119,20 +121,9 @@ export default function AsyncCentrePage({
   )
 
   // This endpoint will be called to update unread count back to 0 when this page is entered
+  // May seem more inefficient but this is the only way to ensure that the unread count is accurate given that userInfo no longer tracks it
   useEffect(() => {
-    if (
-      userInfo.courses.find((e) => e.course.id === courseId)?.unreadCount !== 0
-    )
-      API.course.updateUnreadAsyncCount(courseId).then(() => {
-        setUserInfo({
-          ...userInfo,
-          courses: userInfo.courses.map((course) =>
-            course.course.id === courseId
-              ? { ...course, unreadCount: 0 }
-              : course,
-          ),
-        })
-      })
+    API.asyncQuestions.updateUnreadAsyncCount(courseId)
   }, [])
 
   useEffect(() => {
@@ -140,7 +131,9 @@ export default function AsyncCentrePage({
     // Apply status filter
     if (statusFilter === 'verified') {
       displayedQuestions = displayedQuestions.filter(
-        (question) => question.status === asyncQuestionStatus.HumanAnswered,
+        (question) =>
+          question.status === asyncQuestionStatus.HumanAnswered ||
+          question.verified,
       )
     } else if (statusFilter === 'unverified') {
       displayedQuestions = displayedQuestions.filter(
@@ -320,11 +313,27 @@ export default function AsyncCentrePage({
           buttons={
             <>
               {isStaff && (
-                <EditQueueButton
-                  onClick={() => setEditAsyncCentreModalOpen(true)}
-                >
-                  Settings
-                </EditQueueButton>
+                <>
+                  <EditQueueButton
+                    onClick={() => setEditAsyncCentreModalOpen(true)}
+                  >
+                    Settings
+                  </EditQueueButton>
+                  <Checkbox
+                    className="text-lg md:mb-4 md:mt-2"
+                    checked={showStudents}
+                    onChange={(e) => setShowStudents(e.target.checked)}
+                  >
+                    Show Students (Staff Only)
+                    <Tooltip
+                      title={
+                        "All students posts and comments are anonymized to other students (They get a different anonymous animal on each question). Staff can click this checkbox to see who posted what, just be careful not to mention the students' names in the answer or comments!"
+                      }
+                    >
+                      <QuestionCircleOutlined className="ml-2 text-gray-500" />
+                    </Tooltip>
+                  </Checkbox>
+                </>
               )}
               <Tooltip
                 title={
@@ -393,8 +402,9 @@ export default function AsyncCentrePage({
               question={question}
               userId={userInfo.id}
               mutateAsyncQuestions={mutateAsyncQuestions}
-              isStaff={isStaff}
+              userCourseRole={role}
               courseId={courseId}
+              showStudents={showStudents}
             />
           ))}
         </div>

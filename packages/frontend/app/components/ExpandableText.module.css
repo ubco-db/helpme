@@ -1,0 +1,27 @@
+
+/* Initial state for expandable text */
+.expandableText {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 1.2rem;
+    /* only slow down near the very end of the transition */
+    transition: max-height 0.3s cubic-bezier(0,1,0,1); 
+  }
+  
+  /* Expanded state
+    Max heights are as follows:
+    - 3 screens for desktop 
+    - 6 screens for mobile 
+  */
+  .expandableText.expanded {
+    max-height: 300vh !important;
+    /* only slow down near the very start of the transition */
+    transition: max-height 0.3s cubic-bezier(1,0.05,1,0)
+  }
+  @media (max-width: 768px) {
+    .expandableText.expanded {
+      max-height: 600vh !important;
+      transition: max-height 0.6s cubic-bezier(1,0.05,1,0)
+    }
+  }

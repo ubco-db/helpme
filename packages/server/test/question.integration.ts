@@ -34,7 +34,7 @@ import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgres
 import { QUESTION_STATES } from '../src/question/question-fsm';
 
 describe('Question Integration', () => {
-  const supertest = setupIntegrationTest(QuestionModule, modifyMockNotifs);
+  const { supertest } = setupIntegrationTest(QuestionModule, modifyMockNotifs);
 
   const QuestionTypes = [
     {

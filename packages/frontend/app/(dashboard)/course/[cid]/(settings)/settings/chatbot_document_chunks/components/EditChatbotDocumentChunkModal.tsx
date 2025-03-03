@@ -2,9 +2,9 @@
 
 import { ReactElement } from 'react'
 import { Modal, Input, Form, message } from 'antd'
-import { SourceDocument } from '../../chatbot_questions/page'
 import TextArea from 'antd/es/input/TextArea'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { SourceDocument } from '@koh/common'
 
 interface FormValues {
   documentName: string

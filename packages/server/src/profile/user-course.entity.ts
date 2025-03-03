@@ -38,12 +38,13 @@ export class UserCourseModel extends BaseEntity {
   @Column({ nullable: true, default: false })
   expires: boolean;
 
-  @Column({ default: 0 })
-  unreadAsyncQuestions: number;
-
   @OneToMany(
     (type) => InsightDashboardModel,
     (insightDashboard) => insightDashboard.userCourse,
   )
-  insightDashboard?: InsightDashboardModel;
+  insightDashboard?: InsightDashboardModel[];
+
+  /* This represents the notes that professors can put on their TA's profiles*/
+  @Column({ type: 'text', nullable: true })
+  TANotes: string;
 }

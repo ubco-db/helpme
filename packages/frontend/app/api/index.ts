@@ -35,7 +35,7 @@ import {
   UpdateOrganizationUserRole,
   ChatbotQuestion,
   UpdateOrganizationCourseDetailsParams,
-  Interaction,
+  InteractionResponse,
   OrganizationResponse,
   DocumentParams,
   ChatbotDocument,
@@ -60,6 +60,7 @@ import {
   QueueInviteParams,
   PublicQueueInvite,
   QueueInvite,
+  GetQueueChatResponse,
   InsightDashboardPartial,
   InsightDetail,
   LMSCourseIntegrationPartial,
@@ -74,6 +75,10 @@ import {
   RemoveLMSOrganizationParams,
   UpsertLMSOrganizationParams,
   TestLMSIntegrationParams,
+  AsyncQuestionComment,
+  AsyncQuestionCommentParams,
+  UnreadAsyncQuestionResponse,
+  GetInteractionsAndQuestionsResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -150,45 +155,18 @@ class APIClient {
     createInteraction: async (body: {
       courseId: number
       userId: number
-    }): Promise<Interaction> =>
+    }): Promise<InteractionResponse> =>
       this.req('POST', `/api/v1/chatbot/interaction`, undefined, body),
-    getQuestions: async (
-      questionText: string,
-      pageSize: number,
-      currentPage: number,
+    getInteractionsAndQuestions: async (
       courseId: number,
-    ): Promise<ChatQuestionResponse> =>
-      this.req(
-        'GET',
-        `/api/v1/chatbot/question?questionText=${questionText}&pageSize=${pageSize}&currentPage=${currentPage}&cid=${courseId}`,
-        undefined,
-      ),
+    ): Promise<GetInteractionsAndQuestionsResponse> =>
+      this.req('GET', `/api/v1/chatbot/questions/${courseId}`),
     createQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> =>
       this.req('POST', `/api/v1/chatbot/question`, undefined, body),
     editQuestion: async (data: ChatbotQuestion): Promise<ChatbotQuestion> =>
       this.req('PATCH', `/api/v1/chatbot/question`, undefined, data),
-    deleteQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> =>
-      this.req('DELETE', `/api/v1/chatbot/question`, undefined, body),
-    getDocuments: async (
-      courseId: number,
-      searchText: string,
-      pageSize: number,
-      currentPage: number,
-    ): Promise<ChatQuestionResponse> =>
-      this.req(
-        'GET',
-        `/api/v1/chatbot/${courseId}/document?searchText=${searchText}&pageSize=${pageSize}&currentPage=${currentPage}`,
-        undefined,
-      ),
-    addDocument: async (body: {
-      data: DocumentParams
-      courseId: number
-    }): Promise<ChatbotDocument> =>
-      this.req('POST', `/api/v1/chatbot/document`, undefined, body),
-    deleteDocument: async (body: {
-      documentId: number
-    }): Promise<ChatbotDocument> =>
-      this.req('DELETE', `/api/v1/chatbot/document`, undefined, body),
+    // deleteQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> => unused
+    //   this.req('DELETE', `/api/v1/chatbot/question`, undefined, body),
   }
 
   course = {
@@ -207,8 +185,6 @@ class APIClient {
       ),
     getOrganizationCourses: async (organizationId: number) =>
       this.req('GET', `/api/v1/courses/${organizationId}/organization_courses`),
-    getAsyncQuestions: async (cid: number): Promise<AsyncQuestion[]> =>
-      this.req('GET', `/api/v1/courses/${cid}/asyncQuestions`, undefined),
     get: async (courseId: number) =>
       this.req('GET', `/api/v1/courses/${courseId}`, GetCourseResponse),
     getUserInfo: async (
@@ -295,8 +271,6 @@ class APIClient {
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
     getAllQueueInvites: async (courseId: number): Promise<QueueInvite[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/queue_invites`),
-    updateUnreadAsyncCount: async (courseId: number): Promise<void> =>
-      this.req('PATCH', `/api/v1/courses/${courseId}/unread_async_count`),
     getIntegration: async (
       courseId: number,
     ): Promise<LMSCourseIntegrationPartial> =>
@@ -326,6 +300,15 @@ class APIClient {
         `/api/v1/courses/${courseId}/lms_integration/remove`,
         undefined,
         props,
+      ),
+    updateTANotes: async (courseId: number, TAid: number, notes: string) =>
+      this.req(
+        'PATCH',
+        `/api/v1/courses/${courseId}/set_ta_notes/${TAid}`,
+        undefined,
+        {
+          notes,
+        },
       ),
   }
   emailNotification = {
@@ -385,6 +368,8 @@ class APIClient {
     },
   }
   asyncQuestions = {
+    get: async (cid: number): Promise<AsyncQuestion[]> =>
+      this.req('GET', `/api/v1/asyncQuestions/${cid}`, undefined),
     create: async (body: CreateAsyncQuestions, cid: number) =>
       this.req(
         'POST',
@@ -410,9 +395,53 @@ class APIClient {
       qid: number,
       vote: number,
     ): Promise<{ questionSumVotes: number; vote: number }> =>
-      this.req('POST', `/api/v1/asyncQuestions/${qid}/${vote}`, undefined, {
-        vote,
-      }),
+      this.req(
+        'POST',
+        `/api/v1/asyncQuestions/vote/${qid}/${vote}`,
+        undefined,
+        {
+          vote,
+        },
+      ),
+    comment: async (
+      questionId: number,
+      body: AsyncQuestionCommentParams,
+    ): Promise<AsyncQuestionComment> =>
+      this.req(
+        'POST',
+        `/api/v1/asyncQuestions/comment/${questionId}`,
+        AsyncQuestionComment,
+        body,
+      ),
+    deleteComment: async (
+      questionId: number,
+      commentId: number,
+    ): Promise<AsyncQuestionComment> =>
+      this.req(
+        'DELETE',
+        `/api/v1/asyncQuestions/comment/${questionId}/${commentId}`,
+        AsyncQuestionComment,
+      ),
+    updateComment: async (
+      questionId: number,
+      commentId: number,
+      body: AsyncQuestionCommentParams,
+    ): Promise<AsyncQuestionComment> =>
+      this.req(
+        'PATCH',
+        `/api/v1/asyncQuestions/comment/${questionId}/${commentId}`,
+        AsyncQuestionComment,
+        body,
+      ),
+    getUnreadAsyncCount: async (
+      courseId: number,
+    ): Promise<UnreadAsyncQuestionResponse> =>
+      this.req('GET', `/api/v1/asyncQuestions/unread_async_count/${courseId}`),
+    updateUnreadAsyncCount: async (courseId: number): Promise<void> =>
+      this.req(
+        'PATCH',
+        `/api/v1/asyncQuestions/unread_async_count/${courseId}`,
+      ),
   }
   questions = {
     index: async (queueId: number) =>
@@ -545,6 +574,30 @@ class APIClient {
       code: string,
     ): Promise<GetQueueResponse> =>
       this.req('GET', `/api/v1/queueInvites/${queueId}/${code}/queue`),
+  }
+
+  queueChats = {
+    index: async (
+      queueId: number,
+      questionId: number,
+    ): Promise<GetQueueChatResponse> =>
+      this.req(
+        'GET',
+        `/api/v1/queueChats/${queueId}/${questionId}`,
+        GetQueueChatResponse,
+      ),
+    sendMessage: async (
+      queueId: number,
+      questionId: number,
+      message: string,
+    ): Promise<void> => {
+      this.req(
+        'PATCH',
+        `/api/v1/queueChats/${queueId}/${questionId}`,
+        undefined,
+        { message },
+      )
+    },
   }
 
   notif = {

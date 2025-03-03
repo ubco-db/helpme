@@ -8,6 +8,7 @@ import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueService } from '../queue/queue.service';
 import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from '../config/application_config.service';
+import { QueueChatService } from 'queueChats/queue-chats.service';
 import { NotificationService } from '../notification/notification.service';
 
 @Module({
@@ -19,6 +20,7 @@ import { NotificationService } from '../notification/notification.service';
     AlertsService,
     QuestionService,
     RedisQueueService,
+    QueueChatService,
     NotificationService,
   ],
   imports: [NotificationModule, forwardRef(() => QueueModule)],
@@ -28,6 +30,7 @@ import { NotificationService } from '../notification/notification.service';
     NotificationService,
     QueueService,
     RedisQueueService,
+    QueueChatService,
   ],
 })
 export class QuestionModule {}

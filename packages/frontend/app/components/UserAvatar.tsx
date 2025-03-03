@@ -2,12 +2,16 @@ import { UserOutlined } from '@ant-design/icons'
 import { Avatar, AvatarProps } from 'antd'
 import React, { ReactElement } from 'react'
 import { useUserInfo } from '../contexts/userContext'
-import { cn, getInitialsFromName, nameToRGB } from '../utils/generalUtils'
+import { cn, getInitialsFromName } from '../utils/generalUtils'
+import Image from 'next/image'
+import { classicPFPColours, nameToRGB } from '@koh/common'
 
 type SelfAvatarProps = Omit<AvatarProps, 'icon' | 'src'>
 type UserAvatarProps = Omit<AvatarProps, 'icon' | 'src'> & {
   photoURL?: string
   username?: string
+  anonymous?: boolean
+  colour?: string // hex colour
 }
 
 export function SelfAvatar({ ...props }: SelfAvatarProps): ReactElement {
@@ -30,23 +34,43 @@ export default function UserAvatar({
   photoURL,
   username,
   className,
+  anonymous,
+  colour,
   ...props
 }: UserAvatarProps): ReactElement {
   const fontSize =
     props.size && Number(props.size) > 80 ? Number(props.size) / 4 : 18
+  const sizeNumber = Number(props.size) || 40
 
   return photoURL && username ? (
     <Avatar
       className={cn(className)}
       {...props}
       icon={<UserOutlined />}
+      style={
+        anonymous
+          ? {
+              backgroundColor: colour ?? nameToRGB(username, classicPFPColours), // using tailwind by doing bg-[${nameToRGB(username)}] does not seem to work
+            }
+          : {}
+      }
       src={
-        photoURL && photoURL.startsWith('http') ? (
-          <img src={photoURL} alt={username} loading="lazy" decoding="async" />
+        photoURL &&
+        (photoURL.startsWith('http') || photoURL.startsWith('/')) ? (
+          <Image
+            src={photoURL}
+            alt={`${username}'s PFP`}
+            loading="lazy"
+            decoding="async"
+            width={sizeNumber}
+            height={sizeNumber}
+          />
         ) : (
-          <img
-            src={`/api/v1/profile/get_picture/${photoURL}`}
-            alt={username}
+          <Image
+            src={`api/v1/profile/get_picture/${photoURL}`}
+            alt={`${username}'s PFP`}
+            width={sizeNumber}
+            height={sizeNumber}
             loading="lazy"
             decoding="async"
           />
@@ -56,7 +80,7 @@ export default function UserAvatar({
   ) : username ? (
     <Avatar
       style={{
-        backgroundColor: nameToRGB(username), // using tailwind by doing bg-[${nameToRGB(username)}] does not seem to work
+        backgroundColor: nameToRGB(username, classicPFPColours), // using tailwind by doing bg-[${nameToRGB(username)}] does not seem to work
         fontSize: `${fontSize}px`,
       }}
       className={cn(`font-normal`, className)}
