@@ -107,30 +107,34 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
     <div className="mb-8 mt-5 w-full">
       {enabledTableView ? (
         <>
-          {semesters?.map((semester) => {
-            const semesterCourses = courses.filter(
-              (course) => course.course.semesterId === semester.id,
-            )
-            if (semesterCourses.length === 0) {
-              return null
-            }
-            return (
-              <div key={semester.id}>
-                <Divider className="mt-5 p-2 text-lg font-semibold">
-                  {semester.name}
-                </Divider>
-                <Table
-                  columns={columns}
-                  dataSource={semesterCourses}
-                  rowKey={(course) => course.course.id}
-                  pagination={
-                    semesterCourses.length > 5 ? { pageSize: 5 } : false
-                  }
-                  showHeader={false}
-                />
-              </div>
-            )
-          })}
+          {semesters
+            ?.sort((a, b) => b.endDate.valueOf() - a.endDate.valueOf())
+            .map((semester) => {
+              const semesterCourses = courses.filter(
+                (course) => course.course.semesterId === semester.id,
+              )
+              if (semesterCourses.length === 0) {
+                return null
+              }
+              return (
+                <div key={semester.id}>
+                  <Divider className="mt-5 p-2 text-lg font-semibold">
+                    {semester.name}
+                  </Divider>
+                  <Table
+                    columns={columns}
+                    dataSource={semesterCourses.sort((a, b) =>
+                      a.course.name.localeCompare(b.course.name),
+                    )}
+                    rowKey={(course) => course.course.id}
+                    pagination={
+                      semesterCourses.length > 5 ? { pageSize: 5 } : false
+                    }
+                    showHeader={false}
+                  />
+                </div>
+              )
+            })}
         </>
       ) : (
         <div className="flex flex-wrap gap-3">

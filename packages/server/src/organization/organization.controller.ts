@@ -370,17 +370,14 @@ export class OrganizationController {
         await manager.save(orgCourse);
 
         // Check semester (-1 signifies that no semester was set)
-        if (
-          courseDetails.semesterId &&
-          isNaN(parseInt(courseDetails.semesterId))
-        ) {
+        if (courseDetails.semesterId && isNaN(courseDetails.semesterId)) {
           throw new HttpException(
             `Semester ID is invalid`,
             HttpStatus.BAD_REQUEST,
           );
-        } else if (parseInt(courseDetails.semesterId) !== -1) {
+        } else if (courseDetails.semesterId !== -1) {
           const semester = await manager.findOne(SemesterModel, {
-            where: { id: parseInt(courseDetails.semesterId) },
+            where: { id: courseDetails.semesterId },
             relations: ['courses'],
           });
           if (!semester) {
@@ -506,25 +503,22 @@ export class OrganizationController {
           (hence the extra check to see if its already set and not allowing it to be null again)
         */
 
-        if (
-          courseDetails.semesterId &&
-          isNaN(parseInt(courseDetails.semesterId))
-        ) {
+        if (courseDetails.semesterId && isNaN(courseDetails.semesterId)) {
           throw new HttpException(
             `Semester ID is invalid`,
             HttpStatus.BAD_REQUEST,
           );
         } else if (
           courseInfo.course.semester &&
-          parseInt(courseDetails.semesterId) == -1
+          courseDetails.semesterId == -1
         ) {
           throw new HttpException(
             `Semester must be set`,
             HttpStatus.BAD_REQUEST,
           );
-        } else if (parseInt(courseDetails.semesterId) !== -1) {
+        } else if (courseDetails.semesterId !== -1) {
           const semester = await manager.findOne(SemesterModel, {
-            where: { id: parseInt(courseDetails.semesterId) },
+            where: { id: courseDetails.semesterId },
             relations: ['courses'],
           });
           if (!semester) {

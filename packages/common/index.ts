@@ -1206,7 +1206,7 @@ export class UpdateOrganizationCourseDetailsParams {
 
   @IsInt()
   @IsOptional()
-  semesterId?: string
+  semesterId?: number
 
   @IsArray()
   @IsOptional()

@@ -156,11 +156,17 @@ export default function SettingsPage(): ReactElement {
   const [semesterForm] = Form.useForm()
 
   const handleAddSemester = async () => {
-    const formValues = await semesterForm.validateFields()
+    const formValues = await semesterForm.validateFields([
+      'name',
+      'startDate',
+      'endDate',
+    ])
     const semesterName = formValues.name as string
     const semesterStartDate = formValues.startDate as dayjs.Dayjs
     const semesterEndDate = formValues.endDate as dayjs.Dayjs
-    const semesterDescription = formValues.description as string
+    const semesterDescription = semesterForm.getFieldValue(
+      'description',
+    ) as string
 
     if (semesterName.length < 3) {
       message.error('Semester name must be at least 3 characters')
@@ -215,11 +221,15 @@ export default function SettingsPage(): ReactElement {
   }
 
   const handleEditSemester = async () => {
-    const formValues = await semesterForm.validateFields()
+    const formValues = await semesterForm.validateFields([
+      'name',
+      'startDate',
+      'endDate',
+    ])
     const semesterName = formValues.name
     const semesterStartDate = formValues.startDate
     const semesterEndDate = formValues.endDate
-    const semesterDescription = formValues.description
+    const semesterDescription = semesterForm.getFieldValue('description')
 
     if (semesterName.length < 3) {
       message.error('Semester name must be at least 3 characters')
@@ -240,7 +250,7 @@ export default function SettingsPage(): ReactElement {
       name: semesterName,
       startDate: semesterStartDate,
       endDate: semesterEndDate,
-      description: semesterDescription,
+      description: semesterDescription || null,
     }
 
     await API.semesters
@@ -469,7 +479,7 @@ export default function SettingsPage(): ReactElement {
             .map((semester) => (
               <Card.Grid
                 key={semester.id}
-                className="flex w-[50%] flex-col justify-between gap-2 text-center transition-none"
+                className="flex w-[50%] flex-col justify-between gap-2 text-center hover:cursor-pointer"
                 onClick={() => handleOpenEditSemesterModal(semester.id!)}
               >
                 <h3 className="text-lg font-semibold">{semester.name}</h3>
@@ -531,7 +541,7 @@ export default function SettingsPage(): ReactElement {
             setIsSemesterModalOpen={setIsSemesterEditModalOpen}
             handleSubmit={handleEditSemester}
             semesterForm={semesterForm}
-            creatingSemester={true}
+            creatingSemester={false}
           />
         )}
         {isConfirmSemesterDeleteModalOpen && (

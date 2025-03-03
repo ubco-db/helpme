@@ -17,6 +17,7 @@ import {
   GetOrganizationResponse,
   OrganizationProfessor,
   OrganizationRole,
+  SemesterPartial,
 } from '@koh/common'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { API } from '@/app/api'
@@ -32,7 +33,7 @@ interface FormValues {
   sectionGroupName?: string
   zoomLink?: string
   courseTimezone: string
-  semesterName: string
+  semesterId: number
   professorsUserId: number[]
   chatBotEnabled: boolean
   queueEnabled: boolean
@@ -46,6 +47,8 @@ export default function AddCoursePage(): ReactElement {
   const { userInfo, setUserInfo } = useUserInfo()
   const [organization, setOrganization] = useState<GetOrganizationResponse>()
   const [professors, setProfessors] = useState<OrganizationProfessor[]>()
+  const [organizationSemesters, setOrganizationSemesters] =
+    useState<SemesterPartial[]>()
   const [isAuthorized, setIsAuthorized] = useState<boolean | undefined>(
     undefined,
   )
@@ -63,6 +66,17 @@ export default function AddCoursePage(): ReactElement {
     }
     getOrganization()
   }, [userInfo])
+
+  useEffect(() => {
+    API.semesters
+      .get(userInfo.organization?.orgId || -1)
+      .then((semesters) => {
+        setOrganizationSemesters(semesters)
+      })
+      .catch((error) => {
+        message.error('Failed to fetch semesters for organization')
+      })
+  }, [])
 
   useEffect(() => {
     if (userInfo && organization) {
@@ -88,7 +102,7 @@ export default function AddCoursePage(): ReactElement {
     const sectionGroupNameField = values.sectionGroupName
     const zoomLinkField = values.zoomLink
     const courseTimezoneField = values.courseTimezone
-    const semesterNameField = values.semesterName
+    const semesterIdField = values.semesterId
     const profIds = isAdmin ? values.professorsUserId : [userInfo.id]
     const courseFeatures = [
       { feature: 'chatBotEnabled', value: values.chatBotEnabled },
@@ -105,7 +119,7 @@ export default function AddCoursePage(): ReactElement {
         sectionGroupName: sectionGroupNameField ?? '',
         zoomLink: zoomLinkField ?? '',
         timezone: courseTimezoneField,
-        semesterName: semesterNameField,
+        semesterId: semesterIdField,
         profIds: profIds,
         courseSettings: courseFeatures,
       })
@@ -223,33 +237,22 @@ export default function AddCoursePage(): ReactElement {
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                     <Form.Item
                       label="Semester"
-                      name="semesterName"
-                      tooltip="Semester of the course"
+                      name="semesterId"
+                      className="flex-1"
                       rules={[
-                        { required: true, message: 'Semester is required' },
-                        {
-                          validator: (_, value) => {
-                            if (value) {
-                              const parts = value.split(',')
-                              if (parts.length !== 2) {
-                                return Promise.reject(
-                                  new Error(
-                                    'Semester must be in the format "season,year". E.g. Fall,2021',
-                                  ),
-                                )
-                              }
-                              if (!parts[1] || isNaN(Number(parts[1]))) {
-                                return Promise.reject(
-                                  new Error('Year must be a number'),
-                                )
-                              }
-                            }
-                            return Promise.resolve()
-                          },
-                        },
+                        { required: true, message: 'Please select a semester' },
                       ]}
                     >
-                      <Input allowClear={true} placeholder="season,year" />
+                      <Select placeholder="Select Semester">
+                        <Select.Option key={-1} value={-1}>
+                          None
+                        </Select.Option>
+                        {organization.semesters.map((semester) => (
+                          <Select.Option key={semester.id} value={semester.id}>
+                            {`${semester.name} (${new Date(semester.startDate).toLocaleDateString()} - ${new Date(semester.endDate).toLocaleDateString()})`}
+                          </Select.Option>
+                        ))}
+                      </Select>
                     </Form.Item>
                   </Col>
 

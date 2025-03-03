@@ -25,6 +25,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationProps> = ({
   return (
     <Modal
       title="Confirm Delete Semester"
+      className="text-center"
       open={visible}
       onCancel={onCancel}
       footer={[
@@ -42,9 +43,10 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationProps> = ({
         </Button>,
       ]}
     >
-      <p>
-        To confirm deletion, please type the name of the semester (
-        <strong>{semesterName}</strong>) below:
+      <p className="mb-4">
+        Deleting a semester will automatically set all affiliated courses to
+        having no semester. To confirm deletion, please type the name of the
+        semester (<span className="font-semibold">{semesterName}</span>) below:
       </p>
       <Input
         placeholder="Type semester name here"
