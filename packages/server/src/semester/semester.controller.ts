@@ -20,13 +20,12 @@ import { OrganizationGuard } from 'guards/organization.guard';
 import { OrganizationModel } from 'organization/organization.entity';
 import { Roles } from 'decorators/roles.decorator';
 
-// PAT TODO: 
+// PAT TODO: use the organization/course guard that Adam made for the get request (all others are fine as is)
 
 @Controller('semesters')
 export class SemesterController {
   @Get(':oid')
-  @UseGuards(JwtAuthGuard, OrganizationGuard, EmailVerifiedGuard)
-  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard) // safe for anyone to fetch (needed for semester filtering in courses page)
   async getSemesters(
     @Param('oid', ParseIntPipe) organizationId: number,
   ): Promise<SemesterPartial[]> {

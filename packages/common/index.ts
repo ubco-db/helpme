@@ -164,7 +164,7 @@ export type UserTiny = {
 export type CoursePartial = {
   id: number
   name: string
-  semester?: SemesterPartial
+  semesterId?: number
 }
 
 export class RegistrationTokenDetails {
@@ -1204,9 +1204,9 @@ export class UpdateOrganizationCourseDetailsParams {
   @IsOptional()
   timezone?: string
 
-  @IsString()
+  @IsInt()
   @IsOptional()
-  semesterName?: string
+  semesterId?: string
 
   @IsArray()
   @IsOptional()

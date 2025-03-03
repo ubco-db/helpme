@@ -1,10 +1,12 @@
-import { Role, UserCourse } from '@koh/common'
-import { Button, Card, Divider, Table, Tag } from 'antd'
-import React from 'react'
+import { Role, SemesterPartial, UserCourse } from '@koh/common'
+import { Button, Card, Divider, message, Table, Tag } from 'antd'
+import React, { useEffect, useState } from 'react'
 import Meta from 'antd/es/card/Meta'
 import Link from 'next/link'
 import stringToHexColor from '@/app/utils/generalUtils'
 import { ColumnsType } from 'antd/es/table'
+import { API } from '@/app/api'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 interface CoursesSectionProps {
   courses: UserCourse[]
@@ -19,6 +21,8 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const jdenticon = require('jdenticon')
   const iconSize = 60
+  const { userInfo } = useUserInfo()
+  const [semesters, setSemesters] = useState<SemesterPartial[]>()
 
   jdenticon.configure({
     hues: [200],
@@ -31,6 +35,20 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
       grayscale: 0.0,
     },
   })
+
+  useEffect(() => {
+    API.semesters
+      .get(userInfo.organization?.orgId || -1)
+      .then((semesters) => {
+        setSemesters(semesters)
+      })
+      .catch((error) => {
+        message.error(
+          'Failed to fetch semesters for organization with id: ' +
+            userInfo.organization?.id,
+        )
+      })
+  }, [])
 
   const columns: ColumnsType<UserCourse> = [
     {
@@ -89,23 +107,30 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
     <div className="mb-8 mt-5 w-full">
       {enabledTableView ? (
         <>
-          {/* PAT TODO: remove ui mock and actually implement (hopefully with more userCourses) */}
-          <Divider className="mt-5 p-2 text-lg font-semibold">{`W2024 (example semester)`}</Divider>
-          <Table
-            columns={columns}
-            dataSource={courses}
-            rowKey={(course) => course.course.id}
-            pagination={courses.length > 5 ? { pageSize: 5 } : false}
-            showHeader={false}
-          />
-          <Divider className="mt-5 p-2 text-lg font-semibold">{`S2024 (example semester)`}</Divider>
-          <Table
-            columns={columns}
-            dataSource={courses}
-            rowKey={(course) => course.course.id}
-            pagination={courses.length > 5 ? { pageSize: 5 } : false}
-            showHeader={false}
-          />
+          {semesters?.map((semester) => {
+            const semesterCourses = courses.filter(
+              (course) => course.course.semesterId === semester.id,
+            )
+            if (semesterCourses.length === 0) {
+              return null
+            }
+            return (
+              <div key={semester.id}>
+                <Divider className="mt-5 p-2 text-lg font-semibold">
+                  {semester.name}
+                </Divider>
+                <Table
+                  columns={columns}
+                  dataSource={semesterCourses}
+                  rowKey={(course) => course.course.id}
+                  pagination={
+                    semesterCourses.length > 5 ? { pageSize: 5 } : false
+                  }
+                  showHeader={false}
+                />
+              </div>
+            )
+          })}
         </>
       ) : (
         <div className="flex flex-wrap gap-3">

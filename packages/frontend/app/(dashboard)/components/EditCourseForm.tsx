@@ -39,7 +39,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
     const sectionGroupNameField = formValues.sectionGroupName
     const zoomLinkField = formValues.zoomLink
     const courseTimezoneField = formValues.courseTimezone
-    const semesterNameField = formValues.semesterName
+    const semesterIdField = formValues.semesterId
     const profIdsField = isAdmin ? formValues.professorsUserId : [user.id]
 
     if (
@@ -48,8 +48,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       sectionGroupNameField === courseData.course?.sectionGroupName &&
       zoomLinkField === courseData.course?.zoomLink &&
       courseTimezoneField === courseData.course?.timezone &&
-      semesterNameField ===
-        `${courseData.course?.semester?.season},${courseData.course?.semester?.year}` &&
+      semesterIdField === courseData.course?.semester?.id &&
       profIdsField === courseData.profIds
     ) {
       message.info('Course was not updated as information has not been changed')
@@ -74,20 +73,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       return
     }
 
-    if (semesterNameField.split(',').length !== 2) {
-      message.error(
-        'Semester must be in the format "season,year" with comma included. E.g. Fall,2021',
-      )
-      return
-    }
-
-    if (
-      !semesterNameField.split(',')[1] ||
-      isNaN(Number(semesterNameField.split(',')[1]))
-    ) {
-      message.error('Year must be a number')
-      return
-    }
+    // PAT TODO: DO VALIDATION HERE FOR SEMESTERS
 
     if (
       !Array.isArray(profIdsField) ||
@@ -102,6 +88,8 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       return
     }
 
+    // PAT TODO: fix this route to support semester changes
+
     await API.organizations
       .updateCourse(organization.id, Number(courseData.courseId), {
         name: courseNameField,
@@ -109,7 +97,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         sectionGroupName: sectionGroupNameField,
         zoomLink: zoomLinkField ?? '',
         timezone: courseTimezoneField,
-        semesterName: semesterNameField,
+        semesterId: semesterIdField,
         profIds: profIdsField,
       })
       .then(() => {
@@ -148,7 +136,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         sectionGroupName: courseData.course?.sectionGroupName,
         zoomLink: courseData.course?.zoomLink,
         courseTimezone: courseData.course?.timezone,
-        semesterName: `${courseData.course?.semester?.season},${courseData.course?.semester?.year}`,
+        semesterId: courseData.course?.semester?.id,
         professorsUserId: courseData.profIds,
       }}
       onFinish={() => updateGeneral()}
@@ -220,32 +208,18 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
 
         <Form.Item
           label="Semester"
-          name="semesterName"
-          tooltip="Semester of the course"
+          name="semesterId"
           className="flex-1"
-          rules={[
-            { required: true, message: 'Semester is required' },
-            {
-              validator: (_, value) => {
-                if (value) {
-                  const parts = value.split(',')
-                  if (parts.length !== 2) {
-                    return Promise.reject(
-                      new Error(
-                        'Semester must be in the format "season,year". E.g. Fall,2021',
-                      ),
-                    )
-                  }
-                  if (!parts[1] || isNaN(Number(parts[1]))) {
-                    return Promise.reject(new Error('Year must be a number'))
-                  }
-                }
-                return Promise.resolve()
-              },
-            },
-          ]}
+          rules={[{ required: true, message: 'Please select a semester' }]}
         >
-          <Input allowClear={true} placeholder="season,year" />
+          <Select placeholder="Select Semester">
+            {organization.semesters.map((semester) => (
+              <Select.Option key={semester.id} value={semester.id}>
+                <span>{`${semester.name}`}</span>{' '}
+                {`(${new Date(semester.startDate).toLocaleDateString()} - ${new Date(semester.endDate).toLocaleDateString()})`}
+              </Select.Option>
+            ))}
+          </Select>
         </Form.Item>
       </div>
 
