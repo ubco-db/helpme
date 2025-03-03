@@ -107,7 +107,19 @@ export class ChatbotService {
       );
     }
     Object.assign(question, data);
-    question.save();
+    if (data.interactionId) {
+      const tempInteraction = await InteractionModel.findOne(
+        data.interactionId,
+      );
+      if (!tempInteraction) {
+        throw new HttpException(
+          'Interaction not found based on the provided ID.',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      question.interaction = tempInteraction;
+    }
+    await question.save();
     return question;
   }
 
@@ -122,5 +134,16 @@ export class ChatbotService {
     }
 
     return await chatQuestion.remove();
+  }
+
+  async getInteractionsAndQuestions(
+    courseId: number,
+  ): Promise<InteractionModel[]> {
+    const interactions = await InteractionModel.find({
+      where: { course: courseId },
+      relations: ['questions'],
+    });
+
+    return interactions;
   }
 }

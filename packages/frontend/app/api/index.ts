@@ -35,7 +35,7 @@ import {
   UpdateOrganizationUserRole,
   ChatbotQuestion,
   UpdateOrganizationCourseDetailsParams,
-  Interaction,
+  InteractionResponse,
   OrganizationResponse,
   DocumentParams,
   ChatbotDocument,
@@ -78,6 +78,7 @@ import {
   AsyncQuestionComment,
   AsyncQuestionCommentParams,
   UnreadAsyncQuestionResponse,
+  GetInteractionsAndQuestionsResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -154,45 +155,18 @@ class APIClient {
     createInteraction: async (body: {
       courseId: number
       userId: number
-    }): Promise<Interaction> =>
+    }): Promise<InteractionResponse> =>
       this.req('POST', `/api/v1/chatbot/interaction`, undefined, body),
-    getQuestions: async (
-      questionText: string,
-      pageSize: number,
-      currentPage: number,
+    getInteractionsAndQuestions: async (
       courseId: number,
-    ): Promise<ChatQuestionResponse> =>
-      this.req(
-        'GET',
-        `/api/v1/chatbot/question?questionText=${questionText}&pageSize=${pageSize}&currentPage=${currentPage}&cid=${courseId}`,
-        undefined,
-      ),
+    ): Promise<GetInteractionsAndQuestionsResponse> =>
+      this.req('GET', `/api/v1/chatbot/questions/${courseId}`),
     createQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> =>
       this.req('POST', `/api/v1/chatbot/question`, undefined, body),
     editQuestion: async (data: ChatbotQuestion): Promise<ChatbotQuestion> =>
       this.req('PATCH', `/api/v1/chatbot/question`, undefined, data),
-    deleteQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> =>
-      this.req('DELETE', `/api/v1/chatbot/question`, undefined, body),
-    getDocuments: async (
-      courseId: number,
-      searchText: string,
-      pageSize: number,
-      currentPage: number,
-    ): Promise<ChatQuestionResponse> =>
-      this.req(
-        'GET',
-        `/api/v1/chatbot/${courseId}/document?searchText=${searchText}&pageSize=${pageSize}&currentPage=${currentPage}`,
-        undefined,
-      ),
-    addDocument: async (body: {
-      data: DocumentParams
-      courseId: number
-    }): Promise<ChatbotDocument> =>
-      this.req('POST', `/api/v1/chatbot/document`, undefined, body),
-    deleteDocument: async (body: {
-      documentId: number
-    }): Promise<ChatbotDocument> =>
-      this.req('DELETE', `/api/v1/chatbot/document`, undefined, body),
+    // deleteQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> => unused
+    //   this.req('DELETE', `/api/v1/chatbot/question`, undefined, body),
   }
 
   course = {

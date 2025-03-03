@@ -196,11 +196,11 @@ const Chatbot: React.FC<ChatbotProps> = ({
       setPreDeterminedQuestions([]) // clear predetermined questions upon the first question
     }
 
+    setIsLoading(true)
     let currentInteractionId = interactionId
     if (!currentInteractionId) {
       currentInteractionId = await createNewInteraction()
     }
-    setIsLoading(true)
 
     const result: ChatbotAskResponse = await query()
 
