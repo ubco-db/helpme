@@ -5,11 +5,13 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoginCourseService } from './login-course.service';
 import { CourseService } from 'course/course.service';
+import { RedisProfileModule } from 'redisProfile/redis-profile.module';
+import { RedisProfileService } from 'redisProfile/redis-profile.service';
 
 @Module({
   imports: [
     JwtModule.registerAsync({
-      imports: [ConfigModule],
+      imports: [ConfigModule, RedisProfileModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get('JWT_SECRET'),
@@ -17,6 +19,11 @@ import { CourseService } from 'course/course.service';
     }),
   ],
   controllers: [LoginController],
-  providers: [JwtStrategy, LoginCourseService, CourseService],
+  providers: [
+    JwtStrategy,
+    LoginCourseService,
+    CourseService,
+    RedisProfileService,
+  ],
 })
 export class LoginModule {}

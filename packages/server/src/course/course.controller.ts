@@ -810,6 +810,7 @@ export class CourseController {
       where: { courseId, userId },
     });
     await this.courseService.removeUserFromCourse(userCourse);
+    await this.redisProfileService.deleteProfile(`u:${userId}`);
   }
 
   @Get(':id/ta_check_in_times')
@@ -1004,7 +1005,11 @@ export class CourseController {
     }
 
     try {
-      await UserCourseModel.update({ courseId, userId }, { role });
+      await UserCourseModel.update({ courseId, userId }, { role }).then(
+        async () => {
+          await this.redisProfileService.deleteProfile(`u:${userId}`);
+        },
+      );
     } catch (err) {
       res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
       return;

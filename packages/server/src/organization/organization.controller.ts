@@ -377,6 +377,8 @@ export class OrganizationController {
             role: Role.PROFESSOR,
             expires: false,
           }).save();
+
+          await this.redisProfileService.deleteProfile(`u:${profId}`);
         }
 
       await OrganizationCourseModel.create({
@@ -679,6 +681,22 @@ export class OrganizationController {
 
     await courseInfo.course
       .save()
+      .then(async () => {
+        const userCourses = (
+          await CourseModel.findOne({
+            where: {
+              id: cid,
+            },
+            relations: ['userCourses'],
+          })
+        ).userCourses;
+
+        userCourses.forEach(async (userCourse) => {
+          await this.redisProfileService.deleteProfile(
+            `u:${userCourse.userId}`,
+          );
+        });
+      })
       .then(() => {
         return res.status(HttpStatus.OK).send({
           message: 'Course access updated',
