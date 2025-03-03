@@ -327,6 +327,15 @@ class APIClient {
         undefined,
         props,
       ),
+    updateTANotes: async (courseId: number, TAid: number, notes: string) =>
+      this.req(
+        'PATCH',
+        `/api/v1/courses/${courseId}/set_ta_notes/${TAid}`,
+        undefined,
+        {
+          notes,
+        },
+      ),
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>
