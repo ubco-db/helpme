@@ -213,7 +213,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
           rules={[{ required: true, message: 'Please select a semester' }]}
         >
           <Select placeholder="Select Semester">
-            {/* See if this option is really necessary. without it, people wont be able to change their courses unless they set their course's semester */}
+            {/* PAT TODO: See if this option is really necessary. without it, people wont be able to change their courses unless they set their course's semester */}
             <Select.Option key={-1} value={-1}>
               None
             </Select.Option>
