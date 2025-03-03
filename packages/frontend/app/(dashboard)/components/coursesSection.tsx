@@ -118,11 +118,12 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
               }
               return (
                 <div key={semester.id}>
-                  <Divider className="mt-5 p-2 text-lg font-semibold">
+                  <Divider className="my-1 p-2 text-lg font-semibold">
                     {semester.name}
                   </Divider>
                   <Table
                     columns={columns}
+                    size="small"
                     dataSource={semesterCourses.sort((a, b) =>
                       a.course.name.localeCompare(b.course.name),
                     )}
@@ -138,79 +139,98 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         </>
       ) : (
         <div className="flex flex-wrap gap-3">
-          {courses?.map((course, index) => {
-            // Generate course icon
-            const iconSvg = jdenticon.toSvg(course.course.name, iconSize)
-            const iconDataUrl = `data:image/svg+xml;base64,${btoa(iconSvg)}`
-
-            return (
-              <Card
-                key={course.course.id}
-                className="m-2 w-full shadow md:w-[46%] lg:w-[30.5%] xl:w-[22.5%]"
-                cover={
-                  <div className="relative block h-32 w-full">
-                    <div
-                      className="absolute inset-0 rounded-t"
-                      style={{
-                        background: `${stringToHexColor(course.course.name)}`,
-                        opacity: 0.8,
-                      }}
-                    />
-                    <div
-                      className="absolute inset-0 rounded-t"
-                      style={{
-                        backgroundImage: `url(${iconDataUrl})`,
-                        backgroundRepeat: 'repeat',
-                        backgroundPosition: `-${iconSize / 2}px -${iconSize / 2}px`,
-                        opacity: 0.3,
-                      }}
-                    />
-                  </div>
+          {courses
+            ?.sort((a, b) => {
+              const semesterA = semesters?.find(
+                (semester) => semester.id === a.course.semesterId,
+              )
+              const semesterB = semesters?.find(
+                (semester) => semester.id === b.course.semesterId,
+              )
+              if (semesterA && semesterB) {
+                const diff =
+                  semesterB.endDate.valueOf() - semesterA.endDate.valueOf()
+                if (diff == 0) {
+                  return a.course.name.localeCompare(b.course.name)
+                } else {
+                  return diff
                 }
-              >
-                <div className="flex flex-wrap items-center justify-between align-middle">
-                  <Meta title={course.course.name} />
-                  <Tag
-                    color={
-                      course.role === Role.STUDENT
-                        ? 'success'
-                        : course.role === Role.TA
-                          ? 'gold'
-                          : 'blue'
-                    }
-                    className="text-base capitalize"
-                  >
-                    {course.role}
-                  </Tag>
-                </div>
+              }
+              return 0
+            })
+            .map((course, index) => {
+              // Generate course icon
+              const iconSvg = jdenticon.toSvg(course.course.name, iconSize)
+              const iconDataUrl = `data:image/svg+xml;base64,${btoa(iconSvg)}`
 
-                <Link
-                  id={index === 0 ? 'skip-link-target' : ''}
-                  href={`course/${course.course.id}`}
+              return (
+                <Card
+                  key={course.course.id}
+                  className="m-2 w-full shadow md:w-[46%] lg:w-[30.5%] xl:w-[22.5%]"
+                  cover={
+                    <div className="relative block h-32 w-full">
+                      <div
+                        className="absolute inset-0 rounded-t"
+                        style={{
+                          background: `${stringToHexColor(course.course.name)}`,
+                          opacity: 0.8,
+                        }}
+                      />
+                      <div
+                        className="absolute inset-0 rounded-t"
+                        style={{
+                          backgroundImage: `url(${iconDataUrl})`,
+                          backgroundRepeat: 'repeat',
+                          backgroundPosition: `-${iconSize / 2}px -${iconSize / 2}px`,
+                          opacity: 0.3,
+                        }}
+                      />
+                    </div>
+                  }
                 >
-                  <Button
-                    type="primary"
-                    className="mt-5 rounded p-[1.1rem] font-medium"
-                    block
-                  >
-                    Course page
-                  </Button>
-                </Link>
+                  <div className="flex flex-wrap items-center justify-between align-middle">
+                    <Meta title={course.course.name} />
+                    <Tag
+                      color={
+                        course.role === Role.STUDENT
+                          ? 'success'
+                          : course.role === Role.TA
+                            ? 'gold'
+                            : 'blue'
+                      }
+                      className="text-base capitalize"
+                    >
+                      {course.role}
+                    </Tag>
+                  </div>
 
-                {course.role === Role.PROFESSOR && (
-                  <Link href={`/course/${course.course.id}/settings`}>
+                  <Link
+                    id={index === 0 ? 'skip-link-target' : ''}
+                    href={`course/${course.course.id}`}
+                  >
                     <Button
                       type="primary"
-                      className="mt-4 rounded p-[1.1rem] font-medium"
+                      className="mt-5 rounded p-[1.1rem] font-medium"
                       block
                     >
-                      Edit Course
+                      Course page
                     </Button>
                   </Link>
-                )}
-              </Card>
-            )
-          })}
+
+                  {course.role === Role.PROFESSOR && (
+                    <Link href={`/course/${course.course.id}/settings`}>
+                      <Button
+                        type="primary"
+                        className="mt-4 rounded p-[1.1rem] font-medium"
+                        block
+                      >
+                        Edit Course
+                      </Button>
+                    </Link>
+                  )}
+                </Card>
+              )
+            })}
         </div>
       )}
     </div>
