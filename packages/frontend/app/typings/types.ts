@@ -1,3 +1,5 @@
+import { calendarEventLocationType } from '@koh/common'
+
 export interface LayoutProps {
   children: React.ReactNode
 }
@@ -11,7 +13,7 @@ export interface Event {
   start: Date
   end: Date
   startDate?: Date | null
-  locationType: string
+  locationType: calendarEventLocationType
   locationInPerson: string | null
   locationOnline: string | null
   startRecur?: Date | null
@@ -23,6 +25,7 @@ export interface Event {
   borderColor?: string
   textColor?: string
   staffIds?: number[]
+  staffNames?: string[] // just used for display purposes
 }
 
 /**
@@ -91,6 +94,13 @@ export interface FullCalendarEvent {
   }): any
   toJSON?(): any
   studentsHelped?: number // used as a custom property for the TA checkin/checkout times page. Accessed with extendedProps
+  TAStatus?: TAStatus // same reason as above
+}
+
+export enum TAStatus {
+  InQueue = 'Currently in queue',
+  ForgotToCheckOut = 'Forgot to check out',
+  CheckedOut = 'Checked out',
 }
 
 export const dayToIntMapping: { [key: string]: string } = {

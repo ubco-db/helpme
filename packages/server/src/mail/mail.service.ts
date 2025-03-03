@@ -1,14 +1,13 @@
 import {
+  isProd,
   MailServiceWithSubscription,
-  OrganizationRole,
-  Role,
   sendEmailParams,
 } from '@koh/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { MailServiceModel } from './mail-services.entity';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
-import { UserCourseModel } from 'profile/user-course.entity';
+import * as fs from 'fs';
 
 @Injectable()
 export class MailService {
@@ -18,43 +17,75 @@ export class MailService {
     code: string,
     receiver: string,
   ): Promise<void> {
+    const from = `"${this.APPLICATION_NAME}" <no-reply@coursehelp.ubc.ca>`;
+    const subject = 'Verify your email address';
+    const text = `Your one time verification code is: ${code}`;
+    if (!isProd()) {
+      this.writeEmailToFile(receiver, subject, text);
+      return;
+    }
     await this.mailerService.sendMail({
       to: receiver,
-      from: `"${this.APPLICATION_NAME}" <no-reply@coursehelp.ubc.ca>`,
-      subject: 'Verify your email address',
-      text: `Your one time verification code is: ${code}`,
+      from,
+      subject,
+      text,
     });
   }
 
   async sendPasswordResetEmail(receiver: string, url: string): Promise<void> {
+    const from = `"${this.APPLICATION_NAME}" <no-reply@coursehelp.ubc.ca>`;
+    const subject = 'Pasword Reset Request';
+    const text = `You are receiving this email because you (or someone else) has requested the reset of the password for your account.\n\nPlease click on the following link, or paste this into your browser to complete the process:\n\n
+    ${url}\n\n`;
+    if (!isProd()) {
+      this.writeEmailToFile(receiver, subject, text);
+      return;
+    }
     await this.mailerService.sendMail({
       to: receiver,
-      from: `"${this.APPLICATION_NAME}" <no-reply@coursehelp.ubc.ca>`,
-      subject: 'Pasword Reset Request',
-      text: `You are receiving this email because you (or someone else) has requested the reset of the password for your account.\n\nPlease click on the following link, or paste this into your browser to complete the process:\n\n
-      ${url}\n\n`,
+      from,
+      subject,
+      text,
     });
   }
 
-  async sendEmail(emailPost: sendEmailParams): Promise<void> {
-    // if function is called, email should be sent
-    // functions that call this function should previously check in user subscriptions and pass in emailPost.receiver
-    // retrieve text to send based on emailPost.type
-    const mail = await MailServiceModel.findOne({
-      where: {
-        serviceType: emailPost.type,
-      },
-    });
-    if (!mail) {
-      throw new HttpException('Mail type/name not found', HttpStatus.NOT_FOUND);
+  /* Used for testing purposes. Allows you to write an email to a file instead of sending it */
+  writeEmailToFile(email: string, subject: string, content: string): void {
+    try {
+      const logFile = './src/mail/sent_dev_emails.log';
+      const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+      logStream.write(`
+        New email. Sent at ${new Date().toISOString()}
+        Subject: ${subject}
+        To: ${email}
+        ${content}
+        \n\n`);
+      logStream.end();
+      console.log(
+        `Email written to sent_dev_emails.log inside /server/src/mail/sent_dev_emails.log`,
+        email,
+        subject,
+      );
+    } catch (err) {
+      console.error('Error writing email to file:', err);
     }
+  }
 
-    const baseContent = emailPost.content || mail.content;
+  /*  if function is called, email should be sent.
+    functions that call this function should previously check in user subscriptions and pass in emailPost.receiver
+    */
+  async sendEmail(emailPost: sendEmailParams): Promise<void> {
+    const baseContent = emailPost.content;
     const fullContent = `
     ${baseContent}
     <br><br><a href="${process.env.DOMAIN}/courses">View Your Courses</a>
-    <br>Do you not want to receive these emails? <a href="${process.env.DOMAIN}/profile">Unsubscribe</a>
+    <br>Do you not want to receive these emails? <a href="${process.env.DOMAIN}/profile?page=notifications">Unsubscribe</a>
   `;
+    // if on dev write to a file instead of actually sending an email (comment this out if you want to test sending emails, but be careful not to send emails to our userbase)
+    if (!isProd()) {
+      this.writeEmailToFile(emailPost.receiver, emailPost.subject, fullContent);
+      return;
+    }
     await this.mailerService.sendMail({
       to: emailPost.receiver,
       from: '"HelpMe Support"',
@@ -62,18 +93,11 @@ export class MailService {
       html: fullContent,
     });
   }
+
   async findAllSubscriptions(
     user: UserModel,
   ): Promise<MailServiceWithSubscription[]> {
-    // Check if the user is a professor in any course
-    const isProfInAnyCourse = await UserCourseModel.findOne({
-      where: {
-        userId: user.id,
-        role: Role.PROFESSOR,
-      },
-    });
-
-    let mailServicesQuery = MailServiceModel.createQueryBuilder(
+    const mailServicesQuery = MailServiceModel.createQueryBuilder(
       'mailService',
     ).leftJoinAndSelect(
       'mailService.subscriptions',
@@ -81,14 +105,6 @@ export class MailService {
       'subscription.userId = :userId',
       { userId: user.id },
     );
-
-    // If user is not a professor in any course, filter by MEMBER role
-    if (!isProfInAnyCourse) {
-      mailServicesQuery = mailServicesQuery.where(
-        'mailService.mailType = :role',
-        { role: OrganizationRole.MEMBER },
-      );
-    }
 
     const mailServicesWithSubscriptions = await mailServicesQuery.getMany();
 
@@ -99,7 +115,6 @@ export class MailService {
         mailType: mailService.mailType,
         serviceType: mailService.serviceType,
         name: mailService.name,
-        content: mailService.content,
         isSubscribed:
           mailService.subscriptions.length > 0
             ? mailService.subscriptions[0].isSubscribed

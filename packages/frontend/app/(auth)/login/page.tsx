@@ -276,7 +276,6 @@ export default function LoginPage() {
                         alt="Org Logo"
                         width={24}
                         height={24}
-                        unoptimized
                       />
                     )}
                     <span className="font-semibold">

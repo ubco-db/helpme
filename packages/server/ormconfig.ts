@@ -12,7 +12,6 @@ import { QuestionGroupModel } from './src/question/question-group.entity';
 import { QueueModel } from './src/queue/queue.entity';
 import { AlertModel } from './src/alerts/alerts.entity';
 import { LastRegistrationModel } from './src/login/last-registration-model.entity';
-import { ProfSectionGroupsModel } from './src/login/prof-section-groups.entity';
 import { QuestionTypeModel } from './src/questionType/question-type.entity';
 import { AsyncQuestionModel } from './src/asyncQuestion/asyncQuestion.entity';
 import { ChatbotQuestionModel } from './src/chatbot/question.entity';
@@ -33,11 +32,13 @@ import { StudentTaskProgressModel } from './src/studentTaskProgress/studentTaskP
 import { ApplicationConfigModel } from './src/config/application_config.entity';
 import { InsightDashboardModel } from './src/insights/dashboard.entity';
 import { QueueInviteModel } from './src/queue/queue-invite.entity';
+import { QueueChatsModel } from './src/queueChats/queue-chats.entity';
 import { LMSOrganizationIntegrationModel } from './src/lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from './src/lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';
 import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entity';
 import { UnreadAsyncQuestionModel } from './src/asyncQuestion/unread-async-question.entity';
+import { AsyncQuestionCommentModel } from './src/asyncQuestion/asyncQuestionComment.entity';
 
 config();
 
@@ -77,18 +78,19 @@ const typeorm = {
     CalendarModel,
     CalendarStaffModel,
     LastRegistrationModel,
-    ProfSectionGroupsModel,
     QuestionDocumentModel,
     OrganizationUserModel,
     OrganizationModel,
     OrganizationCourseModel,
     CourseSettingsModel,
     AsyncQuestionVotesModel,
+    AsyncQuestionCommentModel,
     UserTokenModel,
     ChatTokenModel,
     StudentTaskProgressModel,
     ApplicationConfigModel,
     QueueInviteModel,
+    QueueChatsModel,
     InsightDashboardModel,
     LMSOrganizationIntegrationModel,
     LMSCourseIntegrationModel,

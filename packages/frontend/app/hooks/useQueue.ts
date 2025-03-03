@@ -7,7 +7,7 @@ import { API } from '../api'
 
 type queueResponse = SWRResponse<QueuePartial, any>
 
-interface UseQueueReturn {
+export interface UseQueueReturn {
   queue: queueResponse['data']
   queueError: queueResponse['error']
   mutateQueue: queueResponse['mutate']

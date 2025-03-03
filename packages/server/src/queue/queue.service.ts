@@ -44,7 +44,7 @@ export class QueueService {
 
   async getQueue(queueId: number): Promise<QueueModel> {
     const queue = await QueueModel.findOne(queueId, {
-      relations: ['staffList'],
+      relations: ['staffList', 'staffList.courses'],
     });
     await queue.checkIsOpen();
     await queue.addQueueSize();
@@ -54,7 +54,10 @@ export class QueueService {
         id: user.id,
         name: user.name,
         photoURL: user.photoURL,
-      } as UserModel;
+        TANotes:
+          user.courses.find((ucm) => ucm.courseId === queue.courseId)
+            ?.TANotes ?? '',
+      } as unknown as UserModel;
     });
 
     return queue;

@@ -14,7 +14,7 @@ export function useAsnycQuestions(
   const key = `/api/v1/courses/${cid}/asyncQuestions`
 
   const { data: asyncQuestions, mutate } = useSWR(key, async () => {
-    return await API.course.getAsyncQuestions(cid)
+    return await API.asyncQuestions.get(cid)
   })
 
   return [asyncQuestions, mutate]

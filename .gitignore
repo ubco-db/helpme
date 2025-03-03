@@ -48,3 +48,6 @@ husky.sh
 
 # ignore everything in backups folder
 /backups/*
+
+# location of emails sent on dev environment
+/packages/server/src/mail/sent_dev_emails.log
