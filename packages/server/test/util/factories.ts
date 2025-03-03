@@ -8,7 +8,7 @@ import {
   OrganizationRole,
   Role,
 } from '@koh/common';
-import { AlertModel } from 'alerts/alerts.entity';
+import { AlertModel } from '../../src/alerts/alerts.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { Factory } from 'typeorm-factory';
 import { CourseModel } from '../../src/course/course.entity';
@@ -28,18 +28,19 @@ import { CourseSettingsModel } from '../../src/course/course_settings.entity';
 import { AsyncQuestionModel } from '../../src/asyncQuestion/asyncQuestion.entity';
 import { AsyncQuestionVotesModel } from '../../src/asyncQuestion/asyncQuestionVotes.entity';
 import { ChatTokenModel } from '../../src/chatbot/chat-token.entity';
-import { MailServiceModel } from 'mail/mail-services.entity';
-import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
+import { MailServiceModel } from '../../src/mail/mail-services.entity';
+import { UserSubscriptionModel } from '../../src/mail/user-subscriptions.entity';
 import { v4 } from 'uuid';
-import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
-import { CalendarModel } from 'calendar/calendar.entity';
-import { QueueInviteModel } from 'queue/queue-invite.entity';
+import { StudentTaskProgressModel } from '../../src/studentTaskProgress/studentTaskProgress.entity';
+import { CalendarModel } from '../../src/calendar/calendar.entity';
+import { QueueInviteModel } from '../../src/queue/queue-invite.entity';
 import { InsightDashboardModel } from '../../src/insights/dashboard.entity';
 import { LMSOrganizationIntegrationModel } from '../../src/lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from '../../src/lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from '../../src/lmsIntegration/lmsAssignment.entity';
-import { CalendarStaffModel } from 'calendar/calendar-staff.entity';
-import { AsyncQuestionCommentModel } from 'asyncQuestion/asyncQuestionComment.entity';
+import { CalendarStaffModel } from '../../src/calendar/calendar-staff.entity';
+import { AsyncQuestionCommentModel } from '../../src/asyncQuestion/asyncQuestionComment.entity';
+import { QueueChatsModel } from '../../src/queueChats/queue-chats.entity';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)
@@ -253,3 +254,11 @@ export const lmsAssignmentFactory = new Factory(LMSAssignmentModel)
   .attr('name', 'assignment')
   .attr('description', 'desc')
   .assocOne('course', lmsCourseIntFactory);
+
+export const queueChatsFactory = new Factory(QueueChatsModel)
+  .attr('startedAt', new Date())
+  .attr('closedAt', new Date())
+  .attr('messageCount', 5)
+  .assocOne('queue', QueueFactory)
+  .assocOne('staff', UserFactory)
+  .assocOne('student', UserFactory);

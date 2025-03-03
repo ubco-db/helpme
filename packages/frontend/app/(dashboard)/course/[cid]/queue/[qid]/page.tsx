@@ -16,15 +16,24 @@ import {
   LimboQuestionStatus,
   QuestionLocations,
 } from '@koh/common'
-import { Tooltip, message, notification, Button, Divider } from 'antd'
-import { mutate } from 'swr'
 import {
-  EditOutlined,
-  LoginOutlined,
-  PhoneOutlined,
-  PlusOutlined,
-} from '@ant-design/icons'
-import { CheckCheck, ListChecks, ListTodoIcon } from 'lucide-react'
+  Tooltip,
+  message,
+  notification,
+  Button,
+  Divider,
+  Drawer,
+  Badge,
+  Popover,
+} from 'antd'
+import { mutate } from 'swr'
+import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
+import {
+  CheckCheck,
+  ListChecks,
+  ListTodoIcon,
+  MessageCircleMore,
+} from 'lucide-react'
 import { useQueue } from '@/app/hooks/useQueue'
 import { useUserInfo } from '@/app/contexts/userContext'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
@@ -62,8 +71,10 @@ import AssignmentReportModal from './components/modals/AssignmentReportModal'
 import CantFindModal from './components/modals/CantFindModal'
 import { useChatbotContext } from '../../components/chatbot/ChatbotProvider'
 import CircleButton from './components/CircleButton'
+import QueueChat from '../../components/QueueChat'
 import JoinZoomNowModal from './components/modals/JoinZoomNowModal'
 import JoinZoomButton from './components/JoinZoomButton'
+import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 import { useUpdateAlertsWhenLastStaffChecksOut } from '@/app/hooks/useUpdateAlertsWhenLastStaffChecksOut'
 
 type QueuePageProps = {
@@ -71,6 +82,7 @@ type QueuePageProps = {
 }
 
 export default function QueuePage({ params }: QueuePageProps): ReactElement {
+  const isMobile = useMediaQuery('(max-width: 768px)')
   const cid = Number(params.cid)
   const qid = Number(params.qid)
   const router = useRouter()
@@ -83,6 +95,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     useState(false)
   const [clickedZoomModal, setClickedZoomModal] = useState(false)
   const [staffListHidden, setStaffListHidden] = useState(false)
+  const [seenChatPopover, setSeenChatPopover] = useState(false)
   const [isFinishAllHelpingButtonLoading, setIsFinishAllHelpingButtonLoading] =
     useState(false)
   const {
@@ -97,6 +110,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const { course } = useCourse(cid)
   const [editQuestionModalOpen, setEditQuestionModalOpen] = useState(false)
   const [editDemoModalOpen, setEditDemoModalOpen] = useState(false)
+  const [mobileQueueChatOpen, setMobileQueueChatOpen] = useState(false) // To store the state of the mobile queue chat drawer
+  const [currentChatQuestionId, setCurrentChatQuestionId] = useState<number>(-1) // To store the currently opened chat via the question id
+  const [newMessagesInQueueChats, setNewMessagesInQueueChats] = useState(0)
   const role = getRoleInCourse(userInfo, cid)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
   const [questionTypes] = useQuestionTypes(cid, qid)
@@ -141,7 +157,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
     'isFirstQuestion',
     true,
   )
-  const { helpingQuestions } = getHelpingQuestions(
+  const { helpingQuestions, isHelping } = getHelpingQuestions(
     queueQuestions,
     userInfo.id,
     role,
@@ -155,11 +171,31 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   }, [clickedZoomModal, studentQuestion])
 
   useEffect(() => {
+    const seenQueueChatPopover =
+      localStorage.getItem('seenChatPopover') == 'true'
+    setSeenChatPopover(seenQueueChatPopover)
+    if (!seenQueueChatPopover) {
+      setTimeout(() => {
+        setSeenChatPopover(true)
+        localStorage.setItem('seenChatPopover', 'true')
+      }, 6000) // message will disappear after 6 seconds
+    }
+  }, [])
+
+  useEffect(() => {
     resetClickedZoomModal()
   }, [resetClickedZoomModal, clickedZoomModal, studentQuestion])
 
   // chatbot
-  const { setCid, setRenderSmallChatbot } = useChatbotContext()
+  const {
+    setCid,
+    setRenderSmallChatbot,
+    setIsOpen,
+    isOpen,
+    renderSmallChatbot,
+  } = useChatbotContext()
+  const setChatbotOpen = setIsOpen // just to rename it
+  const isChatbotOpen = isOpen // just to rename it
   useEffect(() => {
     setCid(cid)
   }, [cid, setCid])
@@ -912,6 +948,120 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 onClose={() => setAssignmentReportModalOpen(false)}
               />
             )}
+
+            {/* Queue Chats (for staff. For students is near bottom) */}
+            {isMobile ? (
+              <>
+                <Drawer
+                  placement="bottom"
+                  open={mobileQueueChatOpen}
+                  className="box-border flex h-full flex-col justify-end overflow-auto"
+                  title="Queue Chats"
+                  forceRender
+                  styles={{
+                    body: {
+                      padding: '0.5rem',
+                      overflow: 'hidden',
+                      height: '100%',
+                    },
+                    wrapper: { height: 'min-content' },
+                  }}
+                  onClose={() => {
+                    setMobileQueueChatOpen(false)
+                    setNewMessagesInQueueChats(0)
+                    setRenderSmallChatbot(true)
+                  }}
+                >
+                  <div
+                    className={
+                      'flex h-full w-full flex-col items-center justify-center gap-2'
+                    }
+                  >
+                    {helpingQuestions.map((question) => {
+                      return (
+                        <QueueChat
+                          key={question.id}
+                          queueId={qid}
+                          questionId={question.id}
+                          isMobile={isMobile}
+                          isStaff={isStaff}
+                          announceNewMessage={(newCount: number) =>
+                            setNewMessagesInQueueChats(
+                              (prevCount) => prevCount + newCount,
+                            )
+                          }
+                          onOpen={() => {
+                            setChatbotOpen(false)
+                            setRenderSmallChatbot(false)
+                            setCurrentChatQuestionId(question.id)
+                          }}
+                          onClose={() => {
+                            setRenderSmallChatbot(true)
+                            setCurrentChatQuestionId(-1)
+                          }}
+                          hidden={
+                            (currentChatQuestionId != question.id &&
+                              currentChatQuestionId != -1) ||
+                            (isMobile && isChatbotOpen)
+                          }
+                        />
+                      )
+                    })}
+                  </div>
+                </Drawer>
+                {helpingQuestions.length > 0 && (
+                  <div
+                    className={`${mobileQueueChatOpen || isChatbotOpen ? 'hidden ' : ''}fixed bottom-5 right-5 z-50 flex justify-end md:left-2`}
+                  >
+                    <Popover
+                      content={`Message ${helpingQuestions[0].creator.name}`}
+                      placement={'left'}
+                      open={!seenChatPopover}
+                    >
+                      <Badge
+                        count={newMessagesInQueueChats}
+                        overflowCount={99}
+                        offset={[-4, 4]}
+                      >
+                        <Button
+                          type="primary"
+                          size="large"
+                          className={`box-border rounded-full p-6 shadow-lg`}
+                          icon={<MessageCircleMore />}
+                          onClick={() => {
+                            setMobileQueueChatOpen(true)
+                            setNewMessagesInQueueChats(0)
+                          }}
+                        />
+                      </Badge>
+                    </Popover>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div
+                className={`fixed bottom-1 right-0 box-border max-h-[70vh] ${isChatbotOpen ? 'md:right-[408px]' : 'md:right-[9.5rem]'}`}
+              >
+                <div
+                  className={
+                    'box-border flex h-full max-w-[50vw] flex-row items-end justify-end gap-2 overflow-x-auto overflow-y-hidden'
+                  }
+                >
+                  {helpingQuestions.map((question) => {
+                    return (
+                      <QueueChat
+                        key={question.id}
+                        queueId={qid}
+                        questionId={question.id}
+                        isMobile={isMobile}
+                        isStaff={isStaff}
+                        hidden={false}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -1023,6 +1173,45 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                 />
               </>
             )}
+            {studentQuestion &&
+            studentQuestion.status == OpenQuestionStatus.Helping ? (
+              <QueueChat
+                queueId={qid}
+                questionId={studentQuestion.id}
+                isMobile={isMobile}
+                isStaff={isStaff}
+                hidden={isMobile && isChatbotOpen}
+                isChatbotOpen={isChatbotOpen}
+                onOpen={() => {
+                  if (isMobile) {
+                    setChatbotOpen(false)
+                    setRenderSmallChatbot(false)
+                  }
+                }}
+                onClose={() => {
+                  if (isMobile) setRenderSmallChatbot(true)
+                }}
+              />
+            ) : studentDemo &&
+              studentDemo.status == OpenQuestionStatus.Helping ? (
+              <QueueChat
+                queueId={qid}
+                questionId={studentDemo.id}
+                isMobile={isMobile}
+                isStaff={isStaff}
+                hidden={isMobile && isChatbotOpen}
+                isChatbotOpen={isChatbotOpen}
+                onOpen={() => {
+                  if (isMobile) {
+                    setChatbotOpen(false)
+                    setRenderSmallChatbot(false)
+                  }
+                }}
+                onClose={() => {
+                  if (isMobile) setRenderSmallChatbot(true)
+                }}
+              />
+            ) : null}
           </>
         )}
       </div>
