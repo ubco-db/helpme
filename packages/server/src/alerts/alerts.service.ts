@@ -7,14 +7,11 @@ import {
 import { pick } from 'lodash';
 import { Injectable } from '@nestjs/common';
 import { QuestionModel } from 'question/question.entity';
-import { Connection } from 'typeorm';
 import { QueueModel } from '../queue/queue.entity';
 import { AlertModel } from './alerts.entity';
 
 @Injectable()
 export class AlertsService {
-  constructor(private connection: Connection) {}
-
   async removeStaleAlerts(alerts: AlertModel[]): Promise<Alert[]> {
     const nonStaleAlerts = [];
 

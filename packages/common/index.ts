@@ -71,7 +71,6 @@ export class User {
   desktopNotifsEnabled!: boolean
   @Type(() => DesktopNotifPartial)
   desktopNotifs!: DesktopNotifPartial[]
-  insights!: string[]
   userRole!: string
   organization?: OrganizationUserPartial
   chat_token!: ChatTokenPartial

@@ -108,7 +108,6 @@ export class ProfileController {
       'defaultMessage',
       'includeDefaultMessage',
       'desktopNotifsEnabled',
-      'insights',
       'userRole',
       'accountType',
       'emailVerified',

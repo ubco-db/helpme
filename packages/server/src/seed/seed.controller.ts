@@ -376,11 +376,6 @@ export class SeedController {
         email: 'Ramon@ubc.ca',
         firstName: 'Ramon',
         lastName: 'Lawrence',
-        insights: [
-          'QuestionTypeBreakdown',
-          'TotalQuestionsAsked',
-          'TotalStudents',
-        ],
         password: hashedPassword1,
         emailVerified: true,
       });
