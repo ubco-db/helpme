@@ -622,6 +622,7 @@ export class OrganizationController {
     }
   }
 
+  // For course archival
   @Patch(':oid/update_course_access/:cid')
   @UseGuards(
     JwtAuthGuard,

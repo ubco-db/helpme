@@ -256,7 +256,9 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
 
                   <div className="absolute right-2 top-2 flex flex-wrap items-center justify-between align-middle">
                     <Popover content={popoverContent} title={semester.name}>
-                      <Tag color="blue">{semester?.name ?? ''}</Tag>
+                      <Tag color="blue" className="text-base">
+                        {semester?.name ?? ''}
+                      </Tag>
                     </Popover>
                   </div>
 
