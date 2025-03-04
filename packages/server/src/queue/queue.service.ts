@@ -71,10 +71,11 @@ export class QueueService {
         TANotes:
           user.courses.find((ucm) => ucm.courseId === queue.courseId)
             ?.TANotes ?? '',
-        extraStatus:
-          staffHelpingInOtherQueue?.courseId !== queue.courseId
+        extraStatus: !staffHelpingInOtherQueue
+          ? undefined
+          : staffHelpingInOtherQueue.courseId !== queue.courseId
             ? ExtraTAStatus.HELPING_IN_ANOTHER_COURSE
-            : staffHelpingInOtherQueue?.queueId !== queueId
+            : staffHelpingInOtherQueue.queueId !== queueId
               ? ExtraTAStatus.HELPING_IN_ANOTHER_QUEUE
               : undefined,
         helpingStudentInAnotherQueueSince: staffHelpingInOtherQueue?.helpedAt,
