@@ -32,6 +32,10 @@ module.exports = function (options) {
       ],
     },
     devtool: 'source-map',
-    plugins: [],
+    plugins: [   sentryWebpackPlugin({
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      org: "university-of-british-colum-p0",
+      project: "helpme-nestjs",
+    }),],
   };
 };

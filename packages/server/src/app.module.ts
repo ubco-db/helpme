@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -37,6 +36,7 @@ import { BackupModule } from 'backup/backup.module';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { RateLimitExceptionFilter } from 'exception_filters/429-exception.filter';
 import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
+import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter';
 
 @Module({
   imports: [
@@ -93,7 +93,7 @@ import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
   providers: [
     {
       provide: APP_FILTER,
-      useClass: SentryGlobalFilter,
+      useClass: BaseExceptionFilter,
     },
     {
       provide: APP_GUARD,
