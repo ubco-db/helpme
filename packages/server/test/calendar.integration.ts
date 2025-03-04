@@ -23,11 +23,9 @@ import { UserModel } from 'profile/user.entity';
 import { OrganizationModel } from 'organization/organization.entity';
 
 describe('Calendar Integration', () => {
-  const { supertest, getTestModule } = setupIntegrationTest(
-    CalendarModule,
-    undefined,
-    [OrganizationModule],
-  );
+  const { supertest } = setupIntegrationTest(CalendarModule, undefined, [
+    OrganizationModule,
+  ]);
 
   let ta1: UserModel;
   let ta2: UserModel;

@@ -60,7 +60,7 @@ The navigation elements are as follows:
   - On the course page on the left side there is a list of queues with a list of which staff are checked into each queue (a queue with checked-in staff have an animated border). 
   - Just below this list of queues there is a card that takes you to the Anytime Question Hub. 
   - And just below that is a graph that shows estimated wait times at various times at various times of the week. 
-  - On the right side of the course page, depending on how the professor customizes it, there will either be a window for the course chatbot or a condensed view of the schedule. If you see the schedule, at the bottom-right of the page there will be a little "Chat Now" button that also opens up the course chatbot. 
+  - On the right side of the course page, depending on how the professor customizes it, there will either be a window for the course chatbot or a condensed view of the schedule. If you see the schedule, at the bottom-right corner of the page there will be a little "Chatbot" button that also opens up the course chatbot. 
 - **Queue Page**: 
   - On the left side of the page (on desktop) is the Queue Info Column, which looks different for staff and students. This column gets transformed to be at the top of the page on mobile. The breakdown for what this column has for staff and students is as follows:
     - Staff:
@@ -104,7 +104,7 @@ The navigation elements are as follows:
       - If the question is still being drafted (in an unfinished state), the question card will have "Unfinished Question" in larger text on the question card.
   - Once a student is helped, a popup modal will show telling the student that they are now being helped. If the queue is online (or hybrid and the question is online), the student will be told to join the zoom meeting via the link set in the Edit Queue Details popup modal.
   - There is also a little "First In First Out"/"Tag Groups" toggle at the top-right that will either show the queue as a regular FIFO queue or to group all the questions by their tag (default is FIFO), and this can be useful if you want to say answer all the "Part 4" questions before the "Part 3" questions of your lab, that way you can keep your mind in the same mindset to help questions faster. Students can also be on "Tag Groups" mode, allowing them to just 1-click join a tag group. These two views (and the default view) can be modified in the queue config.
-  - At the bottom-right side of the page is a little "Chat now!" blue button which will open up the chatbot modal
+  - At the bottom-corner of the page is a little "chatbot" blue button which will open up the chatbot modal
 - **Anytime Qs**/**Anytime Question Hub Page**:
   - On the left side of the page is a blue button to "Post Question". Clicking this will open a popup modal asking for the question abstract (short summary), the question text, and the categories the question falls under (question tags). Once posted, students will immediately get an AI answer and can choose whether or not they are satisfied with said answer, in which staff will be notified to come give a human answer.
     - Note that staff also have the option to do this so that they can better learn the system or for their own demonstration purposes. It's not really intended to be used by staff.
@@ -125,7 +125,7 @@ The navigation elements are as follows:
 - **Schedule Page**:
   - For students, this page can be viewed to see what times certain events are (such as lab/office hour times or what TA is in at what times)
   - For staff, here you can create recurring or one-time events. You can also assign staff to these events so they get prompted and auto-checked out when the event ends (strongly recommended). You can click and drag on the calendar to create an event or you can click the "Add Event" button at the top-right.
-  - At the bottom-right side of the page is a little "Chat now!" blue button which will open up the chatbot modal
+  - At the bottom corner of the page is a little "Chatbot" blue button which will open up the chatbot modal
 - **Course Settings** (staff-only):
   - General Settings (professor-only)
     - Can customize the course name, coordinator email, section group name, course-wide zoom link, timezone, semester, and professors
@@ -185,7 +185,7 @@ For queue questions:
 5. Once the staff member starts helping you, either you will go to the staff member or the staff member will come to you (or if it's online/hybrid, you will need to join the Zoom or Teams meeting. You should get a popup modal with a link you can click to do so). 
 
 For chatbot questions:
-1. If you are on the course page, there should be a big chatbot window where you can ask chatbot questions. Otherwise, there is a little blue "Chat Now!" button at the bottom-right of the screen on most pages that you can chat with.
+1. If you are on the course page, there should be a big chatbot window where you can ask chatbot questions. Otherwise, there is a little blue "Chatbot" button at the bottom-corner of the screen on most pages that you can chat with.
 
 For anytime questions:
 1. You must be on the Anytime Question Hub page (can click the "Anytime Qs" on the navbar). There, you should see a large blue "Post Question" button that you can click.
@@ -224,10 +224,6 @@ To get help from a TA, join a queue with staff checked in and they will help you
 ### What is the zoom link?
 
 Once you start getting helped, a popup modal should show with a link to the zoom meeting. Otherwise, it may be posted in the queue notes on the top left side of your screen (desktop) or near the middle (mobile).
-
-### How can I delete an Anytime question?
-
-Anytime questions can only be edited or deleted before responding with "Satisfied" or "Still need faculty Help". This is because emails are sent out to staff after clicking "Still need faculty Help" and cannot be edited/deleted. On the bright side, if the staff member likes your question enough, they might mark it public so other students may see it (but you will still remain anonymous).
 
 ## Staff FAQ
 

@@ -228,9 +228,12 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           initialValues={{
             QuestionAbstract: question?.questionAbstract,
             questionText: question?.questionText,
-            questionTypesInput: question?.questionTypes?.map(
-              (questionType) => questionType.id,
-            ),
+            questionTypesInput:
+              questionTypes && questionTypes.length > 0
+                ? question?.questionTypes?.map(
+                    (questionType) => questionType.id,
+                  )
+                : [],
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}

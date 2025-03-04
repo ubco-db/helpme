@@ -3,8 +3,11 @@ import { setupIntegrationTest } from './util/testUtils';
 import {
   CourseFactory,
   mailServiceFactory,
+  OrganizationCourseFactory,
   OrganizationFactory,
+  OrganizationUserFactory,
   SemesterFactory,
+  UserCourseFactory,
   UserFactory,
 } from './util/factories';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -19,7 +22,7 @@ import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 
 describe('Organization Integration', () => {
-  const { supertest, getTestModule } = setupIntegrationTest(OrganizationModule);
+  const { supertest } = setupIntegrationTest(OrganizationModule);
 
   describe('POST /organization/:oid/populate_chat_token_table', () => {
     it('should return 401 when user is not logged in', async () => {
@@ -926,7 +929,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin', async () => {
+    it('should return 403 when user lacks sufficient role', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
@@ -934,18 +937,18 @@ describe('Organization Integration', () => {
       await OrganizationUserModel.create({
         userId: user.id,
         organizationId: organization.id,
-      }).save();
+      }).save(); // not a prof
 
       await OrganizationCourseModel.create({
         courseId: course.id,
         organizationId: organization.id,
-      }).save();
+      }).save(); // not a prof nor admin
 
       const res = await supertest({ userId: user.id }).patch(
         `/organization/${organization.id}/update_course/${course.id}`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 404 when course not found', async () => {
@@ -1118,7 +1121,7 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(400);
     });
 
-    it('should return 200 when course is updated', async () => {
+    it('should return 200 when course is updated (org admin)', async () => {
       const user = await UserFactory.create();
       const professor1 = await UserFactory.create();
       const professor2 = await UserFactory.create();
@@ -1148,6 +1151,77 @@ describe('Organization Integration', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Course updated successfully');
+    });
+    it('should return 200 when course is updated (course professor)', async () => {
+      const user = await UserFactory.create();
+      const professor1 = await UserFactory.create();
+      const professor2 = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+        role: OrganizationRole.PROFESSOR,
+      }).save();
+
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+
+      await UserCourseModel.create({
+        userId: user.id,
+        courseId: course.id,
+        role: Role.PROFESSOR,
+      }).save();
+
+      const res = await supertest({ userId: user.id })
+        .patch(`/organization/${organization.id}/update_course/${course.id}`)
+        .send({
+          name: 'newName',
+          timezone: 'America/Los_Angeles',
+          sectionGroupName: 'test',
+          semesterName: 'Fall,2021',
+          profIds: [professor1.id, professor2.id],
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Course updated successfully');
+    });
+    it('should prevent org professors who are a student in the course from updating the course', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+        role: OrganizationRole.PROFESSOR, // org professor
+      }).save();
+
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+
+      await UserCourseModel.create({
+        userId: user.id,
+        courseId: course.id,
+        role: Role.STUDENT, // course student
+      }).save();
+
+      const res = await supertest({ userId: user.id })
+        .patch(`/organization/${organization.id}/update_course/${course.id}`)
+        .send({
+          name: 'newName',
+          timezone: 'America/Los_Angeles',
+          sectionGroupName: 'test',
+          semesterName: 'Fall,2021',
+          profIds: [user.id], // try to make me the only prof in the course
+        });
+
+      expect(res.status).toBe(403);
     });
   });
 
@@ -1239,92 +1313,87 @@ describe('Organization Integration', () => {
 
   describe('POST /organization/:oid/populate_subscription_table', () => {
     it('should populate subscription table correctly for member who is TA in a course', async () => {
-      try {
-        const admin = await UserFactory.create();
-        const organization = await OrganizationFactory.create();
-        const memberTA = await UserFactory.create();
-        const course = await CourseFactory.create();
+      const admin = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const memberTA = await UserFactory.create();
+      const course = await CourseFactory.create();
 
-        // Set up admin
-        await OrganizationUserModel.create({
-          userId: admin.id,
-          organizationId: organization.id,
-          role: OrganizationRole.ADMIN,
-        }).save();
+      // Set up admin
+      await OrganizationUserModel.create({
+        userId: admin.id,
+        organizationId: organization.id,
+        role: OrganizationRole.ADMIN,
+      }).save();
 
-        // Set up member who is also a TA
-        await OrganizationUserModel.create({
-          userId: memberTA.id,
-          organizationId: organization.id,
-          role: OrganizationRole.MEMBER,
-        }).save();
+      // Set up member who is also a TA
+      await OrganizationUserModel.create({
+        userId: memberTA.id,
+        organizationId: organization.id,
+        role: OrganizationRole.MEMBER,
+      }).save();
 
-        // Add memberTA as TA to the course
-        await UserCourseModel.create({
-          userId: memberTA.id,
-          courseId: course.id,
-          role: Role.TA,
-        }).save();
+      // Add memberTA as TA to the course
+      await UserCourseModel.create({
+        userId: memberTA.id,
+        courseId: course.id,
+        role: Role.TA,
+      }).save();
 
-        // Create mail services
-        const memberService = await mailServiceFactory.create({
-          mailType: OrganizationRole.MEMBER,
-          serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
-        });
+      // Create mail services
+      const memberService = await mailServiceFactory.create({
+        mailType: OrganizationRole.MEMBER,
+        serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
+      });
 
-        const profService = await mailServiceFactory.create({
-          mailType: OrganizationRole.PROFESSOR,
-          serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
-        });
+      const profService = await mailServiceFactory.create({
+        mailType: OrganizationRole.PROFESSOR,
+        serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
+      });
 
-        await UserSubscriptionModel.delete({});
+      await UserSubscriptionModel.delete({});
 
-        const res = await supertest({ userId: admin.id }).post(
-          `/organization/${organization.id}/populate_subscription_table`,
-        );
+      const res = await supertest({ userId: admin.id }).post(
+        `/organization/${organization.id}/populate_subscription_table`,
+      );
 
-        expect(res.status).toBe(200);
-        expect(res.body.message).toBe('Subscription table populated');
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Subscription table populated');
 
-        // Verify subscriptions for memberTA
-        const memberTASubscriptions = await UserSubscriptionModel.find({
-          where: { userId: memberTA.id },
-        });
+      // Verify subscriptions for memberTA
+      const memberTASubscriptions = await UserSubscriptionModel.find({
+        where: { userId: memberTA.id },
+      });
 
-        expect(memberTASubscriptions.length).toBe(2); // Should have all 2 subscriptions
+      expect(memberTASubscriptions.length).toBe(2); // Should have all 2 subscriptions
 
-        // Check each subscription
-        const memberServiceSub = memberTASubscriptions.find(
-          (s) => s.serviceId === memberService.id,
-        );
-        const profServiceSub = memberTASubscriptions.find(
-          (s) => s.serviceId === profService.id,
-        );
+      // Check each subscription
+      const memberServiceSub = memberTASubscriptions.find(
+        (s) => s.serviceId === memberService.id,
+      );
+      const profServiceSub = memberTASubscriptions.find(
+        (s) => s.serviceId === profService.id,
+      );
 
-        expect(memberServiceSub).toBeDefined();
-        expect(memberServiceSub?.isSubscribed).toBe(false); // Member service should be disabled
+      expect(memberServiceSub).toBeDefined();
+      expect(memberServiceSub?.isSubscribed).toBe(true); // everyone is subscribed
 
-        expect(profServiceSub).toBeDefined();
-        expect(profServiceSub?.isSubscribed).toBe(true);
+      expect(profServiceSub).toBeDefined();
+      expect(profServiceSub?.isSubscribed).toBe(true);
 
-        // Verify admin subscriptions (should remain unchanged)
-        const adminSubscriptions = await UserSubscriptionModel.find({
-          where: { userId: admin.id },
-        });
+      // Verify admin subscriptions (should remain unchanged)
+      const adminSubscriptions = await UserSubscriptionModel.find({
+        where: { userId: admin.id },
+      });
 
-        expect(adminSubscriptions.length).toBe(2);
-        expect(
-          adminSubscriptions.find((s) => s.serviceId === memberService.id)
-            ?.isSubscribed,
-        ).toBe(false);
-        expect(
-          adminSubscriptions.find((s) => s.serviceId === profService.id)
-            ?.isSubscribed,
-        ).toBe(true);
-      } catch (error) {
-        console.error('Test error:', error);
-        throw error;
-      }
+      expect(adminSubscriptions.length).toBe(2);
+      expect(
+        adminSubscriptions.find((s) => s.serviceId === memberService.id)
+          ?.isSubscribed,
+      ).toBe(true);
+      expect(
+        adminSubscriptions.find((s) => s.serviceId === profService.id)
+          ?.isSubscribed,
+      ).toBe(true);
     });
 
     it('should return 401 when user is not logged in', async () => {
@@ -1354,162 +1423,153 @@ describe('Organization Integration', () => {
     });
 
     it('should populate subscription table successfully', async () => {
-      try {
-        const admin = await UserFactory.create();
-        const organization = await OrganizationFactory.create();
-        const member = await UserFactory.create();
+      const admin = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const member = await UserFactory.create();
 
-        await OrganizationUserModel.create({
-          userId: admin.id,
-          organizationId: organization.id,
-          role: OrganizationRole.ADMIN,
-        }).save();
+      await OrganizationUserModel.create({
+        userId: admin.id,
+        organizationId: organization.id,
+        role: OrganizationRole.ADMIN,
+      }).save();
 
-        await OrganizationUserModel.create({
-          userId: member.id,
-          organizationId: organization.id,
-          role: OrganizationRole.MEMBER,
-        }).save();
+      await OrganizationUserModel.create({
+        userId: member.id,
+        organizationId: organization.id,
+        role: OrganizationRole.MEMBER,
+      }).save();
 
-        // Create mail services
-        const memberService = await mailServiceFactory.create({
-          mailType: OrganizationRole.MEMBER,
-          serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
-        });
-        const adminService = await mailServiceFactory.create({
-          mailType: OrganizationRole.ADMIN,
-          serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
-        });
+      // Create mail services
+      const memberService = await mailServiceFactory.create({
+        mailType: OrganizationRole.MEMBER,
+        serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
+      });
+      const adminService = await mailServiceFactory.create({
+        mailType: OrganizationRole.ADMIN,
+        serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
+      });
 
-        await UserSubscriptionModel.delete({});
+      await UserSubscriptionModel.delete({});
 
-        const existingSubscriptions = await UserSubscriptionModel.find();
+      const existingSubscriptions = await UserSubscriptionModel.find();
 
-        const res = await supertest({ userId: admin.id }).post(
-          `/organization/${organization.id}/populate_subscription_table`,
-        );
+      const res = await supertest({ userId: admin.id }).post(
+        `/organization/${organization.id}/populate_subscription_table`,
+      );
 
-        expect(res.status).toBe(200);
-        expect(res.body.message).toBe('Subscription table populated');
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Subscription table populated');
 
-        // Verify that the subscriptions were created correctly
-        const subscriptions = await UserSubscriptionModel.find({
-          where: [{ userId: admin.id }, { userId: member.id }],
-        });
+      // Verify that the subscriptions were created correctly
+      const subscriptions = await UserSubscriptionModel.find({
+        where: [{ userId: admin.id }, { userId: member.id }],
+      });
 
-        expect(subscriptions.length).toBe(3); // 2 for admin, 1 for member
+      expect(subscriptions.length).toBe(4); // 2 for admin, 2 for member
 
-        const adminSubscriptions = subscriptions.filter(
-          (s) => s.userId === admin.id,
-        );
-        const memberSubscriptions = subscriptions.filter(
-          (s) => s.userId === member.id,
-        );
+      const adminSubscriptions = subscriptions.filter(
+        (s) => s.userId === admin.id,
+      );
+      const memberSubscriptions = subscriptions.filter(
+        (s) => s.userId === member.id,
+      );
 
-        expect(adminSubscriptions.length).toBe(2);
-        expect(memberSubscriptions.length).toBe(1);
+      expect(adminSubscriptions.length).toBe(2);
+      expect(memberSubscriptions.length).toBe(2); // member subscribed to all services too
 
-        expect(
-          adminSubscriptions.find((s) => s.serviceId === memberService.id)
-            ?.isSubscribed,
-        ).toBe(false);
-        expect(
-          adminSubscriptions.find((s) => s.serviceId === adminService.id)
-            ?.isSubscribed,
-        ).toBe(true);
-        expect(memberSubscriptions[0].isSubscribed).toBe(true);
-        expect(memberSubscriptions[0].serviceId).toBe(memberService.id);
-      } catch (error) {
-        console.error('Test error:', error);
-        throw error;
-      }
+      expect(
+        adminSubscriptions.find((s) => s.serviceId === memberService.id)
+          ?.isSubscribed,
+      ).toBe(true);
+      expect(
+        adminSubscriptions.find((s) => s.serviceId === adminService.id)
+          ?.isSubscribed,
+      ).toBe(true);
+      expect(memberSubscriptions[0].isSubscribed).toBe(true);
+      expect(memberSubscriptions[0].serviceId).toBe(memberService.id);
     });
 
     it('should populate subscription table correctly for regular member without TA role', async () => {
-      try {
-        const admin = await UserFactory.create();
-        const organization = await OrganizationFactory.create();
-        const regularMember = await UserFactory.create();
-        const course = await CourseFactory.create();
+      const admin = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const regularMember = await UserFactory.create();
+      const course = await CourseFactory.create();
 
-        // Set up admin
-        await OrganizationUserModel.create({
-          userId: admin.id,
-          organizationId: organization.id,
-          role: OrganizationRole.ADMIN,
-        }).save();
+      // Set up admin
+      await OrganizationUserModel.create({
+        userId: admin.id,
+        organizationId: organization.id,
+        role: OrganizationRole.ADMIN,
+      }).save();
 
-        // Set up regular member
-        await OrganizationUserModel.create({
-          userId: regularMember.id,
-          organizationId: organization.id,
-          role: OrganizationRole.MEMBER,
-        }).save();
+      // Set up regular member
+      await OrganizationUserModel.create({
+        userId: regularMember.id,
+        organizationId: organization.id,
+        role: OrganizationRole.MEMBER,
+      }).save();
 
-        // Add regularMember as student to the course
-        await UserCourseModel.create({
-          userId: regularMember.id,
-          courseId: course.id,
-          role: Role.STUDENT,
-        }).save();
+      // Add regularMember as student to the course
+      await UserCourseModel.create({
+        userId: regularMember.id,
+        courseId: course.id,
+        role: Role.STUDENT,
+      }).save();
 
-        // Create mail services
-        const memberService = await mailServiceFactory.create({
-          mailType: OrganizationRole.MEMBER,
-          serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
-        });
+      // Create mail services
+      const memberService = await mailServiceFactory.create({
+        mailType: OrganizationRole.MEMBER,
+        serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
+      });
 
-        const profService = await mailServiceFactory.create({
-          mailType: OrganizationRole.PROFESSOR,
-          serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
-        });
+      const profService = await mailServiceFactory.create({
+        mailType: OrganizationRole.PROFESSOR,
+        serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
+      });
 
-        await UserSubscriptionModel.delete({});
+      await UserSubscriptionModel.delete({});
 
-        const res = await supertest({ userId: admin.id }).post(
-          `/organization/${organization.id}/populate_subscription_table`,
-        );
+      const res = await supertest({ userId: admin.id }).post(
+        `/organization/${organization.id}/populate_subscription_table`,
+      );
 
-        expect(res.status).toBe(200);
-        expect(res.body.message).toBe('Subscription table populated');
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Subscription table populated');
 
-        // Verify subscriptions for regularMember
-        const regularMemberSubscriptions = await UserSubscriptionModel.find({
-          where: { userId: regularMember.id },
-        });
+      // Verify subscriptions for regularMember
+      const regularMemberSubscriptions = await UserSubscriptionModel.find({
+        where: { userId: regularMember.id },
+      });
 
-        expect(regularMemberSubscriptions.length).toBe(1); // Should have only 1 subscription
+      expect(regularMemberSubscriptions.length).toBe(2); // Should be subscribed to all
 
-        // Check the subscription
-        const memberServiceSub = regularMemberSubscriptions[0];
+      // Check the subscription
+      const memberServiceSub = regularMemberSubscriptions[0];
 
-        expect(memberServiceSub.serviceId).toBe(memberService.id);
-        expect(memberServiceSub.isSubscribed).toBe(true); // Member service should be enabled
+      expect(memberServiceSub.serviceId).toBe(memberService.id);
+      expect(memberServiceSub.isSubscribed).toBe(true); // Member service should be enabled
 
-        // Verify that there's no professor subscription for regular member
-        const profServiceSub = regularMemberSubscriptions.find(
-          (s) => s.serviceId === profService.id,
-        );
-        expect(profServiceSub).toBeUndefined();
+      // Verify that there's a professor subscription for regular member
+      const profServiceSub = regularMemberSubscriptions.find(
+        (s) => s.serviceId === profService.id,
+      );
+      expect(profServiceSub).toBeDefined();
+      expect(profServiceSub?.isSubscribed).toBe(true);
 
-        // Verify admin subscriptions (should remain unchanged)
-        const adminSubscriptions = await UserSubscriptionModel.find({
-          where: { userId: admin.id },
-        });
+      // Verify admin subscriptions (should remain unchanged)
+      const adminSubscriptions = await UserSubscriptionModel.find({
+        where: { userId: admin.id },
+      });
 
-        expect(adminSubscriptions.length).toBe(2);
-        expect(
-          adminSubscriptions.find((s) => s.serviceId === memberService.id)
-            ?.isSubscribed,
-        ).toBe(false);
-        expect(
-          adminSubscriptions.find((s) => s.serviceId === profService.id)
-            ?.isSubscribed,
-        ).toBe(true);
-      } catch (error) {
-        console.error('Test error:', error);
-        throw error;
-      }
+      expect(adminSubscriptions.length).toBe(2);
+      expect(
+        adminSubscriptions.find((s) => s.serviceId === memberService.id)
+          ?.isSubscribed,
+      ).toBe(true); // members are subscribed to everything now
+      expect(
+        adminSubscriptions.find((s) => s.serviceId === profService.id)
+          ?.isSubscribed,
+      ).toBe(true);
     });
   });
 
@@ -1596,8 +1656,7 @@ describe('Organization Integration', () => {
 
       expect(response.status).toBe(401);
     });
-
-    it('should return 401 when user is not admin', async () => {
+    it('should return 403 when user is not admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
@@ -1616,10 +1675,9 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/get_course/${course.id}`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
-
-    it('should return 404 when course is not found', async () => {
+    it('should return 404 when course is not found (and user is admin)', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -1631,6 +1689,155 @@ describe('Organization Integration', () => {
 
       const res = await supertest({ userId: user.id }).get(
         `/organization/${organization.id}/get_course/0`,
+      );
+
+      expect(res.status).toBe(404);
+    });
+    it('should return 404 when course is not found (and user is course prof)', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization,
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+      await UserCourseFactory.create({
+        user,
+        course,
+        role: Role.PROFESSOR,
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/0`,
+      );
+
+      expect(res.status).toBe(404);
+    });
+    it('should return 200 when course is found and user is admin', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization,
+        role: OrganizationRole.ADMIN,
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`,
+      );
+
+      expect(res.status).toBe(200);
+    });
+    it('OrgOrCourseRolesGuard: should return 200 when the user is an org member but course professor', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization,
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+      await UserCourseFactory.create({
+        user,
+        course,
+        role: Role.PROFESSOR,
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`,
+      );
+
+      expect(res.status).toBe(200);
+    });
+    it('OrgOrCourseRolesGuard: should return 403 when the user is an org member and course student', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+      }).save();
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+      await UserCourseModel.create({
+        userId: user.id,
+        courseId: course.id,
+        role: Role.STUDENT,
+      }).save();
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`,
+      );
+
+      expect(res.status).toBe(403);
+    });
+    it('OrgOrCourseRolesGuard: should return 404 when the user is an org prof in one org and member in the main org', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      const otherOrganization = await OrganizationFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: otherOrganization,
+        role: OrganizationRole.PROFESSOR, // prof in other org
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`,
+      );
+
+      expect(res.status).toBe(404);
+    });
+    it('OrgOrCourseRolesGuard: should return 404 when the user is a course prof in one org and a member in the main org', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      const otherCourse = await CourseFactory.create();
+      const otherOrganization = await OrganizationFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: otherOrganization, // a member in other org
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+      await OrganizationCourseFactory.create({
+        course: otherCourse,
+        organization: otherOrganization,
+      });
+      await UserCourseFactory.create({
+        user,
+        course: otherCourse,
+        role: Role.PROFESSOR, // they are a course prof in other org
+      });
+
+      const res = await supertest({ userId: user.id }).get(
+        `/organization/${organization.id}/get_course/${course.id}`, // try to access main org's course
       );
 
       expect(res.status).toBe(404);
@@ -1989,24 +2196,43 @@ describe('Organization Integration', () => {
 
       expect(response.status).toBe(401);
     });
-
-    it('should return 401 when is not admin', async () => {
+    it('should not remove users from their courses if they lack sufficient role', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      const userTwo = await UserFactory.create();
 
       await OrganizationUserModel.create({
         userId: user.id,
         organizationId: organization.id,
       }).save();
+      await OrganizationUserModel.create({
+        userId: userTwo.id,
+        organizationId: organization.id,
+      }).save();
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+      await UserCourseModel.create({
+        userId: userTwo.id,
+        courseId: course.id,
+      }).save();
 
-      const res = await supertest({ userId: user.id }).delete(
-        `/organization/${organization.id}/drop_user_courses/1`,
-      );
+      const res = await supertest({ userId: user.id })
+        .delete(
+          `/organization/${organization.id}/drop_user_courses/${userTwo.id}`,
+        )
+        .send([course.id]);
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
+      // check to make sure the user is still in the course
+      const userCourses = await UserCourseModel.find({
+        where: { userId: userTwo.id },
+      });
+      expect(userCourses.length).toBe(1);
     });
-
-    it('should return 400 when body userCourses is empty', async () => {
+    it('should return 404 when no courses specified', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const userTwo = await UserFactory.create();
@@ -2028,11 +2254,9 @@ describe('Organization Integration', () => {
         )
         .send([]);
 
-      expect(res.status).toBe(400);
-      expect(res.body.message).toBe("User doesn't have any courses to delete");
+      expect(res.status).toBe(404);
     });
-
-    it('should return 401 when user to update is organization admin', async () => {
+    it('should return 403 when user to update is organization admin', async () => {
       const user = await UserFactory.create();
       const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
@@ -2055,16 +2279,25 @@ describe('Organization Integration', () => {
         organizationId: organization.id,
       }).save();
 
+      await UserCourseModel.create({
+        userId: userTwo.id,
+        courseId: course.id,
+      }).save();
+
       const res = await supertest({ userId: user.id })
         .delete(
           `/organization/${organization.id}/drop_user_courses/${userTwo.id}`,
         )
         .send([course.id]);
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
+      // check to make sure the user is still in the course
+      const userCourses = await UserCourseModel.find({
+        where: { userId: userTwo.id },
+      });
+      expect(userCourses.length).toBe(1);
     });
-
-    it('should return 401 when user to update is global admin', async () => {
+    it('should return 403 when user to update is global admin', async () => {
       const user = await UserFactory.create();
       const userTwo = await UserFactory.create({
         userRole: UserRole.ADMIN,
@@ -2088,20 +2321,30 @@ describe('Organization Integration', () => {
         organizationId: organization.id,
       }).save();
 
+      await UserCourseModel.create({
+        userId: userTwo.id,
+        courseId: course.id,
+      }).save();
+
       const res = await supertest({ userId: user.id })
         .delete(
           `/organization/${organization.id}/drop_user_courses/${userTwo.id}`,
         )
         .send([course.id]);
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
+      // check to make sure the user is still in the course
+      const userCourses = await UserCourseModel.find({
+        where: { userId: userTwo.id },
+      });
+      expect(userCourses.length).toBe(1);
     });
-
-    it('should return 200 when user courses are deleted', async () => {
+    it('should allow admins to drop a user from multiple courses', async () => {
       const user = await UserFactory.create();
       const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
+      const course2 = await CourseFactory.create();
 
       await OrganizationUserModel.create({
         userId: user.id,
@@ -2118,23 +2361,35 @@ describe('Organization Integration', () => {
         courseId: course.id,
         organizationId: organization.id,
       }).save();
+      await OrganizationCourseModel.create({
+        courseId: course2.id,
+        organizationId: organization.id,
+      }).save();
 
       await UserCourseModel.create({
         userId: userTwo.id,
         courseId: course.id,
+      }).save();
+      await UserCourseModel.create({
+        userId: userTwo.id,
+        courseId: course2.id,
       }).save();
 
       const res = await supertest({ userId: user.id })
         .delete(
           `/organization/${organization.id}/drop_user_courses/${userTwo.id}`,
         )
-        .send([course.id]);
+        .send([course.id, course2.id]);
 
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('User courses deleted');
+      // check to make sure the user is no longer in the courses
+      const userCourses = await UserCourseModel.find({
+        where: { userId: userTwo.id },
+      });
+      expect(userCourses.length).toBe(0);
     });
-
-    it('Should allow organization professors to drop students from their courses', async () => {
+    it('Should allow org+course professors to drop students from their courses', async () => {
       const professor = await UserFactory.create();
       const student = await UserFactory.create();
       const organization = await OrganizationFactory.create();
@@ -2143,7 +2398,7 @@ describe('Organization Integration', () => {
       await OrganizationUserModel.create({
         userId: professor.id,
         organizationId: organization.id,
-        role: OrganizationRole.PROFESSOR,
+        role: OrganizationRole.PROFESSOR, // org professor
       }).save();
       await OrganizationUserModel.create({
         userId: student.id,
@@ -2158,6 +2413,7 @@ describe('Organization Integration', () => {
       await UserCourseModel.create({
         userId: professor.id,
         courseId: course.id,
+        role: Role.PROFESSOR, // also course professor (you need to be a course professor in the course in order to drop students)
       }).save();
       await UserCourseModel.create({
         userId: student.id,
@@ -2172,8 +2428,123 @@ describe('Organization Integration', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('User courses deleted');
+      // check to make sure the user is no longer in the course
+      const userCourses = await UserCourseModel.find({
+        where: { userId: student.id },
+      });
+      expect(userCourses.length).toBe(0);
     });
-    it('Should return 401 when a professor tries to drop a student from a course they are not teaching', async () => {
+    it('Should allow course professors to drop students from their courses', async () => {
+      const professor = await UserFactory.create();
+      const student = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: professor.id,
+        organizationId: organization.id,
+      }).save(); // org member
+      await OrganizationUserModel.create({
+        userId: student.id,
+        organizationId: organization.id,
+      }).save();
+
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+
+      await UserCourseModel.create({
+        userId: professor.id,
+        courseId: course.id,
+        role: Role.PROFESSOR, // but course professor
+      }).save();
+      await UserCourseModel.create({
+        userId: student.id,
+        courseId: course.id,
+      }).save();
+
+      const res = await supertest({ userId: professor.id })
+        .delete(
+          `/organization/${organization.id}/drop_user_courses/${student.id}`,
+        )
+        .send([course.id]);
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('User courses deleted');
+      // check to make sure the user is no longer in the course
+      const userCourses = await UserCourseModel.find({
+        where: { userId: student.id },
+      });
+      expect(userCourses.length).toBe(0);
+    });
+    it('Should not drop the student if the prof is not in all courses', async () => {
+      const professor = await UserFactory.create();
+      const student = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      const course2 = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: professor.id,
+        organizationId: organization.id,
+      }).save();
+      await OrganizationUserModel.create({
+        userId: student.id,
+        organizationId: organization.id,
+      }).save();
+
+      await OrganizationCourseModel.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      }).save();
+      await OrganizationCourseModel.create({
+        courseId: course2.id,
+        organizationId: organization.id,
+      }).save();
+
+      await UserCourseModel.create({
+        userId: professor.id,
+        courseId: course.id,
+        role: Role.PROFESSOR,
+      }).save();
+      await UserCourseModel.create({
+        userId: student.id,
+        courseId: course.id,
+      }).save();
+      await UserCourseModel.create({
+        userId: student.id,
+        courseId: course2.id,
+      }).save();
+
+      const res = await supertest({ userId: professor.id })
+        .delete(
+          `/organization/${organization.id}/drop_user_courses/${student.id}`,
+        )
+        .send([course.id, course2.id]); // just in case you are curious, there is no case on the frontend where course profs area able to remove students outside of their course, this is just for robustness sake
+
+      expect(res.status).toBe(403);
+      // check to make sure the user is no longer in the course (but still in the other one)
+      const userCourses = await UserCourseModel.find({
+        where: { userId: student.id },
+      });
+      expect(userCourses.length).toBe(2);
+
+      // now just try to drop them from the other course
+      const res2 = await supertest({ userId: professor.id })
+        .delete(
+          `/organization/${organization.id}/drop_user_courses/${student.id}`,
+        )
+        .send([course2.id]);
+
+      expect(res2.status).toBe(403);
+      // check to make sure the user is still in the course
+      const userCourses2 = await UserCourseModel.find({
+        where: { userId: student.id },
+      });
+      expect(userCourses2.length).toBe(2);
+    });
+    it('Should return 403 when a professor tries to drop a student from a course they are not teaching', async () => {
       const professor = await UserFactory.create();
       const student = await UserFactory.create();
       const organization = await OrganizationFactory.create();
@@ -2213,7 +2584,12 @@ describe('Organization Integration', () => {
         )
         .send([course.id]);
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
+      // check to make sure no one was dropped
+      const userCourses = await UserCourseModel.find({
+        where: { userId: student.id },
+      });
+      expect(userCourses.length).toBe(1);
     });
   });
 
@@ -2293,7 +2669,7 @@ describe('Organization Integration', () => {
 
     it('should return 400 when user has no profile picture', async () => {
       const user = await UserFactory.create();
-      const userTwo = await UserFactory.create();
+      const userTwo = await UserFactory.create({ photoURL: null });
       const organization = await OrganizationFactory.create();
 
       await OrganizationUserModel.create({

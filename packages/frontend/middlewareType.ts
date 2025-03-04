@@ -27,7 +27,6 @@ export class User {
   sid?: number
   includeDefaultMessage!: boolean
   courses!: UserCourse[]
-  pendingCourses?: KhouryProfCourse[]
   desktopNotifsEnabled!: boolean
   desktopNotifs!: DesktopNotifPartial[]
   insights!: string[]
@@ -82,10 +81,4 @@ export enum Role {
   STUDENT = 'student',
   TA = 'ta',
   PROFESSOR = 'professor',
-}
-
-export class KhouryProfCourse {
-  crns!: number[]
-  semester!: string
-  name!: string
 }

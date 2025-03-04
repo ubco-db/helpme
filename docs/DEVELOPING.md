@@ -107,7 +107,7 @@ Also, you must update the `seed.controller.ts` file to reflect the new database 
 
 #### Migrations
 
-If you change an entity, you MUST run `yarn migration:generate -n [migration-name]`, to make the migration file, then `yarn typeorm migration:run` will automatically run on deployment to staging/production. Commit the migration file to Git!
+If you change an entity, you MUST run `yarn migration:generate -n [migration-name]`, to make the migration file, then `yarn migration:run` will automatically run on deployment to staging/production. Commit the migration file to Git!
 
 ### Adding an API Route
 
@@ -148,7 +148,7 @@ package, `cd packages/app` and then `yarn add <FRONTEND PACKAGE>`
 - In VSCode, the "Search" tab (Ctrl+Shift+F) is your best friend when you need to find something across the entire codebase (helpful for finding related files)
 - `Tailwind CSS IntelliSense` is a good VSCode extension that lets you autocomplete tailwind classes as well as give previews as to what each class does
 - In VSCode settings, enable `Explorer > File Nesting: Enabled` and `Explorer > File Nesting: Expand`, and especially set `Explorer: Sort Order` to **filesFirst**. This will make the file tree much more navigable.
-
+- Want to get to the course page, queue page, or another page quickly? In the top search bar in VSCode, try just searching "queue page" or "course page" and it will show related pages (should be easier than searching through the file folders manually)
 
 ## Testing the Production Environment
 

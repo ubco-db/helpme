@@ -21,7 +21,9 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:integration": "jest --config ./test/jest-integration.json -i",
     "dev:db:reset": "yarn typeorm schema:drop",
-    "migration:generate": "yarn typeorm schema:drop && yarn typeorm migration:run && yarn typeorm migration:generate",
+    "migration:generate": "yarn schema:drop && yarn migration:run && yarn typeorm migration:generate",
+    "migration:run": "yarn typeorm migration:run",
+    "schema:drop": "yarn typeorm schema:drop",
     "typeorm": "cross-env TYPEORM_CLI=true ts-node ../../node_modules/typeorm/cli.js",
     "cli": "nestjs-command",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org university-of-british-colum-p0 --project helpme-nestjs ./dist && sentry-cli --url https://sentry.io/ sourcemaps upload --org university-of-british-colum-p0 --project helpme-nestjs ./dist"

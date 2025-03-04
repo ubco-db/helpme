@@ -1,17 +1,18 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "CommonJS", 
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "es2017",
+    "target": "ES2020", // We are on node 20, so we follow https://github.com/microsoft/TypeScript/wiki/Node-Target-Mapping
     "sourceMap": true,
     "baseUrl": "./src",
     "outDir": "./dist",
     "incremental": true,
     "skipLibCheck": true,
+    "lib": ["ES2020", "DOM"], // even though its run on the browser, we allow DOM since there are a couple things in /common that use parts from it
     "strictNullChecks": false,
     "inlineSources": true,
 

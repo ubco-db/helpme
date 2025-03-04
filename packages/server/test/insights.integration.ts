@@ -9,7 +9,7 @@ import { InsightsModule } from '../src/insights/insights.module';
 import { Role } from '@koh/common';
 
 describe('Insights Integration', () => {
-  const { supertest, getTestModule } = setupIntegrationTest(InsightsModule);
+  const { supertest } = setupIntegrationTest(InsightsModule);
 
   describe('GET /insights/:courseId/:insightName', () => {
     it('returns ValueOutput for value insight', async () => {

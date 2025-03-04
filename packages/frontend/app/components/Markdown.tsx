@@ -7,6 +7,8 @@ import {
   oneLight,
 } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import remarkMath from 'remark-math'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
 
@@ -40,7 +42,12 @@ const MarkdownCustom: React.FC<MarkdownCustomProps> = ({
 
   return (
     <Markdown
-      remarkPlugins={[remarkMath]} // parses LaTeX math expressions in markdown
+      remarkPlugins={[
+        // parses LaTeX math expressions in markdown
+        remarkMath,
+        remarkBreaks, // parses line breaks in markdown (used for turning \n into <br> instead of spaces)
+        remarkGfm, // parses GitHub Flavored Markdown (used for autolinks, footnotes, strikethrough, tables, and tasklist)
+      ]}
       rehypePlugins={[rehypeKatex]} // renders LaTex math expressions using KaTeX
       components={{
         code({ node, inline, className, children, ...props }: any) {

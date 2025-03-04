@@ -8,7 +8,7 @@ import {
   OrganizationRole,
   Role,
 } from '@koh/common';
-import { AlertModel } from 'alerts/alerts.entity';
+import { AlertModel } from '../../src/alerts/alerts.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { Factory } from 'typeorm-factory';
 import { CourseModel } from '../../src/course/course.entity';
@@ -19,7 +19,6 @@ import { UserModel } from '../../src/profile/user.entity';
 import { QuestionModel } from '../../src/question/question.entity';
 import { QueueModel } from '../../src/queue/queue.entity';
 import { LastRegistrationModel } from 'login/last-registration-model.entity';
-import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
 import { OrganizationModel } from '../../src/organization/organization.entity';
 import { InteractionModel } from '../../src/chatbot/interaction.entity';
 import { OrganizationCourseModel } from '../../src/organization/organization-course.entity';
@@ -29,23 +28,26 @@ import { CourseSettingsModel } from '../../src/course/course_settings.entity';
 import { AsyncQuestionModel } from '../../src/asyncQuestion/asyncQuestion.entity';
 import { AsyncQuestionVotesModel } from '../../src/asyncQuestion/asyncQuestionVotes.entity';
 import { ChatTokenModel } from '../../src/chatbot/chat-token.entity';
-import { MailServiceModel } from 'mail/mail-services.entity';
-import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
+import { MailServiceModel } from '../../src/mail/mail-services.entity';
+import { UserSubscriptionModel } from '../../src/mail/user-subscriptions.entity';
 import { v4 } from 'uuid';
-import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
-import { CalendarModel } from 'calendar/calendar.entity';
-import { QueueInviteModel } from 'queue/queue-invite.entity';
+import { StudentTaskProgressModel } from '../../src/studentTaskProgress/studentTaskProgress.entity';
+import { CalendarModel } from '../../src/calendar/calendar.entity';
+import { QueueInviteModel } from '../../src/queue/queue-invite.entity';
 import { InsightDashboardModel } from '../../src/insights/dashboard.entity';
 import { LMSOrganizationIntegrationModel } from '../../src/lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from '../../src/lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from '../../src/lmsIntegration/lmsAssignment.entity';
-import { CalendarStaffModel } from 'calendar/calendar-staff.entity';
+import { CalendarStaffModel } from '../../src/calendar/calendar-staff.entity';
+import { AsyncQuestionCommentModel } from '../../src/asyncQuestion/asyncQuestionComment.entity';
+import { QueueChatsModel } from '../../src/queueChats/queue-chats.entity';
 
 export const UserFactory = new Factory(UserModel)
   .attr('email', `user@ubc.ca`)
   .attr('firstName', 'User')
   .attr('lastName', 'Person')
   .attr('emailVerified', true)
+  .attr('photoURL', 'https://example.com')
   .attr('hideInsights', []);
 
 export const StudentCourseFactory = new Factory(UserCourseModel).attr(
@@ -141,10 +143,6 @@ export const LastRegistrationFactory = new Factory(LastRegistrationModel)
   .attr('lastRegisteredSemester', '202210') // Fall 2022
   .assocOne('prof', UserFactory);
 
-export const ProfSectionGroupsFactory = new Factory(ProfSectionGroupsModel)
-  .assocOne('prof', UserFactory)
-  .attr('sectionGroups', []);
-
 export const AlertFactory = new Factory(AlertModel)
   .attr('alertType', AlertType.REPHRASE_QUESTION)
   .attr('sent', new Date(Date.now() - 86400000))
@@ -168,7 +166,15 @@ export const AsyncQuestionFactory = new Factory(AsyncQuestionModel)
   .attr('status', asyncQuestionStatus.AIAnswered)
   .attr('visible', false)
   .attr('verified', false)
-  .attr('createdAt', new Date());
+  .attr('createdAt', new Date('2025-01-01T00:00:00.000Z'));
+
+export const AsyncQuestionCommentFactory = new Factory(
+  AsyncQuestionCommentModel,
+)
+  .attr('commentText', 'some comment')
+  .attr('createdAt', new Date('2025-01-02T00:00:00.000Z'))
+  .assocOne('question', AsyncQuestionFactory)
+  .assocOne('creator', UserFactory);
 
 export const OrganizationFactory = new Factory(OrganizationModel)
   .attr('name', 'UBCO')
@@ -202,8 +208,7 @@ export const StudentTaskProgressFactory = new Factory(StudentTaskProgressModel)
 export const mailServiceFactory = new Factory(MailServiceModel)
   .attr('mailType', OrganizationRole.PROFESSOR)
   .attr('serviceType', MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED)
-  .attr('name', 'async_question_created')
-  .attr('content', 'A new async question is asked, and the student is asking');
+  .attr('name', 'async_question_created');
 
 export const userSubscriptionFactory = new Factory(UserSubscriptionModel)
   .attr('isSubscribed', true)
@@ -249,3 +254,11 @@ export const lmsAssignmentFactory = new Factory(LMSAssignmentModel)
   .attr('name', 'assignment')
   .attr('description', 'desc')
   .assocOne('course', lmsCourseIntFactory);
+
+export const queueChatsFactory = new Factory(QueueChatsModel)
+  .attr('startedAt', new Date())
+  .attr('closedAt', new Date())
+  .attr('messageCount', 5)
+  .assocOne('queue', QueueFactory)
+  .assocOne('staff', UserFactory)
+  .assocOne('student', UserFactory);

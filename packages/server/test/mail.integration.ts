@@ -12,7 +12,7 @@ import {
 } from 'profile/user-token.entity';
 
 describe('Mail Integration', () => {
-  const { supertest, getTestModule } = setupIntegrationTest(MailTestingModule);
+  const { supertest } = setupIntegrationTest(MailTestingModule);
 
   describe('POST registration/resend', () => {
     it('returns UNAUTHORIZED if not logged in', async () => {

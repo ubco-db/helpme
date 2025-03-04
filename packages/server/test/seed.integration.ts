@@ -4,7 +4,7 @@ import { CourseFactory, QuestionFactory, QueueFactory } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 
 describe('Seed Integration', () => {
-  const { supertest, getTestModule } = setupIntegrationTest(SeedModule);
+  const { supertest } = setupIntegrationTest(SeedModule);
   it('GET /seeds/delete', async () => {
     const course = await CourseFactory.create({});
 

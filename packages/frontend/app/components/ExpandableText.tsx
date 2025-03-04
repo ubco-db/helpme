@@ -2,6 +2,7 @@ import { Button } from 'antd'
 import React, { useEffect, useRef, useState } from 'react'
 import { cn } from '../utils/generalUtils'
 import { DownOutlined, UpOutlined } from '@ant-design/icons'
+import styles from './ExpandableText.module.css'
 
 const debounce = <T extends (...args: any[]) => void>(
   func: T,
@@ -64,7 +65,7 @@ const ExpandableText: React.FC<ExpandableTextProps> = ({
     <div className="flex flex-col justify-center">
       <div
         ref={textRef}
-        className={cn(`expandable-text`, isExpanded ? 'expanded' : '')}
+        className={cn(styles.expandableText, isExpanded ? styles.expanded : '')}
         style={{
           maxHeight: `calc(${maxRows} * 1.5rem)`,
           overflow: truncateText ? 'hidden' : undefined,

@@ -1,5 +1,4 @@
 import {
-  asyncQuestionStatus,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
   EditCourseInfoParams,
@@ -56,19 +55,17 @@ import { QueueSSEService } from '../queue/queue-sse.service';
 import { CourseService } from './course.service';
 import { HeatmapService } from './heatmap.service';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
-import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
 import { ApplicationConfigService } from '../config/application_config.service';
-import { Not, getManager } from 'typeorm';
-import { pick } from 'lodash';
-import { QuestionTypeModel } from '../questionType/question-type.entity';
+import { getManager } from 'typeorm';
+import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
-import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
-import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
+import { CourseRole } from 'decorators/course-role.decorator';
+import { RedisProfileService } from 'redisProfile/redis-profile.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -79,7 +76,6 @@ export class CourseController {
     private heatmapService: HeatmapService,
     private courseService: CourseService,
     private queueCleanService: QueueCleanService,
-    private redisQueueService: RedisQueueService,
     private redisProfileService: RedisProfileService,
     private readonly appConfig: ApplicationConfigService,
   ) {}
@@ -112,118 +108,6 @@ export class CourseController {
     res.status(HttpStatus.OK).send({
       coursesPartial,
     });
-  }
-
-  @Get(':cid/asyncQuestions')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  async getAsyncQuestions(
-    @Param('cid', ParseIntPipe) cid: number,
-    @User() user: UserModel,
-    @Res() res: Response,
-  ): Promise<AsyncQuestionModel[]> {
-    const userCourse = await UserCourseModel.findOne({
-      where: {
-        user,
-        courseId: cid,
-      },
-    });
-
-    if (!userCourse) {
-      res.status(HttpStatus.NOT_FOUND).send({
-        message: ERROR_MESSAGES.profileController.userResponseNotFound,
-      });
-      return;
-    }
-
-    const asyncQuestionKeys = await this.redisQueueService.getKey(
-      `c:${cid}:aq`,
-    );
-    let all: AsyncQuestionModel[] = [];
-
-    if (Object.keys(asyncQuestionKeys).length === 0) {
-      console.log('Fetching from Database');
-      all = await AsyncQuestionModel.find({
-        where: {
-          courseId: cid,
-          status: Not(asyncQuestionStatus.StudentDeleted),
-        },
-        relations: ['creator', 'taHelped', 'votes'],
-        order: {
-          createdAt: 'DESC',
-        },
-        take: this.appConfig.get('max_async_questions_per_course'),
-      });
-
-      if (all)
-        await this.redisQueueService.setAsyncQuestions(`c:${cid}:aq`, all);
-    } else {
-      console.log('Fetching from Redis');
-      all = Object.values(asyncQuestionKeys).map(
-        (question) => question as AsyncQuestionModel,
-      );
-    }
-
-    if (!all) {
-      res.status(HttpStatus.NOT_FOUND).send({
-        message: ERROR_MESSAGES.questionController.notFound,
-      });
-      return;
-    }
-
-    let questions;
-
-    const isStaff: boolean =
-      userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
-
-    if (isStaff) {
-      // Staff sees all questions except the ones deleted
-      questions = all.filter(
-        (question) => question.status !== asyncQuestionStatus.TADeleted,
-      );
-    } else {
-      // Students see their own questions and questions that are visible
-      questions = all.filter(
-        (question) => question.creatorId === user.id || question.visible,
-      );
-    }
-
-    questions = questions.map((question) => {
-      const temp = pick(question, [
-        'id',
-        'courseId',
-        'questionAbstract',
-        'questionText',
-        'aiAnswerText',
-        'answerText',
-        'creatorId',
-        'taHelpedId',
-        'createdAt',
-        'closedAt',
-        'status',
-        'visible',
-        'verified',
-        'votes',
-        'questionTypes',
-        'votesSum',
-        'isTaskQuestion',
-      ]);
-
-      Object.assign(temp, {
-        creator:
-          isStaff || question.creator.id == user.id
-            ? {
-                id: question.creator.id,
-                name: question.creator.name,
-                photoURL: question.creator.photoURL,
-              }
-            : null,
-      });
-
-      return temp;
-    });
-
-    res.status(HttpStatus.OK).send(questions);
-    return;
   }
 
   @Get('limited/:id/:code')
@@ -292,7 +176,6 @@ export class CourseController {
     }
 
     // Use raw query for performance (avoid entity instantiation and serialization)
-
     try {
       course.heatmap = await this.heatmapService.getCachedHeatmapFor(id);
     } catch (err) {
@@ -1103,7 +986,7 @@ export class CourseController {
 
     // have to do a manual query 'cause the current version of typeORM we're using is crunked and creates syntax errors in postgres queries
     const query = `
-    SELECT "user_model"."firstName" || ' ' || "user_model"."lastName" AS name, "user_model".id AS id
+    SELECT COALESCE("user_model"."firstName", '') || ' ' || COALESCE("user_model"."lastName", '') AS name, "user_model".id AS id
     FROM "user_course_model"
     LEFT JOIN "user_model" ON ("user_course_model"."userId" = "user_model".id AND "user_course_model".role = $1)
     WHERE "user_course_model"."courseId" = $2 
@@ -1166,35 +1049,26 @@ export class CourseController {
     return;
   }
 
-  // Moved from userInfo context endpoint as this updates too frequently to make sense caching it with userInfo data
-  @Get(':id/unread_async_count')
-  @UseGuards(JwtAuthGuard)
-  async getUnreadAsyncCount(
+  @Patch(':id/set_ta_notes/:uid')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async setTANotes(
     @Param('id', ParseIntPipe) courseId: number,
-    @UserId() userId: number,
-  ): Promise<number> {
-    const count = await UnreadAsyncQuestionModel.count({
-      where: {
-        userId,
-        courseId,
-        readLatest: false,
-      },
-    });
-
-    return count;
-  }
-
-  @Patch(':id/unread_async_count')
-  @UseGuards(JwtAuthGuard)
-  async updateUnreadAsyncCount(
-    @Param('id', ParseIntPipe) courseId: number,
-    @UserId() userId: number,
+    @Param('uid', ParseIntPipe) userId: number,
+    @User() myUser: UserModel,
+    @CourseRole() myRole: Role,
+    @Body() body: { notes: string },
   ): Promise<void> {
-    await UnreadAsyncQuestionModel.update(
-      { userId, courseId },
-      { readLatest: true },
-    );
-
-    return;
+    if (myRole === Role.TA && myUser.id !== userId) {
+      throw new ForbiddenException('You can only set notes for yourself');
+    }
+    const userCourse = await UserCourseModel.findOne({
+      where: { courseId, userId },
+    });
+    if (!userCourse) {
+      throw new NotFoundException('TA not found');
+    }
+    userCourse.TANotes = body.notes;
+    await userCourse.save();
   }
 }
