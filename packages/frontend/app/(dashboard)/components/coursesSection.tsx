@@ -1,5 +1,5 @@
 import { Role, SemesterPartial, UserCourse } from '@koh/common'
-import { Button, Card, Divider, message, Table, Tag } from 'antd'
+import { Button, Card, Divider, message, Popover, Table, Tag } from 'antd'
 import React, { useEffect, useState } from 'react'
 import Meta from 'antd/es/card/Meta'
 import Link from 'next/link'
@@ -7,6 +7,7 @@ import stringToHexColor from '@/app/utils/generalUtils'
 import { ColumnsType } from 'antd/es/table'
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
+import { setEngine } from 'crypto'
 
 interface CoursesSectionProps {
   courses: UserCourse[]
@@ -43,6 +44,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         setSemesters(semesters)
       })
       .catch((error) => {
+        console.error(error)
         message.error(
           'Failed to fetch semesters for organization with id: ' +
             userInfo.organization?.id,
@@ -116,11 +118,32 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
               if (semesterCourses.length === 0) {
                 return null
               }
+
+              const popoverContent = (
+                <div className="p-2">
+                  <p>
+                    <strong>Start Date:</strong>{' '}
+                    {new Date(semester.startDate).toLocaleDateString()}
+                  </p>
+                  <p>
+                    <strong>End Date:</strong>{' '}
+                    {new Date(semester.endDate).toLocaleDateString()}
+                  </p>
+                  {semester.description && (
+                    <p>
+                      <strong>Description:</strong> {semester.description}
+                    </p>
+                  )}
+                </div>
+              )
+
               return (
                 <div key={semester.id}>
-                  <Divider className="my-1 p-2 text-lg font-semibold">
-                    {semester.name}
-                  </Divider>
+                  <Popover content={popoverContent} title={semester.name}>
+                    <Divider className="my-1 p-2 text-lg font-semibold">
+                      {semester.name}
+                    </Divider>
+                  </Popover>
                   <Table
                     columns={columns}
                     size="small"
@@ -163,6 +186,33 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
               const iconSvg = jdenticon.toSvg(course.course.name, iconSize)
               const iconDataUrl = `data:image/svg+xml;base64,${btoa(iconSvg)}`
 
+              const semester = semesters?.find(
+                (s) => s.id === course.course.semesterId,
+              )
+
+              if (!semester) {
+                // PAT TODO: make a card that says "Semester not found"
+                return null
+              }
+
+              const popoverContent = (
+                <div className="p-2">
+                  <p>
+                    <strong>Start Date:</strong>{' '}
+                    {new Date(semester.startDate).toLocaleDateString()}
+                  </p>
+                  <p>
+                    <strong>End Date:</strong>{' '}
+                    {new Date(semester.endDate).toLocaleDateString()}
+                  </p>
+                  {semester.description && (
+                    <p>
+                      <strong>Description:</strong> {semester.description}
+                    </p>
+                  )}
+                </div>
+              )
+
               return (
                 <Card
                   key={course.course.id}
@@ -196,12 +246,18 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                           ? 'success'
                           : course.role === Role.TA
                             ? 'gold'
-                            : 'blue'
+                            : 'volcano'
                       }
                       className="text-base capitalize"
                     >
-                      {course.role}
+                      {course.role == Role.TA ? 'TA' : course.role}
                     </Tag>
+                  </div>
+
+                  <div className="absolute right-2 top-2 flex flex-wrap items-center justify-between align-middle">
+                    <Popover content={popoverContent} title={semester.name}>
+                      <Tag color="blue">{semester?.name ?? ''}</Tag>
+                    </Popover>
                   </div>
 
                   <Link
