@@ -11,6 +11,8 @@
 #### Improvements
 - Fixed an issue where staff would always show up as "busy"
 
+***
+
 ## Version 1.4.0 - Mar 2nd, 2025
 
 #### New Features
