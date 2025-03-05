@@ -1,3 +1,16 @@
+## Version 1.4.1 - Mar 4th, 2025
+
+#### New Features
+- ***Faculty-only***
+  - Added new AI models
+    - Deepseek R1 - A "thinking" model with much smarter answers with reasonable performance, hosted on UBC servers
+      - You can see the "thoughts" of its answers by hovering the brain icon on the chatbot picture next to its answer (if its not there, then the course is not using this model)
+    - Qwen - A new non-"thinking" model with somewhat smarter answers and good performance, hosted on UBC servers
+      - This will be replacing the old llama3 and gemma2 models
+
+#### Improvements
+- Fixed an issue where staff would always show up as "busy"
+
 ## Version 1.4.0 - Mar 2nd, 2025
 
 #### New Features
@@ -14,11 +27,6 @@
     - These notes are displayed whenever a user hovers over the staff card on the queue page
     - Can also modify these notes on the course roster page
     - This helps the use case if one wanted to display what concepts or courses a TA can help with (e.g. this TA can only help with MATH 101)
-  - Added new AI models (soon, will be added on Mar 4th)
-    - Deepseek R1 - A "thinking" model with much smarter answers with reasonable performance, hosted on UBC servers
-      - You can see the "thoughts" of its answers by hovering the brain icon on the chatbot picture next to its answer (if its not there, then the course is not using this model)
-    - Qwen - A new non-"thinking" model with somewhat smarter answers and good performance, hosted on UBC servers
-      - This will be replacing the old llama3 and gemma2 models
   - Faculty can now add/remove/edit source documents on chatbot questions
   - Overhauled the Chatbot Questions page
     - Now shows interactions (so one can follow the full conversation a student has)
