@@ -7,6 +7,7 @@ import {
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
+  Heatmap,
   QuestionStatusKeys,
   QueueConfig,
   QueueInvite,
@@ -297,23 +298,6 @@ export class CourseController {
       );
     }
 
-    // Use raw query for performance (avoid entity instantiation and serialization)
-
-    try {
-      course.heatmap = await this.heatmapService.getCachedHeatmapFor(id);
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.courseOfficeHourError +
-          '\n' +
-          'Error message: ' +
-          err,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.courseHeatMapError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
     const userCourseModel = await UserCourseModel.findOne({
       where: {
         user,
@@ -328,20 +312,7 @@ export class CourseController {
       );
     }
 
-    if (
-      userCourseModel.role === Role.PROFESSOR ||
-      userCourseModel.role === Role.TA
-    ) {
-      course.queues = await async.filter(
-        course.queues,
-        async (q) => !q.isDisabled,
-      );
-    } else if (userCourseModel.role === Role.STUDENT) {
-      course.queues = await async.filter(
-        course.queues,
-        async (q) => !q.isDisabled && q.staffList.length > 0,
-      );
-    }
+    course.queues = course.queues.filter(async (q) => !q.isDisabled);
 
     try {
       await async.each(course.queues, async (q) => {
@@ -370,8 +341,26 @@ export class CourseController {
     const organization =
       organizationCourse === undefined ? null : organizationCourse.organization;
 
+    let heatmap: Heatmap | false = false;
+    try {
+      // Use raw query for performance (avoid entity instantiation and serialization)
+      heatmap = await this.heatmapService.getCachedHeatmapFor(id);
+    } catch (err) {
+      console.error(
+        ERROR_MESSAGES.courseController.courseOfficeHourError +
+          '\n' +
+          'Error message: ' +
+          err,
+      );
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.courseHeatMapError,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
     const course_response = {
       ...course,
+      heatmap,
       crns: null,
       organizationCourse: organization,
     };
