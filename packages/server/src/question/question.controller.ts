@@ -353,10 +353,10 @@ export class QuestionController {
     }
 
     const isCreator = userId === question.creatorId;
+    const oldStatus = question.status;
 
     // creating/editing your own question
     if (isCreator) {
-      const oldStatus = question.status;
       question = Object.assign(question, body);
       question.status = oldStatus; // change the status back (idk if there's a better way to do this)
       if (body.questionTypes) {

@@ -57,10 +57,10 @@ export function getWaitTimeOld(question: Question): string {
   return formatWaitTime(actualWaitTimeSecs / 60)
 }
 
-export function getAsyncWaitTime(question: AsyncQuestion): string {
+export function getAsyncWaitTime(createdAt: Date): string {
   const now = new Date()
-  const createdAt = new Date(question.createdAt)
-  const differenceInMinutes = (now.getTime() - createdAt.getTime()) / 60000
+  const tempCreatedAt = new Date(createdAt)
+  const differenceInMinutes = (now.getTime() - tempCreatedAt.getTime()) / 60000
   if (differenceInMinutes < 60) {
     return formatWaitTime(differenceInMinutes)
   } else if (differenceInMinutes < 60 * 24) {

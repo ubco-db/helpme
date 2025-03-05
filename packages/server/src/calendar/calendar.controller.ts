@@ -192,24 +192,30 @@ export class CalendarController {
   async getAllEvents(
     @Param('cid', ParseIntPipe) cid: number,
   ): Promise<Calendar[]> {
-    const events: (CalendarModel & { staffIds?: number[] })[] =
-      await CalendarModel.find({
-        where: {
-          course: {
-            id: cid,
-          },
+    const events: (CalendarModel & { staffIds?: number[] } & {
+      staffNames?: string[];
+    })[] = await CalendarModel.find({
+      where: {
+        course: {
+          id: cid,
         },
-        relations: {
-          staff: true,
+      },
+      relations: {
+        staff: {
+          user: true,
         },
-      });
-    // reduce staff from [{userId: 1, calendarId: 2}, {userId: 3, calendarId: 2}] to [1, 3]
+      },
+    });
     events.forEach((event) => {
+      // reduce staff from [{userId: 1, calendarId: 2}, {userId: 3, calendarId: 2}] to [1, 3]
       event.staffIds = event.staff.map((staff) => staff.userId);
+      event.staffNames = event.staff.map((staff) => staff.user.name); // these names are just for display
+      delete event.staff; // don't actually return sensitive staff info
     });
     return events || [];
   }
 
+  // note that this endpoint is currently unused?
   @Get(':cid/:date')
   async getEventsForDay(
     @Param('cid') cid: number,

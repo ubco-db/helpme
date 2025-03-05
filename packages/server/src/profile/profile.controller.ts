@@ -33,17 +33,13 @@ import * as sharp from 'sharp';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 import { UserModel } from './user.entity';
-import { ProfileService } from './profile.service';
 import { OrganizationService } from '../organization/organization.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { minutes, SkipThrottle, Throttle } from '@nestjs/throttler';
 
 @Controller('profile')
 export class ProfileController {
-  constructor(
-    private profileService: ProfileService,
-    private organizationService: OrganizationService,
-  ) {}
+  constructor(private organizationService: OrganizationService) {}
 
   // Don't throttle this endpoint since the middleware calls this for every page (and if it prefetches like 30 pages, it will hit the throttle limit and can cause issue for the user)
   @SkipThrottle()
@@ -123,8 +119,6 @@ export class ProfileController {
       );
     }
 
-    // this is old code from Khoury College's semester system
-    //const pendingCourses = await this.profileService.getPendingCourses(user.id);
     const userOrganization =
       await this.organizationService.getOrganizationAndRoleByUserId(user.id);
 

@@ -15,6 +15,7 @@ const { Text } = Typography
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { MailOutlined } from '@ant-design/icons'
 import { useUserInfo } from '@/app/contexts/userContext'
+import { OrganizationRole, Role } from '@koh/common'
 
 interface Subscription {
   id: number
@@ -31,6 +32,18 @@ const EmailNotifications: React.FC = () => {
   const [initialValues, setInitialValues] = useState<{
     [key: string]: boolean
   }>({})
+
+  const isStaffInAnyCourse = userInfo.courses.some(
+    (uc) => uc.role === Role.TA || uc.role === Role.PROFESSOR,
+  )
+
+  // The only people that have access to staff notifications are staff
+  // Note that there is the potential issue that someone is staff, they subscribe, and then lose their staff status.
+  // The fix to this was to just make the endpoint check if they are staff before sending the email rather than trying to sync the subscribed status with their role
+  const showStaffNotifications =
+    isStaffInAnyCourse ||
+    userInfo.userRole === OrganizationRole.PROFESSOR ||
+    userInfo.userRole === OrganizationRole.ADMIN
 
   const fetchSubscriptions = useCallback(async () => {
     try {
@@ -138,17 +151,27 @@ const EmailNotifications: React.FC = () => {
         onFinish={onFinish}
       >
         <Row gutter={24}>
-          <Col span={11}>
-            <Typography.Title level={4}>Member Notifications</Typography.Title>
+          <Col span={showStaffNotifications ? 11 : 24}>
+            {showStaffNotifications && (
+              <Typography.Title level={4}>
+                Member Notifications
+              </Typography.Title>
+            )}
             {renderSubscriptions('member')}
           </Col>
-          <Col span={2}>
-            <Divider type="vertical" style={{ height: '100%' }} />
-          </Col>
-          <Col span={11}>
-            <Typography.Title level={4}>Other Notifications</Typography.Title>
-            {renderSubscriptions('professor')}
-          </Col>
+          {showStaffNotifications && (
+            <>
+              <Col span={2}>
+                <Divider type="vertical" style={{ height: '100%' }} />
+              </Col>
+              <Col span={11}>
+                <Typography.Title level={4}>
+                  Staff-Only Notifications
+                </Typography.Title>
+                {renderSubscriptions('professor')}
+              </Col>
+            </>
+          )}
         </Row>
         <Form.Item className="mb-4">
           <Button

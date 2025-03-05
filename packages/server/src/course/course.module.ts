@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
 import { QueueModule } from '../queue/queue.module';
 import { LoginModule } from '../login/login.module';
-import { LoginCourseService } from '../login/login-course.service';
 import { CourseController } from './course.controller';
 import { CourseService } from './course.service';
 import { HeatmapService } from './heatmap.service';
@@ -24,7 +23,6 @@ import { RedisQueueModule } from '../redisQueue/redis-queue.module';
     ApplicationConfigModule,
   ],
   providers: [
-    LoginCourseService,
     HeatmapService,
     CourseService,
     RedisQueueService,

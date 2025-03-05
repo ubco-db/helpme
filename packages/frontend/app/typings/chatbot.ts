@@ -26,6 +26,7 @@ export interface Message {
   verified?: boolean
   sourceDocuments?: SourceDocument[]
   questionId?: string
+  thinkText?: string | null
 }
 
 export interface ChatbotQToConvertToAnytimeQ {

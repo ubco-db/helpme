@@ -1,3 +1,67 @@
+## Version 1.4.1 - Mar 4th, 2025
+
+#### New Features
+- ***Faculty-only***
+  - Added new AI models
+    - Deepseek R1 - A "thinking" model with much smarter answers with reasonable performance, hosted on UBC servers
+      - You can see the "thoughts" of its answers by hovering the brain icon on the chatbot picture next to its answer (if its not there, then the course is not using this model)
+    - Qwen - A new non-"thinking" model with somewhat smarter answers and good performance, hosted on UBC servers
+      - This will be replacing the old llama3 and gemma2 models
+
+#### Improvements
+- Fixed an issue where staff would always show up as "busy"
+
+***
+
+## Version 1.4.0 - Mar 2nd, 2025
+
+#### New Features
+- ***General***
+  - You can now leave comments on Anytime questions!
+    - Note that since questions are made hidden from other students initially, only faculty can leave comments on questions until a faculty member marks the question as public
+    - All students are given a different "anonymous animal" for each question to protect their privacy from other students (but faculty have the option to see who posted it)
+      - A total of 70 anonymous animals with 70 different colours that get randomly picked from
+    - Comes with email notifications
+  - Added a new "Event Details" popup when hovering calendar events
+  - Added the ability for staff to message the students that they are currently helping (or vise-versa)
+- ***Faculty-only***
+  - Added the ability for TAs to write notes on themselves (or professors can too)
+    - These notes are displayed whenever a user hovers over the staff card on the queue page
+    - Can also modify these notes on the course roster page
+    - This helps the use case if one wanted to display what concepts or courses a TA can help with (e.g. this TA can only help with MATH 101)
+  - Faculty can now add/remove/edit source documents on chatbot questions
+  - Overhauled the Chatbot Questions page
+    - Now shows interactions (so one can follow the full conversation a student has)
+    - Now shows when the question was last asked (sorted descending by default to show the newest questions first)
+    - Shows the number of times a question was asked (useful for suggested questions)
+    - Shows the user's score on the question (when a student thumbs up/ thumbs down a question)
+    - For chatbot questions with multiple interactions containing said chatbot question, those are now grouped (useful if one wanted to see what sorts of questions students are asking after selecting a suggested question)
+
+#### Improvements
+- Staff are now shown if they are helping a student in another queue or another course (would previously show the staff member as "available")
+  - This should help those that are hosting help sessions in different courses at the same time
+- Calendar events now show more details on them
+- TAs may now subscribe/unsubscribe for email notifications for when new Anytime questions are marked as "Needs faculty help"
+  - They are also now default subscribed to said notifications
+- Newlines (i.e. pressing "enter") inside Anytime questions now get rendered as a newline rather than a space
+- Various small improvements and fixes to the email templates for email notifications
+- When navigating to another page on mobile, the navigation drawer will now automatically close
+- Added a "back" button to the profile page
+- Fixed an issue where your chatbot conversation would reset upon changing pages
+- Fixed an issue where students could not edit their Anytime questions after they click "Satisfied" or "Needs faculty help" options
+- Fixed an issue where professors that lack the corresponding "organization professor" role would not be able to access the course settings
+- Fixed an issue where your Anytime question would start as non-expanded after receiving a new answer (resulting in a scenario where you would need to always click to expand your new question after creating it to see the answer)
+- Fixed an issue in some cases where users did not start as subscribed to email notifications by default
+  - ***NOTE***: **If you have unsubscribed from any email notifications, you will need to re-unsubscribe**
+- Tweaked what is considered an "update" for the Anytime Question Hub (for showing how many updates there are on the Course Home Page)
+- Added/changed various tooltips and reworked some UI around the chatbot pages to hopefully be more user-friendly
+- Fixed an issue you would not be notified if there was an error during chatbot course document upload
+- Fixed an issue where certain documents with null bytes were unable to be processed during chatbot course document upload
+- Cleaned up the Mobile UI on the course roster page 
+- Various performance and security improvements
+
+***
+
 ## Version 1.3.0 - Feb 05, 2025
 
 #### New Features
@@ -6,7 +70,7 @@
   	- By default, it will still be in "Course" mode, which will query uploaded course documents as before
   	- HelpMe developers will frequently be looking at these System Chatbot questions to improve the system and Chatbot
     	- So if you notice that the answer was not accurate, try asking it again in a couple days, it may be better!
-- ***Staff-only***
+- ***Faculty-only***
   - Fixed and completely overhauled the Learning Management System (Canvas) integration
   	- Professors can now link their Canvas courses with HelpMe, allowing:
   		- Professors to synchronize assignments (descriptions) and announcements to the HelpMe course chatbot
@@ -23,10 +87,10 @@
 #### New Features
 - ***General***
   - On the course page, you can now see if you have any unread Anytime Questions
-- ***Staff-only***
+- ***Faculty-only***
   - Added sorting on the Assignment Report modal
     - can now sort by date, student ID, and name
-  - Staff now have the option to add students to the queue with a demo (only works with queues with an assignment ID)
+  - Faculty now have the option to add students to the queue with a demo (only works with queues with an assignment ID)
 
 #### Improvements
 - Reworked how question text is truncated on question cards. You now click to expand the question card. This also fixes an issue where sometimes the question text tooltip would not show up and thus the full text could not be read
@@ -53,12 +117,12 @@
 #### New Features
 - ***General***
   - Users using the chatbot now have the option convert their question into an Anytime question
-    - This is useful if the chatbot gave an unsatisfactory answer, as a staff member can then review the Anytime question
+    - This is useful if the chatbot gave an unsatisfactory answer, as a faculty member can then review the Anytime question
 
 #### Improvements
-- Staff can now create anytime questions 
-  - While this isn't really intended, this was enabled so that staff can better learn the system or if they want to demo the system to students
-- Fixed a bug where all anytime questions would be marked as "Human Verified" even if the staff member did not modify the answer nor clicked the box to mark it as staff verified
+- Faculty can now create Anytime questions 
+  - While this isn't really intended, this was enabled so that faculty can better learn the system or if they want to demo the system to students
+- Fixed a bug where all Anytime questions would be marked as "Human Verified" even if the faculty member did not modify the answer nor clicked the box to mark it as faculty verified
 - Fixed a bug where the "Check In" button on the home course page did not work
 
 ***
@@ -69,8 +133,8 @@
 - ***General***
   - When the last TA checks out of a queue, students with questions will now be prompted whether they would like to leave the queue or stay
     - If they don't respond in 10 minutes, the question will automatically be closed
-- ***Staff-only***
-  - Staff can now be assigned to events (on the schedule page)! When you do so, said staff will be prompted to check-out of the queue when the event ends (they can select if they need 10 more minutes). 
+- ***Faculty-only***
+  - Faculty can now be assigned to events (on the schedule page)! When you do so, said faculty will be prompted to check-out of the queue when the event ends (they can select if they need 10 more minutes). 
     - It is now ***strongly*** recommended that professors set this up as this will solve the problem of TAs forgetting to check out. 
   - Added LMS integration (currently just supports Canvas)
     - Currently, this just allows you to verify if students in your HelpMe course are the same as the ones in your Canvas course, but will be expanded in the future
@@ -102,14 +166,14 @@
 #### New Features
 
 - ***General***
-  - **Queue locations**: Staff can now give each queue a location (online, hybrid, or in-person).
+  - **Queue locations**: Faculty can now give each queue a location (online, hybrid, or in-person).
     - For hybrid queues, students may choose if their question is online or in-person
-    - If the student's question is online, they will get a prompt to join the zoom link (that the staff member can specify at a queue-level or course-level basis) 
+    - If the student's question is online, they will get a prompt to join the zoom link (that the faculty member can specify at a queue-level or course-level basis) 
       - This only applies to online and hybrid queues
-- ***Staff-only***
-  - Staff can now "**pause**" questions, allowing staff to pause who they are currently helping
+- ***Faculty-only***
+  - Faculty can now "**pause**" questions, allowing faculty to pause who they are currently helping
     - This contrasts "requeueing" a student, which is when a student is not ready and requires the student to "rejoin" the queue once ready
-  - Staff can now **edit question tags**
+  - Faculty can now **edit question tags**
 
 #### Improvements
 
@@ -126,12 +190,12 @@
 
 - ***General***
   - Added UI and functionality for minimum question tags
-    - Staff can modify this in a queue's settings
+    - Faculty can modify this in a queue's settings
     - Students will then be forced to give their questions the specified minimum number of tags
-- ***Staff-only***
-  - Added the **insights** page, allowing staff to gain some insights to the wait times, help times, what types of questions are being asked, and more
+- ***Faculty-only***
+  - Added the **insights** page, allowing faculty to gain some insights to the wait times, help times, what types of questions are being asked, and more
   - Added UI for **task creation/edit/deletion**, making it easier to specify assignments and tasks in queues compared to modifying the queue config JSON
-  - Added a toggle to allow staff to upload documents as slides to the course chatbot. This will generate descriptions for images in said slides
+  - Added a toggle to allow faculty to upload documents as slides to the course chatbot. This will generate descriptions for images in said slides
 
 #### Improvements
 

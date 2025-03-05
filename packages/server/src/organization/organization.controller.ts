@@ -14,6 +14,7 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
@@ -59,9 +60,12 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import * as sharp from 'sharp';
-import { UserId } from 'decorators/user.decorator';
+import { User } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
+import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
+import { OrgRoles } from 'decorators/org-roles.decorator';
+import { CourseRoles } from 'decorators/course-roles.decorator';
 
 @Controller('organization')
 export class OrganizationController {
@@ -149,7 +153,11 @@ export class OrganizationController {
       const entityManager = getManager();
 
       // Get all users for the organization with their highest role
-      const orgUsers = await entityManager.query(
+      // update: this query can probably be updated to just grab userids of all org users but this is a admin route so me
+      const orgUsers: {
+        userId: number;
+        role: 'professor' | 'admin' | 'member';
+      }[] = await entityManager.query(
         `
   SELECT ou."userId",
          CASE
@@ -175,25 +183,14 @@ export class OrganizationController {
       // Prepare arrays for bulk insert
       const subscriptionsToInsert = [];
 
+      // instead of subscribing users to specific services based on their role, we are going to subscribe them to all services
+      // And then we will simply add the staff checks to the controllers that send the emails
+      // This is because roles are not static, and that it would be a lot more annoying to adjust all the endpoints that update roles to also update their subscription.
+      // It's just a lot easier to check their role at the time the email needs to be sent then syncing this
+
       for (const user of orgUsers) {
         for (const service of mailServices) {
-          let shouldSubscribe = true;
-          let isEnabled = true;
-
-          if (
-            user.role === 'member' &&
-            !['ta', 'professor'].includes(user.role)
-          ) {
-            // Members who are not TAs or professors only subscribe to member services
-            shouldSubscribe = service.mailType === 'member';
-          } else {
-            // Admins, TAs, and professors subscribe to all, but member services are disabled
-            isEnabled = service.mailType !== 'member';
-          }
-
-          if (shouldSubscribe) {
-            subscriptionsToInsert.push([user.userId, service.id, isEnabled]);
-          }
+          subscriptionsToInsert.push([user.userId, service.id, true]);
         }
       }
 
@@ -438,18 +435,15 @@ export class OrganizationController {
   }
 
   @Patch(':oid/update_course/:cid')
-  @UseGuards(
-    JwtAuthGuard,
-    OrganizationRolesGuard,
-    OrganizationGuard,
-    EmailVerifiedGuard,
-  )
-  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrgOrCourseRolesGuard)
+  @CourseRoles(Role.PROFESSOR)
+  @OrgRoles(OrganizationRole.ADMIN)
   async updateCourse(
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
     @Param('cid', ParseIntPipe) cid: number,
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
+    @User(['organizationUser']) user: UserModel,
   ): Promise<Response<void>> {
     const courseInfo = await OrganizationCourseModel.findOne({
       where: {
@@ -577,51 +571,54 @@ export class OrganizationController {
 
     try {
       await courseInfo.course.save();
-      //Remove current profs
-      await UserCourseModel.delete({
-        courseId: cid,
-        role: Role.PROFESSOR,
-      });
-
-      for (const profId of courseDetails.profIds) {
-        const chosenProfessor = await UserModel.findOne({
-          where: { id: profId },
+      // update profs (only if admin since only admins can adjust profs in courses)
+      if (user.organizationUser.role === OrganizationRole.ADMIN) {
+        //Remove current profs
+        await UserCourseModel.delete({
+          courseId: cid,
+          role: Role.PROFESSOR,
         });
 
-        if (!chosenProfessor) {
-          return res.status(HttpStatus.NOT_FOUND).send({
-            message: ERROR_MESSAGES.profileController.userResponseNotFound,
+        for (const profId of courseDetails.profIds) {
+          const chosenProfessor = await UserModel.findOne({
+            where: { id: profId },
           });
-        }
 
-        const userCourse = await UserCourseModel.findOne({
-          where: {
-            userId: profId,
-            courseId: cid,
-          },
-        });
-
-        // user is already in the course
-        if (userCourse) {
-          userCourse.role = Role.PROFESSOR;
-          try {
-            userCourse.save();
-          } catch (err) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-              message: err,
+          if (!chosenProfessor) {
+            return res.status(HttpStatus.NOT_FOUND).send({
+              message: ERROR_MESSAGES.profileController.userResponseNotFound,
             });
           }
-        } else {
-          try {
-            await UserCourseModel.create({
+
+          const userCourse = await UserCourseModel.findOne({
+            where: {
               userId: profId,
               courseId: cid,
-              role: Role.PROFESSOR,
-            }).save();
-          } catch (err) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-              message: err,
-            });
+            },
+          });
+
+          // user is already in the course
+          if (userCourse) {
+            userCourse.role = Role.PROFESSOR;
+            try {
+              userCourse.save();
+            } catch (err) {
+              return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+                message: err,
+              });
+            }
+          } else {
+            try {
+              await UserCourseModel.create({
+                userId: profId,
+                courseId: cid,
+                role: Role.PROFESSOR,
+              }).save();
+            } catch (err) {
+              return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+                message: err,
+              });
+            }
           }
         }
       }
@@ -675,8 +672,9 @@ export class OrganizationController {
   }
 
   @Get(':oid/get_course/:cid')
-  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
-  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrgOrCourseRolesGuard)
+  @CourseRoles(Role.PROFESSOR, Role.TA)
+  @OrgRoles(OrganizationRole.ADMIN)
   async getOrganizationCourse(
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
@@ -1189,18 +1187,14 @@ export class OrganizationController {
   }
 
   @Delete(':oid/drop_user_courses/:uid')
-  @UseGuards(
-    JwtAuthGuard,
-    OrganizationRolesGuard,
-    OrganizationGuard,
-    EmailVerifiedGuard,
-  )
-  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrgOrCourseRolesGuard)
+  @CourseRoles(Role.PROFESSOR)
+  @OrgRoles(OrganizationRole.ADMIN)
   async deleteUserCourses(
     @Res() res: Response,
     @Param('uid', ParseIntPipe) uid: number,
     @Body() userCourses: number[],
-    @UserId() userId: number,
+    @User(['organizationUser', 'courses']) user: UserModel,
   ): Promise<Response<void>> {
     if (userCourses.length < 1) {
       return res.status(HttpStatus.BAD_REQUEST).send({
@@ -1208,23 +1202,24 @@ export class OrganizationController {
       });
     }
 
-    const userOrg = await OrganizationUserModel.findOne({
-      where: {
-        userId,
-      },
-    });
+    const isProfInAnyCourse = user.courses.some(
+      (uc) => uc.role === Role.PROFESSOR,
+    );
 
-    // If the user is just an OrganizationRole.PROFESSOR, they can only remove users from their own courses
-    if (userOrg.role === OrganizationRole.PROFESSOR) {
+    // If the user is just an org or course professor, they can only remove users from their own courses
+    if (
+      user.organizationUser.role === OrganizationRole.PROFESSOR ||
+      isProfInAnyCourse
+    ) {
       const userCoursesForUser = await UserCourseModel.find({
         where: {
-          userId: userId,
+          userId: user.id,
           courseId: In(userCourses),
         },
       });
       // all courses must be found, otherwise the user is trying to remove a course they are not in
       if (userCoursesForUser.length !== userCourses.length) {
-        return res.status(HttpStatus.UNAUTHORIZED).send({
+        return res.status(HttpStatus.FORBIDDEN).send({
           message: ERROR_MESSAGES.roleGuard.notAuthorized,
         });
       }
@@ -1235,7 +1230,7 @@ export class OrganizationController {
           userCourses.includes(courseId),
         )
       ) {
-        return res.status(HttpStatus.UNAUTHORIZED).send({
+        return res.status(HttpStatus.FORBIDDEN).send({
           message: ERROR_MESSAGES.roleGuard.notAuthorized,
         });
       }
@@ -1252,7 +1247,7 @@ export class OrganizationController {
       userInfo.role === OrganizationRole.ADMIN ||
       userInfo.organizationUser.userRole === UserRole.ADMIN
     ) {
-      return res.status(HttpStatus.UNAUTHORIZED).send({
+      return res.status(HttpStatus.FORBIDDEN).send({
         message: ERROR_MESSAGES.roleGuard.notAuthorized,
       });
     }

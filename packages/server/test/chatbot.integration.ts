@@ -1,5 +1,5 @@
 import { ChatbotModule } from 'chatbot/chatbot.module';
-import { ChatbotQuestion } from '@koh/common';
+import { ChatbotQuestion, Role } from '@koh/common';
 import {
   InteractionFactory,
   UserFactory,
@@ -11,7 +11,7 @@ import { ChatbotQuestionModel } from 'chatbot/question.entity';
 import { DeepPartial } from 'typeorm';
 
 describe('ChatbotController Integration', () => {
-  const supertest = setupIntegrationTest(ChatbotModule);
+  const { supertest } = setupIntegrationTest(ChatbotModule);
 
   it('should create an interaction', async () => {
     const user = await UserFactory.create();
@@ -98,5 +98,41 @@ describe('ChatbotController Integration', () => {
       .delete('/chatbot/question')
       .send({ questionId })
       .expect(404);
+  });
+  describe('GET /chatbot/questions/:courseId', () => {
+    it('should return 403 if user is not a TA or Professor', async () => {
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user: user,
+        course: course,
+        role: Role.STUDENT,
+      });
+      await supertest({ userId: user.id })
+        .get(`/chatbot/questions/${course.id}`)
+        .expect(403);
+    });
+    it('should return questions for a course', async () => {
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user: user,
+        course: course,
+        role: Role.PROFESSOR,
+      });
+      const interaction = await InteractionFactory.create({ user, course });
+      const questionData: ChatbotQuestion = {
+        interactionId: interaction.id,
+        questionText: 'How does photosynthesis work?',
+        responseText: 'Photosynthesis is the process by which plants...',
+        suggested: true,
+        userScore: 5,
+        vectorStoreId: '1',
+      };
+      await ChatbotQuestionModel.create(questionData).save();
+      await supertest({ userId: user.id })
+        .get(`/chatbot/questions/${course.id}`)
+        .expect(200);
+    });
   });
 });

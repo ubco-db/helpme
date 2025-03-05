@@ -17,7 +17,7 @@ export class UserSubscriptionModel extends BaseEntity {
   @PrimaryColumn()
   userId: number;
 
-  @Column()
+  @Column({ default: true })
   isSubscribed: boolean;
 
   @ManyToOne(() => UserModel, (user) => user.subscriptions, {

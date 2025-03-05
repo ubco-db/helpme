@@ -22,7 +22,12 @@ import { UserTokenModel } from './user-token.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
+import { QueueChatsModel } from '../queueChats/queue-chats.entity';
 import { CalendarStaffModel } from '../calendar/calendar-staff.entity';
+import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question.entity';
+import { AsyncQuestionCommentModel } from '../asyncQuestion/asyncQuestionComment.entity';
+import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
+import { QuestionModel } from '../question/question.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -127,10 +132,37 @@ export class UserModel extends BaseEntity {
   @Exclude()
   taskProgress: StudentTaskProgressModel[];
 
+  @OneToMany(() => QueueChatsModel, (queueChat) => queueChat.staff)
+  @Exclude()
+  staffChats: QueueChatsModel[];
+
+  @OneToMany(() => QueueChatsModel, (queueChat) => queueChat.student)
+  @Exclude()
+  studentChats: QueueChatsModel[];
+
   @OneToMany((type) => CalendarStaffModel, (csm) => csm.user)
   @Exclude()
   calendarEvents: CalendarStaffModel[];
 
   @Column({ type: 'boolean', default: false })
   readChangeLog: boolean;
+
+  @OneToMany(
+    (type) => UnreadAsyncQuestionModel,
+    (unreadAsyncQuestion) => unreadAsyncQuestion.user,
+  )
+  @Exclude()
+  unreadAsyncQuestions: UnreadAsyncQuestionModel[];
+
+  @OneToMany((type) => QuestionModel, (q) => q.creator)
+  @Exclude()
+  questions: QuestionModel[];
+
+  @OneToMany((type) => AsyncQuestionModel, (aq) => aq.creator)
+  @Exclude()
+  asyncQuestions: AsyncQuestionModel[];
+
+  @OneToMany((type) => AsyncQuestionCommentModel, (aqc) => aqc.creator)
+  @Exclude()
+  asyncQuestionComments: CalendarStaffModel[];
 }

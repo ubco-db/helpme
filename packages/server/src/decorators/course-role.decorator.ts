@@ -1,22 +1,30 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { UserModel } from 'profile/user.entity';
+import {
+  createParamDecorator,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
+import { UserCourseModel } from 'profile/user-course.entity';
 
+/* Gives the role of the user in the course */
 export const CourseRole = createParamDecorator(
   async (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
-    const courseId = request.params.courseId;
-    const user = await UserModel.findOne({
+    const courseId =
+      request.params.courseId ??
+      request.params.cid ??
+      request.params.id ??
+      null;
+    const userCourse = await UserCourseModel.findOne({
       where: {
-        id: request.user.userId,
-      },
-      relations: {
-        courses: true,
+        userId: request.user.userId,
+        courseId: courseId,
       },
     });
 
-    const userCourse = user.courses.find((course) => {
-      return Number(course.courseId) === Number(courseId);
-    });
+    if (!userCourse) {
+      throw new ForbiddenException('User is not enrolled in this course');
+    }
+
     return userCourse.role;
   },
 );

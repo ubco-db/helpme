@@ -21,7 +21,7 @@ async function delay(ms) {
 }
 
 describe('Queue Integration', () => {
-  const supertest = setupIntegrationTest(QueueModule);
+  const { supertest } = setupIntegrationTest(QueueModule);
 
   describe('GET /queues/:id', () => {
     it('get a queue', async () => {

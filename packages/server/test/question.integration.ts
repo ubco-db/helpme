@@ -30,7 +30,7 @@ import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
 describe('Question Integration', () => {
-  const supertest = setupIntegrationTest(QuestionModule, modifyMockNotifs);
+  const { supertest } = setupIntegrationTest(QuestionModule, modifyMockNotifs);
 
   const QuestionTypes = [
     {

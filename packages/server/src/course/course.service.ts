@@ -5,6 +5,7 @@ import {
   Role,
   EditCourseInfoParams,
   GetCourseUserInfoResponse,
+  UserPartial,
 } from '@koh/common';
 import {
   HttpException,
@@ -15,12 +16,19 @@ import {
 import { partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
-import { Between, Brackets, getRepository, In } from 'typeorm';
+import {
+  Between,
+  Brackets,
+  createQueryBuilder,
+  getRepository,
+  In,
+} from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { CourseModel } from './course.entity';
 import { UserModel } from 'profile/user.entity';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
+import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 
 @Injectable()
 export class CourseService {
@@ -105,6 +113,10 @@ export class CourseService {
     }
     try {
       await UserCourseModel.remove(userCourse);
+      await UnreadAsyncQuestionModel.delete({
+        userId: userCourse.userId,
+        courseId: userCourse.courseId,
+      });
     } catch (err) {
       console.error(err);
       throw new HttpException(
@@ -237,57 +249,61 @@ export class CourseService {
     search?: string,
     roles?: Role[],
   ): Promise<GetCourseUserInfoResponse> {
-    const query = await getRepository(UserModel)
-      .createQueryBuilder()
-      .leftJoin(
-        UserCourseModel,
-        'UserCourseModel',
-        '"UserModel".id = "UserCourseModel"."userId"',
-      )
-      .where('"UserCourseModel"."courseId" = :courseId', { courseId });
+    // these are the params the query will use
+    const params: any[] = [courseId, pageSize, (page - 1) * pageSize];
 
     // check if searching for specific role and ensure it is a valid role
-    if (roles) {
+    let roleCondition = '';
+    if (roles && roles.length > 0) {
       if (roles.some((role) => !Object.values(Role).includes(role))) {
         throw new BadRequestException(
           ERROR_MESSAGES.courseController.roleInvalid,
         );
       }
-      query.andWhere('"UserCourseModel".role IN (:...roles)', { roles });
+      roleCondition = `AND user_course_model.role::text = ANY($4::text[])`;
+      params.push(roles);
     }
+
     // check if searching for specific name
+    let searchCondition = '';
     if (search) {
-      const likeSearch = `%${search.replace(' ', '')}%`.toUpperCase();
-      query.andWhere(
-        new Brackets((q) => {
-          q.where(
-            'CONCAT(UPPER("UserModel"."firstName"), UPPER("UserModel"."lastName")) like :searchString',
-            {
-              searchString: likeSearch,
-            },
-          );
-        }),
-      );
+      const searchString = search.replace(' ', '').toUpperCase();
+      searchCondition = `
+        AND CONCAT(UPPER(user_model."firstName"), UPPER(user_model."lastName"))
+          LIKE '%' || ${roleCondition ? '$5' : '$4'} || '%'
+      `;
+      params.push(searchString);
     }
 
-    // run query
-    const users = query.select([
-      'UserModel.id',
-      'UserModel.firstName',
-      'UserModel.lastName',
-      'UserModel.photoURL',
-      'UserModel.email',
-      'UserModel.sid',
-    ]);
+    const query = `
+      SELECT user_model.id, user_model."firstName" || ' ' || user_model."lastName" AS name, user_model."photoURL", user_model.email, user_model.sid, user_course_model."TANotes", COUNT(*) OVER () AS total
+      FROM user_course_model
+      INNER JOIN user_model ON user_model.id = user_course_model."userId"
+      WHERE user_course_model."courseId" = $1
+        ${roleCondition}
+        ${searchCondition}
+      ORDER BY user_model."firstName", user_model."lastName"
+      LIMIT $2
+      OFFSET $3
+    `;
 
-    const total = await users.getCount();
-    const usersSubset = await users
-      .orderBy('UserModel.firstName')
-      .skip((page - 1) * pageSize)
-      .take(pageSize)
-      .getMany();
+    // make the query
+    const rawUsers = (await UserCourseModel.query(
+      query,
+      params,
+    )) as UserPartial &
+      {
+        total: number;
+      }[];
 
-    return { users: usersSubset, total };
+    const total = rawUsers.length > 0 ? Number(rawUsers[0].total) : 0;
+
+    // strip out the total from the rawUsers (not a huge performance hit since n is always going to be <= 50, and adding another DB query for count would be much more expensive)
+    const users: UserPartial[] = rawUsers.map(
+      ({ total, ...rest }) => ({ ...rest }) as UserPartial,
+    );
+
+    return { users, total };
   }
 
   async addStudentToCourse(

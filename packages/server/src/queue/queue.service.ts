@@ -13,6 +13,8 @@ import {
   StatusInPriorityQueue,
   StatusInQueue,
   StatusSentToCreator,
+  StaffMember,
+  ExtraTAStatus,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -31,6 +33,13 @@ import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
 import { UserModel } from 'profile/user.entity';
 
+type StaffHelpingInOtherQueues = {
+  queueId: number;
+  userId: number;
+  courseId: number;
+  helpedAt: Date;
+}[];
+
 /**
  * Get data in service of the queue controller and SSE
  * WHY? To ensure data returned by endpoints is *exactly* equal to data sent by SSE
@@ -48,20 +57,60 @@ export class QueueService {
         id: queueId,
       },
       relations: {
-        staffList: true,
+        staffList: {
+          courses: true,
+        },
       },
     });
     await queue.addQueueSize();
+    const StaffHelpingInOtherQueues =
+      await this.getStaffHelpingInOtherQueues(queueId);
 
     queue.staffList = queue.staffList.map((user) => {
+      const staffHelpingInOtherQueue = StaffHelpingInOtherQueues.find(
+        (staff) => staff.userId === user.id,
+      );
       return {
         id: user.id,
         name: user.name,
         photoURL: user.photoURL,
-      } as UserModel;
+        TANotes:
+          user.courses.find((ucm) => ucm.courseId === queue.courseId)
+            ?.TANotes ?? '',
+        extraStatus: !staffHelpingInOtherQueue
+          ? undefined
+          : staffHelpingInOtherQueue.courseId !== queue.courseId
+            ? ExtraTAStatus.HELPING_IN_ANOTHER_COURSE
+            : staffHelpingInOtherQueue.queueId !== queueId
+              ? ExtraTAStatus.HELPING_IN_ANOTHER_QUEUE
+              : undefined,
+        helpingStudentInAnotherQueueSince: staffHelpingInOtherQueue?.helpedAt,
+      } as StaffMember as unknown as UserModel;
     });
 
     return queue;
+  }
+
+  /* Finds all staff members who are helping in other queues that ARE NOT the given queue.
+     It also returns the question's helpedAt so you can display how long they have been helped for.
+  */
+  async getStaffHelpingInOtherQueues(
+    queueId: number,
+  ): Promise<StaffHelpingInOtherQueues> {
+    // yes, this is joining the staff list table with itself. We start with the queueId of this queue and want to find which staff that are in this queue that are also checked into other queues.
+    const query = `
+    SELECT q.id AS "queueId", qstaff2."userModelId" AS "userId", q."courseId", question."helpedAt"
+    FROM queue_model_staff_list_user_model AS qstaff1
+    RIGHT JOIN queue_model_staff_list_user_model AS qstaff2 ON qstaff1."userModelId" = qstaff2."userModelId" AND qstaff2."queueModelId" != 19 
+    LEFT JOIN queue_model AS q ON qstaff2."queueModelId" = q.id
+    RIGHT JOIN question_model AS question ON question."queueId" = q.id AND question."taHelpedId" = qstaff2."userModelId" AND question.status = $1
+    WHERE qstaff1."queueModelId" = $2
+    `;
+    const result = (await getManager().query(query, [
+      OpenQuestionStatus.Helping,
+      queueId,
+    ])) as StaffHelpingInOtherQueues;
+    return result ? result : [];
   }
 
   async getQuestions(queueId: number): Promise<ListQuestionsResponse> {

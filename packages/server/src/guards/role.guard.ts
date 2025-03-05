@@ -23,15 +23,22 @@ export interface RolesGuard {
  * to ensure that the user has the correct role (provided by the `@Roles` decorator) to access a certain route.
  * Since it is abstract, it is not meant to be used as a standalone guard.
  * This will throw errors if the user is not logged in, not in the course, or does not have the correct role.
+ *
+ * Please make sure that 'user' argument also has the 'courses' relation loaded otherwise matchRoles will not work.
  */
 @Injectable()
 export abstract class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const roles = this.reflector.get<string[]>('roles', context.getHandler());
+    let roles = this.reflector.get<string[]>('roles', context.getHandler());
     if (!roles) {
-      return true;
+      // if it doesn't have the roles decorator, maybe it has the CourseRoles decorator?
+      roles = this.reflector.get<string[]>('CourseRoles', context.getHandler());
+      if (!roles) {
+        // if it lacks any role decorator, then this guard won't do anything (TODO: maybe throw a NotImplementedException instead? Though doing this may break some endpoints)
+        return true;
+      }
     }
     const request = context.switchToHttp().getRequest();
     const { courseId, user } = await this.setupData(request);

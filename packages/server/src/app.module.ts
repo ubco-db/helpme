@@ -33,6 +33,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { BackupModule } from 'backup/backup.module';
+import { QueueChatsModule } from 'queueChats/queue-chats.module';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { RateLimitExceptionFilter } from 'exception_filters/429-exception.filter';
 import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
@@ -81,6 +82,7 @@ import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter'
     StudentTaskProgressModule,
     RedisQueueModule,
     BackupModule,
+    QueueChatsModule,
     // no more than 30 calls per 1 second
     ThrottlerModule.forRoot([
       {
