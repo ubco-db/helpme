@@ -4,6 +4,7 @@ import {
   GetProfileResponse,
   UpdateProfileParams,
   AccountType,
+  Role,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -72,13 +73,18 @@ export class ProfileController {
 
     const courses = user.courses
       ? user.courses
-          .filter((userCourse) => userCourse?.course?.enabled)
+          .filter(
+            (userCourse) =>
+              userCourse?.course?.enabled ||
+              userCourse?.role === Role.PROFESSOR,
+          )
           .map((userCourse) => {
             return {
               course: {
                 id: userCourse.courseId,
                 name: userCourse.course.name,
                 semesterId: userCourse.course.semester.id,
+                enabled: userCourse.course.enabled,
               },
               role: userCourse.role,
             };

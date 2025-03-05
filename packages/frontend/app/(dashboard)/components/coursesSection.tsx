@@ -11,19 +11,19 @@ import { setEngine } from 'crypto'
 
 interface CoursesSectionProps {
   courses: UserCourse[]
+  semesters: SemesterPartial[]
   enabledTableView: boolean
 }
 
 const CoursesSection: React.FC<CoursesSectionProps> = ({
   courses,
+  semesters,
   enabledTableView,
 }) => {
   // For some reason, jdenticon is not working when imported as a module and needs to use require
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const jdenticon = require('jdenticon')
   const iconSize = 60
-  const { userInfo } = useUserInfo()
-  const [semesters, setSemesters] = useState<SemesterPartial[]>()
 
   jdenticon.configure({
     hues: [200],
@@ -36,21 +36,6 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
       grayscale: 0.0,
     },
   })
-
-  useEffect(() => {
-    API.semesters
-      .get(userInfo.organization?.orgId || -1)
-      .then((semesters) => {
-        setSemesters(semesters)
-      })
-      .catch((error) => {
-        console.error(error)
-        message.error(
-          'Failed to fetch semesters for organization with id: ' +
-            userInfo.organization?.id,
-        )
-      })
-  }, [])
 
   const columns: ColumnsType<UserCourse> = [
     {
@@ -74,7 +59,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
               ? 'success'
               : role === Role.TA
                 ? 'gold'
-                : 'blue'
+                : 'volcano'
           }
           className="text-base capitalize"
         >
@@ -87,15 +72,18 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
       width: '20%',
       align: 'center',
       render: (_, course) => (
-        <div className="flex w-full justify-end gap-2">
+        <div className="flex w-full flex-col items-end justify-center gap-2 md:flex-row md:items-center md:justify-end">
           <Link href={`/course/${course.course.id}`}>
-            <Button type="primary" className="rounded p-[1.1rem] font-medium">
+            <Button
+              type="primary"
+              className="rounded text-sm md:p-[1.1rem] md:font-medium"
+            >
               Course Page
             </Button>
           </Link>
           {course.role === Role.PROFESSOR && (
             <Link href={`/course/${course.course.id}/settings`}>
-              <Button className="rounded p-[1.1rem] font-medium">
+              <Button className="rounded p-[1.1rem] text-sm md:font-medium">
                 Edit Course
               </Button>
             </Link>
@@ -113,7 +101,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
             ?.sort((a, b) => b.endDate.valueOf() - a.endDate.valueOf())
             .map((semester) => {
               const semesterCourses = courses.filter(
-                (course) => course.course.semesterId === semester.id,
+                (userCourse) => userCourse.course.semesterId === semester.id,
               )
               if (semesterCourses.length === 0) {
                 return null
@@ -163,7 +151,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
       ) : (
         <div className="flex flex-wrap gap-3">
           {courses
-            ?.sort((a, b) => {
+            .sort((a, b) => {
               const semesterA = semesters?.find(
                 (semester) => semester.id === a.course.semesterId,
               )
@@ -191,7 +179,6 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
               )
 
               if (!semester) {
-                // PAT TODO: make a card that says "Semester not found"
                 return null
               }
 

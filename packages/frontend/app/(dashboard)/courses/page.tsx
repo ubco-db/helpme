@@ -1,7 +1,7 @@
 'use client'
 
-import { ReactElement, useState } from 'react'
-import { Alert, Button, Empty, Segmented } from 'antd'
+import { ReactElement, useEffect, useState } from 'react'
+import { Alert, Button, Empty, message, Segmented } from 'antd'
 import { OrganizationRole } from '@/app/typings/user'
 import { useUserInfo } from '@/app/contexts/userContext'
 import CoursesSection from '../components/coursesSection'
@@ -9,6 +9,9 @@ import OrganizationCard from '../components/organizationCard'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons'
+import ArchivedCoursesSection from '../components/ArchivedCoursesSection'
+import { API } from '@/app/api'
+import { SemesterPartial } from '@koh/common'
 
 export default function CoursesPage(): ReactElement {
   const { userInfo } = useUserInfo()
@@ -16,6 +19,22 @@ export default function CoursesPage(): ReactElement {
   const error = searchParams.get('err')
 
   const [enabledTableView, setEnabledTableView] = useState(false)
+  const [semesters, setSemesters] = useState<SemesterPartial[]>([])
+
+  useEffect(() => {
+    API.semesters
+      .get(userInfo.organization?.orgId || -1)
+      .then((semesters) => {
+        setSemesters(semesters)
+      })
+      .catch((error) => {
+        console.error(error)
+        message.error(
+          'Failed to fetch semesters for organization with id: ' +
+            userInfo.organization?.id,
+        )
+      })
+  }, [])
 
   return (
     <>
@@ -78,12 +97,30 @@ export default function CoursesPage(): ReactElement {
           />
         </div>
       </div>
-      {userInfo?.courses?.length === 0 ? (
-        <Empty description="You are not enrolled in any course" />
-      ) : (
-        <CoursesSection
-          courses={userInfo.courses}
-          enabledTableView={enabledTableView}
+      <div className="flex min-h-96 items-center justify-center">
+        {userInfo?.courses?.filter((userCourse) => userCourse.course.enabled)
+          .length === 0 ? (
+          <Empty
+            className="max-h-min"
+            description="You are not enrolled in any course"
+          />
+        ) : (
+          <CoursesSection
+            courses={userInfo.courses.filter(
+              (userCourse) => userCourse.course.enabled,
+            )}
+            semesters={semesters}
+            enabledTableView={enabledTableView}
+          />
+        )}
+      </div>
+      {userInfo?.courses?.filter((userCourse) => !userCourse.course.enabled)
+        .length !== 0 && (
+        <ArchivedCoursesSection
+          archivedCourses={userInfo.courses.filter(
+            (userCourse) => !userCourse.course.enabled,
+          )}
+          semesters={semesters}
         />
       )}
     </>

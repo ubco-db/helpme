@@ -4,7 +4,6 @@ import {
   LastRegistrationModel,
   khourySemesterCodes,
 } from 'login/last-registration-model.entity';
-import { LoginCourseService } from 'login/login-course.service';
 // import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
 import { Connection } from 'typeorm';
 import { UserModel } from './user.entity';
@@ -16,7 +15,6 @@ export class ProfileService {
   constructor(
     private connection: Connection,
     private mailService: MailService,
-    private loginCourseService: LoginCourseService,
   ) {}
 
   public async inQueue(user: UserModel): Promise<boolean> {

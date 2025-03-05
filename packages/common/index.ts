@@ -168,6 +168,7 @@ export type CoursePartial = {
   id: number
   name: string
   semesterId?: number
+  enabled?: boolean
 }
 
 export class RegistrationTokenDetails {
