@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons'
 import { API } from '@/app/api'
 import UserAvatar from '@/app/components/UserAvatar'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage, parseThinkBlock } from '@/app/utils/generalUtils'
 import { QuestionTagElement } from '../../components/QuestionTagElement'
 import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
 import TAAsyncQuestionCardButtons from './TAAsyncQuestionCardButtons'
@@ -151,6 +151,8 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     showStudents,
     userId === question.creatorId ? 'you' : Role.STUDENT,
   )
+
+  const { thinkText, cleanAnswer } = parseThinkBlock(question.answerText ?? '')
 
   return (
     <div
@@ -361,9 +363,18 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   <>
                     <br />
                     <br />
-                    <strong>Answer:</strong>
+                    <strong>Answer: </strong>
                     <br />
-                    {<MarkdownCustom>{question.answerText}</MarkdownCustom>}
+                    {thinkText && (
+                      <Tooltip title={`AI Thoughts: ${thinkText}`}>
+                        <span className="mr-1 rounded-lg bg-blue-100 p-0.5 pl-1 text-xs">
+                          <i>Thoughts</i> 🧠
+                        </span>
+                      </Tooltip>
+                    )}
+                    <MarkdownCustom>
+                      {thinkText ? cleanAnswer : question.answerText}
+                    </MarkdownCustom>
                   </>
                 )}
               </div>
