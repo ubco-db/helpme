@@ -238,7 +238,6 @@ describe('Question Integration', () => {
         staffList: [ta.user],
       });
 
-      expect(await queueImNotIn.checkIsOpen()).toBe(true);
       const user = await UserFactory.create();
       const course2 = await CourseFactory.create();
       await StudentCourseFactory.create({
@@ -276,8 +275,6 @@ describe('Question Integration', () => {
         questionTypes.push(currentQuestionType);
       });
 
-      const result = await queue.checkIsOpen();
-      expect(result).toBe(false);
       const user = await UserFactory.create();
       await StudentCourseFactory.create({ user, courseId: queue.courseId });
       await supertest({ userId: user.id });
@@ -299,7 +296,6 @@ describe('Question Integration', () => {
     //   const user = await UserFactory.create();
     //   await StudentCourseFactory.create({ user, courseId: queue.courseId });
 
-    //   expect(await queue.checkIsOpen()).toBe(true);
     //   await supertest({ userId: user.id })
     //     .post('/questions')
     //     .send({
@@ -333,9 +329,6 @@ describe('Question Integration', () => {
         course: course,
         staffList: [ta.user],
       });
-
-      expect(await queue1.checkIsOpen()).toBe(true);
-      expect(await queue2.checkIsOpen()).toBe(true);
 
       await StudentCourseFactory.create({
         userId: user.id,
@@ -409,9 +402,6 @@ describe('Question Integration', () => {
         },
       });
 
-      expect(await queue1.checkIsOpen()).toBe(true);
-      expect(await queue2.checkIsOpen()).toBe(true);
-
       await StudentCourseFactory.create({
         userId: user.id,
         courseId: course.id,
@@ -463,8 +453,6 @@ describe('Question Integration', () => {
         },
       });
 
-      expect(await queue.checkIsOpen()).toBe(true);
-
       await StudentCourseFactory.create({
         userId: user.id,
         courseId: course.id,
@@ -497,8 +485,6 @@ describe('Question Integration', () => {
         staffList: [ta.user],
         config: {},
       });
-
-      expect(await queue.checkIsOpen()).toBe(true);
 
       await StudentCourseFactory.create({
         userId: user.id,
@@ -543,8 +529,6 @@ describe('Question Integration', () => {
           },
         },
       });
-
-      expect(await queue.checkIsOpen()).toBe(true);
 
       await StudentCourseFactory.create({
         userId: user.id,
@@ -597,9 +581,6 @@ describe('Question Integration', () => {
           },
         },
       });
-
-      expect(await queue1.checkIsOpen()).toBe(true);
-      expect(await queue2.checkIsOpen()).toBe(true);
 
       await StudentCourseFactory.create({
         userId: user.id,
@@ -700,8 +681,6 @@ describe('Question Integration', () => {
         staffList: [ta.user],
       });
 
-      expect(await queue.checkIsOpen()).toBe(true);
-
       await StudentCourseFactory.create({
         userId: user.id,
         courseId: queue.courseId,
@@ -743,7 +722,6 @@ describe('Question Integration', () => {
         allowQuestions: true,
         staffList: [ta.user],
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       await StudentCourseFactory.create({
         userId: user.id,
@@ -777,7 +755,6 @@ describe('Question Integration', () => {
         staffList: [ta.user],
         allowQuestions: true,
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       await StudentCourseFactory.create({
         userId: user.id,
@@ -1028,7 +1005,6 @@ describe('Question Integration', () => {
         staffList: [ta.user],
         courseId: course.id,
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       const user = await UserFactory.create();
       await StudentCourseFactory.create({ user, courseId: queue.courseId });
@@ -1071,7 +1047,6 @@ describe('Question Integration', () => {
         courseId: course.id,
         staffList: [ta],
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       const student = await UserFactory.create();
       await StudentCourseFactory.create({
@@ -1104,7 +1079,6 @@ describe('Question Integration', () => {
         courseId: course.id,
         staffList: [ta],
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       const student = await UserFactory.create();
       await StudentCourseFactory.create({
@@ -1132,7 +1106,6 @@ describe('Question Integration', () => {
         course: course,
         staffList: [ta],
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       const question = await QuestionFactory.create({
         text: 'Help pls',
@@ -1164,7 +1137,6 @@ describe('Question Integration', () => {
         course: course,
         staffList: [ta],
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       const q = await QuestionFactory.create({
         text: 'Help pls',
@@ -1196,8 +1168,6 @@ describe('Question Integration', () => {
         cid: course.id,
         queueId: q.queueId,
       });
-
-      expect(await q.queue.checkIsOpen()).toBe(true);
 
       await supertest({ userId: ta.id })
         .patch(`/questions/${q.id}`)
@@ -1247,7 +1217,6 @@ describe('Question Integration', () => {
       await TACourseFactory.create({ course: q.queue.course, user: ta });
 
       q.queue.staffList.push(ta);
-      expect(await q.queue.checkIsOpen()).toBe(true);
 
       const res = await supertest({ userId: ta.id })
         .patch(`/questions/${q.id}`)
@@ -1311,7 +1280,6 @@ describe('Question Integration', () => {
       const ta = await UserFactory.create();
       await TACourseFactory.create({ courseId: queue.courseId, user: ta });
       queue.staffList.push(ta);
-      expect(await queue.checkIsOpen()).toBe(true);
 
       await supertest({ userId: ta.id })
         .patch(`/questions/${q1.id}`)

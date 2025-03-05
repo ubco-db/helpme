@@ -30,7 +30,7 @@ export class AlertsService {
             relations: ['staffList'],
           });
 
-          const isQueueOpen = await queue?.checkIsOpen();
+          const isQueueOpen = queue.staffList.length > 0 && !queue.isDisabled;
           if (question.closedAt || !isQueueOpen) {
             alert.resolved = new Date();
             await alert.save();

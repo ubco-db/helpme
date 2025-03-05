@@ -89,7 +89,7 @@ export class QueueCleanService {
       relations: ['staffList'],
     });
 
-    if (force || !(await queue.checkIsOpen())) {
+    if (force || queue.staffList.length === 0) {
       await this.unsafeClean(queue.id);
     }
   }

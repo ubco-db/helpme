@@ -116,7 +116,7 @@ export class UserModel extends BaseEntity {
 
   @Column({
     generatedType: 'STORED',
-    asExpression: `COALESCE('firstName', "") || ' ' || COALESCE('lastName', "")`,
+    asExpression: `COALESCE("firstName", '') || ' ' || COALESCE("lastName", '')`,
   })
   name: string;
 

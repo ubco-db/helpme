@@ -75,25 +75,7 @@ export class QueueModel extends BaseEntity {
   @OneToMany((type) => QuestionTypeModel, (qtm) => qtm.queue)
   questionTypes: QuestionTypeModel[];
 
-  startTime: Date;
-  endTime: Date;
-
-  isOpen: boolean;
-
-  // This seems really weird, since staffList is always going to be >=0, so all queues are always open.
-  async checkIsOpen(): Promise<boolean> {
-    if (!this.staffList) {
-      console.error(ERROR_MESSAGES.queueController.missingStaffList, this.id);
-      throw new HttpException(
-        ERROR_MESSAGES.queueController.missingStaffList,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-    this.isOpen = this.staffList.length >= 0 && !this.isDisabled;
-    return this.isOpen;
-  }
-
-  queueSize: number;
+  public queueSize: number;
 
   async addQueueSize(): Promise<void> {
     this.queueSize = await QuestionModel.inQueueWithStatus(this.id, [

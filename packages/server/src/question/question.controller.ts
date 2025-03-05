@@ -133,7 +133,7 @@ export class QuestionController {
         ERROR_MESSAGES.questionController.createQuestion.noNewQuestions,
       );
     }
-    if (!(await queue.checkIsOpen())) {
+    if (queue.staffList.length === 0 || queue.isDisabled) {
       throw new BadRequestException(
         ERROR_MESSAGES.questionController.createQuestion.closedQueue,
       );
@@ -240,7 +240,7 @@ export class QuestionController {
         ERROR_MESSAGES.questionController.createQuestion.noNewQuestions,
       );
     }
-    if (!(await queue.checkIsOpen())) {
+    if (queue.staffList.length === 0 || queue.isDisabled) {
       throw new BadRequestException(
         ERROR_MESSAGES.questionController.createQuestion.closedQueue,
       );

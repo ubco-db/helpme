@@ -49,45 +49,6 @@ describe('Queue Integration', () => {
         queueSize: 1,
         room: 'Online',
         staffList: expect.any(Array),
-        isOpen: true,
-      });
-    });
-
-    it('is not open when there are no TAs present', async () => {
-      const queue = await QueueFactory.create({});
-      const userCourse = await UserCourseFactory.create({
-        user: await UserFactory.create(),
-        course: queue.course,
-      });
-
-      const res = await supertest({ userId: userCourse.user.id })
-        .get(`/queues/${queue.id}`)
-        .expect(200);
-      expect(res.body).toMatchObject({
-        // isOpen: false,
-        isOpen: true,
-      });
-    });
-
-    it('is open when there are TAs present', async () => {
-      const course = await CourseFactory.create();
-      const ta = await UserFactory.create();
-      await TACourseFactory.create({ course: course, user: ta });
-      const queue = await QueueFactory.create({
-        course: course,
-        staffList: [ta],
-      });
-
-      const userCourse = await UserCourseFactory.create({
-        user: await UserFactory.create(),
-        course: queue.course,
-      });
-
-      const res = await supertest({ userId: userCourse.user.id })
-        .get(`/queues/${queue.id}`)
-        .expect(200);
-      expect(res.body).toMatchObject({
-        isOpen: true,
       });
     });
 

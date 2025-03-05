@@ -51,7 +51,6 @@ export class QueueService {
         staffList: true,
       },
     });
-    await queue.checkIsOpen();
     await queue.addQueueSize();
 
     queue.staffList = queue.staffList.map((user) => {

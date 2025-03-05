@@ -339,13 +339,8 @@ export class CourseController {
     } else if (userCourseModel.role === Role.STUDENT) {
       course.queues = await async.filter(
         course.queues,
-        async (q) => !q.isDisabled && (await q.checkIsOpen()),
+        async (q) => !q.isDisabled && q.staffList.length > 0,
       );
-    }
-
-    // make sure all of isopen is populated since we need it in FE
-    for (const que of course.queues) {
-      await que.checkIsOpen();
     }
 
     try {
