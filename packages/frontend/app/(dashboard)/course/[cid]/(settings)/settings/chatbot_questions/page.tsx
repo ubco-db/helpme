@@ -3,7 +3,7 @@
 import { Button, Divider, Input, message, Table, Tooltip } from 'antd'
 import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
 import ExpandableText from '@/app/components/ExpandableText'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { getErrorMessage, parseThinkBlock } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
 import EditChatbotQuestionModal from './components/EditChatbotQuestionModal'
 import { EditOutlined } from '@ant-design/icons'
@@ -137,9 +137,21 @@ export default function ChatbotQuestions({
         const B = b.answer || ''
         return A.localeCompare(B)
       },
-      render: (text: string) => (
-        <ExpandableText maxRows={3}>{text}</ExpandableText>
-      ),
+      render: (text: string) => {
+        const { thinkText, cleanAnswer } = parseThinkBlock(text ?? '')
+        return (
+          <ExpandableText maxRows={3}>
+            {thinkText && (
+              <Tooltip title={`AI Thoughts: ${thinkText}`}>
+                <span className="mr-1 rounded-lg bg-blue-100 p-0.5 pl-1 text-xs">
+                  <i>Thoughts</i> 🧠
+                </span>
+              </Tooltip>
+            )}
+            {thinkText ? cleanAnswer : text}
+          </ExpandableText>
+        )
+      },
     },
     {
       title: 'Source Documents',
