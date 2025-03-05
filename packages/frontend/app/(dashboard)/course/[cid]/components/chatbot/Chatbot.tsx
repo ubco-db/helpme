@@ -453,6 +453,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
                         {item.thinkText ? (
                           <Tooltip
                             title={'Chatbot thoughts: ' + item.thinkText}
+                            classNames={{
+                              body: 'w-96',
+                            }}
                           >
                             <div className="relative inline-block">
                               <Avatar

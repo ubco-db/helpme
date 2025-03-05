@@ -142,7 +142,12 @@ export default function ChatbotQuestions({
         return (
           <ExpandableText maxRows={3}>
             {thinkText && (
-              <Tooltip title={`AI Thoughts: ${thinkText}`}>
+              <Tooltip
+                title={`AI Thoughts: ${thinkText}`}
+                classNames={{
+                  body: 'w-96',
+                }}
+              >
                 <span className="mr-1 rounded-lg bg-blue-100 p-0.5 pl-1 text-xs">
                   <i>Thoughts</i> 🧠
                 </span>
