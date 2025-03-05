@@ -243,11 +243,18 @@ export class SeedController {
       legacyAuthEnabled: true,
     });
 
-    const semester = await SemesterFactory.create({
+    const semester1 = await SemesterFactory.create({
       organization: organization,
       startDate: new Date('2020-09-01'),
       endDate: new Date('2020-12-31'),
       name: 'Fall 2020',
+    });
+
+    const semester2 = await SemesterFactory.create({
+      organization: organization,
+      startDate: new Date('2020-05-01'),
+      endDate: new Date('2020-08-31'),
+      name: 'Summer 2020',
     });
 
     if (!course1Exists) {
@@ -262,7 +269,7 @@ export class SeedController {
 
       await CourseFactory.create({
         timezone: 'America/Los_Angeles',
-        semester: semester,
+        semester: semester1,
       });
     }
 
@@ -270,7 +277,7 @@ export class SeedController {
       await CourseFactory.create({
         name: 'CS 310',
         timezone: 'America/Los_Angeles',
-        semester: semester,
+        semester: semester2,
       });
     }
 
@@ -493,7 +500,7 @@ export class SeedController {
         user: user6,
         used: 0,
         max_uses: 20,
-        token: 'test_token5',
+        token: 'test_token6',
       });
 
       await UserCourseFactory.create({
@@ -548,7 +555,7 @@ export class SeedController {
         userId: user6.id,
         organizationId: organization.id,
         role: OrganizationRole.PROFESSOR,
-        organizationUser: user5,
+        organizationUser: user6,
         organization: organization,
       });
 
