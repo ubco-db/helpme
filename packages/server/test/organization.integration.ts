@@ -1090,37 +1090,6 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(400);
     });
 
-    it('should return 400 when semester id is not in valid form', async () => {
-      const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
-      const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      await OrganizationCourseModel.create({
-        courseId: course.id,
-        organizationId: organization.id,
-      }).save();
-
-      const res = await supertest({ userId: user.id })
-        .patch(`/organization/${organization.id}/update_course/${course.id}`)
-        .send({
-          name: 'newName',
-          timezone: 'America/Los_Angeles',
-          sectionGroupName: 'test',
-          semesterName: 'invalid_semester_name',
-        });
-
-      expect(res.body.message).toBe(
-        'Semester must be in the format "season,year". E.g. Fall,2021',
-      );
-      expect(res.status).toBe(400);
-    });
-
     it('should return 200 when course is updated (org admin)', async () => {
       const user = await UserFactory.create();
       const professor1 = await UserFactory.create();
@@ -1145,7 +1114,6 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterName: 'Fall,2021',
           profIds: [professor1.id, professor2.id],
         });
 
@@ -1182,7 +1150,6 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterName: 'Fall,2021',
           profIds: [professor1.id, professor2.id],
         });
 
@@ -1217,7 +1184,6 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterName: 'Fall,2021',
           profIds: [user.id], // try to make me the only prof in the course
         });
 
@@ -3030,7 +2996,6 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterName: 'Fall,2024',
           courseSettings: [
             {
               feature: 'asyncQueueEnabled',
@@ -3069,7 +3034,6 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterName: 'Fall,2024',
           profIds: [professor1.id],
           courseSettings: {
             invalidSetting: true,
@@ -3085,7 +3049,6 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterName: 'Fall,2024',
           profIds: [professor1.id],
           courseSettings: [
             {
@@ -3122,7 +3085,6 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterName: 'Fall,2024',
           profIds: [professor1.id],
         });
 
@@ -3173,7 +3135,6 @@ describe('Organization Integration', () => {
           name: 'newName',
           timezone: 'America/Los_Angeles',
           sectionGroupName: 'test',
-          semesterName: 'Fall,2024',
           profIds: [professor1.id, professor2.id],
           courseSettings: [
             {

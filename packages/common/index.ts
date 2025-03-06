@@ -163,6 +163,8 @@ export type UserTiny = {
  * Represents a partial course data needed on the front end when nested in a response.
  * @param id - The id number of this Course.
  * @param name - The subject and course number of this course. Ex: "CS 2500"
+ * @param semesterId - The id of the semester this course is in.
+ * @param enabled - Whether this course is enabled or not.
  */
 export type CoursePartial = {
   id: number
