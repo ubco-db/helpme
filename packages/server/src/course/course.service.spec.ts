@@ -11,6 +11,7 @@ import { UserModel } from 'profile/user.entity';
 import { CourseModel } from './course.entity';
 import { Role, UserPartial } from '@koh/common';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
+import { RedisModule } from 'nestjs-redis';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -19,7 +20,15 @@ describe('CourseService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule],
+      imports: [
+        TestTypeOrmModule,
+        TestConfigModule,
+        RedisModule.register([
+          { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
+          { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
+          { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
+        ]),
+      ],
       providers: [CourseService, RedisProfileService],
     }).compile();
 
