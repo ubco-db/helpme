@@ -328,8 +328,10 @@ const NavBar = ({
                   My Courses
                 </Link>
               </NavigationMenuItem>
-              {userInfo?.organization?.organizationRole ===
-                OrganizationRole.ADMIN && (
+              {(userInfo?.organization?.organizationRole ===
+                OrganizationRole.ADMIN ||
+                userInfo?.organization?.organizationRole ===
+                  OrganizationRole.PROFESSOR) && (
                 <NavigationMenuItem>
                   <Link
                     className="md:pl-8"
