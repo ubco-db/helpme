@@ -14,13 +14,7 @@ import { RedisQueueModule } from '../redisQueue/redis-queue.module';
     RedisQueueService,
     ApplicationConfigService,
   ],
-  imports: [
-    NotificationModule,
-    MailModule,
-    RedisQueueService,
-    ApplicationConfigService,
-    RedisQueueModule,
-  ],
+  imports: [NotificationModule, MailModule, RedisQueueModule],
   exports: [AsyncQuestionService],
 })
 export class asyncQuestionModule {}
@@ -28,7 +22,7 @@ export class asyncQuestionModule {}
 @Module({
   controllers: [asyncQuestionController],
   providers: [AsyncQuestionService, ApplicationConfigService],
-  imports: [NotificationModule, MailTestingModule, ApplicationConfigService],
+  imports: [NotificationModule, MailTestingModule],
   exports: [AsyncQuestionService],
 })
 export class asyncQuestionTestingModule {}

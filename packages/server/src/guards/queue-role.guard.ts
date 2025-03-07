@@ -9,7 +9,7 @@ export class QueueRolesGuard extends RolesGuard {
   async setupData(
     request: any,
   ): Promise<{ courseId: number; user: UserModel }> {
-    const queue = await QueueModel.findOne(request.params.queueId);
+    const queue = await QueueModel.findOneBy({ id: request.params.queueId });
     if (!queue) {
       throw new NotFoundException(ERROR_MESSAGES.queueRoleGuard.queueNotFound);
     }

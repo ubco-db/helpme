@@ -1,29 +1,32 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { RedisService } from 'nestjs-redis';
 import { QueueChatService } from './queue-chats.service';
 import { QueueChatsModel } from './queue-chats.entity';
-import { Connection } from 'typeorm';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { ApplicationTestingConfigModule } from '../config/application_config.module';
 import { QuestionFactory, UserFactory } from '../../test/util/factories';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 
-jest.mock('nestjs-redis');
+//jest.mock('nestjs-redis');
+jest.mock('@nestjs-modules/ioredis', () => ({
+  InjectRedis: jest.fn(() => jest.fn()),
+}));
+
+const mockRedisClient = () => ({
+  get: jest.fn().mockResolvedValue('mocked_value'), // Simulates redis.get() returning a value
+  set: jest.fn().mockResolvedValue('OK'), // Simulates redis.set() returning 'OK'
+  del: jest.fn().mockResolvedValue(1), // Simulates redis.del() indicating 1 key deleted
+  lpush: jest.fn().mockResolvedValue(1), // Simulates redis.lpush() returning new list length
+  lrange: jest.fn().mockResolvedValue(['item1', 'item2']), // Simulates redis.lrange() returning list items
+  expire: jest.fn().mockResolvedValue(1), // Simulates redis.expire() returning 1 (success)
+  exists: jest.fn().mockResolvedValue(1), // Simulates redis.exists() returning 1 (key exists)
+});
 
 describe('QueueChatService', () => {
   let service: QueueChatService;
   let redisMock: { [key: string]: jest.Mock };
-  let conn: Connection;
-
-  const mockRedisClient = () => ({
-    get: jest.fn().mockResolvedValue('mocked_value'), // Simulates redis.get() returning a value
-    set: jest.fn().mockResolvedValue('OK'), // Simulates redis.set() returning 'OK'
-    del: jest.fn().mockResolvedValue(1), // Simulates redis.del() indicating 1 key deleted
-    lpush: jest.fn().mockResolvedValue(1), // Simulates redis.lpush() returning new list length
-    lrange: jest.fn().mockResolvedValue(['item1', 'item2']), // Simulates redis.lrange() returning list items
-    expire: jest.fn().mockResolvedValue(1), // Simulates redis.expire() returning 1 (success)
-    exists: jest.fn().mockResolvedValue(1), // Simulates redis.exists() returning 1 (key exists)
-  });
+  let dataSource: DataSource;
 
   const staticDate = new Date('2023-01-01T00:00:00Z');
 
@@ -48,15 +51,15 @@ describe('QueueChatService', () => {
       ],
     }).compile();
     service = module.get<QueueChatService>(QueueChatService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   afterEach(() => {

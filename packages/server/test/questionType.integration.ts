@@ -11,6 +11,7 @@ import { setupIntegrationTest } from './util/testUtils';
 import { QuestionTypeModel } from '../src/questionType/question-type.entity';
 import { QueueModel } from '../src/queue/queue.entity';
 import { ERROR_MESSAGES } from '@koh/common';
+import { IsNull } from 'typeorm';
 
 describe('QuestionType Integration', () => {
   const { supertest } = setupIntegrationTest(QuestionTypeModule);
@@ -328,7 +329,7 @@ describe('QuestionType Integration', () => {
       const questionType = await QuestionTypeModel.findOne({
         where: {
           cid: course.id,
-          queueId: null,
+          queueId: IsNull(),
           name: newQuestionType.name,
         },
       });

@@ -124,9 +124,11 @@ export class ChatbotService {
     }
     Object.assign(question, data);
     if (data.interactionId) {
-      const tempInteraction = await InteractionModel.findOne(
-        data.interactionId,
-      );
+      const tempInteraction = await InteractionModel.findOne({
+        where: {
+          id: data.interactionId,
+        },
+      });
       if (!tempInteraction) {
         throw new HttpException(
           'Interaction not found based on the provided ID.',
@@ -159,9 +161,17 @@ export class ChatbotService {
   async getInteractionsAndQuestions(
     courseId: number,
   ): Promise<InteractionModel[]> {
+    const course = await CourseModel.findOne({
+      // i hate how i have to do this
+      where: {
+        id: courseId,
+      },
+    });
     const interactions = await InteractionModel.find({
-      where: { course: courseId },
-      relations: ['questions'],
+      where: { course: course },
+      relations: {
+        questions: true,
+      },
     });
 
     return interactions;

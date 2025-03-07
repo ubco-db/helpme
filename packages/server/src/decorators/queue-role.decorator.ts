@@ -9,7 +9,7 @@ import { UserCourseModel } from 'profile/user-course.entity';
 export const QueueRole = createParamDecorator(
   async (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
-    const queue = await QueueModel.findOne(request.params.queueId);
+    const queue = await QueueModel.findOneBy({ id: request.params.queueId });
     const courseId = queue?.courseId;
     const userCourse = await UserCourseModel.findOne({
       where: { userId: request.user.userId, courseId: courseId },

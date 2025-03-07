@@ -27,7 +27,9 @@ export class AlertsService {
 
           const queue = await QueueModel.findOne({
             where: { id: payload.queueId },
-            relations: ['staffList'],
+            relations: {
+              staffList: true,
+            },
           });
 
           const isQueueOpen = queue.staffList.length > 0 && !queue.isDisabled;

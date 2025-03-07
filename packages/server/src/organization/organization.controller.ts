@@ -53,7 +53,7 @@ import * as path from 'path';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SemesterModel } from 'semester/semester.entity';
-import { DeepPartial, getManager, In } from 'typeorm';
+import { DataSource, DeepPartial, In } from 'typeorm';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
@@ -72,6 +72,7 @@ export class OrganizationController {
   constructor(
     private organizationService: OrganizationService,
     private schedulerRegistry: SchedulerRegistry,
+    private dataSource: DataSource,
   ) {}
 
   @Post(':oid/reset_chat_token_limit')
@@ -150,14 +151,12 @@ export class OrganizationController {
     @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     try {
-      const entityManager = getManager();
-
       // Get all users for the organization with their highest role
       // update: this query can probably be updated to just grab userids of all org users but this is a admin route so me
       const orgUsers: {
         userId: number;
         role: 'professor' | 'admin' | 'member';
-      }[] = await entityManager.query(
+      }[] = await this.dataSource.query(
         `
   SELECT ou."userId",
          CASE
@@ -175,7 +174,7 @@ export class OrganizationController {
       );
 
       // Get all mail services
-      const mailServices = await entityManager.query(`
+      const mailServices = await this.dataSource.query(`
         SELECT id, "mailType", "serviceType"
         FROM mail_services
       `);
@@ -196,7 +195,7 @@ export class OrganizationController {
 
       // Bulk insert subscriptions
       if (subscriptionsToInsert.length > 0) {
-        await entityManager.query(
+        await this.dataSource.query(
           `
           INSERT INTO user_subscriptions ("userId", "serviceId", "isSubscribed")
           SELECT u, s, e
@@ -443,7 +442,7 @@ export class OrganizationController {
     @Param('oid', ParseIntPipe) oid: number,
     @Param('cid', ParseIntPipe) cid: number,
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
-    @User(['organizationUser']) user: UserModel,
+    @User({ organizationUser: true }) user: UserModel,
   ): Promise<Response<void>> {
     const courseInfo = await OrganizationCourseModel.findOne({
       where: {
@@ -1194,7 +1193,7 @@ export class OrganizationController {
     @Res() res: Response,
     @Param('uid', ParseIntPipe) uid: number,
     @Body() userCourses: number[],
-    @User(['organizationUser', 'courses']) user: UserModel,
+    @User({ organizationUser: true, courses: true }) user: UserModel,
   ): Promise<Response<void>> {
     if (userCourses.length < 1) {
       return res.status(HttpStatus.BAD_REQUEST).send({

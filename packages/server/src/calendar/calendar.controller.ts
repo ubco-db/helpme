@@ -19,13 +19,16 @@ import { Calendar, ERROR_MESSAGES, OrganizationRole, Role } from '@koh/common';
 import { CourseModel } from '../course/course.entity';
 import { Roles } from '../decorators/roles.decorator';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
-import { getManager } from 'typeorm';
 import { OrganizationRolesGuard } from '../guards/organization-roles.guard';
+import { DataSource } from 'typeorm';
 
 @Controller('calendar')
 @UseGuards(JwtAuthGuard)
 export class CalendarController {
-  constructor(private readonly calendarService: CalendarService) {}
+  constructor(
+    private readonly calendarService: CalendarService,
+    private dataSource: DataSource,
+  ) {}
   @Post(':cid')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
@@ -55,9 +58,8 @@ export class CalendarController {
       );
     }
     try {
-      const entityManager = getManager();
       let event: null | CalendarModel = null;
-      await entityManager.transaction(async (transactionalEntityManager) => {
+      await this.dataSource.transaction(async (transactionalEntityManager) => {
         event = await transactionalEntityManager.save(CalendarModel, {
           title: body.title,
           start: body.start,
@@ -136,8 +138,7 @@ export class CalendarController {
       );
     }
     try {
-      const entityManager = getManager();
-      await entityManager.transaction(async (transactionalEntityManager) => {
+      await this.dataSource.transaction(async (transactionalEntityManager) => {
         const oldStaff = event.staff.map((staff) => ({ ...staff }));
         Object.assign(event, body);
         await event.save();

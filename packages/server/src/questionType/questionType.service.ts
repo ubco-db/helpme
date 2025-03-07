@@ -5,12 +5,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { EntityManager, getManager, IsNull } from 'typeorm';
+import { DataSource, EntityManager, IsNull } from 'typeorm';
 import { QuestionTypeModel } from './question-type.entity';
 import { QueueModel } from '../queue/queue.entity';
 
 @Injectable()
 export class QuestionTypeService {
+  constructor(private dataSource: DataSource) {}
+
   async addQuestionType(
     courseId: number,
     queueId: number,
@@ -27,7 +29,7 @@ export class QuestionTypeService {
       throw new ConflictException(`${newQuestionType.name} already exists`);
     }
 
-    await getManager().transaction(async (transactionalEntityManager) => {
+    await this.dataSource.transaction(async (transactionalEntityManager) => {
       if (queueId) {
         await this.addQuestionTypeToQueueConfig(
           queueId,

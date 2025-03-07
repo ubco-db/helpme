@@ -61,11 +61,10 @@ import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
 import { ApplicationConfigService } from '../config/application_config.service';
-import { getManager } from 'typeorm';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { CourseRole } from 'decorators/course-role.decorator';
-import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
+import { DataSource } from 'typeorm';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -77,6 +76,7 @@ export class CourseController {
     private courseService: CourseService,
     private queueCleanService: QueueCleanService,
     private readonly appConfig: ApplicationConfigService,
+    private dataSource: DataSource,
   ) {}
 
   @Get(':oid/organization_courses')
@@ -251,7 +251,7 @@ export class CourseController {
     try {
       course_response.crns = await CourseSectionMappingModel.find({
         where: {
-          course: course,
+          courseId: course.id,
         },
       });
     } catch (err) {
@@ -353,8 +353,7 @@ export class CourseController {
 
     try {
       let createdQueue = null;
-      const entityManager = getManager();
-      await entityManager.transaction(async (transactionalEntityManager) => {
+      await this.dataSource.transaction(async (transactionalEntityManager) => {
         try {
           createdQueue = await transactionalEntityManager
             .create(QueueModel, {

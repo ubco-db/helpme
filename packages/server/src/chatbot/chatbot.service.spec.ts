@@ -170,10 +170,14 @@ describe('ChatbotService', () => {
 
       await service.editQuestion(updatedQuestionData);
 
-      const updatedQuestion = await ChatbotQuestionModel.findOne(
-        originalQuestion.id,
-        { relations: ['interaction'] },
-      );
+      const updatedQuestion = await ChatbotQuestionModel.findOne({
+        where: {
+          id: originalQuestion.id,
+        },
+        relations: {
+          interaction: true,
+        },
+      });
 
       expect(updatedQuestion.interaction.id).toEqual(interaction2.id);
     });

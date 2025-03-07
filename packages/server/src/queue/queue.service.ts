@@ -25,7 +25,7 @@ import {
 import { classToClass } from 'class-transformer';
 import { pick } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
-import { getManager, In } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { QueueModel } from './queue.entity';
 import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from 'config/application_config.service';
@@ -49,6 +49,7 @@ export class QueueService {
   constructor(
     private alertsService: AlertsService,
     private readonly appConfig: ApplicationConfigService,
+    private dataSource: DataSource,
   ) {}
 
   async getQueue(queueId: number): Promise<QueueModel> {
@@ -106,7 +107,7 @@ export class QueueService {
     RIGHT JOIN question_model AS question ON question."queueId" = q.id AND question."taHelpedId" = qstaff2."userModelId" AND question.status = $1
     WHERE qstaff1."queueModelId" = $2
     `;
-    const result = (await getManager().query(query, [
+    const result = (await this.dataSource.query(query, [
       OpenQuestionStatus.Helping,
       queueId,
     ])) as StaffHelpingInOtherQueues;
@@ -312,7 +313,7 @@ export class QueueService {
 
     const oldConfig: QueueConfig = queue.config ?? { tags: {} };
 
-    await getManager().transaction(async (transactionalEntityManager) => {
+    await this.dataSource.transaction(async (transactionalEntityManager) => {
       // update the question types
       // to do so, compare the tag ids of the old config vs the new config:
       // - if there's a new tag id, make a new question type

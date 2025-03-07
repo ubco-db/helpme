@@ -2,7 +2,6 @@ import { setupIntegrationTest } from './util/testUtils';
 import { QueueChatsModule } from '../src/queueChats/queue-chats.module';
 import {
   UserFactory,
-  QueueFactory,
   TACourseFactory,
   StudentCourseFactory,
   QuestionFactory,
@@ -10,11 +9,9 @@ import {
 import { UserCourseModel } from 'profile/user-course.entity';
 import { QueueModel } from 'queue/queue.entity';
 import { QuestionModule } from 'question/question.module';
-import { RedisService } from 'nestjs-redis';
 import { QuestionModel } from 'question/question.entity';
 import { UserModel } from 'profile/user.entity';
 import { QueueChatService } from 'queueChats/queue-chats.service';
-import { QueueChatSSEService } from 'queueChats/queue-chats-sse.service';
 
 describe('QueueChat Integration Tests', () => {
   const { supertest, getTestModule } = setupIntegrationTest(
@@ -28,12 +25,10 @@ describe('QueueChat Integration Tests', () => {
   let queue: QueueModel;
   let question: QuestionModel;
   let queueChatService: QueueChatService;
-  let redisService: RedisService;
 
   beforeEach(async () => {
     const testModule = getTestModule();
     queueChatService = testModule.get<QueueChatService>(QueueChatService);
-    redisService = testModule.get<RedisService>(RedisService);
 
     question = await QuestionFactory.create();
     queue = await question.queue;

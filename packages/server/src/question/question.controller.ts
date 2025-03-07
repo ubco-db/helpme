@@ -119,7 +119,9 @@ export class QuestionController {
 
     const queue = await QueueModel.findOne({
       where: { id: queueId },
-      relations: ['staffList'],
+      relations: {
+        staffList: true,
+      },
     });
 
     if (!queue) {
@@ -226,7 +228,9 @@ export class QuestionController {
 
     const queue = await QueueModel.findOne({
       where: { id: queueId },
-      relations: ['staffList'],
+      relations: {
+        staffList: true,
+      },
     });
 
     if (!queue) {
@@ -248,7 +252,9 @@ export class QuestionController {
 
     // don't allow more than 1 demo and 1 question per user per course
     const previousUserQuestions = await QuestionModel.find({
-      relations: ['queue'],
+      relations: {
+        queue: true,
+      },
       where: {
         creatorId: user.id,
         status: In(Object.values(OpenQuestionStatus)),

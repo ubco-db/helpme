@@ -31,7 +31,7 @@ import { RedisQueueModule } from 'redisQueue/redis-queue.module';
 import { ApplicationConfigModule } from 'config/application_config.module';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { SentryGlobalFilter } from '@sentry/nestjs/setup';
+// import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { BackupModule } from 'backup/backup.module';
 import { QueueChatsModule } from 'queueChats/queue-chats.module';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -44,10 +44,13 @@ import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter'
     TypeOrmModule.forRoot(typeormConfig),
     SentryModule.forRoot(),
     // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store
-    RedisModule.forRoot({
-      type: 'single',
-      url: `redis://${process.env.REDIS_HOST || 'localhost'}:6379`,
-    }),
+    RedisModule.forRoot(
+      {
+        type: 'single',
+        url: `redis://${process.env.REDIS_HOST || 'localhost'}:6379`,
+      },
+      'db',
+    ),
     ScheduleModule.forRoot(),
     ApplicationConfigModule,
     LoginModule,
