@@ -19,7 +19,9 @@ export class QuestionRolesGuard extends RolesGuard {
     let queueId: number;
 
     if (request.params.questionId && !isNaN(request.params.questionId)) {
-      const question = await QuestionModel.findOne(request.params.questionId);
+      const question = await QuestionModel.findOneBy({
+        id: request.params.questionId,
+      });
       if (!question) {
         throw new NotFoundException(
           ERROR_MESSAGES.questionRoleGuard.questionNotFound,
@@ -35,10 +37,8 @@ export class QuestionRolesGuard extends RolesGuard {
       );
     }
 
-    const queue = await QueueModel.findOne({
-      where: {
-        id: queueId,
-      },
+    const queue = await QueueModel.findOneBy({
+      id: queueId,
     });
 
     // You cannot interact with a question in a nonexistent queue

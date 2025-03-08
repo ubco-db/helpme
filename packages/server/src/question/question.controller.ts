@@ -351,7 +351,11 @@ export class QuestionController {
   ): Promise<UpdateQuestionResponse> {
     let question = await QuestionModel.findOne({
       where: { id: questionId },
-      relations: ['creator', 'queue', 'taHelped'],
+      relations: {
+        creator: true,
+        queue: true,
+        taHelped: true,
+      },
     });
 
     if (question === undefined) {
@@ -368,10 +372,8 @@ export class QuestionController {
       if (body.questionTypes) {
         question.questionTypes = await Promise.all(
           body.questionTypes.map(async (type) => {
-            const questionType = await QuestionTypeModel.findOne({
-              where: {
-                id: type.id,
-              },
+            const questionType = await QuestionTypeModel.findOneBy({
+              id: type.id,
             });
             if (!questionType) {
               throw new BadRequestException(
@@ -569,13 +571,8 @@ export class QuestionController {
   async notify(
     @Param('questionId', ParseIntPipe) questionId: number,
   ): Promise<void> {
-    const question = await QuestionModel.findOne({
-      where: {
-        id: questionId,
-      },
-      relations: {
-        queue: true,
-      },
+    const question = await QuestionModel.findOneBy({
+      id: questionId,
     });
 
     if (question === undefined || question === null) {

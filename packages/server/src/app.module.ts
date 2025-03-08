@@ -6,7 +6,6 @@ import { InsightsModule } from './insights/insights.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { BackfillModule } from './backfill/backfill.module';
 import { CommandModule } from 'nestjs-command';
-import { RedisModule } from '@nestjs-modules/ioredis';
 import * as typeormConfig from '../ormconfig';
 import { AdminModule } from './admin/admin.module';
 import { CourseModule } from './course/course.module';
@@ -38,19 +37,31 @@ import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { RateLimitExceptionFilter } from 'exception_filters/429-exception.filter';
 import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
 import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot(typeormConfig),
     SentryModule.forRoot(),
-    // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store
-    RedisModule.forRoot(
-      {
-        type: 'single',
-        url: `redis://${process.env.REDIS_HOST || 'localhost'}:6379`,
+    RedisModule.forRoot({
+      readyLog: false,
+      errorLog: true,
+      commonOptions: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: 6379,
       },
-      'db',
-    ),
+      config: [
+        {
+          namespace: 'db',
+        },
+        {
+          namespace: 'sub',
+        },
+        {
+          namespace: 'pub',
+        },
+      ],
+    }),
     ScheduleModule.forRoot(),
     ApplicationConfigModule,
     LoginModule,

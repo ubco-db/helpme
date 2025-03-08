@@ -1,4 +1,3 @@
-import { RedisModule } from '@nestjs-modules/ioredis';
 import { RedisQueueService } from './redis-queue.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
@@ -6,6 +5,7 @@ import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { asyncQuestionStatus } from '@koh/common';
 import Redis from 'ioredis';
 import { DataSource } from 'typeorm';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 
 describe('RedisQueueService', () => {
   let service: RedisQueueService;
@@ -23,8 +23,23 @@ describe('RedisQueueService', () => {
         TestTypeOrmModule,
         TestConfigModule,
         RedisModule.forRoot({
-          type: 'single',
-          url: `redis://${process.env.REDIS_HOST || 'localhost'}:6379`,
+          readyLog: true,
+          errorLog: true,
+          commonOptions: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: 6379,
+          },
+          config: [
+            {
+              namespace: 'db',
+            },
+            {
+              namespace: 'sub',
+            },
+            {
+              namespace: 'pub',
+            },
+          ],
         }),
         RedisQueueService,
       ],
@@ -41,6 +56,10 @@ describe('RedisQueueService', () => {
   beforeEach(async () => {
     await redis.flushall();
     await dataSource.synchronize(true);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
   });
 
   describe('setAsyncQuestions', () => {

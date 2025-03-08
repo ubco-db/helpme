@@ -9,7 +9,7 @@ import {
   QueueChatUserPartial,
 } from '@koh/common';
 import { QuestionModel } from 'question/question.entity';
-import { InjectRedis } from '@nestjs-modules/ioredis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 
 const ChatMessageRedisKey = 'queue_chat_messages';
 const ChatMetadataRedisKey = 'queue_chat_metadata';
@@ -17,8 +17,11 @@ const ChatMetadataRedisKey = 'queue_chat_metadata';
 @Injectable()
 export class QueueChatService {
   // Redis to store temporary chat data
+  private readonly redis: Redis;
 
-  constructor(@InjectRedis() private readonly redis: Redis) {}
+  constructor(private readonly redisService: RedisService) {
+    this.redis = this.redisService.getClient('db');
+  }
 
   /**
    * Create a new chat in Redis

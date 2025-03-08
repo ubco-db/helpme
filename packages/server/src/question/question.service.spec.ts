@@ -26,8 +26,8 @@ import { QueueService } from 'queue/queue.service';
 import { AlertsService } from 'alerts/alerts.service';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
-import { RedisModule } from '@nestjs-modules/ioredis';
 import { RedisMemoryServer } from 'redis-memory-server';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 
 describe('QuestionService', () => {
   let service: QuestionService;
@@ -44,8 +44,23 @@ describe('QuestionService', () => {
         TestTypeOrmModule,
         TestConfigModule,
         RedisModule.forRoot({
-          type: 'single',
-          url: `redis://${redisHost}:${redisPort}`,
+          readyLog: false,
+          errorLog: true,
+          commonOptions: {
+            host: redisHost,
+            port: redisPort,
+          },
+          config: [
+            {
+              namespace: 'db',
+            },
+            {
+              namespace: 'sub',
+            },
+            {
+              namespace: 'pub',
+            },
+          ],
         }),
       ],
       providers: [

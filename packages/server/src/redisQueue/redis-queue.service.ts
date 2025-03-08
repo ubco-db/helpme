@@ -2,15 +2,22 @@ import { Injectable } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import * as zlib from 'zlib';
-import { InjectRedis } from '@nestjs-modules/ioredis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 
 @Injectable()
 export class RedisQueueService {
   /**
-   * Constructor for the RedisQueueService
-   * @param redis {Redis} The redis client to use for the redis queue
+   * The redis client to use for the redis queue
    */
-  constructor(@InjectRedis() private readonly redis: Redis) {}
+  private readonly redis: Redis;
+
+  /**
+   * Constructor for the RedisQueueService
+   * @param redisService {RedisService} The redis service to use for the redis queue
+   */
+  constructor(private readonly redisService: RedisService) {
+    this.redis = this.redisService.getClient('db');
+  }
 
   /**
    * Load all async questions from the redis cache

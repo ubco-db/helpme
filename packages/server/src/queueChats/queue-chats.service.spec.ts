@@ -6,12 +6,9 @@ import { ApplicationTestingConfigModule } from '../config/application_config.mod
 import { QuestionFactory, UserFactory } from '../../test/util/factories';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 
-//jest.mock('nestjs-redis');
-jest.mock('@nestjs-modules/ioredis', () => ({
-  InjectRedis: jest.fn(() => jest.fn()),
-}));
+jest.mock('@liaoliaots/nestjs-redis');
 
 const mockRedisClient = () => ({
   get: jest.fn().mockResolvedValue('mocked_value'), // Simulates redis.get() returning a value

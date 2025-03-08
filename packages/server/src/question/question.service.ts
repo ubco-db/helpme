@@ -146,7 +146,13 @@ export class QuestionService {
     try {
       if (isResolving) {
         // Save chat metadata in database (if messages were exchanged)
-        await this.queueChatService.endChat(question.queueId, question.id);
+        try {
+          await this.queueChatService.endChat(question.queueId, question.id);
+        } catch {
+          // endChat will throw an error if the chat doesn't exist, and we don't want to prevent the question from being resolved
+          // so just clear the chat metadata
+          await this.queueChatService.clearChat(question.queueId, question.id);
+        }
       } else if (newStatus in ClosedQuestionStatus) {
         // Don't save chat metadata in database
         await this.queueChatService.clearChat(question.queueId, question.id);
