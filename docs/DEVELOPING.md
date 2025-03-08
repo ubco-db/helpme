@@ -42,14 +42,15 @@ If you have any questions, feel free to reach out to a member of the team. If yo
 
 ## Technologies
 
--   [Next.js](https://nextjs.org/docs/getting-started) lets us do server-side and client-side React rendering, as well as write backend API endpoints (though instead we opted for writing our own backend endpoints).
+-   [Next.js](https://nextjs.org/docs/getting-started) lets us do server-side and client-side React rendering, as well as write backend API endpoints (though instead we opted for writing our own backend endpoints). So, we mostly only use it for the **frontend**.
     It also gives us developer ergonomics like hot reload in dev.
--   [Nest.js](https://nestjs.com/) runs our backend http api. It gives us controllers and services and other tools for making our API endpoints
+-   [Nest.js](https://nestjs.com/) runs our **backend** http api. It gives us controllers and services and other tools for making our API endpoints
 -   [Typescript](https://www.typescriptlang.org/docs/home.html) lets us write maintainable, scalable Javascript
 -   [Postgresql](https://www.postgresql.org/docs/11/index.html) is a very reliable and popular SQL database that is great for 99% of applications
 -   [TypeORM](https://typeorm.io/) lets us query Postgres easily and with Typescript validating our schema.
 -   [Docker](https://www.docker.com/products/docker-desktop) sets up a consistent Postgres + Redis environment on all developer's machines
 -   [Redis](https://redis.io/) is used to enable 0 downtime deploy (what? who wrote this. It's used for caching frequently accessed data like questions)
+    -   We are using @liaoliaots/nestjs-redis ([V8](https://github.com/liaoliaots/nestjs-redis/blob/f902b3dc904bf04e8b1f535789decfe11c1c5c37/docs/v8/redis.md)) and ioredis packages for allowing us to easily integrate it with our Nest.js backend
 -   ~~[Cypress](https://www.cypress.io/)~~ is used for frontend E2E tests. Currently not being used.
 
 ## File Structure
@@ -58,13 +59,11 @@ Source code is in the `packages` folder.
 
 For a nice visualization/description, see [NEWDEVS_STARTHERE.md](NEWDEVS_STARTHERE.md#codebase), but from a high level:
 
-`app` is the ***old*** next.js frontend and is to be deleted soon.
+`frontend/app` is a the Next.js frontend. Routing is done using the file system. For example, the page `/courses/page.tsx` would be served at `domain.com/courses`. Pages are usually all rendered on the client side but can instead be rendered server-side with [server components](https://nextjs.org/docs/app/building-your-application/rendering/server-components). Data fetching usually happens on client-side by using the functions we make in `frontend/app/api/index.ts`. 
 
-`frontend/app` is a the next.js frontend. Routing is done using the file system. For example, the page `/courses/page.tsx` would be served at `domain.com/courses`. Pages are rendered server-side and hydrated client side. Data fetching can happen on the server or client. 
+`frontend/app/api/index.ts` is a special frontend file that wraps network calls to the api in a neater, **type-safe** interface. Every backend route we have on the backend should have a corresponding function here (so if you make or change and endpoint, don't forget to modify the corresponding function here).
 
 `server` is the server (backend) that runs the REST API and websockets. Each API route is controlled by a controller, module, and service. [Learn more](https://nestjs.com/)
-
-`frontend/app/api` has an index.ts file that wraps network calls to the api in a neater, **type-safe** interface. Every backend route should be accessible through `api`'s index.ts.
 
 `common` is where common code, globals, and types go. It is imported into the frontend and server.
 
