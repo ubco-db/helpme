@@ -152,7 +152,9 @@ export class LMSIntegrationController {
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<LMSOrganizationIntegrationPartial[]> {
     const orgCourse = await OrganizationCourseModel.findOne({
-      courseId: courseId,
+      where: {
+        courseId: courseId,
+      },
     });
     if (!orgCourse)
       throw new HttpException(
@@ -182,7 +184,9 @@ export class LMSIntegrationController {
     @Body() props: UpsertLMSCourseParams,
   ): Promise<any> {
     const orgCourse = await OrganizationCourseModel.findOne({
-      courseId: courseId,
+      where: {
+        courseId: courseId,
+      },
     });
     if (!orgCourse) {
       throw new HttpException(
@@ -316,7 +320,9 @@ export class LMSIntegrationController {
     @Body() props: TestLMSIntegrationParams,
   ): Promise<LMSApiResponseStatus> {
     const orgCourse = await OrganizationCourseModel.findOne({
-      courseId: courseId,
+      where: {
+        courseId: courseId,
+      },
     });
     if (!orgCourse) {
       throw new HttpException(
@@ -326,8 +332,10 @@ export class LMSIntegrationController {
     }
 
     const orgIntegration = await LMSOrganizationIntegrationModel.findOne({
-      organizationId: orgCourse.organizationId,
-      apiPlatform: props.apiPlatform,
+      where: {
+        organizationId: orgCourse.organizationId,
+        apiPlatform: props.apiPlatform,
+      },
     });
     if (!orgIntegration) {
       throw new HttpException(
@@ -350,14 +358,14 @@ export class LMSIntegrationController {
     @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<string> {
-    const integration = await LMSCourseIntegrationModel.findOne(
-      {
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: {
         courseId: courseId,
       },
-      {
-        relations: ['orgIntegration'],
+      relations: {
+        orgIntegration: true,
       },
-    );
+    });
 
     if (!integration) {
       throw new HttpException(
@@ -385,14 +393,14 @@ export class LMSIntegrationController {
     @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<string> {
-    const integration = await LMSCourseIntegrationModel.findOne(
-      {
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: {
         courseId: courseId,
       },
-      {
-        relations: ['orgIntegration'],
+      relations: {
+        orgIntegration: true,
       },
-    );
+    });
 
     if (!integration) {
       throw new HttpException(
@@ -428,14 +436,14 @@ export class LMSIntegrationController {
     @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<string> {
-    const integration = await LMSCourseIntegrationModel.findOne(
-      {
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: {
         courseId: courseId,
       },
-      {
-        relations: ['orgIntegration'],
+      relations: {
+        orgIntegration: true,
       },
-    );
+    });
 
     if (!integration) {
       throw new HttpException(
@@ -467,14 +475,14 @@ export class LMSIntegrationController {
     @Param('itemId', ParseIntPipe) itemId: number,
     @Body() params?: LMSAssignment,
   ): Promise<string> {
-    const integration = await LMSCourseIntegrationModel.findOne(
-      {
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: {
         courseId: courseId,
       },
-      {
-        relations: ['orgIntegration'],
+      relations: {
+        orgIntegration: true,
       },
-    );
+    });
 
     if (!integration) {
       throw new HttpException(
@@ -499,7 +507,7 @@ export class LMSIntegrationController {
     }
 
     const model = await this.integrationService.getDocumentModel(uploadType);
-    let item = await model.findOne({
+    let item = await (model as any).findOne({
       id: itemId,
     });
     let didNotExist = false;
@@ -517,7 +525,7 @@ export class LMSIntegrationController {
       if (uploadType == LMSUpload.Announcements) {
         createParams['posted'] = new Date(createParams['posted']);
       }
-      item = model.create(createParams);
+      item = (model as any).create(createParams);
     } else if (!item) {
       throw new HttpException(
         ERROR_MESSAGES.lmsController.lmsDocumentNotFound,

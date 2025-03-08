@@ -18,7 +18,7 @@ import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { QuestionTypeModel } from './question-type.entity';
 import { Response } from 'express';
-import { IsNull, getManager } from 'typeorm';
+import { IsNull, DataSource } from 'typeorm';
 import { QueueModel } from '../queue/queue.entity';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
@@ -31,6 +31,7 @@ export class QuestionTypeController {
   constructor(
     private readonly appConfig: ApplicationConfigService,
     private questionTypeService: QuestionTypeService,
+    private dataSource: DataSource,
   ) {}
   @Post(':courseId')
   @UseGuards(CourseRolesGuard)
@@ -87,7 +88,7 @@ export class QuestionTypeController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('queueId') queueIdString: string,
   ): Promise<QuestionTypeModel[]> {
-    let queueId: null | number = null;
+    let queueId: null | number;
     queueId = Number(queueIdString);
     if (isNaN(queueId)) {
       queueId = null;
@@ -128,32 +129,34 @@ export class QuestionTypeController {
       return;
     }
     try {
-      await getManager().transaction(async (transactionalEntityManager) => {
-        await transactionalEntityManager.softDelete(QuestionTypeModel, {
-          id: questionTypeId,
-          cid: courseId,
-        });
-        if (questionType.queueId) {
-          // update the queue's config to remove the question type
-          const queue = await transactionalEntityManager.findOne(
-            QueueModel,
-            questionType.queueId,
-            {
+      await this.dataSource.manager.transaction(
+        async (transactionalEntityManager) => {
+          await transactionalEntityManager.softDelete(QuestionTypeModel, {
+            id: questionTypeId,
+            cid: courseId,
+          });
+          if (questionType.queueId) {
+            // update the queue's config to remove the question type
+            const queue = await transactionalEntityManager.findOne(QueueModel, {
+              where: {
+                id: questionType.queueId,
+              },
               lock: { mode: 'pessimistic_write' }, // this is to stop other calls from modifying the queue while we're modifying it
-            },
-          );
-          queue.config = queue.config || {}; // just in case it's null (It shouldn't be, but it might for old queues)
-          queue.config.tags = queue.config.tags || {}; // just in case it's undefined
-          // delete the tag that has the matching display_name as the deleted question type
-          const idOfTagToBeDeleted = Object.keys(queue.config.tags).find(
-            (key) => queue.config.tags[key].display_name === questionType.name,
-          );
-          if (idOfTagToBeDeleted) {
-            delete queue.config.tags[idOfTagToBeDeleted];
+            });
+            queue.config = queue.config || {}; // just in case it's null (It shouldn't be, but it might for old queues)
+            queue.config.tags = queue.config.tags || {}; // just in case it's undefined
+            // delete the tag that has the matching display_name as the deleted question type
+            const idOfTagToBeDeleted = Object.keys(queue.config.tags).find(
+              (key) =>
+                queue.config.tags[key].display_name === questionType.name,
+            );
+            if (idOfTagToBeDeleted) {
+              delete queue.config.tags[idOfTagToBeDeleted];
+            }
+            await transactionalEntityManager.save(queue);
           }
-          await transactionalEntityManager.save(queue);
-        }
-      });
+        },
+      );
     } catch (e) {
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -3,10 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule, TestingModuleBuilder } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RedisModule, RedisService } from 'nestjs-redis';
 import { NotificationService } from 'notification/notification.service';
 import * as supertest from 'supertest';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { addGlobalsToApp } from '../../src/bootstrap';
 import { LoginModule } from '../../src/login/login.module';
 import { ApplicationConfigService } from 'config/application_config.service';
@@ -16,6 +15,7 @@ import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { MailService } from 'mail/mail.service';
 import { RedisMemoryServer } from 'redis-memory-server';
 import { Redis } from 'ioredis';
+import { RedisModule, RedisService } from '@liaoliaots/nestjs-redis';
 
 export interface SupertestOptions {
   userId?: number;
@@ -30,7 +30,6 @@ export const TestTypeOrmModule = TypeOrmModule.forRoot({
   database: 'test',
   entities: ['./**/*.entity.ts', '../../src/**/*.entity.ts'],
   synchronize: true,
-  keepConnectionAlive: true,
 });
 
 export const TestConfigModule = ConfigModule.forRoot({
@@ -48,7 +47,7 @@ export function setupIntegrationTest(
 } {
   let app: INestApplication;
   let jwtService: JwtService;
-  let conn: Connection;
+  let dataSource: DataSource;
   let appConfig: ApplicationConfigService;
   let schedulerRegistry: SchedulerRegistry;
   let testModule: TestingModule;
@@ -91,11 +90,25 @@ export function setupIntegrationTest(
         TestConfigModule,
         ApplicationConfigModule,
         ScheduleModule.forRoot(),
-        RedisModule.register([
-          { name: 'pub', host: redisHost, port: redisPort },
-          { name: 'sub', host: redisHost, port: redisPort },
-          { name: 'db', host: redisHost, port: redisPort },
-        ]),
+        RedisModule.forRoot({
+          readyLog: false,
+          errorLog: true,
+          commonOptions: {
+            host: redisHost,
+            port: redisPort,
+          },
+          config: [
+            {
+              namespace: 'db',
+            },
+            {
+              namespace: 'sub',
+            },
+            {
+              namespace: 'pub',
+            },
+          ],
+        }),
       ],
     });
 
@@ -112,7 +125,7 @@ export function setupIntegrationTest(
     appConfig = testModule.get<ApplicationConfigService>(
       ApplicationConfigService,
     );
-    conn = testModule.get<Connection>(Connection);
+    dataSource = testModule.get<DataSource>(DataSource);
     redisService = testModule.get<RedisService>(RedisService);
 
     await appConfig.loadConfig();
@@ -125,7 +138,7 @@ export function setupIntegrationTest(
 
   afterAll(async () => {
     await app.close();
-    await conn.close();
+    await dataSource.destroy();
     await redisService.getClient('db').quit();
 
     if (redisTestServer) {
@@ -134,7 +147,7 @@ export function setupIntegrationTest(
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
     await clearAllCronJobs(schedulerRegistry);
     await testModule.get<RedisService>(RedisService).getClient('db').flushall();
   });

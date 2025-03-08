@@ -1,20 +1,25 @@
 import {
-  Connection,
+  DataSource,
   EntitySubscriberInterface,
   EventSubscriber,
   InsertEvent,
 } from 'typeorm';
 import { DesktopNotifModel } from './desktop-notif.entity';
 import { NotificationService } from './notification.service';
+import { InjectDataSource } from '@nestjs/typeorm';
 
 @EventSubscriber()
 export class DesktopNotifSubscriber
   implements EntitySubscriberInterface<DesktopNotifModel>
 {
   notifService: NotificationService;
-  constructor(connection: Connection, notifService: NotificationService) {
+  constructor(
+    @InjectDataSource()
+    dataSource: DataSource,
+    notifService: NotificationService,
+  ) {
     this.notifService = notifService;
-    connection.subscribers.push(this);
+    dataSource.subscribers.push(this);
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
