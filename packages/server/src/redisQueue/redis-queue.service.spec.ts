@@ -41,7 +41,6 @@ describe('RedisQueueService', () => {
             },
           ],
         }),
-        RedisQueueService,
       ],
     }).compile();
 
