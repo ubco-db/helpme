@@ -22,7 +22,6 @@ import { RedisQueueModule } from '../redisQueue/redis-queue.module';
     OrganizationModule,
     RedisQueueModule,
     ApplicationConfigModule,
-    RedisProfileService,
   ],
   providers: [
     HeatmapService,
