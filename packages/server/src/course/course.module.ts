@@ -9,6 +9,7 @@ import { OrganizationModule } from 'organization/organization.module';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueCleanService } from '../queue/queue-clean/queue-clean.service';
+import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { ApplicationConfigModule } from '../config/application_config.module';
 import { RedisQueueModule } from '../redisQueue/redis-queue.module';
 
@@ -21,11 +22,13 @@ import { RedisQueueModule } from '../redisQueue/redis-queue.module';
     OrganizationModule,
     RedisQueueModule,
     ApplicationConfigModule,
+    RedisProfileService,
   ],
   providers: [
     HeatmapService,
     CourseService,
     RedisQueueService,
+    RedisProfileService,
     QueueCleanService,
     ApplicationConfigService,
   ],

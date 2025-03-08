@@ -24,9 +24,12 @@ import { CourseModel } from './course.entity';
 import { UserModel } from 'profile/user.entity';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
+import { RedisProfileService } from 'redisProfile/redis-profile.service';
 
 @Injectable()
 export class CourseService {
+  constructor(private readonly redisProfileService: RedisProfileService) {}
+
   async getTACheckInCheckOutTimes(
     courseId: number,
     startDate: string,
@@ -112,6 +115,7 @@ export class CourseService {
         userId: userCourse.userId,
         courseId: userCourse.courseId,
       });
+      await this.redisProfileService.deleteProfile(`u:${userCourse.userId}`);
     } catch (err) {
       console.error(err);
       throw new HttpException(
@@ -324,6 +328,8 @@ export class CourseService {
       updatedUserCourse.push(userCourse);
       user.courses = updatedUserCourse;
       await user.save();
+
+      await this.redisProfileService.deleteProfile(`u:${user.id}`);
 
       return true;
     } catch {
