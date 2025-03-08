@@ -630,13 +630,17 @@ export class OrganizationController {
         where: {
           courseId: cid,
         },
-        relations: ['user'],
+        relations: {
+          user: true,
+        },
       });
 
       // clear cache of all members of the course
-      members.forEach(async (m) => {
-        await this.redisProfileService.deleteProfile(`u:${m.user.id}`);
-      });
+      await Promise.all(
+        members.map((m) =>
+          this.redisProfileService.deleteProfile(`u:${m.user.id}`),
+        ),
+      );
     } catch (err) {
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
         message: err,
@@ -680,15 +684,17 @@ export class OrganizationController {
             where: {
               id: cid,
             },
-            relations: ['userCourses'],
+            relations: {
+              userCourses: true,
+            },
           })
         ).userCourses;
 
-        userCourses.forEach(async (userCourse) => {
-          await this.redisProfileService.deleteProfile(
-            `u:${userCourse.userId}`,
-          );
-        });
+        await Promise.all(
+          userCourses.map((userCourse) =>
+            this.redisProfileService.deleteProfile(`u:${userCourse.userId}`),
+          ),
+        );
       })
       .then(() => {
         return res.status(HttpStatus.OK).send({

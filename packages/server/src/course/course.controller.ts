@@ -284,18 +284,22 @@ export class CourseController {
       .then(async () => {
         const course = await CourseModel.findOne({
           where: {
-            courseId,
+            id: courseId,
           },
-          relations: ['userCourses'],
+          relations: {
+            userCourses: true,
+          },
         });
 
         // Won't be a costly operation since courses are not modified often
         if (course) {
-          course.userCourses.map(async (userCourse) => {
-            await this.redisProfileService.deleteProfile(
-              `u:${userCourse.user.id}`,
-            );
-          });
+          await Promise.all(
+            course.userCourses.map(async (userCourse) => {
+              await this.redisProfileService.deleteProfile(
+                `u:${userCourse.user.id}`,
+              );
+            }),
+          );
         }
       });
   }

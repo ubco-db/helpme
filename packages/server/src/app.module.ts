@@ -44,7 +44,7 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
     TypeOrmModule.forRoot(typeormConfig),
     SentryModule.forRoot(),
     RedisModule.forRoot({
-      readyLog: false,
+      readyLog: true,
       errorLog: true,
       commonOptions: {
         host: process.env.REDIS_HOST || 'localhost',

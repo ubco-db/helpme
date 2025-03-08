@@ -81,8 +81,6 @@ export class ProfileService {
       );
     }
 
-    // this is old code from Khoury College's semester system
-    //const pendingCourses = await this.profileService.getPendingCourses(user.id);
     const userOrganization =
       await this.organizationService.getOrganizationAndRoleByUserId(user.id);
 
@@ -101,7 +99,7 @@ export class ProfileService {
       courses,
       desktopNotifs,
       organization,
-    };
+    } as User;
 
     return profile;
   }

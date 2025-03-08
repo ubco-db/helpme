@@ -23,7 +23,7 @@ describe('RedisQueueService', () => {
         TestTypeOrmModule,
         TestConfigModule,
         RedisModule.forRoot({
-          readyLog: true,
+          readyLog: false,
           errorLog: true,
           commonOptions: {
             host: process.env.REDIS_HOST || 'localhost',
