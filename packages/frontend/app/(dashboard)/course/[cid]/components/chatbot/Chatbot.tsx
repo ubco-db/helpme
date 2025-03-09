@@ -454,7 +454,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                           <Tooltip
                             title={'Chatbot thoughts: ' + item.thinkText}
                             classNames={{
-                              body: 'w-96',
+                              body: 'w-96 max-h-[80vh] overflow-y-auto',
                             }}
                           >
                             <div className="relative inline-block">

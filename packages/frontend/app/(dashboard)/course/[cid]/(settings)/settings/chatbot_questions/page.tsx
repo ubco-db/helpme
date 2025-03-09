@@ -145,10 +145,13 @@ export default function ChatbotQuestions({
               <Tooltip
                 title={`AI Thoughts: ${thinkText}`}
                 classNames={{
-                  body: 'w-96',
+                  body: 'w-96 max-h-[80vh] overflow-y-auto',
                 }}
               >
-                <span className="mr-1 rounded-lg bg-blue-100 p-0.5 pl-1 text-xs">
+                <span
+                  className="mr-1 rounded-lg bg-blue-100 p-0.5 pl-1 text-xs"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <i>Thoughts</i> 🧠
                 </span>
               </Tooltip>
