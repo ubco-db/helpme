@@ -16,13 +16,7 @@ import {
 import { partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
-import {
-  Between,
-  Brackets,
-  createQueryBuilder,
-  getRepository,
-  In,
-} from 'typeorm';
+import { Between, In } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { CourseModel } from './course.entity';

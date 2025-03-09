@@ -38,6 +38,7 @@ exports[`Organization Integration GET /organization/:oid should return 200 and r
   "legacyAuthEnabled": false,
   "logoUrl": null,
   "name": "UBCO",
+  "semesters": [],
   "ssoEnabled": false,
   "ssoUrl": null,
   "websiteUrl": null,
