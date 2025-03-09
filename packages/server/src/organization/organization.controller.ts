@@ -64,7 +64,6 @@ import * as sharp from 'sharp';
 import { User } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { CourseRoles } from 'decorators/course-roles.decorator';
@@ -73,7 +72,6 @@ import { CourseRoles } from 'decorators/course-roles.decorator';
 export class OrganizationController {
   constructor(
     private organizationService: OrganizationService,
-    private redisProfileService: RedisProfileService,
     private schedulerRegistry: SchedulerRegistry,
   ) {}
 
@@ -374,8 +372,6 @@ export class OrganizationController {
             role: Role.PROFESSOR,
             expires: false,
           }).save();
-
-          await this.redisProfileService.deleteProfile(`u:${profId}`);
         }
 
       await OrganizationCourseModel.create({
@@ -629,18 +625,6 @@ export class OrganizationController {
           }
         }
       }
-
-      const members = await UserCourseModel.find({
-        where: {
-          courseId: cid,
-        },
-        relations: ['user'],
-      });
-
-      // clear cache of all members of the course
-      members.forEach(async (m) => {
-        await this.redisProfileService.deleteProfile(`u:${m.user.id}`);
-      });
     } catch (err) {
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
         message: err,
@@ -678,22 +662,6 @@ export class OrganizationController {
 
     await courseInfo.course
       .save()
-      .then(async () => {
-        const userCourses = (
-          await CourseModel.findOne({
-            where: {
-              id: cid,
-            },
-            relations: ['userCourses'],
-          })
-        ).userCourses;
-
-        userCourses.forEach(async (userCourse) => {
-          await this.redisProfileService.deleteProfile(
-            `u:${userCourse.userId}`,
-          );
-        });
-      })
       .then(() => {
         return res.status(HttpStatus.OK).send({
           message: 'Course access updated',
@@ -1289,10 +1257,6 @@ export class OrganizationController {
 
     await this.organizationService
       .deleteUserCourses(uid, userCourses)
-      .then(async () => {
-        // Delete the user's old profile data from redis
-        await this.redisProfileService.deleteProfile(`u:${uid}`);
-      })
       .then(() => {
         return res.status(HttpStatus.OK).send({
           message: 'User courses deleted',
@@ -1315,11 +1279,11 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async deleteUserProfilePicture(
     @Res() res: Response,
-    @Param('uid', ParseIntPipe) uid: number,
+    @Param('uid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     const userInfo = await OrganizationUserModel.findOne({
       where: {
-        userId: uid,
+        userId: oid,
       },
       relations: ['organizationUser'],
     });
@@ -1353,9 +1317,6 @@ export class OrganizationController {
         } else {
           userInfo.organizationUser.photoURL = null;
           await userInfo.organizationUser.save();
-
-          await this.redisProfileService.deleteProfile(`u:${uid}`);
-
           return res.status(HttpStatus.OK).send({
             message: 'Profile picture deleted',
           });
@@ -1441,10 +1402,6 @@ export class OrganizationController {
 
     await userInfo.organizationUser
       .save()
-      .then(async () => {
-        // Delete the user's old profile data from redis
-        await this.redisProfileService.deleteProfile(`u:${uid}`);
-      })
       .then(() => {
         return res.status(HttpStatus.OK).send({
           message: 'User info updated',
