@@ -1,164 +1,169 @@
-import { TestingModule, Test } from '@nestjs/testing';
-import { Connection } from 'typeorm';
-import {
-  UserFactory,
-  CourseFactory,
-  LastRegistrationFactory,
-  CourseSectionFactory,
-} from '../../test/util/factories';
-import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
+import { Test, TestingModule } from '@nestjs/testing';
 import { ProfileService } from './profile.service';
-import { UserModel } from './user.entity';
-import { MailService } from 'mail/mail.service';
+import { RedisProfileService } from '../redisProfile/redis-profile.service';
+import { OrganizationService } from '../organization/organization.service';
+import { UserFactory } from '../../test/util/factories';
+import {
+  BadRequestException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import checkDiskSpace from 'check-disk-space';
+import sharp from 'sharp';
+import * as fs from 'fs';
+import { AccountType } from '@koh/common';
+import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
+import * as path from 'path';
 
-jest.useRealTimers();
+jest.mock('check-disk-space', () => ({ __esModule: true, default: jest.fn() }));
+const mockedCheckDiskSpace = checkDiskSpace as jest.MockedFunction<
+  typeof checkDiskSpace
+>;
 
-describe('Basic Math Test Suite', () => {
-  it('should compute 1 + 1 = 2', () => {
-    expect(1 + 1).toBe(2);
+jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+jest.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
+
+jest.mock('sharp', () => {
+  const mockSharpInstance = {
+    resize: jest.fn().mockReturnThis(),
+    webp: jest.fn().mockReturnThis(),
+    toFile: jest.fn().mockResolvedValue(undefined),
+  };
+
+  return {
+    __esModule: true,
+    default: jest.fn(() => mockSharpInstance),
+  };
+});
+const mockedSharp = sharp as jest.MockedFunction<typeof sharp>;
+
+describe('ProfileService', () => {
+  let service: ProfileService;
+  let redisProfileService: RedisProfileService;
+
+  beforeEach(async () => {
+    const moduleRef: TestingModule = await Test.createTestingModule({
+      imports: [TestTypeOrmModule, TestConfigModule],
+      providers: [
+        ProfileService,
+        {
+          provide: RedisProfileService,
+          useValue: { deleteProfile: jest.fn() },
+        },
+        {
+          provide: OrganizationService,
+          useValue: { getOrganizationAndRoleByUserId: jest.fn() },
+        },
+      ],
+    }).compile();
+
+    service = moduleRef.get<ProfileService>(ProfileService);
+    redisProfileService =
+      moduleRef.get<RedisProfileService>(RedisProfileService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('uploadUserProfileImage', () => {
+    const mockFile = {
+      buffer: Buffer.from('test-image'),
+    } as Express.Multer.File;
+
+    it('should upload and save user profile image', async () => {
+      const user = await UserFactory.create();
+      process.env.UPLOAD_LOCATION = '/uploads';
+
+      mockedCheckDiskSpace.mockResolvedValue({
+        size: 5_000_000_000,
+        free: 2_000_000_000,
+      });
+
+      const fileName = await service.uploadUserProfileImage(mockFile, user);
+
+      expect(fileName).toMatch(new RegExp(`^${user.id}-\\d+\\.webp$`));
+      expect(mockedSharp).toHaveBeenCalledWith(mockFile.buffer);
+      expect(redisProfileService.deleteProfile).toHaveBeenCalledWith(
+        `u:${user.id}`,
+      );
+    });
+
+    it('should throw if disk space is insufficient', async () => {
+      mockedCheckDiskSpace.mockResolvedValue({
+        size: 5_000_000_000,
+        free: 500_000,
+      });
+
+      const user = await UserFactory.create();
+      await expect(
+        service.uploadUserProfileImage(mockFile, user),
+      ).rejects.toThrow(ServiceUnavailableException);
+    });
+  });
+
+  describe('removeProfilePicture', () => {
+    it('should remove the profile picture if it exists locally', async () => {
+      const user = await UserFactory.create({ photoURL: 'test-image.webp' });
+      process.env.UPLOAD_LOCATION = '/uploads';
+
+      const unlinkSpy = jest
+        .spyOn(fs.promises, 'unlink')
+        .mockResolvedValue(undefined);
+
+      await service.removeProfilePicture(user);
+
+      expect(unlinkSpy).toHaveBeenCalledWith(
+        path.join('/', 'uploads', 'test-image.webp'),
+      );
+      expect(redisProfileService.deleteProfile).toHaveBeenCalledWith(
+        `u:${user.id}`,
+      );
+    });
+
+    it('should handle removing an external profile picture URL', async () => {
+      const user = await UserFactory.create({
+        photoURL: 'http://external.com/image.jpg',
+      });
+
+      await service.removeProfilePicture(user);
+
+      expect(user.photoURL).toBeNull();
+    });
+
+    it('should throw if the profile picture does not exist', async () => {
+      const user = await UserFactory.create({ photoURL: null });
+      process.env.UPLOAD_LOCATION = '/uploads';
+
+      await expect(service.removeProfilePicture(user)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('updateUserProfile', () => {
+    it('should update user profile details', async () => {
+      const user = await UserFactory.create({ email: 'test@ubc.ca' });
+      const updatedData = { firstName: 'Updated', lastName: 'User' };
+
+      await service.updateUserProfile(user, updatedData);
+
+      expect(user.firstName).toBe('Updated');
+      expect(user.lastName).toBe('User');
+      expect(redisProfileService.deleteProfile).toHaveBeenCalledWith(
+        `u:${user.id}`,
+      );
+    });
+
+    it('should throw error when updating email for non-legacy account', async () => {
+      const user = await UserFactory.create({
+        accountType: AccountType.GOOGLE,
+        email: 'test@ubc.ca',
+      });
+
+      await expect(
+        service.updateUserProfile(user, { email: 'newemail@ubc.ca' }),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 });
-
-// Let's revisit theses tests later, we need to create new one since we changed a lot of the logic
-// describe('ProfileService', () => {
-//   let service: ProfileService;
-//   let conn: Connection;
-
-//   beforeAll(async () => {
-//     const module: TestingModule = await Test.createTestingModule({
-//       imports: [TestTypeOrmModule, TestConfigModule],
-//       providers: [
-//         ProfileService,
-//         LoginCourseService,
-//         {
-//           // We disabled the mail service for now, so let's just mock it
-//           provide: MailService,
-//           useValue: {},
-//         },
-//       ],
-//     }).compile();
-//     service = module.get<ProfileService>(ProfileService);
-//     conn = module.get<Connection>(Connection);
-//   });
-
-//   afterAll(async () => {
-//     await conn.close();
-//   });
-
-//   beforeEach(async () => {
-//     await conn.synchronize(true);
-//   });
-
-//   describe('getPendingCourses', () => {
-//     let prof1: UserModel;
-//     let prof2: UserModel;
-//     const prof1KhouryCourses = [
-//       {
-//         name: 'Fundies 1',
-//         crns: [123, 456],
-//         semester: '202110', // fall 2020
-//       },
-//       {
-//         name: 'OOD',
-//         crns: [798],
-//         semester: '202110',
-//       },
-//     ];
-//     const prof2KhouryCourses = [
-//       {
-//         name: 'Fundies 1',
-//         crns: [123, 456],
-//         semester: '202110',
-//       },
-//     ];
-
-//     beforeEach(async () => {
-//       prof1 = await UserFactory.create();
-//       prof2 = await UserFactory.create();
-//       await LastRegistrationFactory.create({ prof: prof2 });
-//       const fundies1 = await CourseFactory.create();
-//       await CourseSectionFactory.create({ crn: 123, course: fundies1 });
-//       await CourseSectionFactory.create({ crn: 456, course: fundies1 });
-//     });
-
-//     it('returns nothing for a non-professor', async () => {
-//       const student = await UserFactory.create();
-//       const resp = await service.getPendingCourses(student.id);
-//       expect(resp).toBeUndefined();
-//     });
-
-//     // Lets revisit these 3 tests, I am not sure if they are correct.
-
-//     it('returns pending courses (sans already registered courses) for a prof who never registered', async () => {
-//       const resp = await service.getPendingCourses(prof1.id);
-//       // expect(resp).toEqual([prof1KhouryCourses[1]]);
-//       expect(resp).toEqual([prof1KhouryCourses[0], prof1KhouryCourses[1]]);
-//     });
-
-//     it('returns pending courses (sans already registered courses) for a prof who registered last sem', async () => {
-//       await LastRegistrationFactory.create({
-//         prof: prof1,
-//         lastRegisteredSemester: '202060',
-//       }); // summer 2 of 2020
-//       const resp = await service.getPendingCourses(prof1.id);
-//       // expect(resp).toEqual([prof1KhouryCourses[1]]);
-//       expect(resp).toEqual([prof1KhouryCourses[0], prof1KhouryCourses[1]]);
-//     });
-
-//     it('returns no pending courses if a prof has already registered', async () => {
-//       const resp = await service.getPendingCourses(prof2.id);
-//       // expect(resp).toEqual([]);
-//       expect(resp).toEqual([prof1KhouryCourses[0]]);
-//     });
-
-//     describe('handles section group payloads with multiple semesters (summer semesters)', () => {
-//       let prof: UserModel;
-//       const khouryCourses = [
-//         {
-//           name: 'Fundies 1',
-//           crns: [123, 456],
-//           semester: '202250', // 2022 summer full
-//         },
-//         {
-//           name: 'OOD',
-//           crns: [798],
-//           semester: '202160', // 2022 summer 2
-//         },
-//         {
-//           name: 'Fundies 2',
-//           crns: [135, 246],
-//           semester: '202240', // 2022 summer 1 - this course wouldnt be in a real admin payload, but good to test
-//         },
-//       ];
-//       beforeEach(async () => {
-//         prof = await UserFactory.create();
-//         // await ProfSectionGroupsFactory.create({
-//         //   prof,
-//         //   sectionGroups: khouryCourses,
-//         // });
-//       });
-
-//       it('returns only summer 2 pending courses if lastRegistered is summer 1', async () => {
-//         // LastRegisteredSemester is Summer 1 --> should identify Summer full as well
-//         // so Summer Full class will not be a pending course even tho it was never registered
-//         await LastRegistrationFactory.create({
-//           prof,
-//           lastRegisteredSemester: '202240',
-//         });
-
-//         const resp = await service.getPendingCourses(prof.id);
-//         expect(resp).toEqual([khouryCourses[1]]); // should only have summer 2 course
-//       });
-
-//       it('returns only summer 2 pending courses if lastRegistered is summer full', async () => {
-//         await LastRegistrationFactory.create({
-//           prof,
-//           lastRegisteredSemester: '202250',
-//         });
-
-//         const resp = await service.getPendingCourses(prof.id);
-//         expect(resp).toEqual([khouryCourses[1]]); // should only have summer 2 course
-//       });
-//     });
-//   });
-// });

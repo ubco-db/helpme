@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 import { OrganizationService } from './organization.service';
 import { OrganizationController } from './organization.controller';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { OrganizationModel } from './organization.entity';
-import { SemesterModel } from '../semester/semester.entity';
+import { RedisProfileModule } from 'redisProfile/redis-profile.module';
+import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OrganizationModel, SemesterModel])],
+  imports: [RedisProfileModule, ScheduleModule.forRoot()],
   controllers: [OrganizationController],
   providers: [OrganizationService],
   exports: [OrganizationService],

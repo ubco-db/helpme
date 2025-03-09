@@ -1,89 +1,242 @@
-// import { KhouryProfCourse, QuestionStatusKeys } from '@koh/common';
-import { Injectable } from '@nestjs/common';
 import {
-  LastRegistrationModel,
-  khourySemesterCodes,
-} from 'login/last-registration-model.entity';
-// import { ProfSectionGroupsModel } from 'login/prof-section-groups.entity';
-import { Connection } from 'typeorm';
+  AccountType,
+  DesktopNotifPartial,
+  ERROR_MESSAGES,
+  GetProfileResponse,
+  Role,
+  UpdateProfileParams,
+  User,
+} from '@koh/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { UserModel } from './user.entity';
-import { QuestionModel } from 'question/question.entity';
-import { MailService } from 'mail/mail.service';
+import { RedisProfileService } from '../redisProfile/redis-profile.service';
+import { pick } from 'lodash';
+import { OrganizationService } from '../organization/organization.service';
+import checkDiskSpace from 'check-disk-space';
+import * as path from 'path';
+import * as fs from 'fs';
+import sharp from 'sharp';
 
 @Injectable()
 export class ProfileService {
   constructor(
-    private connection: Connection,
-    private mailService: MailService,
+    private redisProfileService: RedisProfileService,
+    private organizationService: OrganizationService,
   ) {}
 
-  public async inQueue(user: UserModel): Promise<boolean> {
-    const question = await QuestionModel.findOne({
-      where: {
-        creatorId: user.id,
-      },
-    });
-    // if (question) {
-    //   if (question.status === QuestionStatusKeys.Queued) {
-    //     return true;
-    //   }
-    //   return false;
-    // }
-    return false;
-  }
+  async getProfile(user: UserModel): Promise<User> {
+    const courses = user.courses
+      ? user.courses
+          .filter(
+            (userCourse) =>
+              userCourse?.course?.enabled ||
+              userCourse?.role === Role.PROFESSOR,
+          )
+          .map((userCourse) => {
+            return {
+              course: {
+                id: userCourse.courseId,
+                name: userCourse.course.name,
+                semesterId: userCourse.course.semester.id,
+                enabled: userCourse.course.enabled,
+              },
+              role: userCourse.role,
+            };
+          })
+      : [];
 
-  public async getPendingCourses(userId: number): Promise<void> {
-    // const profCourses = await ProfSectionGroupsModel.findOne({
-    //   where: {
-    //     profId: userId,
-    //   },
-    // });
-    const lastRegistered = await LastRegistrationModel.findOne({
-      where: {
-        profId: userId,
-      },
-    });
-    // const lastRegisteredSemester = lastRegistered?.lastRegisteredSemester;
+    const desktopNotifs: DesktopNotifPartial[] = user.desktopNotifs
+      ? user.desktopNotifs.map((d) => ({
+          endpoint: d.endpoint,
+          id: d.id,
+          createdAt: d.createdAt,
+          name: d.name,
+        }))
+      : [];
 
-    // if (!profCourses) return; // not a professor
+    const userResponse = pick(user, [
+      'id',
+      'email',
+      'name',
+      'sid',
+      'firstName',
+      'lastName',
+      'photoURL',
+      'defaultMessage',
+      'includeDefaultMessage',
+      'desktopNotifsEnabled',
+      'insights',
+      'userRole',
+      'accountType',
+      'emailVerified',
+      'chat_token',
+      'readChangeLog',
+    ]);
 
-    // const pendingCourses = [];
-
-    // for (const c of profCourses.sectionGroups) {
-    //   // current semester does not match last time prof registered, there may be pending courses
-    //   if (
-    //     c.crns.length !== 0 &&
-    //     (!lastRegisteredSemester || // lastRegistered doesnt exist if prof has never registered before
-    //       !this.isSameRegistrationTime(c.semester, lastRegisteredSemester))
-    //   ) {
-    //     const courseCRN = c.crns[0];
-    //     const profCourse = await this.loginCourseService.courseCRNToCourse(
-    //       courseCRN,
-    //       c.semester,
-    //     );
-    //     if (!profCourse) pendingCourses.push(c);
-    //   }
-    // }
-
-    // return pendingCourses;
-  }
-
-  // hacky way to check if two semester codes from Khoury have the same registration window
-  private isSameRegistrationTime(semester1: string, semester2: string) {
-    const year1 = Number(semester1.slice(0, 4));
-    const year2 = Number(semester2.slice(0, 4));
-    const semesterCode1 = semester1.slice(-2);
-    const semesterCode2 = semester2.slice(-2);
-    const summer1 = khourySemesterCodes['Summer_1'];
-    const summerFull = khourySemesterCodes['Summer_Full'];
-    // we want to treat Summer 1 and Summer Full as the same window
-    // for profs to register classes for both at the same time
-    if (
-      (semesterCode1 === summer1 || semesterCode2 === summer1) &&
-      (semesterCode1 === summerFull || semesterCode2 === summerFull)
-    ) {
-      return year1 === year2;
+    if (userResponse === null || userResponse === undefined) {
+      console.error(ERROR_MESSAGES.profileController.userResponseNotFound);
+      throw new HttpException(
+        ERROR_MESSAGES.profileController.userResponseNotFound,
+        HttpStatus.NOT_FOUND,
+      );
     }
-    return semester1 === semester2;
+
+    // this is old code from Khoury College's semester system
+    //const pendingCourses = await this.profileService.getPendingCourses(user.id);
+    const userOrganization =
+      await this.organizationService.getOrganizationAndRoleByUserId(user.id);
+
+    const organization = pick(userOrganization, [
+      'id',
+      'orgId',
+      'organizationName',
+      'organizationDescription',
+      'organizationLogoUrl',
+      'organizationBannerUrl',
+      'organizationRole',
+    ]);
+
+    const profile = {
+      ...userResponse,
+      courses,
+      desktopNotifs,
+      organization,
+    };
+
+    return profile;
+  }
+
+  async uploadUserProfileImage(
+    file: Express.Multer.File,
+    user: UserModel,
+  ): Promise<string> {
+    try {
+      // Remove previous profile picture (if it's not an external URL)
+      if (user.photoURL && !user.photoURL.startsWith('http')) {
+        this.deletePreviousImage(user.photoURL);
+      }
+
+      // Check disk space before proceeding
+      const spaceLeft = await checkDiskSpace(path.parse(process.cwd()).root);
+      if (spaceLeft.free < 1_000_000_000) {
+        throw new ServiceUnavailableException(
+          ERROR_MESSAGES.profileController.noDiskSpace,
+        );
+      }
+
+      const fileName = `${user.id}-${Date.now()}.webp`;
+      const targetPath = path.join(process.env.UPLOAD_LOCATION, fileName);
+
+      // Ensure the upload directory exists
+      if (!fs.existsSync(process.env.UPLOAD_LOCATION)) {
+        fs.mkdirSync(process.env.UPLOAD_LOCATION, { recursive: true });
+      }
+
+      // Process and save the image
+      await sharp(file.buffer).resize(256).webp().toFile(targetPath);
+      user.photoURL = fileName;
+      await user.save();
+
+      // Delete old cached record if changed
+      await this.redisProfileService.deleteProfile(`u:${user.id}`);
+
+      return fileName;
+    } catch (error) {
+      console.error('Error processing image:', error);
+      throw error;
+    }
+  }
+
+  private deletePreviousImage(filePath: string): void {
+    try {
+      fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, filePath));
+    } catch (e) {
+      console.error(
+        `Error deleting previous picture at: ${filePath}\n` +
+          `Perhaps the file was already deleted or the database is out of sync with the uploads directory.\n` +
+          `Will remove this entry from the database and continue.`,
+      );
+    }
+  }
+
+  async updateUserProfile(
+    user: UserModel,
+    userPatch: UpdateProfileParams,
+  ): Promise<GetProfileResponse> {
+    if (user.accountType !== AccountType.LEGACY && userPatch.email) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.profileController.cannotUpdateEmail,
+      );
+    }
+
+    // Check if the new email is already in use
+    if (userPatch.email && userPatch.email !== user.email) {
+      const emailExists = await UserModel.findOne({
+        where: { email: userPatch.email },
+      });
+      if (emailExists) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.profileController.emailAlreadyInDb,
+        );
+      }
+    }
+
+    // Check if the new student ID (sid) is already in use
+    if (userPatch.sid && userPatch.sid !== user.sid) {
+      const sidExists = await UserModel.findOne({
+        where: { sid: userPatch.sid },
+      });
+      if (sidExists) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.profileController.sidAlreadyInDb,
+        );
+      }
+    }
+
+    // Update user with new data
+    Object.assign(user, userPatch);
+
+    // Delete old cached profile if changed
+    await this.redisProfileService.deleteProfile(`u:${user.id}`);
+
+    // Save updated user
+    await user.save();
+
+    return user;
+  }
+
+  async removeProfilePicture(user: UserModel): Promise<void> {
+    if (!user?.photoURL) {
+      throw new NotFoundException('No profile picture to delete');
+    }
+
+    if (user.photoURL.startsWith('http')) {
+      user.photoURL = null;
+      await user.save();
+      return;
+    }
+
+    const filePath = path.join(process.env.UPLOAD_LOCATION, user.photoURL);
+
+    try {
+      await fs.promises.unlink(filePath);
+      user.photoURL = null;
+      await user.save();
+
+      // Delete old cached profile record
+      await this.redisProfileService.deleteProfile(`u:${user.id}`);
+    } catch (err) {
+      console.error(`Error deleting profile picture at: ${filePath}`, err);
+      throw new BadRequestException(
+        'Error deleting profile picture. The file may not exist.',
+      );
+    }
   }
 }

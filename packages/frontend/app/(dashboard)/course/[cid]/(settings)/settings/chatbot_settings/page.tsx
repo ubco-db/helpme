@@ -10,6 +10,7 @@ import ChatbotSettingsModal from './components/ChatbotSettingsModal'
 import Highlighter from 'react-highlight-words'
 import AddChatbotDocumentModal from './components/AddChatbotDocumentModal'
 import { SourceDocument } from '@koh/common'
+import { FileAddOutlined, SettingOutlined } from '@ant-design/icons'
 
 export interface ChatbotDocument {
   id: number
@@ -230,10 +231,18 @@ export default function ChatbotSettings({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setChatbotParameterModalOpen(true)}>
-            Chatbot Settings
+          <Button
+            onClick={() => setChatbotParameterModalOpen(true)}
+            icon={<SettingOutlined />}
+            type="primary"
+          >
+            Open Settings
           </Button>
-          <Button onClick={() => setAddDocumentModalOpen(true)}>
+          <Button
+            onClick={() => setAddDocumentModalOpen(true)}
+            icon={<FileAddOutlined />}
+            type="primary"
+          >
             Add Document
           </Button>
         </div>

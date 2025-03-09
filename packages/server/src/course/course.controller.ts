@@ -62,9 +62,10 @@ import { ConfigService } from '@nestjs/config';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { getManager } from 'typeorm';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { CourseRole } from 'decorators/course-role.decorator';
-import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
+import { RedisProfileService } from 'redisProfile/redis-profile.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -75,6 +76,7 @@ export class CourseController {
     private heatmapService: HeatmapService,
     private courseService: CourseService,
     private queueCleanService: QueueCleanService,
+    private redisProfileService: RedisProfileService,
     private readonly appConfig: ApplicationConfigService,
   ) {}
 
@@ -280,7 +282,25 @@ export class CourseController {
     @Param('id', ParseIntPipe) courseId: number,
     @Body() coursePatch: EditCourseInfoParams,
   ): Promise<void> {
-    await this.courseService.editCourse(courseId, coursePatch);
+    await this.courseService
+      .editCourse(courseId, coursePatch)
+      .then(async () => {
+        const course = await CourseModel.findOne({
+          where: {
+            courseId,
+          },
+          relations: ['userCourses'],
+        });
+
+        // Won't be a costly operation since courses are not modified often
+        if (course) {
+          course.userCourses.map(async (userCourse) => {
+            await this.redisProfileService.deleteProfile(
+              `u:${userCourse.user.id}`,
+            );
+          });
+        }
+      });
   }
 
   @Post(':id/create_queue/:room')
@@ -673,6 +693,7 @@ export class CourseController {
       where: { courseId, userId },
     });
     await this.courseService.removeUserFromCourse(userCourse);
+    await this.redisProfileService.deleteProfile(`u:${userId}`);
   }
 
   @Get(':id/ta_check_in_times')
@@ -779,6 +800,9 @@ export class CourseController {
       .catch((err) => {
         res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
       });
+
+    // Delete old cached record if changed
+    await this.redisProfileService.deleteProfile(`u:${user.id}`);
     return;
   }
 
@@ -864,7 +888,11 @@ export class CourseController {
     }
 
     try {
-      await UserCourseModel.update({ courseId, userId }, { role });
+      await UserCourseModel.update({ courseId, userId }, { role }).then(
+        async () => {
+          await this.redisProfileService.deleteProfile(`u:${userId}`);
+        },
+      );
     } catch (err) {
       res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
       return;

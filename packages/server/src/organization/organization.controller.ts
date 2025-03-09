@@ -66,6 +66,7 @@ import { UserId } from '../decorators/user.decorator';
 import { User } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
+import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { CourseRoles } from 'decorators/course-roles.decorator';
@@ -76,6 +77,7 @@ import { CourseRoles } from 'decorators/course-roles.decorator';
 export class OrganizationController {
   constructor(
     private organizationService: OrganizationService,
+    private redisProfileService: RedisProfileService,
     private schedulerRegistry: SchedulerRegistry,
   ) {}
 
@@ -357,6 +359,8 @@ export class OrganizationController {
               expires: false,
             });
             await manager.save(userCourse);
+
+            await this.redisProfileService.deleteProfile(`u:${profId}`);
           }
         }
 
@@ -438,7 +442,6 @@ export class OrganizationController {
   ): Promise<Response<void>> {
     try {
       return await getManager().transaction(async (manager) => {
-        // BEGIN ORIGINAL CODE (with manager calls)
         const courseInfo = await manager.findOne(OrganizationCourseModel, {
           where: {
             organizationId: oid,
@@ -524,22 +527,6 @@ export class OrganizationController {
           await manager.save(courseInfo.course);
         }
 
-        // if (!semester) {
-        //   const newSemester = await SemesterModel.create({
-        //     season: semesterDetails[0],
-        //     year: parseInt(semesterDetails[1]),
-        //     courses: [courseInfo.course],
-        //   }).save();
-
-        //   courseInfo.course.semester = newSemester;
-        //   await courseInfo.course.save();
-        // } else {
-        //   courseInfo.course.semester = semester;
-        //   await courseInfo.course.save();
-        //   semester.courses.push(courseInfo.course);
-        //   await semester.save();
-        // }
-
         courseInfo.course.name = courseDetails.name;
 
         if (courseDetails.coordinator_email) {
@@ -553,62 +540,68 @@ export class OrganizationController {
         courseInfo.course.zoomLink = courseDetails.zoomLink;
         courseInfo.course.timezone = courseDetails.timezone;
 
-        try {
-          await manager.save(courseInfo.course);
-          //Remove current profs
-          await manager.delete(UserCourseModel, {
-            courseId: cid,
-            role: Role.PROFESSOR,
+        await manager.save(courseInfo.course);
+        //Remove current profs
+        await manager.delete(UserCourseModel, {
+          courseId: cid,
+          role: Role.PROFESSOR,
+        });
+
+        for (const profId of courseDetails.profIds) {
+          const chosenProfessor = await manager.findOne(UserModel, {
+            where: { id: profId },
           });
 
-          for (const profId of courseDetails.profIds) {
-            const chosenProfessor = await manager.findOne(UserModel, {
-              where: { id: profId },
+          if (!chosenProfessor) {
+            return res.status(HttpStatus.NOT_FOUND).send({
+              message: ERROR_MESSAGES.profileController.userResponseNotFound,
             });
+          }
 
-            if (!chosenProfessor) {
-              return res.status(HttpStatus.NOT_FOUND).send({
-                message: ERROR_MESSAGES.profileController.userResponseNotFound,
+          const userCourse = await manager.findOne(UserCourseModel, {
+            where: {
+              userId: profId,
+              courseId: cid,
+            },
+          });
+
+          // user is already in the course
+          if (userCourse) {
+            userCourse.role = Role.PROFESSOR;
+            try {
+              await manager.save(userCourse);
+            } catch (err) {
+              return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+                message: err,
               });
             }
-
-            const userCourse = await manager.findOne(UserCourseModel, {
-              where: {
+          } else {
+            try {
+              const newUserCourse = manager.create(UserCourseModel, {
                 userId: profId,
                 courseId: cid,
-              },
-            });
-
-            // user is already in the course
-            if (userCourse) {
-              userCourse.role = Role.PROFESSOR;
-              try {
-                await manager.save(userCourse);
-              } catch (err) {
-                return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-                  message: err,
-                });
-              }
-            } else {
-              try {
-                const newUserCourse = manager.create(UserCourseModel, {
-                  userId: profId,
-                  courseId: cid,
-                  role: Role.PROFESSOR,
-                });
-                await manager.save(newUserCourse);
-              } catch (err) {
-                return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-                  message: err,
-                });
-              }
+                role: Role.PROFESSOR,
+              });
+              await manager.save(newUserCourse);
+            } catch (err) {
+              return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+                message: err,
+              });
             }
           }
-        } catch (err) {
-          return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-            message: err,
-          });
         }
+
+        const members = await UserCourseModel.find({
+          where: {
+            courseId: cid,
+          },
+          relations: ['user'],
+        });
+
+        // clear cache of all members of the course
+        members.forEach(async (m) => {
+          await this.redisProfileService.deleteProfile(`u:${m.user.id}`);
+        });
 
         return res.status(HttpStatus.OK).send({
           message: 'Course updated successfully',
@@ -649,6 +642,22 @@ export class OrganizationController {
 
     await courseInfo.course
       .save()
+      .then(async () => {
+        const userCourses = (
+          await CourseModel.findOne({
+            where: {
+              id: cid,
+            },
+            relations: ['userCourses'],
+          })
+        ).userCourses;
+
+        userCourses.forEach(async (userCourse) => {
+          await this.redisProfileService.deleteProfile(
+            `u:${userCourse.userId}`,
+          );
+        });
+      })
       .then(() => {
         return res.status(HttpStatus.OK).send({
           message: 'Course access updated',
@@ -1249,6 +1258,10 @@ export class OrganizationController {
 
     await this.organizationService
       .deleteUserCourses(uid, userCourses)
+      .then(async () => {
+        // Delete the user's old profile data from redis
+        await this.redisProfileService.deleteProfile(`u:${uid}`);
+      })
       .then(() => {
         return res.status(HttpStatus.OK).send({
           message: 'User courses deleted',
@@ -1271,11 +1284,11 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async deleteUserProfilePicture(
     @Res() res: Response,
-    @Param('uid', ParseIntPipe) oid: number,
+    @Param('uid', ParseIntPipe) uid: number,
   ): Promise<Response<void>> {
     const userInfo = await OrganizationUserModel.findOne({
       where: {
-        userId: oid,
+        userId: uid,
       },
       relations: ['organizationUser'],
     });
@@ -1309,6 +1322,9 @@ export class OrganizationController {
         } else {
           userInfo.organizationUser.photoURL = null;
           await userInfo.organizationUser.save();
+
+          await this.redisProfileService.deleteProfile(`u:${uid}`);
+
           return res.status(HttpStatus.OK).send({
             message: 'Profile picture deleted',
           });
@@ -1394,6 +1410,10 @@ export class OrganizationController {
 
     await userInfo.organizationUser
       .save()
+      .then(async () => {
+        // Delete the user's old profile data from redis
+        await this.redisProfileService.deleteProfile(`u:${uid}`);
+      })
       .then(() => {
         return res.status(HttpStatus.OK).send({
           message: 'User info updated',

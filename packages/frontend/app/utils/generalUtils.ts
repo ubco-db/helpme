@@ -253,3 +253,19 @@ export function convertPathnameToPageName(pathname: string): string {
   }
   return pathname
 }
+
+export function parseThinkBlock(answer: string) {
+  // Look for <think>...</think> (the "s" flag lets it match across multiple lines)
+  const thinkRegex = /<think>([\s\S]*?)<\/think>/
+  const match = answer.match(thinkRegex)
+
+  if (!match) {
+    // No <think> block, return the text unchanged
+    return { thinkText: null, cleanAnswer: answer }
+  }
+
+  const thinkText = match[1].trim()
+  const cleanAnswer = answer.replace(thinkRegex, '').trim()
+
+  return { thinkText, cleanAnswer }
+}
