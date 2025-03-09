@@ -1,3 +1,12 @@
+## Version 1.4.2 - Mar 9th, 2025
+
+#### Improvements
+- Fixed the Chatbot Thoughts tooltip so that it can handle larger thoughts better
+- Improved the styling on the chatbot settings page
+- Added tooltips to the different chatbot models for easier comparison
+
+***
+
 ## Version 1.4.1 - Mar 4th, 2025
 
 #### New Features
