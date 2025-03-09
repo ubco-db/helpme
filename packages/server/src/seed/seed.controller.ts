@@ -16,7 +16,6 @@ import { QuestionGroupModel } from 'question/question-group.entity';
 import { SemesterModel } from 'semester/semester.entity';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { OrganizationModel } from 'organization/organization.entity';
-import { getManager } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import {
   CourseFactory,
@@ -58,6 +57,7 @@ import { CalendarModel } from '../calendar/calendar.entity';
 import { LMSAnnouncementModel } from 'lmsIntegration/lmsAnnouncement.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 import { QueueChatsModel } from 'queueChats/queue-chats.entity';
+import { DataSource } from 'typeorm';
 
 const exampleConfig = {
   fifo_queue_view_enabled: true,
@@ -135,7 +135,10 @@ const exampleLabConfig = {
 @UseGuards(NonProductionGuard)
 @Controller('seeds')
 export class SeedController {
-  constructor(private seedService: SeedService) {}
+  constructor(
+    private seedService: SeedService,
+    private dataSource: DataSource,
+  ) {}
 
   @Get('delete')
   async deleteAll(): Promise<string> {
@@ -174,7 +177,7 @@ export class SeedController {
     await this.seedService.deleteAll(QuestionTypeModel);
     await this.seedService.deleteAll(CourseSettingsModel);
     await this.seedService.deleteAll(MailServiceModel);
-    const manager = getManager();
+    const manager = this.dataSource;
     manager.query('ALTER SEQUENCE user_model_id_seq RESTART WITH 1;');
     manager.query('ALTER SEQUENCE organization_model_id_seq RESTART WITH 1;');
 
@@ -263,7 +266,7 @@ export class SeedController {
       queueEnabled: true,
     });
 
-    const userExists = await UserModel.findOne();
+    const userExists = (await UserModel.find())?.pop();
 
     if (!userExists) {
       // Student 1
@@ -389,11 +392,6 @@ export class SeedController {
         email: 'Ramon@ubc.ca',
         firstName: 'Ramon',
         lastName: 'Lawrence',
-        insights: [
-          'QuestionTypeBreakdown',
-          'TotalQuestionsAsked',
-          'TotalStudents',
-        ],
         password: hashedPassword1,
         emailVerified: true,
       });
@@ -603,7 +601,7 @@ export class SeedController {
 
   @Get('fill_queue')
   async fillQueue(): Promise<string> {
-    const queue = await QueueModel.findOne();
+    const queue = (await QueueModel.find())?.pop();
 
     const questionType = await QuestionTypeFactory.create({
       cid: queue.course.id,

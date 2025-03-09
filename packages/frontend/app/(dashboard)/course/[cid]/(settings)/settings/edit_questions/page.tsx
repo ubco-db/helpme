@@ -299,10 +299,12 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
       if (!record[dataIndex]) {
         return false
       }
-      return record[dataIndex]
-        .toString()
-        .toLowerCase()
-        .includes((value as string).toLowerCase())
+      return (
+        record[dataIndex]
+          ?.toString()
+          .toLowerCase()
+          .includes((value as string).toLowerCase()) ?? false
+      )
     },
     onFilterDropdownOpenChange: (visible) => {
       if (visible) {

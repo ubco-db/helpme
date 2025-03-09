@@ -35,7 +35,7 @@ const CheckableTask: React.FC<CheckableTaskProps> = ({
 }) => {
   const taskName = task.display_name ? task.display_name : taskId
   const taskColor = task.color_hex ? task.color_hex : '#f0f0f0'
-  const disabled = task.isDone ? true : false
+  const disabled = !!task.isDone
 
   const textColor = checked
     ? getBrightness(taskColor) < 128
@@ -219,7 +219,7 @@ const TaskSelector: React.FC<TaskSelectorProps> = ({
         for (const task in taskTree) {
           if (
             taskTree[task].precondition &&
-            taskTree[task].precondition.taskId === taskID
+            taskTree[task].precondition?.taskId === taskID
           ) {
             removeTaskAndDependents(task)
           }
@@ -277,7 +277,7 @@ const TaskSelector: React.FC<TaskSelectorProps> = ({
         for (const task in taskTree) {
           if (
             taskTree[task].precondition &&
-            taskTree[task].precondition.taskId === taskID &&
+            taskTree[task].precondition?.taskId === taskID &&
             taskTree[task].checked
           ) {
             hoverTaskAndDependents(task)

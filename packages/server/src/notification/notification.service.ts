@@ -56,7 +56,9 @@ export class NotificationService {
       where: {
         id: userId,
       },
-      relations: ['desktopNotifs'],
+      relations: {
+        desktopNotifs: true,
+      },
     });
 
     // run the promises concurrently

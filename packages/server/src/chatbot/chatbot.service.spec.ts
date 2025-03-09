@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { ChatbotService } from './chatbot.service';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import {
@@ -12,7 +12,7 @@ import { ChatbotQuestionModel } from './question.entity';
 
 describe('ChatbotService', () => {
   let service: ChatbotService;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -21,8 +21,17 @@ describe('ChatbotService', () => {
     }).compile();
 
     service = module.get<ChatbotService>(ChatbotService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
+
+  afterAll(async () => {
+    await dataSource.destroy();
+  });
+
+  beforeEach(async () => {
+    await dataSource.synchronize(true);
+  });
+
   describe('createInteraction', () => {
     it('should throw an error if course is not found', async () => {
       await expect(
@@ -161,19 +170,16 @@ describe('ChatbotService', () => {
 
       await service.editQuestion(updatedQuestionData);
 
-      const updatedQuestion = await ChatbotQuestionModel.findOne(
-        originalQuestion.id,
-        { relations: ['interaction'] },
-      );
+      const updatedQuestion = await ChatbotQuestionModel.findOne({
+        where: {
+          id: originalQuestion.id,
+        },
+        relations: {
+          interaction: true,
+        },
+      });
 
       expect(updatedQuestion.interaction.id).toEqual(interaction2.id);
     });
-  });
-  afterAll(async () => {
-    await conn.close();
-  });
-
-  beforeEach(async () => {
-    await conn.synchronize(true);
   });
 });

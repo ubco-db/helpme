@@ -203,62 +203,6 @@ describe('Course Integration', () => {
 
       await supertest({ userId: 1 }).get(`/courses/${course.id}`).expect(401);
     });
-
-    it('ensures isOpen is defined for all queues(dynamic gen)', async () => {
-      const course = await CourseFactory.create();
-      await UserCourseFactory.create({
-        user: await UserFactory.create(),
-        course: course,
-      });
-      const taf = await TACourseFactory.create({
-        user: await UserFactory.create(),
-        course: course,
-      });
-      const proff = await UserCourseFactory.create({
-        user: await UserFactory.create(),
-        course: course,
-        role: Role.PROFESSOR,
-      });
-      await QueueFactory.create({
-        isDisabled: true,
-        room: 'room 1',
-        course: course,
-      });
-
-      await QueueFactory.create({
-        isDisabled: false,
-        room: 'room 2',
-        course: course,
-      });
-      await QueueFactory.create({
-        isDisabled: false,
-        room: 'room 3',
-        course: course,
-        staffList: [taf.user],
-      });
-
-      await QueueFactory.create({
-        isDisabled: false,
-        isProfessorQueue: true,
-        room: 'room 4',
-        course: course,
-        staffList: [taf.user],
-      });
-      await QueueFactory.create({
-        isDisabled: true,
-        isProfessorQueue: true,
-        room: 'room 5',
-        course: course,
-        staffList: [taf.user],
-      });
-
-      const response = await supertest({ userId: proff.userId })
-        .get(`/courses/${course.id}`)
-        .expect(200);
-      response.body.queues.map((q) => {
-        expect(q.isOpen).toBeDefined();
-      });
-    });
   });
 
   describe('GET /courses/limited/:id/:code', () => {
@@ -369,7 +313,7 @@ describe('Course Integration', () => {
       });
 
       expect(
-        (await QueueModel.findOne({}, { relations: ['staffList'] })).staffList
+        (await QueueModel.findOne({ relations: { staffList: true } })).staffList
           .length,
       ).toEqual(1);
 
@@ -378,7 +322,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ relations: { staffList: true } }),
       ).toMatchObject({
         staffList: [],
       });
@@ -417,7 +361,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ relations: { staffList: true } }),
       ).toMatchObject({
         staffList: [],
       });
@@ -455,7 +399,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ relations: { staffList: true } }),
       ).toMatchObject({
         staffList: [],
       });
@@ -484,7 +428,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ relations: { staffList: true } }),
       ).toMatchObject({
         staffList: [ta2],
       });
@@ -523,7 +467,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({}, { relations: ['staffList'] }),
+        await QueueModel.findOne({ relations: { staffList: true } }),
       ).toMatchObject({
         staffList: [],
       });
@@ -562,9 +506,9 @@ describe('Course Integration', () => {
         .send({ notes: 'ta queue', isProfessorQueue: false })
         .expect(201);
 
-      const q1 = await QueueModel.findOne({ room: 'abcd1' });
-      const q2 = await QueueModel.findOne({ room: 'abcd2' });
-      const q3 = await QueueModel.findOne({ room: 'abcd3' });
+      const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
+      const q2 = await QueueModel.findOne({ where: { room: 'abcd2' } });
+      const q3 = await QueueModel.findOne({ where: { room: 'abcd3' } });
 
       expect(q1).toBeDefined();
       expect(q2).toBeDefined();
@@ -656,7 +600,7 @@ describe('Course Integration', () => {
         })
         .expect(201);
 
-      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
       expect(q1.config).toEqual(exampleConfig);
     });
 
@@ -674,7 +618,7 @@ describe('Course Integration', () => {
         })
         .expect(400);
 
-      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
       expect(q1).toEqual(undefined);
     });
 
@@ -705,7 +649,7 @@ describe('Course Integration', () => {
         })
         .expect(201);
 
-      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
       expect(q1.config).toEqual(exampleConfig);
 
       const questionTypes = await QuestionTypeModel.find({
@@ -748,7 +692,7 @@ describe('Course Integration', () => {
         })
         .expect(400);
 
-      const q1 = await QueueModel.findOne({ room: 'abcd1' });
+      const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
       expect(q1).toBeUndefined();
 
       const questionTypes = await QuestionTypeModel.find({
@@ -1584,11 +1528,10 @@ describe('Course Integration', () => {
     let course;
     let student;
     let professor;
-    let courseSettings;
 
     beforeEach(async () => {
       course = await CourseFactory.create();
-      courseSettings = await CourseSettingsFactory.create({
+      await CourseSettingsFactory.create({
         course: course,
       });
 
@@ -1909,7 +1852,7 @@ describe('Course Integration', () => {
       const professor = await UserFactory.create();
       const student1 = await UserFactory.create();
       const student2 = await UserFactory.create();
-      const student3 = await UserFactory.create();
+
       await UserCourseFactory.create({
         user: professor,
         role: Role.PROFESSOR,

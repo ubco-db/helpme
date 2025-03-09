@@ -1,39 +1,39 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
-  Delete,
   Query,
   Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  ParseIntPipe,
   ForbiddenException,
 } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
 import {
+  COURSE_TIMEZONES,
+  CourseResponse,
+  CourseSettingsRequestBody,
   ERROR_MESSAGES,
   GetOrganizationUserResponse,
+  OrganizationProfessor,
   OrganizationResponse,
   OrganizationRole,
+  OrgUser,
   Role,
   UpdateOrganizationCourseDetailsParams,
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
   UpdateProfileParams,
   UserRole,
-  COURSE_TIMEZONES,
-  CourseSettingsRequestBody,
-  OrganizationProfessor,
-  CourseResponse,
-  OrgUser,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -53,13 +53,12 @@ import * as path from 'path';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SemesterModel } from 'semester/semester.entity';
-import { getManager, In } from 'typeorm';
+import { DataSource, DeepPartial, In } from 'typeorm';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
-import _ from 'lodash';
 import * as sharp from 'sharp';
 import { User } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
@@ -75,6 +74,7 @@ export class OrganizationController {
     private organizationService: OrganizationService,
     private redisProfileService: RedisProfileService,
     private schedulerRegistry: SchedulerRegistry,
+    private dataSource: DataSource,
   ) {}
 
   @Post(':oid/reset_chat_token_limit')
@@ -153,14 +153,12 @@ export class OrganizationController {
     @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
     try {
-      const entityManager = getManager();
-
       // Get all users for the organization with their highest role
       // update: this query can probably be updated to just grab userids of all org users but this is a admin route so me
       const orgUsers: {
         userId: number;
         role: 'professor' | 'admin' | 'member';
-      }[] = await entityManager.query(
+      }[] = await this.dataSource.query(
         `
   SELECT ou."userId",
          CASE
@@ -178,7 +176,7 @@ export class OrganizationController {
       );
 
       // Get all mail services
-      const mailServices = await entityManager.query(`
+      const mailServices = await this.dataSource.query(`
         SELECT id, "mailType", "serviceType"
         FROM mail_services
       `);
@@ -199,7 +197,7 @@ export class OrganizationController {
 
       // Bulk insert subscriptions
       if (subscriptionsToInsert.length > 0) {
-        await entityManager.query(
+        await this.dataSource.query(
           `
           INSERT INTO user_subscriptions ("userId", "serviceId", "isSubscribed")
           SELECT u, s, e
@@ -345,7 +343,7 @@ export class OrganizationController {
       });
     }
 
-    const course = {
+    const course: DeepPartial<CourseModel> = {
       name: courseDetails.name,
       coordinator_email: courseDetails.coordinator_email,
       sectionGroupName: courseDetails.sectionGroupName,
@@ -354,7 +352,7 @@ export class OrganizationController {
       enabled: true,
     };
     try {
-      const newCourse = await CourseModel.create(course).save();
+      const newCourse = await CourseModel.create<CourseModel>(course).save();
 
       if (courseDetails.profIds)
         for (const profId of courseDetails.profIds) {
@@ -448,7 +446,7 @@ export class OrganizationController {
     @Param('oid', ParseIntPipe) oid: number,
     @Param('cid', ParseIntPipe) cid: number,
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
-    @User(['organizationUser']) user: UserModel,
+    @User({ organizationUser: true }) user: UserModel,
   ): Promise<Response<void>> {
     const courseInfo = await OrganizationCourseModel.findOne({
       where: {
@@ -548,13 +546,11 @@ export class OrganizationController {
     }
 
     if (!semester) {
-      const newSemester = await SemesterModel.create({
+      courseInfo.course.semester = await SemesterModel.create({
         season: semesterDetails[0],
         year: parseInt(semesterDetails[1]),
         courses: [courseInfo.course],
       }).save();
-
-      courseInfo.course.semester = newSemester;
       await courseInfo.course.save();
     } else {
       courseInfo.course.semester = semester;
@@ -634,13 +630,17 @@ export class OrganizationController {
         where: {
           courseId: cid,
         },
-        relations: ['user'],
+        relations: {
+          user: true,
+        },
       });
 
       // clear cache of all members of the course
-      members.forEach(async (m) => {
-        await this.redisProfileService.deleteProfile(`u:${m.user.id}`);
-      });
+      await Promise.all(
+        members.map((m) =>
+          this.redisProfileService.deleteProfile(`u:${m.user.id}`),
+        ),
+      );
     } catch (err) {
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
         message: err,
@@ -684,15 +684,17 @@ export class OrganizationController {
             where: {
               id: cid,
             },
-            relations: ['userCourses'],
+            relations: {
+              userCourses: true,
+            },
           })
         ).userCourses;
 
-        userCourses.forEach(async (userCourse) => {
-          await this.redisProfileService.deleteProfile(
-            `u:${userCourse.userId}`,
-          );
-        });
+        await Promise.all(
+          userCourses.map((userCourse) =>
+            this.redisProfileService.deleteProfile(`u:${userCourse.userId}`),
+          ),
+        );
       })
       .then(() => {
         return res.status(HttpStatus.OK).send({
@@ -1229,7 +1231,7 @@ export class OrganizationController {
     @Res() res: Response,
     @Param('uid', ParseIntPipe) uid: number,
     @Body() userCourses: number[],
-    @User(['organizationUser', 'courses']) user: UserModel,
+    @User({ organizationUser: true, courses: true }) user: UserModel,
   ): Promise<Response<void>> {
     if (userCourses.length < 1) {
       return res.status(HttpStatus.BAD_REQUEST).send({
@@ -1497,14 +1499,7 @@ export class OrganizationController {
       search = '';
     }
 
-    const users = await this.organizationService.getUsers(
-      oid,
-      page,
-      pageSize,
-      search,
-    );
-
-    return users;
+    return await this.organizationService.getUsers(oid, page, pageSize, search);
   }
 
   @Get(':oid/get_courses/:page?')
@@ -1521,14 +1516,12 @@ export class OrganizationController {
       search = '';
     }
 
-    const courses = await this.organizationService.getCourses(
+    return await this.organizationService.getCourses(
       oid,
       page,
       pageSize,
       search,
     );
-
-    return courses;
   }
 
   @Get(':oid/get_professors/:courseId')

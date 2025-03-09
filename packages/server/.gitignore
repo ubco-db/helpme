@@ -40,3 +40,6 @@ uploads/*
 
 # Sentry Config File (This was auto-generated. The .sentryclic file seems to have another auth token of some kind?)
 .sentryclirc
+
+# Sentry Config File (Also auto-generated...)
+.env.sentry-build-plugin
