@@ -230,7 +230,7 @@ export default function ChatbotSettings({
             chatbot will have access to.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 md:flex-row">
           <Button
             onClick={() => setChatbotParameterModalOpen(true)}
             icon={<SettingOutlined />}
