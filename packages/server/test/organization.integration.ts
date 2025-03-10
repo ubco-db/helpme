@@ -1117,8 +1117,8 @@ describe('Organization Integration', () => {
           profIds: [professor1.id, professor2.id],
         });
 
-      expect(res.status).toBe(200);
       expect(res.body.message).toBe('Course updated successfully');
+      expect(res.status).toBe(200);
     });
     it('should return 200 when course is updated (course professor)', async () => {
       const user = await UserFactory.create();
@@ -1153,8 +1153,8 @@ describe('Organization Integration', () => {
           profIds: [professor1.id, professor2.id],
         });
 
-      expect(res.status).toBe(200);
       expect(res.body.message).toBe('Course updated successfully');
+      expect(res.status).toBe(200);
     });
     it('should prevent org professors who are a student in the course from updating the course', async () => {
       const user = await UserFactory.create();
@@ -3066,7 +3066,6 @@ describe('Organization Integration', () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
-      const semester = await SemesterFactory.create();
       const professor1 = await UserFactory.create();
 
       await OrganizationUserModel.create({

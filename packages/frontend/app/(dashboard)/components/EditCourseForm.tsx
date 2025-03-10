@@ -1,6 +1,7 @@
 'use client'
 
 import { API } from '@/app/api'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 import {
   COURSE_TIMEZONES,
   GetOrganizationResponse,
@@ -73,8 +74,6 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       return
     }
 
-    // PAT TODO: DO VALIDATION HERE FOR SEMESTERS
-
     if (
       !Array.isArray(profIdsField) ||
       (professors &&
@@ -87,8 +86,6 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       message.error('One or more selected professors are invalid')
       return
     }
-
-    // PAT TODO: fix this route to support semester changes
 
     await API.organizations
       .updateCourse(organization.id, Number(courseData.courseId), {
@@ -105,7 +102,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         fetchCourseData()
       })
       .catch((error) => {
-        const errorMessage = error.response.data.message
+        const errorMessage = getErrorMessage(error)
         message.error(errorMessage)
       })
   }
@@ -213,7 +210,6 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
           rules={[{ required: true, message: 'Please select a semester' }]}
         >
           <Select placeholder="Select Semester">
-            {/* PAT TODO: See if this option is really necessary. without it, people wont be able to change their courses unless they set their course's semester */}
             <Select.Option key={-1} value={-1}>
               None
             </Select.Option>
