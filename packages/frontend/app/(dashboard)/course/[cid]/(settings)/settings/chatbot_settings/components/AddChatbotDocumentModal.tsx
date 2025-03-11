@@ -286,7 +286,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
               <Form.Item
                 name="isSlideDeck"
                 label="Parse document as slides"
-                tooltip="This will generate descriptions for images, which is particularly useful if the document is a slide deck or another image-heavy component"
+                tooltip="This will generate descriptions for images, which is particularly useful if the document is a slide deck or another image-heavy component. Only works for .pdf or .pptx"
               >
                 <Switch
                   defaultChecked={isSlideDeck}
