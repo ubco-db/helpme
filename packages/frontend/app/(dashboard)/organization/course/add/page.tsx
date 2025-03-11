@@ -244,14 +244,15 @@ export default function AddCoursePage(): ReactElement {
                       ]}
                     >
                       <Select placeholder="Select Semester">
-                        <Select.Option key={-1} value={-1}>
-                          None
-                        </Select.Option>
-                        {organization.semesters.map((semester) => (
-                          <Select.Option key={semester.id} value={semester.id}>
-                            {`${semester.name} (${new Date(semester.startDate).toLocaleDateString()} - ${new Date(semester.endDate).toLocaleDateString()})`}
-                          </Select.Option>
-                        ))}
+                        {organizationSemesters &&
+                          organizationSemesters.map((semester) => (
+                            <Select.Option
+                              key={semester.id}
+                              value={semester.id}
+                            >
+                              {`${semester.name} (${new Date(semester.startDate).toLocaleDateString()} - ${new Date(semester.endDate).toLocaleDateString()})`}
+                            </Select.Option>
+                          ))}
                       </Select>
                     </Form.Item>
                   </Col>

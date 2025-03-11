@@ -44,7 +44,7 @@ export class ProfileService {
               course: {
                 id: userCourse.courseId,
                 name: userCourse.course.name,
-                semesterId: userCourse.course.semester.id,
+                semesterId: userCourse.course.semesterId,
                 enabled: userCourse.course.enabled,
               },
               role: userCourse.role,

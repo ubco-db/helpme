@@ -1,13 +1,21 @@
 import { Role, SemesterPartial, UserCourse } from '@koh/common'
-import { Button, Card, Divider, message, Popover, Table, Tag } from 'antd'
-import React, { useEffect, useState } from 'react'
+import {
+  Button,
+  Card,
+  Divider,
+  message,
+  Popover,
+  Table,
+  Tag,
+  Tooltip,
+} from 'antd'
+import React from 'react'
 import Meta from 'antd/es/card/Meta'
 import Link from 'next/link'
 import stringToHexColor from '@/app/utils/generalUtils'
 import { ColumnsType } from 'antd/es/table'
-import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { setEngine } from 'crypto'
+
+// TODO: remove all code for unassigned semesters when all production courses have new semesters set
 
 interface CoursesSectionProps {
   courses: UserCourse[]
@@ -93,6 +101,12 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
     },
   ]
 
+  const coursesWithoutSemester = courses.filter((userCourse) => {
+    return !semesters?.some(
+      (semester) => semester.id === userCourse.course.semesterId,
+    )
+  })
+
   return (
     <div className="mb-8 mt-5 w-full">
       {enabledTableView ? (
@@ -147,6 +161,28 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                 </div>
               )
             })}
+
+          {coursesWithoutSemester.length > 0 && (
+            <div key={-1}>
+              <Divider className="my-1 p-2 text-lg font-semibold">
+                <Tooltip title="Courses that are not assigned to a semester">
+                  Not Assigned
+                </Tooltip>
+              </Divider>
+              <Table
+                columns={columns}
+                size="small"
+                dataSource={coursesWithoutSemester.sort((a, b) =>
+                  a.course.name.localeCompare(b.course.name),
+                )}
+                rowKey={(course) => course.course.id}
+                pagination={
+                  coursesWithoutSemester.length > 5 ? { pageSize: 5 } : false
+                }
+                showHeader={false}
+              />
+            </div>
+          )}
         </>
       ) : (
         <div className="flex flex-wrap gap-3">
@@ -174,31 +210,27 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
               const iconSvg = jdenticon.toSvg(course.course.name, iconSize)
               const iconDataUrl = `data:image/svg+xml;base64,${btoa(iconSvg)}`
 
-              const semester = semesters?.find(
+              const courseSemester = semesters?.find(
                 (s) => s.id === course.course.semesterId,
               )
 
-              if (!semester) {
-                return null
-              }
-
-              const popoverContent = (
+              const popoverContent = courseSemester ? (
                 <div className="p-2">
                   <p>
                     <strong>Start Date:</strong>{' '}
-                    {new Date(semester.startDate).toLocaleDateString()}
+                    {new Date(courseSemester.startDate).toLocaleDateString()}
                   </p>
                   <p>
                     <strong>End Date:</strong>{' '}
-                    {new Date(semester.endDate).toLocaleDateString()}
+                    {new Date(courseSemester.endDate).toLocaleDateString()}
                   </p>
-                  {semester.description && (
+                  {courseSemester.description && (
                     <p>
-                      <strong>Description:</strong> {semester.description}
+                      <strong>Description:</strong> {courseSemester.description}
                     </p>
                   )}
                 </div>
-              )
+              ) : null
 
               return (
                 <Card
@@ -242,11 +274,22 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                   </div>
 
                   <div className="absolute right-2 top-2 flex flex-wrap items-center justify-between align-middle">
-                    <Popover content={popoverContent} title={semester.name}>
-                      <Tag color="blue" className="text-base">
-                        {semester?.name ?? ''}
-                      </Tag>
-                    </Popover>
+                    {courseSemester ? (
+                      <Popover
+                        content={popoverContent}
+                        title={courseSemester.name}
+                      >
+                        <Tag color="blue" className="text-base">
+                          {courseSemester.name}
+                        </Tag>
+                      </Popover>
+                    ) : (
+                      <Tooltip title="Courses that are not assigned to a semester">
+                        <Tag color="blue" className="text-base">
+                          Not Assigned
+                        </Tag>
+                      </Tooltip>
+                    )}
                   </div>
 
                   <Link

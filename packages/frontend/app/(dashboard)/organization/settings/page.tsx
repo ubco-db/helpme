@@ -26,8 +26,6 @@ import { OrganizationRole, SemesterPartial } from '@koh/common'
 import { SemesterModal } from './components/SemesterModal'
 import DeleteConfirmationModal from './components/DeleteConfirmationModal'
 
-// PAT TODO: recheck all role guards for these endpoints to ensure no non admins can change anything other than the semester
-
 export default function SettingsPage(): ReactElement {
   const [formGeneral] = Form.useForm()
 

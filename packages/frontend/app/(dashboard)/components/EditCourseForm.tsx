@@ -210,9 +210,6 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
           rules={[{ required: true, message: 'Please select a semester' }]}
         >
           <Select placeholder="Select Semester">
-            <Select.Option key={-1} value={-1}>
-              None
-            </Select.Option>
             {organization.semesters.map((semester) => (
               <Select.Option key={semester.id} value={semester.id}>
                 <span>{`${semester.name}`}</span>{' '}
