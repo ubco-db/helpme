@@ -52,7 +52,7 @@ import { UserModel } from '../profile/user.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { CourseModel } from './course.entity';
 import { QueueSSEService } from '../queue/queue-sse.service';
-import { CourseService } from './course.service';
+import { CourseCloneAttributes, CourseService } from './course.service';
 import { HeatmapService } from './heatmap.service';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
@@ -1070,5 +1070,15 @@ export class CourseController {
     }
     userCourse.TANotes = body.notes;
     await userCourse.save();
+  }
+
+  @Post(':id/clone_course')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
+  @Roles(Role.PROFESSOR)
+  async cloneCourse(
+    @Param('id', ParseIntPipe) courseId: number,
+    @Body() body: CourseCloneAttributes,
+  ): Promise<void> {
+    await this.courseService.cloneCourse(courseId, body);
   }
 }
