@@ -12,17 +12,12 @@ import {
   HttpStatus,
   Injectable,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
-import {
-  Between,
-  Brackets,
-  createQueryBuilder,
-  getRepository,
-  In,
-} from 'typeorm';
+import { Between, In } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { CourseModel } from './course.entity';
@@ -30,6 +25,30 @@ import { UserModel } from 'profile/user.entity';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
+import { CourseSettingsModel } from './course_settings.entity';
+
+export type CourseCloneAttributes = {
+  cloneAttributes: {
+    name?: boolean;
+    sectionGroupName?: boolean;
+    coordinator_email?: boolean;
+    icalURL?: boolean;
+    zoomLink?: boolean;
+    questionTimer?: boolean;
+    enabled?: boolean;
+    timezone?: boolean;
+    courseInviteCode?: boolean;
+    asyncQuestionDisplayTypes?: boolean;
+  };
+  cloneCourseSettings: {
+    chatBotEnabled?: boolean;
+    asyncQueueEnabled?: boolean;
+    adsEnabled?: boolean;
+    queueEnabled?: boolean;
+    scheduleOnFrontPage?: boolean;
+    asyncCentreAIAnswers?: boolean;
+  };
+};
 
 @Injectable()
 export class CourseService {
@@ -398,6 +417,83 @@ export class CourseService {
       }
     } else {
       return `/courses?err=notInCourse`;
+    }
+  }
+
+  async cloneCourse(
+    courseId: number,
+    cloneData: CourseCloneAttributes,
+  ): Promise<void> {
+    const originalCourse = await CourseModel.findOne(courseId, {
+      relations: ['courseSettings'],
+    });
+    if (!originalCourse) {
+      throw new NotFoundException(`Course with id ${courseId} not found`);
+    }
+
+    // Create a new course instance and apply the selected clones
+    const clonedCourse = new CourseModel();
+
+    if (cloneData.cloneAttributes?.name) {
+      clonedCourse.name = originalCourse.name;
+    }
+
+    if (cloneData.cloneAttributes?.sectionGroupName) {
+      clonedCourse.sectionGroupName = originalCourse.sectionGroupName;
+    }
+    if (cloneData.cloneAttributes?.coordinator_email) {
+      clonedCourse.coordinator_email = originalCourse.coordinator_email;
+    }
+    if (cloneData.cloneAttributes?.icalURL) {
+      clonedCourse.icalURL = originalCourse.icalURL;
+    }
+    if (cloneData.cloneAttributes?.zoomLink) {
+      clonedCourse.zoomLink = originalCourse.zoomLink;
+    }
+    if (cloneData.cloneAttributes?.questionTimer) {
+      clonedCourse.questionTimer = originalCourse.questionTimer;
+    }
+    if (cloneData.cloneAttributes?.enabled) {
+      clonedCourse.enabled = originalCourse.enabled;
+    }
+    if (cloneData.cloneAttributes?.timezone) {
+      clonedCourse.timezone = originalCourse.timezone;
+    }
+    if (cloneData.cloneAttributes?.courseInviteCode) {
+      clonedCourse.courseInviteCode = originalCourse.courseInviteCode;
+    }
+    if (cloneData.cloneAttributes?.asyncQuestionDisplayTypes) {
+      clonedCourse.asyncQuestionDisplayTypes =
+        originalCourse.asyncQuestionDisplayTypes;
+    }
+    // ...clone other required course fields as needed...
+
+    await clonedCourse.save();
+
+    // Clone course settings if checklist flags are provided and settings exist
+    if (originalCourse.courseSettings) {
+      const origSettings = originalCourse.courseSettings;
+      const clonedSettings = new CourseSettingsModel();
+      clonedSettings.courseId = clonedCourse.id;
+      if (cloneData.cloneCourseSettings?.chatBotEnabled) {
+        clonedSettings.chatBotEnabled = origSettings.chatBotEnabled;
+      }
+      if (cloneData.cloneCourseSettings?.asyncQueueEnabled) {
+        clonedSettings.asyncQueueEnabled = origSettings.asyncQueueEnabled;
+      }
+      if (cloneData.cloneCourseSettings?.adsEnabled) {
+        clonedSettings.adsEnabled = origSettings.adsEnabled;
+      }
+      if (cloneData.cloneCourseSettings?.queueEnabled) {
+        clonedSettings.queueEnabled = origSettings.queueEnabled;
+      }
+      if (cloneData.cloneCourseSettings?.scheduleOnFrontPage) {
+        clonedSettings.scheduleOnFrontPage = origSettings.scheduleOnFrontPage;
+      }
+      if (cloneData.cloneCourseSettings?.asyncCentreAIAnswers) {
+        clonedSettings.asyncCentreAIAnswers = origSettings.asyncCentreAIAnswers;
+      }
+      await clonedSettings.save();
     }
   }
 }
