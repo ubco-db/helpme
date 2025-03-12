@@ -16,12 +16,13 @@ import { MailService } from 'mail/mail.service';
 import { RedisMemoryServer } from 'redis-memory-server';
 import { Redis } from 'ioredis';
 import { RedisModule, RedisService } from '@liaoliaots/nestjs-redis';
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
 export interface SupertestOptions {
   userId?: number;
 }
 export type ModuleModifier = (t: TestingModuleBuilder) => TestingModuleBuilder;
-export const TestTypeOrmModule = TypeOrmModule.forRoot({
+export const TestTypeOrmConfig: PostgresConnectionOptions = {
   type: 'postgres',
   host: 'localhost',
   port: 5432,
@@ -30,12 +31,15 @@ export const TestTypeOrmModule = TypeOrmModule.forRoot({
   database: 'test',
   entities: ['./**/*.entity.ts', '../../src/**/*.entity.ts'],
   synchronize: true,
-});
+};
+export const TestTypeOrmModule = TypeOrmModule.forRoot(TestTypeOrmConfig);
 
 export const TestConfigModule = ConfigModule.forRoot({
   envFilePath: ['.env.development'],
   isGlobal: true,
 });
+
+export let TestDataSource: DataSource;
 
 export function setupIntegrationTest(
   module: Type<any>,
@@ -126,6 +130,7 @@ export function setupIntegrationTest(
       ApplicationConfigService,
     );
     dataSource = testModule.get<DataSource>(DataSource);
+    TestDataSource = dataSource;
     redisService = testModule.get<RedisService>(RedisService);
 
     await appConfig.loadConfig();

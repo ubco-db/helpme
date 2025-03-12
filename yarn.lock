@@ -16227,10 +16227,9 @@ typedarray@^0.0.6:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==
 
-typeorm-factory@^0.0.14:
-  version "0.0.14"
-  resolved "https://registry.yarnpkg.com/typeorm-factory/-/typeorm-factory-0.0.14.tgz#bbc56a61684238ac9e3a1c88cbab508efe422ba1"
-  integrity sha512-PdCEnprw2YDbFJ50mCtPr+IOQa5Y9Yv7l3DDmqNEJPROwK48znvQEHVRA9bWR2ByjaZDfmRMWo7+/Q+WkDPOgw==
+"typeorm-factory@github:AdamFipke/typeorm-factory":
+  version "0.0.15"
+  resolved "https://codeload.github.com/AdamFipke/typeorm-factory/tar.gz/685e868e6277bdf1aa967fc7582288ad1cd73a80"
 
 typeorm@^0.3.20:
   version "0.3.20"

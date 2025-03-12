@@ -6,16 +6,11 @@ import {
   UpdateEvent,
 } from 'typeorm';
 import { QueueModel } from './queue.entity';
-import { InjectDataSource } from '@nestjs/typeorm';
 
 @EventSubscriber()
 export class QueueSubscriber implements EntitySubscriberInterface<QueueModel> {
   private queueSSEService: QueueSSEService;
-  constructor(
-    @InjectDataSource()
-    dataSource: DataSource,
-    queueSSEService: QueueSSEService,
-  ) {
+  constructor(dataSource: DataSource, queueSSEService: QueueSSEService) {
     this.queueSSEService = queueSSEService;
     dataSource.subscribers.push(this);
   }

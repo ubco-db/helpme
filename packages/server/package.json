@@ -131,7 +131,7 @@
     "ts-loader": "^8.0.10",
     "ts-node": "^8.6.2",
     "tsconfig-paths": "^3.9.0",
-    "typeorm-factory": "^0.0.14",
+    "typeorm-factory": "github:AdamFipke/typeorm-factory",
     "typescript": "^5.2.2",
     "webpack-node-externals": "^2.5.0"
   },
