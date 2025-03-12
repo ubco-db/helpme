@@ -1,19 +1,30 @@
 import { ClosedQuestionStatus, OpenQuestionStatus } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
-import { QuestionFactory, QueueFactory } from '../../test/util/factories';
+import {
+  initFactoriesFromService,
+  QuestionFactory,
+  QueueFactory,
+} from '../../test/util/factories';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { QueueModel } from './queue.entity';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('queue entity', () => {
   let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule],
+      imports: [TestTypeOrmModule, FactoryModule],
     }).compile();
 
     dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {
