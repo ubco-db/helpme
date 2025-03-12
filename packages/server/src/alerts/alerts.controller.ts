@@ -23,6 +23,7 @@ import { Roles } from '../decorators/roles.decorator';
 import { AlertModel } from './alerts.entity';
 import { AlertsService } from './alerts.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { IsNull } from 'typeorm';
 
 @Controller('alerts')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -38,7 +39,7 @@ export class AlertsController {
       where: {
         courseId,
         user,
-        resolved: null,
+        resolved: IsNull(),
       },
     });
     return { alerts: await this.alertsService.removeStaleAlerts(alerts) };
@@ -61,7 +62,7 @@ export class AlertsController {
       where: {
         alertType,
         userId: targetUserId,
-        resolved: null,
+        resolved: IsNull(),
       },
     });
 

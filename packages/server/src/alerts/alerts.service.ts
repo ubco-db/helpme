@@ -7,14 +7,11 @@ import {
 import { pick } from 'lodash';
 import { Injectable } from '@nestjs/common';
 import { QuestionModel } from 'question/question.entity';
-import { Connection } from 'typeorm';
 import { QueueModel } from '../queue/queue.entity';
 import { AlertModel } from './alerts.entity';
 
 @Injectable()
 export class AlertsService {
-  constructor(private connection: Connection) {}
-
   async removeStaleAlerts(alerts: AlertModel[]): Promise<Alert[]> {
     const nonStaleAlerts = [];
 
@@ -30,10 +27,12 @@ export class AlertsService {
 
           const queue = await QueueModel.findOne({
             where: { id: payload.queueId },
-            relations: ['staffList'],
+            relations: {
+              staffList: true,
+            },
           });
 
-          const isQueueOpen = await queue?.checkIsOpen();
+          const isQueueOpen = queue.staffList.length > 0 && !queue.isDisabled;
           if (question.closedAt || !isQueueOpen) {
             alert.resolved = new Date();
             await alert.save();

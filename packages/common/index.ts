@@ -70,7 +70,6 @@ export class User {
   desktopNotifsEnabled!: boolean
   @Type(() => DesktopNotifPartial)
   desktopNotifs!: DesktopNotifPartial[]
-  insights!: string[]
   userRole!: string
   organization?: OrganizationUserPartial
   chat_token!: ChatTokenPartial
@@ -370,8 +369,6 @@ export enum OrganizationRole {
  * @param room - The full name of the building + room # that the current office hours queue is in.
  * @param staffList - The list of TA user's that are currently helping at office hours.
  * @param questions - The list of the students questions associated with the queue.
- * @param startTime - The scheduled start time of this queue based on the parsed ical.
- * @param endTime - The scheduled end time of this queue.
  */
 // note: this is apparently not used anywhere
 export interface Queue {
@@ -380,8 +377,6 @@ export interface Queue {
   room: string
   staffList: UserPartial[]
   questions: Question[]
-  startTime?: Date
-  endTime?: Date
   allowQuestions: boolean
 }
 
@@ -406,9 +401,6 @@ export interface StaffMember {
  * @param id - The unique id number for a Queue.
  * @param room - The full name of the building + room # that the current office hours queue is in.
  * @param staffList - The list of TA user's that are currently helping at office hours.
- * @param startTime - The scheduled start time of this queue based on the parsed ical.
- * @param endTime - The scheduled end time of this queue.
- * @param isOpen - A queue is open if it has staff and is not disabled.
  * @param config - A JSON object that contains the configuration for the queue. Contains stuff like tags, tasks, etc.
  */
 export class QueuePartial {
@@ -420,15 +412,8 @@ export class QueuePartial {
 
   queueSize!: number
   notes?: string
-  isOpen!: boolean
 
   isDisabled!: boolean
-
-  @Type(() => Date)
-  startTime?: Date
-
-  @Type(() => Date)
-  endTime?: Date
 
   allowQuestions!: boolean
 
@@ -439,6 +424,8 @@ export class QueuePartial {
   config?: QueueConfig
 
   zoomLink?: string
+
+  courseId!: number
 }
 
 /**
@@ -1198,7 +1185,9 @@ export class GetCourseResponse {
   @Type(() => QueuePartial)
   queues?: QueuePartial[]
 
+  // The heatmap is false when there havent been any questions asked yet or there havent been any office hours
   heatmap!: Heatmap | false
+
   coordinator_email!: string
 
   @Type(() => Number)

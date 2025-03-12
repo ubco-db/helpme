@@ -7,7 +7,6 @@ export class BackfillQuestionGroupable {
   @Command({
     command: 'backfill:question-groupable',
     describe: 'Fills in groupable column for old Questions',
-    autoExit: true,
   })
   async fix(): Promise<void> {
     const questions = await QuestionModel.find();

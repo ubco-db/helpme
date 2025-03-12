@@ -15,9 +15,10 @@ import {
   ClosedQuestionStatus,
 } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Connection, createQueryBuilder } from 'typeorm';
+import { createQueryBuilder, DataSource } from 'typeorm';
 import {
   AlertFactory,
+  initFactoriesFromService,
   QuestionFactory,
   QueueFactory,
   UserFactory,
@@ -31,15 +32,17 @@ import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { QueueService } from 'queue/queue.service';
 import { AlertModel } from 'alerts/alerts.entity';
 import { QueueModel } from 'queue/queue.entity';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('QueueService', () => {
   let service: QueueCleanService;
-  let conn: Connection;
+  let dataSource: DataSource;
   let schedulerRegistry: SchedulerRegistry;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule],
+      imports: [TestTypeOrmModule, FactoryModule],
       providers: [
         QueueCleanService,
         {
@@ -73,15 +76,20 @@ describe('QueueService', () => {
 
     service = module.get<QueueCleanService>(QueueCleanService);
     schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
     jest.resetAllMocks();
   });
 
@@ -96,8 +104,8 @@ describe('QueueService', () => {
 
       await service.cleanQueue(queue.id);
 
-      const question = await QuestionModel.findOne({});
-      expect(question.status).toEqual('Queued');
+      const question = (await QuestionModel.find())?.pop();
+      expect(question?.status).toEqual('Queued');
     });
     it('if no staff are present all questions with open status are marked as stale', async () => {
       const queue = await QueueFactory.create({});
@@ -330,13 +338,13 @@ describe('QueueService', () => {
         getRawMany: jest.fn().mockResolvedValue([{ studentId, courseId }]),
         getOne: jest.fn().mockResolvedValue(existingAlert),
       } as any;
-      (createQueryBuilder as jest.Mock).mockReturnValue(mockQueryBuilder);
-
-      (createQueryBuilder as jest.Mock).mockReturnValue(mockQueryBuilder);
+      (QueueModel.createQueryBuilder as jest.Mock).mockReturnValue(
+        mockQueryBuilder,
+      );
 
       jest.spyOn(QueueModel, 'query').mockResolvedValue([]);
       jest
-        .spyOn(createQueryBuilder(QueueModel), 'getRawMany')
+        .spyOn(QueueModel.createQueryBuilder(), 'getRawMany')
         .mockResolvedValue([{ studentId, courseId }]);
 
       await service.promptStudentsToLeaveQueue(queueId);

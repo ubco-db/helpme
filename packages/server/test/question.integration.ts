@@ -1,9 +1,7 @@
 import {
   ClosedQuestionStatus,
   ERROR_MESSAGES,
-  LimboQuestionStatus,
   OpenQuestionStatus,
-  QuestionStatus,
   QuestionStatusKeys,
 } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
@@ -20,7 +18,6 @@ import {
   StudentCourseFactory,
   StudentTaskProgressFactory,
   TACourseFactory,
-  UserCourseFactory,
   UserFactory,
 } from './util/factories';
 import {
@@ -31,7 +28,6 @@ import {
 import { forEach } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
-import { QUESTION_STATES } from '../src/question/question-fsm';
 
 describe('Question Integration', () => {
   const { supertest } = setupIntegrationTest(QuestionModule, modifyMockNotifs);
@@ -197,7 +193,7 @@ describe('Question Integration', () => {
       const questionTypes = [];
 
       forEach(QuestionTypes, async (questionType) => {
-        const currentQuestionType = await QuestionTypeFactory.create({
+        await QuestionTypeFactory.create({
           name: questionType.name,
           color: questionType.color,
           cid: course.id,
@@ -242,7 +238,6 @@ describe('Question Integration', () => {
         staffList: [ta.user],
       });
 
-      expect(await queueImNotIn.checkIsOpen()).toBe(true);
       const user = await UserFactory.create();
       const course2 = await CourseFactory.create();
       await StudentCourseFactory.create({
@@ -280,8 +275,6 @@ describe('Question Integration', () => {
         questionTypes.push(currentQuestionType);
       });
 
-      const result = await queue.checkIsOpen();
-      expect(result).toBe(false);
       const user = await UserFactory.create();
       await StudentCourseFactory.create({ user, courseId: queue.courseId });
       await supertest({ userId: user.id });
@@ -303,7 +296,6 @@ describe('Question Integration', () => {
     //   const user = await UserFactory.create();
     //   await StudentCourseFactory.create({ user, courseId: queue.courseId });
 
-    //   expect(await queue.checkIsOpen()).toBe(true);
     //   await supertest({ userId: user.id })
     //     .post('/questions')
     //     .send({
@@ -337,9 +329,6 @@ describe('Question Integration', () => {
         course: course,
         staffList: [ta.user],
       });
-
-      expect(await queue1.checkIsOpen()).toBe(true);
-      expect(await queue2.checkIsOpen()).toBe(true);
 
       await StudentCourseFactory.create({
         userId: user.id,
@@ -413,9 +402,6 @@ describe('Question Integration', () => {
         },
       });
 
-      expect(await queue1.checkIsOpen()).toBe(true);
-      expect(await queue2.checkIsOpen()).toBe(true);
-
       await StudentCourseFactory.create({
         userId: user.id,
         courseId: course.id,
@@ -467,8 +453,6 @@ describe('Question Integration', () => {
         },
       });
 
-      expect(await queue.checkIsOpen()).toBe(true);
-
       await StudentCourseFactory.create({
         userId: user.id,
         courseId: course.id,
@@ -501,8 +485,6 @@ describe('Question Integration', () => {
         staffList: [ta.user],
         config: {},
       });
-
-      expect(await queue.checkIsOpen()).toBe(true);
 
       await StudentCourseFactory.create({
         userId: user.id,
@@ -547,8 +529,6 @@ describe('Question Integration', () => {
           },
         },
       });
-
-      expect(await queue.checkIsOpen()).toBe(true);
 
       await StudentCourseFactory.create({
         userId: user.id,
@@ -601,9 +581,6 @@ describe('Question Integration', () => {
           },
         },
       });
-
-      expect(await queue1.checkIsOpen()).toBe(true);
-      expect(await queue2.checkIsOpen()).toBe(true);
 
       await StudentCourseFactory.create({
         userId: user.id,
@@ -704,8 +681,6 @@ describe('Question Integration', () => {
         staffList: [ta.user],
       });
 
-      expect(await queue.checkIsOpen()).toBe(true);
-
       await StudentCourseFactory.create({
         userId: user.id,
         courseId: queue.courseId,
@@ -747,7 +722,6 @@ describe('Question Integration', () => {
         allowQuestions: true,
         staffList: [ta.user],
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       await StudentCourseFactory.create({
         userId: user.id,
@@ -781,7 +755,6 @@ describe('Question Integration', () => {
         staffList: [ta.user],
         allowQuestions: true,
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       await StudentCourseFactory.create({
         userId: user.id,
@@ -866,7 +839,9 @@ describe('Question Integration', () => {
         id: q.id,
         status: QuestionStatusKeys.Queued,
       });
-      expect(await QuestionModel.findOne({ id: q.id })).toMatchObject({
+      expect(
+        await QuestionModel.findOne({ where: { id: q.id } }),
+      ).toMatchObject({
         status: QuestionStatusKeys.Queued,
         waitTime: 0, // wait time doesn't increase while being drafted
         helpTime: 0, // help time doesn't increase while being drafted
@@ -885,7 +860,7 @@ describe('Question Integration', () => {
         id: q.id,
         status: QuestionStatusKeys.Helping,
       });
-      let question = await QuestionModel.findOne({ id: q.id });
+      let question = await QuestionModel.findOne({ where: { id: q.id } });
       // help time doesn't increase while being queued
       expect(question.helpTime).toBe(0);
       // wait time increases while being queued
@@ -905,7 +880,7 @@ describe('Question Integration', () => {
         id: q.id,
         status: QuestionStatusKeys.Paused,
       });
-      question = await QuestionModel.findOne({ id: q.id });
+      question = await QuestionModel.findOne({ where: { id: q.id } });
       // help time increases while being helped
       expect(question.helpTime).toBeGreaterThanOrEqual(58);
       expect(question.helpTime).toBeLessThanOrEqual(62);
@@ -926,7 +901,7 @@ describe('Question Integration', () => {
         id: q.id,
         status: QuestionStatusKeys.Helping,
       });
-      question = await QuestionModel.findOne({ id: q.id });
+      question = await QuestionModel.findOne({ where: { id: q.id } });
       // help time doesn't increase while being paused
       expect(question.helpTime).toBeGreaterThanOrEqual(58);
       expect(question.helpTime).toBeLessThanOrEqual(62);
@@ -947,7 +922,7 @@ describe('Question Integration', () => {
         id: q.id,
         status: QuestionStatusKeys.ReQueueing,
       });
-      question = await QuestionModel.findOne({ id: q.id });
+      question = await QuestionModel.findOne({ where: { id: q.id } });
       // again, help time increases while being helped
       expect(question.helpTime).toBeGreaterThanOrEqual(118);
       expect(question.helpTime).toBeLessThanOrEqual(122);
@@ -968,7 +943,7 @@ describe('Question Integration', () => {
         id: q.id,
         status: QuestionStatusKeys.Queued,
       });
-      question = await QuestionModel.findOne({ id: q.id });
+      question = await QuestionModel.findOne({ where: { id: q.id } });
       // help time doesn't increase while being requeued
       expect(question.helpTime).toBeGreaterThanOrEqual(118);
       expect(question.helpTime).toBeLessThanOrEqual(122);
@@ -989,7 +964,7 @@ describe('Question Integration', () => {
         id: q.id,
         status: QuestionStatusKeys.Helping,
       });
-      question = await QuestionModel.findOne({ id: q.id });
+      question = await QuestionModel.findOne({ where: { id: q.id } });
       // again, help time doesn't increase while being queued
       expect(question.helpTime).toBeGreaterThanOrEqual(118);
       expect(question.helpTime).toBeLessThanOrEqual(122);
@@ -1010,7 +985,7 @@ describe('Question Integration', () => {
         id: q.id,
         status: QuestionStatusKeys.Resolved,
       });
-      question = await QuestionModel.findOne({ id: q.id });
+      question = await QuestionModel.findOne({ where: { id: q.id } });
       // again, help time increases while being helped
       expect(question.helpTime).toBeGreaterThanOrEqual(178);
       expect(question.helpTime).toBeLessThanOrEqual(184);
@@ -1030,7 +1005,6 @@ describe('Question Integration', () => {
         staffList: [ta.user],
         courseId: course.id,
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       const user = await UserFactory.create();
       await StudentCourseFactory.create({ user, courseId: queue.courseId });
@@ -1050,7 +1024,9 @@ describe('Question Integration', () => {
         id: q.id,
         text: 'NEW TEXT',
       });
-      expect(await QuestionModel.findOne({ id: q.id })).toMatchObject({
+      expect(
+        await QuestionModel.findOne({ where: { id: q.id } }),
+      ).toMatchObject({
         text: 'NEW TEXT',
       });
     });
@@ -1071,7 +1047,6 @@ describe('Question Integration', () => {
         courseId: course.id,
         staffList: [ta],
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       const student = await UserFactory.create();
       await StudentCourseFactory.create({
@@ -1104,7 +1079,6 @@ describe('Question Integration', () => {
         courseId: course.id,
         staffList: [ta],
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       const student = await UserFactory.create();
       await StudentCourseFactory.create({
@@ -1132,7 +1106,6 @@ describe('Question Integration', () => {
         course: course,
         staffList: [ta],
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       const question = await QuestionFactory.create({
         text: 'Help pls',
@@ -1164,7 +1137,6 @@ describe('Question Integration', () => {
         course: course,
         staffList: [ta],
       });
-      expect(await queue.checkIsOpen()).toBe(true);
 
       const q = await QuestionFactory.create({
         text: 'Help pls',
@@ -1197,8 +1169,6 @@ describe('Question Integration', () => {
         queueId: q.queueId,
       });
 
-      expect(await q.queue.checkIsOpen()).toBe(true);
-
       await supertest({ userId: ta.id })
         .patch(`/questions/${q.id}`)
         .send({
@@ -1224,7 +1194,9 @@ describe('Question Integration', () => {
         })
         .expect(401);
 
-      const updatedQuestion = await QuestionModel.findOne({ id: q.id });
+      const updatedQuestion = await QuestionModel.findOne({
+        where: { id: q.id },
+      });
       expect(updatedQuestion.text).toBe('Help please');
       expect(updatedQuestion.isTaskQuestion).toBe(false);
       expect(updatedQuestion.queueId).toBe(q.queueId);
@@ -1245,7 +1217,6 @@ describe('Question Integration', () => {
       await TACourseFactory.create({ course: q.queue.course, user: ta });
 
       q.queue.staffList.push(ta);
-      expect(await q.queue.checkIsOpen()).toBe(true);
 
       const res = await supertest({ userId: ta.id })
         .patch(`/questions/${q.id}`)
@@ -1309,7 +1280,6 @@ describe('Question Integration', () => {
       const ta = await UserFactory.create();
       await TACourseFactory.create({ courseId: queue.courseId, user: ta });
       queue.staffList.push(ta);
-      expect(await queue.checkIsOpen()).toBe(true);
 
       await supertest({ userId: ta.id })
         .patch(`/questions/${q1.id}`)
@@ -1959,7 +1929,9 @@ describe('Question Integration', () => {
         id: q.id,
         text: 'Mark "task1"',
       });
-      expect(await QuestionModel.findOne({ id: q.id })).toMatchObject({
+      expect(
+        await QuestionModel.findOne({ where: { id: q.id } }),
+      ).toMatchObject({
         text: 'Mark "task1"',
       });
 
@@ -2058,7 +2030,9 @@ describe('Question Integration', () => {
         id: q.id,
         status: QuestionStatusKeys.Paused,
       });
-      expect(await QuestionModel.findOne({ id: q.id })).toMatchObject({
+      expect(
+        await QuestionModel.findOne({ where: { id: q.id } }),
+      ).toMatchObject({
         status: QuestionStatusKeys.Paused,
         lastReadyAt: expect.any(Date),
       });

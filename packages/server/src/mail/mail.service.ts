@@ -133,7 +133,11 @@ export class MailService {
     mailService: MailServiceModel,
   ): Promise<MailServiceModel> {
     await MailServiceModel.update({ id }, mailService);
-    return MailServiceModel.findOne(id);
+    return MailServiceModel.findOne({
+      where: {
+        id: id,
+      },
+    });
   }
 
   async remove(id: number): Promise<void> {
