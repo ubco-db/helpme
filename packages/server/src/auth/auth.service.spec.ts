@@ -4,6 +4,7 @@ import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { UserModel } from 'profile/user.entity';
 import { DataSource } from 'typeorm';
 import {
+  initFactoriesFromService,
   OrganizationFactory,
   OrganizationUserFactory,
 } from '../../test/util/factories';
@@ -11,6 +12,8 @@ import { AccountType } from '@koh/common';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { MailService } from 'mail/mail.service';
 import { MailModule } from 'mail/mail.module';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 // Extend the OAuth2Client mock with additional methods
 jest.mock('google-auth-library', () => {
@@ -76,7 +79,7 @@ describe('AuthService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule, MailModule],
+      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule, MailModule],
       providers: [
         AuthService,
         { provide: MailService, useClass: MockMailService },
@@ -86,6 +89,11 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
     mailService = module.get<MailService>(MailService);
     dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {

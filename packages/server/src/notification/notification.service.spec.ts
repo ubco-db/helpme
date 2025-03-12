@@ -1,9 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, DeepPartial } from 'typeorm';
-import { UserFactory } from '../../test/util/factories';
+import {
+  initFactoriesFromService,
+  UserFactory,
+} from '../../test/util/factories';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { DesktopNotifModel } from './desktop-notif.entity';
 import { NotificationService } from './notification.service';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('NotificationService', () => {
   let service: NotificationService;
@@ -11,12 +16,16 @@ describe('NotificationService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule],
+      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule],
       providers: [NotificationService],
     }).compile();
 
     service = module.get<NotificationService>(NotificationService);
     dataSource = module.get<DataSource>(DataSource);
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {

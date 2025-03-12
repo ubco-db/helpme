@@ -15,6 +15,7 @@ import {
   TACourseFactory,
   UserCourseFactory,
   CourseFactory,
+  initFactoriesFromService,
 } from '../../test/util/factories';
 import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
 import { QuestionGroupModel } from './question-group.entity';
@@ -28,6 +29,8 @@ import { ApplicationConfigService } from 'config/application_config.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
 import { RedisMemoryServer } from 'redis-memory-server';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('QuestionService', () => {
   let service: QuestionService;
@@ -43,6 +46,7 @@ describe('QuestionService', () => {
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
+        FactoryModule,
         RedisModule.forRoot({
           readyLog: false,
           errorLog: true,
@@ -90,6 +94,11 @@ describe('QuestionService', () => {
 
     service = module.get<QuestionService>(QuestionService);
     dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {

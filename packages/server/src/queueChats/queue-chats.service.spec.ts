@@ -3,10 +3,16 @@ import { QueueChatService } from './queue-chats.service';
 import { QueueChatsModel } from './queue-chats.entity';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { ApplicationTestingConfigModule } from '../config/application_config.module';
-import { QuestionFactory, UserFactory } from '../../test/util/factories';
+import {
+  initFactoriesFromService,
+  QuestionFactory,
+  UserFactory,
+} from '../../test/util/factories';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { RedisService } from '@liaoliaots/nestjs-redis';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 jest.mock('@liaoliaots/nestjs-redis');
 
@@ -36,6 +42,7 @@ describe('QueueChatService', () => {
         TestConfigModule,
         ApplicationTestingConfigModule,
         TypeOrmModule.forFeature([QueueChatsModel]),
+        FactoryModule,
       ],
       providers: [
         QueueChatService,
@@ -49,6 +56,11 @@ describe('QueueChatService', () => {
     }).compile();
     service = module.get<QueueChatService>(QueueChatService);
     dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {

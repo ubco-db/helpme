@@ -81,7 +81,8 @@ export class FactoryService {
   public lmsAssignmentFactory: Factory<LMSAssignmentModel>;
   public queueChatsFactory: Factory<QueueChatsModel>;
 
-  constructor(private readonly dataSource: DataSource) {
+  constructor(dataSource: DataSource) {
+    console.log('FactoryService constructor');
     this.UserFactory = new Factory(UserModel, dataSource)
       .attr('email', `user@ubc.ca`)
       .attr('firstName', 'User')

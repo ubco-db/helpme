@@ -22,8 +22,9 @@ import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 
 describe('Organization Integration', () => {
+  console.log('thing');
   const { supertest } = setupIntegrationTest(OrganizationModule);
-
+  console.log('guh');
   describe('POST /organization/:oid/populate_chat_token_table', () => {
     it('should return 401 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();

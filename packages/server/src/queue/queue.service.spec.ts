@@ -4,6 +4,7 @@ import { mapValues, zip } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
 import { DataSource } from 'typeorm';
 import {
+  initFactoriesFromService,
   QuestionFactory,
   QueueFactory,
   UserFactory,
@@ -13,6 +14,8 @@ import { QueueModel } from './queue.entity';
 import { QueueService } from './queue.service';
 import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationTestingConfigModule } from 'config/application_config.module';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('QueueService', () => {
   let service: QueueService;
@@ -23,6 +26,7 @@ describe('QueueService', () => {
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
+        FactoryModule,
         ApplicationTestingConfigModule,
       ],
       providers: [QueueService, AlertsService],
@@ -30,6 +34,11 @@ describe('QueueService', () => {
 
     service = module.get<QueueService>(QueueService);
     dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {

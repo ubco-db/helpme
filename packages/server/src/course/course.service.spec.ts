@@ -4,6 +4,7 @@ import {
   UserFactory,
   UserCourseFactory,
   CourseFactory,
+  initFactoriesFromService,
 } from '../../test/util/factories';
 import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
 import { CourseService } from './course.service';
@@ -12,6 +13,8 @@ import { CourseModel } from './course.entity';
 import { Role, UserPartial } from '@koh/common';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -22,6 +25,7 @@ describe('CourseService', () => {
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
+        FactoryModule,
         RedisModule.forRoot({
           readyLog: false,
           errorLog: true,
@@ -47,6 +51,10 @@ describe('CourseService', () => {
 
     service = module.get<CourseService>(CourseService);
     dataSource = module.get<DataSource>(DataSource);
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {

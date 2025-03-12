@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import {
   AlertFactory,
   CourseFactory,
+  initFactoriesFromService,
   QuestionFactory,
   QueueFactory,
   TACourseFactory,
@@ -13,6 +14,8 @@ import { AlertModel } from './alerts.entity';
 import { AlertsService } from './alerts.service';
 import { QueueModel } from '../queue/queue.entity';
 import { DataSource } from 'typeorm';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('Alerts service', () => {
   let service: AlertsService;
@@ -20,12 +23,17 @@ describe('Alerts service', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule],
+      imports: [TestTypeOrmModule, FactoryModule],
       providers: [AlertsService],
     }).compile();
 
     service = module.get<AlertsService>(AlertsService);
     dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {

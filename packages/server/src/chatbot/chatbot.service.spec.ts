@@ -6,9 +6,12 @@ import {
   UserFactory,
   CourseFactory,
   InteractionFactory,
+  initFactoriesFromService,
 } from '../../test/util/factories';
 import { ChatbotQuestion } from '@koh/common';
 import { ChatbotQuestionModel } from './question.entity';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('ChatbotService', () => {
   let service: ChatbotService;
@@ -16,12 +19,17 @@ describe('ChatbotService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule],
+      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule],
       providers: [ChatbotService],
     }).compile();
 
     service = module.get<ChatbotService>(ChatbotService);
     dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {

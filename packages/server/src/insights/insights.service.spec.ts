@@ -6,6 +6,7 @@ import { InsightsService } from './insights.service';
 import {
   AsyncQuestionFactory,
   CourseFactory,
+  initFactoriesFromService,
   InteractionFactory,
   QuestionFactory,
   QuestionTypeFactory,
@@ -26,6 +27,8 @@ import {
   Role,
   TableOutputType,
 } from '@koh/common';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('InsightsService', () => {
   let service: InsightsService;
@@ -33,12 +36,17 @@ describe('InsightsService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, CacheModule.register()],
+      imports: [TestTypeOrmModule, CacheModule.register(), FactoryModule],
       providers: [InsightsService],
     }).compile();
 
     service = module.get<InsightsService>(InsightsService);
     dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {

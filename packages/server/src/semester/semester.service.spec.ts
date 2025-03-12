@@ -2,10 +2,16 @@ import { DataSource } from 'typeorm';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { SemesterService } from './semester.service';
-import { CourseFactory, SemesterFactory } from '../../test/util/factories';
+import {
+  CourseFactory,
+  initFactoriesFromService,
+  SemesterFactory,
+} from '../../test/util/factories';
 import { CourseModel } from '../course/course.entity';
 import { Season } from '@koh/common';
 import { SemesterModel } from './semester.entity';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('SemesterService', () => {
   let service: SemesterService;
@@ -13,12 +19,17 @@ describe('SemesterService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule],
+      imports: [TestTypeOrmModule, FactoryModule],
       providers: [SemesterService],
     }).compile();
 
     service = module.get<SemesterService>(SemesterService);
     dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {

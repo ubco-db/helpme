@@ -18,6 +18,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { createQueryBuilder, DataSource } from 'typeorm';
 import {
   AlertFactory,
+  initFactoriesFromService,
   QuestionFactory,
   QueueFactory,
   UserFactory,
@@ -31,6 +32,8 @@ import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { QueueService } from 'queue/queue.service';
 import { AlertModel } from 'alerts/alerts.entity';
 import { QueueModel } from 'queue/queue.entity';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('QueueService', () => {
   let service: QueueCleanService;
@@ -39,7 +42,7 @@ describe('QueueService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule],
+      imports: [TestTypeOrmModule, FactoryModule],
       providers: [
         QueueCleanService,
         {
@@ -74,6 +77,11 @@ describe('QueueService', () => {
     service = module.get<QueueCleanService>(QueueCleanService);
     schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
     dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {

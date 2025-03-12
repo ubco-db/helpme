@@ -12,6 +12,7 @@ import {
 } from './lmsIntegration.adapter';
 import {
   CourseFactory,
+  initFactoriesFromService,
   lmsCourseIntFactory,
   lmsOrgIntFactory,
   OrganizationCourseFactory,
@@ -31,6 +32,8 @@ import { CourseModel } from '../course/course.entity';
 import { OrganizationModel } from '../organization/organization.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 /*
 Note:
@@ -43,12 +46,17 @@ describe('LMSIntegrationService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule],
+      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule],
       providers: [LMSIntegrationService, LMSIntegrationAdapter],
     }).compile();
 
     service = module.get<LMSIntegrationService>(LMSIntegrationService);
     dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {
