@@ -17,6 +17,9 @@ import { RedisMemoryServer } from 'redis-memory-server';
 import { Redis } from 'ioredis';
 import { RedisModule, RedisService } from '@liaoliaots/nestjs-redis';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
+import { initFactoriesFromService } from './factories';
 
 export interface SupertestOptions {
   userId?: number;
@@ -38,8 +41,6 @@ export const TestConfigModule = ConfigModule.forRoot({
   envFilePath: ['.env.development'],
   isGlobal: true,
 });
-
-export let TestDataSource: DataSource;
 
 export function setupIntegrationTest(
   module: Type<any>,
@@ -93,6 +94,7 @@ export function setupIntegrationTest(
         TestTypeOrmModule,
         TestConfigModule,
         ApplicationConfigModule,
+        FactoryModule,
         ScheduleModule.forRoot(),
         RedisModule.forRoot({
           readyLog: false,
@@ -130,12 +132,16 @@ export function setupIntegrationTest(
       ApplicationConfigService,
     );
     dataSource = testModule.get<DataSource>(DataSource);
-    TestDataSource = dataSource;
     redisService = testModule.get<RedisService>(RedisService);
 
     await appConfig.loadConfig();
     await app.init();
     schedulerRegistry = testModule.get<SchedulerRegistry>(SchedulerRegistry);
+
+    // Grab FactoriesService from Nest
+    const factories = testModule.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
 
     // Ensure Redis is connected before proceeding
     await ensureRedisConnected(redisService.getClient('db'));
