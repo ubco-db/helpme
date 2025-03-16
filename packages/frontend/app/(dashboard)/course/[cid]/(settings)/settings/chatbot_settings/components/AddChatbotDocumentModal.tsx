@@ -20,8 +20,7 @@ import {
 import Dragger from 'antd/es/upload/Dragger'
 import { useState } from 'react'
 import { RcFile } from 'antd/lib/upload'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { API } from '@/app/api'
 
 interface AddChatbotDocumentModalProps {
   courseId: number
@@ -41,7 +40,6 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
   const [form] = Form.useForm()
   const [isSlideDeck, setIsSlideDeck] = useState(false)
   const [countProcessed, setCountProcessed] = useState(0)
-  const { userInfo } = useUserInfo()
   const [fileList, setFileList] = useState<any[]>([])
   const [uploadErrors, setUploadErrors] = useState<string[]>([])
   const [confirmPopoverOpen, setConfirmPopoverOpen] = useState(false)
@@ -85,21 +83,9 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
         new Blob([JSON.stringify(jsonData)], { type: 'application/json' }),
       )
 
-      await fetch(`/chat/${courseId}/document`, {
-        method: 'POST',
-        body: formData,
-        headers: { HMS_API_TOKEN: userInfo.chat_token.token },
-      })
-        .then(async (res) => {
-          if (!res.ok) {
-            let error
-            if (res.headers.get('Content-Type')?.includes('application/json')) {
-              error = getErrorMessage(await res.json())
-            } else {
-              error = await res.text()
-            }
-            throw new Error(`${res.status} ${res.statusText} ${error}`)
-          }
+      await API.chatbot.staffOnly
+        .uploadDocument(courseId, formData)
+        .then(async () => {
           message.success(`${file.name} uploaded and processed!`)
           setCountProcessed((prev) => prev + 1)
         })
@@ -112,28 +98,9 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
   }
 
   const addUrl = async (url: string) => {
-    const data = {
-      url: url,
-    }
-
-    await fetch(`/chat/${courseId}/document/url/github`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        HMS_API_TOKEN: userInfo.chat_token.token,
-      },
-      body: JSON.stringify(data),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          let error
-          if (res.headers.get('Content-Type')?.includes('application/json')) {
-            error = getErrorMessage(await res.json())
-          } else {
-            error = await res.text()
-          }
-          throw new Error(`${res.status} ${res.statusText} ${error}`)
-        }
+    await API.chatbot.staffOnly
+      .addDocumentFromGithub(courseId, url)
+      .then(async () => {
         message.success('File successfully uploaded')
         handleSuccess()
       })

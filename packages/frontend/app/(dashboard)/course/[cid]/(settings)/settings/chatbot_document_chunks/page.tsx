@@ -2,14 +2,14 @@
 
 import { useState, useEffect, ReactElement, useCallback } from 'react'
 import { Table, Button, Modal, Input, Form, message } from 'antd'
-import axios from 'axios'
 import { useUserInfo } from '@/app/contexts/userContext'
 import Link from 'next/link'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import Highlighter from 'react-highlight-words'
 import ExpandableText from '@/app/components/ExpandableText'
 import EditDocumentChunkModal from './components/EditChatbotDocumentChunkModal'
-import { SourceDocument } from '@koh/common'
+import { AddDocumentChunkParams, SourceDocument } from '@koh/common'
+import { API } from '@/app/api'
 
 interface FormValues {
   content: string
@@ -39,56 +39,42 @@ export default function ChatbotDocuments({
   const [addDocChunkPopupVisible, setAddDocChunkPopupVisible] = useState(false)
 
   const addDocument = async (values: FormValues) => {
-    try {
-      const metadata: any = {
+    const body: AddDocumentChunkParams = {
+      documentText: values.content,
+      metadata: {
         name: 'Manually Inserted Information',
         type: 'inserted_document',
-      }
-
-      if (values.pageNumber) {
-        metadata['loc'] = { pageNumber: values.pageNumber }
-      }
-      if (values.source) {
-        metadata['source'] = values.source
-      }
-      const response = await axios.post(
-        `/chat/${courseId}/documentChunk`,
-        {
-          documentText: values.content,
-          metadata: metadata,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: userInfo.chat_token.token,
-          },
-        },
-      )
-      if (response.status !== 200) {
-        throw new Error('Network response was not ok')
-      }
-      message.success('Document added successfully.')
-      fetchDocuments()
-    } catch (e) {
-      const errorMessage = getErrorMessage(e)
-      message.error('Failed to add document: ' + errorMessage)
+        source: values.source ?? undefined,
+        loc: values.pageNumber
+          ? { pageNumber: parseInt(values.pageNumber) }
+          : undefined,
+      },
     }
+    await API.chatbot.staffOnly
+      .addDocumentChunk(courseId, body)
+      .then(() => {
+        message.success('Document added successfully.')
+        fetchDocuments()
+      })
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to add document: ' + errorMessage)
+      })
   }
 
   const fetchDocuments = useCallback(async () => {
-    try {
-      const response = await axios.get(`/chat/${courseId}/allDocumentChunks`, {
-        headers: {
-          HMS_API_TOKEN: userInfo.chat_token.token,
-        },
+    await API.chatbot.staffOnly
+      .getAllDocumentChunks(courseId)
+      .then((response) => {
+        setDocuments(response)
+        setFilteredDocuments(response)
       })
-      setDocuments(response.data)
-      setFilteredDocuments(response.data)
-    } catch (e) {
-      const errorMessage = getErrorMessage(e)
-      message.error('Failed to load documents: ' + errorMessage)
-    }
-  }, [courseId, userInfo.chat_token.token, setDocuments, setFilteredDocuments])
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to load documents: ' + errorMessage)
+      })
+  }, [courseId, setDocuments, setFilteredDocuments])
+
   useEffect(() => {
     if (courseId) {
       fetchDocuments()
@@ -182,20 +168,16 @@ export default function ChatbotDocuments({
   }
 
   const deleteDocument = async (documentId: string) => {
-    try {
-      await fetch(`/chat/${courseId}/documentChunk/${documentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          HMS_API_TOKEN: userInfo.chat_token.token,
-        },
+    await API.chatbot.staffOnly
+      .deleteDocumentChunk(courseId, documentId)
+      .then(() => {
+        fetchDocuments()
+        message.success('Document deleted successfully.')
       })
-      fetchDocuments()
-      message.success('Document deleted successfully.')
-    } catch (e) {
-      const errorMessage = getErrorMessage(e)
-      message.error('Failed to delete document: ' + errorMessage)
-    }
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to delete document: ' + errorMessage)
+      })
   }
 
   const handleSearch = (e: any) => {
@@ -326,7 +308,6 @@ export default function ChatbotDocuments({
           open={editRecordModalOpen}
           editingRecord={editingRecord}
           courseId={courseId}
-          chatbotToken={userInfo.chat_token.token}
           onCancel={() => {
             setEditingRecord(null)
             setEditRecordModalOpen(false)

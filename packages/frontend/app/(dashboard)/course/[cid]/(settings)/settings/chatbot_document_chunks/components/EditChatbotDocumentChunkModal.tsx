@@ -5,6 +5,7 @@ import { Modal, Input, Form, message } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { SourceDocument } from '@koh/common'
+import { API } from '@/app/api'
 
 interface FormValues {
   documentName: string
@@ -18,7 +19,6 @@ interface EditDocumentChunkModalProps {
   courseId: number
   onSuccessfulUpdate: (value: SourceDocument) => void
   onCancel: () => void
-  chatbotToken: string
 }
 
 const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
@@ -27,41 +27,26 @@ const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
   courseId,
   onSuccessfulUpdate,
   onCancel,
-  chatbotToken,
 }): ReactElement => {
   const [form] = Form.useForm()
 
   const onFinish = async (values: FormValues) => {
-    try {
-      const response = await fetch(
-        `/chat/${courseId}/${editingRecord.id}/documentChunk`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: chatbotToken,
-          },
-          body: JSON.stringify({
-            documentText: values.content,
-            metadata: {
-              name: values.documentName,
-              source: values.source,
-            },
-          }),
+    await API.chatbot.staffOnly
+      .updateDocumentChunk(courseId, editingRecord.id || '', {
+        documentText: values.content,
+        metadata: {
+          name: values.documentName,
+          source: values.source,
         },
-      )
-
-      if (!response.ok) {
-        throw new Error('Network response was not ok')
-      }
-
-      const updatedDoc = await response.json()
-      onSuccessfulUpdate(updatedDoc)
-      message.success('Document updated successfully.')
-    } catch (e) {
-      const errorMessage = getErrorMessage(e)
-      message.error('Failed to update document: ' + errorMessage)
-    }
+      })
+      .then((updatedDoc) => {
+        onSuccessfulUpdate(updatedDoc)
+        message.success('Document updated successfully.')
+      })
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to update document: ' + errorMessage)
+      })
   }
 
   return (
@@ -97,7 +82,7 @@ const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
       <Form.Item
         label="Document Name"
         name="documentName"
-        rules={[{ required: true, message: 'Please input the document name!' }]}
+        rules={[{ required: true, message: 'Please input the document name' }]}
       >
         <Input />
       </Form.Item>
