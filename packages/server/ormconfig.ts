@@ -59,10 +59,10 @@ const typeorm = {
   entities: [
     CourseModel,
     MailServiceModel,
-    UserSubscriptionModel,
     CourseSectionMappingModel,
     SemesterModel,
     UserModel,
+    UserSubscriptionModel,
     UserCourseModel,
     QuestionModel,
     ChatbotQuestionModel,

@@ -1,4 +1,5 @@
 import {
+  CourseCloneAttributes,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
   EditCourseInfoParams,
@@ -52,7 +53,7 @@ import { UserModel } from '../profile/user.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { CourseModel } from './course.entity';
 import { QueueSSEService } from '../queue/queue-sse.service';
-import { CourseCloneAttributes, CourseService } from './course.service';
+import { CourseService } from './course.service';
 import { HeatmapService } from './heatmap.service';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
@@ -1072,6 +1073,7 @@ export class CourseController {
     await userCourse.save();
   }
 
+  // PAT TODO: use orgorcourseroleguard
   @Post(':id/clone_course')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR)

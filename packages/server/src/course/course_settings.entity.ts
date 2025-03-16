@@ -30,7 +30,7 @@ export class CourseSettingsModel extends BaseEntity {
   adsEnabled: boolean;
 
   @Column('boolean', { default: true })
-  queueEnabled: boolean;
+  queueEnabled: boolean; // Not implemented yet and is not currently in use
 
   @Column('boolean', { default: false })
   scheduleOnFrontPage: boolean;

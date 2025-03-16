@@ -6,6 +6,7 @@ import {
   EditCourseInfoParams,
   GetCourseUserInfoResponse,
   UserPartial,
+  CourseCloneAttributes,
 } from '@koh/common';
 import {
   HttpException,
@@ -26,29 +27,7 @@ import { QueueInviteModel } from 'queue/queue-invite.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
 import { CourseSettingsModel } from './course_settings.entity';
-
-export type CourseCloneAttributes = {
-  cloneAttributes: {
-    name?: boolean;
-    sectionGroupName?: boolean;
-    coordinator_email?: boolean;
-    icalURL?: boolean;
-    zoomLink?: boolean;
-    questionTimer?: boolean;
-    enabled?: boolean;
-    timezone?: boolean;
-    courseInviteCode?: boolean;
-    asyncQuestionDisplayTypes?: boolean;
-  };
-  cloneCourseSettings: {
-    chatBotEnabled?: boolean;
-    asyncQueueEnabled?: boolean;
-    adsEnabled?: boolean;
-    queueEnabled?: boolean;
-    scheduleOnFrontPage?: boolean;
-    asyncCentreAIAnswers?: boolean;
-  };
-};
+import { getManager } from 'typeorm';
 
 @Injectable()
 export class CourseService {
@@ -424,76 +403,107 @@ export class CourseService {
     courseId: number,
     cloneData: CourseCloneAttributes,
   ): Promise<void> {
-    const originalCourse = await CourseModel.findOne(courseId, {
-      relations: ['courseSettings'],
+    await getManager().transaction(async (manager) => {
+      const originalCourse = await manager.findOne(CourseModel, {
+        where: { id: courseId },
+        relations: ['courseSettings'],
+      });
+      if (!originalCourse) {
+        throw new NotFoundException(`Course with id ${courseId} not found`);
+      }
+
+      // PAT TODO: add check for user role here (admin should be able to set any professor, otherwise set it to the user that made the request)
+
+      const professorIds = Array.isArray(cloneData.professorIds)
+        ? cloneData.professorIds
+        : [cloneData.professorIds];
+      const professors = await manager.findByIds(UserModel, professorIds);
+      if (professors.length !== professorIds.length) {
+        throw new NotFoundException(`One or more professors not found`);
+      }
+
+      const clonedCourse = new CourseModel();
+      clonedCourse.enabled = true;
+
+      if (cloneData.cloneAttributes?.name) {
+        clonedCourse.name = originalCourse.name;
+      }
+      if (cloneData.cloneAttributes?.sectionGroupName) {
+        clonedCourse.sectionGroupName = originalCourse.sectionGroupName;
+      }
+      if (cloneData.cloneAttributes?.coordinator_email) {
+        clonedCourse.coordinator_email = originalCourse.coordinator_email;
+      }
+      if (cloneData.cloneAttributes?.zoomLink) {
+        clonedCourse.zoomLink = originalCourse.zoomLink;
+      }
+      if (cloneData.cloneAttributes?.timezone) {
+        clonedCourse.timezone = originalCourse.timezone;
+      }
+      if (cloneData.cloneAttributes?.courseInviteCode) {
+        clonedCourse.courseInviteCode = originalCourse.courseInviteCode;
+      }
+
+      await manager.save(clonedCourse);
+
+      if (originalCourse.courseSettings) {
+        const origSettings = originalCourse.courseSettings;
+        const clonedSettings = new CourseSettingsModel();
+        clonedSettings.courseId = clonedCourse.id;
+        if (cloneData.cloneCourseSettings?.chatBotEnabled) {
+          clonedSettings.chatBotEnabled = origSettings.chatBotEnabled;
+        }
+        if (cloneData.cloneCourseSettings?.asyncQueueEnabled) {
+          clonedSettings.asyncQueueEnabled = origSettings.asyncQueueEnabled;
+        }
+        if (cloneData.cloneCourseSettings?.queueEnabled) {
+          clonedSettings.queueEnabled = origSettings.queueEnabled;
+        }
+        if (cloneData.cloneCourseSettings?.scheduleOnFrontPage) {
+          clonedSettings.scheduleOnFrontPage = origSettings.scheduleOnFrontPage;
+        }
+        if (cloneData.cloneCourseSettings?.asyncCentreAIAnswers) {
+          clonedSettings.asyncCentreAIAnswers =
+            origSettings.asyncCentreAIAnswers;
+        }
+        await manager.save(clonedSettings);
+      }
+
+      // Modified: loop through all professor IDs to create userCourse records.
+      for (const professor of professors) {
+        const profUserCourse = new UserCourseModel();
+        profUserCourse.user = professor;
+        profUserCourse.course = clonedCourse;
+        profUserCourse.role = Role.PROFESSOR;
+        await manager.save(profUserCourse);
+      }
+
+      // PAT TODO: fetch chatbot data from chatbot service, then set a new entry for cloned course
+      // PAT TODO: write a route in the chatbot repo to copy documents from one course to another (or get them to share the documents...?)
+
+      // // --- Added cloning for chatbotSettings ---
+      // if (cloneData.chatbotSettings) {
+      //   if (cloneData.chatbotSettings.modelName) {
+      //     clonedCourse.chatbotModelName = originalCourse.chatbotModelName;
+      //   }
+      //   if (cloneData.chatbotSettings.prompt) {
+      //     clonedCourse.chatbotPrompt = originalCourse.chatbotPrompt;
+      //   }
+      //   if (cloneData.chatbotSettings.similarityThresholdDocuments) {
+      //     clonedCourse.chatbotSimilarityThresholdDocuments = originalCourse.chatbotSimilarityThresholdDocuments;
+      //   }
+      //   if (cloneData.chatbotSettings.temperature) {
+      //     clonedCourse.chatbotTemperature = originalCourse.chatbotTemperature;
+      //   }
+      //   if (cloneData.chatbotSettings.topK) {
+      //     clonedCourse.chatbotTopK = originalCourse.chatbotTopK;
+      //   }
+      // }
+      // // --- Optionally clone documents if requested ---
+      // if (cloneData.includeDocuments) {
+      //   // Pseudocode: clone documents from originalCourse to clonedCourse
+      //   // await DocumentService.copyDocuments(originalCourse.id, clonedCourse.id);
+      // }
     });
-    if (!originalCourse) {
-      throw new NotFoundException(`Course with id ${courseId} not found`);
-    }
-
-    // Create a new course instance and apply the selected clones
-    const clonedCourse = new CourseModel();
-
-    if (cloneData.cloneAttributes?.name) {
-      clonedCourse.name = originalCourse.name;
-    }
-
-    if (cloneData.cloneAttributes?.sectionGroupName) {
-      clonedCourse.sectionGroupName = originalCourse.sectionGroupName;
-    }
-    if (cloneData.cloneAttributes?.coordinator_email) {
-      clonedCourse.coordinator_email = originalCourse.coordinator_email;
-    }
-    if (cloneData.cloneAttributes?.icalURL) {
-      clonedCourse.icalURL = originalCourse.icalURL;
-    }
-    if (cloneData.cloneAttributes?.zoomLink) {
-      clonedCourse.zoomLink = originalCourse.zoomLink;
-    }
-    if (cloneData.cloneAttributes?.questionTimer) {
-      clonedCourse.questionTimer = originalCourse.questionTimer;
-    }
-    if (cloneData.cloneAttributes?.enabled) {
-      clonedCourse.enabled = originalCourse.enabled;
-    }
-    if (cloneData.cloneAttributes?.timezone) {
-      clonedCourse.timezone = originalCourse.timezone;
-    }
-    if (cloneData.cloneAttributes?.courseInviteCode) {
-      clonedCourse.courseInviteCode = originalCourse.courseInviteCode;
-    }
-    if (cloneData.cloneAttributes?.asyncQuestionDisplayTypes) {
-      clonedCourse.asyncQuestionDisplayTypes =
-        originalCourse.asyncQuestionDisplayTypes;
-    }
-    // ...clone other required course fields as needed...
-
-    await clonedCourse.save();
-
-    // Clone course settings if checklist flags are provided and settings exist
-    if (originalCourse.courseSettings) {
-      const origSettings = originalCourse.courseSettings;
-      const clonedSettings = new CourseSettingsModel();
-      clonedSettings.courseId = clonedCourse.id;
-      if (cloneData.cloneCourseSettings?.chatBotEnabled) {
-        clonedSettings.chatBotEnabled = origSettings.chatBotEnabled;
-      }
-      if (cloneData.cloneCourseSettings?.asyncQueueEnabled) {
-        clonedSettings.asyncQueueEnabled = origSettings.asyncQueueEnabled;
-      }
-      if (cloneData.cloneCourseSettings?.adsEnabled) {
-        clonedSettings.adsEnabled = origSettings.adsEnabled;
-      }
-      if (cloneData.cloneCourseSettings?.queueEnabled) {
-        clonedSettings.queueEnabled = origSettings.queueEnabled;
-      }
-      if (cloneData.cloneCourseSettings?.scheduleOnFrontPage) {
-        clonedSettings.scheduleOnFrontPage = origSettings.scheduleOnFrontPage;
-      }
-      if (cloneData.cloneCourseSettings?.asyncCentreAIAnswers) {
-        clonedSettings.asyncCentreAIAnswers = origSettings.asyncCentreAIAnswers;
-      }
-      await clonedSettings.save();
-    }
   }
 }

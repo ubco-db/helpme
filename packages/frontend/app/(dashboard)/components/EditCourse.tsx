@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import CourseInviteCode from './CourseInviteCode'
 import CourseFeaturesForm from './CourseFeaturesForm'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
+import CourseCloneForm from './CourseCloneForm'
 
 type EditCourseProps = {
   courseId: number
@@ -95,6 +96,14 @@ const EditCourse: React.FC<EditCourseProps> = ({
             </Card>
           </>
         )}
+
+        <Card bordered={true} title="Clone Course">
+          <CourseCloneForm
+            organization={organization}
+            courseId={courseData.courseId as number}
+            user={user}
+          />
+        </Card>
 
         <Card
           bordered={true}

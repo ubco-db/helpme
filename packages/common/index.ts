@@ -163,11 +163,40 @@ export type UserTiny = {
  * Represents a partial course data needed on the front end when nested in a response.
  * @param id - The id number of this Course.
  * @param name - The subject and course number of this course. Ex: "CS 2500"
- * @param unreadCount - The number of unread questions in the async centre for this course.
  */
 export type CoursePartial = {
   id: number
   name: string
+}
+
+/**
+ * Represents a partial course data used for cloning a course.
+ */
+export type CourseCloneAttributes = {
+  professorIds: number[]
+  includeDocuments: boolean
+  cloneAttributes: {
+    name?: boolean
+    sectionGroupName?: boolean
+    coordinator_email?: boolean
+    zoomLink?: boolean
+    timezone?: boolean
+    courseInviteCode?: boolean
+  }
+  cloneCourseSettings: {
+    chatBotEnabled?: boolean
+    asyncQueueEnabled?: boolean
+    queueEnabled?: boolean
+    scheduleOnFrontPage?: boolean
+    asyncCentreAIAnswers?: boolean
+  }
+  chatbotSettings: {
+    modelName: boolean
+    prompt: boolean
+    similarityThresholdDocuments: boolean
+    temperature: boolean
+    topK: boolean
+  }
 }
 
 export class RegistrationTokenDetails {
