@@ -1,5 +1,5 @@
 import { ChatbotModule } from 'chatbot/chatbot.module';
-import { AddChatbotQuestionParams, Role } from '@koh/common';
+import { Role } from '@koh/common';
 import {
   InteractionFactory,
   UserFactory,
@@ -23,8 +23,8 @@ describe('ChatbotController Integration', () => {
       const interaction = await InteractionFactory.create({ user, course });
       const questionData = {
         vectorStoreId: '123',
-        question: 'How does photosynthesis work?',
-        answer: 'Photosynthesis is the process by which plants...',
+        questionText: 'How does photosynthesis work?',
+        responseText: 'Photosynthesis is the process by which plants...',
         verified: true,
         suggested: true,
         sourceDocuments: [],
@@ -66,8 +66,8 @@ describe('ChatbotController Integration', () => {
       const interaction = await InteractionFactory.create({ user, course });
       const questionData = {
         vectorStoreId: '123',
-        question: 'How does photosynthesis work?',
-        answer: 'Photosynthesis is the process by which plants...',
+        questionText: 'How does photosynthesis work?',
+        responseText: 'Photosynthesis is the process by which plants...',
         verified: true,
         suggested: true,
         sourceDocuments: [],
