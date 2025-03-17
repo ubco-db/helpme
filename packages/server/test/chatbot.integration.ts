@@ -94,7 +94,7 @@ describe('ChatbotController Integration', () => {
       const response = await supertest({ userId: user.id })
         .post(`/chatbot/askSuggested/${course.id}`)
         .send(body)
-        .expect(200);
+        .expect(201);
       expect(response.body.id).toBeDefined();
       expect(response.body.questionText).toEqual(body.question);
       expect(response.body.responseText).toEqual(body.responseText);
