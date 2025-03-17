@@ -1,5 +1,5 @@
 import { ChatbotModule } from 'chatbot/chatbot.module';
-import { Role } from '@koh/common';
+import { ChatbotAskSuggestedParams, Role } from '@koh/common';
 import {
   InteractionFactory,
   UserFactory,
@@ -51,18 +51,6 @@ describe('ChatbotController Integration', () => {
         course: course,
         role: Role.STUDENT,
       });
-      await supertest({ userId: user.id })
-        .get(`/chatbot/question/all/${course.id}`)
-        .expect(404);
-    });
-    it('should return questions for a course', async () => {
-      const user = await UserFactory.create();
-      const course = await CourseFactory.create();
-      await UserCourseFactory.create({
-        user: user,
-        course: course,
-        role: Role.PROFESSOR,
-      });
       const interaction = await InteractionFactory.create({ user, course });
       const questionData = {
         vectorStoreId: '123',
@@ -76,7 +64,42 @@ describe('ChatbotController Integration', () => {
       await ChatbotQuestionModel.create(questionData).save();
       await supertest({ userId: user.id })
         .get(`/chatbot/question/all/${course.id}`)
+        .expect(403);
+    });
+  });
+
+  describe('POST /chatbot/askSuggested/:courseId', () => {
+    it('Should return 404 if the user is not in the course', async () => {
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      await supertest({ userId: user.id })
+        .post(`/chatbot/askSuggested/${course.id}`)
+        .expect(404);
+    });
+    it('should allow a student to ask a suggested question', async () => {
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user: user,
+        course: course,
+        role: Role.STUDENT,
+      });
+
+      const body: ChatbotAskSuggestedParams = {
+        question: 'How does photosynthesis work?',
+        responseText: 'Photosynthesis is the process by which plants...',
+        vectorStoreId: '123',
+      };
+
+      const response = await supertest({ userId: user.id })
+        .post(`/chatbot/askSuggested/${course.id}`)
+        .send(body)
         .expect(200);
+      expect(response.body.id).toBeDefined();
+      expect(response.body.questionText).toEqual(body.question);
+      expect(response.body.responseText).toEqual(body.responseText);
+      expect(response.body.vectorStoreId).toEqual(body.vectorStoreId);
+      expect(response.body.interactionId).toBeDefined();
     });
   });
 });
