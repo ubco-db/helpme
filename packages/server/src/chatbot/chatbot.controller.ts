@@ -16,7 +16,6 @@ import {
 } from '@nestjs/common';
 import { ChatbotService } from './chatbot.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { ChatbotQuestionModel } from './question.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import {
   ChatbotAskResponse,
@@ -32,7 +31,6 @@ import {
   InteractionResponse,
   AddDocumentChunkParams,
   ChatbotQuestionResponseChatbotDB,
-  UpdateQuestionParams,
   UpdateChatbotQuestionParams,
 } from '@koh/common';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
@@ -148,13 +146,13 @@ export class ChatbotController {
     );
   }
 
-  @Patch('question/:courseId/:questionId')
+  @Patch('questionScore/:courseId/:questionId')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async updateChatbotUserScore(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId') questionId: number, // helpme question id
-    @Body() userScore: number,
+    @Body() { userScore }: { userScore: number },
   ) {
     return await this.chatbotService.updateQuestionUserScore(
       questionId,

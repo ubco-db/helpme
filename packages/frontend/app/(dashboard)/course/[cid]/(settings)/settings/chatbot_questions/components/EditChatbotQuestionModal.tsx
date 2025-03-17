@@ -82,10 +82,11 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       .addDocumentChunk(cid, newChunk)
       .then(async () => {
         const updatedQuestion: UpdateChatbotQuestionParams = {
+          id: editingRecord.vectorStoreId,
           inserted: true,
         }
         await API.chatbot.staffOnly
-          .updateQuestion(cid, editingRecord.vectorStoreId, updatedQuestion)
+          .updateQuestion(cid, updatedQuestion)
           .then(() => {
             message.success(
               'Document inserted successfully. You can now cancel or save the changes you made to the Q&A',
@@ -151,7 +152,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
     }
 
     await API.chatbot.staffOnly
-      .updateQuestion(cid, editingRecord.vectorStoreId, valuesWithId)
+      .updateQuestion(cid, valuesWithId)
       .then(() => {
         message.success('Question updated successfully')
         onSuccessfulUpdate()

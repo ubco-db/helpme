@@ -315,6 +315,7 @@ export interface SourceDocument {
   pageNumbersString?: string // used only for the edit question modal
   sourceLink?: string
   pageNumber?: number
+  key?: string // used for front-end rendering
 }
 
 export interface PreDeterminedQuestion {
@@ -365,8 +366,8 @@ export interface AddDocumentChunkParams {
 }
 
 export interface UpdateChatbotQuestionParams {
+  id: string
   inserted?: boolean
-  id?: string
   sourceDocuments?: SourceDocument[]
   question?: string
   answer?: string

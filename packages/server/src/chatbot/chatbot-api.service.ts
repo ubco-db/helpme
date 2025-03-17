@@ -119,7 +119,7 @@ export class ChatbotApiService {
     courseId: number,
     userToken: string,
   ): Promise<ChatbotQuestionResponseChatbotDB> {
-    return this.request('PATCH', 'question', courseId, userToken, questionData);
+    return this.request('PATCH', `question`, courseId, userToken, questionData);
   }
 
   async deleteQuestion(id: string, courseId: number, userToken: string) {
@@ -218,19 +218,51 @@ export class ChatbotApiService {
     try {
       // re-upload the file to the chatbot server while the file is still in memory here
       const formData = new FormData();
-      formData.append('file', new Blob([file.buffer]), file.originalname);
 
-      // Create a blob with source and parseAsPng
-      const jsonData = {
-        source: source,
-        parseAsPng: parseAsPng,
-      };
+      // Add the main file with fieldname "file"
       formData.append(
-        'source',
-        new Blob([JSON.stringify(jsonData)], { type: 'application/json' }),
+        'file',
+        new Blob([file.buffer], { type: file.mimetype }),
+        file.originalname,
       );
 
-      return this.request('POST', 'document', courseId, userToken, formData);
+      // Create JSON data for source and parseAsPng
+      const jsonData = JSON.stringify({
+        source: source,
+        parseAsPng: parseAsPng,
+      });
+
+      // Add the JSON data as a separate file with fieldname "source" (will be saved as "blob")
+      formData.append(
+        'source',
+        new Blob([jsonData], { type: 'application/json' }),
+        'blob',
+      );
+
+      // Make sure the request method handles FormData correctly
+      const url = new URL(`${this.chatbotApiUrl}/${courseId}/document`);
+
+      const headers: Record<string, string> = {
+        'HMS-API-KEY': this.chatbotApiKey,
+        HMS_API_TOKEN: userToken,
+      };
+
+      // does not use the this.request function because it doesn't handle FormData correctly
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new HttpException(
+          error.error || 'Error from chatbot service',
+          response.status,
+        );
+      }
+
+      return await response.json();
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

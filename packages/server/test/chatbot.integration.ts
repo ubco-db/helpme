@@ -1,5 +1,5 @@
 import { ChatbotModule } from 'chatbot/chatbot.module';
-import { ChatbotQuestion, Role } from '@koh/common';
+import { AddChatbotQuestionParams, Role } from '@koh/common';
 import {
   InteractionFactory,
   UserFactory,
@@ -12,90 +12,35 @@ import { ChatbotQuestionModel } from 'chatbot/question.entity';
 describe('ChatbotController Integration', () => {
   const { supertest } = setupIntegrationTest(ChatbotModule);
 
-  it('should create an interaction', async () => {
-    const user = await UserFactory.create();
-    const course = await CourseFactory.create();
-    const interactionData = {
-      userId: user.id,
-      courseId: course.id,
-    };
-    await UserCourseFactory.create({
-      user: user,
-      course: course,
+  describe('PATCH /chatbot/questionScore/:courseId/:questionId', () => {
+    it('should allow a student to update the score of a question', async () => {
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user: user,
+        course: course,
+      });
+      const interaction = await InteractionFactory.create({ user, course });
+      const questionData = {
+        question: 'How does photosynthesis work?',
+        answer: 'Photosynthesis is the process by which plants...',
+        verified: true,
+        suggested: true,
+        sourceDocuments: [],
+        interaction: interaction,
+      };
+      const question = await ChatbotQuestionModel.create(questionData).save();
+      await supertest({ userId: user.id })
+        .patch(`/chatbot/questionScore/${course.id}/${question.id}`)
+        .send({ userScore: 1 })
+        .expect(200);
+      const updatedQuestion = await ChatbotQuestionModel.findOne({
+        where: { id: question.id },
+      });
+      expect(updatedQuestion.userScore).toEqual(1);
     });
-    await supertest({ userId: 1 })
-      .post('/chatbot/interaction')
-      .send(interactionData)
-      .expect(201);
   });
 
-  it('should create a question', async () => {
-    const user = await UserFactory.create();
-    const course = await CourseFactory.create();
-    await UserCourseFactory.create({
-      user: user,
-      course: course,
-    });
-    const interaction = await InteractionFactory.create({ user, course });
-
-    const questionData: ChatbotQuestion = {
-      interactionId: interaction.id,
-      questionText: 'How does photosynthesis work?',
-      responseText: 'Photosynthesis is the process by which plants...',
-      suggested: true,
-      userScore: 5,
-      vectorStoreId: '1',
-    };
-
-    await supertest({ userId: 1 })
-      .post('/chatbot/question')
-      .send(questionData)
-      .expect(201);
-  });
-
-  it('should edit a question', async () => {
-    const user = await UserFactory.create();
-    const course = await CourseFactory.create();
-    await UserCourseFactory.create({
-      user: user,
-      course: course,
-    });
-    const interaction = await InteractionFactory.create({ user, course });
-
-    const questionData: ChatbotQuestion = {
-      interactionId: interaction.id,
-      questionText: 'How does photosynthesis work?',
-      responseText: 'Photosynthesis is the process by which plants...',
-      suggested: true,
-      userScore: 5,
-    };
-    const createdQuestion =
-      await ChatbotQuestionModel.create(questionData).save();
-    const editRequestData = {
-      data: { userScore: 0, suggested: true },
-      questionId: createdQuestion.id,
-    };
-
-    await supertest({ userId: 1 })
-      .patch('/chatbot/question')
-      .send(editRequestData)
-      .expect(200);
-  });
-
-  it('should not delete a question', async () => {
-    const questionId = 1;
-    const user = await UserFactory.create();
-    const course = await CourseFactory.create();
-    await UserCourseFactory.create({
-      user: user,
-      course: course,
-    });
-    // no questions created
-    await supertest({ userId: 1 })
-      .delete('/chatbot/question')
-      .send({ questionId })
-      .expect(404);
-  });
   describe('GET /chatbot/questions/:courseId', () => {
     it('should return 403 if user is not a TA or Professor', async () => {
       const user = await UserFactory.create();
@@ -118,13 +63,13 @@ describe('ChatbotController Integration', () => {
         role: Role.PROFESSOR,
       });
       const interaction = await InteractionFactory.create({ user, course });
-      const questionData: ChatbotQuestion = {
-        interactionId: interaction.id,
-        questionText: 'How does photosynthesis work?',
-        responseText: 'Photosynthesis is the process by which plants...',
+      const questionData = {
+        question: 'How does photosynthesis work?',
+        answer: 'Photosynthesis is the process by which plants...',
+        verified: true,
         suggested: true,
-        userScore: 5,
-        vectorStoreId: '1',
+        sourceDocuments: [],
+        interaction: interaction,
       };
       await ChatbotQuestionModel.create(questionData).save();
       await supertest({ userId: user.id })

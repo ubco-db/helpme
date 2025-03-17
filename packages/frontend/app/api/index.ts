@@ -189,7 +189,7 @@ class APIClient {
       ): Promise<ChatbotQuestionResponseHelpMeDB> =>
         this.req(
           'PATCH',
-          `/api/v1/chatbot/question/${courseId}/${questionId}`,
+          `/api/v1/chatbot/questionScore/${courseId}/${questionId}`,
           undefined,
           { userScore },
         ),
@@ -212,12 +212,11 @@ class APIClient {
         ),
       updateQuestion: async (
         courseId: number,
-        vectorStoreId: string,
         body: UpdateChatbotQuestionParams,
       ): Promise<ChatbotQuestionResponseChatbotDB> =>
         this.req(
           'PATCH',
-          `/api/v1/chatbot/question/${courseId}/${vectorStoreId}`,
+          `/api/v1/chatbot/question/${courseId}`,
           undefined,
           body,
         ),

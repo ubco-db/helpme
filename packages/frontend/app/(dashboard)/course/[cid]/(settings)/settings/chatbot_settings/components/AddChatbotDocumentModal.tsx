@@ -21,6 +21,7 @@ import Dragger from 'antd/es/upload/Dragger'
 import { useState } from 'react'
 import { RcFile } from 'antd/lib/upload'
 import { API } from '@/app/api'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 interface AddChatbotDocumentModalProps {
   courseId: number
@@ -78,10 +79,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
         source: source,
         parseAsPng: isSlideDeck,
       }
-      formData.append(
-        'source',
-        new Blob([JSON.stringify(jsonData)], { type: 'application/json' }),
-      )
+      formData.append('source', JSON.stringify(jsonData))
 
       await API.chatbot.staffOnly
         .uploadDocument(courseId, formData)
@@ -90,7 +88,9 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
           setCountProcessed((prev) => prev + 1)
         })
         .catch((e) => {
-          uploadErrors.push(`Failed to upload/process ${file.name}: ${e}`)
+          uploadErrors.push(
+            `Failed to upload/process ${file.name}: ${getErrorMessage(e)}`,
+          )
           wasError = true
         })
     }
