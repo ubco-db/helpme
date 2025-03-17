@@ -42,7 +42,7 @@ describe('ChatbotController Integration', () => {
     });
   });
 
-  describe('GET /chatbot/questions/:courseId', () => {
+  describe('GET /chatbot/question/all/:courseId', () => {
     it('should return 404 if user is not a TA or Professor', async () => {
       const user = await UserFactory.create();
       const course = await CourseFactory.create();
@@ -52,7 +52,7 @@ describe('ChatbotController Integration', () => {
         role: Role.STUDENT,
       });
       await supertest({ userId: user.id })
-        .get(`/chatbot/questions/${course.id}`)
+        .get(`/chatbot/question/all/${course.id}`)
         .expect(404);
     });
     it('should return questions for a course', async () => {
@@ -75,7 +75,7 @@ describe('ChatbotController Integration', () => {
       };
       await ChatbotQuestionModel.create(questionData).save();
       await supertest({ userId: user.id })
-        .get(`/chatbot/questions/${course.id}`)
+        .get(`/chatbot/question/all/${course.id}`)
         .expect(200);
     });
   });
