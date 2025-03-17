@@ -22,6 +22,7 @@ describe('ChatbotController Integration', () => {
       });
       const interaction = await InteractionFactory.create({ user, course });
       const questionData = {
+        vectorStoreId: '123',
         question: 'How does photosynthesis work?',
         answer: 'Photosynthesis is the process by which plants...',
         verified: true,
@@ -42,7 +43,7 @@ describe('ChatbotController Integration', () => {
   });
 
   describe('GET /chatbot/questions/:courseId', () => {
-    it('should return 403 if user is not a TA or Professor', async () => {
+    it('should return 404 if user is not a TA or Professor', async () => {
       const user = await UserFactory.create();
       const course = await CourseFactory.create();
       await UserCourseFactory.create({
@@ -52,7 +53,7 @@ describe('ChatbotController Integration', () => {
       });
       await supertest({ userId: user.id })
         .get(`/chatbot/questions/${course.id}`)
-        .expect(403);
+        .expect(404);
     });
     it('should return questions for a course', async () => {
       const user = await UserFactory.create();
@@ -64,6 +65,7 @@ describe('ChatbotController Integration', () => {
       });
       const interaction = await InteractionFactory.create({ user, course });
       const questionData = {
+        vectorStoreId: '123',
         question: 'How does photosynthesis work?',
         answer: 'Photosynthesis is the process by which plants...',
         verified: true,
