@@ -10,6 +10,7 @@ import AddChatbotDocumentModal from './components/AddChatbotDocumentModal'
 import { SourceDocument } from '@koh/common'
 import { FileAddOutlined, SettingOutlined } from '@ant-design/icons'
 import { API } from '@/app/api'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 interface ChatbotPanelProps {
   params: { cid: string }
@@ -17,6 +18,7 @@ interface ChatbotPanelProps {
 export default function ChatbotSettings({
   params,
 }: ChatbotPanelProps): ReactElement {
+  const { userInfo } = useUserInfo()
   const courseId = Number(params.cid)
   const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =
     useState(false)
@@ -173,6 +175,7 @@ export default function ChatbotSettings({
 
   return (
     <div className="m-auto my-5">
+      <title>{`HelpMe | Editing ${userInfo.courses.find((e) => e.course.id === courseId)?.course.name ?? ''} Chatbot`}</title>
       <AddChatbotDocumentModal
         open={addDocumentModalOpen}
         courseId={courseId}

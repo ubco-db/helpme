@@ -6,6 +6,7 @@ import TextArea from 'antd/es/input/TextArea'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { SourceDocument } from '@koh/common'
 import { API } from '@/app/api'
+import ChunkHelpTooltip from './ChunkHelpTooltip'
 
 interface FormValues {
   documentName: string
@@ -52,7 +53,12 @@ const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
   return (
     <Modal
       open={open}
-      title="Edit Document Chunk"
+      title={
+        <div className="flex items-center justify-start gap-x-3">
+          <div>Edit Document Chunk</div>
+          <ChunkHelpTooltip />
+        </div>
+      }
       okText="Save Changes"
       cancelText="Cancel"
       okButtonProps={{
@@ -82,16 +88,22 @@ const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
       <Form.Item
         label="Document Name"
         name="documentName"
+        tooltip={`This is the "name" of the document that this chunk came from `}
         rules={[{ required: true, message: 'Please input the document name' }]}
       >
         <Input />
       </Form.Item>
-      <Form.Item label="Content" name="content">
+      <Form.Item
+        label="Content"
+        name="content"
+        tooltip={`This is the text that was parsed during the document upload process. The Retrieval Augmented Generation (RAG) system searches through this content to find relevant information for the chatbot to use in its response.`}
+      >
         <TextArea autoSize={{ minRows: 3, maxRows: 10 }} />
       </Form.Item>
       <Form.Item
-        label="Source URL"
+        label="Source Link"
         name="source"
+        tooltip="When a student clicks on the citation, they will be redirected to this link"
         rules={[
           {
             type: 'url',

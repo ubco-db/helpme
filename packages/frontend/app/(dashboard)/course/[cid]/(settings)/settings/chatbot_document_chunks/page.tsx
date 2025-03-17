@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, ReactElement, useCallback } from 'react'
-import { Table, Button, Modal, Input, Form, message } from 'antd'
-import { useUserInfo } from '@/app/contexts/userContext'
+import { Table, Button, Modal, Input, Form, message, InputNumber } from 'antd'
 import Link from 'next/link'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import Highlighter from 'react-highlight-words'
@@ -10,6 +9,7 @@ import ExpandableText from '@/app/components/ExpandableText'
 import EditDocumentChunkModal from './components/EditChatbotDocumentChunkModal'
 import { AddDocumentChunkParams, SourceDocument } from '@koh/common'
 import { API } from '@/app/api'
+import ChunkHelpTooltip from './components/ChunkHelpTooltip'
 
 interface FormValues {
   content: string
@@ -35,7 +35,6 @@ export default function ChatbotDocuments({
   )
   const [editRecordModalOpen, setEditRecordModalOpen] = useState(false)
   const [form] = Form.useForm()
-  const { userInfo } = useUserInfo()
   const [addDocChunkPopupVisible, setAddDocChunkPopupVisible] = useState(false)
 
   const addDocument = async (values: FormValues) => {
@@ -66,6 +65,10 @@ export default function ChatbotDocuments({
     await API.chatbot.staffOnly
       .getAllDocumentChunks(courseId)
       .then((response) => {
+        response = response.map((doc) => ({
+          ...doc,
+          key: doc.id,
+        }))
         setDocuments(response)
         setFilteredDocuments(response)
       })
@@ -141,8 +144,9 @@ export default function ChatbotDocuments({
             danger
             onClick={() => {
               Modal.confirm({
-                title: 'Are you sure you want to delete this document?',
-                content: 'This action cannot be undone.',
+                title: 'Are you sure you want to delete this document chunk?',
+                content:
+                  'Note that this will not modify the original document nor any chatbot questions that reference this chunk. \n\nThis action cannot be undone.',
                 okText: 'Yes',
                 okType: 'danger',
                 cancelText: 'No',
@@ -221,7 +225,7 @@ export default function ChatbotDocuments({
             View and manage the document chunks from your documents
           </p>
         </div>
-        <div>
+        <div className="flex flex-col items-end gap-y-2">
           <Button
             type={addDocChunkPopupVisible ? 'default' : 'primary'}
             onClick={() => setAddDocChunkPopupVisible(!addDocChunkPopupVisible)}
@@ -230,6 +234,7 @@ export default function ChatbotDocuments({
               ? 'Close Add Document Chunk'
               : 'Add Document Chunk'}
           </Button>
+          <ChunkHelpTooltip />
         </div>
       </div>
       {addDocChunkPopupVisible && (
@@ -237,6 +242,7 @@ export default function ChatbotDocuments({
           <Form form={form} onFinish={addDocument}>
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">New Document Chunk</h2>
+              <ChunkHelpTooltip />
             </div>
             <div className="mt-4">
               <Form.Item
@@ -254,7 +260,17 @@ export default function ChatbotDocuments({
               {/* <Form.Item label="Edited Chunk" name="editedChunk">
               <Input.TextArea />
             </Form.Item> */}
-              <Form.Item label="Source" name="source">
+              <Form.Item
+                label="Source"
+                name="source"
+                rules={[
+                  {
+                    type: 'url',
+                    message: 'Please enter a valid URL',
+                  },
+                ]}
+                tooltip="When a student clicks on the citation, they will be redirected to this link"
+              >
                 <Input />
               </Form.Item>
               <Form.Item
@@ -262,12 +278,13 @@ export default function ChatbotDocuments({
                 name="pageNumber"
                 rules={[
                   {
-                    type: 'url',
-                    message: 'Please enter a valid URL',
+                    type: 'number',
+                    message: 'Please enter a valid page number',
+                    min: 0,
                   },
                 ]}
               >
-                <Input />
+                <InputNumber />
               </Form.Item>
               <div className="mt-4 flex justify-end">
                 <Button
