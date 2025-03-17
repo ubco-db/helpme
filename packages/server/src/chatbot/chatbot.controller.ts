@@ -40,6 +40,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UserModel } from '../profile/user.entity';
 import { User, UserId } from '../decorators/user.decorator';
 import * as Sentry from '@sentry/nestjs';
+import { CourseRolesBypassHelpMeCourseGuard } from 'guards/course-roles-helpme-bypass.guard';
 
 @Controller('chatbot')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -53,7 +54,7 @@ export class ChatbotController {
   // Endpoints for both students and staff
   //
   @Post('ask/:courseId')
-  @UseGuards(CourseRolesGuard)
+  @UseGuards(CourseRolesBypassHelpMeCourseGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async askQuestion(
     @Param('courseId', ParseIntPipe) courseId: number,
@@ -104,7 +105,7 @@ export class ChatbotController {
   }
 
   @Post('askSuggested/:courseId')
-  @UseGuards(CourseRolesGuard)
+  @UseGuards(CourseRolesBypassHelpMeCourseGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async askSuggestedQuestion(
     @Param('courseId', ParseIntPipe) courseId: number,
@@ -133,8 +134,8 @@ export class ChatbotController {
   }
 
   @Get('question/suggested/:courseId')
-  @UseGuards(CourseRolesGuard)
-  @Roles(Role.PROFESSOR, Role.TA)
+  @UseGuards(CourseRolesBypassHelpMeCourseGuard)
+  @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async getSuggestedQuestions(
     @Param('courseId', ParseIntPipe) courseId: number,
     @User(['chat_token']) user: UserModel,
@@ -147,7 +148,7 @@ export class ChatbotController {
   }
 
   @Patch('questionScore/:courseId/:questionId')
-  @UseGuards(CourseRolesGuard)
+  @UseGuards(CourseRolesBypassHelpMeCourseGuard)
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async updateChatbotUserScore(
     @Param('courseId', ParseIntPipe) courseId: number,
