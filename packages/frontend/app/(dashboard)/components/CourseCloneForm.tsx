@@ -19,9 +19,11 @@ import {
   OrganizationProfessor,
   OrganizationRole,
   User,
+  UserCourse,
 } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 const defaultValues: CourseCloneAttributes = {
   professorIds: [],
@@ -29,9 +31,9 @@ const defaultValues: CourseCloneAttributes = {
   cloneAttributes: {
     name: true,
     sectionGroupName: true,
-    coordinator_email: false,
+    coordinator_email: true,
     zoomLink: false,
-    timezone: false,
+    timezone: true,
     courseInviteCode: false,
   },
   cloneCourseSettings: {
@@ -45,6 +47,7 @@ const defaultValues: CourseCloneAttributes = {
     modelName: true,
     prompt: true,
     similarityThresholdDocuments: true,
+    similarityThresholdQuestions: true,
     temperature: true,
     topK: true,
   },
@@ -62,28 +65,40 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   courseId,
 }) => {
   const [visible, setVisible] = useState(false)
+  const [confirmLoading, setConfirmLoading] = useState(false) // new loading state
   const [professors, setProfessors] = useState<OrganizationProfessor[]>()
   const [form] = Form.useForm<CourseCloneAttributes>()
+  const { userInfo, setUserInfo } = useUserInfo()
 
   const openModal = () => {
     form.setFieldsValue(defaultValues)
     setVisible(true)
   }
 
+  //PAT TODO: merge semesters into this once its done and implement semesters too
+
   const isAdmin =
     user && user.organization?.organizationRole === OrganizationRole.ADMIN
 
   const handleOk = async () => {
-    await API.course
-      .createClone(courseId, form.getFieldsValue())
-      .then(() => {
-        message.success('Course cloned successfully')
-        setVisible(false)
-      })
-      .catch((error) => {
-        const errorMessage = getErrorMessage(error)
-        message.error(errorMessage)
-      })
+    setConfirmLoading(true)
+    try {
+      const userCourse = await API.course.createClone(
+        courseId,
+        form.getFieldsValue(),
+      )
+      if (userCourse)
+        setUserInfo({
+          ...userInfo,
+          courses: [...userInfo.courses, userCourse as UserCourse],
+        })
+      message.success('Course cloned successfully')
+      setVisible(false)
+    } catch (error: any) {
+      message.error(getErrorMessage(error))
+    } finally {
+      setConfirmLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -126,6 +141,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
         onOk={handleOk}
         onCancel={handleCancel}
         okText="Clone"
+        confirmLoading={confirmLoading}
       >
         <Form form={form} layout="vertical">
           {user.organization?.organizationRole === OrganizationRole.ADMIN &&
@@ -293,7 +309,18 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                       noStyle
                       valuePropName="checked"
                     >
-                      <Checkbox className="ml-4">Similarity Threshold</Checkbox>
+                      <Checkbox className="ml-4">
+                        Similarity Threshold for Documents
+                      </Checkbox>
+                    </Form.Item>
+                    <Form.Item
+                      name={['chatbotSettings', 'similarityThresholdQuestions']}
+                      noStyle
+                      valuePropName="checked"
+                    >
+                      <Checkbox className="ml-4">
+                        Similarity Threshold for Questions
+                      </Checkbox>
                     </Form.Item>
                     <Form.Item
                       name={['chatbotSettings', 'temperature']}

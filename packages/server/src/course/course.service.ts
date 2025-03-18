@@ -478,8 +478,7 @@ export class CourseService {
         await manager.save(profUserCourse);
       }
 
-      // PAT TODO: fetch chatbot data from chatbot service, then set a new entry for cloned course
-      // PAT TODO: write a route in the chatbot repo to copy documents from one course to another (or get them to share the documents...?)
+      // fetch chatbot data from chatbot service
 
       // // --- Added cloning for chatbotSettings ---
       // if (cloneData.chatbotSettings) {

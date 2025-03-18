@@ -7,6 +7,7 @@ import {
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
+  OrganizationRole,
   QuestionStatusKeys,
   QueueConfig,
   QueueInvite,
@@ -16,6 +17,7 @@ import {
   TACheckinTimesResponse,
   TACheckoutResponse,
   UBCOuserParam,
+  UserCourse,
   UserTiny,
   validateQueueConfigInput,
 } from '@koh/common';
@@ -67,6 +69,9 @@ import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { CourseRole } from 'decorators/course-role.decorator';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
+import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
+import { CourseRoles } from 'decorators/course-roles.decorator';
+import { OrgRoles } from 'decorators/org-roles.decorator';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -1073,14 +1078,40 @@ export class CourseController {
     await userCourse.save();
   }
 
-  // PAT TODO: use orgorcourseroleguard
-  @Post(':id/clone_course')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
-  @Roles(Role.PROFESSOR)
+  @Post(':courseId/clone_course')
+  @UseGuards(JwtAuthGuard, OrgOrCourseRolesGuard, EmailVerifiedGuard)
+  @CourseRoles(Role.PROFESSOR)
+  @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async cloneCourse(
-    @Param('id', ParseIntPipe) courseId: number,
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @User(['courses', 'courses.course', 'chat_token']) user: UserModel,
     @Body() body: CourseCloneAttributes,
-  ): Promise<void> {
-    await this.courseService.cloneCourse(courseId, body);
+  ): Promise<UserCourse | null> {
+    if (!user || !Array.isArray(user.courses) || !user.chat_token) {
+      console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
+      throw new HttpException(
+        ERROR_MESSAGES.profileController.accountNotAvailable,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const userCourse = user.courses.find((c) => c.course.id === courseId);
+
+    if (userCourse === null || userCourse === undefined) {
+      console.error(ERROR_MESSAGES.courseController.courseModelError);
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.courseModelError,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const newUserCourse = await this.courseService.cloneCourse(
+      courseId,
+      userCourse,
+      body,
+      user.chat_token.token,
+    );
+
+    return newUserCourse;
   }
 }
