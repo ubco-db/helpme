@@ -105,7 +105,7 @@ const ArchivedCoursesSection: React.FC<ArchivedCoursesProps> = ({
   semesters,
 }) => {
   return (
-    <Collapse className="mt-20">
+    <Collapse className="mb-10 mt-16">
       <Panel header="Archived Courses" key="archived">
         <Table
           columns={columns}

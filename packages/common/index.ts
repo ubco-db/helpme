@@ -178,6 +178,7 @@ export type CoursePartial = {
  */
 export type CourseCloneAttributes = {
   professorIds: number[]
+  newSemesterId?: number
   includeDocuments: boolean
   cloneAttributes: {
     name?: boolean
@@ -2772,6 +2773,7 @@ export const ERROR_MESSAGES = {
     organizationNotFound: 'Course has no related organization',
     orgIntegrationNotFound: 'Course organization has no LMS integrations',
     lmsIntegrationNotFound: 'Course has no related LMS integrations',
+    semesterIdError: 'Semester field must be set',
   },
   asyncQuestionController: {
     comments: {

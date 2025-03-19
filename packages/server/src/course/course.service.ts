@@ -37,6 +37,7 @@ import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
+import { SemesterModel } from 'semester/semester.entity';
 
 @Injectable()
 export class CourseService {
@@ -465,6 +466,12 @@ export class CourseService {
         clonedCourse.courseInviteCode = originalCourse.courseInviteCode;
       }
 
+      const semester = await manager.findOneOrFail(SemesterModel, {
+        where: { id: cloneData.newSemesterId },
+      });
+
+      clonedCourse.semester = semester;
+
       await manager.save(clonedCourse);
 
       if (originalCourse.courseSettings) {
@@ -596,6 +603,8 @@ export class CourseService {
           course: {
             id: clonedCourse.id,
             name: clonedCourse.name,
+            semesterId: clonedCourse.semesterId,
+            enabled: clonedCourse.enabled,
           },
           role: Role.PROFESSOR,
         };

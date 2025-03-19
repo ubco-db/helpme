@@ -1095,6 +1095,14 @@ export class CourseController {
       );
     }
 
+    if (!body.newSemesterId || body.newSemesterId == -1) {
+      console.error(ERROR_MESSAGES.courseController.semesterIdError);
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.semesterIdError,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const userCourse = user.courses.find((c) => c.course.id === courseId);
 
     if (userCourse === null || userCourse === undefined) {

@@ -75,7 +75,6 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
     setVisible(true)
   }
 
-  //PAT TODO: merge semesters into this once its done and implement semesters too
   //PAT TODO: link courses with new model and write script to auto generate supercourses for all existing courses
 
   const isAdmin =
@@ -161,6 +160,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                   label: prof.organizationUser.name,
                   value: prof.organizationUser.id,
                 }))}
+                notFoundContent="There seems to be no professors available. This is likely a server error."
                 tagRender={(props) => {
                   const { label, value, closable, onClose } = props
                   const onPreventMouseDown = (
@@ -198,6 +198,32 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           ) : (
             <></>
           )}
+          <Form.Item
+            label="Semester for Cloned Course"
+            name="newSemesterId"
+            className="flex-1"
+            rules={[{ required: true, message: 'Please select a semester' }]}
+          >
+            <Select
+              placeholder="Select Semester"
+              notFoundContent="There seems to be no other semesters in this organization to clone to."
+            >
+              {organization.semesters
+                .filter(
+                  (semester) =>
+                    semester.id !==
+                    (userInfo.courses.find(
+                      (course) => course.course.id === courseId,
+                    )?.course.semesterId ?? -1),
+                )
+                .map((semester) => (
+                  <Select.Option key={semester.id} value={semester.id}>
+                    <span>{`${semester.name}`}</span>{' '}
+                    {`(${new Date(semester.startDate).toLocaleDateString()} - ${new Date(semester.endDate).toLocaleDateString()})`}
+                  </Select.Option>
+                ))}
+            </Select>
+          </Form.Item>
           <Form.Item label="Course Attributes to Clone">
             <div className="ml-4 flex flex-col">
               <Form.Item
@@ -350,7 +376,10 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                         noStyle
                         tooltip="Include existing linked document chunks for chatbot without timed data (eg. dated announcements, assignments, etc.)"
                       >
-                        <Checkbox>Include Linked Documents</Checkbox>
+                        <Checkbox>
+                          Include Linked Documents (This process will take a
+                          long time)
+                        </Checkbox>
                       </Form.Item>
                     </div>
                   </Form.Item>

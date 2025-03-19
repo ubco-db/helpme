@@ -1,14 +1,5 @@
 import { Role, SemesterPartial, UserCourse } from '@koh/common'
-import {
-  Button,
-  Card,
-  Divider,
-  message,
-  Popover,
-  Table,
-  Tag,
-  Tooltip,
-} from 'antd'
+import { Button, Card, Divider, Popover, Table, Tag, Tooltip } from 'antd'
 import React, { useMemo } from 'react'
 import Meta from 'antd/es/card/Meta'
 import Link from 'next/link'
