@@ -27,7 +27,7 @@ import { useUserInfo } from '@/app/contexts/userContext'
 
 const defaultValues: CourseCloneAttributes = {
   professorIds: [],
-  includeDocuments: false,
+  includeDocuments: true,
   cloneAttributes: {
     name: true,
     sectionGroupName: true,
@@ -76,6 +76,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   }
 
   //PAT TODO: merge semesters into this once its done and implement semesters too
+  //PAT TODO: link courses with new model and write script to auto generate supercourses for all existing courses
 
   const isAdmin =
     user && user.organization?.organizationRole === OrganizationRole.ADMIN
@@ -198,85 +199,89 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
             <></>
           )}
           <Form.Item label="Course Attributes to Clone">
-            <Form.Item
-              name={['cloneAttributes', 'name']}
-              valuePropName="checked"
-              noStyle
-            >
-              <Checkbox>Name</Checkbox>
-            </Form.Item>
-            <Form.Item
-              name={['cloneAttributes', 'sectionGroupName']}
-              valuePropName="checked"
-              noStyle
-            >
-              <Checkbox className="ml-4">Section Group Name</Checkbox>
-            </Form.Item>
-            <Form.Item
-              name={['cloneAttributes', 'coordinator_email']}
-              valuePropName="checked"
-              noStyle
-            >
-              <Checkbox className="ml-4">Coordinator Email</Checkbox>
-            </Form.Item>
-            <Form.Item
-              name={['cloneAttributes', 'zoomLink']}
-              valuePropName="checked"
-              noStyle
-            >
-              <Checkbox className="ml-4">Zoom Link</Checkbox>
-            </Form.Item>
-            <Form.Item
-              name={['cloneAttributes', 'timezone']}
-              valuePropName="checked"
-              noStyle
-            >
-              <Checkbox className="ml-4">Timezone</Checkbox>
-            </Form.Item>
-            <Form.Item
-              name={['cloneAttributes', 'courseInviteCode']}
-              valuePropName="checked"
-              noStyle
-            >
-              <Checkbox className="ml-4">Course Invite Code</Checkbox>
-            </Form.Item>
+            <div className="ml-4 flex flex-col">
+              <Form.Item
+                name={['cloneAttributes', 'name']}
+                valuePropName="checked"
+                noStyle
+              >
+                <Checkbox>Name</Checkbox>
+              </Form.Item>
+              <Form.Item
+                name={['cloneAttributes', 'sectionGroupName']}
+                valuePropName="checked"
+                noStyle
+              >
+                <Checkbox>Section Group Name</Checkbox>
+              </Form.Item>
+              <Form.Item
+                name={['cloneAttributes', 'coordinator_email']}
+                valuePropName="checked"
+                noStyle
+              >
+                <Checkbox>Coordinator Email</Checkbox>
+              </Form.Item>
+              <Form.Item
+                name={['cloneAttributes', 'zoomLink']}
+                valuePropName="checked"
+                noStyle
+              >
+                <Checkbox>Zoom Link</Checkbox>
+              </Form.Item>
+              <Form.Item
+                name={['cloneAttributes', 'timezone']}
+                valuePropName="checked"
+                noStyle
+              >
+                <Checkbox>Timezone</Checkbox>
+              </Form.Item>
+              <Form.Item
+                name={['cloneAttributes', 'courseInviteCode']}
+                valuePropName="checked"
+                noStyle
+              >
+                <Checkbox>Course Invite Code</Checkbox>
+              </Form.Item>
+            </div>
           </Form.Item>
           <Form.Item label="Course Settings to Clone">
-            <Form.Item
-              name={['cloneCourseSettings', 'chatBotEnabled']}
-              valuePropName="checked"
-              noStyle
-            >
-              <Checkbox>ChatBot Enabled</Checkbox>
-            </Form.Item>
-            <Form.Item
-              name={['cloneCourseSettings', 'asyncQueueEnabled']}
-              valuePropName="checked"
-              noStyle
-            >
-              <Checkbox className="ml-4">Async Queue Enabled</Checkbox>
-            </Form.Item>
-            <Form.Item
-              name={['cloneCourseSettings', 'queueEnabled']}
-              valuePropName="checked"
-              noStyle
-            >
-              <Checkbox className="ml-4">Queues Enabled</Checkbox>
-            </Form.Item>
-            <Form.Item
-              name={['cloneCourseSettings', 'scheduleOnFrontPage']}
-              valuePropName="checked"
-              noStyle
-            >
-              <Checkbox className="ml-4">Schedule on Front Page</Checkbox>
-            </Form.Item>
-            <Form.Item
-              name={['cloneCourseSettings', 'asyncCentreAIAnswers']}
-              valuePropName="checked"
-              noStyle
-            >
-              <Checkbox className="ml-4">Async Centre AI Answers</Checkbox>
-            </Form.Item>
+            <div className="ml-4 flex flex-col">
+              <Form.Item
+                name={['cloneCourseSettings', 'chatBotEnabled']}
+                valuePropName="checked"
+                noStyle
+              >
+                <Checkbox>ChatBot Enabled</Checkbox>
+              </Form.Item>
+              <Form.Item
+                name={['cloneCourseSettings', 'asyncQueueEnabled']}
+                valuePropName="checked"
+                noStyle
+              >
+                <Checkbox>Async Queue Enabled</Checkbox>
+              </Form.Item>
+              <Form.Item
+                name={['cloneCourseSettings', 'queueEnabled']}
+                valuePropName="checked"
+                noStyle
+              >
+                <Checkbox>Queues Enabled</Checkbox>
+              </Form.Item>
+              <Form.Item
+                name={['cloneCourseSettings', 'scheduleOnFrontPage']}
+                valuePropName="checked"
+                noStyle
+              >
+                <Checkbox>Schedule on Front Page</Checkbox>
+              </Form.Item>
+              <Form.Item
+                name={['cloneCourseSettings', 'asyncCentreAIAnswers']}
+                valuePropName="checked"
+                noStyle
+              >
+                <Checkbox>Async Centre AI Answers</Checkbox>
+              </Form.Item>
+            </div>
           </Form.Item>
 
           <Form.Item
@@ -290,60 +295,64 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
               getFieldValue(['cloneCourseSettings', 'chatBotEnabled']) ? (
                 <>
                   <Form.Item label="Chatbot Settings">
-                    <Form.Item
-                      name={['chatbotSettings', 'modelName']}
-                      noStyle
-                      valuePropName="checked"
-                    >
-                      <Checkbox className="ml-4">Model Name</Checkbox>
-                    </Form.Item>
-                    <Form.Item
-                      name={['chatbotSettings', 'prompt']}
-                      noStyle
-                      valuePropName="checked"
-                    >
-                      <Checkbox className="ml-4">Model Prompt</Checkbox>
-                    </Form.Item>
-                    <Form.Item
-                      name={['chatbotSettings', 'similarityThresholdDocuments']}
-                      noStyle
-                      valuePropName="checked"
-                    >
-                      <Checkbox className="ml-4">
-                        Similarity Threshold for Documents
-                      </Checkbox>
-                    </Form.Item>
-                    <Form.Item
-                      name={['chatbotSettings', 'similarityThresholdQuestions']}
-                      noStyle
-                      valuePropName="checked"
-                    >
-                      <Checkbox className="ml-4">
-                        Similarity Threshold for Questions
-                      </Checkbox>
-                    </Form.Item>
-                    <Form.Item
-                      name={['chatbotSettings', 'temperature']}
-                      noStyle
-                      valuePropName="checked"
-                    >
-                      <Checkbox className="ml-4">Temperature</Checkbox>
-                    </Form.Item>
-                    <Form.Item
-                      name={['chatbotSettings', 'topK']}
-                      noStyle
-                      valuePropName="checked"
-                    >
-                      <Checkbox className="ml-4">Top K</Checkbox>
-                    </Form.Item>
-                  </Form.Item>
-                  <Form.Item
-                    name="includeDocuments"
-                    valuePropName="checked"
-                    label="Include Documents"
-                    tooltip="Include existing linked document chunks for chatbot without timed data (eg. dated announcements, assignments, etc.)"
-                  >
-                    <Checkbox>Include linked documents</Checkbox>
+                    <div className="ml-4 flex flex-col">
+                      <Form.Item
+                        name={['chatbotSettings', 'modelName']}
+                        noStyle
+                        valuePropName="checked"
+                      >
+                        <Checkbox>Model Name</Checkbox>
+                      </Form.Item>
+                      <Form.Item
+                        name={['chatbotSettings', 'prompt']}
+                        noStyle
+                        valuePropName="checked"
+                      >
+                        <Checkbox>Model Prompt</Checkbox>
+                      </Form.Item>
+                      <Form.Item
+                        name={[
+                          'chatbotSettings',
+                          'similarityThresholdDocuments',
+                        ]}
+                        noStyle
+                        valuePropName="checked"
+                      >
+                        <Checkbox>Similarity Threshold for Documents</Checkbox>
+                      </Form.Item>
+                      <Form.Item
+                        name={[
+                          'chatbotSettings',
+                          'similarityThresholdQuestions',
+                        ]}
+                        noStyle
+                        valuePropName="checked"
+                      >
+                        <Checkbox>Similarity Threshold for Questions</Checkbox>
+                      </Form.Item>
+                      <Form.Item
+                        name={['chatbotSettings', 'temperature']}
+                        noStyle
+                        valuePropName="checked"
+                      >
+                        <Checkbox>Temperature</Checkbox>
+                      </Form.Item>
+                      <Form.Item
+                        name={['chatbotSettings', 'topK']}
+                        noStyle
+                        valuePropName="checked"
+                      >
+                        <Checkbox>Top K</Checkbox>
+                      </Form.Item>
+                      <Form.Item
+                        name="includeDocuments"
+                        valuePropName="checked"
+                        noStyle
+                        tooltip="Include existing linked document chunks for chatbot without timed data (eg. dated announcements, assignments, etc.)"
+                      >
+                        <Checkbox>Include Linked Documents</Checkbox>
+                      </Form.Item>
+                    </div>
                   </Form.Item>
                 </>
               ) : null
