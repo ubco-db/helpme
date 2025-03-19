@@ -27,16 +27,16 @@ export class SemesterController {
   async getSemesters(
     @Param('oid', ParseIntPipe) organizationId: number,
   ): Promise<SemesterPartial[]> {
-    const organization = await OrganizationModel.findOne({
-      where: { id: organizationId },
-    });
-
-    if (!organization) {
+    try {
+      await OrganizationModel.findOneOrFail({
+        where: { id: organizationId },
+      });
+    } catch {
       throw new BadRequestException('Organization not found');
     }
 
     const semesters = await SemesterModel.find({
-      where: { organizationId: organization.id },
+      where: { organizationId: organizationId },
     });
 
     return semesters;
@@ -89,11 +89,11 @@ export class SemesterController {
     @Param('sid', ParseIntPipe) semesterId: number,
     @Body() semesterDetails: SemesterPartial,
   ): Promise<string> {
-    const semester = await SemesterModel.findOne({
-      where: { id: semesterId, organizationId },
-    });
-
-    if (!semester) {
+    try {
+      await SemesterModel.findOneOrFail({
+        where: { id: semesterId, organizationId },
+      });
+    } catch {
       throw new BadRequestException('Semester not found');
     }
 
@@ -118,11 +118,11 @@ export class SemesterController {
     @Param('oid', ParseIntPipe) organizationId: number,
     @Param('sid', ParseIntPipe) semesterId: number,
   ): Promise<string> {
-    const semester = await SemesterModel.findOne({
-      where: { id: semesterId, organizationId },
-    });
-
-    if (!semester) {
+    try {
+      await SemesterModel.findOneOrFail({
+        where: { id: semesterId, organizationId },
+      });
+    } catch {
       throw new BadRequestException('Semester not found');
     }
 

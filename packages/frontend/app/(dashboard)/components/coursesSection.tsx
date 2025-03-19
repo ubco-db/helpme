@@ -9,7 +9,7 @@ import {
   Tag,
   Tooltip,
 } from 'antd'
-import React from 'react'
+import React, { useMemo } from 'react'
 import Meta from 'antd/es/card/Meta'
 import Link from 'next/link'
 import stringToHexColor from '@/app/utils/generalUtils'
@@ -101,11 +101,33 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
     },
   ]
 
-  const coursesWithoutSemester = courses.filter((userCourse) => {
-    return !semesters?.some(
-      (semester) => semester.id === userCourse.course.semesterId,
-    )
-  })
+  const coursesWithoutSemester = useMemo(() => {
+    return courses.filter((userCourse) => {
+      return !semesters?.some(
+        (semester) => semester.id === userCourse.course.semesterId,
+      )
+    })
+  }, [courses, semesters])
+
+  const sortedCoursesInCardView = useMemo(() => {
+    return [...courses].sort((a, b) => {
+      const semesterA = semesters?.find(
+        (semester) => semester.id === a.course.semesterId,
+      )
+      const semesterB = semesters?.find(
+        (semester) => semester.id === b.course.semesterId,
+      )
+      if (semesterA && semesterB) {
+        const diff = semesterB.endDate.valueOf() - semesterA.endDate.valueOf()
+        if (diff === 0) {
+          return a.course.name.localeCompare(b.course.name)
+        } else {
+          return diff
+        }
+      }
+      return 0
+    })
+  }, [courses, semesters])
 
   return (
     <div className="mb-8 mt-5 w-full">
@@ -186,139 +208,120 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         </>
       ) : (
         <div className="flex flex-wrap gap-3">
-          {courses
-            .sort((a, b) => {
-              const semesterA = semesters?.find(
-                (semester) => semester.id === a.course.semesterId,
-              )
-              const semesterB = semesters?.find(
-                (semester) => semester.id === b.course.semesterId,
-              )
-              if (semesterA && semesterB) {
-                const diff =
-                  semesterB.endDate.valueOf() - semesterA.endDate.valueOf()
-                if (diff == 0) {
-                  return a.course.name.localeCompare(b.course.name)
-                } else {
-                  return diff
+          {sortedCoursesInCardView.map((course, index) => {
+            // Generate course icon
+            const iconSvg = jdenticon.toSvg(course.course.name, iconSize)
+            const iconDataUrl = `data:image/svg+xml;base64,${btoa(iconSvg)}`
+
+            const courseSemester = semesters?.find(
+              (s) => s.id === course.course.semesterId,
+            )
+
+            const popoverContent = courseSemester ? (
+              <div className="p-2">
+                <p>
+                  <strong>Start Date:</strong>{' '}
+                  {new Date(courseSemester.startDate).toLocaleDateString()}
+                </p>
+                <p>
+                  <strong>End Date:</strong>{' '}
+                  {new Date(courseSemester.endDate).toLocaleDateString()}
+                </p>
+                {courseSemester.description && (
+                  <p>
+                    <strong>Description:</strong> {courseSemester.description}
+                  </p>
+                )}
+              </div>
+            ) : null
+
+            return (
+              <Card
+                key={course.course.id}
+                className="m-2 w-full shadow md:w-[46%] lg:w-[30.5%] xl:w-[22.5%]"
+                cover={
+                  <div className="relative block h-32 w-full">
+                    <div
+                      className="absolute inset-0 rounded-t"
+                      style={{
+                        background: `${stringToHexColor(course.course.name)}`,
+                        opacity: 0.8,
+                      }}
+                    />
+                    <div
+                      className="absolute inset-0 rounded-t"
+                      style={{
+                        backgroundImage: `url(${iconDataUrl})`,
+                        backgroundRepeat: 'repeat',
+                        backgroundPosition: `-${iconSize / 2}px -${iconSize / 2}px`,
+                        opacity: 0.3,
+                      }}
+                    />
+                  </div>
                 }
-              }
-              return 0
-            })
-            .map((course, index) => {
-              // Generate course icon
-              const iconSvg = jdenticon.toSvg(course.course.name, iconSize)
-              const iconDataUrl = `data:image/svg+xml;base64,${btoa(iconSvg)}`
+              >
+                <div className="flex flex-wrap items-center justify-between align-middle">
+                  <Meta title={course.course.name} />
+                  <Tag
+                    color={
+                      course.role === Role.STUDENT
+                        ? 'success'
+                        : course.role === Role.TA
+                          ? 'gold'
+                          : 'volcano'
+                    }
+                    className="text-base capitalize"
+                  >
+                    {course.role == Role.TA ? 'TA' : course.role}
+                  </Tag>
+                </div>
 
-              const courseSemester = semesters?.find(
-                (s) => s.id === course.course.semesterId,
-              )
-
-              const popoverContent = courseSemester ? (
-                <div className="p-2">
-                  <p>
-                    <strong>Start Date:</strong>{' '}
-                    {new Date(courseSemester.startDate).toLocaleDateString()}
-                  </p>
-                  <p>
-                    <strong>End Date:</strong>{' '}
-                    {new Date(courseSemester.endDate).toLocaleDateString()}
-                  </p>
-                  {courseSemester.description && (
-                    <p>
-                      <strong>Description:</strong> {courseSemester.description}
-                    </p>
+                <div className="absolute right-2 top-2 flex flex-wrap items-center justify-between align-middle">
+                  {courseSemester ? (
+                    <Popover
+                      content={popoverContent}
+                      title={courseSemester.name}
+                    >
+                      <Tag color="blue" className="text-base">
+                        {courseSemester.name}
+                      </Tag>
+                    </Popover>
+                  ) : (
+                    <Tooltip title="Courses that are not assigned to a semester">
+                      <Tag color="blue" className="text-base">
+                        Not Assigned
+                      </Tag>
+                    </Tooltip>
                   )}
                 </div>
-              ) : null
 
-              return (
-                <Card
-                  key={course.course.id}
-                  className="m-2 w-full shadow md:w-[46%] lg:w-[30.5%] xl:w-[22.5%]"
-                  cover={
-                    <div className="relative block h-32 w-full">
-                      <div
-                        className="absolute inset-0 rounded-t"
-                        style={{
-                          background: `${stringToHexColor(course.course.name)}`,
-                          opacity: 0.8,
-                        }}
-                      />
-                      <div
-                        className="absolute inset-0 rounded-t"
-                        style={{
-                          backgroundImage: `url(${iconDataUrl})`,
-                          backgroundRepeat: 'repeat',
-                          backgroundPosition: `-${iconSize / 2}px -${iconSize / 2}px`,
-                          opacity: 0.3,
-                        }}
-                      />
-                    </div>
-                  }
+                <Link
+                  id={index === 0 ? 'skip-link-target' : ''}
+                  href={`course/${course.course.id}`}
                 >
-                  <div className="flex flex-wrap items-center justify-between align-middle">
-                    <Meta title={course.course.name} />
-                    <Tag
-                      color={
-                        course.role === Role.STUDENT
-                          ? 'success'
-                          : course.role === Role.TA
-                            ? 'gold'
-                            : 'volcano'
-                      }
-                      className="text-base capitalize"
-                    >
-                      {course.role == Role.TA ? 'TA' : course.role}
-                    </Tag>
-                  </div>
-
-                  <div className="absolute right-2 top-2 flex flex-wrap items-center justify-between align-middle">
-                    {courseSemester ? (
-                      <Popover
-                        content={popoverContent}
-                        title={courseSemester.name}
-                      >
-                        <Tag color="blue" className="text-base">
-                          {courseSemester.name}
-                        </Tag>
-                      </Popover>
-                    ) : (
-                      <Tooltip title="Courses that are not assigned to a semester">
-                        <Tag color="blue" className="text-base">
-                          Not Assigned
-                        </Tag>
-                      </Tooltip>
-                    )}
-                  </div>
-
-                  <Link
-                    id={index === 0 ? 'skip-link-target' : ''}
-                    href={`course/${course.course.id}`}
+                  <Button
+                    type="primary"
+                    className="mt-5 rounded p-[1.1rem] font-medium"
+                    block
                   >
+                    Course page
+                  </Button>
+                </Link>
+
+                {course.role === Role.PROFESSOR && (
+                  <Link href={`/course/${course.course.id}/settings`}>
                     <Button
                       type="primary"
-                      className="mt-5 rounded p-[1.1rem] font-medium"
+                      className="mt-4 rounded p-[1.1rem] font-medium"
                       block
                     >
-                      Course page
+                      Edit Course
                     </Button>
                   </Link>
-
-                  {course.role === Role.PROFESSOR && (
-                    <Link href={`/course/${course.course.id}/settings`}>
-                      <Button
-                        type="primary"
-                        className="mt-4 rounded p-[1.1rem] font-medium"
-                        block
-                      >
-                        Edit Course
-                      </Button>
-                    </Link>
-                  )}
-                </Card>
-              )
-            })}
+                )}
+              </Card>
+            )
+          })}
         </div>
       )}
     </div>
