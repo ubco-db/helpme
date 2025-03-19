@@ -173,6 +173,60 @@ export type CoursePartial = {
   enabled?: boolean
 }
 
+/**
+ * Represents a partial course data used for cloning a course.
+ */
+export type CourseCloneAttributes = {
+  professorIds: number[]
+  newSemesterId?: number
+  includeDocuments: boolean
+  cloneAttributes: {
+    name?: boolean
+    sectionGroupName?: boolean
+    coordinator_email?: boolean
+    zoomLink?: boolean
+    timezone?: boolean
+    courseInviteCode?: boolean
+  }
+  cloneCourseSettings: {
+    chatBotEnabled?: boolean
+    asyncQueueEnabled?: boolean
+    queueEnabled?: boolean
+    scheduleOnFrontPage?: boolean
+    asyncCentreAIAnswers?: boolean
+  }
+  chatbotSettings: {
+    modelName: boolean
+    prompt: boolean
+    similarityThresholdDocuments: boolean
+    similarityThresholdQuestions: boolean
+    temperature: boolean
+    topK: boolean
+  }
+}
+
+export type ChatbotSettings = {
+  modelName: string
+  prompt: string
+  similarityThresholdDocuments: number
+  similarityThresholdQuestions: number
+  temperature: number
+  topK: number
+}
+
+export const defaultChatbotSetting = {
+  prompt: `RULES: 
+    1) If you don't know the answer just say that you "I don't know", do not try to make up an answer.
+    2) If you unsure of the answer, you shall PREFACE your answer with "I'm not sure, but this is what I think."
+    3) Provide an answer in ONLY 5 sentences or less. Try to be as concise as possible.
+    4) Do not use any other resources apart from the context provided to you.`,
+  modelName: 'gpt-3.5-turbo-0125',
+  temperature: 0.7,
+  topK: 5,
+  similarityThresholdDocuments: 0.6,
+  similarityThresholdQuestions: 0.9,
+}
+
 export class RegistrationTokenDetails {
   @IsString()
   token!: string
@@ -2719,6 +2773,7 @@ export const ERROR_MESSAGES = {
     organizationNotFound: 'Course has no related organization',
     orgIntegrationNotFound: 'Course organization has no LMS integrations',
     lmsIntegrationNotFound: 'Course has no related LMS integrations',
+    semesterIdError: 'Semester field must be set',
   },
   asyncQuestionController: {
     comments: {
@@ -2816,7 +2871,7 @@ export const ERROR_MESSAGES = {
   },
   roleGuard: {
     notLoggedIn: 'Must be logged in',
-    noCourseIdFound: 'No courseid found',
+    noCourseIdFound: 'No courseId found',
     notInCourse: 'Not In This Course',
     notAuthorized: "You don't have permissions to perform this action",
     userNotInOrganization: 'User not in organization',

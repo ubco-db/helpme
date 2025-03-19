@@ -79,6 +79,7 @@ import {
   AsyncQuestionCommentParams,
   UnreadAsyncQuestionResponse,
   GetInteractionsAndQuestionsResponse,
+  CourseCloneAttributes,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -310,6 +311,17 @@ class APIClient {
           notes,
         },
       ),
+    createClone: async (
+      courseId: number,
+      cloneAttributes: CourseCloneAttributes,
+    ) => {
+      return this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/clone_course`,
+        undefined,
+        cloneAttributes,
+      )
+    },
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>

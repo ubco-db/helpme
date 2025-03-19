@@ -4,7 +4,9 @@ import { API } from '@/app/api'
 import {
   GetOrganizationResponse,
   OrganizationCourseResponse,
+  Role,
   User,
+  UserCourse,
 } from '@koh/common'
 import { Card, message } from 'antd'
 import { useEffect, useState } from 'react'
@@ -14,6 +16,8 @@ import { useRouter } from 'next/navigation'
 import CourseInviteCode from './CourseInviteCode'
 import CourseFeaturesForm from './CourseFeaturesForm'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
+import CourseCloneForm from './CourseCloneForm'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 type EditCourseProps = {
   courseId: number
@@ -28,6 +32,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
 }) => {
   const [courseData, setCourseData] = useState<OrganizationCourseResponse>()
   const [featuresEnabled, setFeaturesEnabled] = useState(false)
+  const { userInfo, setUserInfo } = useUserInfo()
 
   const router = useRouter()
 
@@ -46,6 +51,23 @@ const EditCourse: React.FC<EditCourseProps> = ({
     if (!response) return
 
     setCourseData(response)
+
+    setUserInfo({
+      ...userInfo,
+      courses: userInfo.courses.map((uc) =>
+        uc.course.id === response.course!.id
+          ? {
+              course: {
+                id: response.course!.id,
+                name: response.course!.name,
+                semesterId: response.course!.semester?.id,
+                enabled: true,
+              },
+              role: 'professor' as Role,
+            }
+          : uc,
+      ),
+    })
   }
 
   const checkFeaturesDisabled = async () => {
@@ -95,6 +117,14 @@ const EditCourse: React.FC<EditCourseProps> = ({
             </Card>
           </>
         )}
+
+        <Card bordered={true} title="Clone Course">
+          <CourseCloneForm
+            organization={organization}
+            courseId={courseData.courseId as number}
+            user={user}
+          />
+        </Card>
 
         <Card
           bordered={true}
