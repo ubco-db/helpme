@@ -3,6 +3,7 @@ import {
   DesktopNotifPartial,
   ERROR_MESSAGES,
   GetProfileResponse,
+  Role,
   UpdateProfileParams,
   User,
 } from '@koh/common';
@@ -33,12 +34,18 @@ export class ProfileService {
   async getProfile(user: UserModel): Promise<User> {
     const courses = user.courses
       ? user.courses
-          .filter((userCourse) => userCourse?.course?.enabled)
+          .filter(
+            (userCourse) =>
+              userCourse?.course?.enabled ||
+              userCourse?.role === Role.PROFESSOR,
+          )
           .map((userCourse) => {
             return {
               course: {
                 id: userCourse.courseId,
                 name: userCourse.course.name,
+                semesterId: userCourse.course.semesterId,
+                enabled: userCourse.course.enabled,
               },
               role: userCourse.role,
             };

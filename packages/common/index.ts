@@ -163,10 +163,14 @@ export type UserTiny = {
  * Represents a partial course data needed on the front end when nested in a response.
  * @param id - The id number of this Course.
  * @param name - The subject and course number of this course. Ex: "CS 2500"
+ * @param semesterId - The id of the semester this course is in.
+ * @param enabled - Whether this course is enabled or not.
  */
 export type CoursePartial = {
   id: number
   name: string
+  semesterId?: number
+  enabled?: boolean
 }
 
 /**
@@ -898,6 +902,7 @@ export class Image {
 
 /**
  * Represents one of the seasons in which a course can take place.
+ * From Khoury implementation (not used in newer code or in semester model anymore)
  */
 export type Season = string
 
@@ -1132,6 +1137,7 @@ export class OrganizationPartial {
   websiteUrl?: string
   ssoEnabled?: boolean
   ssoUrl?: string
+  semesters?: SemesterPartial[]
 }
 
 export class OrganizationUserPartial {
@@ -1147,6 +1153,7 @@ export class OrganizationUserPartial {
 export class GetOrganizationResponse {
   id!: number
   name!: string
+  semesters!: SemesterPartial[]
   description?: string
   logoUrl?: string
   bannerUrl?: string
@@ -1366,9 +1373,9 @@ export class UpdateOrganizationCourseDetailsParams {
   @IsOptional()
   timezone?: string
 
-  @IsString()
+  @IsInt()
   @IsOptional()
-  semesterName?: string
+  semesterId?: number
 
   @IsArray()
   @IsOptional()
@@ -1761,9 +1768,27 @@ export class EditCourseInfoParams {
 }
 
 export class SemesterPartial {
-  id!: number
-  season!: string
-  year!: number
+  @IsOptional()
+  @IsInt()
+  id?: number
+
+  @IsString()
+  @IsNotEmpty()
+  name!: string
+
+  @IsNotEmpty()
+  @IsDate()
+  @Type(() => Date)
+  startDate!: Date
+
+  @IsNotEmpty()
+  @IsDate()
+  @Type(() => Date)
+  endDate!: Date
+
+  @IsOptional()
+  @IsString()
+  description?: string
 }
 
 export class SSEQueueResponse {
