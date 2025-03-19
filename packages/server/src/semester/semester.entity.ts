@@ -12,16 +12,27 @@ import { OrganizationModel } from '../organization/organization.entity';
 
 @Entity('semester_model')
 export class SemesterModel extends BaseEntity {
+  // Need to set defaults for migrations and auto-sync to work properly but those semesters will be deleted manually so:
+  // TODO: remove defaults once all production semesters are set to null and generate a new migration the reflect the changes
+  /**
+   * Run the below query (also found in PR description) after updating this table in production to set semesters to null for production semesters
+   * UPDATE "course_model"
+   * SET "semesterId" = NULL
+   * WHERE "semesterId" IS NOT NULL;
+   *
+   * DELETE FROM "semester_model";
+   */
+
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column('text')
+  @Column('text', { default: 'Legacy Semester' })
   name: string;
 
-  @Column('date')
+  @Column('date', { default: () => 'CURRENT_DATE' })
   startDate: Date;
 
-  @Column('date')
+  @Column('date', { default: () => 'CURRENT_DATE' })
   endDate: Date;
 
   @Column('text', { nullable: true })
