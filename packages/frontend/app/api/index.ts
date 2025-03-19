@@ -33,12 +33,8 @@ import {
   Calendar,
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
-  ChatbotQuestion,
   UpdateOrganizationCourseDetailsParams,
-  InteractionResponse,
   OrganizationResponse,
-  DocumentParams,
-  ChatbotDocument,
   GetLimitedCourseResponse,
   GetOrganizationUserResponse,
   OrganizationCourseResponse,
@@ -79,6 +75,19 @@ import {
   AsyncQuestionCommentParams,
   UnreadAsyncQuestionResponse,
   GetInteractionsAndQuestionsResponse,
+  SourceDocument,
+  ChatbotSettings,
+  ChatbotSettingsMetadata,
+  PreDeterminedQuestion,
+  ChatbotAskResponse,
+  ChatbotQuestionResponseHelpMeDB,
+  UpdateDocumentChunkParams,
+  ChatbotAskParams,
+  ChatbotAskSuggestedParams,
+  AddChatbotQuestionParams,
+  ChatbotQuestionResponseChatbotDB,
+  AddDocumentChunkParams,
+  UpdateChatbotQuestionParams,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -152,21 +161,154 @@ class APIClient {
   }
 
   chatbot = {
-    createInteraction: async (body: {
-      courseId: number
-      userId: number
-    }): Promise<InteractionResponse> =>
-      this.req('POST', `/api/v1/chatbot/interaction`, undefined, body),
-    getInteractionsAndQuestions: async (
-      courseId: number,
-    ): Promise<GetInteractionsAndQuestionsResponse> =>
-      this.req('GET', `/api/v1/chatbot/questions/${courseId}`),
-    createQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> =>
-      this.req('POST', `/api/v1/chatbot/question`, undefined, body),
-    editQuestion: async (data: ChatbotQuestion): Promise<ChatbotQuestion> =>
-      this.req('PATCH', `/api/v1/chatbot/question`, undefined, data),
-    // deleteQuestion: async (body: ChatbotQuestion): Promise<ChatbotQuestion> => unused
-    //   this.req('DELETE', `/api/v1/chatbot/question`, undefined, body),
+    studentsOrStaff: {
+      // these endpoints are the main endpoints that students and staff use
+      askQuestion: async (
+        courseId: number,
+        body: ChatbotAskParams,
+      ): Promise<ChatbotAskResponse> =>
+        this.req('POST', `/api/v1/chatbot/ask/${courseId}`, undefined, body),
+      askSuggestedQuestion: async (
+        courseId: number,
+        body: ChatbotAskSuggestedParams,
+      ): Promise<ChatbotQuestionResponseHelpMeDB> =>
+        this.req(
+          'POST',
+          `/api/v1/chatbot/askSuggested/${courseId}`,
+          undefined,
+          body,
+        ),
+      getSuggestedQuestions: async (
+        courseId: number,
+      ): Promise<PreDeterminedQuestion[]> =>
+        this.req('GET', `/api/v1/chatbot/question/suggested/${courseId}`),
+      updateUserScore: async (
+        courseId: number,
+        questionId: number,
+        userScore: number,
+      ): Promise<ChatbotQuestionResponseHelpMeDB> =>
+        this.req(
+          'PATCH',
+          `/api/v1/chatbot/questionScore/${courseId}/${questionId}`,
+          undefined,
+          { userScore },
+        ),
+    },
+    staffOnly: {
+      // these endpoints are more for management of chatbot questions
+      getInteractionsAndQuestions: async (
+        courseId: number,
+      ): Promise<GetInteractionsAndQuestionsResponse> =>
+        this.req('GET', `/api/v1/chatbot/question/all/${courseId}`),
+      addQuestion: async (
+        courseId: number,
+        questionData: AddChatbotQuestionParams,
+      ): Promise<ChatbotQuestionResponseHelpMeDB> =>
+        this.req(
+          'POST',
+          `/api/v1/chatbot/question/${courseId}`,
+          undefined,
+          questionData,
+        ),
+      updateQuestion: async (
+        courseId: number,
+        body: UpdateChatbotQuestionParams,
+      ): Promise<ChatbotQuestionResponseChatbotDB> =>
+        this.req(
+          'PATCH',
+          `/api/v1/chatbot/question/${courseId}`,
+          undefined,
+          body,
+        ),
+      deleteQuestion: async (
+        courseId: number,
+        vectorStoreId: string,
+      ): Promise<{ success: boolean }> =>
+        this.req(
+          'DELETE',
+          `/api/v1/chatbot/question/${courseId}/${vectorStoreId}`,
+        ),
+      // deleteAllQuestions: async (courseId: number): Promise<{ success: boolean }> =>
+      //   this.req('DELETE', `/api/v1/chatbot/question/all/${courseId}`), Unused
+      // resetCourse: async (courseId: number): Promise<{ success: boolean }> =>
+      //   this.req('DELETE', `/api/v1/chatbot/resetCourse/${courseId}`), Unused, resets all chatbot data for the course
+      getAllAggregateDocuments: async (
+        courseId: number,
+      ): Promise<SourceDocument[]> =>
+        this.req('GET', `/api/v1/chatbot/aggregateDocuments/${courseId}`),
+      getAllDocumentChunks: async (
+        courseId: number,
+      ): Promise<SourceDocument[]> =>
+        this.req('GET', `/api/v1/chatbot/documentChunks/${courseId}`),
+      addDocumentChunk: async (
+        courseId: number,
+        body: AddDocumentChunkParams,
+      ): Promise<SourceDocument> =>
+        this.req(
+          'POST',
+          `/api/v1/chatbot/documentChunks/${courseId}`,
+          undefined,
+          body,
+        ),
+      updateDocumentChunk: async (
+        courseId: number,
+        docId: string,
+        body: UpdateDocumentChunkParams,
+      ): Promise<SourceDocument> =>
+        this.req(
+          'PATCH',
+          `/api/v1/chatbot/documentChunks/${courseId}/${docId}`,
+          undefined,
+          body,
+        ),
+      deleteDocumentChunk: async (
+        courseId: number,
+        docId: string,
+      ): Promise<{ success: boolean }> =>
+        this.req(
+          'DELETE',
+          `/api/v1/chatbot/documentChunks/${courseId}/${docId}`,
+        ),
+      deleteDocument: async (
+        courseId: number,
+        docId: string,
+      ): Promise<{ success: boolean }> =>
+        this.req('DELETE', `/api/v1/chatbot/documents/${courseId}/${docId}`),
+      uploadDocument: async (
+        courseId: number,
+        body: FormData,
+      ): Promise<{ success: boolean; documentId?: string }> =>
+        this.req(
+          'POST',
+          `/api/v1/chatbot/documents/${courseId}/upload`,
+          undefined,
+          body,
+        ),
+      addDocumentFromGithub: async (
+        courseId: number,
+        url: string,
+      ): Promise<{ success: boolean; documentId?: string }> =>
+        this.req(
+          'POST',
+          `/api/v1/chatbot/documents/${courseId}/github`,
+          undefined,
+          { url },
+        ),
+      getSettings: async (courseId: number): Promise<ChatbotSettings> =>
+        this.req('GET', `/api/v1/chatbot/settings/${courseId}`),
+      updateSettings: async (
+        courseId: number,
+        settings: ChatbotSettingsMetadata,
+      ): Promise<{ success: boolean }> =>
+        this.req(
+          'PATCH',
+          `/api/v1/chatbot/settings/${courseId}`,
+          undefined,
+          settings,
+        ),
+      resetSettings: async (courseId: number): Promise<{ success: boolean }> =>
+        this.req('PATCH', `/api/v1/chatbot/settings/${courseId}/reset`),
+    },
   }
 
   course = {

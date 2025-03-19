@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Checkbox, Form, Input, Modal, Select, message } from 'antd'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { useUserInfo } from '@/app/contexts/userContext'
 import MarkdownGuideTooltipBody from './MarkdownGuideTooltipBody'
 import { SourceDocument } from '@koh/common'
+import { API } from '@/app/api'
 
 interface FormValues {
   question: string
@@ -28,12 +28,13 @@ const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
   onAddSuccess,
 }) => {
   const [form] = Form.useForm()
-  const { userInfo } = useUserInfo()
   const [selectedDocuments, setSelectedDocuments] = useState<SourceDocument[]>(
     [],
   )
+  const [loading, setLoading] = useState(false)
 
   const onFinish = async (values: FormValues) => {
+    setLoading(true)
     selectedDocuments.forEach((doc) => {
       // Convert string to array of numbers, trimming spaces and ignoring empty entries
       if (doc.pageNumbersString) {
@@ -45,32 +46,25 @@ const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
       }
     })
 
-    try {
-      const response = await fetch(`/chat/${courseId}/question`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          HMS_API_TOKEN: userInfo.chat_token.token,
-        },
-        body: JSON.stringify({
-          question: values.question,
-          answer: values.answer,
-          verified: values.verified,
-          suggested: values.suggested,
-          sourceDocuments: selectedDocuments,
-        }),
+    await API.chatbot.staffOnly
+      .addQuestion(courseId, {
+        question: values.question,
+        answer: values.answer,
+        verified: values.verified,
+        suggested: values.suggested,
+        sourceDocuments: selectedDocuments,
       })
-      if (!response.ok) {
-        const errorMessage = getErrorMessage(response)
-        message.error('Add unsuccessful: ' + errorMessage)
-      } else {
+      .then(() => {
         message.success('Question successfully added')
         onAddSuccess()
-      }
-    } catch (error) {
-      const errorMessage = getErrorMessage(error)
-      message.error('Error adding question:' + errorMessage)
-    }
+      })
+      .catch((error) => {
+        const errorMessage = getErrorMessage(error)
+        message.error('Error adding question:' + errorMessage)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }
 
   return (
@@ -82,9 +76,11 @@ const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
       okButtonProps={{
         autoFocus: true,
         htmlType: 'submit',
+        loading,
       }}
       cancelButtonProps={{
         danger: true,
+        disabled: loading,
       }}
       onCancel={onCancel}
       destroyOnClose

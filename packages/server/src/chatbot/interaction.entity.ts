@@ -11,6 +11,7 @@ import { CourseModel } from '../course/course.entity';
 import { UserModel } from '../profile/user.entity';
 import { ChatbotQuestionModel } from './question.entity';
 
+// A chatbot interaction is basically a conversation between a user and the chatbot.
 @Entity('chatbot_interactions_model')
 export class InteractionModel extends BaseEntity {
   @PrimaryGeneratedColumn()

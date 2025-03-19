@@ -1,15 +1,15 @@
 'use client'
 
 import { useState, useEffect, ReactElement, useCallback } from 'react'
-import { Table, Button, Modal, Input, Form, message } from 'antd'
-import axios from 'axios'
-import { useUserInfo } from '@/app/contexts/userContext'
+import { Table, Button, Modal, Input, Form, message, InputNumber } from 'antd'
 import Link from 'next/link'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import Highlighter from 'react-highlight-words'
 import ExpandableText from '@/app/components/ExpandableText'
 import EditDocumentChunkModal from './components/EditChatbotDocumentChunkModal'
-import { SourceDocument } from '@koh/common'
+import { AddDocumentChunkParams, SourceDocument } from '@koh/common'
+import { API } from '@/app/api'
+import ChunkHelpTooltip from './components/ChunkHelpTooltip'
 
 interface FormValues {
   content: string
@@ -35,60 +35,49 @@ export default function ChatbotDocuments({
   )
   const [editRecordModalOpen, setEditRecordModalOpen] = useState(false)
   const [form] = Form.useForm()
-  const { userInfo } = useUserInfo()
   const [addDocChunkPopupVisible, setAddDocChunkPopupVisible] = useState(false)
 
   const addDocument = async (values: FormValues) => {
-    try {
-      const metadata: any = {
+    const body: AddDocumentChunkParams = {
+      documentText: values.content,
+      metadata: {
         name: 'Manually Inserted Information',
         type: 'inserted_document',
-      }
-
-      if (values.pageNumber) {
-        metadata['loc'] = { pageNumber: values.pageNumber }
-      }
-      if (values.source) {
-        metadata['source'] = values.source
-      }
-      const response = await axios.post(
-        `/chat/${courseId}/documentChunk`,
-        {
-          documentText: values.content,
-          metadata: metadata,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: userInfo.chat_token.token,
-          },
-        },
-      )
-      if (response.status !== 200) {
-        throw new Error('Network response was not ok')
-      }
-      message.success('Document added successfully.')
-      fetchDocuments()
-    } catch (e) {
-      const errorMessage = getErrorMessage(e)
-      message.error('Failed to add document: ' + errorMessage)
+        source: values.source ?? undefined,
+        loc: values.pageNumber
+          ? { pageNumber: parseInt(values.pageNumber) }
+          : undefined,
+      },
     }
+    await API.chatbot.staffOnly
+      .addDocumentChunk(courseId, body)
+      .then(() => {
+        message.success('Document added successfully.')
+        fetchDocuments()
+      })
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to add document: ' + errorMessage)
+      })
   }
 
   const fetchDocuments = useCallback(async () => {
-    try {
-      const response = await axios.get(`/chat/${courseId}/allDocumentChunks`, {
-        headers: {
-          HMS_API_TOKEN: userInfo.chat_token.token,
-        },
+    await API.chatbot.staffOnly
+      .getAllDocumentChunks(courseId)
+      .then((response) => {
+        response = response.map((doc) => ({
+          ...doc,
+          key: doc.id,
+        }))
+        setDocuments(response)
+        setFilteredDocuments(response)
       })
-      setDocuments(response.data)
-      setFilteredDocuments(response.data)
-    } catch (e) {
-      const errorMessage = getErrorMessage(e)
-      message.error('Failed to load documents: ' + errorMessage)
-    }
-  }, [courseId, userInfo.chat_token.token, setDocuments, setFilteredDocuments])
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to load documents: ' + errorMessage)
+      })
+  }, [courseId, setDocuments, setFilteredDocuments])
+
   useEffect(() => {
     if (courseId) {
       fetchDocuments()
@@ -155,8 +144,9 @@ export default function ChatbotDocuments({
             danger
             onClick={() => {
               Modal.confirm({
-                title: 'Are you sure you want to delete this document?',
-                content: 'This action cannot be undone.',
+                title: 'Are you sure you want to delete this document chunk?',
+                content:
+                  'Note that this will not modify the original document nor any chatbot questions that reference this chunk. \n\nThis action cannot be undone.',
                 okText: 'Yes',
                 okType: 'danger',
                 cancelText: 'No',
@@ -182,20 +172,16 @@ export default function ChatbotDocuments({
   }
 
   const deleteDocument = async (documentId: string) => {
-    try {
-      await fetch(`/chat/${courseId}/documentChunk/${documentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          HMS_API_TOKEN: userInfo.chat_token.token,
-        },
+    await API.chatbot.staffOnly
+      .deleteDocumentChunk(courseId, documentId)
+      .then(() => {
+        fetchDocuments()
+        message.success('Document deleted successfully.')
       })
-      fetchDocuments()
-      message.success('Document deleted successfully.')
-    } catch (e) {
-      const errorMessage = getErrorMessage(e)
-      message.error('Failed to delete document: ' + errorMessage)
-    }
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to delete document: ' + errorMessage)
+      })
   }
 
   const handleSearch = (e: any) => {
@@ -239,7 +225,7 @@ export default function ChatbotDocuments({
             View and manage the document chunks from your documents
           </p>
         </div>
-        <div>
+        <div className="flex flex-col items-end gap-y-2">
           <Button
             type={addDocChunkPopupVisible ? 'default' : 'primary'}
             onClick={() => setAddDocChunkPopupVisible(!addDocChunkPopupVisible)}
@@ -248,6 +234,7 @@ export default function ChatbotDocuments({
               ? 'Close Add Document Chunk'
               : 'Add Document Chunk'}
           </Button>
+          <ChunkHelpTooltip />
         </div>
       </div>
       {addDocChunkPopupVisible && (
@@ -255,6 +242,7 @@ export default function ChatbotDocuments({
           <Form form={form} onFinish={addDocument}>
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">New Document Chunk</h2>
+              <ChunkHelpTooltip />
             </div>
             <div className="mt-4">
               <Form.Item
@@ -272,7 +260,17 @@ export default function ChatbotDocuments({
               {/* <Form.Item label="Edited Chunk" name="editedChunk">
               <Input.TextArea />
             </Form.Item> */}
-              <Form.Item label="Source" name="source">
+              <Form.Item
+                label="Source"
+                name="source"
+                rules={[
+                  {
+                    type: 'url',
+                    message: 'Please enter a valid URL',
+                  },
+                ]}
+                tooltip="When a student clicks on the citation, they will be redirected to this link"
+              >
                 <Input />
               </Form.Item>
               <Form.Item
@@ -280,12 +278,13 @@ export default function ChatbotDocuments({
                 name="pageNumber"
                 rules={[
                   {
-                    type: 'url',
-                    message: 'Please enter a valid URL',
+                    type: 'number',
+                    message: 'Please enter a valid page number',
+                    min: 0,
                   },
                 ]}
               >
-                <Input />
+                <InputNumber />
               </Form.Item>
               <div className="mt-4 flex justify-end">
                 <Button
@@ -326,7 +325,6 @@ export default function ChatbotDocuments({
           open={editRecordModalOpen}
           editingRecord={editingRecord}
           courseId={courseId}
-          chatbotToken={userInfo.chat_token.token}
           onCancel={() => {
             setEditingRecord(null)
             setEditRecordModalOpen(false)

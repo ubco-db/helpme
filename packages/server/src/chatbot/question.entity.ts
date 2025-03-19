@@ -13,7 +13,7 @@ export class ChatbotQuestionModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   public id: number;
 
-  @Column({ nullable: true })
+  @Column()
   vectorStoreId: string;
 
   @ManyToOne(() => InteractionModel)
