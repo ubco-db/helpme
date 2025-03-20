@@ -1,10 +1,37 @@
+## postgres.env (place in packages/server)
+
+###### POSTGRES_USER
+
+**Purpose:** username of the root user for the postgres db
+
+**How to get:** Safe to leave it as is if you're just testing. Can change to something less-obvious on prod
+
+###### POSTGRES_PASSWORD
+
+**Purpose:** password of the root user for the postgres db
+
+**How to get:** Safe to leave it as is if you're just testing. PLEASE change to something less-obvious on prod
+
+###### POSTGRES_NONROOT_USER
+
+**Purpose:** username of the non-root user for the postgres db
+
+**How to get:** Safe to leave it as is if you're just testing. Can change to something less-obvious on prod
+
+###### POSTGRES_NONROOT_PASSWORD
+
+**Purpose:** username of the root user for the postgres db
+
+**How to get:** Safe to leave it as is if you're just testing. PLEASE change to something less-obvious on prod
+
+
 ## server .env (place in packages/server)
 
 ###### DB_URL
 
 **Purpose:** URL of the database. 
 
-**How to get:** Probably safe to leave it as is if you're just testing. Might be better to change the "mysecretpassword" part of the url to your actual database password if you're deploying to production. Make sure the password is the same as in `docker-compose.yml`
+**How to get:** Probably safe to leave it as is if you're just testing. However, if you changed any of the variables above, please make the corresponding changes to this url. Also make sure the port number matches the one in `docker-compose.yml`
 
 ###### TESTDBPASS
 
