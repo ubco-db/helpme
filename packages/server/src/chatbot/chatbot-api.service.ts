@@ -214,7 +214,7 @@ export class ChatbotApiService {
     parseAsPng: boolean,
     courseId: number,
     userToken: string,
-  ) {
+  ): Promise<{ docId: string }> {
     try {
       // re-upload the file to the chatbot server while the file is still in memory here
       const formData = new FormData();
