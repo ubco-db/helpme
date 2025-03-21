@@ -59,6 +59,9 @@ services:
       - "3004:3000" # access via 3004. It's 3000 inside the container
     networks:
       - api
+    command:
+      - "gotenberg"
+      - "--api-timeout=60s"
 volumes:
   pg:
     driver: local

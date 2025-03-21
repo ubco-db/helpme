@@ -64,6 +64,12 @@ export const markdownStyles = `
   }
 }
 
+
+html {
+  font-size: 85%;
+}
+
+
 pre,
 code {
   font-family: Menlo, Monaco, "Courier New", monospace;
@@ -90,22 +96,6 @@ a:active {
   text-decoration: none;
 }
 
-html {
-  font-size: 12px;
-}
-
-@media screen and (min-width: 32rem) and (max-width: 48rem) {
-  html {
-    font-size: 15px;
-  }
-}
-
-@media screen and (min-width: 48rem) {
-  html {
-    font-size: 16px;
-  }
-}
-
 body {
   line-height: 1.85;
 }
@@ -113,7 +103,7 @@ body {
 p,
 .modest-p {
   font-size: 1rem;
-  margin-bottom: 1.3rem;
+  margin-bottom: 0.5rem;
 }
 
 h1,
@@ -124,40 +114,40 @@ h3,
 .modest-h3,
 h4,
 .modest-h4 {
-  margin: 1.414rem 0 .5rem;
+  margin: 1rem 0 0.5rem;
   font-weight: inherit;
-  line-height: 1.42;
+  line-height: 1.3;
 }
 
 h1,
 .modest-h1 {
   margin-top: 0;
-  font-size: 3.998rem;
+  font-size: 2.2rem;
 }
 
 h2,
 .modest-h2 {
-  font-size: 2.827rem;
+  font-size: 1.8rem;
 }
 
 h3,
 .modest-h3 {
-  font-size: 1.999rem;
+  font-size: 1.5rem;
 }
 
 h4,
 .modest-h4 {
-  font-size: 1.414rem;
+  font-size: 1.2rem;
 }
 
 h5,
 .modest-h5 {
-  font-size: 1.121rem;
+  font-size: 1rem;
 }
 
 h6,
 .modest-h6 {
-  font-size: .88rem;
+  font-size: .85rem;
 }
 
 small,
@@ -182,7 +172,6 @@ textarea {
 @import url(http://fonts.googleapis.com/css?family=Arimo:700,700italic);
 
 html {
-  font-size: 18px;
   max-width: 100%;
 }
 
@@ -191,9 +180,7 @@ body {
   font-family: 'Open Sans Condensed', sans-serif;
   font-weight: 300;
   margin: 0 auto;
-  max-width: 48rem;
-  line-height: 1.45;
-  padding: .25rem;
+  line-height: normal;
 }
 
 h1,
@@ -209,14 +196,14 @@ h1,
 h2,
 h3 {
   border-bottom: 2px solid #fafafa;
-  margin-bottom: 1.15rem;
-  padding-bottom: .5rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.1rem;
   text-align: center;
 }
 
 blockquote {
   border-left: 8px solid #fafafa;
-  padding: 1rem;
+  padding: 0.5rem;
 }
 
 pre,

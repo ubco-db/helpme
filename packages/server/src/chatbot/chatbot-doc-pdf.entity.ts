@@ -13,13 +13,13 @@ export class ChatbotDocPdfModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   idHelpMeDB: number;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true }) // is only null for a brief period during pdf conversion, should be gaurenteed otherwise
   docIdChatbotDB: string;
 
   @Column({ type: 'text' })
   docName: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true }) // only briefly null during upload
   docUrl: string;
 
   @Column()
@@ -31,6 +31,9 @@ export class ChatbotDocPdfModel extends BaseEntity {
   @JoinColumn({ name: 'courseId' })
   course: CourseModel;
 
-  @Column({ type: 'bytea' })
+  @Column({ type: 'bytea', nullable: true }) // this is also nullable just briefly during upload
   docData: Buffer;
+
+  @Column({ default: 0 })
+  docSize: number;
 }

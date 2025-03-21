@@ -54,7 +54,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
         await addUrl(formData.url)
       } else if (documentType === 'FILE') {
         const files = fileList.map((file) => file.originFileObj)
-        await uploadFiles(files, formData.source)
+        await uploadFiles(files)
       }
     } finally {
       setLoading(false)
@@ -68,7 +68,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
     onClose()
   }
 
-  const uploadFiles = async (files: RcFile[], source: string) => {
+  const uploadFiles = async (files: RcFile[]) => {
     setCountProcessed(0)
     let wasError = false
     for (const file of files) {
@@ -76,7 +76,6 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
       formData.append('file', file)
       // Create a JSON object and convert it to a string
       const jsonData = {
-        source: source,
         parseAsPng: isSlideDeck,
       }
       formData.append('source', JSON.stringify(jsonData))
@@ -203,14 +202,15 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
           {documentType === 'URL' && (
             <Form.Item
               name="url"
+              label="GitHub URL"
               rules={[
                 {
                   required: true,
-                  message: 'Please provide a document URL.',
+                  message: 'Please provide a github document URL.',
                 },
               ]}
             >
-              <Input placeholder="Enter URL for a pdf file..." />
+              <Input placeholder="https://github.com/.../some_document.pdf" />
             </Form.Item>
           )}
           {documentType === 'FILE' && (
@@ -260,23 +260,6 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                   disabled={false}
                   onChange={(checked) => setIsSlideDeck(checked)}
                 />
-              </Form.Item>
-              <Form.Item
-                name="source"
-                label="Display URL"
-                rules={[
-                  {
-                    required: true,
-                    message: 'Please provide a document preview URL.',
-                  },
-                  {
-                    type: 'url',
-                    message: 'Please enter a valid URL.',
-                  },
-                ]}
-                tooltip="When this source is cited by the chatbot and a student clicks on the citation, they will be redirected to this link. If you are uploading multiple files, they will all get this same source link."
-              >
-                <Input placeholder="https://canvas.ubc.ca/courses/..." />
               </Form.Item>
             </>
           )}

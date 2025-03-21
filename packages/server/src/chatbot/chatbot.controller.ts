@@ -414,15 +414,15 @@ export class ChatbotController {
   }
 
   // note that there is no corresponding endpoint for this one on the frontend as you are supposed to make links to it
-  @Get('document/:docURL')
+  @Get('document/:courseId/:docId')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async getChatbotDocument(
-    @Param('docURL') docURL: string,
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('docId') docId: number,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    docURL = '/document/' + docURL;
     try {
       // First check if document exists and get its metadata
       const docInfo = await ChatbotDocPdfModel.createQueryBuilder('doc')
@@ -430,7 +430,7 @@ export class ChatbotController {
           'doc."docName" as "doc_docName"',
           'LENGTH(doc."docData") as "file_size"',
         ])
-        .where('doc."docUrl" = :docURL', { docURL })
+        .where('doc."idHelpMeDB" = :docId', { docId })
         .getRawOne<{ doc_docName: string; file_size: string }>();
 
       if (!docInfo) {
@@ -494,11 +494,20 @@ export class ChatbotController {
         .select(
           `SUBSTRING(doc."docData" FROM ${start + 1} FOR ${end - start + 1}) as chunk`,
         )
-        .where('doc."docUrl" = :docURL', { docURL })
+        .where('doc."idHelpMeDB" = :docId', { docId })
         .stream();
 
-      // Pipe the stream directly to response
-      stream.pipe(res);
+      // Don't pipe directly - we need to transform each row
+      stream.on('data', (data: any) => {
+        // TypeORM with pg-query-stream returns an object with the selected columns as properties
+        if (data && data.chunk) {
+          res.write(data.chunk);
+        }
+      });
+
+      stream.on('end', () => {
+        res.end();
+      });
 
       // Handle stream errors
       stream.on('error', (err) => {
@@ -541,13 +550,39 @@ export class ChatbotController {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
+    // if the file is a text file (including markdown and csv), don't allow sizes over 4 MB (since 4MB of text is actually a lot)
+    if (
+      file.mimetype === 'text/markdown' ||
+      file.mimetype === 'text/plain' ||
+      file.mimetype === 'text/x-markdown' ||
+      file.mimetype === 'text/csv'
+    ) {
+      if (file.size > 1024 * 4096) {
+        throw new BadRequestException(
+          'Text-only files (.txt, .csv, .md) must be less than 4MB (4MB of text is a lot)',
+        );
+      }
+    }
+
     // get the course name (for pdf metadata)
     const course = await CourseModel.findOne({
       where: { id: courseId },
     });
 
-    // use Chromiumly to convert all files to pdf
-    if (file.mimetype === 'text/markdown' || file.mimetype === 'text/plain') {
+    // use Chromiumly to convert all files to pdf (except files that are already pdfs)
+    const startTime = Date.now();
+    console.log(
+      `Starting file conversion for ${file.originalname} (${file.mimetype})`,
+    );
+
+    if (file.mimetype === 'application/pdf') {
+      // if it's already a pdf, don't convert it (also the converter doesn't work for converting pdfs to pdfs for some reason i guess)
+    } else if (
+      file.mimetype === 'text/markdown' ||
+      file.mimetype === 'text/plain' ||
+      file.mimetype === 'text/x-markdown' ||
+      file.mimetype === 'text/csv'
+    ) {
       // Generate an HTML template for the markdown conversion
       const htmlTemplate = generateHTMLForMarkdownToPDF({
         title: file.originalname,
@@ -581,6 +616,7 @@ export class ChatbotController {
           creationDate: new Date().toISOString(), // Add creation timestamp
         },
         losslessImageCompression: true, // TODO: try what it looks like with jpg instead
+        reduceImageResolution: true,
         maxImageResolution: 150, // apparently 150dpi is good for presentations, with at least 72 being good for web usage
         flatten: true, // flatten the pdf to remove any annotations
       });
@@ -592,18 +628,21 @@ export class ChatbotController {
       );
     }
 
-    // make a doc URL (needs to be url-safe)
-    // Using ISO string for better readability and sortability, but removing special characters
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const docUrl = encodeURIComponent(file.originalname + '-' + timestamp);
+    const endTime = Date.now();
+    console.log(
+      `${file.originalname} (${file.mimetype}) pdf conversion completed in ${endTime - startTime}ms`,
+    );
 
-    const chatbotDocPdf = new ChatbotDocPdfModel();
+    let chatbotDocPdf = new ChatbotDocPdfModel();
     chatbotDocPdf.docName = file.originalname;
-    chatbotDocPdf.docData = file.buffer;
     chatbotDocPdf.courseId = courseId;
-    chatbotDocPdf.docUrl = '/document/' + docUrl;
-
-    // Save to database and upload to chatbot service in parallel with error handling
+    chatbotDocPdf.docSize = file.buffer.length;
+    chatbotDocPdf = await chatbotDocPdf.save(); // so that we have an idHelpMeDB to generate the url
+    const docUrl =
+      '/api/v1/chatbot/document/' + courseId + '/' + chatbotDocPdf.idHelpMeDB;
+    chatbotDocPdf.docData = file.buffer;
+    chatbotDocPdf.docUrl = docUrl;
+    // Save file to database and upload to chatbot service in parallel with error handling
     const [savedDocPdf, uploadResult] = await Promise.allSettled([
       chatbotDocPdf.save(),
       this.chatbotApiService.uploadDocument(
@@ -683,7 +722,7 @@ function handleChatbotTokenCheck(user: UserModel) {
 
 // Type definition for LibreOffice file extensions (this is gathered from the Chromiumly package (it doesn't export it for some reason so i had to copy it here))
 type FileExtension =
-  | '123'
+  | '123' // omg prettier why this used to be 1 line
   | '602'
   | 'abw'
   | 'bib'
@@ -827,9 +866,7 @@ const mimeTypeToExtensionMap: Record<string, FileExtension> = {
   'application/vnd.oasis.opendocument.text': 'odt',
   'application/vnd.oasis.opendocument.spreadsheet': 'ods',
   'application/vnd.oasis.opendocument.presentation': 'odp',
-  'text/csv': 'csv',
   'application/rtf': 'rtf',
-  'application/pdf': 'pdf',
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/svg+xml': 'svg',
@@ -838,6 +875,8 @@ const mimeTypeToExtensionMap: Record<string, FileExtension> = {
   'application/epub+zip': 'epub',
   'application/vnd.visio': 'vsd',
   'application/vnd.ms-visio.drawing.main+xml': 'vsdx',
+  'application/pdf': 'pdf', // doesn't work for libreoffice conversion
+  'text/csv': 'csv', // also doesn't work for libreoffice conversion
   // these bottom two are technically handled by their own converters but i'll leave it here for fun
   'text/plain': 'txt',
   'text/html': 'html',
