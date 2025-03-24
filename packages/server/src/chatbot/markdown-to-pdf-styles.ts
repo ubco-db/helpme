@@ -47,10 +47,6 @@ export const markdownStyles = `
     page-break-inside: avoid;
   }
 
-  img {
-    max-width: 100% !important;
-  }
-
   p,
   h2,
   h3 {
@@ -64,11 +60,9 @@ export const markdownStyles = `
   }
 }
 
-
 html {
   font-size: 85%;
 }
-
 
 pre,
 code {
@@ -90,10 +84,6 @@ a:hover,
 a:focus,
 a:active {
   color: #2980b9;
-}
-
-.modest-no-decoration {
-  text-decoration: none;
 }
 
 body {
@@ -212,6 +202,13 @@ code {
 }
 `;
 
+const csvOnlyStyles = `
+/* preserve newlines */
+body {
+  white-space: pre-wrap;
+}
+`;
+
 /**
  * Function to generate a full HTML template with the markdown styles for the pdf conversion
  */
@@ -219,8 +216,9 @@ export function generateHTMLForMarkdownToPDF(params: {
   title: string;
   author: string;
   courseName: string;
+  isCsv: boolean;
 }): string {
-  const { title, author, courseName } = params;
+  const { title, author, courseName, isCsv } = params;
 
   return `<!doctype html>
 <html lang="en">
@@ -232,6 +230,7 @@ export function generateHTMLForMarkdownToPDF(params: {
     <title>${title}</title>
     <style>
       ${markdownStyles}
+      ${isCsv ? csvOnlyStyles : ''}
     </style>
   </head>
   <body>

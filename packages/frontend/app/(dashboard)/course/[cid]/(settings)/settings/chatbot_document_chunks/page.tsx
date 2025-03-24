@@ -102,6 +102,7 @@ export default function ChatbotDocuments({
           <Link
             href={record.metadata?.source ?? ''}
             target="_blank"
+            prefetch={false}
             rel="noopener noreferrer"
           >
             {text}

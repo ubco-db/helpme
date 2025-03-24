@@ -627,7 +627,7 @@ export class ChatbotController {
           keywords: 'course material, ' + course.name,
           creationDate: new Date().toISOString(), // Add creation timestamp
         },
-        losslessImageCompression: true, // TODO: try what it looks like with jpg instead
+        losslessImageCompression: true,
         reduceImageResolution: true,
         maxImageResolution: 150, // apparently 150dpi is good for presentations, with at least 72 being good for web usage
         flatten: true, // flatten the pdf to remove any annotations
