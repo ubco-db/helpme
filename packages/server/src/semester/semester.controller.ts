@@ -1,16 +1,138 @@
-import { SemesterPartial } from '@koh/common';
-import { Controller, Get } from '@nestjs/common';
+import { OrganizationRole, SemesterPartial } from '@koh/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  InternalServerErrorException,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { SemesterModel } from './semester.entity';
-import { ApplicationConfigService } from '../config/application_config.service';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { EmailVerifiedGuard } from '../guards/email-verified.guard';
+import { OrganizationRolesGuard } from '../guards/organization-roles.guard';
+import { OrganizationGuard } from 'guards/organization.guard';
+import { OrganizationModel } from 'organization/organization.entity';
+import { Roles } from 'decorators/roles.decorator';
 
 @Controller('semesters')
 export class SemesterController {
-  constructor(private readonly appConfig: ApplicationConfigService) {}
+  @Get(':oid')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard) // safe for anyone to fetch (needed for semester filtering in courses page)
+  async getSemesters(
+    @Param('oid', ParseIntPipe) organizationId: number,
+  ): Promise<SemesterPartial[]> {
+    try {
+      await OrganizationModel.findOneOrFail({
+        where: { id: organizationId },
+      });
+    } catch {
+      throw new BadRequestException('Organization not found');
+    }
 
-  @Get()
-  async get(): Promise<SemesterPartial[]> {
-    return SemesterModel.find({
-      take: this.appConfig.get('max_semesters'),
+    const semesters = await SemesterModel.find({
+      where: { organizationId: organizationId },
     });
+
+    return semesters;
+  }
+
+  @Post(':oid')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  async createSemester(
+    @Param('oid', ParseIntPipe) organizationId: number,
+    @Body() semesterDetails: SemesterPartial,
+  ): Promise<string> {
+    const organization = await OrganizationModel.findOne({
+      where: { id: organizationId },
+      relations: ['semesters'],
+    });
+
+    if (!organization) {
+      throw new BadRequestException('Organization not found');
+    }
+
+    try {
+      await SemesterModel.create({
+        ...semesterDetails,
+        organization,
+      }).save();
+
+      return 'Semester created successfully';
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException('Failed to create semester');
+    }
+  }
+
+  @Patch(':oid/:sid')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  async updateSemester(
+    @Param('oid', ParseIntPipe) organizationId: number,
+    @Param('sid', ParseIntPipe) semesterId: number,
+    @Body() semesterDetails: SemesterPartial,
+  ): Promise<string> {
+    try {
+      await SemesterModel.findOneOrFail({
+        where: { id: semesterId, organizationId },
+      });
+    } catch {
+      throw new BadRequestException('Semester not found');
+    }
+
+    try {
+      await SemesterModel.update(semesterId, semesterDetails);
+
+      return 'Semester updated successfully';
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException('Failed to update semester');
+    }
+  }
+
+  @Delete(':oid/:sid')
+  @UseGuards(
+    JwtAuthGuard,
+    OrganizationRolesGuard,
+    OrganizationGuard,
+    EmailVerifiedGuard,
+  )
+  async deleteSemester(
+    @Param('oid', ParseIntPipe) organizationId: number,
+    @Param('sid', ParseIntPipe) semesterId: number,
+  ): Promise<string> {
+    try {
+      await SemesterModel.findOneOrFail({
+        where: { id: semesterId, organizationId },
+      });
+    } catch {
+      throw new BadRequestException('Semester not found');
+    }
+
+    try {
+      await SemesterModel.delete(semesterId);
+
+      return 'Semester deleted successfully';
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException('Failed to delete semester');
+    }
   }
 }
