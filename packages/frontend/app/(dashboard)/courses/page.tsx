@@ -18,7 +18,14 @@ export default function CoursesPage(): ReactElement {
   const searchParams = useSearchParams()
   const error = searchParams.get('err')
 
-  const [enabledTableView, setEnabledTableView] = useState(false)
+  // Initialize enabledTableView from localStorage
+  const [enabledTableView, setEnabledTableView] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const storedValue = localStorage.getItem('enabledTableView')
+      return storedValue === 'true'
+    }
+    return false
+  })
   const [semesters, setSemesters] = useState<SemesterPartial[]>([])
 
   useEffect(() => {
@@ -91,8 +98,12 @@ export default function CoursesPage(): ReactElement {
               { value: false, icon: <AppstoreOutlined /> },
               { value: true, icon: <BarsOutlined /> },
             ]}
+            defaultValue={enabledTableView}
             onChange={(value) => {
               setEnabledTableView(value)
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('enabledTableView', value.toString())
+              }
             }}
           />
         </div>

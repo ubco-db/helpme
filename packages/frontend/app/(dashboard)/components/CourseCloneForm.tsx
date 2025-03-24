@@ -12,10 +12,12 @@ import {
   Tooltip,
   Tag,
   message,
+  Switch,
 } from 'antd'
 import {
   CourseCloneAttributes,
   GetOrganizationResponse,
+  OrganizationCourseResponse,
   OrganizationProfessor,
   OrganizationRole,
   User,
@@ -56,13 +58,13 @@ const defaultValues: CourseCloneAttributes = {
 type CourseCloneFormProps = {
   user: User
   organization: GetOrganizationResponse
-  courseId: number
+  courseData: OrganizationCourseResponse
 }
 
 const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   user,
   organization,
-  courseId,
+  courseData,
 }) => {
   const [visible, setVisible] = useState(false)
   const [confirmLoading, setConfirmLoading] = useState(false) // new loading state
@@ -84,7 +86,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
     setConfirmLoading(true)
     try {
       const userCourse = await API.course.createClone(
-        courseId,
+        courseData.courseId!,
         form.getFieldsValue(),
       )
       if (userCourse)
@@ -105,7 +107,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
     const fetchProfessors = async () => {
       if (!isAdmin) return
       await API.organizations
-        .getProfessors(organization.id, courseId)
+        .getProfessors(organization.id, courseData.courseId)
         .then((response) => {
           setProfessors(response ?? [])
         })
@@ -115,7 +117,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
         })
     }
     fetchProfessors()
-  }, [courseId, isAdmin, organization.id])
+  }, [courseData.courseId, isAdmin, organization.id])
 
   const handleCancel = () => {
     setVisible(false)
@@ -126,10 +128,13 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
       <div className="mb-2 w-full md:mr-5 md:w-5/6 md:text-left">
         <p className="font-bold">Clone Course</p>
         <p>
-          This feature allows you to clone this course to reuse select
-          configuration settings for future courses in new semesters. You will
-          automatically be assigned professor of the new course. Only
-          organization administrators can assign other professors.
+          This feature allows you to clone select settings of this course to for
+          future courses in new semesters or new sections of the course in the
+          same semester. Any further changes from the original course&apos;s
+          settings can be set in the settings page of the new course once it is
+          successfully cloned. You will automatically be assigned professor of
+          the new course. Only organization administrators can assign other
+          professors.
         </p>
       </div>
       <Button type="primary" onClick={openModal}>
@@ -142,6 +147,11 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
         onCancel={handleCancel}
         okText="Clone"
         confirmLoading={confirmLoading}
+        width={{
+          xs: '90%',
+          lg: '70%',
+        }}
+        className="flex items-center justify-center"
       >
         <Form form={form} layout="vertical">
           {user.organization?.organizationRole === OrganizationRole.ADMIN &&
@@ -199,30 +209,73 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
             <></>
           )}
           <Form.Item
-            label="Semester for Cloned Course"
-            name="newSemesterId"
-            className="flex-1"
-            rules={[{ required: true, message: 'Please select a semester' }]}
+            label="Clone by"
+            name="useSection"
+            valuePropName="checked"
+            initialValue={false}
+            tooltip="Choose whether to clone to a new section of the same semester or a new semester"
           >
-            <Select
-              placeholder="Select Semester"
-              notFoundContent="There seems to be no other semesters in this organization to clone to."
-            >
-              {organization.semesters
-                .filter(
-                  (semester) =>
-                    semester.id !==
-                    (userInfo.courses.find(
-                      (course) => course.course.id === courseId,
-                    )?.course.semesterId ?? -1),
-                )
-                .map((semester) => (
-                  <Select.Option key={semester.id} value={semester.id}>
-                    <span>{`${semester.name}`}</span>{' '}
-                    {`(${new Date(semester.startDate).toLocaleDateString()} - ${new Date(semester.endDate).toLocaleDateString()})`}
-                  </Select.Option>
-                ))}
-            </Select>
+            <Switch checkedChildren="Section" unCheckedChildren="Semester" />
+          </Form.Item>
+
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, curValues) =>
+              prevValues.useSection !== curValues.useSection
+            }
+          >
+            {({ getFieldValue }) => {
+              return getFieldValue('useSection') ? (
+                <Form.Item
+                  label="Section Group Name for Cloned Course"
+                  name="newSection"
+                  rules={[
+                    { required: true, message: 'Please enter a section' },
+                    {
+                      validator: (_, value) => {
+                        if (
+                          value &&
+                          value === courseData.course?.sectionGroupName
+                        ) {
+                          return Promise.reject(
+                            'Section cannot match the original section group name.',
+                          )
+                        }
+                        return Promise.resolve()
+                      },
+                    },
+                  ]}
+                >
+                  <Input placeholder="Enter new section" />
+                </Form.Item>
+              ) : (
+                <Form.Item
+                  label="New Semester for Cloned Course"
+                  name="newSemesterId"
+                  className="flex-1"
+                  rules={[
+                    { required: true, message: 'Please select a semester' },
+                  ]}
+                >
+                  <Select
+                    placeholder="Select Semester"
+                    notFoundContent="There seems to be no other semesters in this organization to clone to."
+                  >
+                    {organization.semesters
+                      .filter(
+                        (semester) =>
+                          semester.id !== courseData.course?.semester?.id,
+                      )
+                      .map((semester) => (
+                        <Select.Option key={semester.id} value={semester.id}>
+                          <span>{`${semester.name}`}</span>{' '}
+                          {`(${new Date(semester.startDate).toLocaleDateString()} - ${new Date(semester.endDate).toLocaleDateString()})`}
+                        </Select.Option>
+                      ))}
+                  </Select>
+                </Form.Item>
+              )
+            }}
           </Form.Item>
           <Form.Item label="Course Attributes to Clone">
             <div className="ml-4 flex flex-col">

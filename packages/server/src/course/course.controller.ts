@@ -1115,10 +1115,10 @@ export class CourseController {
   @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async cloneCourse(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User(['courses', 'courses.course', 'chat_token']) user: UserModel,
+    @User(['chat_token']) user: UserModel,
     @Body() body: CourseCloneAttributes,
   ): Promise<UserCourse | null> {
-    if (!user || !Array.isArray(user.courses) || !user.chat_token) {
+    if (!user || !user.chat_token) {
       console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
       throw new HttpException(
         ERROR_MESSAGES.profileController.accountNotAvailable,
@@ -1126,27 +1126,22 @@ export class CourseController {
       );
     }
 
-    if (!body.newSemesterId || body.newSemesterId == -1) {
-      console.error(ERROR_MESSAGES.courseController.semesterIdError);
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.semesterIdError,
-        HttpStatus.BAD_REQUEST,
+    if (
+      (!body.newSemesterId || body.newSemesterId == -1) &&
+      (!body.newSection || body.newSection == '')
+    ) {
+      console.error(
+        ERROR_MESSAGES.courseController.newSectionOrSemesterMissing,
       );
-    }
-
-    const userCourse = user.courses.find((c) => c.course.id === courseId);
-
-    if (userCourse === null || userCourse === undefined) {
-      console.error(ERROR_MESSAGES.courseController.courseModelError);
       throw new HttpException(
-        ERROR_MESSAGES.courseController.courseModelError,
-        HttpStatus.NOT_FOUND,
+        ERROR_MESSAGES.courseController.newSectionOrSemesterMissing,
+        HttpStatus.BAD_REQUEST,
       );
     }
 
     const newUserCourse = await this.courseService.cloneCourse(
       courseId,
-      userCourse,
+      user.id,
       body,
       user.chat_token.token,
     );

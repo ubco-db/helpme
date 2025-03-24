@@ -46,6 +46,7 @@ export class ProfileService {
                 name: userCourse.course.name,
                 semesterId: userCourse.course.semesterId,
                 enabled: userCourse.course.enabled,
+                sectionGroupName: userCourse.course.sectionGroupName,
               },
               role: userCourse.role,
               favourited: userCourse.favourited,

@@ -409,18 +409,14 @@ export class CourseService {
 
   async cloneCourse(
     courseId: number,
-    userCourse: UserCourseModel,
+    userId: number,
     cloneData: CourseCloneAttributes,
     chatToken: string,
   ): Promise<UserCourse | null> {
-    if (cloneData.professorIds.length === 0) {
-      throw new BadRequestException('At least one professor must be specified');
-    }
-
     return await getManager().transaction(async (manager) => {
       const originalCourse = await manager.findOne(CourseModel, {
         where: { id: courseId },
-        relations: ['courseSettings'],
+        relations: ['courseSettings', 'semester'],
       });
       if (!originalCourse) {
         throw new NotFoundException(`Course with id ${courseId} not found`);
@@ -428,10 +424,10 @@ export class CourseService {
 
       // If the user is not an Organization Administrator, they can only set themselves as the cloned course's professor
       const organizationUser = await manager.findOne(OrganizationUserModel, {
-        where: { userId: userCourse.userId },
+        where: { userId: userId },
       });
       if (organizationUser.role !== OrganizationRole.ADMIN) {
-        cloneData.professorIds = [userCourse.userId];
+        cloneData.professorIds = [userId];
       }
 
       const professorIds = Array.isArray(cloneData.professorIds)
@@ -464,12 +460,20 @@ export class CourseService {
         clonedCourse.courseInviteCode = originalCourse.courseInviteCode;
       }
 
-      const semester = await manager.findOneOrFail(SemesterModel, {
-        where: { id: cloneData.newSemesterId },
-      });
-
-      clonedCourse.semester = semester;
-
+      if (cloneData.useSection) {
+        clonedCourse.sectionGroupName = cloneData.newSection;
+        clonedCourse.semester = originalCourse.semester;
+      } else if (cloneData.useSection === false) {
+        const semester = await manager.findOneOrFail(SemesterModel, {
+          where: { id: cloneData.newSemesterId },
+        });
+        clonedCourse.semester = semester;
+        clonedCourse.sectionGroupName = originalCourse.sectionGroupName;
+      } else {
+        throw new BadRequestException(
+          'Either a new semester or new section must be provided for your course clone.',
+        );
+      }
       await manager.save(clonedCourse);
 
       if (originalCourse.courseSettings) {
@@ -595,14 +599,15 @@ export class CourseService {
         );
       }
 
-      if (professorIds.includes(userCourse.userId)) {
-        await this.redisProfileService.deleteProfile(`u:${userCourse.userId}`);
+      if (professorIds.includes(userId)) {
+        await this.redisProfileService.deleteProfile(`u:${userId}`);
         return {
           course: {
             id: clonedCourse.id,
             name: clonedCourse.name,
             semesterId: clonedCourse.semesterId,
             enabled: clonedCourse.enabled,
+            sectionGroupName: clonedCourse.sectionGroupName,
           },
           role: Role.PROFESSOR,
           favourited: true,

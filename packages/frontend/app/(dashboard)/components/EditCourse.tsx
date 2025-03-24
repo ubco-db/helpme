@@ -52,6 +52,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
 
     setCourseData(response)
 
+    // Added since this is the endpoint contacted to fetch new course data
     setUserInfo({
       ...userInfo,
       courses: userInfo.courses.map((uc) =>
@@ -62,6 +63,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
                 name: response.course!.name,
                 semesterId: response.course!.semester?.id,
                 enabled: true,
+                sectionGroupName: response.course!.sectionGroupName!,
               },
               role: 'professor' as Role,
               favourited: uc.favourited,
@@ -122,7 +124,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
         <Card bordered={true} title="Clone Course">
           <CourseCloneForm
             organization={organization}
-            courseId={courseData.courseId as number}
+            courseData={courseData}
             user={user}
           />
         </Card>

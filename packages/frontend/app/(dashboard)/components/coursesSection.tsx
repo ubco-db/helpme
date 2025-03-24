@@ -306,7 +306,14 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                 }
               >
                 <div className="flex flex-wrap items-center justify-between align-middle">
-                  <Meta title={course.course.name} />
+                  <Meta
+                    title={course.course.name}
+                    description={
+                      <div className="text-sm font-semibold">
+                        {course.course.sectionGroupName}
+                      </div>
+                    }
+                  />
                   <Tag
                     color={
                       course.role === Role.STUDENT

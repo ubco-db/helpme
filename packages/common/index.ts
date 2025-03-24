@@ -169,6 +169,7 @@ export type UserTiny = {
 export type CoursePartial = {
   id: number
   name: string
+  sectionGroupName: string
   semesterId?: number
   enabled?: boolean
   favourited?: boolean
@@ -179,7 +180,9 @@ export type CoursePartial = {
  */
 export type CourseCloneAttributes = {
   professorIds: number[]
+  useSection?: boolean
   newSemesterId?: number
+  newSection?: string
   includeDocuments: boolean
   cloneAttributes: {
     name?: boolean
@@ -2775,7 +2778,8 @@ export const ERROR_MESSAGES = {
     organizationNotFound: 'Course has no related organization',
     orgIntegrationNotFound: 'Course organization has no LMS integrations',
     lmsIntegrationNotFound: 'Course has no related LMS integrations',
-    semesterIdError: 'Semester field must be set',
+    newSectionOrSemesterMissing:
+      'One of semester or section fields must be set',
   },
   asyncQuestionController: {
     comments: {
