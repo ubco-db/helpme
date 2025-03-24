@@ -251,21 +251,11 @@ const getActiveStudents = async (
   allowedFilters?: InsightFilterOption[],
 ): Promise<any[]> => {
   return await addFilters({
-    query: QuestionModel.createQueryBuilder()
+    query: QuestionModel.createQueryBuilder('QuestionModel')
       .select('"QuestionModel"."creatorId"', 'studentId')
-      .leftJoinAndSelect(
-        (qb) =>
-          UserModel.createQueryBuilder()
-            .select(
-              'concat("UserModel"."firstName", \' \',"UserModel"."lastName")',
-              'name',
-            )
-            .addSelect('"UserModel"."email"', 'email'),
-        'UserModel',
-        'WHERE "UserModel"."id" = "QuestionModel"."creatorId"',
-      )
-      .addSelect('COUNT(*)', 'questionsAsked')
-      .from(QuestionModel, 'QuestionModel'),
+      .addSelect('"UserModel"."name"', 'name')
+      .addSelect('"UserModel"."email"', 'email')
+      .addSelect('COUNT(*)', 'questionsAsked'),
     modelName: QuestionModel.name,
     allowedFilters: allowedFilters,
     filters,

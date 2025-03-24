@@ -2819,7 +2819,7 @@ export const ERROR_MESSAGES = {
     noCoursesToDelete: "User doesn't have any courses to delete",
     emailInUse: 'Email is already in use',
     noDiskSpace:
-      'There is no disk space left to store an image. Please immediately contact your course staff and let them know. They will contact the Khoury Office Hours team as soon as possible.',
+      'There is no disk space left to store an image. Please immediately contact your course staff and let them know. They will contact the HelpMe team as soon as possible.',
   },
   alertController: {
     duplicateAlert: 'This alert has already been sent',

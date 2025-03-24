@@ -101,7 +101,9 @@ describe('LMSIntegrationService', () => {
       await service.resynchronizeCourseIntegrations();
 
       expect(findSpy).toHaveBeenCalledTimes(1);
-      expect(findSpy).toHaveBeenCalledWith({ lmsSynchronize: true });
+      expect(findSpy).toHaveBeenCalledWith({
+        where: { lmsSynchronize: true },
+      });
 
       expect(service.syncDocuments).toHaveBeenCalledTimes(2);
       let i = 1;

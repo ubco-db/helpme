@@ -144,7 +144,7 @@ export function setupIntegrationTest(
 
     // Grab FactoriesService from Nest
     const factories = testModule.get<FactoryService>(FactoryService);
-    console.log('factories', factories);
+    console.log('factories');
     // Initialize the named exports to point to the actual factories
     initFactoriesFromService(factories);
 

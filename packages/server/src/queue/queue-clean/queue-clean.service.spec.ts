@@ -1,12 +1,3 @@
-jest.mock('typeorm', () => {
-  const actualTypeorm = jest.requireActual('typeorm');
-
-  return {
-    ...actualTypeorm,
-    createQueryBuilder: jest.fn(),
-  };
-});
-
 import {
   OpenQuestionStatus,
   LimboQuestionStatus,
@@ -15,7 +6,7 @@ import {
   ClosedQuestionStatus,
 } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { createQueryBuilder, DataSource } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   AlertFactory,
   initFactoriesFromService,
@@ -116,9 +107,7 @@ describe('QueueService', () => {
 
       await service.cleanQueue(queue.id);
       await question.reload();
-      // expect(question.status).toEqual('Stale');
-      // TODO:  verify that this is the correct behavior
-      expect(question.status).toEqual('Queued');
+      expect(question.status).toEqual('Stale');
     });
     it('queue gets cleaned when force parameter is passed, even with staff present', async () => {
       const ta = await UserFactory.create();
@@ -143,9 +132,7 @@ describe('QueueService', () => {
 
       await service.cleanQueue(queue.id);
       await question.reload();
-      // expect(question.status).toEqual('Stale');
-      // TODO: verify that this is the correct behavior
-      expect(question.status).toEqual('TADeleted');
+      expect(question.status).toEqual('Stale');
     });
     it('resolves lingering alerts from a queue', async () => {
       const queue = await QueueFactory.create({});
@@ -166,9 +153,7 @@ describe('QueueService', () => {
       await service.cleanQueue(queue.id);
 
       await openAlert.reload();
-      // expect(openAlert.resolved).not.toBeNull();
-      // TODO: verify that this is the correct behavior
-      expect(openAlert.resolved).toBeNull();
+      expect(openAlert.resolved).not.toBeNull();
     });
   });
   describe('cleanAllQueues', () => {
@@ -271,11 +256,13 @@ describe('QueueService', () => {
         getRawMany: jest.fn().mockResolvedValue([{ studentId, courseId }]),
         getOne: jest.fn().mockResolvedValue(null),
       } as any;
-      (createQueryBuilder as jest.Mock).mockReturnValue(mockQueryBuilder);
+      jest
+        .spyOn(QueueModel, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder);
 
       jest.spyOn(QueueModel, 'query').mockResolvedValue([]);
       jest
-        .spyOn(createQueryBuilder(QueueModel), 'getRawMany')
+        .spyOn(QueueModel.createQueryBuilder(), 'getRawMany')
         .mockResolvedValue([{ studentId, courseId }]);
       jest.spyOn(AlertModel, 'create').mockImplementation((alert) => ({
         ...alert,
@@ -324,6 +311,7 @@ describe('QueueService', () => {
         resolved: null,
         userId: studentId,
         courseId: courseId,
+        payload: { queueId },
       } as any;
       jest
         .spyOn(service, 'deleteAllLeaveQueueCronJobsForQueue')
@@ -338,9 +326,12 @@ describe('QueueService', () => {
         getRawMany: jest.fn().mockResolvedValue([{ studentId, courseId }]),
         getOne: jest.fn().mockResolvedValue(existingAlert),
       } as any;
-      (QueueModel.createQueryBuilder as jest.Mock).mockReturnValue(
-        mockQueryBuilder,
-      );
+      jest
+        .spyOn(QueueModel, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder);
+      jest
+        .spyOn(AlertModel, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder);
 
       jest.spyOn(QueueModel, 'query').mockResolvedValue([]);
       jest

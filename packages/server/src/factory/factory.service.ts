@@ -82,7 +82,6 @@ export class FactoryService {
   public queueChatsFactory: Factory<QueueChatsModel>;
 
   constructor(dataSource: DataSource) {
-    console.log('FactoryService constructor');
     this.UserFactory = new Factory(UserModel, dataSource)
       .attr('email', `user@ubc.ca`)
       .attr('firstName', 'User')

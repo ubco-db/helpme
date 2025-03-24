@@ -41,6 +41,8 @@ describe('QuestionService', () => {
   beforeAll(async () => {
     const redisHost = await redisMock.getHost();
     const redisPort = await redisMock.getPort();
+    console.log('redisHost', redisHost);
+    console.log('redisPort', redisPort);
 
     const module: TestingModule = await Test.createTestingModule({
       imports: [
