@@ -543,25 +543,36 @@ export class ChatbotController {
   async uploadDocument(
     @Param('courseId', ParseIntPipe) courseId: number,
     @UploadedFile() file: Express.Multer.File,
-    @Body() { parseAsPng }: { parseAsPng: boolean },
+    @Body() { parseAsPng }: { parseAsPng: boolean | string },
     @User(['chat_token']) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    // if the file is a text file (including markdown and csv), don't allow sizes over 4 MB (since 4MB of text is actually a lot)
+    // if the file is a text file (including markdown and csv), don't allow sizes over 2 MB (since 4MB of text is actually a lot)
     if (
       file.mimetype === 'text/markdown' ||
       file.mimetype === 'text/plain' ||
       file.mimetype === 'text/x-markdown' ||
       file.mimetype === 'text/csv'
     ) {
-      if (file.size > 1024 * 4096) {
+      if (file.size > 1024 * 2048) {
         throw new BadRequestException(
-          'Text-only files (.txt, .csv, .md) must be less than 4MB (4MB of text is a lot)',
+          'Text-only files (.txt, .csv, .md) must be less than 2MB (2MB of text is a lot)',
         );
       }
+    }
+
+    if (parseAsPng === 'true') {
+      parseAsPng = true;
+    } else {
+      parseAsPng = false;
+    }
+
+    // if it's an image, make parseAsPng true
+    if (file.mimetype.startsWith('image/')) {
+      parseAsPng = true;
     }
 
     // get the course name (for pdf metadata)
@@ -588,6 +599,7 @@ export class ChatbotController {
         title: file.originalname,
         author: `${user.firstName} ${user.lastName}`,
         courseName: course?.name || '',
+        isCsv: file.mimetype === 'text/csv',
       });
       // Convert the HTML template string to a Buffer (since that's what .convert wants)
       const htmlBuffer = Buffer.from(htmlTemplate, 'utf-8');
@@ -636,12 +648,11 @@ export class ChatbotController {
     let chatbotDocPdf = new ChatbotDocPdfModel();
     chatbotDocPdf.docName = file.originalname;
     chatbotDocPdf.courseId = courseId;
-    chatbotDocPdf.docSize = file.buffer.length;
+    chatbotDocPdf.docSizeBytes = file.buffer.length;
     chatbotDocPdf = await chatbotDocPdf.save(); // so that we have an idHelpMeDB to generate the url
     const docUrl =
       '/api/v1/chatbot/document/' + courseId + '/' + chatbotDocPdf.idHelpMeDB;
     chatbotDocPdf.docData = file.buffer;
-    chatbotDocPdf.docUrl = docUrl;
     // Save file to database and upload to chatbot service in parallel with error handling
     const [savedDocPdf, uploadResult] = await Promise.allSettled([
       chatbotDocPdf.save(),
@@ -688,6 +699,11 @@ export class ChatbotController {
       // if both succeed, then save the docId to the database
       chatbotDocPdf.docIdChatbotDB = uploadResult.value.docId;
       await chatbotDocPdf.save();
+
+      const endTime2 = Date.now();
+      console.log(
+        `${file.originalname} (${file.mimetype}) upload chatbot service and save in db completed in ${endTime2 - endTime}ms for a total processing time of ${endTime2 - startTime}ms`,
+      );
       return uploadResult.value;
     } else {
       throw new InternalServerErrorException(

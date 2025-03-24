@@ -19,9 +19,6 @@ export class ChatbotDocPdfModel extends BaseEntity {
   @Column({ type: 'text' })
   docName: string;
 
-  @Column({ type: 'text', nullable: true }) // only briefly null during upload
-  docUrl: string;
-
   @Column()
   courseId: number;
 
@@ -35,5 +32,5 @@ export class ChatbotDocPdfModel extends BaseEntity {
   docData: Buffer;
 
   @Column({ default: 0 })
-  docSize: number;
+  docSizeBytes: number;
 }

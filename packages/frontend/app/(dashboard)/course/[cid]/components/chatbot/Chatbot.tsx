@@ -633,7 +633,12 @@ const SourceLinkButton: React.FC<{
         sourceLink && 'hover:bg-black-300 cursor-pointer hover:text-white'
       }`}
       key={`${docName}-${part}`}
-      href={sourceLink + (pageNumber ? `#page=${pageNumber}` : '')}
+      href={
+        sourceLink +
+        (pageNumber && sourceLink.startsWith('/api/v1/chatbot/document/')
+          ? `#page=${pageNumber}`
+          : '')
+      }
       rel="noopener noreferrer"
       // open in new tab
       target="_blank"
