@@ -415,7 +415,7 @@ export class ChatbotController {
 
   // note that there is no corresponding endpoint for this one on the frontend as you are supposed to make links to it
   @Get('document/:courseId/:docId')
-  @UseGuards(CourseRolesGuard)
+  @UseGuards(CourseRolesBypassHelpMeCourseGuard)
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async getChatbotDocument(
     @Param('courseId', ParseIntPipe) courseId: number,
