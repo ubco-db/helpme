@@ -33,8 +33,6 @@ import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.en
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
 import { CourseSettingsModel } from './course_settings.entity';
 import { getManager } from 'typeorm';
-import { ChatTokenModel } from 'chatbot/chat-token.entity';
-import { v4 } from 'uuid';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
@@ -607,6 +605,7 @@ export class CourseService {
             enabled: clonedCourse.enabled,
           },
           role: Role.PROFESSOR,
+          favourited: true,
         };
       } else {
         return null;

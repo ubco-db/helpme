@@ -322,6 +322,9 @@ class APIClient {
         cloneAttributes,
       )
     },
+    toggleFavourited: async (courseId: number) => {
+      return this.req('PATCH', `/api/v1/courses/${courseId}/toggle_favourited`)
+    },
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>

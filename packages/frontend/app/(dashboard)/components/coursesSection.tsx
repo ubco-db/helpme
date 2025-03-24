@@ -1,21 +1,33 @@
 import { Role, SemesterPartial, UserCourse } from '@koh/common'
-import { Button, Card, Divider, Popover, Table, Tag, Tooltip } from 'antd'
+import {
+  Button,
+  Card,
+  Divider,
+  message,
+  Popover,
+  Table,
+  Tag,
+  Tooltip,
+} from 'antd'
 import React, { useMemo } from 'react'
 import Meta from 'antd/es/card/Meta'
 import Link from 'next/link'
-import stringToHexColor from '@/app/utils/generalUtils'
+import stringToHexColor, { getErrorMessage } from '@/app/utils/generalUtils'
 import { ColumnsType } from 'antd/es/table'
+import { StarFilled, StarOutlined } from '@ant-design/icons'
+import { API } from '@/app/api'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 // TODO: remove all code for unassigned semesters when all production courses have new semesters set
+// PAT TODO: add some UI to favourite and unfavourite a course for the dashboard in the table view
+// PAT TODO: localStorage to cache preferred view
 
 interface CoursesSectionProps {
-  courses: UserCourse[]
   semesters: SemesterPartial[]
   enabledTableView: boolean
 }
 
 const CoursesSection: React.FC<CoursesSectionProps> = ({
-  courses,
   semesters,
   enabledTableView,
 }) => {
@@ -36,7 +48,46 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
     },
   })
 
+  const { userInfo, setUserInfo } = useUserInfo()
+
+  // Updated toggleFavourite function to use API object
+  const toggleFavourite = (course: UserCourse) => {
+    const newStatus = !course.favourited
+    API.course
+      .toggleFavourited(course.course.id)
+      .then(() => {
+        setUserInfo((prev) => ({
+          ...prev,
+          courses: prev.courses.map((c) =>
+            c.course.id === course.course.id
+              ? { ...c, favourited: newStatus }
+              : c,
+          ),
+        }))
+      })
+      .catch((err) => {
+        message.error(getErrorMessage(err))
+      })
+  }
+
   const columns: ColumnsType<UserCourse> = [
+    {
+      key: 'favourite',
+      width: '5%',
+      align: 'center',
+      render: (_, course) =>
+        course.favourited ? (
+          <StarFilled
+            onClick={() => toggleFavourite(course)}
+            style={{ color: 'gold', cursor: 'pointer' }}
+          />
+        ) : (
+          <StarOutlined
+            onClick={() => toggleFavourite(course)}
+            style={{ color: 'grey', cursor: 'pointer' }}
+          />
+        ),
+    },
     {
       dataIndex: ['course', 'name'],
       key: 'name',
@@ -92,33 +143,36 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
     },
   ]
 
+  // Allow recalculation for course favouriting feature (harder to memoize)
   const coursesWithoutSemester = useMemo(() => {
-    return courses.filter((userCourse) => {
+    return userInfo.courses.filter((userCourse) => {
       return !semesters?.some(
         (semester) => semester.id === userCourse.course.semesterId,
       )
     })
-  }, [courses, semesters])
+  }, [userInfo.courses, semesters])
 
   const sortedCoursesInCardView = useMemo(() => {
-    return [...courses].sort((a, b) => {
-      const semesterA = semesters?.find(
-        (semester) => semester.id === a.course.semesterId,
-      )
-      const semesterB = semesters?.find(
-        (semester) => semester.id === b.course.semesterId,
-      )
-      if (semesterA && semesterB) {
-        const diff = semesterB.endDate.valueOf() - semesterA.endDate.valueOf()
-        if (diff === 0) {
-          return a.course.name.localeCompare(b.course.name)
-        } else {
-          return diff
+    return [...userInfo.courses]
+      .sort((a, b) => {
+        const semesterA = semesters?.find(
+          (semester) => semester.id === a.course.semesterId,
+        )
+        const semesterB = semesters?.find(
+          (semester) => semester.id === b.course.semesterId,
+        )
+        if (semesterA && semesterB) {
+          const diff = semesterB.endDate.valueOf() - semesterA.endDate.valueOf()
+          if (diff === 0) {
+            return a.course.name.localeCompare(b.course.name)
+          } else {
+            return diff
+          }
         }
-      }
-      return 0
-    })
-  }, [courses, semesters])
+        return 0
+      })
+      .filter((userCourse) => userCourse.favourited)
+  }, [userInfo.courses, semesters])
 
   return (
     <div className="mb-8 mt-5 w-full">
@@ -127,7 +181,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
           {semesters
             ?.sort((a, b) => b.endDate.valueOf() - a.endDate.valueOf())
             .map((semester) => {
-              const semesterCourses = courses.filter(
+              const semesterCourses = userInfo.courses.filter(
                 (userCourse) => userCourse.course.semesterId === semester.id,
               )
               if (semesterCourses.length === 0) {

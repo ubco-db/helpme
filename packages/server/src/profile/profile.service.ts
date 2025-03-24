@@ -48,6 +48,7 @@ export class ProfileService {
                 enabled: userCourse.course.enabled,
               },
               role: userCourse.role,
+              favourited: userCourse.favourited,
             };
           })
       : [];

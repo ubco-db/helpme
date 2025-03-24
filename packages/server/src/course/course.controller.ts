@@ -309,6 +309,37 @@ export class CourseController {
       });
   }
 
+  @Patch(':courseId/toggle_favourited')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  async toggleFavourited(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @UserId() userId: number,
+  ): Promise<string> {
+    try {
+      const userCourse = await UserCourseModel.findOneOrFail({
+        where: {
+          courseId,
+          userId,
+        },
+      });
+
+      if (!userCourse)
+        throw new NotFoundException('Your course enrollment is not found');
+
+      userCourse.favourited = !userCourse.favourited;
+      userCourse.save();
+
+      await this.redisProfileService.deleteProfile(`u:${userId}`);
+
+      return 'Course favourited status updated successfully';
+    } catch (err) {
+      console.error(err);
+      throw new BadRequestException(
+        'Failed to toggle the favourite attribute if your course.',
+      );
+    }
+  }
+
   @Post(':id/create_queue/:room')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)

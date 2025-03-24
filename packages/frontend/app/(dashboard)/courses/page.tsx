@@ -106,9 +106,6 @@ export default function CoursesPage(): ReactElement {
           />
         ) : (
           <CoursesSection
-            courses={userInfo.courses.filter(
-              (userCourse) => userCourse.course.enabled,
-            )}
             semesters={semesters}
             enabledTableView={enabledTableView}
           />

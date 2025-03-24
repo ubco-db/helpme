@@ -171,6 +171,7 @@ export type CoursePartial = {
   name: string
   semesterId?: number
   enabled?: boolean
+  favourited?: boolean
 }
 
 /**
@@ -259,6 +260,7 @@ export class PasswordRequestResetWithTokenBody {
 export type UserCourse = {
   course: CoursePartial
   role: Role
+  favourited: boolean
   unreadCount?: number
 }
 
