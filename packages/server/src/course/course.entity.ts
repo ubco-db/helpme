@@ -23,7 +23,7 @@ import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question.entity';
-import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
+import { ChatbotDocPdfModel } from '../chatbot/chatbot-doc-pdf.entity';
 @Entity('course_model')
 export class CourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
