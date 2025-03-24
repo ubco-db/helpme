@@ -550,12 +550,13 @@ export class ChatbotController {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
+    const fileExtension = file.originalname.split('.').pop()?.toLowerCase();
+
     // if the file is a text file (including markdown and csv), don't allow sizes over 2 MB (since 4MB of text is actually a lot)
     if (
-      file.mimetype === 'text/markdown' ||
-      file.mimetype === 'text/plain' ||
-      file.mimetype === 'text/x-markdown' ||
-      file.mimetype === 'text/csv'
+      fileExtension === 'txt' ||
+      fileExtension === 'csv' ||
+      fileExtension === 'md'
     ) {
       if (file.size > 1024 * 2048) {
         throw new BadRequestException(
@@ -586,36 +587,39 @@ export class ChatbotController {
       `Starting file conversion for ${file.originalname} (${file.mimetype})`,
     );
 
-    if (file.mimetype === 'application/pdf') {
+    if (fileExtension === 'pdf') {
       // if it's already a pdf, don't convert it (also the converter doesn't work for converting pdfs to pdfs for some reason i guess)
     } else if (
-      file.mimetype === 'text/markdown' ||
-      file.mimetype === 'text/plain' ||
-      file.mimetype === 'text/x-markdown' ||
-      file.mimetype === 'text/csv'
+      fileExtension === 'md' ||
+      fileExtension === 'txt' ||
+      fileExtension === 'csv'
     ) {
       // Generate an HTML template for the markdown conversion
       const htmlTemplate = generateHTMLForMarkdownToPDF({
         title: file.originalname,
         author: `${user.firstName} ${user.lastName}`,
         courseName: course?.name || '',
-        isCsv: file.mimetype === 'text/csv',
+        isCsv: fileExtension === 'csv',
       });
       // Convert the HTML template string to a Buffer (since that's what .convert wants)
       const htmlBuffer = Buffer.from(htmlTemplate, 'utf-8');
 
+      // NOTE: Gotenberg's markdown converter is outdated and seems to convert markdown to pdf with weird lists and line breaks. TODO: make an issue on their github for this (use userguide and changelog as evidence)
       const markdownConverter = new MarkdownConverter();
       const buffer = await markdownConverter.convert({
         html: htmlBuffer,
         markdown: file.buffer,
+        pdfUA: true,
       });
       file.buffer = buffer;
       // if it's a supported file type for libreoffice conversion, use LibreOfficeConverter
-    } else if (mimeTypeToExtensionMap[file.mimetype]) {
+    } else if (
+      supportedFileExtensionsForLibreOfficeConversion.includes(
+        fileExtension as FileExtension,
+      )
+    ) {
       const buffer = await LibreOffice.convert({
-        files: [
-          { data: file.buffer, ext: mimeTypeToExtensionMap[file.mimetype] },
-        ],
+        files: [{ data: file.buffer, ext: fileExtension as FileExtension }],
         // All config options here: https://github.com/cherfia/chromiumly
         pdfUA: true, // enables Universal Access (for improved accessibility)
         metadata: {
@@ -735,6 +739,30 @@ function handleChatbotTokenCheck(user: UserModel) {
     throw new HttpException('User has no chat token', HttpStatus.FORBIDDEN);
   }
 }
+
+const supportedFileExtensionsForLibreOfficeConversion: FileExtension[] = [
+  'doc',
+  'docx',
+  'xls',
+  'xlsx',
+  'ppt',
+  'pptx',
+  'odt',
+  'ods',
+  'odp',
+  'csv',
+  'txt',
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'tiff',
+  'pdf',
+  'html',
+  'rtf',
+  'vsd',
+  'vsdx',
+];
 
 // Type definition for LibreOffice file extensions (this is gathered from the Chromiumly package (it doesn't export it for some reason so i had to copy it here))
 type FileExtension =
@@ -868,32 +896,3 @@ type FileExtension =
   | 'xml'
   | 'xpm'
   | 'zabw';
-
-// Map of MIME types to LibreOffice file extensions
-const mimeTypeToExtensionMap: Record<string, FileExtension> = {
-  'application/msword': 'doc',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-    'docx',
-  'application/vnd.ms-excel': 'xls',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
-  'application/vnd.ms-powerpoint': 'ppt',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation':
-    'pptx',
-  'application/vnd.oasis.opendocument.text': 'odt',
-  'application/vnd.oasis.opendocument.spreadsheet': 'ods',
-  'application/vnd.oasis.opendocument.presentation': 'odp',
-  'application/rtf': 'rtf',
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/svg+xml': 'svg',
-  'image/gif': 'gif',
-  'image/tiff': 'tiff',
-  'application/epub+zip': 'epub',
-  'application/vnd.visio': 'vsd',
-  'application/vnd.ms-visio.drawing.main+xml': 'vsdx',
-  'application/pdf': 'pdf', // doesn't work for libreoffice conversion
-  'text/csv': 'csv', // also doesn't work for libreoffice conversion
-  // these bottom two are technically handled by their own converters but i'll leave it here for fun
-  'text/plain': 'txt',
-  'text/html': 'html',
-};
