@@ -162,11 +162,14 @@ export type UserTiny = {
  * Represents a partial course data needed on the front end when nested in a response.
  * @param id - The id number of this Course.
  * @param name - The subject and course number of this course. Ex: "CS 2500"
- * @param unreadCount - The number of unread questions in the async centre for this course.
+ * @param semesterId - The id of the semester this course is in.
+ * @param enabled - Whether this course is enabled or not.
  */
 export type CoursePartial = {
   id: number
   name: string
+  semesterId?: number
+  enabled?: boolean
 }
 
 export class RegistrationTokenDetails {
@@ -248,22 +251,18 @@ export enum AccountType {
 
 // chatbot questions and interactions
 
-export interface ChatbotQuestion {
-  id?: number
-  interactionId?: number
-  questionText?: string
-  responseText?: string
-  timestamp?: Date
-  userScore?: number
-  suggested?: boolean
-  isPreviousQuestion?: boolean
-  vectorStoreId?: string
+export interface UpdateDocumentChunkParams {
+  documentText: string
+  metadata: {
+    name: string
+    source: string
+  }
 }
 
-// comes from chatbot db
+// comes from helpme db
 export interface ChatbotQuestionResponseHelpMeDB {
   id: number
-  vectorStoreId?: string
+  vectorStoreId: string
   interactionId: number
   questionText: string
   responseText: string
@@ -318,16 +317,110 @@ export interface SourceDocument {
   pageNumbersString?: string // used only for the edit question modal
   sourceLink?: string
   pageNumber?: number
+  key?: string // used for front-end rendering
 }
 
-export interface ChatbotRequestParams {
-  interactionId: number
-  questionText: string
+export interface PreDeterminedQuestion {
+  id: string
+  pageContent: string
+  metadata: {
+    answer: string
+    courseId: string
+    inserted: boolean
+    sourceDocuments: SourceDocument[]
+    suggested: boolean
+    verified: boolean
+  }
+}
+
+export interface Message {
+  type: 'apiMessage' | 'userMessage'
+  message: string | void
+  verified?: boolean
+  sourceDocuments?: SourceDocument[]
+  questionId?: string
+  thinkText?: string | null // used on frontend only
+}
+
+export interface ChatbotAskParams {
+  question: string
+  history: Message[]
+  interactionId?: number
+  onlySaveInChatbotDB?: boolean
+}
+
+export interface ChatbotAskSuggestedParams {
+  question: string
   responseText: string
-  userScore?: number
-  suggested?: boolean
-  isPreviousQuestion?: boolean
   vectorStoreId: string
+}
+
+export interface AddDocumentChunkParams {
+  documentText: string
+  metadata: {
+    name: string
+    type: string
+    source?: string
+    loc?: Loc
+    id?: string
+    courseId?: number
+  }
+}
+
+export interface UpdateChatbotQuestionParams {
+  id: string
+  inserted?: boolean
+  sourceDocuments?: SourceDocument[]
+  question?: string
+  answer?: string
+  verified?: boolean
+  suggested?: boolean
+  selectedDocuments?: {
+    docId: string
+    pageNumbersString: string
+  }[]
+}
+
+// this is the response from the backend when new questions are asked
+// if question is I don't know, only answer and questionId are returned
+export interface ChatbotAskResponse {
+  chatbotRepoVersion: ChatbotAskResponseChatbotDB
+  helpmeRepoVersion: ChatbotQuestionResponseHelpMeDB | null
+}
+
+// comes from /ask from chatbot db
+export interface ChatbotAskResponseChatbotDB {
+  question: string
+  answer: string
+  questionId: string
+  interactionId: number
+  sourceDocuments?: SourceDocument[]
+  verified: boolean
+  courseId: string
+  isPreviousQuestion: boolean
+}
+
+export interface AddChatbotQuestionParams {
+  question: string
+  answer: string
+  verified: boolean
+  suggested: boolean
+  sourceDocuments: SourceDocument[]
+}
+
+export interface ChatbotSettings {
+  id: string
+  AvailableModelTypes: Record<string, string>
+  pageContent: string
+  metadata: ChatbotSettingsMetadata
+}
+
+export interface ChatbotSettingsMetadata {
+  modelName: string
+  prompt: string
+  similarityThresholdDocuments: number
+  temperature: number
+  topK: number
 }
 
 export interface InteractionResponse {
@@ -343,8 +436,10 @@ export class ChatbotDocument {
   subDocumentIds!: string[]
 }
 
-export type GetInteractionsAndQuestionsResponse = InteractionResponse[]
-
+export type GetInteractionsAndQuestionsResponse = {
+  helpmeDB: InteractionResponse[]
+  chatbotDB: ChatbotQuestionResponseChatbotDB[]
+}
 /**
  * Represents one of two possible roles for the global account
  */
@@ -833,6 +928,7 @@ export class Image {
 
 /**
  * Represents one of the seasons in which a course can take place.
+ * From Khoury implementation (not used in newer code or in semester model anymore)
  */
 export type Season = string
 
@@ -1067,6 +1163,7 @@ export class OrganizationPartial {
   websiteUrl?: string
   ssoEnabled?: boolean
   ssoUrl?: string
+  semesters?: SemesterPartial[]
 }
 
 export class OrganizationUserPartial {
@@ -1082,6 +1179,7 @@ export class OrganizationUserPartial {
 export class GetOrganizationResponse {
   id!: number
   name!: string
+  semesters!: SemesterPartial[]
   description?: string
   logoUrl?: string
   bannerUrl?: string
@@ -1274,14 +1372,6 @@ export type OrganizationProfessor = {
   userId: number
 }
 
-export class InteractionParams {
-  @IsInt()
-  courseId!: number
-
-  @IsInt()
-  userId!: number
-}
-
 export class UpdateOrganizationCourseDetailsParams {
   @IsString()
   @IsOptional()
@@ -1303,9 +1393,9 @@ export class UpdateOrganizationCourseDetailsParams {
   @IsOptional()
   timezone?: string
 
-  @IsString()
+  @IsInt()
   @IsOptional()
-  semesterName?: string
+  semesterId?: number
 
   @IsArray()
   @IsOptional()
@@ -1698,9 +1788,27 @@ export class EditCourseInfoParams {
 }
 
 export class SemesterPartial {
-  id!: number
-  season!: string
-  year!: number
+  @IsOptional()
+  @IsInt()
+  id?: number
+
+  @IsString()
+  @IsNotEmpty()
+  name!: string
+
+  @IsNotEmpty()
+  @IsDate()
+  @Type(() => Date)
+  startDate!: Date
+
+  @IsNotEmpty()
+  @IsDate()
+  @Type(() => Date)
+  endDate!: Date
+
+  @IsOptional()
+  @IsString()
+  description?: string
 }
 
 export class SSEQueueResponse {

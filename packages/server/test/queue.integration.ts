@@ -213,7 +213,7 @@ describe('Queue Integration', () => {
         .post(`/queues/${queue.id}/clean`)
         .expect(201);
 
-      await delay(100);
+      await delay(500);
       expect(
         await QuestionModel.inQueueWithStatus(
           queue.id,

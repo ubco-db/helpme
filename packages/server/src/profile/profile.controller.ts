@@ -59,7 +59,9 @@ export class ProfileController {
         where: { id: userId },
         relations: {
           courses: {
-            course: true,
+            course: {
+              semester: true,
+            },
           },
           desktopNotifs: true,
           chat_token: true,

@@ -3,53 +3,24 @@ import { InteractionModel } from './interaction.entity';
 import { ChatbotQuestionModel } from './question.entity';
 import { CourseModel } from '../course/course.entity';
 import { UserModel } from '../profile/user.entity';
-import { ChatbotQuestion, InteractionParams } from '@koh/common';
-
-export interface ChatbotResponse {
-  answer: string;
-  sourceDocuments: {
-    [key: string]: Set<string>;
-  };
-  similarDocuments: {
-    [key: string]: Set<string>;
-  };
-  similarQuestions: any[]; // TODO: Find correct datatype
-}
-
-export interface ChatQuestion {
-  id: string;
-  question: string;
-  answer: string;
-  user: string;
-  sourceDocuments: {
-    name: string;
-    type: string;
-    parts: string[];
-  }[];
-  suggested: boolean;
-}
-
-export interface ChatDocument {
-  id: string;
-  name: string;
-  type: string;
-  subDocumentIds: string[];
-}
 
 @Injectable()
 export class ChatbotService {
   // Could rename 'documents' to 'resources' for more accurate wording when its not only PDFs
   // filePath currently relative
 
-  async createInteraction(data: InteractionParams): Promise<InteractionModel> {
+  async createInteraction(
+    courseId: number,
+    userId: number,
+  ): Promise<InteractionModel> {
     const course = await CourseModel.findOne({
       where: {
-        id: data.courseId,
+        id: courseId,
       },
     });
     const user = await UserModel.findOne({
       where: {
-        id: data.userId,
+        id: userId,
       },
     });
 
@@ -75,10 +46,22 @@ export class ChatbotService {
     return await interaction.save();
   }
 
-  async createQuestion(data: ChatbotQuestion): Promise<ChatbotQuestionModel> {
+  async createQuestion(data: {
+    questionText: string;
+    responseText: string;
+    vectorStoreId: string;
+    suggested: boolean;
+    isPreviousQuestion: boolean;
+    interactionId: number;
+  }): Promise<ChatbotQuestionModel> {
     if (!data.questionText || !data.responseText || !data.vectorStoreId) {
+      const missingFields = [];
+      if (!data.questionText) missingFields.push('questionText');
+      if (!data.responseText) missingFields.push('responseText');
+      if (!data.vectorStoreId) missingFields.push('vectorStoreId');
+
       throw new HttpException(
-        'Missing question properties.',
+        `Missing required question properties: ${missingFields.join(', ')}`,
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -110,7 +93,8 @@ export class ChatbotService {
     return question;
   }
 
-  async editQuestion(data: ChatbotQuestion): Promise<ChatbotQuestionModel> {
+  // Unused, but going to leave here since it's not unlikely it will be used again in the future
+  async editQuestion(data: any): Promise<ChatbotQuestionModel> {
     const question = await ChatbotQuestionModel.findOne({
       where: {
         id: data.id,
@@ -175,5 +159,18 @@ export class ChatbotService {
     });
 
     return interactions;
+  }
+
+  async updateQuestionUserScore(questionId: number, userScore: number) {
+    const question = await ChatbotQuestionModel.findOne(questionId);
+    if (!question) {
+      throw new HttpException(
+        'Question not found based on the provided ID.',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    question.userScore = userScore;
+    await question.save();
+    return question;
   }
 }

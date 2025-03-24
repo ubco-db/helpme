@@ -11,13 +11,16 @@ import {
   Select,
   Tooltip,
   Space,
+  Progress,
+  ProgressProps,
 } from 'antd'
 import {
   InfoCircleOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons'
-import axios from 'axios'
-import { useUserInfo } from '@/app/contexts/userContext'
+import { API } from '@/app/api'
+import { getErrorMessage } from '@/app/utils/generalUtils'
+import { ChatbotSettingsMetadata } from '@koh/common'
 
 interface ChatbotSettingsModalProps {
   open: boolean
@@ -25,21 +28,11 @@ interface ChatbotSettingsModalProps {
   onClose: () => void
 }
 
-interface AvailableModelTypes {
-  [key: string]: string
-}
-
-interface ChatbotSettings {
-  id: string
-  AvailableModelTypes: AvailableModelTypes
-  pageContent: string
-  metadata: {
-    modelName: string
-    prompt: string
-    similarityThresholdDocuments: number
-    temperature: number
-    topK: number
-  }
+enum AvailableModelTypes {
+  Qwen = 'qwen2.5:7b',
+  DEEPSEEK = 'deepseek-r1:14b',
+  GPT4o_mini = 'gpt-4o-mini',
+  GPT4o = 'gpt-4o',
 }
 
 const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
@@ -48,31 +41,30 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
   onClose,
 }) => {
   const [form] = Form.useForm()
-  const { userInfo } = useUserInfo()
   const [loading, setLoading] = useState(false)
-  const [availableModels, setAvailableModels] = useState<AvailableModelTypes>(
-    {},
-  )
+  const [availableModels, setAvailableModels] = useState<string[] | null>(null)
 
   const fetchChatbotSettings = useCallback(async () => {
-    try {
-      setLoading(true)
-      const response = await axios.get<ChatbotSettings>(
-        `/chat/${courseId}/oneChatbotSetting`,
-        {
-          headers: { HMS_API_TOKEN: userInfo.chat_token.token },
-        },
-      )
-      setAvailableModels(response.data.AvailableModelTypes)
-      form.setFieldsValue({
-        ...response.data.metadata,
+    setLoading(true)
+    await API.chatbot.staffOnly
+      .getSettings(courseId)
+      .then((currentChatbotSettings) => {
+        setAvailableModels(
+          Object.values(currentChatbotSettings.AvailableModelTypes),
+        )
+        form.setFieldsValue({
+          ...currentChatbotSettings.metadata,
+        })
       })
-    } catch (error) {
-      message.error('Failed to load chatbot settings')
-    } finally {
-      setLoading(false)
-    }
-  }, [courseId, userInfo.chat_token.token, form])
+      .catch((error) => {
+        message.error(
+          'Failed to load chatbot settings: ' + getErrorMessage(error),
+        )
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }, [courseId, form])
 
   useEffect(() => {
     if (open && courseId) {
@@ -80,7 +72,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
     }
   }, [open, courseId, fetchChatbotSettings])
 
-  const handleUpdate = async (values: any) => {
+  const handleUpdate = async (values: ChatbotSettingsMetadata) => {
     const updateData = {
       modelName: values.modelName,
       prompt: values.prompt,
@@ -89,19 +81,19 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
       topK: values.topK,
     }
 
-    try {
-      setLoading(true)
-      await axios.patch(`/chat/${courseId}/updateChatbotSetting`, updateData, {
-        headers: { HMS_API_TOKEN: userInfo.chat_token.token },
+    setLoading(true)
+    await API.chatbot.staffOnly
+      .updateSettings(courseId, updateData)
+      .then(() => {
+        message.success('Settings updated successfully')
+        onClose()
       })
-
-      message.success('Settings updated successfully')
-      onClose()
-    } catch (error) {
-      message.error('Failed to update settings')
-    } finally {
-      setLoading(false)
-    }
+      .catch((err) => {
+        message.error('Failed to update settings' + getErrorMessage(err))
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }
 
   const handleReset = () => {
@@ -112,24 +104,125 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         'This will revert all settings to their default values and cannot be undone.',
       onOk: async () => {
         setLoading(true)
-        try {
-          await axios.patch(
-            `/chat/${courseId}/resetChatbotSetting`,
-            {},
-            {
-              headers: { HMS_API_TOKEN: userInfo.chat_token.token },
-            },
-          )
-          message.success('Settings have been reset successfully')
-          fetchChatbotSettings() // Reload settings to update UI
-        } catch (error) {
-          message.error('Failed to reset settings')
-        } finally {
-          setLoading(false)
-        }
+        await API.chatbot.staffOnly
+          .resetSettings(courseId)
+          .then(() => {
+            message.success('Settings have been reset successfully')
+            fetchChatbotSettings() // Reload settings to update UI
+          })
+          .catch((err) => {
+            message.error('Failed to reset settings' + getErrorMessage(err))
+          })
+          .finally(() => {
+            setLoading(false)
+          })
       },
     })
   }
+
+  // Build the options only from availableModels provided by chatbot server
+  const selectOptions = !availableModels
+    ? []
+    : availableModels.map((model) => {
+        switch (model) {
+          case AvailableModelTypes.GPT4o_mini:
+            return {
+              label: (
+                <span>
+                  <Tooltip
+                    title={
+                      <ModelTooltipInfo
+                        speed={100}
+                        quality={65}
+                        additionalNotes={['Runs on OpenAI servers']}
+                      />
+                    }
+                  >
+                    {' '}
+                    <InfoCircleOutlined />{' '}
+                  </Tooltip>
+                  Chat GPT-4o Mini
+                </span>
+              ),
+              value: model,
+            }
+          case AvailableModelTypes.GPT4o:
+            return {
+              label: (
+                <span>
+                  <Tooltip
+                    title={
+                      <ModelTooltipInfo
+                        speed={90}
+                        quality={75}
+                        additionalNotes={['Runs on OpenAI servers']}
+                      />
+                    }
+                  >
+                    {' '}
+                    <InfoCircleOutlined />{' '}
+                  </Tooltip>
+                  Chat GPT-4o
+                </span>
+              ),
+              value: model,
+            }
+          case AvailableModelTypes.DEEPSEEK:
+            return {
+              label: (
+                <span>
+                  <Tooltip
+                    title={
+                      <ModelTooltipInfo
+                        speed={60}
+                        quality={100}
+                        additionalNotes={[
+                          'Runs on UBC servers - Safe for student data',
+                          'Reasoning model - Will "think" before responding',
+                        ]}
+                      />
+                    }
+                  >
+                    {' '}
+                    <InfoCircleOutlined />{' '}
+                  </Tooltip>
+                  Deepseek R1{' '}
+                  <span className="text-gray-400"> (Recommended)</span>
+                </span>
+              ),
+              value: model,
+            }
+          case AvailableModelTypes.Qwen:
+            return {
+              label: (
+                <span>
+                  <Tooltip
+                    title={
+                      <ModelTooltipInfo
+                        speed={75}
+                        quality={85}
+                        additionalNotes={[
+                          'Runs on UBC servers - Safe for student data',
+                        ]}
+                      />
+                    }
+                  >
+                    {' '}
+                    <InfoCircleOutlined />{' '}
+                  </Tooltip>
+                  Qwen 2.5{' '}
+                  <span className="ml-5 text-gray-400"> (Recommended)</span>
+                </span>
+              ),
+              value: model,
+            }
+          default:
+            return {
+              label: model,
+              value: model,
+            }
+        }
+      })
 
   return (
     <Modal
@@ -146,16 +239,12 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
               Model Name <InfoCircleOutlined />
             </Tooltip>
           }
-          rules={[{ required: true, message: 'Please input the model name!' }]}
+          rules={[{ required: true, message: 'Please select a model' }]}
         >
-          <Select>
-            {Object.entries(availableModels).map(([key, value]) => (
-              <Select.Option
-                key={key}
-                value={value}
-              >{`${key}: ${value}`}</Select.Option>
-            ))}
-          </Select>
+          <Select
+            options={selectOptions}
+            loading={availableModels === null}
+          ></Select>
         </Form.Item>
 
         <Form.Item
@@ -165,7 +254,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
               Prompt <InfoCircleOutlined />
             </Tooltip>
           }
-          rules={[{ required: true, message: 'Please input the prompt!' }]}
+          rules={[{ required: true, message: 'Please input the prompt' }]}
         >
           <Input.TextArea rows={6} />
         </Form.Item>
@@ -227,3 +316,49 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
 }
 
 export default ChatbotSettingsModal
+
+const scaleColors: ProgressProps['strokeColor'] = {
+  '0%': '#108ee9',
+  '100%': '#87d068',
+}
+const trailColor = '#cfcfcf'
+
+const ModelTooltipInfo: React.FC<{
+  speed: number
+  quality: number
+  additionalNotes?: string[]
+}> = ({ speed, quality, additionalNotes }) => {
+  return (
+    <div>
+      <div className="mr-2 flex w-full items-center justify-between gap-x-2">
+        <div>Response Quality</div>
+        <Progress
+          percent={quality}
+          size="small"
+          steps={20}
+          strokeColor={scaleColors}
+          trailColor={trailColor}
+          showInfo={false}
+        />
+      </div>
+      <div className="mr-2 flex w-full items-center justify-between gap-x-2">
+        <div>Speed</div>
+        <Progress
+          percent={speed}
+          size="small"
+          steps={20}
+          strokeColor={scaleColors}
+          trailColor={trailColor}
+          showInfo={false}
+        />
+      </div>
+      {additionalNotes && (
+        <ul className="list-disc pl-4 leading-tight text-gray-100">
+          {additionalNotes.map((note, index) => (
+            <li key={index}>{note}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}

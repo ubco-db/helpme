@@ -8,7 +8,6 @@ import {
   InteractionFactory,
   initFactoriesFromService,
 } from '../../test/util/factories';
-import { ChatbotQuestion } from '@koh/common';
 import { ChatbotQuestionModel } from './question.entity';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
@@ -42,9 +41,9 @@ describe('ChatbotService', () => {
 
   describe('createInteraction', () => {
     it('should throw an error if course is not found', async () => {
-      await expect(
-        service.createInteraction({ courseId: 0, userId: 1 }),
-      ).rejects.toThrow('Course not found based on the provided ID.');
+      await expect(service.createInteraction(0, 1)).rejects.toThrow(
+        'Course not found based on the provided ID.',
+      );
     });
 
     it('should create an interaction', async () => {
@@ -63,12 +62,12 @@ describe('ChatbotService', () => {
   describe('createQuestion', () => {
     it('should create a question with valid properties', async () => {
       const interaction = await InteractionFactory.create();
-      const questionParams: ChatbotQuestion = {
+      const questionParams = {
         interactionId: interaction.id,
         questionText: "What's the meaning of life?",
         responseText: "It's a philosophical question.",
         suggested: true,
-        userScore: 5,
+        isPreviousQuestion: false,
         vectorStoreId: '1',
       };
       const createdQuestion = await service.createQuestion(questionParams);
@@ -90,16 +89,15 @@ describe('ChatbotService', () => {
         interactionId: interaction.id,
         questionText: 'Original question',
         responseText: 'Original response',
-        userScore: 3,
         suggested: true,
         vectorStoreId: '1',
+        isPreviousQuestion: false,
       });
 
-      const updatedQuestionData: ChatbotQuestion = {
+      const updatedQuestionData = {
         id: originalQuestion.id,
         questionText: 'Updated question',
         responseText: 'Updated response',
-        userScore: 5,
         suggested: false,
         isPreviousQuestion: true,
         vectorStoreId: '2',
@@ -115,7 +113,6 @@ describe('ChatbotService', () => {
       expect(updatedQuestion.responseText).toEqual(
         updatedQuestionData.responseText,
       );
-      expect(updatedQuestion.userScore).toEqual(updatedQuestionData.userScore);
       expect(updatedQuestion.suggested).toEqual(updatedQuestionData.suggested);
       expect(updatedQuestion.isPreviousQuestion).toEqual(
         updatedQuestionData.isPreviousQuestion,
@@ -131,15 +128,14 @@ describe('ChatbotService', () => {
         interactionId: interaction.id,
         questionText: 'Original question',
         responseText: 'Original response',
-        userScore: 3,
         suggested: true,
         vectorStoreId: '1',
+        isPreviousQuestion: false,
       });
 
-      const updatedQuestionData: ChatbotQuestion = {
+      const updatedQuestionData = {
         id: originalQuestion.id,
         questionText: 'Updated question',
-        userScore: 4,
       };
 
       const updatedQuestion = await service.editQuestion(updatedQuestionData);
@@ -152,7 +148,6 @@ describe('ChatbotService', () => {
       expect(updatedQuestion.responseText).toEqual(
         originalQuestion.responseText,
       );
-      expect(updatedQuestion.userScore).toEqual(updatedQuestionData.userScore);
       expect(updatedQuestion.suggested).toEqual(originalQuestion.suggested);
       expect(updatedQuestion.vectorStoreId).toEqual(
         originalQuestion.vectorStoreId,
@@ -167,13 +162,13 @@ describe('ChatbotService', () => {
         vectorStoreId: '1',
         questionText: 'Original question',
         responseText: 'Original response',
-        userScore: 3,
+        suggested: true,
+        isPreviousQuestion: false,
       });
 
-      const updatedQuestionData: ChatbotQuestion = {
+      const updatedQuestionData = {
         id: originalQuestion.id,
         interactionId: interaction2.id,
-        userScore: 3,
       };
 
       await service.editQuestion(updatedQuestionData);

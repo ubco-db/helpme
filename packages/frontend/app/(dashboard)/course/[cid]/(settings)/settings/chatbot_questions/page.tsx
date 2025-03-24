@@ -14,7 +14,7 @@ import { API } from '@/app/api'
 import {
   ChatbotQuestionResponseChatbotDB,
   ChatbotQuestionResponseHelpMeDB,
-  GetInteractionsAndQuestionsResponse,
+  InteractionResponse,
   SourceDocument,
 } from '@koh/common'
 import { ThumbsDown, ThumbsUp } from 'lucide-react'
@@ -90,21 +90,23 @@ export default function ChatbotQuestions({
   }, [search, questions])
 
   useEffect(() => {
-    fetch(`/chat/${courseId}/aggregateDocuments`, {
-      headers: { HMS_API_TOKEN: userInfo.chat_token.token },
-    })
-      .then((res) => res.json())
-      .then((json) => {
-        // Convert the json to the expected format
-        const formattedDocuments = json.map((doc: SourceDocument) => ({
+    API.chatbot.staffOnly
+      .getAllAggregateDocuments(courseId)
+      .then((res) => {
+        const formattedDocuments = res.map((doc) => ({
+          key: doc.id,
           docId: doc.id,
           docName: doc.pageContent,
-          sourceLink: doc.metadata?.source || '', // Handle the optional source field
-          pageNumbers: doc.metadata?.loc ? [doc.metadata.loc.pageNumber] : [], // Handle the optional loc field
+          pageContent: doc.pageContent,
+          sourceLink: doc.metadata?.source || '',
+          pageNumbers: doc.metadata?.loc ? [doc.metadata.loc.pageNumber] : [],
         }))
         setExistingDocuments(formattedDocuments)
       })
-  }, [userInfo.chat_token.token, courseId])
+      .catch((e) => {
+        message.error('Failed to fetch documents: ' + getErrorMessage(e))
+      })
+  }, [courseId])
 
   const columns: any[] = [
     {
@@ -145,10 +147,13 @@ export default function ChatbotQuestions({
               <Tooltip
                 title={`AI Thoughts: ${thinkText}`}
                 classNames={{
-                  body: 'w-96',
+                  body: 'w-96 max-h-[80vh] overflow-y-auto',
                 }}
               >
-                <span className="mr-1 rounded-lg bg-blue-100 p-0.5 pl-1 text-xs">
+                <span
+                  className="mr-1 rounded-lg bg-blue-100 p-0.5 pl-1 text-xs"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <i>Thoughts</i> 🧠
                 </span>
               </Tooltip>
@@ -383,37 +388,15 @@ export default function ChatbotQuestions({
     setDataLoading(true)
     // NOTE
     // We store the chatbot questions in two separate backends for some reason
-    // the helpme database stores interactions and has duplicate questions
+    // the helpme database stores interactions and has duplicate questions and userScores
     // the chatbot database stores .sourceDocuments and .verified and .inserted (AND is the only one updated when a question is edited AND is where added questions from AddChatbotQuestionModal go)
     // we need to fetch both and merge them
     // this becomes a really hard problem especially if you consider how the first question in an interaction can be a duplicate but subsequent questions can be different
     try {
-      // Fire off both requests simultaneously.
-      const [interactions, allQuestionsResponse] = await Promise.all([
-        API.chatbot.getInteractionsAndQuestions(courseId), // helpme questions
-        fetch(`/chat/${courseId}/allQuestions`, {
-          // chatbot questions
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: userInfo.chat_token.token,
-          },
-        }),
-      ])
+      const { helpmeDB, chatbotDB } =
+        await API.chatbot.staffOnly.getInteractionsAndQuestions(courseId)
 
-      // Check that the second response is ok.
-      if (!allQuestionsResponse.ok) {
-        const errorMessage = getErrorMessage(allQuestionsResponse)
-        throw new Error(errorMessage)
-      }
-
-      const allQuestionsData: ChatbotQuestionResponseChatbotDB[] =
-        await allQuestionsResponse.json()
-
-      const processedQuestions = processQuestions(
-        interactions,
-        allQuestionsData,
-      )
+      const processedQuestions = processQuestions(helpmeDB, chatbotDB)
 
       setQuestions(processedQuestions)
     } catch (e) {
@@ -421,27 +404,22 @@ export default function ChatbotQuestions({
       message.error('Failed to fetch questions: ' + errorMessage)
     }
     setDataLoading(false)
-  }, [courseId, userInfo.chat_token.token])
+  }, [courseId])
 
   useEffect(() => {
     getQuestions()
   }, [editingRecord, getQuestions])
 
   const deleteQuestion = async (questionId: string) => {
-    try {
-      await fetch(`/chat/${courseId}/question/${questionId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          HMS_API_TOKEN: userInfo.chat_token.token,
-        },
+    await API.chatbot.staffOnly
+      .deleteQuestion(courseId, questionId)
+      .then(() => {
+        getQuestions()
+        message.success('Question successfully deleted')
       })
-
-      getQuestions()
-      message.success('Question successfully deleted')
-    } catch (e) {
-      message.error('Failed to delete question.')
-    }
+      .catch((e) => {
+        message.error('Failed to delete question: ' + getErrorMessage(e))
+      })
   }
 
   return (
@@ -465,7 +443,6 @@ export default function ChatbotQuestions({
         <EditChatbotQuestionModal
           open={editRecordModalOpen}
           cid={courseId}
-          profile={userInfo}
           editingRecord={editingRecord}
           onCancel={() => setEditRecordModalOpen(false)}
           onSuccessfulUpdate={() => {
@@ -556,7 +533,6 @@ export default function ChatbotQuestions({
     </div>
   )
 }
-
 function mergeChatbotQuestions(
   helpMeQuestion?: ChatbotQuestionResponseHelpMeDB | null,
   chatbotQuestion?: ChatbotQuestionResponseChatbotDB | null,
@@ -600,7 +576,7 @@ function mergeChatbotQuestions(
 }
 
 function processQuestions(
-  interactions: GetInteractionsAndQuestionsResponse,
+  interactions: InteractionResponse[],
   allQuestionsData: ChatbotQuestionResponseChatbotDB[],
 ): ChatbotQuestionFrontend[] {
   //
