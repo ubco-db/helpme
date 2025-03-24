@@ -413,6 +413,7 @@ export class ChatbotController {
     return chatbotDeleteResponse;
   }
 
+  // TODO: eventually add tests for this I guess
   // note that there is no corresponding endpoint for this one on the frontend as you are supposed to make links to it
   @Get('document/:courseId/:docId')
   @UseGuards(CourseRolesBypassHelpMeCourseGuard)
@@ -530,6 +531,7 @@ export class ChatbotController {
     }
   }
 
+  // TODO: eventually add tests for this I guess
   @Post('document/:courseId/upload')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
