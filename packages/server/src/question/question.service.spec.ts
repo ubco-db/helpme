@@ -35,16 +35,17 @@ import { FactoryService } from 'factory/factory.service';
 describe('QuestionService', () => {
   let service: QuestionService;
   let dataSource: DataSource;
-
-  const redisMock = new RedisMemoryServer();
+  let redisMock: RedisMemoryServer;
+  let module: TestingModule;
 
   beforeAll(async () => {
+    redisMock = new RedisMemoryServer();
     const redisHost = await redisMock.getHost();
     const redisPort = await redisMock.getPort();
     console.log('redisHost', redisHost);
     console.log('redisPort', redisPort);
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
@@ -53,8 +54,8 @@ describe('QuestionService', () => {
           readyLog: false,
           errorLog: true,
           commonOptions: {
-            host: redisHost,
-            port: redisPort,
+            host: process.env.REDIS_HOST || 'localhost',
+            port: 6379,
           },
           config: [
             {
@@ -104,14 +105,30 @@ describe('QuestionService', () => {
   });
 
   afterAll(async () => {
-    await dataSource.destroy();
-    if (redisMock) {
-      await redisMock.stop();
+    try {
+      // Gracefully close module first to close Redis connections
+      if (module) {
+        await module.close();
+      }
+
+      // Then safely destroy dataSource if it's initialized
+      if (dataSource && dataSource.isInitialized) {
+        await dataSource.destroy();
+      }
+    } catch (err) {
+      console.error('Error cleaning up:', err);
+    } finally {
+      // Always stop Redis in finally block
+      if (redisMock) {
+        await redisMock.stop();
+      }
     }
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
+    if (dataSource.isInitialized) {
+      await dataSource.synchronize(true);
+    }
   });
 
   describe('changeStatus', () => {
