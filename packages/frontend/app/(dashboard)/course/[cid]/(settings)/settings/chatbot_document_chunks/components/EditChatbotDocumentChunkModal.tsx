@@ -5,6 +5,8 @@ import { Modal, Input, Form, message } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { SourceDocument } from '@koh/common'
+import { API } from '@/app/api'
+import ChunkHelpTooltip from './ChunkHelpTooltip'
 
 interface FormValues {
   documentName: string
@@ -18,7 +20,6 @@ interface EditDocumentChunkModalProps {
   courseId: number
   onSuccessfulUpdate: (value: SourceDocument) => void
   onCancel: () => void
-  chatbotToken: string
 }
 
 const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
@@ -27,47 +28,37 @@ const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
   courseId,
   onSuccessfulUpdate,
   onCancel,
-  chatbotToken,
 }): ReactElement => {
   const [form] = Form.useForm()
 
   const onFinish = async (values: FormValues) => {
-    try {
-      const response = await fetch(
-        `/chat/${courseId}/${editingRecord.id}/documentChunk`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: chatbotToken,
-          },
-          body: JSON.stringify({
-            documentText: values.content,
-            metadata: {
-              name: values.documentName,
-              source: values.source,
-            },
-          }),
+    await API.chatbot.staffOnly
+      .updateDocumentChunk(courseId, editingRecord.id || '', {
+        documentText: values.content,
+        metadata: {
+          name: values.documentName,
+          source: values.source,
         },
-      )
-
-      if (!response.ok) {
-        throw new Error('Network response was not ok')
-      }
-
-      const updatedDoc = await response.json()
-      onSuccessfulUpdate(updatedDoc)
-      message.success('Document updated successfully.')
-    } catch (e) {
-      const errorMessage = getErrorMessage(e)
-      message.error('Failed to update document: ' + errorMessage)
-    }
+      })
+      .then((updatedDoc) => {
+        onSuccessfulUpdate(updatedDoc)
+        message.success('Document updated successfully.')
+      })
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to update document: ' + errorMessage)
+      })
   }
 
   return (
     <Modal
       open={open}
-      title="Edit Document Chunk"
+      title={
+        <div className="flex items-center justify-start gap-x-3">
+          <div>Edit Document Chunk</div>
+          <ChunkHelpTooltip />
+        </div>
+      }
       okText="Save Changes"
       cancelText="Cancel"
       okButtonProps={{
@@ -97,16 +88,22 @@ const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
       <Form.Item
         label="Document Name"
         name="documentName"
-        rules={[{ required: true, message: 'Please input the document name!' }]}
+        tooltip={`This is the "name" of the document that this chunk came from `}
+        rules={[{ required: true, message: 'Please input the document name' }]}
       >
         <Input />
       </Form.Item>
-      <Form.Item label="Content" name="content">
+      <Form.Item
+        label="Content"
+        name="content"
+        tooltip={`This is the text that was parsed during the document upload process. The Retrieval Augmented Generation (RAG) system searches through this content to find relevant information for the chatbot to use in its response.`}
+      >
         <TextArea autoSize={{ minRows: 3, maxRows: 10 }} />
       </Form.Item>
       <Form.Item
-        label="Source URL"
+        label="Source Link"
         name="source"
+        tooltip="When a student clicks on the citation, they will be redirected to this link"
         rules={[
           {
             type: 'url',

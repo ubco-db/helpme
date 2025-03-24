@@ -57,17 +57,13 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
         const data = {
           question: question,
           history: [],
+          onlySaveInChatbotDB: true,
         }
-        const response = await fetch(`/chat/${courseId}/ask`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: userInfo.chat_token.token,
-          },
-          body: JSON.stringify(data),
-        })
-        const json = await response.json()
-        return json.answer
+        const response = await API.chatbot.studentsOrStaff.askQuestion(
+          courseId,
+          data,
+        )
+        return response.chatbotRepoVersion.answer
       } else {
         return 'All AI uses have been used up for today. Please try again tomorrow.'
       }
