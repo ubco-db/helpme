@@ -10,6 +10,9 @@ const FooterBar: React.FC = () => {
   const { userInfo, setUserInfo } = useUserInfo()
 
   const IReadTheChangelog = () => {
+    if (userInfo?.readChangeLog) {
+      return
+    }
     setUserInfo({ ...userInfo, readChangeLog: true })
 
     const readChangelog = async () => {
