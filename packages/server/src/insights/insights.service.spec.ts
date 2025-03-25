@@ -1,11 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CacheModule } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { InsightsService } from './insights.service';
 import {
   AsyncQuestionFactory,
   CourseFactory,
+  initFactoriesFromService,
   InteractionFactory,
   QuestionFactory,
   QuestionTypeFactory,
@@ -26,27 +27,34 @@ import {
   Role,
   TableOutputType,
 } from '@koh/common';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('InsightsService', () => {
   let service: InsightsService;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, CacheModule.register()],
+      imports: [TestTypeOrmModule, CacheModule.register(), FactoryModule],
       providers: [InsightsService],
     }).compile();
 
     service = module.get<InsightsService>(InsightsService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('computeOutput', () => {
@@ -826,7 +834,11 @@ describe('InsightsService', () => {
   describe('toggleInsightOn', () => {
     it('works correctly', async () => {
       const userFactory = await UserFactory.create();
-      const user = await UserModel.findOne(userFactory.id);
+      const user = await UserModel.findOne({
+        where: {
+          id: userFactory.id,
+        },
+      });
       expect(user.hideInsights).toStrictEqual([]);
       await service.toggleInsightOff(user, 'questionTypeBreakdown');
       await user.reload();
@@ -839,7 +851,11 @@ describe('InsightsService', () => {
       const userFactory = await UserFactory.create({
         hideInsights: ['questionTypeBreakdown'],
       });
-      const user = await UserModel.findOne(userFactory.id);
+      const user = await UserModel.findOne({
+        where: {
+          id: userFactory.id,
+        },
+      });
       expect(user.hideInsights).toStrictEqual(['questionTypeBreakdown']);
       await service.toggleInsightOn(user, 'questionTypeBreakdown');
       await user.reload();

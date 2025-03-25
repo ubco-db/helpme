@@ -1,6 +1,6 @@
-import { QueueSSEService } from '../queue/queue-sse.service';
+import { QueueSSEService } from './queue-sse.service';
 import {
-  Connection,
+  DataSource,
   EntitySubscriberInterface,
   EventSubscriber,
   UpdateEvent,
@@ -10,9 +10,9 @@ import { QueueModel } from './queue.entity';
 @EventSubscriber()
 export class QueueSubscriber implements EntitySubscriberInterface<QueueModel> {
   private queueSSEService: QueueSSEService;
-  constructor(connection: Connection, queueSSEService: QueueSSEService) {
+  constructor(dataSource: DataSource, queueSSEService: QueueSSEService) {
     this.queueSSEService = queueSSEService;
-    connection.subscribers.push(this);
+    dataSource.subscribers.push(this);
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types

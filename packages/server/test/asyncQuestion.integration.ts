@@ -272,8 +272,10 @@ describe('AsyncQuestion Integration', () => {
       expect(response.status).toBe(400);
       // vote should not have changed
       const updatedVote = await AsyncQuestionVotesModel.findOne({
-        userId: studentUser.id,
-        question: asyncQuestion,
+        where: {
+          userId: studentUser.id,
+          question: asyncQuestion,
+        },
       });
       expect(updatedVote.vote).toBe(1);
     });
@@ -417,9 +419,11 @@ describe('AsyncQuestion Integration', () => {
         ]),
       );
       // now mark question as visible
-      const asyncQuestion = await AsyncQuestionModel.findOneOrFail(
-        asyncQuestionFromResponse.id,
-      );
+      const asyncQuestion = await AsyncQuestionModel.findOneOrFail({
+        where: {
+          id: asyncQuestionFromResponse.id,
+        },
+      });
       asyncQuestion.visible = true;
       await asyncQuestion.save();
 

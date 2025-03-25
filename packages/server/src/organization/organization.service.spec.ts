@@ -1,36 +1,44 @@
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { OrganizationService } from './organization.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { OrganizationUserModel } from './organization-user.entity';
 import {
   CourseFactory,
+  initFactoriesFromService,
   OrganizationFactory,
   UserFactory,
 } from '../../test/util/factories';
 import { UserRole } from '@koh/common';
 import { OrganizationCourseModel } from './organization-course.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('OrganizationService', () => {
   let service: OrganizationService;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule],
+      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule],
       providers: [OrganizationService],
     }).compile();
     service = module.get<OrganizationService>(OrganizationService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('getOrganizationAndRoleByUserId', () => {

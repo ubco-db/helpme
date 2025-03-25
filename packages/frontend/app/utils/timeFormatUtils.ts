@@ -116,14 +116,7 @@ export function formatServeTime(time: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
-// Note: this doesn't seem to be used anywhere
-export function formatQueueTime(queue: QueuePartial): string {
-  if (!queue.startTime || !queue.endTime) {
-    return ''
-  }
-  return formatDateTime(queue.startTime) + ' - ' + formatDateTime(queue.endTime)
-}
-
+// not used i guess
 function formatDateTime(date: Date) {
   let hours = date.getHours()
   let minutes: any = date.getMinutes()

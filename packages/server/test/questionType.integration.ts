@@ -11,6 +11,7 @@ import { setupIntegrationTest } from './util/testUtils';
 import { QuestionTypeModel } from '../src/questionType/question-type.entity';
 import { QueueModel } from '../src/queue/queue.entity';
 import { ERROR_MESSAGES } from '@koh/common';
+import { IsNull } from 'typeorm';
 
 describe('QuestionType Integration', () => {
   const { supertest } = setupIntegrationTest(QuestionTypeModule);
@@ -63,9 +64,11 @@ describe('QuestionType Integration', () => {
   const expectQuestionTypeUnchanged = async (
     questionType: QuestionTypeModel,
   ) => {
-    const unchangedQuestionType = await QuestionTypeModel.findOne(
-      questionType.id,
-    );
+    const unchangedQuestionType = await QuestionTypeModel.findOne({
+      where: {
+        id: questionType.id,
+      },
+    });
     expect(unchangedQuestionType).not.toBeUndefined();
     expect(unchangedQuestionType.name).toBe(questionType.name);
     expect(unchangedQuestionType.color).toBe(questionType.color);
@@ -326,7 +329,7 @@ describe('QuestionType Integration', () => {
       const questionType = await QuestionTypeModel.findOne({
         where: {
           cid: course.id,
-          queueId: null,
+          queueId: IsNull(),
           name: newQuestionType.name,
         },
       });
@@ -380,7 +383,11 @@ describe('QuestionType Integration', () => {
       expect(resp.status).toBe(200);
       expect(resp.text).toBe(`Successfully created ${newQuestionType.name}`);
 
-      const updatedQueue = await QueueModel.findOne(queue.id);
+      const updatedQueue = await QueueModel.findOne({
+        where: {
+          id: queue.id,
+        },
+      });
       const generatedTagId = Object.keys(updatedQueue.config.tags).find(
         (tagId) => tagId.startsWith('New Question Type_'),
       );
@@ -421,7 +428,11 @@ describe('QuestionType Integration', () => {
       expect(resp.status).toBe(200);
       expect(resp.text).toBe(`Successfully created ${newQuestionType.name}`);
 
-      const updatedQueue = await QueueModel.findOne(queue.id);
+      const updatedQueue = await QueueModel.findOne({
+        where: {
+          id: queue.id,
+        },
+      });
       const generatedTagId = Object.keys(updatedQueue.config.tags).find(
         (tagId) => tagId.startsWith('New Question Type_'),
       );
@@ -459,7 +470,11 @@ describe('QuestionType Integration', () => {
       expect(resp.status).toBe(200);
       expect(resp.text).toBe(`Successfully created ${newQuestionType.name}`);
 
-      const updatedQueue = await QueueModel.findOne(queue.id);
+      const updatedQueue = await QueueModel.findOne({
+        where: {
+          id: queue.id,
+        },
+      });
       const generatedTagId = Object.keys(updatedQueue.config.tags).find(
         (tagId) => tagId.startsWith('NewQuestion Type_'),
       );
@@ -608,7 +623,11 @@ describe('QuestionType Integration', () => {
       });
       expect(deletedQuestionType).toBeUndefined();
 
-      const updatedQueue = await QueueModel.findOne(queue.id);
+      const updatedQueue = await QueueModel.findOne({
+        where: {
+          id: queue.id,
+        },
+      });
       expect(updatedQueue.config).toEqual({
         ...exampleConfig,
         tags: {
@@ -650,7 +669,11 @@ describe('QuestionType Integration', () => {
       });
       expect(deletedQuestionType).toBeUndefined();
 
-      const updatedQueue = await QueueModel.findOne(queue.id);
+      const updatedQueue = await QueueModel.findOne({
+        where: {
+          id: queue.id,
+        },
+      });
       expect(updatedQueue.config).toEqual({
         tags: {},
       });

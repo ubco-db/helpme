@@ -1,5 +1,4 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { RedisService } from 'nestjs-redis';
 import { Redis } from 'ioredis';
 import { QueueChatsModel } from './queue-chats.entity';
 import { UserModel } from 'profile/user.entity';
@@ -10,6 +9,7 @@ import {
   QueueChatUserPartial,
 } from '@koh/common';
 import { QuestionModel } from 'question/question.entity';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 
 const ChatMessageRedisKey = 'queue_chat_messages';
 const ChatMetadataRedisKey = 'queue_chat_metadata';
