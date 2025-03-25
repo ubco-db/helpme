@@ -30,6 +30,8 @@ import { useUserInfo } from '@/app/contexts/userContext'
 const defaultValues: CourseCloneAttributes = {
   professorIds: [],
   includeDocuments: true,
+  useSection: false,
+  includeInsertedQuestions: false,
   cloneAttributes: {
     name: true,
     sectionGroupName: true,
@@ -427,12 +429,32 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                         name="includeDocuments"
                         valuePropName="checked"
                         noStyle
-                        tooltip="Include existing linked document chunks for chatbot without timed data (eg. dated announcements, assignments, etc.)"
+                        tooltip="Include existing linked document chunks for chatbot without timed documents (eg. dated announcements, assignments, etc.)"
                       >
                         <Checkbox>
                           Include Linked Documents (This process will take a
                           long time)
                         </Checkbox>
+                      </Form.Item>
+                      <Form.Item
+                        noStyle
+                        shouldUpdate={(prevValues, curValues) =>
+                          prevValues.includeDocuments !==
+                          curValues.includeDocuments
+                        }
+                      >
+                        {({ getFieldValue }) =>
+                          getFieldValue('includeDocuments') ? (
+                            <Form.Item
+                              name="includeInsertedQuestions"
+                              valuePropName="checked"
+                              noStyle
+                              tooltip="Include chatbot questions that were inserted back as documents by the professor (this will include questions answered with timed documents --eg. dated announcements, assignments, etc.--"
+                            >
+                              <Checkbox>Include Inserted Questions</Checkbox>
+                            </Form.Item>
+                          ) : null
+                        }
                       </Form.Item>
                     </div>
                   </Form.Item>

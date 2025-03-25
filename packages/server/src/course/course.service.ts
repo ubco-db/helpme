@@ -577,26 +577,26 @@ export class CourseService {
         );
       }
 
-      const postDocumentsResponse = await fetch(
-        `http://localhost:3003/chat/${courseId}/cloneCourseDocuments/${clonedCourse.id}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: chatToken,
+      if (cloneData.includeDocuments) {
+        const postDocumentsResponse = await fetch(
+          `http://localhost:3003/chat/${courseId}/cloneCourseDocuments/${clonedCourse.id}/${cloneData.includeInsertedQuestions === true}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              HMS_API_TOKEN: chatToken,
+            },
           },
-        },
-      );
-
-      console.log(postDocumentsResponse);
-
-      if (!postDocumentsResponse.ok) {
-        console.error(
-          `Failed to copy chatbot documents from original course in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
         );
-        throw new BadRequestException(
-          'Failed to copy chatbot documents from original course in chatbot service',
-        );
+
+        if (!postDocumentsResponse.ok) {
+          console.error(
+            `Failed to copy chatbot documents from original course in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
+          );
+          throw new BadRequestException(
+            'Failed to copy chatbot documents from original course in chatbot service',
+          );
+        }
       }
 
       if (professorIds.includes(userId)) {

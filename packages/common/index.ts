@@ -180,10 +180,11 @@ export type CoursePartial = {
  */
 export type CourseCloneAttributes = {
   professorIds: number[]
-  useSection?: boolean
+  useSection: boolean
   newSemesterId?: number
   newSection?: string
   includeDocuments: boolean
+  includeInsertedQuestions?: boolean
   cloneAttributes: {
     name?: boolean
     sectionGroupName?: boolean
