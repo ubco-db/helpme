@@ -94,7 +94,12 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
       width: '70%',
       align: 'left',
       render: (text, course) => (
-        <span className="text-lg font-semibold">{text}</span>
+        <span className="flex items-center text-lg font-semibold">
+          {text}
+          {course.course.sectionGroupName && (
+            <span className="ml-1 text-sm text-gray-600">{`[${course.course.sectionGroupName}]`}</span>
+          )}
+        </span>
       ),
     },
     {
@@ -309,8 +314,8 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                   <Meta
                     title={course.course.name}
                     description={
-                      <div className="text-sm font-semibold">
-                        {course.course.sectionGroupName}
+                      <div className="text-xs font-semibold text-gray-600">
+                        {`[${course.course.sectionGroupName}]`}
                       </div>
                     }
                   />
