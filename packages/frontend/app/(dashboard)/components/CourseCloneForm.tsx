@@ -7,12 +7,12 @@ import {
   Form,
   Checkbox,
   Input,
-  InputNumber,
   Select,
   Tooltip,
   Tag,
   message,
   Switch,
+  Popconfirm,
 } from 'antd'
 import {
   CourseCloneAttributes,
@@ -26,10 +26,11 @@ import {
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
+import { ExclamationCircleFilled } from '@ant-design/icons'
 
 const defaultValues: CourseCloneAttributes = {
   professorIds: [],
-  includeDocuments: true,
+  includeDocuments: false,
   useSection: false,
   includeInsertedQuestions: false,
   cloneAttributes: {
@@ -69,7 +70,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   courseData,
 }) => {
   const [visible, setVisible] = useState(false)
-  const [confirmLoading, setConfirmLoading] = useState(false) // new loading state
+  const [confirmLoading, setConfirmLoading] = useState(false)
   const [professors, setProfessors] = useState<OrganizationProfessor[]>()
   const [form] = Form.useForm<CourseCloneAttributes>()
   const { userInfo, setUserInfo } = useUserInfo()
@@ -84,7 +85,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   const isAdmin =
     user && user.organization?.organizationRole === OrganizationRole.ADMIN
 
-  const handleOk = async () => {
+  const handleClone = async () => {
     setConfirmLoading(true)
     try {
       const userCourse = await API.course.createClone(
@@ -121,41 +122,87 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
     fetchProfessors()
   }, [courseData.courseId, isAdmin, organization.id])
 
-  const handleCancel = () => {
+  const handleCancelCloneModal = () => {
     setVisible(false)
   }
 
+  const includeDocumentsValue = Form.useWatch('includeDocuments', form)
+
   return (
-    <div className="flex flex-col items-center md:flex-row">
-      <div className="mb-2 w-full md:mr-5 md:w-5/6 md:text-left">
-        <p className="font-bold">Clone Course</p>
-        <p>
-          This feature allows you to clone select settings of this course to for
-          future courses in new semesters or new sections of the course in the
-          same semester. Any further changes from the original course&apos;s
-          settings can be set in the settings page of the new course once it is
-          successfully cloned. You will automatically be assigned professor of
-          the new course. Only organization administrators can assign other
-          professors.
-        </p>
+    <>
+      <div className="flex flex-col items-center md:flex-row">
+        <div className="mb-2 w-full md:mr-5 md:w-5/6 md:text-left">
+          <p className="font-bold">Clone Course</p>
+          <p>
+            This feature allows you to clone select settings of this course to
+            for future courses in new semesters or new sections of the course in
+            the same semester. Any further changes from the original
+            course&apos;s settings can be set in the settings page of the new
+            course once it is successfully cloned. You will automatically be
+            assigned professor of the new course. Only organization
+            administrators can assign other professors.
+          </p>
+        </div>
+        <Button type="primary" onClick={openModal}>
+          Clone Course
+        </Button>
       </div>
-      <Button type="primary" onClick={openModal}>
-        Clone Course
-      </Button>
       <Modal
         title="Clone Course Settings"
         open={visible}
-        onOk={handleOk}
-        onCancel={handleCancel}
+        onOk={handleClone}
+        onCancel={handleCancelCloneModal}
         okText="Clone"
         confirmLoading={confirmLoading}
+        footer={[
+          <Button key="back" onClick={handleCancelCloneModal}>
+            Cancel
+          </Button>,
+          includeDocumentsValue ? (
+            <Popconfirm
+              title="Important Notice"
+              description={
+                <div className="flex flex-col gap-1">
+                  <p>Cloning chatbot documents will take much longer.</p>{' '}
+                  <p>To see its progress, please stay on this page.</p>{' '}
+                  <p>
+                    Are you sure you wish to include chatbot documents in your
+                    clone?
+                  </p>
+                </div>
+              }
+              okText="Yes"
+              cancelText="No"
+              icon={<ExclamationCircleFilled className="text-blue-500" />}
+              onConfirm={handleClone}
+              okButtonProps={{ className: 'px-4' }}
+              cancelButtonProps={{ className: 'px-4' }}
+            >
+              <Button key="submit" type="primary" loading={confirmLoading}>
+                Clone
+              </Button>
+            </Popconfirm>
+          ) : (
+            <Button
+              key="submit"
+              type="primary"
+              loading={confirmLoading}
+              onClick={handleClone}
+            >
+              Clone
+            </Button>
+          ),
+        ]}
         width={{
           xs: '90%',
-          lg: '70%',
+          sm: '85%',
+          md: '80%',
+          lg: '75%',
+          xl: '70%',
+          xxl: '65%',
         }}
-        className="flex items-center justify-center"
       >
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" className="w-full">
           {user.organization?.organizationRole === OrganizationRole.ADMIN &&
           professors ? (
             <Form.Item
@@ -429,10 +476,10 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                         name="includeDocuments"
                         valuePropName="checked"
                         noStyle
-                        tooltip="Include existing linked document chunks for chatbot without timed documents (eg. dated announcements, assignments, etc.)"
+                        tooltip="Include existing chatbot document chunks for chatbot without timed documents (eg. dated announcements, assignments, etc.)"
                       >
                         <Checkbox>
-                          Include Linked Documents (This process will take a
+                          Include Chatbot Documents (This process will take a
                           long time)
                         </Checkbox>
                       </Form.Item>
@@ -451,7 +498,9 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                               noStyle
                               tooltip="Include chatbot questions that were inserted back as documents by the professor (this will include questions answered with timed documents --eg. dated announcements, assignments, etc.--"
                             >
-                              <Checkbox>Include Inserted Questions</Checkbox>
+                              <Checkbox className="ml-4">
+                                Include Inserted Questions
+                              </Checkbox>
                             </Form.Item>
                           ) : null
                         }
@@ -464,7 +513,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </>
   )
 }
 
