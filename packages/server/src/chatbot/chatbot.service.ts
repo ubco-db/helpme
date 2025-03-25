@@ -162,7 +162,11 @@ export class ChatbotService {
   }
 
   async updateQuestionUserScore(questionId: number, userScore: number) {
-    const question = await ChatbotQuestionModel.findOne(questionId);
+    const question = await ChatbotQuestionModel.findOne({
+      where: {
+        id: questionId,
+      },
+    });
     if (!question) {
       throw new HttpException(
         'Question not found based on the provided ID.',

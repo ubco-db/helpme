@@ -323,7 +323,7 @@ export class OrganizationController {
         )}`,
       });
     }
-    await getManager().transaction(async (manager) => {
+    await this.dataSource.transaction(async (manager) => {
       // Create course entity
       const newCourse = manager.create(CourseModel, {
         name: courseDetails.name,
@@ -431,7 +431,7 @@ export class OrganizationController {
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
     @User({ organizationUser: true }) user: UserModel,
   ): Promise<Response<void>> {
-    await getManager().transaction(async (manager) => {
+    await this.dataSource.transaction(async (manager) => {
       const courseInfo = await manager.findOne(OrganizationCourseModel, {
         where: {
           organizationId: oid,

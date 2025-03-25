@@ -231,20 +231,20 @@ export class SeedController {
       where: { name: 'CS 310' },
     });
 
-    const organization = await OrganizationFactory.create({
+    const organization = await this.factoryService.OrganizationFactory.create({
       name: 'UBCO',
       description: 'UBC Okanagan',
       legacyAuthEnabled: true,
     });
 
-    const semester1 = await SemesterFactory.create({
+    const semester1 = await this.factoryService.SemesterFactory.create({
       organization: organization,
       startDate: new Date('2020-09-01'),
       endDate: new Date('2020-12-31'),
       name: 'Fall 2020',
     });
 
-    const semester2 = await SemesterFactory.create({
+    const semester2 = await this.factoryService.SemesterFactory.create({
       organization: organization,
       startDate: new Date('2020-05-01'),
       endDate: new Date('2020-08-31'),
@@ -283,7 +283,7 @@ export class SeedController {
       where: { name: 'CS 310' },
     });
 
-    await CourseSettingsFactory.create({
+    await this.factoryService.CourseSettingsFactory.create({
       course: course1,
       courseId: course1.id,
       chatBotEnabled: true,
@@ -476,11 +476,6 @@ export class SeedController {
         email: 'orgProfessor@ubc.ca',
         firstName: 'Organization',
         lastName: 'Professor',
-        insights: [
-          'QuestionTypeBreakdown',
-          'TotalQuestionsAsked',
-          'TotalStudents',
-        ],
         password: hashedPassword1,
         emailVerified: true,
       });
@@ -578,7 +573,7 @@ export class SeedController {
       allowQuestions: true,
     });
 
-    const questionType1 = await QuestionTypeFactory.create({
+    const questionType1 = await this.factoryService.QuestionTypeFactory.create({
       cid: course1.id,
       queue: queue1,
     });
