@@ -759,6 +759,7 @@ const supportedFileExtensionsForLibreOfficeConversion: FileExtension[] = [
   'jpeg',
   'gif',
   'tiff',
+  'svg',
   'pdf',
   'html',
   'rtf',
