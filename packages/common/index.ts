@@ -186,11 +186,8 @@ export type CourseCloneAttributes = {
   includeDocuments: boolean
   includeInsertedQuestions?: boolean
   cloneAttributes: {
-    name?: boolean
-    sectionGroupName?: boolean
     coordinator_email?: boolean
     zoomLink?: boolean
-    timezone?: boolean
     courseInviteCode?: boolean
   }
   cloneCourseSettings: {

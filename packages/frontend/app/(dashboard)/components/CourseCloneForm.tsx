@@ -34,11 +34,8 @@ const defaultValues: CourseCloneAttributes = {
   useSection: false,
   includeInsertedQuestions: false,
   cloneAttributes: {
-    name: true,
-    sectionGroupName: true,
     coordinator_email: true,
     zoomLink: false,
-    timezone: true,
     courseInviteCode: false,
   },
   cloneCourseSettings: {
@@ -88,9 +85,15 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   const handleClone = async () => {
     setConfirmLoading(true)
     try {
+      const cloneData = form.getFieldsValue()
+
+      if (!cloneData.professorIds.length) {
+        cloneData.professorIds = [user.id]
+      }
+
       const userCourse = await API.course.createClone(
         courseData.courseId!,
-        form.getFieldsValue(),
+        cloneData,
       )
       if (userCourse)
         setUserInfo({
@@ -98,6 +101,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           courses: [...userInfo.courses, userCourse as UserCourse],
         })
       message.success('Course cloned successfully')
+      form.resetFields()
       setVisible(false)
     } catch (error: any) {
       message.error(getErrorMessage(error))
@@ -127,6 +131,10 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   }
 
   const includeDocumentsValue = Form.useWatch('includeDocuments', form)
+  const includeInsertedQuestionsValue = Form.useWatch(
+    'includeInsertedQuestions',
+    form,
+  )
 
   return (
     <>
@@ -162,9 +170,19 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
             <Popconfirm
               title="Important Notice"
               description={
-                <div className="flex flex-col gap-1">
-                  <p>Cloning chatbot documents will take much longer.</p>{' '}
-                  <p>To see its progress, please stay on this page.</p>{' '}
+                <div className="flex w-96 flex-col gap-1">
+                  <p>
+                    <b>Include Documents Warning:</b> Cloning chatbot documents
+                    will take much longer (about 30 seconds to a minute).
+                  </p>
+                  {includeInsertedQuestionsValue && (
+                    <p>
+                      <b>Include Inserted Questions Warning:</b> This process
+                      will not filter out answers to inserted questions relating
+                      to timed data.
+                    </p>
+                  )}
+                  <b>To see its progress, please stay on this page.</b>
                   <p>
                     Are you sure you wish to include chatbot documents in your
                     clone?
@@ -197,9 +215,9 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           xs: '90%',
           sm: '85%',
           md: '80%',
-          lg: '75%',
-          xl: '70%',
-          xxl: '65%',
+          lg: '70%',
+          xl: '65%',
+          xxl: '50%',
         }}
       >
         <Form form={form} layout="vertical" className="w-full">
@@ -329,20 +347,6 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           <Form.Item label="Course Attributes to Clone">
             <div className="ml-4 flex flex-col">
               <Form.Item
-                name={['cloneAttributes', 'name']}
-                valuePropName="checked"
-                noStyle
-              >
-                <Checkbox>Name</Checkbox>
-              </Form.Item>
-              <Form.Item
-                name={['cloneAttributes', 'sectionGroupName']}
-                valuePropName="checked"
-                noStyle
-              >
-                <Checkbox>Section Group Name</Checkbox>
-              </Form.Item>
-              <Form.Item
                 name={['cloneAttributes', 'coordinator_email']}
                 valuePropName="checked"
                 noStyle
@@ -355,13 +359,6 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                 noStyle
               >
                 <Checkbox>Zoom Link</Checkbox>
-              </Form.Item>
-              <Form.Item
-                name={['cloneAttributes', 'timezone']}
-                valuePropName="checked"
-                noStyle
-              >
-                <Checkbox>Timezone</Checkbox>
               </Form.Item>
               <Form.Item
                 name={['cloneAttributes', 'courseInviteCode']}
@@ -472,11 +469,17 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                       >
                         <Checkbox>Top K</Checkbox>
                       </Form.Item>
+                    </div>
+                  </Form.Item>
+                  <Form.Item
+                    label="Include Chatbot Documents"
+                    tooltip={`Include existing chatbot document chunks for chatbot without timed documents (eg. dated announcements, assignments, etc.)\n\nInclude chatbot questions that were inserted back as documents by the professor (this will include questions answered with timed documents --eg. dated announcements, assignments, etc.--)`}
+                  >
+                    <div className="ml-4 flex flex-col">
                       <Form.Item
                         name="includeDocuments"
                         valuePropName="checked"
                         noStyle
-                        tooltip="Include existing chatbot document chunks for chatbot without timed documents (eg. dated announcements, assignments, etc.)"
                       >
                         <Checkbox>
                           Include Chatbot Documents (This process will take a
@@ -496,10 +499,10 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                               name="includeInsertedQuestions"
                               valuePropName="checked"
                               noStyle
-                              tooltip="Include chatbot questions that were inserted back as documents by the professor (this will include questions answered with timed documents --eg. dated announcements, assignments, etc.--"
                             >
                               <Checkbox className="ml-4">
-                                Include Inserted Questions
+                                Include Manually Inserted Questions from Chatbot
+                                Interactions
                               </Checkbox>
                             </Form.Item>
                           ) : null

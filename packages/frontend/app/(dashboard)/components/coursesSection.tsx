@@ -79,7 +79,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         course.favourited ? (
           <StarFilled
             onClick={() => toggleFavourite(course)}
-            style={{ color: 'gold', cursor: 'pointer' }}
+            style={{ color: 'gold', cursor: 'pointer', fontSize: '1rem' }}
           />
         ) : (
           <StarOutlined
@@ -159,6 +159,9 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
 
   const sortedCoursesInCardView = useMemo(() => {
     return [...userInfo.courses]
+      .filter(
+        (userCourse) => userCourse.favourited && userCourse.course.enabled,
+      )
       .sort((a, b) => {
         const semesterA = semesters?.find(
           (semester) => semester.id === a.course.semesterId,
@@ -176,7 +179,6 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         }
         return 0
       })
-      .filter((userCourse) => userCourse.favourited)
   }, [userInfo.courses, semesters])
 
   return (
@@ -221,9 +223,11 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                   <Table
                     columns={columns}
                     size="small"
-                    dataSource={semesterCourses.sort((a, b) =>
-                      a.course.name.localeCompare(b.course.name),
-                    )}
+                    dataSource={semesterCourses
+                      .filter((userCourse) => userCourse.course.enabled)
+                      .sort((a, b) =>
+                        a.course.name.localeCompare(b.course.name),
+                      )}
                     rowKey={(course) => course.course.id}
                     pagination={
                       semesterCourses.length > 5 ? { pageSize: 5 } : false
@@ -310,13 +314,17 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                   </div>
                 }
               >
-                <div className="flex flex-wrap items-center justify-between align-middle">
+                <div className="flex flex-wrap items-start justify-between align-middle">
                   <Meta
                     title={course.course.name}
                     description={
-                      <div className="text-xs font-semibold text-gray-600">
-                        {`[${course.course.sectionGroupName}]`}
-                      </div>
+                      course.course.sectionGroupName ? (
+                        <div className="h-4 text-xs font-semibold text-gray-600">
+                          {`[${course.course.sectionGroupName}]`}
+                        </div>
+                      ) : (
+                        <div className="h-4"></div>
+                      )
                     }
                   />
                   <Tag

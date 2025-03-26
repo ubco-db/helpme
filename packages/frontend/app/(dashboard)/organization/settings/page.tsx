@@ -196,6 +196,7 @@ export default function SettingsPage(): ReactElement {
         setIsSemesterCreationModalOpen(false)
         message.success('Semester created successfully')
         setOrganizationSemesters((prev) => [...prev, semesterDetails])
+        semesterForm.resetFields()
       })
       .catch((error) => {
         message.error(error.response.data.message)
@@ -508,7 +509,7 @@ export default function SettingsPage(): ReactElement {
         </>
       )}
 
-      <Card title="Semester Management" bordered className="w-full">
+      <Card title="Semester Management" bordered className="mb-10 w-full">
         {organizationSemesters && organizationSemesters.length > 0 ? (
           organizationSemesters
             .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
@@ -548,8 +549,7 @@ export default function SettingsPage(): ReactElement {
             ))
         ) : (
           <Card.Grid className="w-[50%] text-center">
-            No semesters added yet. Click the button below to add a new
-            semester.
+            No semesters added yet. Click the button to add a new semester.
           </Card.Grid>
         )}
 

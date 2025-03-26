@@ -413,6 +413,12 @@ export class CourseService {
     cloneData: CourseCloneAttributes,
     chatToken: string,
   ): Promise<UserCourse | null> {
+    if (!cloneData.professorIds || cloneData.professorIds.length === 0) {
+      throw new BadRequestException(
+        'At least one professor must be provided for your course clone.',
+      );
+    }
+
     return await getManager().transaction(async (manager) => {
       const originalCourse = await manager.findOne(CourseModel, {
         where: { id: courseId },
@@ -440,21 +446,14 @@ export class CourseService {
 
       const clonedCourse = new CourseModel();
       clonedCourse.enabled = true;
+      clonedCourse.name = originalCourse.name;
+      clonedCourse.timezone = originalCourse.timezone;
 
-      if (cloneData.cloneAttributes?.name) {
-        clonedCourse.name = originalCourse.name;
-      }
-      if (cloneData.cloneAttributes?.sectionGroupName) {
-        clonedCourse.sectionGroupName = originalCourse.sectionGroupName;
-      }
       if (cloneData.cloneAttributes?.coordinator_email) {
         clonedCourse.coordinator_email = originalCourse.coordinator_email;
       }
       if (cloneData.cloneAttributes?.zoomLink) {
         clonedCourse.zoomLink = originalCourse.zoomLink;
-      }
-      if (cloneData.cloneAttributes?.timezone) {
-        clonedCourse.timezone = originalCourse.timezone;
       }
       if (cloneData.cloneAttributes?.courseInviteCode) {
         clonedCourse.courseInviteCode = originalCourse.courseInviteCode;

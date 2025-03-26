@@ -62,7 +62,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
                 id: response.course!.id,
                 name: response.course!.name,
                 semesterId: response.course!.semester?.id,
-                enabled: true,
+                enabled: response.course!.enabled,
                 sectionGroupName: response.course!.sectionGroupName!,
               },
               role: 'professor' as Role,

@@ -16,10 +16,15 @@ const columns: ColumnsType<UserCourse> = [
   {
     dataIndex: ['course', 'name'],
     key: 'name',
-    width: '60%',
+    width: '70%',
     align: 'left',
     render: (text, course) => (
-      <span className="text-lg font-semibold">{text}</span>
+      <span className="flex items-center text-lg font-semibold">
+        {text}
+        {course.course.sectionGroupName && (
+          <span className="ml-1 text-sm text-gray-600">{`[${course.course.sectionGroupName}]`}</span>
+        )}
+      </span>
     ),
   },
   {
