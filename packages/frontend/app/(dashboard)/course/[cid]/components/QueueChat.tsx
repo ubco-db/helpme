@@ -12,6 +12,7 @@ import { cn } from '@/app/utils/generalUtils'
 interface QueueChatProps {
   queueId: number
   questionId: number
+  staffId: number
   isMobile: boolean
   hidden: boolean
   isStaff: boolean
@@ -24,6 +25,7 @@ interface QueueChatProps {
 const QueueChat: React.FC<QueueChatProps> = ({
   queueId,
   questionId,
+  staffId,
   isMobile,
   hidden,
   isStaff,
@@ -49,7 +51,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     mutateQueueChat,
     newMessageCount,
     resetNewMessageCount,
-  } = useQueueChat(queueId, questionId)
+  } = useQueueChat(queueId, questionId, staffId)
   const messagesEndRef = useRef<HTMLDivElement | null>(null) // This handles auto scrolling
 
   // To always auto scroll to the bottom of the page when new messages are added
@@ -78,7 +80,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     setIsLoading(true)
     if (questionId) {
       API.queueChats
-        .sendMessage(queueId, questionId, input)
+        .sendMessage(queueId, questionId, staffId, input)
         .then(() => {
           mutateQueueChat()
           setInput('')

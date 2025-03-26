@@ -146,17 +146,25 @@ export class QuestionService {
     try {
       if (isResolving) {
         // Save chat metadata in database (if messages were exchanged)
-        await this.queueChatService.endChat(question.queueId, question.id);
+        await this.queueChatService.endChats(question.queueId, question.id);
       } else if (newStatus in ClosedQuestionStatus) {
         // Don't save chat metadata in database
-        await this.queueChatService.clearChat(question.queueId, question.id);
+        await this.queueChatService.clearChats(question.queueId, question.id);
       } else if (isFirstHelped) {
         // Create chat metadata in Redis
-        await this.queueChatService.createChat(
-          question.queueId,
-          question.taHelped,
-          question,
-        );
+        if (
+          !(await this.queueChatService.checkChatExists(
+            question.queueId,
+            question.id,
+            question.taHelpedId,
+          ))
+        ) {
+          await this.queueChatService.createChat(
+            question.queueId,
+            question.taHelped,
+            question,
+          );
+        }
       }
     } catch (err) {
       throw new HttpException(
@@ -196,7 +204,7 @@ export class QuestionService {
 
     let queue: QueueModel;
     try {
-      queue = await QueueModel.findOneOrFail(queueId);
+      queue = await QueueModel.findOneOrFail({ where: { id: queueId } });
     } catch (err) {
       throw new BadRequestException(
         ERROR_MESSAGES.questionController.studentTaskProgress.queueDoesNotExist,
@@ -333,7 +341,7 @@ export class QuestionService {
   }
 
   async resolveQuestions(queueId: number, helperId: number): Promise<void> {
-    const queue = await QueueModel.findOneOrFail(queueId);
+    const queue = await QueueModel.findOneOrFail({ where: { id: queueId } });
     const questions = await QuestionModel.find({
       where: {
         queueId,

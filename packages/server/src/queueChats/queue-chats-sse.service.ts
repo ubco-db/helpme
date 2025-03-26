@@ -7,8 +7,8 @@ import { QueueChatService } from 'queueChats/queue-chats.service';
 
 type QueueClientMetadata = { userId: number; role: Role };
 
-const idToRoom = (queueId: number, questionId: number) =>
-  `qc-${queueId}-${questionId}`;
+const idToRoom = (queueId: number, questionId: number, staffId: number) =>
+  `qc-${queueId}-${questionId}-${staffId}`;
 /**
  * Handle sending queue sse events
  */
@@ -22,38 +22,46 @@ export class QueueChatSSEService {
   subscribeClient(
     queueId: number,
     questionId: number,
+    staffId: number,
     res: Response,
     metadata: QueueClientMetadata,
   ): void {
     this.sseService.subscribeClient(
-      idToRoom(queueId, questionId),
+      idToRoom(queueId, questionId, staffId),
       res,
       metadata,
     );
   }
 
-  updateQueueChat = this.throttleUpdate(async (queueId, questionId) => {
-    const queueChat = await this.queueChatService.getChatData(
-      queueId,
-      questionId,
-    );
-    if (queueChat) {
-      this.sendToRoom(queueId, questionId, async () => ({ queueChat }));
-    }
-  });
+  updateQueueChat = this.throttleUpdate(
+    async (queueId, questionId, staffId) => {
+      const queueChat = await this.queueChatService.getChatData(
+        queueId,
+        questionId,
+        staffId,
+      );
+      if (queueChat) {
+        this.sendToRoom(queueId, questionId, staffId, async () => ({
+          queueChat,
+        }));
+      }
+    },
+  );
 
   private async sendToRoom(
     queueId: number,
     questionId: number,
+    staffId: number,
     data: (metadata: QueueClientMetadata) => Promise<SSEQueueChatResponse>,
   ) {
     await this.sseService.sendEvent(
-      idToRoom(queueId, questionId),
+      idToRoom(queueId, questionId, staffId),
       (metadata: QueueClientMetadata) => {
         if (
           !this.queueChatService.checkPermissions(
             queueId,
             questionId,
+            staffId,
             metadata.userId,
           )
         ) {
@@ -69,12 +77,16 @@ export class QueueChatSSEService {
   }
 
   private throttleUpdate(
-    updateFunction: (queueId: number, questionId: number) => Promise<void>,
+    updateFunction: (
+      queueId: number,
+      questionId: number,
+      staffId: number,
+    ) => Promise<void>,
   ) {
     return throttle(
-      async (queueId: number, questionId?: number) => {
+      async (queueId: number, questionId?: number, staffId?: number) => {
         try {
-          await updateFunction(queueId, questionId);
+          await updateFunction(queueId, questionId, staffId);
         } catch (e) {}
       },
       1000,

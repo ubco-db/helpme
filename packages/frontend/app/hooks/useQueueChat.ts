@@ -18,8 +18,9 @@ export interface useQueueChatReturn {
 export function useQueueChat(
   qid: number,
   questionId: number,
+  staffId: number,
 ): useQueueChatReturn {
-  const key = `/api/v1/queueChats/${qid}/${questionId}`
+  const key = `/api/v1/queueChats/${qid}/${questionId}/${staffId}`
   const [newMessageCount, setNewMessageCount] = useState(0)
 
   // Ref to track the previous length of the messages array in case of updates
@@ -27,7 +28,7 @@ export function useQueueChat(
 
   // Subscribe to SSE
   const isLive = useEventSource(
-    `/api/v1/queueChats/${qid}/${questionId}/sse`,
+    `/api/v1/queueChats/${qid}/${questionId}/${staffId}/sse`,
     'queueChat',
     useCallback(
       (data: SSEQueueChatResponse) => {
@@ -45,7 +46,7 @@ export function useQueueChat(
     data: queueChatData,
     error: queueChatError,
     mutate: mutateQueueChat,
-  } = useSWR(key, async () => API.queueChats.index(qid, questionId), {
+  } = useSWR(key, async () => API.queueChats.get(qid, questionId, staffId), {
     refreshInterval: isLive ? 0 : 10 * 1000,
   })
 
