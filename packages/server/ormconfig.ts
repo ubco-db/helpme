@@ -39,6 +39,7 @@ import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';
 import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entity';
 import { UnreadAsyncQuestionModel } from './src/asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from './src/asyncQuestion/asyncQuestionComment.entity';
+import { SuperCourseModel } from './src/course/super-course.entity';
 
 config();
 
@@ -91,6 +92,7 @@ const typeorm = {
     ApplicationConfigModel,
     QueueInviteModel,
     QueueChatsModel,
+    SuperCourseModel,
     InsightDashboardModel,
     LMSOrganizationIntegrationModel,
     LMSCourseIntegrationModel,

@@ -70,6 +70,7 @@ import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { CourseRoles } from 'decorators/course-roles.decorator';
+import { SuperCourseModel } from 'course/super-course.entity';
 
 // TODO: put the error messages in ERROR_MESSAGES object
 
@@ -377,17 +378,32 @@ export class OrganizationController {
           `Semester ID is invalid`,
           HttpStatus.BAD_REQUEST,
         );
-      } else if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
-        const semester = await manager.findOne(SemesterModel, {
-          where: { id: courseDetails.semesterId },
-          relations: ['courses'],
-        });
-        if (!semester) {
-          throw new HttpException(`Semester not found`, HttpStatus.NOT_FOUND);
-        }
-        newCourse.semester = semester;
-        await manager.save(newCourse);
+      } else if (courseDetails.semesterId && courseDetails.semesterId == -1) {
+        throw new HttpException(`Semester must be set`, HttpStatus.BAD_REQUEST);
       }
+
+      const semester = await manager.findOne(SemesterModel, {
+        where: { id: courseDetails.semesterId },
+        relations: ['courses'],
+      });
+      if (!semester) {
+        throw new HttpException(`Semester not found`, HttpStatus.NOT_FOUND);
+      }
+      newCourse.semester = semester;
+
+      const superCourse = await manager.findOne(SuperCourseModel, {
+        where: { name: newCourse.name },
+      });
+      if (!superCourse) {
+        const newSuperCourse = manager.create(SuperCourseModel, {
+          name: newCourse.name,
+          organizationId: oid,
+        });
+        await manager.save(newSuperCourse);
+      }
+      newCourse.superCourse = superCourse;
+
+      await manager.save(newCourse);
 
       // Create default settings
       const newCourseSettings = manager.create(CourseSettingsModel, {
@@ -504,17 +520,17 @@ export class OrganizationController {
         );
       } else if (courseDetails.semesterId && courseDetails.semesterId == -1) {
         throw new HttpException(`Semester must be set`, HttpStatus.BAD_REQUEST);
-      } else if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
-        const semester = await manager.findOne(SemesterModel, {
-          where: { id: courseDetails.semesterId },
-          relations: ['courses'],
-        });
-        if (!semester) {
-          throw new HttpException(`Semester not found`, HttpStatus.NOT_FOUND);
-        }
-
-        courseInfo.course.semester = semester;
       }
+
+      const semester = await manager.findOne(SemesterModel, {
+        where: { id: courseDetails.semesterId },
+        relations: ['courses'],
+      });
+      if (!semester) {
+        throw new HttpException(`Semester not found`, HttpStatus.NOT_FOUND);
+      }
+
+      courseInfo.course.semester = semester;
 
       courseInfo.course.name = courseDetails.name;
 
@@ -528,6 +544,23 @@ export class OrganizationController {
 
       courseInfo.course.zoomLink = courseDetails.zoomLink;
       courseInfo.course.timezone = courseDetails.timezone;
+
+      // To update production courses with the new super course feature when they update their course
+      // TODO: remove once all existing production courses have non-null super courses
+      const standardizedCourseName = courseInfo.course.name
+        .trim()
+        .toLowerCase();
+      const superCourse = await manager.findOne(SuperCourseModel, {
+        where: { name: standardizedCourseName },
+      });
+      if (!superCourse) {
+        const newSuperCourse = manager.create(SuperCourseModel, {
+          name: standardizedCourseName,
+          organizationId: oid,
+        });
+        await manager.save(newSuperCourse);
+      }
+      courseInfo.course.superCourse = superCourse;
 
       await manager.save(courseInfo.course);
       // Remove current professors

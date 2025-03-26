@@ -41,6 +41,12 @@ const InsightsMenu: React.FC<InsightsMenuProps> = ({
       case 'Staff':
         icon = <TeamOutlined />
         break
+      case 'Other_Sections':
+        icon = <LineChartOutlined /> //PAT TODO: replace with a better icon
+        break
+      case 'Other_Semesters':
+        icon = <LineChartOutlined /> //PAT TODO: replace with a better icon
+        break
     }
 
     return {

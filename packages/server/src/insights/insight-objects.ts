@@ -6,6 +6,7 @@ import {
   InsightType,
   MultipleGanttChartOutputType,
   numToWeekday,
+  PossibleOutputTypes,
   Role,
   StringMap,
   TableOutputType,
@@ -1281,6 +1282,40 @@ export const StaffQuestionTimesByDay: InsightObject = {
       });
     }
     return outputs;
+  },
+};
+
+export const TotalQuestionsAcrossSemesters: InsightObject = {
+  displayName: 'Total Questions Asked Acress Semesters',
+  description: '',
+  roles: [],
+  insightType: InsightType.Chart,
+  insightCategory: '',
+  compute: function ({
+    insightFilters,
+    cacheManager,
+  }: {
+    insightFilters: any;
+    cacheManager: Cache;
+  }): Promise<PossibleOutputTypes> {
+    throw new Error('Function not implemented.');
+  },
+};
+
+export const TotalQuestionsAcrossSections: InsightObject = {
+  displayName: 'Total Questions Asked Across Sections',
+  description: '',
+  roles: [],
+  insightType: InsightType.Chart,
+  insightCategory: '',
+  compute: function ({
+    insightFilters,
+    cacheManager,
+  }: {
+    insightFilters: any;
+    cacheManager: Cache;
+  }): Promise<PossibleOutputTypes> {
+    throw new Error('Function not implemented.');
   },
 };
 
