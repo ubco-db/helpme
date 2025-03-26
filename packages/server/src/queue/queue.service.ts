@@ -28,7 +28,7 @@ import { QuestionModel } from 'question/question.entity';
 import { getManager, In } from 'typeorm';
 import { QueueModel } from './queue.entity';
 import { AlertsService } from '../alerts/alerts.service';
-import { ApplicationConfigService } from 'config/application_config.service';
+import { ApplicationConfigService } from '../config/application_config.service';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
 import { UserModel } from 'profile/user.entity';

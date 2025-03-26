@@ -92,7 +92,12 @@ export default function ChatbotSettings({
       dataIndex: 'sourceLink',
       key: 'sourceLink',
       render: (text: string) => (
-        <Link href={text} target="_blank" rel="noopener noreferrer">
+        <Link
+          href={text}
+          target="_blank"
+          rel="noopener noreferrer"
+          prefetch={false}
+        >
           Source Link
         </Link>
       ),

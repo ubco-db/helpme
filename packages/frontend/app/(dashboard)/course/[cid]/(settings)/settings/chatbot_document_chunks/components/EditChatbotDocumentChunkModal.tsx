@@ -104,12 +104,6 @@ const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
         label="Source Link"
         name="source"
         tooltip="When a student clicks on the citation, they will be redirected to this link"
-        rules={[
-          {
-            type: 'url',
-            message: 'Please enter a valid URL',
-          },
-        ]}
       >
         <Input />
       </Form.Item>

@@ -39,6 +39,7 @@ import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';
 import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entity';
 import { UnreadAsyncQuestionModel } from './src/asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from './src/asyncQuestion/asyncQuestionComment.entity';
+import { ChatbotDocPdfModel } from './src/chatbot/chatbot-doc-pdf.entity';
 
 config();
 
@@ -97,6 +98,7 @@ const typeorm = {
     LMSAssignmentModel,
     UnreadAsyncQuestionModel,
     LMSAnnouncementModel,
+    ChatbotDocPdfModel,
   ],
   keepConnectionAlive: true,
   logging:

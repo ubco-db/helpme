@@ -9,6 +9,7 @@ import { StripUndefinedPipe } from './stripUndefined.pipe';
 import * as expressSession from 'express-session';
 import { ApplicationConfigService } from './config/application_config.service';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { Chromiumly } from 'chromiumly';
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function bootstrap(hot: any): Promise<void> {
@@ -49,6 +50,9 @@ export async function bootstrap(hot: any): Promise<void> {
     origin: '*',
     allowedHeaders: 'Content-Type, Accept',
   });
+
+  // Chromiumly is used with the gotenberg docker service for pdf conversion
+  Chromiumly.configure({ endpoint: 'http://localhost:3004' });
 
   app.set('trust proxy', 'loopback'); // Trust requests from the loopback address
   await app.listen(3002);

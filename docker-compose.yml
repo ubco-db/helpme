@@ -1,8 +1,7 @@
-version: '2'
-
 services:
   postgresql:
     image: ankane/pgvector
+    restart: always
     ports:
       - '5432:5432'
     volumes:
@@ -10,14 +9,13 @@ services:
       - pg:/var/lib/postgresql/data
     environment:
       - POSTGRES_MULTIPLE_DATABASES=prod,dev,test,chatbot
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=mysecretpassword
-      - POSTGRES_NONROOT_USER=helpme
-      - POSTGRES_NONROOT_PASSWORD=mysecretpassword
+    env_file:
+      - ./packages/server/postgres.env # this is where the root user credentials are set. Please make this file with postgres.env.example as a base if you haven't already
     networks:
       - api
   redis:
     image: redis:alpine
+    restart: always
     ports:
       - '6379:6379'
     networks:
@@ -40,7 +38,7 @@ services:
       - redis
       - httpd
     env_file:
-      - ./packages/server/.env.docker
+      - ./packages/server/.env
     build:
       context: .
       dockerfile: Dockerfile
@@ -54,8 +52,19 @@ services:
       - '80:80'
     networks:
       - api
+  gotenberg: # Used for converting files to pdf
+    image: gotenberg/gotenberg:8
+    restart: always
+    ports:
+      - "3004:3000" # access via 3004. It's 3000 inside the container
+    networks:
+      - api
+    command:
+      - "gotenberg"
+      - "--api-timeout=60s"
 volumes:
   pg:
+    driver: local
 
 networks:
   api:

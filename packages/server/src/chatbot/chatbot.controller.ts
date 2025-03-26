@@ -13,6 +13,9 @@ import {
   BadRequestException,
   HttpException,
   HttpStatus,
+  InternalServerErrorException,
+  Res,
+  Req,
 } from '@nestjs/common';
 import { ChatbotService } from './chatbot.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -41,6 +44,11 @@ import { UserModel } from '../profile/user.entity';
 import { User, UserId } from '../decorators/user.decorator';
 import * as Sentry from '@sentry/nestjs';
 import { CourseRolesBypassHelpMeCourseGuard } from 'guards/course-roles-helpme-bypass.guard';
+import { LibreOffice, MarkdownConverter } from 'chromiumly';
+import { CourseModel } from 'course/course.entity';
+import { generateHTMLForMarkdownToPDF } from './markdown-to-pdf-styles';
+import { ChatbotDocPdfModel } from './chatbot-doc-pdf.entity';
+import { Response, Request } from 'express';
 
 @Controller('chatbot')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -384,7 +392,7 @@ export class ChatbotController {
     );
   }
 
-  @Delete('documents/:courseId/:docId')
+  @Delete('document/:courseId/:docId')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async deleteDocument(
@@ -393,14 +401,138 @@ export class ChatbotController {
     @User(['chat_token']) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
-    return await this.chatbotApiService.deleteDocument(
+    const chatbotDeleteResponse = await this.chatbotApiService.deleteDocument(
       docId,
       courseId,
       user.chat_token.token,
     );
+    // if that succeeded (an error would have been thrown if it didn't), then delete the document from database
+    await ChatbotDocPdfModel.delete({
+      docIdChatbotDB: docId,
+    });
+    return chatbotDeleteResponse;
   }
 
-  @Post('documents/:courseId/upload')
+  // TODO: eventually add tests for this I guess
+  // note that there is no corresponding endpoint for this one on the frontend as you are supposed to make links to it
+  @Get('document/:courseId/:docId')
+  @UseGuards(CourseRolesBypassHelpMeCourseGuard)
+  @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
+  async getChatbotDocument(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('docId') docId: number,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    try {
+      // First check if document exists and get its metadata
+      const docInfo = await ChatbotDocPdfModel.createQueryBuilder('doc')
+        .select([
+          'doc."docName" as "doc_docName"',
+          'LENGTH(doc."docData") as "file_size"',
+        ])
+        .where('doc."idHelpMeDB" = :docId', { docId })
+        .getRawOne<{ doc_docName: string; file_size: string }>();
+
+      if (!docInfo) {
+        return res.status(HttpStatus.NOT_FOUND).send('Document not found');
+      }
+
+      const fileSize = parseInt(docInfo.file_size, 10);
+      const fileName = docInfo.doc_docName + '.pdf';
+
+      // Set headers for inline display
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="${fileName}"`,
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'public, max-age=12600000', // 4 months
+      });
+
+      // Handle range requests (partial content for large PDFs)
+      const range = req.headers.range;
+
+      // Set up default range values
+      let start = 0;
+      let end = fileSize - 1;
+
+      if (range) {
+        // Parse the range header
+        const parts = range.replace(/bytes=/, '').split('-');
+        start = parseInt(parts[0], 10);
+        if (parts[1] && parts[1].trim() !== '') {
+          end = parseInt(parts[1], 10);
+        }
+
+        // Validate range
+        if (
+          isNaN(start) ||
+          isNaN(end) ||
+          start >= fileSize ||
+          end >= fileSize ||
+          start < 0 ||
+          end < 0
+        ) {
+          // Invalid range, return 416 Range Not Satisfiable
+          res.status(416);
+          res.set('Content-Range', `bytes */${fileSize}`);
+          return res.end();
+        }
+
+        // Set partial content headers
+        const chunkSize = end - start + 1;
+        res.status(206);
+        res.set('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+        res.set('Content-Length', chunkSize.toString());
+      } else {
+        // For non-range requests, set Content-Length for the full document
+        res.set('Content-Length', fileSize.toString());
+      }
+
+      // Create a query to select only the requested bytes using SUBSTRING
+      // PostgreSQL's SUBSTRING is 1-indexed
+      const stream = await ChatbotDocPdfModel.createQueryBuilder('doc')
+        .select(
+          `SUBSTRING(doc."docData" FROM ${start + 1} FOR ${end - start + 1}) as chunk`,
+        )
+        .where('doc."idHelpMeDB" = :docId', { docId })
+        .stream();
+
+      // Don't pipe directly - we need to transform each row
+      stream.on('data', (data: any) => {
+        // TypeORM with pg-query-stream returns an object with the selected columns as properties
+        if (data && data.chunk) {
+          res.write(data.chunk);
+        }
+      });
+
+      stream.on('end', () => {
+        res.end();
+      });
+
+      // Handle stream errors
+      stream.on('error', (err) => {
+        console.error('Error streaming document:', err);
+        if (!res.headersSent) {
+          res
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .send('Error streaming document');
+        } else {
+          res.end();
+        }
+      });
+    } catch (error) {
+      console.error('Error retrieving document:', error);
+      if (!res.headersSent) {
+        return res
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .send('Error retrieving document');
+      }
+    }
+  }
+
+  // TODO: eventually add tests for this I guess
+  @Post('document/:courseId/upload')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   @UseInterceptors(
@@ -413,23 +545,180 @@ export class ChatbotController {
   async uploadDocument(
     @Param('courseId', ParseIntPipe) courseId: number,
     @UploadedFile() file: Express.Multer.File,
-    @Body() { source, parseAsPng }: { source: string; parseAsPng: boolean },
+    @Body() { parseAsPng }: { parseAsPng: boolean | string },
     @User(['chat_token']) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    return await this.chatbotApiService.uploadDocument(
-      file,
-      source,
-      parseAsPng,
-      courseId,
-      user.chat_token.token,
+    const fileExtension = file.originalname.split('.').pop()?.toLowerCase();
+
+    // if the file is a text file (including markdown and csv), don't allow sizes over 2 MB (since 4MB of text is actually a lot)
+    if (
+      fileExtension === 'txt' ||
+      fileExtension === 'csv' ||
+      fileExtension === 'md'
+    ) {
+      if (file.size > 1024 * 2048) {
+        throw new BadRequestException(
+          'Text-only files (.txt, .csv, .md) must be less than 2MB (2MB of text is a lot)',
+        );
+      }
+    }
+
+    if (parseAsPng === 'true') {
+      parseAsPng = true;
+    } else {
+      parseAsPng = false;
+    }
+
+    // if it's an image, make parseAsPng true
+    if (file.mimetype.startsWith('image/')) {
+      parseAsPng = true;
+    }
+
+    // get the course name (for pdf metadata)
+    const course = await CourseModel.findOne({
+      where: { id: courseId },
+    });
+
+    // use Chromiumly to convert all files to pdf (except files that are already pdfs)
+    const startTime = Date.now();
+    console.log(
+      `Starting file conversion for ${file.originalname} (${file.mimetype})`,
     );
+
+    if (fileExtension === 'pdf') {
+      // if it's already a pdf, don't convert it (also the converter doesn't work for converting pdfs to pdfs for some reason i guess)
+    } else if (
+      fileExtension === 'md' ||
+      fileExtension === 'txt' ||
+      fileExtension === 'csv'
+    ) {
+      // Generate an HTML template for the markdown conversion
+      const htmlTemplate = generateHTMLForMarkdownToPDF({
+        title: file.originalname,
+        author: `${user.firstName} ${user.lastName}`,
+        courseName: course?.name || '',
+        isCsv: fileExtension === 'csv',
+      });
+      // Convert the HTML template string to a Buffer (since that's what .convert wants)
+      const htmlBuffer = Buffer.from(htmlTemplate, 'utf-8');
+
+      // NOTE: Gotenberg's markdown converter is outdated and seems to convert markdown to pdf with weird lists and line breaks. TODO: make an issue on their github for this (use userguide and changelog as evidence)
+      const markdownConverter = new MarkdownConverter();
+      const buffer = await markdownConverter.convert({
+        html: htmlBuffer,
+        markdown: file.buffer,
+        pdfUA: true,
+      });
+      file.buffer = buffer;
+      // if it's a supported file type for libreoffice conversion, use LibreOfficeConverter
+    } else if (
+      supportedFileExtensionsForLibreOfficeConversion.includes(
+        fileExtension as FileExtension,
+      )
+    ) {
+      const buffer = await LibreOffice.convert({
+        files: [{ data: file.buffer, ext: fileExtension as FileExtension }],
+        // All config options here: https://github.com/cherfia/chromiumly
+        pdfUA: true, // enables Universal Access (for improved accessibility)
+        metadata: {
+          title: file.originalname,
+          author: user.firstName + ' ' + user.lastName,
+          creator: 'HelpMe Chatbot System', // Identifies the system as the creator of the pdf file (different from the author)
+          producer: 'Chromiumly/LibreOffice',
+          subject: 'Chatbot Document',
+          keywords: 'course material, ' + course.name,
+          creationDate: new Date().toISOString(), // Add creation timestamp
+        },
+        losslessImageCompression: true,
+        reduceImageResolution: true,
+        maxImageResolution: 150, // apparently 150dpi is good for presentations, with at least 72 being good for web usage
+        flatten: true, // flatten the pdf to remove any annotations
+      });
+      file.buffer = buffer;
+    } else {
+      // if it's not a supported file type for conversion, throw an error
+      throw new BadRequestException(
+        `Unsupported file type: ${file.mimetype}. Supported types include: .pdf, .docx, .pptx, .xlsx, .txt, .md, .csv, and various image formats.`,
+      );
+    }
+
+    const endTime = Date.now();
+    console.log(
+      `${file.originalname} (${file.mimetype}) pdf conversion completed in ${endTime - startTime}ms`,
+    );
+
+    let chatbotDocPdf = new ChatbotDocPdfModel();
+    chatbotDocPdf.docName = file.originalname;
+    chatbotDocPdf.courseId = courseId;
+    chatbotDocPdf.docSizeBytes = file.buffer.length;
+    chatbotDocPdf = await chatbotDocPdf.save(); // so that we have an idHelpMeDB to generate the url
+    const docUrl =
+      '/api/v1/chatbot/document/' + courseId + '/' + chatbotDocPdf.idHelpMeDB;
+    chatbotDocPdf.docData = file.buffer;
+    // Save file to database and upload to chatbot service in parallel with error handling
+    const [savedDocPdf, uploadResult] = await Promise.allSettled([
+      chatbotDocPdf.save(),
+      this.chatbotApiService.uploadDocument(
+        file,
+        docUrl,
+        parseAsPng,
+        courseId,
+        user.chat_token.token,
+      ),
+    ]);
+
+    // Check if either promise rejected
+    if (
+      savedDocPdf.status === 'fulfilled' &&
+      uploadResult.status === 'rejected'
+    ) {
+      // If DB save succeeded but upload failed, clean up the DB entry
+      await ChatbotDocPdfModel.remove(savedDocPdf.value);
+      throw uploadResult.reason;
+    } else if (
+      savedDocPdf.status === 'rejected' &&
+      uploadResult.status === 'fulfilled'
+    ) {
+      // If upload succeeded but DB save failed, clean up the uploaded document
+      await this.chatbotApiService.deleteDocument(
+        uploadResult.value.docId,
+        courseId,
+        user.chat_token.token,
+      );
+      throw savedDocPdf.reason;
+    } else if (
+      savedDocPdf.status === 'rejected' &&
+      uploadResult.status === 'rejected'
+    ) {
+      // Both failed, throw combined error (i'm doing a 500 level error since that's usually what would happen if both fail)
+      throw new InternalServerErrorException(
+        `Failed to save document: ${savedDocPdf.reason}.\n Failed to upload: ${uploadResult.reason}`,
+      );
+    } else if (
+      savedDocPdf.status === 'fulfilled' &&
+      uploadResult.status === 'fulfilled'
+    ) {
+      // if both succeed, then save the docId to the database
+      chatbotDocPdf.docIdChatbotDB = uploadResult.value.docId;
+      await chatbotDocPdf.save();
+
+      const endTime2 = Date.now();
+      console.log(
+        `${file.originalname} (${file.mimetype}) upload chatbot service and save in db completed in ${endTime2 - endTime}ms for a total processing time of ${endTime2 - startTime}ms`,
+      );
+      return uploadResult.value;
+    } else {
+      throw new InternalServerErrorException(
+        "Unexpected error. Somehow both the upload and save didn't fulfill nor reject",
+      );
+    }
   }
 
-  @Post('documents/:courseId/github')
+  @Post('document/:courseId/github')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async addDocumentFromGithub(
@@ -452,3 +741,161 @@ function handleChatbotTokenCheck(user: UserModel) {
     throw new HttpException('User has no chat token', HttpStatus.FORBIDDEN);
   }
 }
+
+const supportedFileExtensionsForLibreOfficeConversion: FileExtension[] = [
+  'doc',
+  'docx',
+  'xls',
+  'xlsx',
+  'ppt',
+  'pptx',
+  'odt',
+  'ods',
+  'odp',
+  'csv',
+  'txt',
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'tiff',
+  'svg',
+  'pdf',
+  'html',
+  'rtf',
+  'vsd',
+  'vsdx',
+];
+
+// Type definition for LibreOffice file extensions (this is gathered from the Chromiumly package (it doesn't export it for some reason so i had to copy it here))
+type FileExtension =
+  | '123' // omg prettier why this used to be 1 line
+  | '602'
+  | 'abw'
+  | 'bib'
+  | 'bmp'
+  | 'cdr'
+  | 'cgm'
+  | 'cmx'
+  | 'csv'
+  | 'cwk'
+  | 'dbf'
+  | 'dif'
+  | 'doc'
+  | 'docm'
+  | 'docx'
+  | 'dot'
+  | 'dotm'
+  | 'dotx'
+  | 'dxf'
+  | 'emf'
+  | 'eps'
+  | 'epub'
+  | 'fodg'
+  | 'fodp'
+  | 'fods'
+  | 'fodt'
+  | 'fopd'
+  | 'gif'
+  | 'htm'
+  | 'html'
+  | 'hwp'
+  | 'jpeg'
+  | 'jpg'
+  | 'key'
+  | 'ltx'
+  | 'lwp'
+  | 'mcw'
+  | 'met'
+  | 'mml'
+  | 'mw'
+  | 'numbers'
+  | 'odd'
+  | 'odg'
+  | 'odm'
+  | 'odp'
+  | 'ods'
+  | 'odt'
+  | 'otg'
+  | 'oth'
+  | 'otp'
+  | 'ots'
+  | 'ott'
+  | 'pages'
+  | 'pbm'
+  | 'pcd'
+  | 'pct'
+  | 'pcx'
+  | 'pdb'
+  | 'pdf'
+  | 'pgm'
+  | 'png'
+  | 'pot'
+  | 'potm'
+  | 'potx'
+  | 'ppm'
+  | 'pps'
+  | 'ppt'
+  | 'pptm'
+  | 'pptx'
+  | 'psd'
+  | 'psw'
+  | 'pub'
+  | 'pwp'
+  | 'pxl'
+  | 'ras'
+  | 'rtf'
+  | 'sda'
+  | 'sdc'
+  | 'sdd'
+  | 'sdp'
+  | 'sdw'
+  | 'sgl'
+  | 'slk'
+  | 'smf'
+  | 'stc'
+  | 'std'
+  | 'sti'
+  | 'stw'
+  | 'svg'
+  | 'svm'
+  | 'swf'
+  | 'sxc'
+  | 'sxd'
+  | 'sxg'
+  | 'sxi'
+  | 'sxm'
+  | 'sxw'
+  | 'tga'
+  | 'tif'
+  | 'tiff'
+  | 'txt'
+  | 'uof'
+  | 'uop'
+  | 'uos'
+  | 'uot'
+  | 'vdx'
+  | 'vor'
+  | 'vsd'
+  | 'vsdm'
+  | 'vsdx'
+  | 'wb2'
+  | 'wk1'
+  | 'wks'
+  | 'wmf'
+  | 'wpd'
+  | 'wpg'
+  | 'wps'
+  | 'xbm'
+  | 'xhtml'
+  | 'xls'
+  | 'xlsb'
+  | 'xlsm'
+  | 'xlsx'
+  | 'xlt'
+  | 'xltm'
+  | 'xltx'
+  | 'xlw'
+  | 'xml'
+  | 'xpm'
+  | 'zabw';

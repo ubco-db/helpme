@@ -382,10 +382,6 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
                               required: true,
                               message: 'Please provide a document preview URL.',
                             },
-                            {
-                              type: 'url',
-                              message: 'Please enter a valid URL.',
-                            },
                           ]}
                           label="Source Link"
                           tooltip="When a student clicks on the citation, they will be redirected to this link"

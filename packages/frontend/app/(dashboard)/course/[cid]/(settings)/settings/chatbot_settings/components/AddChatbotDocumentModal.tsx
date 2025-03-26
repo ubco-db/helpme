@@ -54,7 +54,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
         await addUrl(formData.url)
       } else if (documentType === 'FILE') {
         const files = fileList.map((file) => file.originFileObj)
-        await uploadFiles(files, formData.source)
+        await uploadFiles(files)
       }
     } finally {
       setLoading(false)
@@ -68,18 +68,13 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
     onClose()
   }
 
-  const uploadFiles = async (files: RcFile[], source: string) => {
+  const uploadFiles = async (files: RcFile[]) => {
     setCountProcessed(0)
     let wasError = false
     for (const file of files) {
       const formData = new FormData()
       formData.append('file', file)
-      // Create a JSON object and convert it to a string
-      const jsonData = {
-        source: source,
-        parseAsPng: isSlideDeck,
-      }
-      formData.append('source', JSON.stringify(jsonData))
+      formData.append('parseAsPng', isSlideDeck.toString())
 
       await API.chatbot.staffOnly
         .uploadDocument(courseId, formData)
@@ -123,8 +118,12 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
         htmlType: 'submit',
         loading: loading,
         onClick: async () => {
-          await form.validateFields().then(() => {
-            setConfirmPopoverOpen(true)
+          await form.validateFields().then((formData) => {
+            if (documentType === 'FILE' && formData.isSlideDeck) {
+              setConfirmPopoverOpen(true)
+            } else {
+              addDocument()
+            }
           })
         },
       }}
@@ -168,10 +167,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
       )}
     >
       <>
-        <div className="flex items-center justify-between">
-          <p>
-            <b>Accepted File Types:</b> .docx, .pptx, .txt, .csv, .pdf
-          </p>
+        <div className="flex items-center justify-center">
           <Segmented
             options={[
               {
@@ -179,7 +175,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                 label: (
                   <div className="flex items-center gap-2">
                     <FileAddOutlined />
-                    <p className="d">Upload Files</p>
+                    <p>Upload Files</p>
                   </div>
                 ),
               },
@@ -188,7 +184,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                 label: (
                   <div className="flex items-center gap-2">
                     <GithubOutlined />
-                    <p className="">GitHub File</p>
+                    <p>GitHub File</p>
                   </div>
                 ),
               },
@@ -201,20 +197,31 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
         </div>
         <Form form={form}>
           {documentType === 'URL' && (
-            <Form.Item
-              name="url"
-              rules={[
-                {
-                  required: true,
-                  message: 'Please provide a document URL.',
-                },
-              ]}
-            >
-              <Input placeholder="Enter URL for a pdf file..." />
-            </Form.Item>
+            <div className="flex flex-col">
+              <p>
+                <b>Accepted File Types:</b> .pdf, .docx, .pptx, .csv, .txt
+              </p>
+              <Form.Item
+                name="url"
+                label="GitHub URL"
+                className="mb-2 w-full"
+                rules={[
+                  {
+                    required: true,
+                    message: 'Please provide a github document URL.',
+                  },
+                ]}
+              >
+                <Input placeholder="https://github.com/.../some_document.pdf" />
+              </Form.Item>
+            </div>
           )}
           {documentType === 'FILE' && (
             <>
+              <p>
+                <b>Accepted File Types:</b> .pdf, .docx, .pptx, .xlsx, .csv,
+                .txt, .md, most image formats
+              </p>
               <Form.Item
                 name="files"
                 rules={[
@@ -227,11 +234,12 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                 <Dragger
                   name="file"
                   multiple={true}
-                  accept=".docx,.pptx,.txt,.csv,.pdf"
+                  accept=".docx,.pptx,.txt,.csv,.pdf,.md,.png,.jpg,.jpeg,.gif,.tiff,.xls,.xlsx,.doc,.rtf,.svg,.ppt,.odt,.ods,.odp,.epub,.vsd,.vsdx"
                   fileList={fileList}
                   onChange={(info: any) => {
                     setFileList(info.fileList)
                   }}
+                  maxCount={10}
                   beforeUpload={() => false} // Prevent automatic upload
                 >
                   <p className="ant-upload-drag-icon">
@@ -253,30 +261,13 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
               <Form.Item
                 name="isSlideDeck"
                 label="Parse document as slides"
-                tooltip="This will generate descriptions for images, which is particularly useful if the document is a slide deck or another image-heavy component. Only works for .pdf or .pptx"
+                tooltip="By default images/graphics embedded in your uploaded files will not be detected by the chatbot. Ticking this will transform pages of the document into images and automatically generate AI summaries of said images (using OpenAI's ChatGPT). This is useful for any document that isn't just text. Warning that it will take a lot longer to process."
               >
                 <Switch
                   defaultChecked={isSlideDeck}
                   disabled={false}
                   onChange={(checked) => setIsSlideDeck(checked)}
                 />
-              </Form.Item>
-              <Form.Item
-                name="source"
-                label="Display URL"
-                rules={[
-                  {
-                    required: true,
-                    message: 'Please provide a document preview URL.',
-                  },
-                  {
-                    type: 'url',
-                    message: 'Please enter a valid URL.',
-                  },
-                ]}
-                tooltip="When this source is cited by the chatbot and a student clicks on the citation, they will be redirected to this link. If you are uploading multiple files, they will all get this same source link."
-              >
-                <Input placeholder="https://canvas.ubc.ca/courses/..." />
               </Form.Item>
             </>
           )}
