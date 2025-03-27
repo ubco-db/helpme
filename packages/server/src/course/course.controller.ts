@@ -1109,6 +1109,7 @@ export class CourseController {
     await userCourse.save();
   }
 
+  // The batch cloning route is in the organization controller
   @Post(':courseId/clone_course')
   @UseGuards(JwtAuthGuard, OrgOrCourseRolesGuard, EmailVerifiedGuard)
   @CourseRoles(Role.PROFESSOR)
@@ -1126,25 +1127,13 @@ export class CourseController {
       );
     }
 
-    if (
-      (!body.newSemesterId || body.newSemesterId == -1) &&
-      (!body.newSection || body.newSection == '')
-    ) {
-      console.error(
-        ERROR_MESSAGES.courseController.newSectionOrSemesterMissing,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.newSectionOrSemesterMissing,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
     const newUserCourse = await this.courseService.cloneCourse(
       courseId,
       user.id,
       body,
       user.chat_token.token,
     );
+
     return newUserCourse;
   }
 }

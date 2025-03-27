@@ -419,6 +419,16 @@ export class CourseService {
       );
     }
 
+    if (
+      (!cloneData.newSemesterId || cloneData.newSemesterId == -1) &&
+      (!cloneData.newSection || cloneData.newSection == '')
+    ) {
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.newSectionOrSemesterMissing,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     return await getManager().transaction(async (manager) => {
       const originalCourse = await manager.findOne(CourseModel, {
         where: { id: courseId },
