@@ -1145,7 +1145,6 @@ export class CourseController {
       body,
       user.chat_token.token,
     );
-
     return newUserCourse;
   }
 }

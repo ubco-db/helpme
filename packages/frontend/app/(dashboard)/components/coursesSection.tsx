@@ -19,8 +19,6 @@ import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 
 // TODO: remove all code for unassigned semesters when all production courses have new semesters set
-// PAT TODO: add some UI to favourite and unfavourite a course for the dashboard in the table view
-// PAT TODO: localStorage to cache preferred view
 
 interface CoursesSectionProps {
   semesters: SemesterPartial[]
