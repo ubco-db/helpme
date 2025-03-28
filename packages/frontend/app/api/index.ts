@@ -89,6 +89,7 @@ import {
   AddDocumentChunkParams,
   UpdateChatbotQuestionParams,
   QueueChatPartial,
+  GetQueueChatsResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -739,6 +740,8 @@ class APIClient {
         'POST',
         `/api/v1/queueChats/${queueId}/${questionId}/${staffId}`,
       ),
+    getMyQueueChats: async (queueId: number): Promise<GetQueueChatsResponse> =>
+      this.req('GET', `/api/v1/queueChats/${queueId}`),
     getChatsForMyQuestion: async (
       queueId: number,
       questionId: number,

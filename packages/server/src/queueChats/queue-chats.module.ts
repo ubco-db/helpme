@@ -6,7 +6,7 @@ import { AlertsService } from 'alerts/alerts.service';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { SSEService } from 'sse/sse.service';
 import { QueueChatSSEService } from './queue-chats-sse.service';
-
+import { QueueSSEService } from 'queue/queue-sse.service';
 @Module({
   controllers: [QueueChatController],
   providers: [
@@ -16,6 +16,7 @@ import { QueueChatSSEService } from './queue-chats-sse.service';
     ApplicationConfigService,
     QueueChatSSEService,
     SSEService,
+    QueueSSEService,
   ],
   exports: [QueueChatService],
 })

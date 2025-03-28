@@ -5,12 +5,16 @@ import { QueueChatsModel } from './queue-chats.entity';
 import { UserModel } from 'profile/user.entity';
 import {
   ERROR_MESSAGES,
+  OpenQuestionStatus,
   QueueChatMessagePartial,
   QueueChatPartial,
   QueueChatUserPartial,
+  Role,
+  StatusInQueue,
 } from '@koh/common';
 import { QuestionModel } from 'question/question.entity';
-
+import { In } from 'typeorm';
+import { QueueSSEService } from 'queue/queue-sse.service';
 const ChatMessageRedisKey = 'queue_chat_messages';
 const ChatMetadataRedisKey = 'queue_chat_metadata';
 
@@ -19,7 +23,10 @@ export class QueueChatService {
   // Redis to store temporary chat data
   private readonly redis: Redis;
 
-  constructor(private readonly redisService: RedisService) {
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly queueSSEService: QueueSSEService,
+  ) {
     this.redis = this.redisService.getClient('db');
   }
 
@@ -82,6 +89,7 @@ export class QueueChatService {
             photoURL: creator.photoURL,
           } as QueueChatUserPartial,
           startedAt: startedAt ?? new Date(),
+          questionId: question.id,
         } as QueueChatPartial),
       )
       .catch((error) => {
@@ -94,7 +102,7 @@ export class QueueChatService {
         }
       });
 
-    await this.redis.expire(key, 604800); // 1 week = 7 * 24 * 60 * 60 = 604800 seconds
+    await this.redis.expire(key, 86400); // 1 day = 24 * 60 * 60 = 86400 seconds
   }
 
   /**
@@ -126,6 +134,20 @@ export class QueueChatService {
           ERROR_MESSAGES.queueChatsController.failureToSendMessage,
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
+      }
+    });
+  }
+
+  async getNumberOfMessages(
+    queueId: number,
+    questionId: number,
+    staffId: number,
+  ): Promise<number | null> {
+    const key = `${ChatMessageRedisKey}:${queueId}:${questionId}:${staffId}`;
+    return this.redis.llen(key).catch((error) => {
+      if (error) {
+        console.error(error);
+        return null;
       }
     });
   }
@@ -220,21 +242,14 @@ export class QueueChatService {
   }
 
   /* used by students to get all the chats they have for their question */
-  async getChatsForMyQuestion(
+  async getChatsForQuestion(
     queueId: number,
     questionId: number,
-    userId: number,
   ): Promise<QueueChatPartial[]> {
-    // check to make sure the question belongs to the user (and is in the given queue)
-    const question = await QuestionModel.findOne({
-      where: { id: questionId, queueId: queueId, creatorId: userId },
-    });
-    if (!question) return [];
-
     // get all chats for the question, then map over them to get all the staffIds, then get the metadata for each staffId and return it
-    const chats = await this.redis.scan(
+    const chats = await this.redis.keys(
       `${ChatMetadataRedisKey}:${queueId}:${questionId}:*`,
-    )[1];
+    );
     const chatMetadatas = [];
     for (const chatKey of chats) {
       const staffId = Number(chatKey.split(':')[3]);
@@ -252,9 +267,9 @@ export class QueueChatService {
     staffId: number,
   ): Promise<QueueChatPartial[]> {
     // get all chats for the queue, then map over them to get all the questionIds, then get the metadata for each questionId and return it
-    const chats = await this.redis.scan(
+    const chats = await this.redis.keys(
       `${ChatMetadataRedisKey}:${queueId}:*:${staffId}`,
-    )[1];
+    );
     const chatMetadatas = [];
     for (const chatKey of chats) {
       const questionId = Number(chatKey.split(':')[2]);
@@ -266,53 +281,93 @@ export class QueueChatService {
     return chatMetadatas;
   }
 
+  async getMyChats(
+    queueId: number,
+    myRole: Role,
+    userId: number,
+  ): Promise<QueueChatPartial[]> {
+    if (myRole === Role.STUDENT) {
+      // if i'm a student, find my question
+      const question = await QuestionModel.findOne({
+        where: {
+          creatorId: userId,
+          queueId: queueId,
+          status: In(StatusInQueue),
+          isTaskQuestion: false,
+        },
+      });
+      if (!question) return [];
+
+      return this.getChatsForQuestion(queueId, question.id);
+    } else {
+      // if i'm staff, get all chats with my staffId
+      return this.getChatsForGivenStaffId(queueId, userId);
+    }
+  }
+
   /**
    * End all chats for a given question and store the data in the database for record keeping
    * @param queueId The ID of the queue
    * @param questionId The ID of the question
    */
   async endChats(queueId: number, questionId: number): Promise<void> {
-    // get all chats for the question
-    const metaKeys = await this.redis.scan(
+    // Get all chats for the question
+    const metaKeys = await this.redis.keys(
       `${ChatMetadataRedisKey}:${queueId}:${questionId}:*`,
-    )[1];
+    );
 
-    for (const metaKey of metaKeys) {
+    // Process all chats in parallel
+    const savePromises = metaKeys.map(async (metaKey) => {
       const staffId = Number(metaKey.split(':')[3]);
-      if (isNaN(staffId)) continue;
+      if (isNaN(staffId)) return null;
+
       const metadata = await this.getChatMetadata(queueId, questionId, staffId);
       const messages = await this.getChatMessages(queueId, questionId, staffId);
       const messageKey = `${ChatMessageRedisKey}:${queueId}:${questionId}:${staffId}`;
 
-      // Don't bother saving if chat was not used
-      if (messages && messages.length !== 0) {
-        const queueChat = new QueueChatsModel();
-        queueChat.queueId = queueId;
-        queueChat.staffId = metadata.staff.id;
-        queueChat.studentId = metadata.student.id;
-        queueChat.startedAt = metadata.startedAt;
-        queueChat.closedAt = new Date();
-        queueChat.messageCount = messages.length;
-        queueChat.save().then(async () => {
-          await this.redis.del(metaKey).catch((error) => {
-            if (error) {
-              throw new HttpException(
-                ERROR_MESSAGES.queueChatsController.failureToClearChat,
-                HttpStatus.INTERNAL_SERVER_ERROR,
-              );
-            }
-          });
-          await this.redis.del(messageKey).catch((error) => {
-            if (error) {
-              throw new HttpException(
-                ERROR_MESSAGES.queueChatsController.failureToClearChat,
-                HttpStatus.INTERNAL_SERVER_ERROR,
-              );
-            }
-          });
-        });
+      // Skip empty chats
+      if (!messages || messages.length === 0) return null;
+
+      // Create and save chat record
+      const queueChat = new QueueChatsModel();
+      queueChat.queueId = queueId;
+      queueChat.staffId = metadata.staff.id;
+      queueChat.studentId = metadata.student.id;
+      queueChat.startedAt = metadata.startedAt;
+      queueChat.closedAt = new Date();
+      queueChat.messageCount = messages.length;
+
+      // Save to database
+      await queueChat.save();
+
+      // Return keys to delete after saving
+      return { metaKey, messageKey };
+    });
+
+    // Wait for all saves to complete and collect keys to delete
+    const keysToDelete = (await Promise.all(savePromises)).filter(Boolean);
+
+    // Batch delete Redis keys using pipeline
+    if (keysToDelete.length > 0) {
+      const pipeline = this.redis.pipeline();
+
+      keysToDelete.forEach((keys) => {
+        pipeline.del(keys.metaKey);
+        pipeline.del(keys.messageKey);
+      });
+
+      try {
+        await pipeline.exec();
+      } catch (error) {
+        throw new HttpException(
+          ERROR_MESSAGES.queueChatsController.failureToClearChat,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
     }
+
+    // now notify everyone in the queue to re-fetch their chats
+    await this.queueSSEService.updateQueueChats(queueId);
   }
 
   /**
@@ -321,19 +376,22 @@ export class QueueChatService {
    * @param questionId The ID of the question
    */
   async clearChats(queueId: number, questionId: number): Promise<void> {
-    const metaKeys = await this.redis.scan(
+    const metaKeys = await this.redis.keys(
       `${ChatMetadataRedisKey}:${queueId}:${questionId}:*`,
-    )[1];
-    const messageKeys = await this.redis.scan(
+    );
+    const messageKeys = await this.redis.keys(
       `${ChatMessageRedisKey}:${queueId}:${questionId}:*`,
-    )[1];
+    );
 
-    for (const metaKey of metaKeys) {
-      await this.redis.del(metaKey);
-    }
-    for (const messageKey of messageKeys) {
-      await this.redis.del(messageKey);
-    }
+    // Using pipeline to batch delete operations
+    const pipeline = this.redis.pipeline();
+
+    // UNLINK is non-blocking - it removes keys in the background
+    metaKeys.forEach((key) => pipeline.unlink(key));
+    messageKeys.forEach((key) => pipeline.unlink(key));
+
+    await pipeline.exec();
+    await this.queueSSEService.updateQueueChats(queueId);
   }
 
   /**

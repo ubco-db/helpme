@@ -20,6 +20,9 @@ interface QueueChatProps {
   announceNewMessage?: (newCount: number) => void
   onOpen?: () => void
   onClose?: () => void
+  disableButton?: boolean // used to disable the onClick and hover effects of the button
+  className?: string
+  style?: React.CSSProperties
 }
 
 const QueueChat: React.FC<QueueChatProps> = ({
@@ -29,6 +32,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
   isMobile,
   hidden,
   isStaff,
+  disableButton = false,
+  className,
+  style,
   isChatbotOpen = false,
   announceNewMessage = (newCount: number) => {
     return
@@ -41,8 +47,6 @@ const QueueChat: React.FC<QueueChatProps> = ({
   },
 }): ReactElement => {
   const [isOpen, setIsOpen] = useState<boolean>(isMobile ? false : true)
-  const [hasStudentEverOpenedIt, setHasStudentEverOpenedIt] =
-    useState<boolean>(false)
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const {
@@ -52,8 +56,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
     newMessageCount,
     resetNewMessageCount,
   } = useQueueChat(queueId, questionId, staffId)
-  const messagesEndRef = useRef<HTMLDivElement | null>(null) // This handles auto scrolling
 
+  const messagesEndRef = useRef<HTMLDivElement | null>(null) // This handles auto scrolling
   // To always auto scroll to the bottom of the page when new messages are added
   useEffect(() => {
     if (messagesEndRef.current && isOpen) {
@@ -244,56 +248,35 @@ const QueueChat: React.FC<QueueChatProps> = ({
         </div>
       </Card>
     </div>
-  ) : isMobile && isStaff ? (
-    // For mobile staff view, the queue chats go inside a drawer so this will look a little different
-    <div style={{ zIndex: 1050, width: '100%', padding: '0.75rem' }}>
-      <Badge
-        count={newMessageCount}
-        style={{ zIndex: 1050 }}
-        className={`${hidden ? 'hidden ' : ''}${isStaff ? 'w-full ' : `${!isStaff ? `fixed ` : ''}bottom-5 right-5`}`}
-        overflowCount={99}
-      >
-        <Button
-          type="primary"
-          size="large"
-          className={`z-50 w-full rounded-sm shadow-md`}
-          onClick={() => {
-            setIsOpen(true)
-            onOpen()
-          }}
-        >
-          {queueChatData && queueChatData.staff && queueChatData.student
-            ? isStaff
-              ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
-              : `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
-            : 'Loading...'}
-        </Button>
-      </Badge>
-    </div>
-  ) : !isStaff ? (
-    // if you're a student, show the pfp of the TA helping you as the button
+  ) : true ? ( // TODO: remove this
+    // if not open, show the pfp of the other person as the button
     <div
       className={cn(
         hidden ? 'hidden ' : '',
         isChatbotOpen ? 'md:right-[408px]' : 'md:right-40',
         'fixed bottom-5 right-5 md:bottom-8',
+        className,
       )}
-      style={{ zIndex: 1050 }}
+      style={{ zIndex: 1050, ...style }}
     >
       <Tooltip
         title={
-          queueChatData && queueChatData.staff
-            ? `Message ${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
-            : 'Message TA'
+          !isStaff
+            ? queueChatData.staff
+              ? `Message ${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+              : 'Message TA'
+            : queueChatData.student
+              ? `Message ${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
+              : 'Message Student'
         }
         placement={isMobile ? 'left' : 'top'}
-        open={isMobile && !hasStudentEverOpenedIt ? true : undefined}
       >
         <Button
           type="primary"
           size="large"
           className={cn(
-            'ring-helpmeblue-light ring-offset-2 hover:ring focus:ring',
+            disableButton ? '' : 'hover:ring focus:ring',
+            'ring-helpmeblue-light ring-offset-2',
             'shadow-lg shadow-slate-400',
             'outline-3 outline-helpmeblue/50 outline md:outline-2',
             'rounded-full p-6 md:p-7 ',
@@ -302,13 +285,23 @@ const QueueChat: React.FC<QueueChatProps> = ({
             <UserAvatar
               size={isMobile ? 54 : 60}
               className=""
-              photoURL={queueChatData.staff.photoURL}
-              username={`${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`}
+              photoURL={
+                !isStaff
+                  ? queueChatData.staff.photoURL
+                  : queueChatData.student.photoURL
+              }
+              username={
+                !isStaff
+                  ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+                  : `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
+              }
             />
           }
           onClick={() => {
+            if (disableButton) {
+              return
+            }
             setIsOpen(true)
-            setHasStudentEverOpenedIt(true)
             onOpen()
           }}
         />

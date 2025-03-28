@@ -24,6 +24,7 @@ import { QuestionModel } from 'question/question.entity';
 import { In } from 'typeorm';
 import { QueueRolesGuard } from 'guards/queue-role.guard';
 import { Roles } from 'decorators/roles.decorator';
+import { QueueSSEService } from 'queue/queue-sse.service';
 /* Note that these endpoints are special in that they don't have any Roles guards.
   Instead, these endpoints use .checkPermissions() which only allows the chat's TA and student to call these endpoints.
 */
@@ -33,6 +34,7 @@ export class QueueChatController {
   constructor(
     private queueChatService: QueueChatService,
     private queueChatSSEService: QueueChatSSEService,
+    private queueSSEService: QueueSSEService,
   ) {}
 
   // note that this isn't the only way queue chats are created. They are also created automatically when a student is helped
@@ -88,9 +90,7 @@ export class QueueChatController {
     }
 
     const staff = await UserModel.findOne({
-      relations: {
-        courses: true,
-      },
+      relations: ['courses'],
       where: {
         id: staffId,
         courses: {
@@ -143,34 +143,46 @@ export class QueueChatController {
   }
 
   /* used by students to get all the chats they have for their question */
-  @Get(':queueId/:questionId')
-  @UseGuards(QueueRolesGuard)
-  @Roles(Role.STUDENT)
-  async getQueueChatsForMyQuestion(
-    @Param('queueId') queueId: number,
-    @Param('questionId') questionId: number,
-    @UserId() userId: number,
-  ): Promise<QueueChatPartial[]> {
-    const chats = await this.queueChatService.getChatsForMyQuestion(
-      queueId,
-      questionId,
-      userId,
-    );
-    return chats;
-  }
+  // @Get(':queueId/:questionId')
+  // @UseGuards(QueueRolesGuard)
+  // @Roles(Role.STUDENT)
+  // async getQueueChatsForMyQuestion(
+  //   @Param('queueId') queueId: number,
+  //   @Param('questionId') questionId: number,
+  //   @UserId() userId: number,
+  // ): Promise<QueueChatPartial[]> {
+  //   const chats = await this.queueChatService.getChatsForMyQuestion(
+  //     queueId,
+  //     questionId,
+  //     userId,
+  //   );
+  //   return chats;
+  // }
 
-  /* Used by staff to get all the chats they have for a given queue */
+  // /* Used by staff to get all the chats they have for a given queue */
+  // @Get(':queueId')
+  // @UseGuards(QueueRolesGuard)
+  // @Roles(Role.TA, Role.PROFESSOR)
+  // async getMyQueueChatsForGivenQueue(
+  //   @Param('queueId') queueId: number,
+  //   @UserId() userId: number,
+  // ): Promise<QueueChatPartial[]> {
+  //   const chats = await this.queueChatService.getChatsForGivenStaffId(
+  //     queueId,
+  //     userId,
+  //   );
+  //   return chats;
+  // }
+
   @Get(':queueId')
   @UseGuards(QueueRolesGuard)
-  @Roles(Role.TA, Role.PROFESSOR)
-  async getMyQueueChatsForGivenQueue(
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+  async getMyQueueChats(
     @Param('queueId') queueId: number,
     @UserId() userId: number,
+    @QueueRole() role: Role,
   ): Promise<QueueChatPartial[]> {
-    const chats = await this.queueChatService.getChatsForGivenStaffId(
-      queueId,
-      userId,
-    );
+    const chats = await this.queueChatService.getMyChats(queueId, role, userId);
     return chats;
   }
 
@@ -251,6 +263,15 @@ export class QueueChatController {
         isStaff,
         message,
       );
+      const numberOfMessages = await this.queueChatService.getNumberOfMessages(
+        queueId,
+        questionId,
+        staffId,
+      );
+      if (numberOfMessages && numberOfMessages <= 1) {
+        // if it's the first message, tell all other users in the queue re-fetch their chats (so that they can see the new chat) // TODO: make it only tell users who are subscribed to a 'questionId' room rather than 'queueId' room. This will require a lot of work though to basically duplicate the queue-sse.service.ts
+        await this.queueSSEService.updateQueueChats(queueId);
+      }
       await this.queueChatSSEService.updateQueueChat(queueId, questionId);
       return { message: 'Message sent' };
     } catch (error) {

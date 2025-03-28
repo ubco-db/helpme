@@ -892,6 +892,8 @@ export class QueueChatPartial {
 
   student!: QueueChatUserPartial
 
+  questionId!: number
+
   @IsDate()
   startedAt!: Date
 
@@ -1434,6 +1436,8 @@ export class GetCourseQueuesResponse extends Array<QueuePartial> {}
 
 export class GetQueueChatResponse extends QueueChatPartial {}
 
+export class GetQueueChatsResponse extends Array<QueueChatPartial> {}
+
 export class ListQuestionsResponse {
   @Type(() => Question)
   yourQuestions?: Array<Question>
@@ -1825,6 +1829,7 @@ export class SemesterPartial {
 export class SSEQueueResponse {
   queue?: GetQueueResponse
   queueQuestions?: ListQuestionsResponse
+  queueChats?: QueueChatPartial[] // just the metadata for the chats, not the messages
 }
 
 export class SSEQueueChatResponse {

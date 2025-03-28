@@ -4,7 +4,7 @@ import { Response } from 'express';
 import { throttle } from 'lodash';
 import { SSEService } from 'sse/sse.service';
 import { QueueService } from './queue.service';
-
+import { QueueChatService } from 'queueChats/queue-chats.service';
 type QueueClientMetadata = { userId: number; role: Role };
 
 const idToRoom = (queueId: number) => `q-${queueId}`;
@@ -16,6 +16,7 @@ export class QueueSSEService {
   constructor(
     private queueService: QueueService,
     private sseService: SSEService<QueueClientMetadata>,
+    private queueChatService: QueueChatService,
   ) {}
 
   subscribeClient(
@@ -48,6 +49,13 @@ export class QueueSSEService {
     }
   });
 
+  updateQueueChats = this.throttleUpdate(async (queueId) => {
+    this.sendToRoom(queueId, async ({ role, userId }) => ({
+      queueChats: await this.queueChatService.getMyChats(queueId, role, userId),
+    }));
+  });
+
+  /* Sends data to all clients in the room */
   private async sendToRoom(
     queueId: number,
     data: (metadata: QueueClientMetadata) => Promise<SSEQueueResponse>,

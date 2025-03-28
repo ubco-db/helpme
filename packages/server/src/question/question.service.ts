@@ -28,7 +28,7 @@ import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgres
 import { QueueService } from '../queue/queue.service';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
-
+import { QueueSSEService } from 'queue/queue-sse.service';
 @Injectable()
 export class QuestionService {
   constructor(
@@ -36,6 +36,7 @@ export class QuestionService {
     public queueService: QueueService,
     public redisQueueService: RedisQueueService,
     public readonly queueChatService: QueueChatService,
+    private readonly queueSSEService: QueueSSEService,
   ) {}
 
   async changeStatus(
@@ -164,6 +165,7 @@ export class QuestionService {
             question.taHelped,
             question,
           );
+          await this.queueSSEService.updateQueueChats(question.queueId);
         }
       }
     } catch (err) {
