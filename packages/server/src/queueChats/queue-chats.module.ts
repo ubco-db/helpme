@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { QueueChatController } from './queue-chats.controller';
 import { QueueChatService } from './queue-chats.service';
 import { QueueService } from 'queue/queue.service';
@@ -7,6 +7,8 @@ import { ApplicationConfigService } from 'config/application_config.service';
 import { SSEService } from 'sse/sse.service';
 import { QueueChatSSEService } from './queue-chats-sse.service';
 import { QueueSSEService } from 'queue/queue-sse.service';
+import { QueueModule } from 'queue/queue.module';
+
 @Module({
   controllers: [QueueChatController],
   providers: [
@@ -19,5 +21,6 @@ import { QueueSSEService } from 'queue/queue-sse.service';
     QueueSSEService,
   ],
   exports: [QueueChatService],
+  imports: [forwardRef(() => QueueModule)],
 })
 export class QueueChatsModule {}

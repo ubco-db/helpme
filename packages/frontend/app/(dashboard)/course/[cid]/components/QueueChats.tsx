@@ -1,8 +1,7 @@
 import { ReactElement, useEffect, useState } from 'react'
-import { Badge, Button, Drawer, Popover } from 'antd'
-import { MessageCircleMore, X } from 'lucide-react'
+import { Badge, Button, Popover } from 'antd'
+import { X } from 'lucide-react'
 import QueueChat from './QueueChat'
-import { QueueChatPartial } from '@koh/common'
 import { cn } from '@/app/utils/generalUtils'
 import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
 
@@ -10,9 +9,9 @@ interface QueueChatsProps {
   queueId: number
   isMobile: boolean
   isStaff: boolean
-  isChatbotOpen?: boolean
-  setRenderSmallChatbot?: (render: boolean) => void
-  setChatbotOpen?: (open: boolean) => void
+  isChatbotOpen: boolean
+  setRenderSmallChatbot: (render: boolean) => void
+  setChatbotOpen: (open: boolean) => void
 }
 
 /* Widget that has all queue chats for the user.
@@ -24,13 +23,9 @@ const QueueChats: React.FC<QueueChatsProps> = ({
   queueId,
   isMobile,
   isStaff,
-  isChatbotOpen = false,
-  setRenderSmallChatbot = (render: boolean) => {
-    return
-  },
-  setChatbotOpen = (open: boolean) => {
-    return
-  },
+  isChatbotOpen,
+  setRenderSmallChatbot,
+  setChatbotOpen,
 }): ReactElement => {
   const { queueChats, queueChatsError, mutateQueueChats } =
     useQueueChatsMetadatas(queueId)
@@ -39,6 +34,7 @@ const QueueChats: React.FC<QueueChatsProps> = ({
     useState(false) // To store the state of the mobile queue chat drawer
   const [currentChatQuestionId, setCurrentChatQuestionId] = useState<number>(-1) // To store the currently opened chat via the question id
   const [seenChatPopover, setSeenChatPopover] = useState(false)
+  const [showNameTooltips, setShowNameTooltips] = useState(false)
 
   useEffect(() => {
     const seenQueueChatPopover =
@@ -52,13 +48,31 @@ const QueueChats: React.FC<QueueChatsProps> = ({
     }
   }, [])
 
+  useEffect(() => {
+    if (mobileQueueChatsExpanded) {
+      setShowNameTooltips(true)
+      setTimeout(() => {
+        setShowNameTooltips(false)
+      }, 1000)
+    } else {
+      setShowNameTooltips(false)
+    }
+    return () => {
+      setShowNameTooltips(false)
+    }
+  }, [mobileQueueChatsExpanded])
+
   if (!queueChats) {
     return <></>
   }
 
   return isMobile ? (
     <button
-      className={`${mobileQueueChatsExpanded || isChatbotOpen ? 'hidden ' : ''}`}
+      className={cn(
+        isChatbotOpen ? 'hidden ' : '',
+        'fixed ',
+        currentChatQuestionId === -1 ? 'bottom-6 right-5' : 'bottom-1 right-0',
+      )}
       style={{ zIndex: 1050 }}
       onClick={() => {
         if (mobileQueueChatsExpanded) {
@@ -91,7 +105,7 @@ const QueueChats: React.FC<QueueChatsProps> = ({
               'flex',
               mobileQueueChatsExpanded
                 ? 'h-full flex-col justify-center gap-2'
-                : 'relative flex-row justify-end',
+                : 'max-w-6 flex-row-reverse items-center justify-start',
             )}
           >
             {queueChats.map((chat, index) => {
@@ -101,18 +115,16 @@ const QueueChats: React.FC<QueueChatsProps> = ({
               }
               return (
                 <div
-                  className={
-                    !mobileQueueChatsExpanded ? `absolute right-0` : ''
-                  }
+                  className={cn(!mobileQueueChatsExpanded ? `transform` : '')}
                   style={
                     !mobileQueueChatsExpanded
                       ? {
-                          right: `${index * 10}px`,
+                          transform: `translateX(${index * 36}px)`,
                           zIndex: queueChats.length - index,
                         }
                       : {}
                   }
-                  key={chat.id}
+                  key={chat.questionId + '-' + chat.staff.id}
                 >
                   <QueueChat
                     queueId={queueId}
@@ -120,12 +132,13 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                     staffId={chat.staff.id}
                     isMobile={isMobile}
                     isStaff={isStaff}
-                    disableButton={!mobileQueueChatsExpanded}
+                    disableTheButton={!mobileQueueChatsExpanded}
                     announceNewMessage={(newCount: number) =>
                       setNewMessagesInQueueChats(
                         (prevCount) => prevCount + newCount,
                       )
                     }
+                    showNameTooltip={showNameTooltips}
                     onOpen={() => {
                       setChatbotOpen(false)
                       setRenderSmallChatbot(false)
@@ -134,6 +147,7 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                     onClose={() => {
                       setRenderSmallChatbot(true)
                       setCurrentChatQuestionId(-1)
+                      setMobileQueueChatsExpanded(false)
                     }}
                     hidden={
                       (currentChatQuestionId != chat.questionId &&
@@ -144,10 +158,12 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                 </div>
               )
             })}
-            {mobileQueueChatsExpanded && (
+            {mobileQueueChatsExpanded && currentChatQuestionId === -1 && (
               <Button
                 type="default"
                 shape="circle"
+                size="large"
+                className="border border-gray-300 bg-gray-200 p-6 text-gray-500 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                 icon={<X />}
                 onClick={() => {
                   setMobileQueueChatsExpanded(false)
@@ -161,30 +177,30 @@ const QueueChats: React.FC<QueueChatsProps> = ({
     </button>
   ) : (
     <div
-      className={`fixed bottom-1 right-0 box-border max-h-[70vh] ${isChatbotOpen ? 'md:right-[408px]' : 'md:right-[9.5rem]'}`}
+      className={cn(
+        'fixed bottom-1 right-0 box-border',
+        'max-w-[70vw] flex-wrap',
+        'flex items-end justify-end gap-3 pr-1',
+        'overflow-visible',
+        isChatbotOpen ? 'md:right-[408px]' : 'md:right-[9.5rem]',
+      )}
     >
-      <div
-        className={
-          'box-border flex h-full max-w-[50vw] flex-row items-end justify-end gap-2 overflow-x-auto overflow-y-hidden'
+      {queueChats?.map((chat) => {
+        if (!chat.staff || !chat.student || !chat.staff.id) {
+          return null
         }
-      >
-        {queueChats?.map((chat) => {
-          if (!chat.staff || !chat.student || !chat.staff.id) {
-            return null
-          }
-          return (
-            <QueueChat
-              key={chat.id}
-              queueId={queueId}
-              questionId={chat.questionId}
-              staffId={chat.staff.id}
-              isMobile={isMobile}
-              isStaff={isStaff}
-              hidden={false}
-            />
-          )
-        })}
-      </div>
+        return (
+          <QueueChat
+            key={chat.questionId + '-' + chat.staff.id}
+            queueId={queueId}
+            questionId={chat.questionId}
+            staffId={chat.staff.id}
+            isMobile={isMobile}
+            isStaff={isStaff}
+            hidden={false}
+          />
+        )
+      })}
     </div>
   )
 }

@@ -1058,6 +1058,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           isMobile={isMobile}
           setRenderSmallChatbot={setRenderSmallChatbot}
           setChatbotOpen={setChatbotOpen}
+          isChatbotOpen={isChatbotOpen}
         />
       </div>
     )

@@ -1,4 +1,10 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { RedisService } from 'nestjs-redis';
 import { Redis } from 'ioredis';
 import { QueueChatsModel } from './queue-chats.entity';
@@ -25,6 +31,7 @@ export class QueueChatService {
 
   constructor(
     private readonly redisService: RedisService,
+    @Inject(forwardRef(() => QueueSSEService))
     private readonly queueSSEService: QueueSSEService,
   ) {
     this.redis = this.redisService.getClient('db');
@@ -325,20 +332,20 @@ export class QueueChatService {
       const messages = await this.getChatMessages(queueId, questionId, staffId);
       const messageKey = `${ChatMessageRedisKey}:${queueId}:${questionId}:${staffId}`;
 
-      // Skip empty chats
-      if (!messages || messages.length === 0) return null;
+      // Only save to database if there are messages
+      if (messages && messages.length > 0) {
+        // Create and save chat record
+        const queueChat = new QueueChatsModel();
+        queueChat.queueId = queueId;
+        queueChat.staffId = metadata.staff.id;
+        queueChat.studentId = metadata.student.id;
+        queueChat.startedAt = metadata.startedAt;
+        queueChat.closedAt = new Date();
+        queueChat.messageCount = messages.length;
 
-      // Create and save chat record
-      const queueChat = new QueueChatsModel();
-      queueChat.queueId = queueId;
-      queueChat.staffId = metadata.staff.id;
-      queueChat.studentId = metadata.student.id;
-      queueChat.startedAt = metadata.startedAt;
-      queueChat.closedAt = new Date();
-      queueChat.messageCount = messages.length;
-
-      // Save to database
-      await queueChat.save();
+        // Save to database
+        await queueChat.save();
+      }
 
       // Return keys to delete after saving
       return { metaKey, messageKey };
@@ -365,6 +372,10 @@ export class QueueChatService {
         );
       }
     }
+
+    console.log(
+      `Deleted ${keysToDelete.length} queue chats for question id ${questionId}`,
+    );
 
     // now notify everyone in the queue to re-fetch their chats
     await this.queueSSEService.updateQueueChats(queueId);

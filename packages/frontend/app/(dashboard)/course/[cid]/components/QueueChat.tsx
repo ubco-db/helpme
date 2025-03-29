@@ -20,9 +20,10 @@ interface QueueChatProps {
   announceNewMessage?: (newCount: number) => void
   onOpen?: () => void
   onClose?: () => void
-  disableButton?: boolean // used to disable the onClick and hover effects of the button
+  disableTheButton?: boolean // used to disable the onClick and hover effects of the button
   className?: string
   style?: React.CSSProperties
+  showNameTooltip?: boolean
 }
 
 const QueueChat: React.FC<QueueChatProps> = ({
@@ -32,10 +33,11 @@ const QueueChat: React.FC<QueueChatProps> = ({
   isMobile,
   hidden,
   isStaff,
-  disableButton = false,
+  disableTheButton = false,
   className,
   style,
   isChatbotOpen = false,
+  showNameTooltip,
   announceNewMessage = (newCount: number) => {
     return
   },
@@ -46,7 +48,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     return
   },
 }): ReactElement => {
-  const [isOpen, setIsOpen] = useState<boolean>(isMobile ? false : true)
+  const [isOpen, setIsOpen] = useState<boolean>(false)
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const {
@@ -253,8 +255,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
     <div
       className={cn(
         hidden ? 'hidden ' : '',
-        isChatbotOpen ? 'md:right-[408px]' : 'md:right-40',
-        'fixed bottom-5 right-5 md:bottom-8',
+        // isChatbotOpen ? 'md:right-[408px]' : 'md:right-40',
+        // 'relative bottom-0 md:bottom-4 ',
+        'md:mb-7',
         className,
       )}
       style={{ zIndex: 1050, ...style }}
@@ -270,20 +273,29 @@ const QueueChat: React.FC<QueueChatProps> = ({
               : 'Message Student'
         }
         placement={isMobile ? 'left' : 'top'}
+        open={showNameTooltip === true ? true : undefined}
       >
         <Button
           type="primary"
           size="large"
           className={cn(
-            disableButton ? '' : 'hover:ring focus:ring',
-            'ring-helpmeblue-light ring-offset-2',
+            disableTheButton
+              ? 'pointer-events-none'
+              : 'ring-helpmeblue-light ring-offset-2 hover:ring focus:ring',
             'shadow-lg shadow-slate-400',
-            'outline-3 outline-helpmeblue/50 outline md:outline-2',
-            'rounded-full p-6 md:p-7 ',
+            'md:outline-3 outline-helpmeblue/50 outline outline-4',
+            'rounded-full p-5 md:p-6 ',
           )}
+          // className={cn(
+          //   disableTheButton ? '' : 'hover:ring focus:ring',
+          //   'ring-helpmeblue-light ring-offset-2',
+          //   'shadow-lg shadow-slate-400',
+          //   'outline-3 outline-helpmeblue/50 outline md:outline-2',
+          //   'rounded-full p-6 md:p-7 ',
+          // )}
           icon={
             <UserAvatar
-              size={isMobile ? 54 : 60}
+              size={isMobile ? 48 : 54}
               className=""
               photoURL={
                 !isStaff
@@ -298,7 +310,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
             />
           }
           onClick={() => {
-            if (disableButton) {
+            if (disableTheButton) {
               return
             }
             setIsOpen(true)

@@ -1,5 +1,5 @@
 import { Role, SSEQueueResponse } from '@koh/common';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { Response } from 'express';
 import { throttle } from 'lodash';
 import { SSEService } from 'sse/sse.service';
@@ -16,6 +16,7 @@ export class QueueSSEService {
   constructor(
     private queueService: QueueService,
     private sseService: SSEService<QueueClientMetadata>,
+    @Inject(forwardRef(() => QueueChatService))
     private queueChatService: QueueChatService,
   ) {}
 

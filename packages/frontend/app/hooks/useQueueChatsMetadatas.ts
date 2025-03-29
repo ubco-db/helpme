@@ -6,7 +6,7 @@ import {
 import useSWR, { mutate, SWRResponse } from 'swr'
 import { useCallback, useEffect } from 'react'
 import { useEventSource } from './useEventSource'
-import { plainToClass } from 'class-transformer'
+import { plainToClass, plainToInstance } from 'class-transformer'
 import { API } from '../api'
 
 type queueChatsResponse = SWRResponse<GetQueueChatsResponse, any>
@@ -68,13 +68,14 @@ export function useQueueChatsMetadatas(
 
   const isLive = useEventSource(
     `/api/v1/queues/${qid}/sse`,
-    'queue',
+    'queueChats',
     useCallback(
       (data: SSEQueueResponse) => {
-        if (data.queueChats) {
+        if (data.queueChats !== undefined) {
+          console.log('data.queueChats', data.queueChats)
           mutate(
             key,
-            plainToClass(GetQueueChatResponse, data.queueChats),
+            plainToInstance(GetQueueChatResponse, data.queueChats),
             false,
           )
           REFRESH_INFO[key].lastUpdated = new Date()
