@@ -598,7 +598,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
           type="primary"
           icon={<Bot className="mt-0.5" />}
           size="large"
-          className="z-50 mx-5 hidden rounded-sm shadow-md shadow-slate-400 md:flex"
+          className="z-50 mr-5 hidden rounded-sm shadow-md shadow-slate-400 md:flex"
           onClick={() => setIsOpen(true)}
         >
           Chatbot

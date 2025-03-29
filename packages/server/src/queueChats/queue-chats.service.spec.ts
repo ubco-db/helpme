@@ -98,6 +98,7 @@ describe('QueueChatService', () => {
             lastName: question.creator.lastName,
             photoURL: question.creator.photoURL,
           },
+          questionId: question.id,
           startedAt: staticDate.toISOString(),
         }),
       );
@@ -107,7 +108,7 @@ describe('QueueChatService', () => {
 
   describe('sendMessage', () => {
     it('should store a chat message in Redis', async () => {
-      await service.sendMessage(123, 2, true, 'Hello!');
+      await service.sendMessage(123, 2, 1, true, 'Hello!');
 
       const key = 'queue_chat_messages:123:2';
       expect(redisMock.lpush).toHaveBeenCalledWith(
@@ -127,7 +128,7 @@ describe('QueueChatService', () => {
 
       redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
 
-      const result = await service.getChatMetadata(123, 2);
+      const result = await service.getChatMetadata(123, 2, 1);
       expect(redisMock.get).toHaveBeenCalledWith('queue_chat_metadata:123:2');
       expect(result).toEqual(metadata);
     });
@@ -135,7 +136,7 @@ describe('QueueChatService', () => {
     it('should return null if no metadata exists', async () => {
       redisMock.get.mockResolvedValueOnce(null);
 
-      const result = await service.getChatMetadata(123, 2);
+      const result = await service.getChatMetadata(123, 2, 1);
       expect(redisMock.get).toHaveBeenCalledWith('queue_chat_metadata:123:2');
       expect(result).toBeNull();
     });
@@ -158,7 +159,7 @@ describe('QueueChatService', () => {
 
       redisMock.lrange.mockResolvedValueOnce(messages);
 
-      const result = await service.getChatMessages(123, 2);
+      const result = await service.getChatMessages(123, 2, 1);
       expect(redisMock.lrange).toHaveBeenCalledWith(
         'queue_chat_messages:123:2',
         0,
@@ -182,7 +183,7 @@ describe('QueueChatService', () => {
     it('should return null if no messages exist', async () => {
       redisMock.lrange.mockResolvedValueOnce([]);
 
-      const result = await service.getChatMessages(123, 2);
+      const result = await service.getChatMessages(123, 2, 1);
       expect(redisMock.lrange).toHaveBeenCalledWith(
         'queue_chat_messages:123:2',
         0,
@@ -215,7 +216,7 @@ describe('QueueChatService', () => {
         .spyOn(QueueChatsModel.prototype, 'save')
         .mockResolvedValueOnce(undefined);
 
-      await service.endChat(123, 2);
+      await service.endChats(123, 2);
 
       expect(mockSave).toHaveBeenCalledWith();
       expect(redisMock.del).toHaveBeenCalledWith('queue_chat_metadata:123:2');
@@ -231,7 +232,7 @@ describe('QueueChatService', () => {
       redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
       redisMock.lrange.mockResolvedValueOnce([]);
 
-      await service.endChat(123, 2);
+      await service.endChats(123, 2);
 
       expect(
         QueueChatsModel.find({ where: { queueId: 123, studentId: 2 } }),
@@ -250,10 +251,10 @@ describe('QueueChatService', () => {
       };
 
       redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
-      expect(await service.checkPermissions(123, 2, 1)).toBe(true);
+      expect(await service.checkPermissions(123, 2, 1, 1)).toBe(true);
 
       redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
-      expect(await service.checkPermissions(123, 2, 2)).toBe(true);
+      expect(await service.checkPermissions(123, 2, 2, 1)).toBe(true);
     });
 
     it('should return false if the user is not a participant', async () => {
@@ -264,13 +265,13 @@ describe('QueueChatService', () => {
 
       redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
 
-      expect(await service.checkPermissions(123, 2, 3)).toBe(false);
+      expect(await service.checkPermissions(123, 2, 3, 1)).toBe(false);
     });
 
     it('should return false if no metadata exists', async () => {
       redisMock.get.mockResolvedValueOnce(null);
 
-      expect(await service.checkPermissions(123, 2, 1)).toBe(false);
+      expect(await service.checkPermissions(123, 2, 1, 1)).toBe(false);
     });
   });
 
@@ -278,7 +279,7 @@ describe('QueueChatService', () => {
     it('should return true if a chat exists', async () => {
       redisMock.exists.mockResolvedValueOnce(1);
 
-      expect(await service.checkChatExists(123, 2)).toBe(true);
+      expect(await service.checkChatExists(123, 2, 1)).toBe(true);
       expect(redisMock.exists).toHaveBeenCalledWith(
         'queue_chat_metadata:123:2',
       );
@@ -287,7 +288,7 @@ describe('QueueChatService', () => {
     it('should return false if a chat does not exist', async () => {
       redisMock.exists.mockResolvedValueOnce(0);
 
-      expect(await service.checkChatExists(123, 2)).toBe(false);
+      expect(await service.checkChatExists(123, 2, 1)).toBe(false);
     });
   });
 });

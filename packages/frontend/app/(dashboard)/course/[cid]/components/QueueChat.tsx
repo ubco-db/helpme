@@ -12,6 +12,7 @@ import { cn } from '@/app/utils/generalUtils'
 interface QueueChatProps {
   queueId: number
   questionId: number
+  staffId: number
   isMobile: boolean
   hidden: boolean
   isStaff: boolean
@@ -19,15 +20,24 @@ interface QueueChatProps {
   announceNewMessage?: (newCount: number) => void
   onOpen?: () => void
   onClose?: () => void
+  disableTheButton?: boolean // used to disable the onClick and hover effects of the button
+  className?: string
+  style?: React.CSSProperties
+  showNameTooltip?: boolean
 }
 
 const QueueChat: React.FC<QueueChatProps> = ({
   queueId,
   questionId,
+  staffId,
   isMobile,
   hidden,
   isStaff,
+  disableTheButton = false,
+  className,
+  style,
   isChatbotOpen = false,
+  showNameTooltip,
   announceNewMessage = (newCount: number) => {
     return
   },
@@ -38,9 +48,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     return
   },
 }): ReactElement => {
-  const [isOpen, setIsOpen] = useState<boolean>(isMobile ? false : true)
-  const [hasStudentEverOpenedIt, setHasStudentEverOpenedIt] =
-    useState<boolean>(false)
+  const [isOpen, setIsOpen] = useState<boolean>(false)
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const {
@@ -49,9 +57,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
     mutateQueueChat,
     newMessageCount,
     resetNewMessageCount,
-  } = useQueueChat(queueId, questionId)
-  const messagesEndRef = useRef<HTMLDivElement | null>(null) // This handles auto scrolling
+  } = useQueueChat(queueId, questionId, staffId)
 
+  const messagesEndRef = useRef<HTMLDivElement | null>(null) // This handles auto scrolling
   // To always auto scroll to the bottom of the page when new messages are added
   useEffect(() => {
     if (messagesEndRef.current && isOpen) {
@@ -78,7 +86,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
     setIsLoading(true)
     if (questionId) {
       API.queueChats
-        .sendMessage(queueId, questionId, input)
+        .sendMessage(queueId, questionId, staffId, input)
         .then(() => {
           mutateQueueChat()
           setInput('')
@@ -242,71 +250,70 @@ const QueueChat: React.FC<QueueChatProps> = ({
         </div>
       </Card>
     </div>
-  ) : isMobile && isStaff ? (
-    // For mobile staff view, the queue chats go inside a drawer so this will look a little different
-    <div style={{ zIndex: 1050, width: '100%', padding: '0.75rem' }}>
-      <Badge
-        count={newMessageCount}
-        style={{ zIndex: 1050 }}
-        className={`${hidden ? 'hidden ' : ''}${isStaff ? 'w-full ' : `${!isStaff ? `fixed ` : ''}bottom-5 right-5`}`}
-        overflowCount={99}
-      >
-        <Button
-          type="primary"
-          size="large"
-          className={`z-50 w-full rounded-sm shadow-md`}
-          onClick={() => {
-            setIsOpen(true)
-            onOpen()
-          }}
-        >
-          {queueChatData && queueChatData.staff && queueChatData.student
-            ? isStaff
-              ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
-              : `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
-            : 'Loading...'}
-        </Button>
-      </Badge>
-    </div>
-  ) : !isStaff ? (
-    // if you're a student, show the pfp of the TA helping you as the button
+  ) : true ? ( // TODO: remove this
+    // if not open, show the pfp of the other person as the button
     <div
       className={cn(
         hidden ? 'hidden ' : '',
-        isChatbotOpen ? 'md:right-[408px]' : 'md:right-40',
-        'fixed bottom-5 right-5 md:bottom-8',
+        // isChatbotOpen ? 'md:right-[408px]' : 'md:right-40',
+        // 'relative bottom-0 md:bottom-4 ',
+        'md:mb-7',
+        className,
       )}
-      style={{ zIndex: 1050 }}
+      style={{ zIndex: 1050, ...style }}
     >
       <Tooltip
         title={
-          queueChatData && queueChatData.staff
-            ? `Message ${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
-            : 'Message TA'
+          !isStaff
+            ? queueChatData.staff
+              ? `Message ${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+              : 'Message TA'
+            : queueChatData.student
+              ? `Message ${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
+              : 'Message Student'
         }
         placement={isMobile ? 'left' : 'top'}
-        open={isMobile && !hasStudentEverOpenedIt ? true : undefined}
+        open={showNameTooltip === true ? true : undefined}
       >
         <Button
           type="primary"
           size="large"
           className={cn(
-            'ring-helpmeblue-light ring-offset-2 hover:ring focus:ring',
+            disableTheButton
+              ? 'pointer-events-none'
+              : 'ring-helpmeblue-light ring-offset-2 hover:ring focus:ring',
             'shadow-lg shadow-slate-400',
-            'outline-3 outline-helpmeblue/50 outline md:outline-2',
-            'rounded-full p-6 md:p-7 ',
+            'md:outline-3 outline-helpmeblue/50 outline outline-4',
+            'rounded-full p-5 md:p-6 ',
           )}
+          // className={cn(
+          //   disableTheButton ? '' : 'hover:ring focus:ring',
+          //   'ring-helpmeblue-light ring-offset-2',
+          //   'shadow-lg shadow-slate-400',
+          //   'outline-3 outline-helpmeblue/50 outline md:outline-2',
+          //   'rounded-full p-6 md:p-7 ',
+          // )}
           icon={
             <UserAvatar
-              size={isMobile ? 54 : 60}
+              size={isMobile ? 48 : 54}
               className=""
-              photoURL={queueChatData.staff.photoURL}
-              username={`${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`}
+              photoURL={
+                !isStaff
+                  ? queueChatData.staff.photoURL
+                  : queueChatData.student.photoURL
+              }
+              username={
+                !isStaff
+                  ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+                  : `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
+              }
             />
           }
           onClick={() => {
+            if (disableTheButton) {
+              return
+            }
             setIsOpen(true)
-            setHasStudentEverOpenedIt(true)
             onOpen()
           }}
         />

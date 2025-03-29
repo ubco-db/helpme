@@ -892,6 +892,8 @@ export class QueueChatPartial {
 
   student!: QueueChatUserPartial
 
+  questionId!: number
+
   @IsDate()
   startedAt!: Date
 
@@ -1434,6 +1436,8 @@ export class GetCourseQueuesResponse extends Array<QueuePartial> {}
 
 export class GetQueueChatResponse extends QueueChatPartial {}
 
+export class GetQueueChatsResponse extends Array<QueueChatPartial> {}
+
 export class ListQuestionsResponse {
   @Type(() => Question)
   yourQuestions?: Array<Question>
@@ -1825,6 +1829,7 @@ export class SemesterPartial {
 export class SSEQueueResponse {
   queue?: GetQueueResponse
   queueQuestions?: ListQuestionsResponse
+  queueChats?: QueueChatPartial[] // just the metadata for the chats, not the messages
 }
 
 export class SSEQueueChatResponse {
@@ -2883,6 +2888,12 @@ export const ERROR_MESSAGES = {
     chatNotAuthorized: 'User is not allowed to retrieve requested chat data',
     sendNotAuthorized: 'User is not allowed to send messages to this chat',
     internalSendError: 'Error occurred while sending message',
+    chatAlreadyExists: 'Chat already exists',
+    staffNotFound: 'This staff member does not exist or is not in this course',
+    queueNotFound: 'This queue does not exist',
+    questionNotFound: 'This question does not exist or is not in this queue',
+    questionNotAuthorized:
+      'Students cannot create chats for questions they did not create',
   },
   queueRoleGuard: {
     queueNotFound: 'Queue not found',
