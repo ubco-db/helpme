@@ -27,12 +27,6 @@
 
 ## server .env (place in packages/server)
 
-###### DB_URL
-
-**Purpose:** URL of the database. 
-
-**How to get:** Probably safe to leave it as is if you're just testing. However, if you changed any of the variables above, please make the corresponding changes to this url. Also make sure the port number matches the one in `docker-compose.yml`
-
 ###### TESTDBPASS
 
 **Purpose:** Password for the test database (?)

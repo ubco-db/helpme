@@ -5,6 +5,7 @@
 - [INTRO TO THE CODEBASE AND TECHSTACK](#intro-to-the-codebase-and-techstack)
   - [Codebase](#codebase)
   - [Technologies Guide](#technologies-guide)
+    - [Environment Variables](#environment-variables)
     - [Frontend](#frontend)
       - [Next.js](#nextjs)
         - [What's with all these `'use client'` \& `'use server'` things?](#whats-with-all-these-use-client--use-server-things)
@@ -43,21 +44,33 @@ File structure is as follows:
 - `/infrastructure` - I have never had to look in here
 - `/packages` - contains all the code for the project
   - `/server` - backend code
-    - `.env` - 
+    - `.env` - Environment variables for server
+    - `postgres.env` - Environment variables specific to the database
     - `/src` - contains all endpoints and unit tests
     - `/migration` - contains auto-generated migrations, which are used to keep track of database changes (see more in `DEVELOPING.md`)
     - `/test` - contains integration tests
   - `/frontend` - frontend code
+    - `.env` - Environment variables for the frontend
     - `/api`
         - `index.ts` - This is our first important index.ts. Contains functions that call the backend endpoints. It keeps the fetch calls all in one place, making it easier to maintain (e.g. if you renamed an endpoint, you only need to change in 1 area)  
     - `/app` - contains all the pages and components
-    - `/public` 
+    - `/public` - Contains 
   - `/common` - shared code between the frontend and backend
     - `index.ts` - This is our other important index.ts. Contains all types or functions used on both the frontend and backend
 
 ## Technologies Guide
 
-`.env` - Rather than storing sensitive information (such as API keys, database passwords, etc.) in the codebase, we store them in a `.env` file. This file is not tracked by git, so it is not shared with anyone else. You will need to create multiple `.env` files for the project, one for the frontend and one for the backend. Follow the example `.env` files in the respective directories to see what you need to add. More details about what each variable does or how to get them can be found in [ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md). environment
+### Environment Variables
+
+`.env` - Rather than storing sensitive information (such as API keys, database passwords, etc.) in the codebase, we store them in a `.env` file. This file is not tracked by git, so it is not shared with anyone else. You will need to create multiple `.env` files for the project, one for the frontend and one for the backend. Follow the example `.env` files in the respective directories to see what you need to add. More details about what each variable does or how to get them can be found in [ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md). 
+
+You will also need to create a `postgres.env` in your `/server` directory. The reason it is separate from the `/server` .env is that the entire `postgres.env` is loaded into the postgres container.
+
+For the frontend `.env`, use `dev.env` as a template (create a copy of `dev.env` and rename it to `.env`).
+
+For the server `.env`, use `.env.development` as a template (create a copy of `.env.development` and rename it to `.env`).
+
+Note that if you are also setting up the chatbot repo, it also needs a `.env`, which uses `env.example` as a template. Inside this `.env` is where you would put your Open AI API key so you can properly interact with the chatbot while developing (contact one of the HelpMe devs if you don't have an Open AI key with funds on it and we will provide you with one).
 
 ### Frontend
 
