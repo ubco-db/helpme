@@ -20,8 +20,7 @@
 
 ###### POSTGRES_NONROOT_PASSWORD
 
-**Purpose:** username of the root user for the postgres db
-
+**Purpose:** password of the non-root user for the postgres db
 **How to get:** Safe to leave it as is if you're just testing. PLEASE change to something less-obvious on prod
 
 
