@@ -12,10 +12,8 @@ exports[`Profile Integration GET /profile returns the logged-in user profile 1`]
   "courses": [
     {
       "course": {
-        "enabled": true,
         "id": 1,
         "name": "CS 2500",
-        "semesterId": 1,
       },
       "role": "student",
     },

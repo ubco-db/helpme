@@ -60,9 +60,7 @@ export class CourseModel extends BaseEntity {
   @Exclude()
   interactions: InteractionModel[];
 
-  @ManyToOne(() => SemesterModel, (semester) => semester.courses, {
-    onDelete: 'SET NULL',
-  })
+  @ManyToOne((type) => SemesterModel, (semester) => semester.courses)
   @JoinColumn({ name: 'semesterId' })
   @Exclude()
   semester: SemesterModel;
@@ -70,7 +68,7 @@ export class CourseModel extends BaseEntity {
   @Column({ nullable: true })
   @Exclude()
   // TODO: can we make these not nullable and work with TypeORM
-  semesterId?: number;
+  semesterId: number;
 
   @Column('boolean', { nullable: true })
   enabled: boolean; // Set to true if the given the course is using our app

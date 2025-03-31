@@ -769,23 +769,8 @@ class APIClient {
     fillQueue: async () => this.req('GET', `/api/v1/seeds/fill_queue`),
   }
   semesters = {
-    get: async (oid: number): Promise<SemesterPartial[]> =>
-      this.req('GET', `/api/v1/semesters/${oid}`),
-    create: async (oid: number, body: SemesterPartial): Promise<void> =>
-      this.req('POST', `/api/v1/semesters/${oid}`, undefined, body),
-    edit: async (
-      oid: number,
-      semesterId: number,
-      body: SemesterPartial,
-    ): Promise<void> =>
-      this.req(
-        'PATCH',
-        `/api/v1/semesters/${oid}/${semesterId}`,
-        undefined,
-        body,
-      ),
-    delete: async (oid: number, semesterId: number): Promise<void> =>
-      this.req('DELETE', `/api/v1/semesters/${oid}/${semesterId}`),
+    get: async (): Promise<SemesterPartial[]> =>
+      this.req('GET', `/api/v1/semesters`),
   }
   insights = {
     get: async (

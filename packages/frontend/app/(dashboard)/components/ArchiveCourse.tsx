@@ -1,5 +1,4 @@
 import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import {
   GetOrganizationResponse,
@@ -18,28 +17,11 @@ const ArchiveCourse: React.FC<ArchiveCourseProps> = ({
   organization,
   fetchCourseData,
 }) => {
-  const { userInfo, setUserInfo } = useUserInfo()
-
   const updateCourseAccess = async () => {
     await API.organizations
       .updateCourseAccess(organization.id, Number(courseData.courseId))
       .then(() => {
         message.success('Course access was updated')
-        setUserInfo({
-          ...userInfo,
-          courses: userInfo.courses.map((userCourse) => {
-            if (userCourse.course.id === courseData.courseId) {
-              return {
-                ...userCourse,
-                course: {
-                  ...userCourse.course,
-                  enabled: !courseData.course?.enabled,
-                },
-              }
-            }
-            return userCourse
-          }),
-        })
         fetchCourseData()
       })
       .catch((error) => {
@@ -56,7 +38,7 @@ const ArchiveCourse: React.FC<ArchiveCourseProps> = ({
         </strong>
         <div className="mb-0">
           {courseData.course?.enabled
-            ? 'Once you archive a course, the course will only be visible to the course professor as well as admins.'
+            ? 'Once you archive a course, the course will only be visible to course professor and TA, as well as admins.'
             : 'Once you unarchive a course, the course will once again be visible to all members of the organization.'}
         </div>
       </div>

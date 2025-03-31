@@ -11,7 +11,6 @@ import {
 import { OrganizationModel } from './organization.entity';
 import { CourseModel } from '../course/course.entity';
 
-// TODO: remove entity and move attributes to course model, its a one to many relationship, not many to many, so there should be no join table
 @Entity('organization_course_model')
 export class OrganizationCourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()

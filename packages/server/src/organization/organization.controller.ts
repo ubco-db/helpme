@@ -34,7 +34,6 @@ import {
   OrganizationProfessor,
   CourseResponse,
   OrgUser,
-  GetOrganizationResponse,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -53,24 +52,21 @@ import * as checkDiskSpace from 'check-disk-space';
 import * as path from 'path';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { SemesterModel } from '../semester/semester.entity';
+import { SemesterModel } from 'semester/semester.entity';
 import { getManager, In } from 'typeorm';
-import { UserCourseModel } from '../profile/user-course.entity';
-import { CourseSettingsModel } from '../course/course_settings.entity';
-import { EmailVerifiedGuard } from '../guards/email-verified.guard';
-import { ChatTokenModel } from '../chatbot/chat-token.entity';
+import { UserCourseModel } from 'profile/user-course.entity';
+import { CourseSettingsModel } from 'course/course_settings.entity';
+import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import _ from 'lodash';
 import * as sharp from 'sharp';
-import { UserId } from '../decorators/user.decorator';
 import { User } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { CourseRoles } from 'decorators/course-roles.decorator';
-
-// TODO: put the error messages in ERROR_MESSAGES object
 
 @Controller('organization')
 export class OrganizationController {
@@ -323,101 +319,123 @@ export class OrganizationController {
         )}`,
       });
     }
-    await getManager().transaction(async (manager) => {
-      // Create course entity
-      const newCourse = manager.create(CourseModel, {
-        name: courseDetails.name,
-        coordinator_email: courseDetails.coordinator_email,
-        sectionGroupName: courseDetails.sectionGroupName,
-        zoomLink: courseDetails.zoomLink,
-        timezone: courseDetails.timezone,
-        enabled: true,
+
+    if (
+      !courseDetails.semesterName &&
+      courseDetails.semesterName.trim().length < 2
+    ) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterNameTooShort,
       });
+    }
 
-      await manager.save(newCourse);
+    const semesterDetails = courseDetails.semesterName.split(',');
 
-      // Attach professors if any
+    if (semesterDetails.length !== 2) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterNameFormat,
+      });
+    }
+
+    if (isNaN(parseInt(semesterDetails[1]))) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterYearInvalid,
+      });
+    }
+
+    const course = {
+      name: courseDetails.name,
+      coordinator_email: courseDetails.coordinator_email,
+      sectionGroupName: courseDetails.sectionGroupName,
+      zoomLink: courseDetails.zoomLink,
+      timezone: courseDetails.timezone,
+      enabled: true,
+    };
+    try {
+      const newCourse = await CourseModel.create(course).save();
+
       if (courseDetails.profIds) {
         for (const profId of courseDetails.profIds) {
-          const chosenProfessor = await manager.findOne(UserModel, {
+          const chosenProfessor = await UserModel.findOne({
             where: { id: profId },
           });
 
           if (!chosenProfessor) {
-            throw new HttpException(
-              `Professor with ID ${profId} not found`,
-              HttpStatus.NOT_FOUND,
-            );
+            return res.status(HttpStatus.NOT_FOUND).send({
+              message: `Professor with ID ${profId} not found`,
+            });
           }
 
-          const userCourse = manager.create(UserCourseModel, {
-            user: chosenProfessor,
+          await UserCourseModel.create({
+            userId: profId,
             course: newCourse,
             role: Role.PROFESSOR,
             expires: false,
-          });
-          await manager.save(userCourse);
+          }).save();
         }
       }
 
-      // Add to organization
-      const orgCourse = manager.create(OrganizationCourseModel, {
+      await OrganizationCourseModel.create({
         organizationId: oid,
         course: newCourse,
-      });
-      await manager.save(orgCourse);
+      }).save();
 
-      // Check semester (-1 signifies that no semester was set)
-      if (courseDetails.semesterId && isNaN(courseDetails.semesterId)) {
-        throw new HttpException(
-          `Semester ID is invalid`,
-          HttpStatus.BAD_REQUEST,
-        );
-      } else if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
-        const semester = await manager.findOne(SemesterModel, {
-          where: { id: courseDetails.semesterId },
-          relations: ['courses'],
-        });
-        if (!semester) {
-          throw new HttpException(`Semester not found`, HttpStatus.NOT_FOUND);
-        }
-        newCourse.semester = semester;
-        await manager.save(newCourse);
+      const semester = await SemesterModel.findOne({
+        where: {
+          season: semesterDetails[0],
+          year: parseInt(semesterDetails[1]),
+        },
+        relations: ['courses'],
+      });
+
+      if (!semester) {
+        await SemesterModel.create({
+          season: semesterDetails[0],
+          year: parseInt(semesterDetails[1]),
+          courses: [newCourse],
+        }).save();
+      } else {
+        semester.courses.push(newCourse);
+        await semester.save();
       }
 
-      // Create default settings
-      const newCourseSettings = manager.create(CourseSettingsModel, {
-        courseId: newCourse.id,
-      });
+      // create courseSettingsModel for the new course (all checks are performed by typescript)
+      const newCourseSettings = new CourseSettingsModel();
+      newCourseSettings.courseId = newCourse.id;
+      // for each feature given, assign its corresponding values
       if (courseDetails.courseSettings) {
         for (const givenFeature of courseDetails.courseSettings) {
           if (!CourseSettingsRequestBody.isValidFeature(givenFeature.feature)) {
-            throw new HttpException(
-              'invalid feature: ' + givenFeature.feature,
-              HttpStatus.BAD_REQUEST,
-            );
+            return res.status(HttpStatus.BAD_REQUEST).send({
+              message: 'invalid feature: ' + givenFeature.feature,
+            });
           }
           newCourseSettings[givenFeature.feature] = givenFeature.value;
         }
       }
-      await manager.save(newCourseSettings);
-    });
+      await newCourseSettings.save();
 
-    let message = 'Course created successfully.';
-    let status = HttpStatus.OK;
-    if (!courseDetails.courseSettings) {
-      message += ' Default settings used.';
-      status = HttpStatus.ACCEPTED;
-    }
-    if (!courseDetails.profIds) {
-      message += ' No professors given.';
-      status = HttpStatus.ACCEPTED;
-    }
+      let message = 'Course created successfully.';
+      let status = HttpStatus.OK;
+      if (!courseDetails.courseSettings) {
+        message += ' Default settings used.';
+        status = HttpStatus.ACCEPTED;
+      }
+      if (!courseDetails.profIds) {
+        message += ' No professors given.';
+        status = HttpStatus.ACCEPTED;
+      }
 
-    return res.status(status).send({
-      message: message,
-    });
+      return res.status(status).send({
+        message: message,
+      });
+    } catch (err) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        message: err,
+      });
+    }
   }
+
   @Patch(':oid/update_course/:cid')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrgOrCourseRolesGuard)
   @CourseRoles(Role.PROFESSOR)
@@ -429,157 +447,196 @@ export class OrganizationController {
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
     @User(['organizationUser']) user: UserModel,
   ): Promise<Response<void>> {
-    await getManager().transaction(async (manager) => {
-      const courseInfo = await manager.findOne(OrganizationCourseModel, {
-        where: {
-          organizationId: oid,
-          courseId: cid,
-        },
-        relations: ['course', 'course.semester'],
-      });
-
-      if (!courseInfo) {
-        throw new HttpException(
-          ERROR_MESSAGES.courseController.courseNotFound,
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      if (!courseDetails.name || courseDetails.name.trim().length < 1) {
-        throw new HttpException(
-          ERROR_MESSAGES.courseController.courseNameTooShort,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      if (
-        courseInfo.course.coordinator_email &&
-        (!courseDetails.coordinator_email ||
-          courseDetails.coordinator_email.trim().length < 1)
-      ) {
-        throw new HttpException(
-          ERROR_MESSAGES.courseController.coordinatorEmailTooShort,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      if (
-        courseInfo.course.sectionGroupName &&
-        (!courseDetails.sectionGroupName ||
-          courseDetails.sectionGroupName.trim().length < 1)
-      ) {
-        throw new HttpException(
-          ERROR_MESSAGES.courseController.sectionGroupNameTooShort,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      if (
-        !courseDetails.timezone ||
-        !COURSE_TIMEZONES.find(
-          (timezone) => timezone === courseDetails.timezone,
-        )
-      ) {
-        throw new HttpException(
-          `Timezone field is invalid, must be one of ${COURSE_TIMEZONES.join(
-            ', ',
-          )}`,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // Check semester (-1 signifies that no semester was set)
-      /*
-        semester should be required but to not break production, it will temporarily be optional
-        (hence the extra check to see if its already set and not allowing it to be null again)
-      */
-      if (courseDetails.semesterId && isNaN(courseDetails.semesterId)) {
-        throw new HttpException(
-          `Semester ID is invalid`,
-          HttpStatus.BAD_REQUEST,
-        );
-      } else if (courseDetails.semesterId && courseDetails.semesterId == -1) {
-        throw new HttpException(`Semester must be set`, HttpStatus.BAD_REQUEST);
-      } else if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
-        const semester = await manager.findOne(SemesterModel, {
-          where: { id: courseDetails.semesterId },
-          relations: ['courses'],
-        });
-        if (!semester) {
-          throw new HttpException(`Semester not found`, HttpStatus.NOT_FOUND);
-        }
-
-        courseInfo.course.semester = semester;
-      }
-
-      courseInfo.course.name = courseDetails.name;
-
-      if (courseDetails.coordinator_email) {
-        courseInfo.course.coordinator_email = courseDetails.coordinator_email;
-      }
-
-      if (courseDetails.sectionGroupName) {
-        courseInfo.course.sectionGroupName = courseDetails.sectionGroupName;
-      }
-
-      courseInfo.course.zoomLink = courseDetails.zoomLink;
-      courseInfo.course.timezone = courseDetails.timezone;
-
-      await manager.save(courseInfo.course);
-      // Remove current professors
-      await manager.delete(UserCourseModel, {
+    const courseInfo = await OrganizationCourseModel.findOne({
+      where: {
+        organizationId: oid,
         courseId: cid,
-        role: Role.PROFESSOR,
+      },
+      relations: ['course', 'course.semester'],
+    });
+
+    if (!courseInfo) {
+      return res.status(HttpStatus.NOT_FOUND).send({
+        message: ERROR_MESSAGES.courseController.courseNotFound,
+      });
+    }
+
+    if (!courseDetails.name || courseDetails.name.trim().length < 1) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.courseNameTooShort,
+      });
+    }
+
+    if (
+      courseInfo.course.coordinator_email &&
+      (!courseDetails.coordinator_email ||
+        courseDetails.coordinator_email.trim().length < 1)
+    ) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.coordinatorEmailTooShort,
+      });
+    }
+
+    if (
+      courseInfo.course.sectionGroupName &&
+      (!courseDetails.sectionGroupName ||
+        courseDetails.sectionGroupName.trim().length < 1)
+    ) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.sectionGroupNameTooShort,
+      });
+    }
+
+    if (
+      !courseDetails.timezone ||
+      !COURSE_TIMEZONES.find((timezone) => timezone === courseDetails.timezone)
+    ) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: `Timezone field is invalid, must be one of ${COURSE_TIMEZONES.join(
+          ', ',
+        )}`,
+      });
+    }
+
+    if (
+      courseDetails.semesterName &&
+      courseDetails.semesterName.trim().length < 2
+    ) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterNameTooShort,
+      });
+    }
+
+    const semesterDetails = courseDetails.semesterName.split(',');
+    if (semesterDetails.length !== 2) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterNameFormat,
+      });
+    }
+
+    if (isNaN(parseInt(semesterDetails[1]))) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.semesterYearInvalid,
+      });
+    }
+
+    const semester = await SemesterModel.findOne({
+      where: {
+        season: semesterDetails[0],
+        year: parseInt(semesterDetails[1]),
+      },
+      relations: ['courses'],
+    });
+
+    if (courseInfo.course.semester?.id) {
+      const prevSemester = await SemesterModel.findOne({
+        where: {
+          id: courseInfo.course.semester.id,
+        },
+        relations: ['courses'],
       });
 
-      for (const profId of courseDetails.profIds) {
-        const chosenProfessor = await manager.findOne(UserModel, {
-          where: { id: profId },
+      if (prevSemester) {
+        prevSemester.courses = prevSemester.courses.filter(
+          (course) => course.id !== cid,
+        );
+        await prevSemester.save();
+      }
+    }
+
+    if (!semester) {
+      const newSemester = await SemesterModel.create({
+        season: semesterDetails[0],
+        year: parseInt(semesterDetails[1]),
+        courses: [courseInfo.course],
+      }).save();
+
+      courseInfo.course.semester = newSemester;
+      await courseInfo.course.save();
+    } else {
+      courseInfo.course.semester = semester;
+      await courseInfo.course.save();
+      semester.courses.push(courseInfo.course);
+      await semester.save();
+    }
+
+    courseInfo.course.name = courseDetails.name;
+
+    if (courseDetails.coordinator_email) {
+      courseInfo.course.coordinator_email = courseDetails.coordinator_email;
+    }
+
+    if (courseDetails.sectionGroupName) {
+      courseInfo.course.sectionGroupName = courseDetails.sectionGroupName;
+    }
+
+    courseInfo.course.zoomLink = courseDetails.zoomLink;
+    courseInfo.course.timezone = courseDetails.timezone;
+
+    try {
+      await courseInfo.course.save();
+      // update profs (only if admin since only admins can adjust profs in courses)
+      if (user.organizationUser.role === OrganizationRole.ADMIN) {
+        //Remove current profs
+        await UserCourseModel.delete({
+          courseId: cid,
+          role: Role.PROFESSOR,
         });
 
-        if (!chosenProfessor) {
-          throw new HttpException(
-            ERROR_MESSAGES.profileController.userResponseNotFound,
-            HttpStatus.NOT_FOUND,
-          );
-        }
+        for (const profId of courseDetails.profIds) {
+          const chosenProfessor = await UserModel.findOne({
+            where: { id: profId },
+          });
 
-        const userCourse = await manager.findOne(UserCourseModel, {
-          where: {
-            userId: profId,
-            courseId: cid,
-          },
-        });
-
-        // User is already in the course
-        if (userCourse) {
-          userCourse.role = Role.PROFESSOR;
-          try {
-            await manager.save(userCourse);
-          } catch (err) {
-            throw new HttpException(err, HttpStatus.INTERNAL_SERVER_ERROR);
+          if (!chosenProfessor) {
+            return res.status(HttpStatus.NOT_FOUND).send({
+              message: ERROR_MESSAGES.profileController.userResponseNotFound,
+            });
           }
-        } else {
-          try {
-            const newUserCourse = manager.create(UserCourseModel, {
+
+          const userCourse = await UserCourseModel.findOne({
+            where: {
               userId: profId,
               courseId: cid,
-              role: Role.PROFESSOR,
-            });
-            await manager.save(newUserCourse);
-          } catch (err) {
-            throw new HttpException(err, HttpStatus.INTERNAL_SERVER_ERROR);
+            },
+          });
+
+          // user is already in the course
+          if (userCourse) {
+            userCourse.role = Role.PROFESSOR;
+            try {
+              userCourse.save();
+            } catch (err) {
+              return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+                message: err,
+              });
+            }
+          } else {
+            try {
+              await UserCourseModel.create({
+                userId: profId,
+                courseId: cid,
+                role: Role.PROFESSOR,
+              }).save();
+            } catch (err) {
+              return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+                message: err,
+              });
+            }
           }
         }
       }
-    });
+    } catch (err) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        message: err,
+      });
+    }
 
     return res.status(HttpStatus.OK).send({
       message: 'Course updated successfully',
     });
   }
 
-  // For course archival
   @Patch(':oid/update_course_access/:cid')
   @UseGuards(
     JwtAuthGuard,
@@ -942,26 +999,21 @@ export class OrganizationController {
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
   ): Promise<void> {
-    try {
-      const organization = await OrganizationModel.findOne({
-        where: { id: oid },
-        relations: ['semesters'],
-      });
+    OrganizationModel.findOne({
+      where: { id: oid },
+    })
+      .then((organization) => {
+        if (!organization) {
+          return res.status(HttpStatus.NOT_FOUND).send({
+            message: ERROR_MESSAGES.organizationController.organizationNotFound,
+          });
+        }
 
-      if (!organization) {
-        res.status(HttpStatus.NOT_FOUND).send({
-          message: ERROR_MESSAGES.organizationController.organizationNotFound,
-        });
-      }
-
-      res.status(HttpStatus.OK).send(organization as GetOrganizationResponse);
-    } catch (err) {
-      console.error('Error fetching organization:', err);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-        message:
-          'An unexpected error occurred while fetching the organization.',
+        res.status(HttpStatus.OK).send(organization);
+      })
+      .catch((err) => {
+        res.status(500).send({ message: err });
       });
-    }
   }
 
   @Patch(':oid/update_user_role')
