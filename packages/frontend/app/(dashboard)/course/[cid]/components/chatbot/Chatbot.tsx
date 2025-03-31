@@ -17,7 +17,6 @@ import {
   RobotOutlined,
   CloseOutlined,
 } from '@ant-design/icons'
-import axios from 'axios'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
 import {
@@ -28,9 +27,6 @@ import {
 } from '@/app/utils/generalUtils'
 import { Feedback } from './Feedback'
 import {
-  PreDeterminedQuestion,
-  Message,
-  ChatbotAskResponse,
   chatbotStartingMessageSystem,
   chatbotStartingMessageCourse,
   ChatbotQuestionType,
@@ -39,7 +35,7 @@ import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Role } from '@koh/common'
+import { PreDeterminedQuestion, Role, Message } from '@koh/common'
 import { Bot } from 'lucide-react'
 
 const { TextArea } = Input
@@ -107,18 +103,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
   useEffect(() => {
     if (messages.length === 1) {
       setPreDeterminedQuestions([])
-      axios
-        .get(`/chat/${courseIdToUse}/allSuggestedQuestions`, {
-          headers: { HMS_API_TOKEN: userInfo.chat_token?.token },
-        })
-        .then((res) => {
-          setPreDeterminedQuestions(
-            res.data.map((question: PreDeterminedQuestion) => ({
-              id: question.id,
-              pageContent: question.pageContent,
-              metadata: question.metadata,
-            })),
-          )
+      API.chatbot.studentsOrStaff
+        .getSuggestedQuestions(courseIdToUse)
+        .then((questions) => {
+          setPreDeterminedQuestions(questions)
         })
         .catch((err) => {
           console.error(err)
@@ -135,60 +123,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setQuestionsLeft,
   ])
 
-  const query = async () => {
-    try {
-      const data = {
-        question:
-          chatbotQuestionType === 'System'
-            ? `${input}
-            \nThis user is currently on the ${currentPageTitle}.
-            \nThe user's role for this course is ${role === Role.PROFESSOR ? 'Professor (Staff)' : role === Role.TA ? 'TA (Staff)' : 'Student'}.`
-            : input,
-        history: messages,
-      }
-      const response = await fetch(`/chat/${courseIdToUse}/ask`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          HMS_API_TOKEN: userInfo.chat_token.token,
-        },
-        body: JSON.stringify(data),
-      })
-      const json = await response.json()
-      if (questionsLeft > 0) {
-        setQuestionsLeft(questionsLeft - 1)
-        setUserInfo({
-          ...userInfo,
-          chat_token: {
-            ...userInfo.chat_token,
-            used: userInfo.chat_token.used + 1,
-          },
-        })
-      }
-      return json
-    } catch (error) {
-      if (questionsLeft > 0) {
-        setQuestionsLeft(questionsLeft - 1)
-        setUserInfo({
-          ...userInfo,
-          chat_token: {
-            ...userInfo.chat_token,
-            used: userInfo.chat_token.used + 1,
-          },
-        })
-      }
-      return null
-    }
-  }
-  const createNewInteraction = async () => {
-    const interaction = await API.chatbot.createInteraction({
-      courseId: courseIdToUse,
-      userId: userInfo.id,
-    })
-    setInteractionId(interaction.id)
-    return interaction.id
-  }
-
   const handleAsk = async () => {
     if (!hasAskedQuestion.current) {
       hasAskedQuestion.current = true
@@ -196,40 +130,70 @@ const Chatbot: React.FC<ChatbotProps> = ({
     }
 
     setIsLoading(true)
-    let currentInteractionId = interactionId
-    if (!currentInteractionId) {
-      currentInteractionId = await createNewInteraction()
+
+    const data = {
+      question:
+        chatbotQuestionType === 'System'
+          ? `${input}
+            \nThis user is currently on the ${currentPageTitle}.
+            \nThe user's role for this course is ${role === Role.PROFESSOR ? 'Professor (Staff)' : role === Role.TA ? 'TA (Staff)' : 'Student'}.`
+          : input,
+      history: messages,
+      interactionId: interactionId,
     }
 
-    const result: ChatbotAskResponse = await query()
-
-    const answer = result ? result.answer : "Sorry, I couldn't find the answer"
-    const { thinkText, cleanAnswer } = parseThinkBlock(answer)
-    const sourceDocuments = result ? result.sourceDocuments : []
-    setMessages((prevMessages: Message[]) => [
-      ...prevMessages,
-      { type: 'userMessage', message: input },
-      {
-        type: 'apiMessage',
-        message: thinkText ? cleanAnswer : answer,
-        verified: result ? result.verified : true,
-        sourceDocuments: sourceDocuments ? sourceDocuments : [],
-        questionId: result ? result.questionId : undefined,
-        thinkText: thinkText,
-      },
-    ])
-
-    const helpmeQuestion = await API.chatbot.createQuestion({
-      vectorStoreId: result.questionId,
-      interactionId: currentInteractionId,
-      questionText: input,
-      responseText: answer,
-      userScore: 0,
-      isPreviousQuestion: result.isPreviousQuestion,
-    })
-    setHelpmeQuestionId(helpmeQuestion.id)
-    setIsLoading(false)
-    setInput('')
+    await API.chatbot.studentsOrStaff
+      .askQuestion(courseIdToUse, data)
+      .then((chatbotResponse) => {
+        const answer = chatbotResponse.chatbotRepoVersion.answer
+        const { thinkText, cleanAnswer } = parseThinkBlock(answer)
+        const sourceDocuments =
+          chatbotResponse.chatbotRepoVersion.sourceDocuments ?? []
+        setMessages((prevMessages: Message[]) => [
+          ...prevMessages,
+          { type: 'userMessage', message: input },
+          {
+            type: 'apiMessage',
+            message: thinkText ? cleanAnswer : answer,
+            verified: chatbotResponse.chatbotRepoVersion.verified,
+            sourceDocuments: sourceDocuments ? sourceDocuments : [],
+            questionId: chatbotResponse.chatbotRepoVersion.questionId,
+            thinkText: thinkText,
+          },
+        ])
+        setHelpmeQuestionId(chatbotResponse?.helpmeRepoVersion?.id)
+        setInteractionId(chatbotResponse?.helpmeRepoVersion?.interactionId)
+      })
+      .catch((err) => {
+        console.error(err)
+        const answer = "Sorry, I couldn't find the answer"
+        setMessages((prevMessages: Message[]) => [
+          ...prevMessages,
+          { type: 'userMessage', message: input },
+          {
+            type: 'apiMessage',
+            message: answer,
+            verified: false,
+            sourceDocuments: [],
+            questionId: undefined,
+            thinkText: null,
+          },
+        ])
+      })
+      .finally(() => {
+        if (questionsLeft > 0) {
+          setQuestionsLeft(questionsLeft - 1)
+          setUserInfo({
+            ...userInfo,
+            chat_token: {
+              ...userInfo.chat_token,
+              used: userInfo.chat_token.used + 1,
+            },
+          })
+        }
+        setIsLoading(false)
+        setInput('')
+      })
   }
 
   const answerPreDeterminedQuestion = async (
@@ -250,16 +214,14 @@ const Chatbot: React.FC<ChatbotProps> = ({
     ])
     setPreDeterminedQuestions([])
 
-    const currentInteractionId = await createNewInteraction()
-    const helpmeQuestion = await API.chatbot.createQuestion({
-      vectorStoreId: question.id,
-      interactionId: currentInteractionId,
-      questionText: question.pageContent,
-      responseText: question.metadata.answer, // store full question (including think text) in db
-      userScore: 0,
-      isPreviousQuestion: true,
-    })
+    const helpmeQuestion =
+      await API.chatbot.studentsOrStaff.askSuggestedQuestion(courseIdToUse, {
+        vectorStoreId: question.id,
+        question: question.pageContent,
+        responseText: question.metadata.answer, // store full question (including think text) in db
+      })
     setHelpmeQuestionId(helpmeQuestion.id)
+    setInteractionId(helpmeQuestion.interactionId)
   }
 
   /* newChatbotQuestionType was added to allow us to reset the chat using a new chatbotQuestionType.
@@ -279,32 +241,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setInteractionId(undefined)
     setHelpmeQuestionId(undefined)
     setInput('')
-  }
-
-  const getSourceLinkButton = (
-    docName: string,
-    sourceLink: string,
-    part?: number,
-  ) => {
-    if (!sourceLink) {
-      return null
-    }
-
-    return (
-      <a
-        className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
-          sourceLink && 'hover:bg-black-300 cursor-pointer hover:text-white'
-        }`}
-        key={`${docName}-${part}`}
-        href={sourceLink}
-        // open in new tab
-        target="_blank"
-      >
-        <p className="h-fit w-fit text-xs leading-4">
-          {part ? `p. ${part}` : 'Source'}
-        </p>
-      </a>
-    )
   }
 
   const extractLMSLink = (content?: string) => {
@@ -507,10 +443,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
                             chatbotQuestionType === 'System' ? (
                               <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
                                 <p className="px-2 py-1">User Guide</p>
-                                {getSourceLinkButton(
-                                  'User Guide',
-                                  'https://github.com/ubco-db/helpme/blob/main/packages/frontend/public/userguide.md',
-                                )}
+                                <SourceLinkButton
+                                  docName="User Guide"
+                                  sourceLink="https://github.com/ubco-db/helpme/blob/main/packages/frontend/public/userguide.md"
+                                />
                               </div>
                             ) : (
                               item.sourceDocuments &&
@@ -534,20 +470,28 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                         'inserted_lms_document' &&
                                         extractLMSLink(
                                           sourceDocument.content,
-                                        ) &&
-                                        getSourceLinkButton(
-                                          sourceDocument.docName,
-                                          extractLMSLink(
-                                            sourceDocument.content,
-                                          ) ?? '',
-                                          0,
+                                        ) && (
+                                          <SourceLinkButton
+                                            docName={sourceDocument.docName}
+                                            sourceLink={
+                                              extractLMSLink(
+                                                sourceDocument.content,
+                                              ) ?? ''
+                                            }
+                                            part={0}
+                                          />
                                         )}
                                       {sourceDocument.pageNumbers &&
-                                        sourceDocument.pageNumbers.map((part) =>
-                                          getSourceLinkButton(
-                                            sourceDocument.docName,
-                                            sourceDocument.sourceLink,
-                                            part,
+                                        sourceDocument.pageNumbers.map(
+                                          (part) => (
+                                            <SourceLinkButton
+                                              key={`${sourceDocument.docName}-${part}`}
+                                              docName={sourceDocument.docName}
+                                              sourceLink={
+                                                sourceDocument.sourceLink
+                                              }
+                                              part={part}
+                                            />
                                           ),
                                         )}
                                     </div>
@@ -559,7 +503,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
                           {item.type === 'apiMessage' &&
                             index === messages.length - 1 &&
                             index !== 0 && (
-                              <Feedback questionId={helpmeQuestionId ?? 0} />
+                              <Feedback
+                                courseId={courseIdToUse}
+                                questionId={helpmeQuestionId ?? 0}
+                              />
                             )}
                         </div>
                       </div>
@@ -669,3 +616,36 @@ const Chatbot: React.FC<ChatbotProps> = ({
 }
 
 export default Chatbot
+
+const SourceLinkButton: React.FC<{
+  docName: string
+  sourceLink?: string
+  part?: number
+}> = ({ docName, sourceLink, part }) => {
+  if (!sourceLink) {
+    return null
+  }
+  const pageNumber = part && !isNaN(part) ? Number(part) : undefined
+
+  return (
+    <a
+      className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
+        sourceLink && 'hover:bg-black-300 cursor-pointer hover:text-white'
+      }`}
+      key={`${docName}-${part}`}
+      href={
+        sourceLink +
+        (pageNumber && sourceLink.startsWith('/api/v1/chatbot/document/')
+          ? `#page=${pageNumber}`
+          : '')
+      }
+      rel="noopener noreferrer"
+      // open in new tab
+      target="_blank"
+    >
+      <p className="h-fit w-fit text-xs leading-4">
+        {part ? `p. ${part}` : 'Source'}
+      </p>
+    </a>
+  )
+}

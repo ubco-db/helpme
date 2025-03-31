@@ -1589,6 +1589,7 @@ describe('Course Integration', () => {
     beforeEach(async () => {
       course = await CourseFactory.create();
       courseSettings = await CourseSettingsFactory.create({
+        courseId: course.id,
         course: course,
       });
 

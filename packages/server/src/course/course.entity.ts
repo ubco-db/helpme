@@ -23,6 +23,7 @@ import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question.entity';
+import { ChatbotDocPdfModel } from '../chatbot/chatbot-doc-pdf.entity';
 @Entity('course_model')
 export class CourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -59,7 +60,9 @@ export class CourseModel extends BaseEntity {
   @Exclude()
   interactions: InteractionModel[];
 
-  @ManyToOne((type) => SemesterModel, (semester) => semester.courses)
+  @ManyToOne(() => SemesterModel, (semester) => semester.courses, {
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'semesterId' })
   @Exclude()
   semester: SemesterModel;
@@ -67,7 +70,7 @@ export class CourseModel extends BaseEntity {
   @Column({ nullable: true })
   @Exclude()
   // TODO: can we make these not nullable and work with TypeORM
-  semesterId: number;
+  semesterId?: number;
 
   @Column('boolean', { nullable: true })
   enabled: boolean; // Set to true if the given the course is using our app
@@ -135,4 +138,11 @@ export class CourseModel extends BaseEntity {
   )
   @Exclude()
   unreadAsyncQuestions: UnreadAsyncQuestionModel[];
+
+  @OneToMany(
+    (type) => ChatbotDocPdfModel,
+    (chatbotDocPdf) => chatbotDocPdf.course,
+  )
+  @Exclude()
+  chatbot_doc_pdfs: ChatbotDocPdfModel[];
 }

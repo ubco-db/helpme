@@ -1,9 +1,7 @@
 'use client'
 
 import { Button, Input, Pagination, Progress, Table, message } from 'antd'
-import { ReactElement, useCallback, useEffect, useState } from 'react'
-import axios from 'axios'
-import { useUserInfo } from '@/app/contexts/userContext'
+import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { TableRowSelection } from 'antd/es/table/interface'
 import ChatbotSettingsModal from './components/ChatbotSettingsModal'
@@ -11,18 +9,8 @@ import Highlighter from 'react-highlight-words'
 import AddChatbotDocumentModal from './components/AddChatbotDocumentModal'
 import { SourceDocument } from '@koh/common'
 import { FileAddOutlined, SettingOutlined } from '@ant-design/icons'
-
-export interface ChatbotDocument {
-  id: number
-  name: string
-  type: string
-  subDocumentIds: string[]
-}
-
-export interface ChatbotDocumentResponse {
-  chatQuestions: SourceDocument[]
-  total: number
-}
+import { API } from '@/app/api'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 interface ChatbotPanelProps {
   params: { cid: string }
@@ -30,19 +18,16 @@ interface ChatbotPanelProps {
 export default function ChatbotSettings({
   params,
 }: ChatbotPanelProps): ReactElement {
+  const { userInfo } = useUserInfo()
   const courseId = Number(params.cid)
   const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =
     useState(false)
   const [addDocumentModalOpen, setAddDocumentModalOpen] = useState(false)
-  const { userInfo } = useUserInfo()
   const [search, setSearch] = useState('')
   const [selectViewEnabled, setSelectViewEnabled] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
   const [totalDocuments, setTotalDocuments] = useState(0)
   const [chatbotDocuments, setChatbotDocuments] = useState<SourceDocument[]>([])
-  const [filteredDocuments, setFilteredDocuments] = useState<SourceDocument[]>(
-    [],
-  )
   const [loading, setLoading] = useState(false)
   const [countProcessed, setCountProcessed] = useState(0)
 
@@ -57,13 +42,7 @@ export default function ChatbotSettings({
   const handleDeleteSelectedDocuments = async () => {
     try {
       for (const docId of selectedRowKeys) {
-        await fetch(`/chat/${courseId}/${docId}/document`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: userInfo.chat_token.token,
-          },
-        })
+        await API.chatbot.staffOnly.deleteDocument(courseId, docId.toString())
         setCountProcessed(countProcessed + 1)
       }
       message.success('Documents deleted.')
@@ -80,29 +59,18 @@ export default function ChatbotSettings({
 
   const handleDeleteDocument = async (record: any) => {
     setLoading(true)
-    try {
-      const response = await fetch(
-        `/chat/${courseId}/${record.docId}/document`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: userInfo.chat_token.token,
-          },
-        },
-      )
-
-      if (!response.ok) {
-        throw new Error(`Failed to upload ${File.name}`)
-      }
-
-      message.success('Document deleted.')
-      getDocuments()
-    } catch (e) {
-      message.error('Failed to delete document.')
-    } finally {
-      setLoading(false)
-    }
+    await API.chatbot.staffOnly
+      .deleteDocument(courseId, record.docId.toString())
+      .then(() => {
+        message.success('Document deleted.')
+        getDocuments()
+      })
+      .catch(() => {
+        message.error('Failed to delete document.')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }
 
   const columns = [
@@ -124,7 +92,12 @@ export default function ChatbotSettings({
       dataIndex: 'sourceLink',
       key: 'sourceLink',
       render: (text: string) => (
-        <Link href={text} target="_blank" rel="noopener noreferrer">
+        <Link
+          href={text}
+          target="_blank"
+          rel="noopener noreferrer"
+          prefetch={false}
+        >
           Source Link
         </Link>
       ),
@@ -174,46 +147,40 @@ export default function ChatbotSettings({
   ]
 
   const getDocuments = useCallback(async () => {
-    try {
-      const response = await axios.get(`/chat/${courseId}/aggregateDocuments`, {
-        headers: {
-          HMS_API_TOKEN: userInfo.chat_token.token,
-        },
+    await API.chatbot.staffOnly
+      .getAllAggregateDocuments(courseId)
+      .then((response) => {
+        const formattedDocuments = response.map((doc) => ({
+          key: doc.id,
+          docId: doc.id,
+          docName: doc.pageContent,
+          pageContent: doc.pageContent, // idk what's going on here why is there both a docName and pageContent
+          sourceLink: doc.metadata?.source ?? '',
+          pageNumbers: [],
+        }))
+        setChatbotDocuments(formattedDocuments)
+        setTotalDocuments(formattedDocuments.length)
       })
-      const formattedDocuments = response.data.map((doc: SourceDocument) => ({
-        key: doc.id,
-        docId: doc.id,
-        docName: doc.pageContent,
-        sourceLink: doc.metadata?.source ?? '',
-        pageNumbers: [],
-      }))
-      setChatbotDocuments(formattedDocuments)
-      setTotalDocuments(formattedDocuments.length)
-    } catch (e) {
-      console.error(e)
-      setChatbotDocuments([])
-      setTotalDocuments(0)
-    }
-  }, [
-    courseId,
-    userInfo.chat_token.token,
-    setChatbotDocuments,
-    setTotalDocuments,
-  ])
+      .catch((e) => {
+        console.error(e)
+        setChatbotDocuments([])
+        setTotalDocuments(0)
+      })
+  }, [courseId, setChatbotDocuments, setTotalDocuments])
 
   useEffect(() => {
     getDocuments()
   }, [getDocuments])
 
-  useEffect(() => {
-    const filtered = chatbotDocuments.filter((doc) =>
+  const filteredDocuments = useMemo(() => {
+    return chatbotDocuments.filter((doc) =>
       doc.docName.toLowerCase().includes(search.toLowerCase()),
     )
-    setFilteredDocuments(filtered)
   }, [search, chatbotDocuments])
 
   return (
     <div className="m-auto my-5">
+      <title>{`HelpMe | Editing ${userInfo.courses.find((e) => e.course.id === courseId)?.course.name ?? ''} Chatbot`}</title>
       <AddChatbotDocumentModal
         open={addDocumentModalOpen}
         courseId={courseId}

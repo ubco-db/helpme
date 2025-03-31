@@ -57,6 +57,8 @@ describe('Profile Integration', () => {
           course: {
             id: 1,
             name: 'CS 2500',
+            enabled: true,
+            semesterId: 1,
           },
           role: 'student',
         },
