@@ -1,3 +1,24 @@
+## Version 1.4.3 - Mar 30th, 2025
+
+#### New Features
+
+- ***Faculty-only***
+  - Overhauled chatbot document source links
+    - Previously you would need to provide an external "Source URL" that students can click on to see a preview of the document (e.g. a link to the document on canvas)
+    - Now, when you upload a document to the chatbot, the document is now stored in the system and will automatically generate a source link
+    - When you now click on a link to the document, it will now show in your browser's built-in pdf viewer
+    - The links to these documents are protected (outside people cannot access them without being in your HelpMe course)
+
+#### Improvements
+
+- You can now upload .xlsx, .md, as well as images to the chatbot
+- When clicking on a citation from the chatbot with a page number, it will now take you to said page (if the browser's pdf viewer supports it) 
+- Fixed how uploaded slide decks were not given page numbers
+- Improved more tooltips around the chatbot
+- Various security improvements and bug fixes
+
+***
+
 ## Version 1.4.2 - Mar 9th, 2025
 
 #### Improvements

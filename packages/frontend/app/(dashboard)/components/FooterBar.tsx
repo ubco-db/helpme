@@ -48,7 +48,7 @@ const FooterBar: React.FC = () => {
             IReadTheChangelog()
           }}
         >
-          Version 1.4.2{' '}
+          Version 1.4.3{' '}
           {userInfo.readChangeLog === false && (
             <span className="text-green-500">(New Changes!)</span>
           )}
