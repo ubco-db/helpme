@@ -1,6 +1,7 @@
 import {
   ChartOutputType,
   GanttChartOutputType,
+  InsightCategories,
   InsightFilterOption,
   InsightObject,
   InsightType,
@@ -1285,12 +1286,16 @@ export const StaffQuestionTimesByDay: InsightObject = {
   },
 };
 
+//------------------- Insights Across Semesters (and of different sections with the same semester) -------------------//
+// TODO: utilize the new supercourse entity to identify the same course across different semesters and sections and
+// generate relevant summary statistics to show trends in system usage and adoption over time
+
 export const TotalQuestionsAcrossSemesters: InsightObject = {
   displayName: 'Total Questions Asked Acress Semesters',
   description: '',
   roles: [],
   insightType: InsightType.Chart,
-  insightCategory: '',
+  insightCategory: 'Other_Semesters',
   compute: function ({
     insightFilters,
     cacheManager,
@@ -1307,7 +1312,7 @@ export const TotalQuestionsAcrossSections: InsightObject = {
   description: '',
   roles: [],
   insightType: InsightType.Chart,
-  insightCategory: '',
+  insightCategory: 'Other_Sections',
   compute: function ({
     insightFilters,
     cacheManager,
