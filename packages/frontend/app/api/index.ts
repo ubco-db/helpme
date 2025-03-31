@@ -275,14 +275,14 @@ class APIClient {
         courseId: number,
         docId: string,
       ): Promise<{ success: boolean }> =>
-        this.req('DELETE', `/api/v1/chatbot/documents/${courseId}/${docId}`),
+        this.req('DELETE', `/api/v1/chatbot/document/${courseId}/${docId}`),
       uploadDocument: async (
         courseId: number,
         body: FormData,
       ): Promise<{ success: boolean; documentId?: string }> =>
         this.req(
           'POST',
-          `/api/v1/chatbot/documents/${courseId}/upload`,
+          `/api/v1/chatbot/document/${courseId}/upload`,
           undefined,
           body,
         ),
@@ -292,7 +292,7 @@ class APIClient {
       ): Promise<{ success: boolean; documentId?: string }> =>
         this.req(
           'POST',
-          `/api/v1/chatbot/documents/${courseId}/github`,
+          `/api/v1/chatbot/document/${courseId}/github`,
           undefined,
           { url },
         ),

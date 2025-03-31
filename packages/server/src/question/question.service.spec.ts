@@ -24,7 +24,7 @@ import { QueueModel } from 'queue/queue.entity';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { QueueService } from 'queue/queue.service';
 import { AlertsService } from 'alerts/alerts.service';
-import { ApplicationConfigService } from 'config/application_config.service';
+import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
 import { RedisModule, RedisService } from 'nestjs-redis';
 import { RedisMemoryServer } from 'redis-memory-server';

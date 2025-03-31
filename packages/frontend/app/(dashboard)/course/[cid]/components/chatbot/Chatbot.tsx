@@ -625,6 +625,7 @@ const SourceLinkButton: React.FC<{
   if (!sourceLink) {
     return null
   }
+  const pageNumber = part && !isNaN(part) ? Number(part) : undefined
 
   return (
     <a
@@ -632,7 +633,13 @@ const SourceLinkButton: React.FC<{
         sourceLink && 'hover:bg-black-300 cursor-pointer hover:text-white'
       }`}
       key={`${docName}-${part}`}
-      href={sourceLink}
+      href={
+        sourceLink +
+        (pageNumber && sourceLink.startsWith('/api/v1/chatbot/document/')
+          ? `#page=${pageNumber}`
+          : '')
+      }
+      rel="noopener noreferrer"
       // open in new tab
       target="_blank"
     >

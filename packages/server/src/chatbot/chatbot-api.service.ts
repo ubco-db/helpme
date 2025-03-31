@@ -11,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 /* This is a list of all endpoints from the chatbot repo.
-    We now put this calls on the backend rather than the frontend so that 
+    We now put chatbot api calls on the backend rather than the frontend so that 
     we can properly guard our endpoints (e.g. to stop students from uploading documents to any course).
     The chatbot repo requires both a user token (holds how many questions they've used)
     and an API key (so that only this helpme repo can call those endpoints).
@@ -214,7 +214,7 @@ export class ChatbotApiService {
     parseAsPng: boolean,
     courseId: number,
     userToken: string,
-  ) {
+  ): Promise<{ docId: string }> {
     try {
       // re-upload the file to the chatbot server while the file is still in memory here
       const formData = new FormData();
@@ -222,8 +222,8 @@ export class ChatbotApiService {
       // Add the main file with fieldname "file"
       formData.append(
         'file',
-        new Blob([file.buffer], { type: file.mimetype }),
-        file.originalname,
+        new Blob([file.buffer], { type: 'application/pdf' }), // it's always going to be pdf
+        file.originalname.replace(/\.[^/.]+$/, '.pdf'), // Replace original extension with .pdf
       );
 
       // Create JSON data for source and parseAsPng
@@ -236,7 +236,6 @@ export class ChatbotApiService {
       formData.append(
         'source',
         new Blob([jsonData], { type: 'application/json' }),
-        'blob',
       );
 
       // Make sure the request method handles FormData correctly
