@@ -207,6 +207,14 @@ export type CourseCloneAttributes = {
   }
 }
 
+// The key to the records is the course ids
+export type BatchCourseCloneAttributes = Record<number, CourseCloneAttributes>
+
+export type BatchCourseCloneResponse = {
+  success: boolean
+  message: string
+}
+
 export type ChatbotSettings = {
   modelName: string
   prompt: string
@@ -287,6 +295,7 @@ export enum MailServiceType {
   ASYNC_QUESTION_UPVOTED = 'async_question_upvoted',
   ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST = 'async_question_new_comment_on_my_post',
   ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
+  COURSE_CLONE_SUMMARY = 'course_clone_summary',
 }
 /**
  * Represents one of three possible user roles in a course.

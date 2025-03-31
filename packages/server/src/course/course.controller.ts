@@ -1109,6 +1109,7 @@ export class CourseController {
     await userCourse.save();
   }
 
+  // The batch cloning route is in the organization controller
   @Post(':courseId/clone_course')
   @UseGuards(JwtAuthGuard, OrgOrCourseRolesGuard, EmailVerifiedGuard)
   @CourseRoles(Role.PROFESSOR)
@@ -1123,19 +1124,6 @@ export class CourseController {
       throw new HttpException(
         ERROR_MESSAGES.profileController.accountNotAvailable,
         HttpStatus.NOT_FOUND,
-      );
-    }
-
-    if (
-      (!body.newSemesterId || body.newSemesterId == -1) &&
-      (!body.newSection || body.newSection == '')
-    ) {
-      console.error(
-        ERROR_MESSAGES.courseController.newSectionOrSemesterMissing,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.newSectionOrSemesterMissing,
-        HttpStatus.BAD_REQUEST,
       );
     }
 

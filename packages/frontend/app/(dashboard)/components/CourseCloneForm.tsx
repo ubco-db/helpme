@@ -27,6 +27,7 @@ import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { ExclamationCircleFilled } from '@ant-design/icons'
+import { useAsyncActions } from '@/app/contexts/AsyncActionsContext'
 
 const defaultValues: CourseCloneAttributes = {
   professorIds: [],
@@ -67,10 +68,10 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   courseData,
 }) => {
   const [visible, setVisible] = useState(false)
-  const [confirmLoading, setConfirmLoading] = useState(false)
   const [professors, setProfessors] = useState<OrganizationProfessor[]>()
   const [form] = Form.useForm<CourseCloneAttributes>()
   const { userInfo, setUserInfo } = useUserInfo()
+  const { runAsync } = useAsyncActions()
 
   const openModal = () => {
     form.setFieldsValue(defaultValues)
@@ -83,31 +84,38 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
     user && user.organization?.organizationRole === OrganizationRole.ADMIN
 
   const handleClone = async () => {
-    setConfirmLoading(true)
-    try {
-      const cloneData = form.getFieldsValue()
+    const cloneData = form.getFieldsValue()
 
-      if (!cloneData.professorIds.length) {
-        cloneData.professorIds = [user.id]
+    if (cloneData.professorIds.length === 0) {
+      if (isAdmin) {
+        message.error('Please select a professor')
+        return
       }
-
-      const userCourse = await API.course.createClone(
-        courseData.courseId!,
-        cloneData,
-      )
-      if (userCourse)
-        setUserInfo({
-          ...userInfo,
-          courses: [...userInfo.courses, userCourse as UserCourse],
-        })
-      message.success('Course cloned successfully')
-      form.resetFields()
-      setVisible(false)
-    } catch (error: any) {
-      message.error(getErrorMessage(error))
-    } finally {
-      setConfirmLoading(false)
+      cloneData.professorIds = [user.id]
     }
+
+    if (!cloneData.newSemesterId && !cloneData.newSection) {
+      message.error('Please select a semester or enter a section')
+      return
+    }
+
+    runAsync(
+      () => API.course.createClone(courseData.courseId!, cloneData),
+      (userCourse) => {
+        if (userCourse)
+          setUserInfo({
+            ...userInfo,
+            courses: [...userInfo.courses, userCourse as UserCourse],
+          })
+      },
+      {
+        successMsg: 'Course has been cloned successfully',
+        errorMsg: 'Failed to clone course',
+        appendApiError: true,
+      },
+    )
+    form.resetFields()
+    setVisible(false)
   }
 
   useEffect(() => {
@@ -161,7 +169,6 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
         onOk={handleClone}
         onCancel={handleCancelCloneModal}
         okText="Clone"
-        confirmLoading={confirmLoading}
         footer={[
           <Button key="back" onClick={handleCancelCloneModal}>
             Cancel
@@ -171,18 +178,24 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
               title="Important Notice"
               description={
                 <div className="flex w-96 flex-col gap-1">
-                  <p>
+                  <p className="text-sm">
                     <b>Include Documents Warning:</b> Cloning chatbot documents
                     will take much longer (about 30 seconds to a minute).
                   </p>
                   {includeInsertedQuestionsValue && (
-                    <p>
+                    <p className="text-sm">
                       <b>Include Inserted Questions Warning:</b> This process
                       will not filter out answers to inserted questions relating
-                      to timed data.
+                      to timed data (eg. dated announcements, assignments,
+                      etc.).
                     </p>
                   )}
-                  <b>To see its progress, please stay on this page.</b>
+                  <b className="py-2 text-center">
+                    You will be notified on the bottom right of the screen when
+                    the cloning process is successful or fails. You do not need
+                    to remain on this page, but do not refresh this site until
+                    cloning is complete.
+                  </b>
                   <p>
                     Are you sure you wish to include chatbot documents in your
                     clone?
@@ -196,17 +209,12 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
               okButtonProps={{ className: 'px-4' }}
               cancelButtonProps={{ className: 'px-4' }}
             >
-              <Button key="submit" type="primary" loading={confirmLoading}>
+              <Button key="submit" type="primary">
                 Clone
               </Button>
             </Popconfirm>
           ) : (
-            <Button
-              key="submit"
-              type="primary"
-              loading={confirmLoading}
-              onClick={handleClone}
-            >
+            <Button key="submit" type="primary" onClick={handleClone}>
               Clone
             </Button>
           ),
