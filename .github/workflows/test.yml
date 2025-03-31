@@ -27,6 +27,8 @@ jobs:
           - 6379:6379
     steps:
       - uses: actions/checkout@v4
+      - name: Create postgres.env from example
+        run: cp packages/server/postgres.env.example packages/server/postgres.env
       - name: install node v20
         uses: actions/setup-node@v4
         with:

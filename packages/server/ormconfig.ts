@@ -55,10 +55,9 @@ if (fs.existsSync('.env')) {
 if (fs.existsSync('postgres.env')) {
   config({ path: 'postgres.env' });
 } else {
-  console.log(
-    'No postgres.env file found, using postgres.env.example as fallback. If you are a new developer, please create your postgres.env file (see NEWDEVS_STARTHERE.md)',
+  console.error(
+    'No postgres.env file found. If you are a new developer, please create your postgres.env file from postgres.env.example (see NEWDEVS_STARTHERE.md). Your database will not connect without it.',
   );
-  config({ path: 'postgres.env.example' });
 }
 // Options only used whe run via CLI
 const inCLI = {
