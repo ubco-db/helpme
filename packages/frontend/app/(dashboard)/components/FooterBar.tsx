@@ -10,6 +10,9 @@ const FooterBar: React.FC = () => {
   const { userInfo, setUserInfo } = useUserInfo()
 
   const IReadTheChangelog = () => {
+    if (userInfo?.readChangeLog) {
+      return
+    }
     setUserInfo({ ...userInfo, readChangeLog: true })
 
     const readChangelog = async () => {
@@ -45,7 +48,7 @@ const FooterBar: React.FC = () => {
             IReadTheChangelog()
           }}
         >
-          Version 1.4.2{' '}
+          Version 1.4.3{' '}
           {userInfo.readChangeLog === false && (
             <span className="text-green-500">(New Changes!)</span>
           )}

@@ -41,5 +41,8 @@ uploads/*
 # Sentry Config File (This was auto-generated. The .sentryclic file seems to have another auth token of some kind?)
 .sentryclirc
 
+# postgres.env (place in packages/server)
+postgres.env
+
 # Sentry Config File (Also auto-generated...)
 .env.sentry-build-plugin

@@ -20,7 +20,7 @@ import { QuestionTypeModel } from './question-type.entity';
 import { Response } from 'express';
 import { IsNull, DataSource } from 'typeorm';
 import { QueueModel } from '../queue/queue.entity';
-import { ApplicationConfigService } from 'config/application_config.service';
+import { ApplicationConfigService } from '../config/application_config.service';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { QuestionTypeService } from './questionType.service';
 

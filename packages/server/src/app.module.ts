@@ -27,7 +27,7 @@ import { OrganizationModule } from './organization/organization.module';
 import { QuestionTypeModule } from './questionType/questionType.module';
 import { StudentTaskProgressModule } from './studentTaskProgress/studentTaskProgress.module';
 import { RedisQueueModule } from 'redisQueue/redis-queue.module';
-import { ApplicationConfigModule } from 'config/application_config.module';
+import { ApplicationConfigModule } from './config/application_config.module';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 // import { SentryGlobalFilter } from '@sentry/nestjs/setup';

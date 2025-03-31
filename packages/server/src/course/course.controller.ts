@@ -296,7 +296,7 @@ export class CourseController {
           await Promise.all(
             course.userCourses.map(async (userCourse) => {
               await this.redisProfileService.deleteProfile(
-                `u:${userCourse.user.id}`,
+                `u:${userCourse.userId}`,
               );
             }),
           );
