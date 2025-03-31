@@ -25,6 +25,7 @@ import { In } from 'typeorm';
 import { QueueRolesGuard } from 'guards/queue-role.guard';
 import { Roles } from 'decorators/roles.decorator';
 import { QueueSSEService } from 'queue/queue-sse.service';
+import { UserCourseModel } from 'profile/user-course.entity';
 /* Note that these endpoints are special in that they don't have any Roles guards.
   Instead, these endpoints use .checkPermissions() which only allows the chat's TA and student to call these endpoints.
 */
@@ -42,9 +43,9 @@ export class QueueChatController {
   @UseGuards(QueueRolesGuard) // checks to make sure the user is in the course of the given queueId
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async startQueueChat(
-    @Param('queueId') queueId: number,
-    @Param('questionId') questionId: number,
-    @Param('staffId') staffId: number,
+    @Param('queueId', ParseIntPipe) queueId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @Param('staffId', ParseIntPipe) staffId: number,
     @User(['courses']) user: UserModel,
   ) {
     if (
@@ -89,14 +90,12 @@ export class QueueChatController {
       );
     }
 
-    const staff = await UserModel.findOne({
-      relations: ['courses'],
+    const staff = await UserCourseModel.findOne({
+      relations: ['user'],
       where: {
-        id: staffId,
-        courses: {
-          courseId,
-          role: In([Role.TA, Role.PROFESSOR]),
-        },
+        userId: staffId,
+        courseId: courseId,
+        role: In([Role.TA, Role.PROFESSOR]),
       },
     });
     if (!staff) {
@@ -105,15 +104,15 @@ export class QueueChatController {
         HttpStatus.NOT_FOUND,
       );
     }
-    await this.queueChatService.createChat(queueId, staff, question);
+    await this.queueChatService.createChat(queueId, staff.user, question);
     return { message: 'Chat started' };
   }
 
   @Get(':queueId/:questionId/:staffId')
   async getQueueChat(
-    @Param('queueId') queueId: number,
-    @Param('questionId') questionId: number,
-    @Param('staffId') staffId: number,
+    @Param('queueId', ParseIntPipe) queueId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @Param('staffId', ParseIntPipe) staffId: number,
     @UserId() userId: number,
   ): Promise<QueueChatPartial> {
     const chatData = await this.queueChatService.getChatData(
@@ -178,7 +177,7 @@ export class QueueChatController {
   @UseGuards(QueueRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getMyQueueChats(
-    @Param('queueId') queueId: number,
+    @Param('queueId', ParseIntPipe) queueId: number,
     @UserId() userId: number,
     @QueueRole() role: Role,
   ): Promise<QueueChatPartial[]> {
@@ -224,9 +223,9 @@ export class QueueChatController {
 
   @Patch(':queueId/:questionId/:staffId')
   async sendMessage(
-    @Param('queueId') queueId: number,
-    @Param('questionId') questionId: number,
-    @Param('staffId') staffId: number,
+    @Param('queueId', ParseIntPipe) queueId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @Param('staffId', ParseIntPipe) staffId: number,
     @UserId() userId: number,
     @Body('message') message: string,
   ) {

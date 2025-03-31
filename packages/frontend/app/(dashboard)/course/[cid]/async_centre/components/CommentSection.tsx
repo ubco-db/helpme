@@ -143,6 +143,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               open={postCommentCancelPopoverOpen}
               title="Are you sure you want to cancel?"
               description="Your comment will be discarded"
+              getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
               onConfirm={handleCancelComment}
               onOpenChange={(open) => {
                 // if the field is empty, skip showing the popover and just cancel

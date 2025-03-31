@@ -4,7 +4,7 @@ import { X } from 'lucide-react'
 import QueueChat from './QueueChat'
 import { cn } from '@/app/utils/generalUtils'
 import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
-
+import { GetQueueChatsResponse } from '@koh/common'
 interface QueueChatsProps {
   queueId: number
   isMobile: boolean
@@ -12,6 +12,7 @@ interface QueueChatsProps {
   isChatbotOpen: boolean
   setRenderSmallChatbot: (render: boolean) => void
   setChatbotOpen: (open: boolean) => void
+  queueChats?: GetQueueChatsResponse
 }
 
 /* Widget that has all queue chats for the user.
@@ -26,9 +27,10 @@ const QueueChats: React.FC<QueueChatsProps> = ({
   isChatbotOpen,
   setRenderSmallChatbot,
   setChatbotOpen,
+  queueChats,
 }): ReactElement => {
-  const { queueChats, queueChatsError, mutateQueueChats } =
-    useQueueChatsMetadatas(queueId)
+  // const { queueChats, queueChatsError, mutateQueueChats } =
+  //   useQueueChatsMetadatas(queueId)
   const [newMessagesInQueueChats, setNewMessagesInQueueChats] = useState(0)
   const [mobileQueueChatsExpanded, setMobileQueueChatsExpanded] =
     useState(false) // To store the state of the mobile queue chat drawer

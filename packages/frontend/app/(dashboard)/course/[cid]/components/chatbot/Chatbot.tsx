@@ -288,6 +288,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
               messages.length > 1 ? (
                 <Popconfirm
                   title="Are you sure? this will reset the chat"
+                  getPopupContainer={(trigger) =>
+                    trigger.parentNode as HTMLElement
+                  }
                   open={tempChatbotQuestionType !== null}
                   onConfirm={() => {
                     if (tempChatbotQuestionType) {
@@ -323,6 +326,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
               )}
               <Popconfirm
                 title="Are you sure you want to reset the chat?"
+                getPopupContainer={(trigger) =>
+                  trigger.parentNode as HTMLElement
+                }
                 open={popResetOpen}
                 onOpenChange={(open) => {
                   if (messages.length > 1) {

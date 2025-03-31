@@ -159,6 +159,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
             okText="Yes"
             cancelText="No"
             placement="top"
+            getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
             arrow={{ pointAtCenter: true }}
             onConfirm={() => clearQueue(queueId, queue)}
           >

@@ -17,6 +17,7 @@ import {
   QueueTypes,
   LimboQuestionStatus,
   OpenQuestionStatus,
+  GetQueueChatsResponse,
 } from '@koh/common'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
 import QuestionCard from './QuestionCard'
@@ -63,6 +64,7 @@ interface QueueQuestionsProps {
   onOpenTagGroupsChange: (key: string | string[]) => void
   openTagGroups: string[]
   staffListLength: number
+  queueChats?: GetQueueChatsResponse
 }
 
 /**
@@ -94,6 +96,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
   onOpenTagGroupsChange,
   openTagGroups,
   staffListLength,
+  queueChats,
 }) => {
   const isTaskJoinable = useCallback(
     (
@@ -137,30 +140,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
     },
     [taskTree],
   )
-
-  const renderQuestion = (question: Question) => {
-    const isMyQuestion =
-      question.id === studentDemoId || question.id === studentQuestionId
-    const isPaused = question.status === OpenQuestionStatus.Paused
-    const isBeingHelped = question.status === OpenQuestionStatus.Helping
-
-    return (
-      <QuestionCard
-        key={question.id}
-        question={question}
-        queueType={queueType}
-        cid={cid}
-        qid={qid}
-        isStaff={isStaff}
-        configTasks={configTasks}
-        studentAssignmentProgress={studentAssignmentProgress}
-        isMyQuestion={isMyQuestion}
-        isBeingReQueued={question.status === LimboQuestionStatus.ReQueueing}
-        isPaused={isPaused}
-        isBeingHelped={isBeingHelped}
-      />
-    )
-  }
 
   // TODO: this does still needs to be updated to the newest version of Collapse from antd, where it uses the 'items' prop instead of Collapse.Panel.
   // This will help with all the console deprecation warnings.
@@ -254,9 +233,32 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                       </div>
                     }
                   >
-                    {filteredQuestions.map((question: Question) =>
-                      renderQuestion(question),
-                    )}
+                    {filteredQuestions.map((question: Question) => (
+                      <QuestionCard
+                        key={question.id}
+                        question={question}
+                        queueType={queueType}
+                        cid={cid}
+                        qid={qid}
+                        isStaff={isStaff}
+                        configTasks={configTasks}
+                        studentAssignmentProgress={studentAssignmentProgress}
+                        isMyQuestion={
+                          question.id === studentDemoId ||
+                          question.id === studentQuestionId
+                        }
+                        isBeingReQueued={
+                          question.status === LimboQuestionStatus.ReQueueing
+                        }
+                        isPaused={question.status === OpenQuestionStatus.Paused}
+                        isBeingHelped={
+                          question.status === OpenQuestionStatus.Helping
+                        }
+                        hasAssociatedQueueChat={queueChats?.some(
+                          (chat) => chat.questionId === question.id,
+                        )}
+                      />
+                    ))}
                   </Panel>
                 )
               )
@@ -310,9 +312,32 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                     </div>
                   }
                 >
-                  {filteredQuestions.map((question: Question) =>
-                    renderQuestion(question),
-                  )}
+                  {filteredQuestions.map((question: Question) => (
+                    <QuestionCard
+                      key={question.id}
+                      question={question}
+                      queueType={queueType}
+                      cid={cid}
+                      qid={qid}
+                      isStaff={isStaff}
+                      configTasks={configTasks}
+                      studentAssignmentProgress={studentAssignmentProgress}
+                      isMyQuestion={
+                        question.id === studentDemoId ||
+                        question.id === studentQuestionId
+                      }
+                      isBeingReQueued={
+                        question.status === LimboQuestionStatus.ReQueueing
+                      }
+                      isPaused={question.status === OpenQuestionStatus.Paused}
+                      isBeingHelped={
+                        question.status === OpenQuestionStatus.Helping
+                      }
+                      hasAssociatedQueueChat={queueChats?.some(
+                        (chat) => chat.questionId === question.id,
+                      )}
+                    />
+                  ))}
                 </Panel>
               )
             )
@@ -322,15 +347,80 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
         <>
           {!isStaff && (
             <>
-              {questionsGettingHelp.map((question: Question) =>
-                renderQuestion(question),
-              )}
-              {pausedQuestions.map((question: Question) =>
-                renderQuestion(question),
-              )}
+              {questionsGettingHelp.map((question: Question) => (
+                <QuestionCard
+                  key={question.id}
+                  question={question}
+                  queueType={queueType}
+                  cid={cid}
+                  qid={qid}
+                  isStaff={isStaff}
+                  configTasks={configTasks}
+                  studentAssignmentProgress={studentAssignmentProgress}
+                  isMyQuestion={
+                    question.id === studentDemoId ||
+                    question.id === studentQuestionId
+                  }
+                  isBeingReQueued={
+                    question.status === LimboQuestionStatus.ReQueueing
+                  }
+                  isPaused={question.status === OpenQuestionStatus.Paused}
+                  isBeingHelped={question.status === OpenQuestionStatus.Helping}
+                  hasAssociatedQueueChat={queueChats?.some(
+                    (chat) => chat.questionId === question.id,
+                  )}
+                />
+              ))}
+              {pausedQuestions.map((question: Question) => (
+                <QuestionCard
+                  key={question.id}
+                  question={question}
+                  queueType={queueType}
+                  cid={cid}
+                  qid={qid}
+                  isStaff={isStaff}
+                  configTasks={configTasks}
+                  studentAssignmentProgress={studentAssignmentProgress}
+                  isMyQuestion={
+                    question.id === studentDemoId ||
+                    question.id === studentQuestionId
+                  }
+                  isBeingReQueued={
+                    question.status === LimboQuestionStatus.ReQueueing
+                  }
+                  isPaused={question.status === OpenQuestionStatus.Paused}
+                  isBeingHelped={question.status === OpenQuestionStatus.Helping}
+                  hasAssociatedQueueChat={queueChats?.some(
+                    (chat) => chat.questionId === question.id,
+                  )}
+                />
+              ))}
             </>
           )}
-          {questions.map((question: Question) => renderQuestion(question))}
+          {questions.map((question: Question) => (
+            <QuestionCard
+              key={question.id}
+              question={question}
+              queueType={queueType}
+              cid={cid}
+              qid={qid}
+              isStaff={isStaff}
+              configTasks={configTasks}
+              studentAssignmentProgress={studentAssignmentProgress}
+              isMyQuestion={
+                question.id === studentDemoId ||
+                question.id === studentQuestionId
+              }
+              isBeingReQueued={
+                question.status === LimboQuestionStatus.ReQueueing
+              }
+              isPaused={question.status === OpenQuestionStatus.Paused}
+              isBeingHelped={question.status === OpenQuestionStatus.Helping}
+              hasAssociatedQueueChat={queueChats?.some(
+                (chat) => chat.questionId === question.id,
+              )}
+            />
+          ))}
         </>
       )}
     </div>

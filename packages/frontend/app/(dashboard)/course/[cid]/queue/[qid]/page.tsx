@@ -96,6 +96,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const qid = Number(params.qid)
   const router = useRouter()
   const { queue } = useQueue(qid)
+  const { queueChats } = useQueueChatsMetadatas(qid)
   const isQueueHybrid = queue?.type == 'hybrid'
   const { queueQuestions, mutateQuestions } = useQuestions(qid)
   const [queueSettingsModalOpen, setQueueSettingsModalOpen] = useState(false)
@@ -823,6 +824,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                         configTasks={configTasks}
                         studentAssignmentProgress={studentAssignmentProgress}
                         isStaff={isStaff}
+                        hasAssociatedQueueChat={queueChats?.some(
+                          (chat) => chat.questionId === question.id,
+                        )}
                         isBeingHelped={true}
                       />
                     )
@@ -848,6 +852,9 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       configTasks={configTasks}
                       queueType={queue.type}
                       studentAssignmentProgress={studentAssignmentProgress}
+                      hasAssociatedQueueChat={queueChats?.some(
+                        (chat) => chat.questionId === question.id,
+                      )}
                       isStaff={isStaff}
                       isBeingHelped={true}
                       isPaused={true}
@@ -901,6 +908,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             onOpenTagGroupsChange={onOpenTagGroupsChange}
             openTagGroups={openTagGroups}
             staffListLength={queue.staffList.length}
+            queueChats={queueChats}
           />
         </div>
 
@@ -1059,6 +1067,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           setRenderSmallChatbot={setRenderSmallChatbot}
           setChatbotOpen={setChatbotOpen}
           isChatbotOpen={isChatbotOpen}
+          queueChats={queueChats}
         />
       </div>
     )

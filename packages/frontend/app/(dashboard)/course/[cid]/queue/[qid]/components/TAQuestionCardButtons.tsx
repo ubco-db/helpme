@@ -4,6 +4,7 @@ import {
   DeleteOutlined,
   PauseOutlined,
   QuestionOutlined,
+  SendOutlined,
   UndoOutlined,
 } from '@ant-design/icons'
 import {
@@ -17,15 +18,24 @@ import {
   QuestionStatus,
   RephraseQuestionPayload,
 } from '@koh/common'
-import { message, Popconfirm, Tooltip } from 'antd'
+import {
+  Button,
+  Form,
+  FormProps,
+  Input,
+  message,
+  Popconfirm,
+  Popover,
+  Tooltip,
+} from 'antd'
 import React, { useCallback, useEffect, useState } from 'react'
-import { Play } from 'lucide-react'
+import { MessageCircleMore, Play } from 'lucide-react'
 import CircleButton from './CircleButton'
 import { useCourse } from '@/app/hooks/useCourse'
 import { useQuestions } from '@/app/hooks/useQuestions'
 import { isCheckedIn } from '../../../utils/commonCourseFunctions'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
 
 const PRORITY_QUEUED_MESSAGE_TEXT =
@@ -38,6 +48,7 @@ interface TAQuestionCardButtonsProps {
   hasUnresolvedRephraseAlert: boolean
   tasksSelectedForMarking: string[]
   className?: string
+  hasAssociatedQueueChat?: boolean
 }
 
 const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
@@ -47,6 +58,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
   hasUnresolvedRephraseAlert,
   tasksSelectedForMarking,
   className,
+  hasAssociatedQueueChat,
 }) => {
   const { course } = useCourse(courseId)
   const { mutateQuestions } = useQuestions(queueId)
@@ -455,6 +467,12 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
             </span>
           </Tooltip>
         )}
+        <MessageStudentButton
+          question={question}
+          myStaffUserId={userInfo.id}
+          queueId={queueId}
+          hasAssociatedQueueChat={hasAssociatedQueueChat}
+        />
         <Tooltip
           className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
           title={helpTooltip}
@@ -462,7 +480,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           <span>
             <CircleButton
               customVariant="primary"
-              icon={<Play size={22} className="shrink-0 pl-1" />}
+              icon={<Play size={22} className="shrink-0 pl-0.5 pt-0.5" />}
               onClick={() => {
                 // message.success("timer cleared")
                 // clearTimeout(timerCheckout.current);
@@ -485,3 +503,123 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
 }
 
 export default TAQuestionCardButtons
+
+type FormValues = {
+  message?: string
+}
+
+const MessageStudentButton: React.FC<{
+  question: Question
+  myStaffUserId: number
+  queueId: number
+  hasAssociatedQueueChat?: boolean
+}> = ({ question, myStaffUserId, queueId, hasAssociatedQueueChat }) => {
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false)
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+  const [isSendingLoading, setIsSendingLoading] = useState(false)
+  const [form] = Form.useForm()
+  const textAreaRef = React.useRef<any>(null)
+
+  const sendMessage: FormProps<FormValues>['onFinish'] = async (values) => {
+    console.log(values)
+    try {
+      setIsSendingLoading(true)
+      await API.queueChats.startQueueChat(queueId, question.id, myStaffUserId)
+      await API.queueChats.sendMessage(
+        queueId,
+        question.id,
+        myStaffUserId,
+        values.message ?? '',
+      )
+      setIsPopoverOpen(false)
+      setIsTooltipOpen(false)
+    } catch (error) {
+      message.error('Failed to send message: ' + getErrorMessage(error))
+    } finally {
+      setIsSendingLoading(false)
+    }
+  }
+
+  const onFinishFailed: FormProps<FormValues>['onFinishFailed'] = (
+    errorInfo,
+  ) => {
+    message.error(
+      'Failed to send message: ' + errorInfo.errorFields[0].errors[0],
+    )
+  }
+
+  useEffect(() => {
+    if (isPopoverOpen && textAreaRef.current) {
+      setTimeout(() => {
+        textAreaRef.current.focus()
+      }, 100)
+    }
+  }, [isPopoverOpen])
+
+  return (
+    <Form form={form} onFinish={sendMessage} onFinishFailed={onFinishFailed}>
+      <Popover
+        title={`Message ${question.creator.name}`}
+        trigger="click"
+        classNames={{
+          body: 'w-60',
+        }}
+        getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
+        content={
+          <div className="flex w-full flex-row items-start gap-x-2">
+            <Form.Item name="message" className="mb-0 w-full">
+              <Input.TextArea
+                ref={textAreaRef}
+                autoSize={{ minRows: 1, maxRows: 6 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    form.submit()
+                  }
+                }}
+              />
+            </Form.Item>
+            <Form.Item className="mb-0">
+              <Button
+                type="primary"
+                shape="circle"
+                htmlType="submit"
+                icon={<SendOutlined className="ml-1 text-base" />}
+                loading={isSendingLoading}
+              />
+            </Form.Item>
+          </div>
+        }
+        open={isPopoverOpen}
+        onOpenChange={(open) => {
+          if (hasAssociatedQueueChat) {
+            setIsPopoverOpen(false)
+            return
+          }
+          setIsPopoverOpen(open)
+          if (open) {
+            setIsTooltipOpen(false)
+          }
+        }}
+      >
+        <Tooltip
+          title={
+            hasAssociatedQueueChat
+              ? 'Chat already exists'
+              : `Message ${question.creator.name}`
+          }
+          open={isTooltipOpen}
+          onOpenChange={setIsTooltipOpen}
+        >
+          <span>
+            <CircleButton
+              disabled={hasAssociatedQueueChat}
+              icon={<MessageCircleMore size={22} className="ml-0.5" />}
+              onClick={() => setIsPopoverOpen(true)}
+            />
+          </span>
+        </Tooltip>
+      </Popover>
+    </Form>
+  )
+}

@@ -223,7 +223,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
           <div>
             <Space.Compact block size="large">
               <TextArea
-                id="queuechat-input"
+                id={`queuechat-input-${staffId}-${questionId}`}
                 autoSize={{ minRows: 1.35, maxRows: 20 }}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -241,6 +241,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
               <Button
                 type="primary"
                 onClick={sendMessage}
+                loading={isLoading}
                 disabled={input.trim().length === 0 || isLoading}
               >
                 Send
