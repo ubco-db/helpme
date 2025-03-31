@@ -6,7 +6,7 @@ import {
   OrganizationCourseResponse,
   User,
 } from '@koh/common'
-import { Card, message } from 'antd'
+import { Card, message, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
 import EditCourseForm from './EditCourseForm'
 import ArchiveCourse from './ArchiveCourse'
@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import CourseInviteCode from './CourseInviteCode'
 import CourseFeaturesForm from './CourseFeaturesForm'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
+import { QuestionCircleOutlined } from '@ant-design/icons'
 
 type EditCourseProps = {
   courseId: number
@@ -87,7 +88,21 @@ const EditCourse: React.FC<EditCourseProps> = ({
               <CourseFeaturesForm courseData={courseData} />
             </Card>
 
-            <Card bordered={true} title="Course Invite Link">
+            <Card
+              bordered={true}
+              title={
+                <div className="flex items-center justify-start gap-3">
+                  <div>Course Invite Link</div>
+                  <div className="text-gray-500">
+                    <Tooltip
+                      title={`This is the invite link for the course. You must set an invite code (of anything you'd like) before anyone can join your course. Once set, you can share the invite link with your students (e.g. on Canvas). Clearing the invite code will prevent new people from joining your course.`}
+                    >
+                      Help <QuestionCircleOutlined />
+                    </Tooltip>
+                  </div>
+                </div>
+              }
+            >
               <CourseInviteCode
                 fetchCourseData={fetchCourseData}
                 courseData={courseData}
