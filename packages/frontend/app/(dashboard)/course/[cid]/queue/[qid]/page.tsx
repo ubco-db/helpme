@@ -601,6 +601,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           hasDemos={isDemoQueue}
           staffListHidden={staffListHidden}
           setStaffListHidden={setStaffListHidden}
+          queueChats={queueChats}
           buttons={
             isStaff ? (
               <>

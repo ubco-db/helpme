@@ -28,7 +28,7 @@ import RenderEvery from '@/app/components/RenderEvery'
 import TagGroupSwitch from './TagGroupSwitch'
 import StaffList from './StaffList'
 import { getQueueTypeLabel } from '../utils/commonQueueFunctions'
-import { QueuePartial } from '@koh/common'
+import { QueuePartial, GetQueueChatsResponse } from '@koh/common'
 
 interface QueueInfoColumnProps {
   cid: number
@@ -41,6 +41,7 @@ interface QueueInfoColumnProps {
   setTagGroupsEnabled: (tagGroupsEnabled: boolean) => void
   staffListHidden: boolean
   setStaffListHidden: (hidden: boolean) => void
+  queueChats?: GetQueueChatsResponse
 }
 
 const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
@@ -54,6 +55,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
   setTagGroupsEnabled,
   staffListHidden,
   setStaffListHidden,
+  queueChats,
 }) => {
   const router = useRouter()
 
@@ -132,7 +134,12 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
           <p> No staff checked in</p>
         </div>
       ) : !staffListHidden ? (
-        <StaffList queue={queue} queueId={queueId} courseId={cid} />
+        <StaffList
+          queue={queue}
+          queueId={queueId}
+          courseId={cid}
+          queueChats={queueChats}
+        />
       ) : null}
 
       {/* buttons for staff on mobile */}
