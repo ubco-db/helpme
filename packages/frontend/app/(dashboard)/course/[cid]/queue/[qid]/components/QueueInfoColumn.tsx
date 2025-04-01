@@ -118,7 +118,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
         <h3 className="mb-0 text-2xl font-semibold">Staff</h3>
         {/* Button to hide staff list on mobile */}
         <Button
-          className="sm:hidden"
+          className="md:hidden"
           onClick={() => setStaffListHidden(!staffListHidden)}
           type="text"
           icon={staffListHidden ? <UpOutlined /> : <DownOutlined />}
@@ -137,7 +137,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
 
       {/* buttons for staff on mobile */}
       {isStaff && (
-        <div className="my-3 flex flex-wrap items-center justify-between gap-y-2 sm:hidden">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-y-2 md:hidden">
           {buttons}
         </div>
       )}
@@ -180,10 +180,12 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
       )}
 
       {/* mobile only */}
-      <div className="mt-5 flex w-full items-center justify-around gap-y-2 sm:hidden">
-        {!isStaff && buttons}
-      </div>
-      <div className="mt-2 flex w-full items-center justify-between sm:hidden">
+      {!isStaff && (
+        <div className="mt-5 flex w-full items-center justify-around gap-y-2 md:hidden">
+          {buttons}
+        </div>
+      )}
+      <div className="mt-2 flex w-full items-center justify-between md:hidden">
         <div className="flex w-full flex-col gap-2">
           <h3 className="my-0 text-2xl font-semibold">
             {tagGroupsEnabled ? 'Queue Groups By Tag' : 'Queue'}
@@ -212,7 +214,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
             ) : null}
           </Row>
           {queue?.notes && queue?.notes.length > 0 && (
-            <div className="flex max-h-[200px] w-full items-center overflow-y-auto px-2 text-xl text-[#5f6b79] sm:hidden">
+            <div className="flex max-h-[200px] w-full items-center overflow-y-auto px-2 text-xl text-[#5f6b79] md:hidden">
               <Linkify>
                 <div className="min-w-0 whitespace-pre-wrap break-words text-sm italic md:text-base">
                   {`Notes: ${queue?.notes}`}
