@@ -124,8 +124,9 @@ const EditCourse: React.FC<EditCourseProps> = ({
         <Card bordered={true} title="Clone Course">
           <CourseCloneForm
             organization={organization}
-            courseData={courseData}
-            user={user}
+            courseId={courseData.course?.id ?? -1}
+            courseSectionGroupName={courseData.course?.sectionGroupName ?? ''}
+            courseSemesterId={courseData.course?.semester?.id ?? -1}
           />
         </Card>
 

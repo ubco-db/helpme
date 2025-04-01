@@ -15,6 +15,8 @@ const CoursesTable: React.FC = () => {
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
 
+  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false)
+
   const handleInput = (event: any) => {
     event.preventDefault()
     setInput(event.target.value)
@@ -48,8 +50,8 @@ const CoursesTable: React.FC = () => {
     courses && (
       <>
         <div className="bg-white">
-          <Row>
-            <Col sm={{ span: 18 }}>
+          <Row justify="space-between" align="middle" wrap>
+            <Col flex="auto" className="mr-2">
               <Input
                 placeholder="Search Courses"
                 prefix={<SearchOutlined />}
@@ -58,12 +60,12 @@ const CoursesTable: React.FC = () => {
                 onPressEnter={handleSearch}
               />
             </Col>
-            <Col sm={{ span: 1 }}>
-              <Space></Space>
-            </Col>
-            <Col>
+            <Col className="flex gap-2" flex="none">
               <Button type="primary" href={`/organization/course/add`}>
                 Add New Course
+              </Button>
+              <Button type="primary" onClick={() => setIsCloneModalOpen(true)}>
+                Batch Clone Courses
               </Button>
             </Col>
           </Row>

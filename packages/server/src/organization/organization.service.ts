@@ -124,6 +124,8 @@ export class OrganizationService {
         courseId: course.courseid,
         courseName: course.coursename,
         isEnabled: course.isenabled,
+        sectionGroupName: course.sectionGroupName,
+        semesterId: course.semesterId,
       };
     });
 

@@ -1593,7 +1593,7 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard, OrgOrCourseRolesGuard, EmailVerifiedGuard)
   @OrgRoles(OrganizationRole.ADMIN)
   async cloneCourse(
-    @Param('oid', ParseIntPipe) oid: number,
+    @Param('oid', ParseIntPipe) oid: number, // unused for now, only for the guard
     @User(['chat_token']) user: UserModel,
     @Body() body: BatchCourseCloneAttributes,
   ): Promise<void> {
@@ -1606,6 +1606,9 @@ export class OrganizationController {
         HttpStatus.NOT_FOUND,
       );
     }
+
+    //PAT TODO: move this to a service function so that you can run it async and send a response right away that the info sent is valid
+    //if valid, then just return 200 and the frontend will respond with "process started successfully" or something
 
     for (const key of Object.keys(body)) {
       const courseId = parseInt(key);
@@ -1646,12 +1649,31 @@ export class OrganizationController {
       }
     }
 
-    //PAT TODO: test this out and style contents of email
+    const bodyRender = `
+      <br>
+      <h2>Course Clone Summary</h2>
+      <br>
+      <p>Here is the summary of the course cloning process:</p>
+      <ul>
+        ${progressLog
+          .map(
+            (log) =>
+              `<li style="color: ${
+                log.success ? 'green' : 'red'
+              }">${log.message}</li>`,
+          )
+          .join('')}
+      </ul>
+      <br>
+      Note: Do NOT reply to this email.
+    `;
+
+    //TODO: style contents of email better
     this.mailService.sendEmail({
       receiver: user.email,
       type: MailServiceType.COURSE_CLONE_SUMMARY,
       subject: 'HelpMe - Course Clone Summary',
-      content: JSON.stringify(progressLog),
+      content: bodyRender,
     });
   }
 

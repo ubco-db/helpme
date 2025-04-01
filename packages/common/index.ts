@@ -207,6 +207,33 @@ export type CourseCloneAttributes = {
   }
 }
 
+export const defaultCourseCloneAttributes: CourseCloneAttributes = {
+  professorIds: [],
+  includeDocuments: false,
+  useSection: false,
+  includeInsertedQuestions: false,
+  cloneAttributes: {
+    coordinator_email: true,
+    zoomLink: false,
+    courseInviteCode: false,
+  },
+  cloneCourseSettings: {
+    chatBotEnabled: true,
+    asyncQueueEnabled: true,
+    queueEnabled: true,
+    scheduleOnFrontPage: false,
+    asyncCentreAIAnswers: true,
+  },
+  chatbotSettings: {
+    modelName: true,
+    prompt: true,
+    similarityThresholdDocuments: true,
+    similarityThresholdQuestions: true,
+    temperature: true,
+    topK: true,
+  },
+}
+
 // The key to the records is the course ids
 export type BatchCourseCloneAttributes = Record<number, CourseCloneAttributes>
 
@@ -1261,6 +1288,8 @@ export interface CourseResponse {
   courseId: number
   courseName: string
   isEnabled: boolean
+  sectionGroupName: string
+  semesterId: number
 }
 
 export class GetCourseResponse {

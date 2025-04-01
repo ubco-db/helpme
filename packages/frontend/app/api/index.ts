@@ -80,6 +80,7 @@ import {
   UnreadAsyncQuestionResponse,
   GetInteractionsAndQuestionsResponse,
   CourseCloneAttributes,
+  BatchCourseCloneAttributes,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -870,6 +871,16 @@ class APIClient {
       ),
     getCronJobs: async (organizationId: number): Promise<CronJob[]> =>
       this.req('GET', `/api/v1/organization/${organizationId}/cronjobs`),
+    batchCloneCourses: async (
+      organiationId: number,
+      body: BatchCourseCloneAttributes,
+    ): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/organization/${organiationId}/clone_courses`,
+        undefined,
+        body,
+      ),
   }
 
   lmsIntegration = {
