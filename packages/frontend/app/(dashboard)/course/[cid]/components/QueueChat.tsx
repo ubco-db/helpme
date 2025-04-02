@@ -1,7 +1,6 @@
 import { Fragment, ReactElement, useEffect, useRef, useState } from 'react'
-import { Badge, Button, Card, message, Space } from 'antd'
+import { Button, Card, message, Space } from 'antd'
 import UserAvatar from '@/app/components/UserAvatar'
-import { MessageCircleMore } from 'lucide-react'
 import TextArea from 'antd/es/input/TextArea'
 import { API } from '@/app/api'
 import { useQueueChat } from '@/app/hooks/useQueueChat'
