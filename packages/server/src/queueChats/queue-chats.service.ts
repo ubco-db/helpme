@@ -233,7 +233,6 @@ export class QueueChatService {
     staffId: number,
   ): Promise<QueueChatPartial | null> {
     const metadata = await this.getChatMetadata(queueId, questionId, staffId);
-
     if (!metadata) return null;
 
     // Remove IDs from metadata for privacy

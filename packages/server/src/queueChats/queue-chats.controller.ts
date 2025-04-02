@@ -276,7 +276,11 @@ export class QueueChatController {
         // if it's the first message, tell all other users in the queue re-fetch their chats (so that they can see the new chat) // TODO: make it only tell users who are subscribed to a 'questionId' room rather than 'queueId' room. This will require a lot of work though to basically duplicate the queue-sse.service.ts
         await this.queueSSEService.updateQueueChats(queueId);
       }
-      await this.queueChatSSEService.updateQueueChat(queueId, questionId);
+      await this.queueChatSSEService.updateQueueChat(
+        queueId,
+        questionId,
+        staffId,
+      );
       return { message: 'Message sent' };
     } catch (error) {
       if (error) {

@@ -85,7 +85,7 @@ export class QueueChatSSEService {
     ) => Promise<void>,
   ) {
     return throttle(
-      async (queueId: number, questionId?: number, staffId?: number) => {
+      async (queueId: number, questionId: number, staffId: number) => {
         try {
           await updateFunction(queueId, questionId, staffId);
         } catch (e) {}
