@@ -68,7 +68,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
   //   }
   // };
   return (
-    <div className="relative flex flex-shrink-0 flex-col pb-3 md:mt-8 md:w-72 md:pb-7">
+    <div className="relative flex flex-shrink-0 flex-col pb-1 md:mt-8 md:w-72 md:pb-7">
       {/* only show the queue title and warning here on desktop, it's moved further down on mobile (and placed in queue page.tsx) */}
       <div className="justify-left mb-0 hidden items-center md:mb-2 md:flex">
         <h2 className="mb-0 inline-block text-2xl font-bold text-[#212934]">
@@ -183,12 +183,12 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
 
       {/* mobile only */}
       {!isStaff && (
-        <div className="mt-5 flex w-full items-center justify-around gap-y-2 md:hidden">
+        <div className="mt-2 flex w-full items-center justify-around gap-y-2 md:hidden">
           {buttons}
         </div>
       )}
       <div className="mt-2 flex w-full items-center justify-between md:hidden">
-        <div className="flex w-full flex-col gap-2">
+        <div className="flex w-full flex-col gap-0">
           <h3 className="my-0 text-2xl font-semibold">
             {tagGroupsEnabled ? 'Queue Groups By Tag' : 'Queue'}
           </h3>
