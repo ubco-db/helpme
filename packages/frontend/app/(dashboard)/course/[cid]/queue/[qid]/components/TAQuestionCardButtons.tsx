@@ -392,10 +392,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
       >
         <Popconfirm
           title="Are you sure you want to delete this question from the queue?"
-          disabled={
-            !isUserCheckedIn ||
-            question.status === LimboQuestionStatus.ReQueueing
-          }
+          disabled={!isUserCheckedIn}
           okText="Yes"
           cancelText="No"
           onConfirm={async () => {
@@ -403,7 +400,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           }}
         >
           <Tooltip
-            className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
+            className={`${!isUserCheckedIn ? 'cursor-not-allowed' : ''}`}
             title={
               isUserCheckedIn
                 ? 'Remove From Queue'
@@ -417,38 +414,32 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                 customVariant="red"
                 icon={<DeleteOutlined />}
                 disabled={
-                  !isUserCheckedIn ||
-                  helpButtonLoading ||
-                  rephraseButtonLoading ||
-                  question.status === LimboQuestionStatus.ReQueueing
+                  !isUserCheckedIn || helpButtonLoading || rephraseButtonLoading
                 }
                 loading={deleteButtonLoading}
               />
             </span>
           </Tooltip>
         </Popconfirm>
-        {!question.isTaskQuestion && (
-          // TODO: add new buttons for task questions
-          <Tooltip
-            className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
-            title={rephraseTooltip}
-          >
-            <span>
-              <CircleButton
-                customVariant="orange"
-                icon={<QuestionOutlined />}
-                onClick={sendRephraseAlert}
-                disabled={
-                  !canRephrase ||
-                  helpButtonLoading ||
-                  deleteButtonLoading ||
-                  question.status === LimboQuestionStatus.ReQueueing
-                }
-                loading={rephraseButtonLoading}
-              />
-            </span>
-          </Tooltip>
-        )}
+        {!question.isTaskQuestion &&
+          question.status !== LimboQuestionStatus.ReQueueing && (
+            <Tooltip
+              className={`${!isUserCheckedIn ? 'cursor-not-allowed' : ''}`}
+              title={rephraseTooltip}
+            >
+              <span>
+                <CircleButton
+                  customVariant="orange"
+                  icon={<QuestionOutlined />}
+                  onClick={sendRephraseAlert}
+                  disabled={
+                    !canRephrase || helpButtonLoading || deleteButtonLoading
+                  }
+                  loading={rephraseButtonLoading}
+                />
+              </span>
+            </Tooltip>
+          )}
         <MessageButton
           recipientName={question.creator.name}
           staffId={userInfo.id}
@@ -456,30 +447,29 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           questionId={question.id}
           isStaff={true}
         />
-        <Tooltip
-          className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
-          title={helpTooltip}
-        >
-          <span>
-            <CircleButton
-              customVariant="primary"
-              icon={<Play size={22} className="shrink-0 pl-0.5 pt-0.5" />}
-              onClick={() => {
-                // message.success("timer cleared")
-                // clearTimeout(timerCheckout.current);
-                helpStudent()
-              }}
-              disabled={
-                !canHelp ||
-                rephraseButtonLoading ||
-                deleteButtonLoading ||
-                question.status === LimboQuestionStatus.ReQueueing
-              }
-              className="flex items-center justify-center"
-              loading={helpButtonLoading}
-            />
-          </span>
-        </Tooltip>
+        {question.status !== LimboQuestionStatus.ReQueueing && (
+          <Tooltip
+            className={`${!isUserCheckedIn ? 'cursor-not-allowed' : ''}`}
+            title={helpTooltip}
+          >
+            <span>
+              <CircleButton
+                customVariant="primary"
+                icon={<Play size={22} className="shrink-0 pl-0.5 pt-0.5" />}
+                onClick={() => {
+                  // message.success("timer cleared")
+                  // clearTimeout(timerCheckout.current);
+                  helpStudent()
+                }}
+                disabled={
+                  !canHelp || rephraseButtonLoading || deleteButtonLoading
+                }
+                className="flex items-center justify-center"
+                loading={helpButtonLoading}
+              />
+            </span>
+          </Tooltip>
+        )}
       </div>
     )
   }
