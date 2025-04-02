@@ -148,7 +148,11 @@ export class QuestionService {
       if (isResolving) {
         // Save chat metadata in database (if messages were exchanged)
         await this.queueChatService.endChats(question.queueId, question.id);
-      } else if (newStatus in ClosedQuestionStatus) {
+      } else if (
+        newStatus in ClosedQuestionStatus ||
+        newStatus === LimboQuestionStatus.CantFind ||
+        newStatus === LimboQuestionStatus.TADeleted
+      ) {
         // Don't save chat metadata in database
         await this.queueChatService.clearChats(question.queueId, question.id);
       } else if (isFirstHelped) {
