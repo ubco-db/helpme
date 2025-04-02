@@ -251,7 +251,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
         </div>
       </Card>
     </div>
-  ) : true ? ( // TODO: remove this
+  ) : (
     // if not open, show the pfp of the other person as the button
     <div
       className={cn(
@@ -315,29 +315,11 @@ const QueueChat: React.FC<QueueChatProps> = ({
               return
             }
             setIsOpen(true)
+            resetNewMessageCount()
             onOpen()
           }}
         />
       </Tooltip>
-    </div>
-  ) : (
-    // desktop for staff
-    <div className="mb-7">
-      <Button
-        type="primary"
-        size="large"
-        className="rounded-sm shadow-md shadow-slate-400"
-        icon={<MessageCircleMore />}
-        onClick={() => {
-          setIsOpen(true)
-          resetNewMessageCount()
-          onOpen()
-        }}
-      >
-        {queueChatData && queueChatData.staff && queueChatData.student
-          ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
-          : 'Loading...'}
-      </Button>
     </div>
   )
 }

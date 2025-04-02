@@ -69,43 +69,45 @@ const QueueChats: React.FC<QueueChatsProps> = ({
   }
 
   return isMobile ? (
-    <button
-      className={cn(
-        isChatbotOpen ? 'hidden ' : '',
-        'fixed ',
-        currentChatQuestionId === -1 ? 'bottom-6 right-5' : 'bottom-1 right-0',
-      )}
-      style={{ zIndex: 1050 }}
-      onClick={() => {
-        if (mobileQueueChatsExpanded) {
-          return
-        }
-        setMobileQueueChatsExpanded(true)
-        setNewMessagesInQueueChats(0)
-      }}
+    <Popover
+      content={`Message ${
+        isStaff
+          ? queueChats.length === 1
+            ? queueChats[0].student.firstName
+            : 'Students'
+          : queueChats.length === 1
+            ? queueChats[0].staff.firstName
+            : 'TAs'
+      }`}
+      placement={'left'}
+      open={!seenChatPopover}
     >
-      <Popover
-        content={`Message ${
-          isStaff
-            ? queueChats.length === 1
-              ? queueChats[0].student.firstName
-              : 'Students'
-            : queueChats.length === 1
-              ? queueChats[0].staff.firstName
-              : 'TAs'
-        }`}
-        placement={'left'}
-        open={!seenChatPopover}
+      <Badge
+        count={newMessagesInQueueChats}
+        overflowCount={99}
+        offset={[-4, 4]}
       >
-        <Badge
-          count={newMessagesInQueueChats}
-          overflowCount={99}
-          offset={[-4, 4]}
+        <button
+          className={cn(
+            isChatbotOpen ? 'hidden ' : '',
+            'fixed ',
+            currentChatQuestionId === -1
+              ? 'bottom-6 right-5'
+              : 'bottom-1 right-0',
+          )}
+          style={{ zIndex: 1050 }}
+          onClick={() => {
+            if (mobileQueueChatsExpanded || queueChats.length <= 1) {
+              return
+            }
+            setMobileQueueChatsExpanded(true)
+            setNewMessagesInQueueChats(0)
+          }}
         >
           <div
             className={cn(
               'flex',
-              mobileQueueChatsExpanded
+              mobileQueueChatsExpanded || queueChats.length <= 1
                 ? 'h-full flex-col justify-center gap-2'
                 : 'max-w-6 flex-row-reverse items-center justify-start',
             )}
@@ -134,7 +136,9 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                     staffId={chat.staff.id}
                     isMobile={isMobile}
                     isStaff={isStaff}
-                    disableTheButton={!mobileQueueChatsExpanded}
+                    disableTheButton={
+                      !mobileQueueChatsExpanded && queueChats.length > 1
+                    }
                     announceNewMessage={(newCount: number) =>
                       setNewMessagesInQueueChats(
                         (prevCount) => prevCount + newCount,
@@ -174,9 +178,9 @@ const QueueChats: React.FC<QueueChatsProps> = ({
               />
             )}
           </div>
-        </Badge>
-      </Popover>
-    </button>
+        </button>
+      </Badge>
+    </Popover>
   ) : (
     <div
       className={cn(
