@@ -1,6 +1,5 @@
 import {
   ExtraTAStatus,
-  GetQueueChatsResponse,
   OpenQuestionStatus,
   Question,
   QueueChatPartial,
@@ -25,17 +24,11 @@ interface StaffListProps {
   queue: QueuePartial
   queueId: number
   courseId: number
-  queueChats?: GetQueueChatsResponse
 }
 /**
  * Row of ta statuses
  */
-const StaffList: React.FC<StaffListProps> = ({
-  queue,
-  queueId,
-  courseId,
-  queueChats,
-}) => {
+const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
   const { queueQuestions } = useQuestions(queueId)
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
@@ -63,9 +56,6 @@ const StaffList: React.FC<StaffListProps> = ({
     }
   }
   const myQuestionId = queueQuestions.yourQuestions?.[0]?.id
-  const myQueueChatMetadata = queueChats?.find(
-    (chat) => chat.questionId === myQuestionId,
-  )
 
   return (
     <Col className="my-1 flex flex-col gap-y-2 md:block">
@@ -76,7 +66,6 @@ const StaffList: React.FC<StaffListProps> = ({
             myId={userInfo.id}
             myQuestionId={myQuestionId}
             myRole={role}
-            myQueueChatMetadata={myQueueChatMetadata}
             courseId={courseId}
             ta={ta}
             studentName={
@@ -100,7 +89,6 @@ interface StatusCardProps {
   courseId: number
   queueId?: number
   myQuestionId?: number
-  myQueueChatMetadata?: QueueChatPartial
   ta: StaffMember
   myRole?: Role
   myId?: number
@@ -115,7 +103,6 @@ const StatusCard: React.FC<StatusCardProps> = ({
   courseId,
   queueId,
   myQuestionId,
-  myQueueChatMetadata,
   ta,
   myRole,
   myId,
@@ -271,7 +258,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                   extraTAStatus={ta.extraStatus}
                 />
               ) : (
-                'Looking for my next student...'
+                'Looking for my next student..' + (isStaff ? '.' : '')
               )}
             </div>
             {/* Students have a button to message their TAs */}
@@ -282,7 +269,6 @@ const StatusCard: React.FC<StatusCardProps> = ({
                 queueId={queueId}
                 questionId={myQuestionId}
                 isStaff={false}
-                hasAssociatedQueueChat={!!myQueueChatMetadata}
               />
             )}
           </div>

@@ -28,7 +28,6 @@ interface QuestionCardProps {
   isMyQuestion?: boolean
   isBeingHelped?: boolean
   isBeingReQueued?: boolean
-  hasAssociatedQueueChat?: boolean
   isPaused?: boolean
   className?: string // used to highlight questions or add other classes
 }
@@ -45,7 +44,6 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   isBeingHelped,
   isBeingReQueued,
   isPaused,
-  hasAssociatedQueueChat,
   className,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -273,7 +271,6 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                   question={question}
                   hasUnresolvedRephraseAlert={false}
                   tasksSelectedForMarking={tasksSelectedForMarking}
-                  hasAssociatedQueueChat={hasAssociatedQueueChat}
                   className="align-center flex items-center justify-around"
                 />
               </Col>

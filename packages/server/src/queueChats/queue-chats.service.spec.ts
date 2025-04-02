@@ -71,7 +71,7 @@ describe('QueueChatService', () => {
         taHelped: staff,
       });
 
-      await service.createChat(
+      const queueChatMetadata = await service.createChat(
         question.queueId,
         question.taHelped,
         question,
@@ -83,26 +83,28 @@ describe('QueueChatService', () => {
       expect(redisMock.del).toHaveBeenCalledWith(key_metadata);
       expect(redisMock.del).toHaveBeenCalledWith(key_messages);
       expect(redisMock.del).toHaveBeenCalledTimes(2);
+      const expectedMetadata = {
+        staff: {
+          id: staff.id,
+          firstName: staff.firstName,
+          lastName: staff.lastName,
+          photoURL: staff.photoURL,
+        },
+        student: {
+          id: question.creator.id,
+          firstName: question.creator.firstName,
+          lastName: question.creator.lastName,
+          photoURL: question.creator.photoURL,
+        },
+        questionId: question.id,
+        startedAt: staticDate.toISOString(),
+      };
       expect(redisMock.set).toHaveBeenCalledWith(
         key_metadata,
-        JSON.stringify({
-          staff: {
-            id: staff.id,
-            firstName: staff.firstName,
-            lastName: staff.lastName,
-            photoURL: staff.photoURL,
-          },
-          student: {
-            id: question.creator.id,
-            firstName: question.creator.firstName,
-            lastName: question.creator.lastName,
-            photoURL: question.creator.photoURL,
-          },
-          questionId: question.id,
-          startedAt: staticDate.toISOString(),
-        }),
+        JSON.stringify(expectedMetadata),
       );
       expect(redisMock.expire).toHaveBeenCalledWith(key_metadata, 604800); // one week in seconds
+      expect(queueChatMetadata).toEqual(expectedMetadata);
     });
   });
 

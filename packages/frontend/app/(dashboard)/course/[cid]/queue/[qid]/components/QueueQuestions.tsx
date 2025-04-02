@@ -64,7 +64,6 @@ interface QueueQuestionsProps {
   onOpenTagGroupsChange: (key: string | string[]) => void
   openTagGroups: string[]
   staffListLength: number
-  queueChats?: GetQueueChatsResponse
 }
 
 /**
@@ -96,7 +95,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
   onOpenTagGroupsChange,
   openTagGroups,
   staffListLength,
-  queueChats,
 }) => {
   const isTaskJoinable = useCallback(
     (
@@ -254,9 +252,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                         isBeingHelped={
                           question.status === OpenQuestionStatus.Helping
                         }
-                        hasAssociatedQueueChat={queueChats?.some(
-                          (chat) => chat.questionId === question.id,
-                        )}
                       />
                     ))}
                   </Panel>
@@ -333,9 +328,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                       isBeingHelped={
                         question.status === OpenQuestionStatus.Helping
                       }
-                      hasAssociatedQueueChat={queueChats?.some(
-                        (chat) => chat.questionId === question.id,
-                      )}
                     />
                   ))}
                 </Panel>
@@ -366,9 +358,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                   }
                   isPaused={question.status === OpenQuestionStatus.Paused}
                   isBeingHelped={question.status === OpenQuestionStatus.Helping}
-                  hasAssociatedQueueChat={queueChats?.some(
-                    (chat) => chat.questionId === question.id,
-                  )}
                 />
               ))}
               {pausedQuestions.map((question: Question) => (
@@ -390,9 +379,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                   }
                   isPaused={question.status === OpenQuestionStatus.Paused}
                   isBeingHelped={question.status === OpenQuestionStatus.Helping}
-                  hasAssociatedQueueChat={queueChats?.some(
-                    (chat) => chat.questionId === question.id,
-                  )}
                 />
               ))}
             </>
@@ -416,9 +402,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
               }
               isPaused={question.status === OpenQuestionStatus.Paused}
               isBeingHelped={question.status === OpenQuestionStatus.Helping}
-              hasAssociatedQueueChat={queueChats?.some(
-                (chat) => chat.questionId === question.id,
-              )}
             />
           ))}
         </>

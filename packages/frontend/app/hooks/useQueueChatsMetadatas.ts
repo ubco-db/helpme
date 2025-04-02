@@ -72,7 +72,6 @@ export function useQueueChatsMetadatas(
     useCallback(
       (data: SSEQueueResponse) => {
         if (data.queueChats !== undefined) {
-          console.log('data.queueChats', data.queueChats)
           mutate(
             key,
             plainToInstance(GetQueueChatResponse, data.queueChats),

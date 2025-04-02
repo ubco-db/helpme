@@ -49,7 +49,7 @@ export class QueueChatService {
     staff: UserModel,
     question: QuestionModel,
     startedAt?: Date,
-  ): Promise<void> {
+  ): Promise<QueueChatPartial> {
     const key = `${ChatMetadataRedisKey}:${queueId}:${question.id}:${staff.id}`;
 
     // Remove any existing chat metadata and messages (in case of mismanagement; to protect previous chat history)
@@ -79,26 +79,25 @@ export class QueueChatService {
       where: { id: question.creatorId },
     });
 
+    const queueChatMetadata = {
+      staff: {
+        id: staff.id,
+        firstName: staff.firstName,
+        lastName: staff.lastName,
+        photoURL: staff.photoURL,
+      } as QueueChatUserPartial,
+      student: {
+        id: creator.id,
+        firstName: creator.firstName,
+        lastName: creator.lastName,
+        photoURL: creator.photoURL,
+      } as QueueChatUserPartial,
+      startedAt: startedAt ?? new Date(),
+      questionId: question.id,
+    } as QueueChatPartial;
+
     await this.redis
-      .set(
-        key,
-        JSON.stringify({
-          staff: {
-            id: staff.id,
-            firstName: staff.firstName,
-            lastName: staff.lastName,
-            photoURL: staff.photoURL,
-          } as QueueChatUserPartial,
-          student: {
-            id: creator.id,
-            firstName: creator.firstName,
-            lastName: creator.lastName,
-            photoURL: creator.photoURL,
-          } as QueueChatUserPartial,
-          startedAt: startedAt ?? new Date(),
-          questionId: question.id,
-        } as QueueChatPartial),
-      )
+      .set(key, JSON.stringify(queueChatMetadata))
       .catch((error) => {
         if (error) {
           console.error(error);
@@ -110,6 +109,7 @@ export class QueueChatService {
       });
 
     await this.redis.expire(key, 86400); // 1 day = 24 * 60 * 60 = 86400 seconds
+    return queueChatMetadata;
   }
 
   /**

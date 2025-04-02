@@ -735,10 +735,11 @@ class APIClient {
       queueId: number,
       questionId: number,
       staffId: number,
-    ): Promise<void> =>
+    ): Promise<QueueChatPartial> =>
       this.req(
         'POST',
         `/api/v1/queueChats/${queueId}/${questionId}/${staffId}`,
+        QueueChatPartial,
       ),
     getMyQueueChats: async (queueId: number): Promise<GetQueueChatsResponse> =>
       this.req('GET', `/api/v1/queueChats/${queueId}`),

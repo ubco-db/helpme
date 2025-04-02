@@ -4,7 +4,6 @@ import {
   DeleteOutlined,
   PauseOutlined,
   QuestionOutlined,
-  SendOutlined,
   UndoOutlined,
 } from '@ant-design/icons'
 import {
@@ -18,18 +17,9 @@ import {
   QuestionStatus,
   RephraseQuestionPayload,
 } from '@koh/common'
-import {
-  Button,
-  Form,
-  FormProps,
-  Input,
-  message,
-  Popconfirm,
-  Popover,
-  Tooltip,
-} from 'antd'
+import { message, Popconfirm, Tooltip } from 'antd'
 import React, { useCallback, useEffect, useState } from 'react'
-import { MessageCircleMore, Play } from 'lucide-react'
+import { Play } from 'lucide-react'
 import CircleButton from './CircleButton'
 import { useCourse } from '@/app/hooks/useCourse'
 import { useQuestions } from '@/app/hooks/useQuestions'
@@ -38,6 +28,7 @@ import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
 import MessageButton from './MessageButton'
+import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
 
 const PRORITY_QUEUED_MESSAGE_TEXT =
   'This student has been temporarily removed from the queue. They must select to rejoin the queue and will then be placed where they were before'
@@ -49,7 +40,6 @@ interface TAQuestionCardButtonsProps {
   hasUnresolvedRephraseAlert: boolean
   tasksSelectedForMarking: string[]
   className?: string
-  hasAssociatedQueueChat?: boolean
 }
 
 const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
@@ -59,10 +49,10 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
   hasUnresolvedRephraseAlert,
   tasksSelectedForMarking,
   className,
-  hasAssociatedQueueChat,
 }) => {
   const { course } = useCourse(courseId)
   const { mutateQuestions } = useQuestions(queueId)
+  const { mutateQueueChats, queueChats } = useQueueChatsMetadatas(queueId)
   const { userInfo } = useUserInfo()
   const staffList = course?.queues?.find((q) => q.id === queueId)?.staffList
   const isUserCheckedIn = isCheckedIn(staffList, userInfo.id)
@@ -76,7 +66,16 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
   const [requeueButtonLoading, setRequeueButtonLoading] = useState(false)
   const [pauseButtonLoading, setPauseButtonLoading] = useState(false)
 
-  // let timerCheckout=useRef(null);
+  const preemptivelyDeleteAssociatedQueueChatsForQuestion = useCallback(() => {
+    // preemptively mutate (i.e. update locally) the queue chats to remove any queue chats that are associated with the deleted question
+    if (queueChats) {
+      const updatedQueueChats = queueChats.filter(
+        (chat) => chat.questionId !== question.id,
+      )
+      mutateQueueChats(updatedQueueChats)
+    }
+  }, [queueChats, mutateQueueChats, question.id])
+
   const changeStatus = useCallback(
     async (status: QuestionStatus) => {
       await API.questions
@@ -101,20 +100,19 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
             } else {
               message.success('Your Question has ended')
             }
+            preemptivelyDeleteAssociatedQueueChatsForQuestion()
           }
         })
         .catch((e) => {
           const errorMessage = getErrorMessage(e)
           message.error('Failed to update question status: ' + errorMessage)
         })
-      // if (status===LimboQuestionStatus.CantFind||status===ClosedQuestionStatus.Resolved){
-      // timerCheckout.current = setTimeout(() => {
-      //     message.warning("You are checked out due to inactivity");
-      //     checkOutTA();
-      //  }, 1000*20);
-      // }
     },
-    [question.id, mutateQuestions],
+    [
+      question.id,
+      mutateQuestions,
+      preemptivelyDeleteAssociatedQueueChatsForQuestion,
+    ],
   )
 
   const markSelected = useCallback(async () => {
@@ -137,22 +135,17 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           'Marked ' + tasksSelectedForMarking.join(', ') + ' as done',
         )
       }
+      preemptivelyDeleteAssociatedQueueChatsForQuestion()
     } catch (e) {
       message.error('Failed to mark tasks as done')
     }
-  }, [question.id, mutateQuestions, tasksSelectedForMarking])
+  }, [
+    tasksSelectedForMarking,
+    question.id,
+    mutateQuestions,
+    preemptivelyDeleteAssociatedQueueChatsForQuestion,
+  ])
 
-  // const checkOutTA = async ()=>{
-  //     // await API.taStatus.checkOut(courseId, queue?.room);
-  //     // mutateCourse();
-  // }
-  // function setCheckOutTimer() {
-  //     timerCheckout.current = setTimeout(() => {
-  //         message.warning("You are checked out due to inactivity");
-  //         checkOutTA();
-  //      }, 1000*20);
-  // }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sendRephraseAlert = async () => {
     setRephraseButtonLoading(true)
     const payload: RephraseQuestionPayload = {
@@ -167,7 +160,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
         payload,
         targetUserId: question.creatorId,
       })
-      await mutateQuestions()
+      // await mutateQuestions()
       message.success('Successfully asked student to rephrase their question.')
     } catch (e: any) {
       if (
@@ -188,19 +181,6 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
     changeStatus(OpenQuestionStatus.Helping).then(() => {
       setHelpButtonLoading(false)
     })
-    //delete inactive timer
-    // editing: shouldn't log students out after 15 minutes
-    // reset timer if help another student
-
-    if (course?.questionTimer) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, prefer-const
-      let questionTimer = setTimeout(
-        () => {
-          changeStatus(ClosedQuestionStatus.Resolved)
-        },
-        course.questionTimer * 60 * 1000,
-      )
-    }
   }
   const deleteQuestion = async () => {
     setDeleteButtonLoading(true)
@@ -210,6 +190,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
         : LimboQuestionStatus.TADeleted,
     ).then(() => {
       setDeleteButtonLoading(false)
+      preemptivelyDeleteAssociatedQueueChatsForQuestion()
     })
     await API.questions.notify(question.id)
   }
@@ -474,7 +455,6 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           queueId={queueId}
           questionId={question.id}
           isStaff={true}
-          hasAssociatedQueueChat={hasAssociatedQueueChat}
         />
         <Tooltip
           className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}

@@ -104,8 +104,13 @@ export class QueueChatController {
         HttpStatus.NOT_FOUND,
       );
     }
-    await this.queueChatService.createChat(queueId, staff.user, question);
-    return { message: 'Chat started' };
+    const queueChatMetadata = await this.queueChatService.createChat(
+      queueId,
+      staff.user,
+      question,
+    );
+    // return the newly created queue chat (so frontend can immediately update the local state)
+    return queueChatMetadata;
   }
 
   @Get(':queueId/:questionId/:staffId')

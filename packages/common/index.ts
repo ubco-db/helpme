@@ -1308,8 +1308,6 @@ export class GetCourseResponse {
 
   zoomLink!: string
 
-  questionTimer?: number
-
   selfEnroll!: boolean
 
   asyncQuestionDisplayTypes?: string[]

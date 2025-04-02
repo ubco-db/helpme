@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  ReactElement,
-  useCallback,
-  useState,
-  useEffect,
-  useRef,
-  useMemo,
-} from 'react'
+import { ReactElement, useCallback, useState, useEffect, useRef } from 'react'
 import {
   QuestionTypeParams,
   ClosedQuestionStatus,
@@ -23,24 +16,10 @@ import {
   LimboQuestionStatus,
   QuestionLocations,
 } from '@koh/common'
-import {
-  Tooltip,
-  message,
-  notification,
-  Button,
-  Divider,
-  Drawer,
-  Badge,
-  Popover,
-} from 'antd'
+import { Tooltip, message, notification, Button, Divider } from 'antd'
 import { mutate } from 'swr'
 import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
-import {
-  CheckCheck,
-  ListChecks,
-  ListTodoIcon,
-  MessageCircleMore,
-} from 'lucide-react'
+import { CheckCheck, ListChecks, ListTodoIcon } from 'lucide-react'
 import { useQueue } from '@/app/hooks/useQueue'
 import { useUserInfo } from '@/app/contexts/userContext'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
@@ -78,7 +57,6 @@ import AssignmentReportModal from './components/modals/AssignmentReportModal'
 import CantFindModal from './components/modals/CantFindModal'
 import { useChatbotContext } from '../../components/chatbot/ChatbotProvider'
 import CircleButton from './components/CircleButton'
-import QueueChat from '../../components/QueueChat'
 import JoinZoomNowModal from './components/modals/JoinZoomNowModal'
 import JoinZoomButton from './components/JoinZoomButton'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
@@ -96,7 +74,7 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
   const qid = Number(params.qid)
   const router = useRouter()
   const { queue } = useQueue(qid)
-  const { queueChats } = useQueueChatsMetadatas(qid)
+  const { queueChats, mutateQueueChats } = useQueueChatsMetadatas(qid)
   const isQueueHybrid = queue?.type == 'hybrid'
   const { queueQuestions, mutateQuestions } = useQuestions(qid)
   const [queueSettingsModalOpen, setQueueSettingsModalOpen] = useState(false)
@@ -432,6 +410,15 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
           ClosedQuestionStatus.ConfirmedDeleted,
         )
       }
+      // preemptively mutate the queue chats to remove any queue chats that are associated with the deleted question
+      if (queueChats) {
+        const updatedQueueChats = queueChats.filter((chat) =>
+          isTaskQuestion
+            ? chat.questionId !== studentDemoId
+            : chat.questionId !== studentQuestionId,
+        )
+        mutateQueueChats(updatedQueueChats)
+      }
       closeEditQuestionDemoModal(isTaskQuestion)
     },
     [
@@ -439,6 +426,8 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
       updateQuestionStatus,
       studentDemoId,
       studentQuestionId,
+      queueChats,
+      mutateQueueChats,
     ],
   )
 
@@ -825,9 +814,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                         configTasks={configTasks}
                         studentAssignmentProgress={studentAssignmentProgress}
                         isStaff={isStaff}
-                        hasAssociatedQueueChat={queueChats?.some(
-                          (chat) => chat.questionId === question.id,
-                        )}
                         isBeingHelped={true}
                       />
                     )
@@ -853,9 +839,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       configTasks={configTasks}
                       queueType={queue.type}
                       studentAssignmentProgress={studentAssignmentProgress}
-                      hasAssociatedQueueChat={queueChats?.some(
-                        (chat) => chat.questionId === question.id,
-                      )}
                       isStaff={isStaff}
                       isBeingHelped={true}
                       isPaused={true}
@@ -909,10 +892,8 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
             onOpenTagGroupsChange={onOpenTagGroupsChange}
             openTagGroups={openTagGroups}
             staffListLength={queue.staffList.length}
-            queueChats={queueChats}
           />
         </div>
-
         {/* Staff-only components & modals */}
         {isStaff ? (
           <>

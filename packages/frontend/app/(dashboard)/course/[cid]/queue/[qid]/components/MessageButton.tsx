@@ -1,11 +1,11 @@
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { SendOutlined } from '@ant-design/icons'
-import { Question } from '@koh/common'
 import { Form, FormProps, message, Popover, Button, Input, Tooltip } from 'antd'
 import { MessageCircleMore } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import CircleButton from './CircleButton'
+import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
 
 type FormValues = {
   message?: string
@@ -24,36 +24,37 @@ const MessageButton: React.FC<{
   queueId: number
   questionId?: number
   isStaff: boolean
-  hasAssociatedQueueChat?: boolean
-}> = ({
-  recipientName,
-  staffId,
-  queueId,
-  questionId,
-  isStaff,
-  hasAssociatedQueueChat,
-}) => {
+}> = ({ recipientName, staffId, queueId, questionId, isStaff }) => {
   const [isTooltipOpen, setIsTooltipOpen] = useState(false)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const [isSendingLoading, setIsSendingLoading] = useState(false)
+  const { queueChats, mutateQueueChats } = useQueueChatsMetadatas(queueId) // TODO: figure out a way to make useQueueChatMetadatas more efficient since there can be a lot of MessageButtons
+  const hasAssociatedQueueChat = queueChats?.some(
+    (chat) => chat.questionId === questionId,
+  )
   const [form] = Form.useForm()
   const textAreaRef = useRef<any>(null)
 
   const sendMessage: FormProps<FormValues>['onFinish'] = async (values) => {
-    console.log(values)
     if (!questionId) {
       message.error('You must have a question to send a message')
       return
     }
     try {
       setIsSendingLoading(true)
-      await API.queueChats.startQueueChat(queueId, questionId, staffId)
+      const newQueueChatMetadata = await API.queueChats.startQueueChat(
+        queueId,
+        questionId,
+        staffId,
+      )
       await API.queueChats.sendMessage(
         queueId,
         questionId,
         staffId,
         values.message ?? '',
       )
+      // preemptively mutate the queue chats to add a new queue chat
+      mutateQueueChats([...(queueChats ?? []), newQueueChatMetadata])
       setIsPopoverOpen(false)
       setIsTooltipOpen(false)
     } catch (error) {
