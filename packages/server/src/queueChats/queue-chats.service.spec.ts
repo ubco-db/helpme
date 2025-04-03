@@ -7,6 +7,7 @@ import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { ApplicationTestingConfigModule } from '../config/application_config.module';
 import { QuestionFactory, UserFactory } from '../../test/util/factories';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { QueueSSEService } from 'queue/queue-sse.service';
 
 jest.mock('nestjs-redis');
 
@@ -39,6 +40,7 @@ describe('QueueChatService', () => {
       ],
       providers: [
         QueueChatService,
+        QueueSSEService,
         {
           provide: RedisService,
           useValue: {
