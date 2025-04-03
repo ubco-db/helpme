@@ -3,7 +3,6 @@ import { Badge, Button, Popover } from 'antd'
 import { X } from 'lucide-react'
 import QueueChat from './QueueChat'
 import { cn } from '@/app/utils/generalUtils'
-import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
 import { GetQueueChatsResponse } from '@koh/common'
 interface QueueChatsProps {
   queueId: number
@@ -68,6 +67,8 @@ const QueueChats: React.FC<QueueChatsProps> = ({
     return <></>
   }
 
+  console.log(newMessagesInQueueChats)
+
   return isMobile ? (
     <Popover
       content={`Message ${
@@ -82,27 +83,29 @@ const QueueChats: React.FC<QueueChatsProps> = ({
       placement={'left'}
       open={!seenChatPopover}
     >
-      <Badge
-        count={newMessagesInQueueChats}
-        overflowCount={99}
-        offset={[-4, 4]}
+      <button
+        className={cn(
+          isChatbotOpen ? 'hidden ' : '',
+          'fixed ',
+          currentChatQuestionId === -1
+            ? 'bottom-6 right-5'
+            : 'bottom-1 right-0',
+        )}
+        style={{ zIndex: 1050 }}
+        onClick={() => {
+          if (mobileQueueChatsExpanded || queueChats.length <= 1) {
+            return
+          }
+          setMobileQueueChatsExpanded(true)
+          setNewMessagesInQueueChats(0)
+        }}
       >
-        <button
-          className={cn(
-            isChatbotOpen ? 'hidden ' : '',
-            'fixed ',
-            currentChatQuestionId === -1
-              ? 'bottom-6 right-5'
-              : 'bottom-1 right-0',
-          )}
+        <Badge
+          count={newMessagesInQueueChats}
+          overflowCount={9}
           style={{ zIndex: 1050 }}
-          onClick={() => {
-            if (mobileQueueChatsExpanded || queueChats.length <= 1) {
-              return
-            }
-            setMobileQueueChatsExpanded(true)
-            setNewMessagesInQueueChats(0)
-          }}
+          className="md:hidden"
+          offset={[-4, 4]}
         >
           <div
             className={cn(
@@ -148,6 +151,7 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                     onOpen={() => {
                       setChatbotOpen(false)
                       setRenderSmallChatbot(false)
+                      setNewMessagesInQueueChats(0)
                       setCurrentChatQuestionId(chat.questionId)
                     }}
                     onClose={() => {
@@ -178,8 +182,8 @@ const QueueChats: React.FC<QueueChatsProps> = ({
               />
             )}
           </div>
-        </button>
-      </Badge>
+        </Badge>
+      </button>
     </Popover>
   ) : (
     <div

@@ -340,7 +340,11 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 }}
                 onConfirm={() => resetChat()}
               >
-                <Button danger type="link" className="mr-3">
+                <Button
+                  danger
+                  type="link"
+                  className="ml-3 mr-3 px-0 md:ml-0 md:px-2"
+                >
                   Reset Chat
                 </Button>
               </Popconfirm>

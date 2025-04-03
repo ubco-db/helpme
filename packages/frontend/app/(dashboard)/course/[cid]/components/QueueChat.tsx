@@ -105,11 +105,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
 
   return isOpen ? (
     <div
-      className={cn(
-        !isStaff ? 'fixed bottom-0 right-[1px] md:bottom-1 md:right-1' : '',
-        !isStaff && isChatbotOpen ? 'md:right-[408px]' : 'md:right-40',
-        'z-50 box-border w-full md:max-w-[400px]',
-      )}
+      className={cn('z-50 box-border w-full md:right-40 md:max-w-[400px]')}
       style={{ zIndex: 1050 }}
     >
       <Card
