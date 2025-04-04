@@ -33,7 +33,7 @@ const MessageButton: React.FC<{
     (chat) => chat.questionId === questionId,
   )
   const [form] = Form.useForm()
-  const textAreaRef = useRef<any>(null)
+  const textAreaRef = useRef<HTMLTextAreaElement>(null)
 
   const sendMessage: FormProps<FormValues>['onFinish'] = async (values) => {
     if (!questionId) {
@@ -75,7 +75,7 @@ const MessageButton: React.FC<{
   useEffect(() => {
     if (isPopoverOpen && textAreaRef.current) {
       setTimeout(() => {
-        textAreaRef.current.focus()
+        textAreaRef.current?.focus()
       }, 100)
     }
   }, [isPopoverOpen])

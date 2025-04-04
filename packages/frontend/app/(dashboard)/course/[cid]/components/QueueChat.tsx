@@ -61,6 +61,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const {
     queueChatData,
     queueChatError,
@@ -246,6 +247,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
           <div>
             <Space.Compact block size="large">
               <TextArea
+                ref={inputRef}
                 id={`queuechat-input-${staffId}-${questionId}`}
                 autoSize={{ minRows: 1.35, maxRows: 20 }}
                 value={input}
@@ -344,6 +346,17 @@ const QueueChat: React.FC<QueueChatProps> = ({
                 return
               }
               openChat()
+              if (!isMobile) {
+                // if not on mobile, auto-focus the input right away.
+                // I don't want to focus it on mobile since that would cause the
+                // keyboard to show up right away and be a little jarring if you
+                // just want to read your messages
+                setTimeout(() => {
+                  if (inputRef.current) {
+                    inputRef.current.focus()
+                  }
+                }, 100)
+              }
             }}
           />
         </Badge>
