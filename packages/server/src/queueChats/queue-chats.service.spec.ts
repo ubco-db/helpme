@@ -8,6 +8,7 @@ import { ApplicationTestingConfigModule } from '../config/application_config.mod
 import { QuestionFactory, UserFactory } from '../../test/util/factories';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { QueueSSEService } from 'queue/queue-sse.service';
+import { QueueService } from 'queue/queue.service';
 
 jest.mock('nestjs-redis');
 
@@ -24,6 +25,8 @@ describe('QueueChatService', () => {
     lrange: jest.fn().mockResolvedValue(['item1', 'item2']), // Simulates redis.lrange() returning list items
     expire: jest.fn().mockResolvedValue(1), // Simulates redis.expire() returning 1 (success)
     exists: jest.fn().mockResolvedValue(1), // Simulates redis.exists() returning 1 (key exists)
+    llen: jest.fn().mockResolvedValue(2), // Simulates redis.llen() returning 2 (list length)
+    keys: jest.fn().mockResolvedValue(['key1', 'key2']), // Simulates redis.keys() returning an array of keys
   });
 
   const staticDate = new Date('2023-01-01T00:00:00Z');
@@ -39,8 +42,17 @@ describe('QueueChatService', () => {
         TypeOrmModule.forFeature([QueueChatsModel]),
       ],
       providers: [
-        QueueChatService,
+        {
+          provide: QueueService,
+          useValue: {
+            getQuestions: jest.fn().mockResolvedValue({
+              questions: [],
+            }),
+            getQueue: jest.fn().mockResolvedValue({}),
+          },
+        },
         QueueSSEService,
+        QueueChatService,
         {
           provide: RedisService,
           useValue: {
