@@ -1,9 +1,9 @@
-## Version 1.4.4 - April 2nd, 2025
+## Version 1.4.4 - April 5th, 2025
 
 #### Improvements
 
 - Fixed an issue where newly updated chatbot documents were rarely being used by the chatbot
-  - **Important**: If you have uploaded any chatbot documents in the past 4 days, you will need to re-upload them. Alternatively, you can change the "Similarity Threshold Documents" under Chatbot Settings to 0.0. Apologies in advance
+  - **Important**: If you have uploaded any chatbot documents in the past week, you will need to re-upload them. Alternatively, you can change the "Similarity Threshold Documents" under Chatbot Settings to 0.0. Apologies in advance
 
 ***
 
