@@ -1,5 +1,13 @@
-import { Fragment, ReactElement, useEffect, useRef, useState } from 'react'
-import { Button, Card, message, Space } from 'antd'
+import {
+  Fragment,
+  ReactElement,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
+import { Badge, Button, Card, message, Space } from 'antd'
 import UserAvatar from '@/app/components/UserAvatar'
 import TextArea from 'antd/es/input/TextArea'
 import { API } from '@/app/api'
@@ -7,6 +15,7 @@ import { useQueueChat } from '@/app/hooks/useQueueChat'
 import { CloseOutlined } from '@ant-design/icons'
 import { Tooltip } from 'antd'
 import { cn } from '@/app/utils/generalUtils'
+import { MessageCount } from './QueueChats'
 
 interface QueueChatProps {
   queueId: number
@@ -15,8 +24,11 @@ interface QueueChatProps {
   isMobile: boolean
   hidden: boolean
   isStaff: boolean
+  messageCounts: Record<string, MessageCount>
+  setMessageCounts: (
+    messageCounts: SetStateAction<Record<string, MessageCount>>,
+  ) => void
   isChatbotOpen?: boolean
-  announceNewMessage?: (newCount: number) => void
   onOpen?: () => void
   onClose?: () => void
   disableTheButton?: boolean // used to disable the onClick and hover effects of the button
@@ -33,13 +45,12 @@ const QueueChat: React.FC<QueueChatProps> = ({
   hidden,
   isStaff,
   disableTheButton = false,
+  messageCounts,
+  setMessageCounts,
   className,
   style,
   isChatbotOpen = false,
   showNameTooltip,
-  announceNewMessage = (newCount: number) => {
-    return
-  },
   onOpen = () => {
     return
   },
@@ -58,28 +69,53 @@ const QueueChat: React.FC<QueueChatProps> = ({
     resetNewMessageCount,
   } = useQueueChat(queueId, questionId, staffId)
 
+  const openChat = useCallback(() => {
+    setIsOpen(true)
+    resetNewMessageCount()
+    onOpen()
+  }, [onOpen, resetNewMessageCount, setIsOpen])
+
+  const closeChat = useCallback(() => {
+    setIsOpen(false)
+    resetNewMessageCount()
+    onClose()
+  }, [onClose, resetNewMessageCount, setIsOpen])
+
+  // log when the component mounts
+  useEffect(() => {
+    console.log('component mounted!!')
+  }, [])
+
   const messagesEndRef = useRef<HTMLDivElement | null>(null) // This handles auto scrolling
   // To always auto scroll to the bottom of the page when new messages are added
   useEffect(() => {
-    if (messagesEndRef.current && isOpen) {
+    if (messagesEndRef.current && (isOpen || newMessageCount > 0)) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+      console.log('isOpen', isOpen)
+      console.log('newMessageCount2', newMessageCount)
     }
-  }, [isOpen, queueChatData, queueChatData?.messages])
+  }, [isOpen, newMessageCount])
 
   // To handle new message events
   useEffect(() => {
-    if (newMessageCount == 0 || !queueChatData) {
+    if (newMessageCount == 0 || isOpen) {
       return
     }
     if (!isMobile) {
       // This is for desktop's default behavior (auto open the chat) -- mobile has css to handle this
-      setIsOpen(true)
-      resetNewMessageCount()
-      onOpen()
+      openChat()
     } else {
-      announceNewMessage(newMessageCount) // For mobile "view chats" button in queue page to know there are new messages
+      console.log('newMessageCount :(', newMessageCount)
+      const chatId = `${questionId}-${staffId}`
+      if (newMessageCount !== messageCounts[chatId]?.newMessages) {
+        setMessageCounts({
+          // For mobile "view chats" button in queue page to know there are new messages
+          ...messageCounts,
+          [chatId]: { newMessages: newMessageCount },
+        })
+      }
     }
-  }, [newMessageCount, setIsOpen])
+  }, [isMobile, newMessageCount, openChat, isOpen])
 
   const sendMessage = async () => {
     setIsLoading(true)
@@ -122,15 +158,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
         }}
         className="grow-1 flex min-h-[20vh] w-full flex-auto flex-col"
         extra={
-          <Button
-            onClick={() => {
-              setIsOpen(false)
-              resetNewMessageCount()
-              onClose()
-            }}
-            type="text"
-            icon={<CloseOutlined />}
-          />
+          <Button onClick={closeChat} type="text" icon={<CloseOutlined />} />
         }
       >
         <div className="flex flex-auto flex-col justify-between md:h-full">
@@ -271,49 +299,54 @@ const QueueChat: React.FC<QueueChatProps> = ({
         placement={isMobile ? 'left' : 'top'}
         open={showNameTooltip === true ? true : undefined}
       >
-        <Button
-          type="primary"
-          size="large"
-          className={cn(
-            disableTheButton
-              ? 'pointer-events-none'
-              : 'ring-helpmeblue-light ring-offset-2 hover:ring focus:ring',
-            'shadow-lg shadow-slate-400',
-            'md:outline-3 outline-helpmeblue/50 outline outline-4',
-            'rounded-full p-5 md:p-6 ',
-          )}
-          // className={cn(
-          //   disableTheButton ? '' : 'hover:ring focus:ring',
-          //   'ring-helpmeblue-light ring-offset-2',
-          //   'shadow-lg shadow-slate-400',
-          //   'outline-3 outline-helpmeblue/50 outline md:outline-2',
-          //   'rounded-full p-6 md:p-7 ',
-          // )}
-          icon={
-            <UserAvatar
-              size={isMobile ? 48 : 54}
-              className=""
-              photoURL={
-                !isStaff
-                  ? queueChatData.staff.photoURL
-                  : queueChatData.student.photoURL
-              }
-              username={
-                !isStaff
-                  ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
-                  : `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
-              }
-            />
-          }
-          onClick={() => {
-            if (disableTheButton) {
-              return
+        <Badge
+          count={newMessageCount}
+          overflowCount={9}
+          style={{ zIndex: 1050 }}
+          offset={[-4, 4]}
+        >
+          <Button
+            type="primary"
+            size="large"
+            className={cn(
+              disableTheButton
+                ? 'pointer-events-none'
+                : 'ring-helpmeblue-light ring-offset-2 hover:ring focus:ring',
+              'shadow-lg shadow-slate-400',
+              'md:outline-3 outline-helpmeblue/50 outline outline-4',
+              'rounded-full p-5 md:p-6 ',
+            )}
+            // className={cn(
+            //   disableTheButton ? '' : 'hover:ring focus:ring',
+            //   'ring-helpmeblue-light ring-offset-2',
+            //   'shadow-lg shadow-slate-400',
+            //   'outline-3 outline-helpmeblue/50 outline md:outline-2',
+            //   'rounded-full p-6 md:p-7 ',
+            // )}
+            icon={
+              <UserAvatar
+                size={isMobile ? 48 : 54}
+                className=""
+                photoURL={
+                  !isStaff
+                    ? queueChatData.staff.photoURL
+                    : queueChatData.student.photoURL
+                }
+                username={
+                  !isStaff
+                    ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+                    : `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
+                }
+              />
             }
-            setIsOpen(true)
-            resetNewMessageCount()
-            onOpen()
-          }}
-        />
+            onClick={() => {
+              if (disableTheButton) {
+                return
+              }
+              openChat()
+            }}
+          />
+        </Badge>
       </Tooltip>
     </div>
   )

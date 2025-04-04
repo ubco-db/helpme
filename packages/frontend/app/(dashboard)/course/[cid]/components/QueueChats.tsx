@@ -1,9 +1,14 @@
-import { ReactElement, useEffect, useState } from 'react'
+import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
 import { Badge, Button, Popover } from 'antd'
 import { X } from 'lucide-react'
 import QueueChat from './QueueChat'
 import { cn } from '@/app/utils/generalUtils'
 import { GetQueueChatsResponse } from '@koh/common'
+
+export interface MessageCount {
+  newMessages: number
+}
+
 interface QueueChatsProps {
   queueId: number
   isMobile: boolean
@@ -30,12 +35,35 @@ const QueueChats: React.FC<QueueChatsProps> = ({
 }): ReactElement => {
   // const { queueChats, queueChatsError, mutateQueueChats } =
   //   useQueueChatsMetadatas(queueId)
-  const [newMessagesInQueueChats, setNewMessagesInQueueChats] = useState(0)
+  const [messageCounts, setMessageCounts] = useState<
+    Record<string, MessageCount>
+  >({})
   const [mobileQueueChatsExpanded, setMobileQueueChatsExpanded] =
     useState(false) // To store the state of the mobile queue chat drawer
   const [currentChatQuestionId, setCurrentChatQuestionId] = useState<number>(-1) // To store the currently opened chat via the question id
   const [seenChatPopover, setSeenChatPopover] = useState(false)
   const [showNameTooltips, setShowNameTooltips] = useState(false)
+
+  const newMessagesInQueueChats = useMemo(() => {
+    return Object.values(messageCounts).reduce(
+      (sum, chat) => sum + chat.newMessages,
+      0,
+    )
+  }, [messageCounts])
+
+  const resetNewMessagesInQueueChats = () => {
+    setMessageCounts({})
+  }
+
+  // log when message counts change
+  useEffect(() => {
+    console.log('messageCounts', messageCounts)
+  }, [messageCounts])
+
+  // log when the component mounts
+  useEffect(() => {
+    console.log('component mounted')
+  }, [])
 
   useEffect(() => {
     const seenQueueChatPopover =
@@ -97,7 +125,7 @@ const QueueChats: React.FC<QueueChatsProps> = ({
             return
           }
           setMobileQueueChatsExpanded(true)
-          setNewMessagesInQueueChats(0)
+          resetNewMessagesInQueueChats()
         }}
       >
         <Badge
@@ -120,6 +148,7 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                 console.error('chat attribute is not defined', chat)
                 return null // should always be defined
               }
+              const chatId = `${chat.questionId}-${chat.staff.id}`
               return (
                 <div
                   className={cn(!mobileQueueChatsExpanded ? `transform` : '')}
@@ -131,9 +160,11 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                         }
                       : {}
                   }
-                  key={chat.questionId + '-' + chat.staff.id}
+                  key={chatId}
                 >
                   <QueueChat
+                    messageCounts={messageCounts}
+                    setMessageCounts={setMessageCounts}
                     queueId={queueId}
                     questionId={chat.questionId}
                     staffId={chat.staff.id}
@@ -142,16 +173,11 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                     disableTheButton={
                       !mobileQueueChatsExpanded && queueChats.length > 1
                     }
-                    announceNewMessage={(newCount: number) =>
-                      setNewMessagesInQueueChats(
-                        (prevCount) => prevCount + newCount,
-                      )
-                    }
                     showNameTooltip={showNameTooltips}
                     onOpen={() => {
                       setChatbotOpen(false)
                       setRenderSmallChatbot(false)
-                      setNewMessagesInQueueChats(0)
+                      resetNewMessagesInQueueChats()
                       setCurrentChatQuestionId(chat.questionId)
                     }}
                     onClose={() => {
@@ -177,7 +203,7 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                 icon={<X />}
                 onClick={() => {
                   setMobileQueueChatsExpanded(false)
-                  setNewMessagesInQueueChats(0)
+                  resetNewMessagesInQueueChats()
                 }}
               />
             )}
@@ -199,15 +225,18 @@ const QueueChats: React.FC<QueueChatsProps> = ({
         if (!chat.staff || !chat.student || !chat.staff.id) {
           return null
         }
+        const chatId = `${chat.questionId}-${chat.staff.id}`
         return (
           <QueueChat
-            key={chat.questionId + '-' + chat.staff.id}
+            key={chatId}
             queueId={queueId}
             questionId={chat.questionId}
             staffId={chat.staff.id}
             isMobile={isMobile}
             isStaff={isStaff}
             hidden={false}
+            messageCounts={messageCounts}
+            setMessageCounts={setMessageCounts}
           />
         )
       })}

@@ -52,7 +52,7 @@ export function useQueueChat(
 
   // To update the hasNewMessages state only when new messages are added
   useEffect(() => {
-    if (!queueChatData?.messages || !queueChatData || queueChatError) {
+    if (!queueChatData?.messages || !queueChatData) {
       return
     }
 
@@ -62,12 +62,13 @@ export function useQueueChat(
 
     if (newMessageCount > 0) {
       setNewMessageCount(newMessageCount)
+      console.log('newMessageCountABC', newMessageCount)
     }
 
     previousMessageCountRef.current = currentMessageCount
-  }, [queueChatData?.messages])
+  }, [queueChatData, queueChatData?.messages])
 
-  const resetNewMessageCount = () => setNewMessageCount(0)
+  const resetNewMessageCount = useCallback(() => setNewMessageCount(0), [])
 
   return {
     queueChatData,
