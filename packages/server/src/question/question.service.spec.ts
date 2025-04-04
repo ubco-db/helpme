@@ -28,6 +28,8 @@ import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
 import { RedisModule, RedisService } from 'nestjs-redis';
 import { RedisMemoryServer } from 'redis-memory-server';
+import { SSEService } from 'sse/sse.service';
+import { QueueSSEService } from 'queue/queue-sse.service';
 
 describe('QuestionService', () => {
   let service: QuestionService;
@@ -62,6 +64,15 @@ describe('QuestionService', () => {
           provide: RedisQueueService,
           useValue: {
             setQuestions: jest.fn(),
+          },
+        },
+        {
+          provide: QueueSSEService,
+          useValue: {
+            updateQuestions: jest.fn(),
+            updateQueue: jest.fn(),
+            sendToRoom: jest.fn(),
+            subscribeClient: jest.fn(),
           },
         },
         {

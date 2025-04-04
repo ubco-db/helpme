@@ -52,8 +52,14 @@ describe('QueueChatService', () => {
             getQueue: jest.fn().mockResolvedValue({}),
           },
         },
-        SSEService,
-        QueueSSEService,
+        {
+          provide: QueueSSEService,
+          useValue: {
+            updateQueueChats: jest.fn(),
+            sendToRoom: jest.fn(),
+            subscribeClient: jest.fn(),
+          },
+        },
         QueueChatService,
         {
           provide: RedisService,
