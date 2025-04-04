@@ -106,26 +106,35 @@ export class OrganizationService {
       );
     }
 
-    const courses = organizationCourses.select([
-      'CourseModel.id as courseId',
-      'CourseModel.name as courseName',
-      'CourseModel.enabled as isEnabled',
-    ]);
+    const courses = organizationCourses
+      .select([
+        'CourseModel.id as courseId',
+        'CourseModel.name as courseName',
+        'CourseModel.enabled as isEnabled',
+        'CourseModel.sectionGroupName as sectionGroupName',
+        'CourseModel.semesterId as semesterId',
+      ])
+      .orderBy('CourseModel.name');
 
-    const coursesSubset = await courses
-      .orderBy('CourseModel.name')
-      .skip((page - 1) * pageSize)
-      .take(pageSize)
-      // .getMany() wouldn't work here because relations are not working well with getMany()
-      .getRawMany();
+    let coursesSubset: any;
+
+    if (page !== -1) {
+      coursesSubset = await courses
+        .skip((page - 1) * pageSize)
+        .take(pageSize)
+        // .getMany() wouldn't work here because relations are not working well with getMany()
+        .getRawMany();
+    } else {
+      coursesSubset = await courses.getRawMany();
+    }
 
     const coursesResponse = coursesSubset.map((course) => {
       return {
         courseId: course.courseid,
         courseName: course.coursename,
         isEnabled: course.isenabled,
-        sectionGroupName: course.sectionGroupName,
-        semesterId: course.semesterId,
+        sectionGroupName: course.sectiongroupname,
+        semesterId: course.semesterid,
       };
     });
 

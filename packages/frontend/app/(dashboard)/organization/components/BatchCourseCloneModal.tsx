@@ -1,21 +1,24 @@
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import {
+  BatchCourseCloneAttributes,
   CourseCloneAttributes,
   CourseResponse,
   defaultCourseCloneAttributes,
   GetOrganizationResponse,
   OrganizationProfessor,
 } from '@koh/common'
-import { Button, message, Modal } from 'antd'
+import { Button, Form, message, Modal } from 'antd'
 import React, { useEffect, useState } from 'react'
 import SelectCourses from './SelectCourses'
-import CourseSettingsSelection from './CourseSettingsSelection'
+import DefaultCourseSettingsSelection from './DefaultCourseSettingsSelection'
+import { organizationApi } from '@/app/api/organizationApi'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
+import CustomizeCloneSettings from './CustomizeCloneSettings'
 
 type BatchCourseCloneModalProps = {
   open: boolean
   onClose: () => void
-  courses: CourseResponse[]
   organization: GetOrganizationResponse
 }
 
@@ -32,50 +35,53 @@ enum CloneSteps {
 const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
   open,
   onClose,
-  courses,
   organization,
 }) => {
-  const [professors, setProfessors] = useState<OrganizationProfessor[]>()
+  const [courses, setCourses] = useState<CourseResponse[]>([])
+  const [professors, setProfessors] = useState<OrganizationProfessor[]>([])
   const [defaultCloneSettings, setDefaultCloneSettings] =
-    useState<CourseCloneAttributes>(defaultCourseCloneAttributes)
+    useState<CourseCloneAttributes>({
+      ...defaultCourseCloneAttributes,
+      professorIds: [-1],
+      useSection: false,
+    })
   const [currentStep, setCurrentStep] = useState<CloneSteps>(
     CloneSteps.SelectCourses,
   )
-  const [selectedCourses, setSelectedCourses] = useState<number[]>([])
-  const [customCourseSettings, setCustomCourseSettings] = useState<
-    Record<string, CourseCloneAttributes>
-  >({})
-
-  const { userInfo, setUserInfo } = useUserInfo()
+  const [selectedCourseIds, setSelectedCourseIds] = useState<number[]>([])
+  const [customCloneSettings, setCustomCloneSettings] =
+    useState<BatchCourseCloneAttributes>({})
+  const [defaultSettingsForm] = Form.useForm<CourseCloneAttributes>()
 
   useEffect(() => {
     const fetchProfessors = async () => {
-      if (!userInfo.organization?.id) {
-        return
-      }
-
-      await API.organizations
-        .getProfessors(userInfo.organization?.id)
-        .then((response) => {
-          setProfessors(response ?? [])
-        })
-        .catch((error) => {
-          message.error(error.response.data.message)
-          setProfessors([])
-        })
+      API.organizations.getProfessors(organization.id).then((professors) => {
+        setProfessors(professors)
+      })
+    }
+    // have to fetch all courses (without pagination) since need to allow for admin to "clone all courses" if they wanted to
+    const fetchCourses = async () => {
+      API.organizations.getCourses(organization.id).then((courses) => {
+        setCourses(courses)
+      })
     }
     fetchProfessors()
+    fetchCourses()
   }, [organization.id])
 
   const handleBatchClone = async () => {
     API.organizations
-      .batchCloneCourses(organization.id, customCourseSettings)
+      .batchCloneCourses(organization.id, customCloneSettings)
       .then((res) => {
         message.success('Course cloning job scheduled successfully!')
         setCurrentStep(CloneSteps.SelectCourses)
-        setSelectedCourses([])
-        setDefaultCloneSettings(defaultCourseCloneAttributes)
-        setCustomCourseSettings({})
+        setSelectedCourseIds([])
+        setDefaultCloneSettings({
+          ...defaultCourseCloneAttributes,
+          professorIds: [-1],
+          useSection: false,
+        })
+        setCustomCloneSettings({})
         onClose()
       })
       .catch((err) => {
@@ -88,47 +94,53 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
   const renderStepContent = () => {
     switch (currentStep) {
       case CloneSteps.SelectCourses: {
-        // Inline component for selecting courses
         return (
           <SelectCourses
             courses={courses}
-            selectedCourses={selectedCourses}
-            setSelectedCourses={setSelectedCourses}
+            selectedCourseIds={selectedCourseIds}
+            setSelectedCourseIds={setSelectedCourseIds}
             organizationSemesters={organization.semesters}
           />
         )
       }
       case CloneSteps.DefaultSettings:
         return (
-          <CourseSettingsSelection
-            professors={professors}
+          <DefaultCourseSettingsSelection
             defaultValues={defaultCloneSettings}
-            onDone={(defaultAttributes) =>
-              setDefaultCloneSettings(defaultAttributes)
-            }
             organizationSemesters={organization.semesters}
+            form={defaultSettingsForm}
           />
         )
       case CloneSteps.CustomizeCourses:
         return (
           <>
-            {/* Last component to build for multi-step cloning wizard modal */}
+            <CustomizeCloneSettings
+              courses={courses}
+              professors={professors}
+              selectedCourseIds={selectedCourseIds}
+              defaultCloneSettings={defaultCloneSettings}
+              customCloneSettings={customCloneSettings}
+              setCustomCloneSettings={setCustomCloneSettings}
+              organizationSemesters={organization.semesters}
+            />
           </>
         )
       case CloneSteps.FinalConfirmation:
         return (
-          <div className="flex h-full w-full items-center justify-center">
-            <h2>Final Confirmation</h2>
-            <p>
-              Due to the heavy processing that comes with cloning courses in a
-              batch, you will be notified via email when the cloning process is
-              done with a summary of courses that have been successfully cloned,
-              and any courses that might have had issues.{' '}
-            </p>
-            <p>
-              Click the &apos;Clone All&apos; button below to start the batch
-              cloning process.
-            </p>
+          <div className="flex h-full w-full justify-center">
+            <div className="flex flex-col gap-2">
+              <h2>Final Confirmation</h2>
+              <p>
+                Due to the heavy processing that comes with cloning courses in a
+                batch, you will be notified via email when the cloning process
+                is done with a summary of courses that have been successfully
+                cloned, and any courses that might have had issues.{' '}
+              </p>
+              <p>
+                Click the &apos;Clone All&apos; button below to start the batch
+                cloning process.
+              </p>
+            </div>
           </div>
         )
       default:
@@ -144,8 +156,8 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
             key="next"
             type="primary"
             onClick={() => {
-              if (selectedCourses.length === 0) {
-                message.warning('Please select at least one course to clone.')
+              if (selectedCourseIds.length === 0) {
+                message.warning('Please select at least one course to clone')
                 return
               }
               setCurrentStep((prev: CloneSteps) => prev + 1)
@@ -168,11 +180,16 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
               key="next"
               type="primary"
               onClick={async () => {
-                try {
-                  setCurrentStep((prev: CloneSteps) => prev + 1)
-                } catch (err) {
-                  message.error('Please fix the form errors.')
+                const settings: CourseCloneAttributes =
+                  defaultSettingsForm.getFieldsValue()
+                // Loose equality to check that value is null OR undefined
+                if (settings.newSemesterId == null) {
+                  message.warning('Please select a new semester to clone to')
+                  return
                 }
+
+                setDefaultCloneSettings((prev) => ({ ...prev, ...settings }))
+                setCurrentStep((prev: CloneSteps) => prev + 1)
               }}
             >
               Next
@@ -204,7 +221,7 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
           <>
             <Button
               key="back"
-              onClick={() => setCurrentStep((prev: CloneSteps) => prev + 1)}
+              onClick={() => setCurrentStep((prev: CloneSteps) => prev - 1)}
             >
               Back
             </Button>
@@ -219,25 +236,60 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
     }
   }
 
-  return (
+  return courses ? (
     <Modal
       title="Batch Course Clone"
       open={open}
       onCancel={onClose}
       footer={renderFooter()}
-      width={{
-        xs: '90%',
-        sm: '85%',
-        md: '80%',
-        lg: '70%',
-        xl: '65%',
-        xxl: '50%',
-      }}
-      destroyOnClose
+      width={
+        currentStep === CloneSteps.CustomizeCourses
+          ? {
+              xs: '95%',
+              sm: '90%',
+              md: '85%',
+              lg: '80%',
+              xl: '75%',
+              xxl: '70%',
+            }
+          : {
+              xs: '90%',
+              sm: '85%',
+              md: '80%',
+              lg: '70%',
+              xl: '65%',
+              xxl: '50%',
+            }
+      }
+      destroyOnClose={true}
       maskClosable={false}
+      styles={{
+        content: {
+          height:
+            currentStep === CloneSteps.FinalConfirmation ? '20rem' : '90vh',
+        },
+        body: {
+          overflowY: 'auto',
+          height: 'calc(100% - 4rem)',
+        },
+        footer: {
+          zIndex: '15',
+          position: 'absolute',
+          bottom: '0',
+          right: '0',
+          padding: '1rem',
+          width: '100%',
+          boxSizing: 'border-box',
+          background: 'white',
+          borderBottomLeftRadius: '8px',
+          borderBottomRightRadius: '8px',
+        },
+      }}
     >
       {renderStepContent()}
     </Modal>
+  ) : (
+    <CenteredSpinner tip="Loading courses..." />
   )
 }
 

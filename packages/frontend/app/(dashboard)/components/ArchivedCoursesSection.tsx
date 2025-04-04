@@ -18,7 +18,7 @@ const columns: ColumnsType<UserCourse> = [
     key: 'name',
     width: '70%',
     align: 'left',
-    render: (text, course) => (
+    render: (text: string, course: UserCourse) => (
       <span className="flex items-center text-lg font-semibold">
         {text}
         {course.course.sectionGroupName && (

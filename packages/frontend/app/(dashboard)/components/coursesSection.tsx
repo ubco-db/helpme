@@ -228,7 +228,9 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                       )}
                     rowKey={(course) => course.course.id}
                     pagination={
-                      semesterCourses.length > 5 ? { pageSize: 5 } : false
+                      semesterCourses.length > 5
+                        ? { pageSize: 5, showQuickJumper: true }
+                        : false
                     }
                     showHeader={false}
                   />

@@ -1,26 +1,28 @@
 import { CourseResponse, SemesterPartial } from '@koh/common'
 import { Checkbox, Form, Select, Table } from 'antd'
+import { ColumnsType } from 'antd/es/table'
+import { CheckboxChangeEvent } from 'antd/lib'
 import { useState } from 'react'
 
 type SelectCoursesProps = {
   courses: CourseResponse[]
-  selectedCourses: number[]
-  setSelectedCourses: (selectedCourses: number[]) => void
+  selectedCourseIds: number[]
+  setSelectedCourseIds: (selectedCourses: number[]) => void
   organizationSemesters: SemesterPartial[]
 }
 
 const SelectCourses: React.FC<SelectCoursesProps> = ({
   courses,
-  selectedCourses,
-  setSelectedCourses,
+  selectedCourseIds: selectedCourses,
+  setSelectedCourseIds: setSelectedCourses,
   organizationSemesters,
 }) => {
-  const [filterSemesterId, setFilterSemesterId] = useState<number>(-1)
+  const [filterSemesterId, setFilterSemesterId] = useState<number | null>(null)
 
   // Filter courses based on the selected semester filter
   const filteredCourses = courses.filter(
     (course) =>
-      filterSemesterId === -1 || course.semesterId === filterSemesterId,
+      filterSemesterId === null || course.semesterId === filterSemesterId,
   )
 
   // Check if all filtered courses are selected
@@ -29,7 +31,7 @@ const SelectCourses: React.FC<SelectCoursesProps> = ({
   )
 
   // Toggle select all for filtered list
-  const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const toggleSelectAll = (e: CheckboxChangeEvent) => {
     if (e.target.checked) {
       const updated = Array.from(
         new Set([
@@ -56,7 +58,7 @@ const SelectCourses: React.FC<SelectCoursesProps> = ({
   }
 
   // Define columns for the antd Table
-  const columns = [
+  const columns: ColumnsType<CourseResponse> = [
     {
       title: 'Course Name',
       dataIndex: 'courseName',
@@ -72,12 +74,11 @@ const SelectCourses: React.FC<SelectCoursesProps> = ({
       dataIndex: 'semesterId',
       key: 'semester',
       render: (semesterId: number) =>
-        organizationSemesters.find((s) => s.id === semesterId)?.name || 'N/A',
+        organizationSemesters.find((s) => s.id === semesterId)?.name ||
+        'Not Assigned',
     },
     {
-      title: (
-        <Checkbox checked={allSelected} onChange={() => toggleSelectAll} />
-      ),
+      title: <Checkbox checked={allSelected} onChange={toggleSelectAll} />,
       key: 'select',
       render: (_: any, record: CourseResponse) => (
         <Checkbox
@@ -99,8 +100,11 @@ const SelectCourses: React.FC<SelectCoursesProps> = ({
             onChange={(value: number) => setFilterSemesterId(value)}
             value={filterSemesterId}
             style={{ width: 300 }}
-            notFoundContent="There seems to be no other semesters in this organization to clone to."
+            notFoundContent="There are currently no semesters in your organization to filter by."
           >
+            <Select.Option key={-1} value={null}>
+              {`All Semesters`}
+            </Select.Option>
             {organizationSemesters.map((semester) => (
               <Select.Option key={semester.id} value={semester.id}>
                 {`${semester.name} (${new Date(semester.startDate).toLocaleDateString()} - ${new Date(
@@ -116,7 +120,10 @@ const SelectCourses: React.FC<SelectCoursesProps> = ({
         dataSource={filteredCourses}
         columns={columns}
         rowKey="courseId"
-        pagination={false}
+        pagination={{
+          pageSize: 10,
+          showQuickJumper: true,
+        }}
       />
     </div>
   )

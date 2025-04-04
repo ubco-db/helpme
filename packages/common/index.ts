@@ -2816,6 +2816,10 @@ export const ERROR_MESSAGES = {
     lmsIntegrationNotFound: 'Course has no related LMS integrations',
     newSectionOrSemesterMissing:
       'One of semester or section fields must be set',
+    sectionSame:
+      'The section you set for the clone is the same as the original course. Clone process aborted.',
+    semesterSame:
+      'The semester you set for the clone is the same as the original course. Clone process aborted.',
   },
   asyncQuestionController: {
     comments: {

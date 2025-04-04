@@ -852,12 +852,12 @@ class APIClient {
       ),
     getCourses: async (
       organizationId: number,
-      page: number,
+      page?: number,
       search?: string,
     ): Promise<CourseResponse[]> =>
       this.req(
         'GET',
-        `/api/v1/organization/${organizationId}/get_courses/${page}${
+        `/api/v1/organization/${organizationId}/get_courses/${page ?? -1}${
           search ? `?search=${search}` : ''
         }`,
       ),

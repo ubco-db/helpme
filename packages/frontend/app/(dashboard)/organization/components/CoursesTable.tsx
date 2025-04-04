@@ -3,10 +3,13 @@
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { SearchOutlined } from '@ant-design/icons'
-import { CourseResponse } from '@koh/common'
+import { CourseResponse, GetOrganizationResponse } from '@koh/common'
 import { Button, Col, Input, List, Pagination, Row, Space, Tag } from 'antd'
 import { useEffect, useState } from 'react'
 import useSWR, { mutate } from 'swr'
+import BatchCourseCloneModal from './BatchCourseCloneModal'
+import { organizationApi } from '@/app/api/organizationApi'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
 
 const CoursesTable: React.FC = () => {
   const { userInfo } = useUserInfo()
@@ -14,6 +17,7 @@ const CoursesTable: React.FC = () => {
   const [page, setPage] = useState(1)
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
+  const [organization, setOrganization] = useState<GetOrganizationResponse>()
 
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false)
 
@@ -27,6 +31,21 @@ const CoursesTable: React.FC = () => {
     setSearch(event.target.value)
     setPage(1)
   }
+
+  useEffect(() => {
+    const fetchOrganization = async () => {
+      if (!userInfo.organization?.orgId) {
+        return
+      }
+
+      await organizationApi
+        .getOrganization(userInfo.organization.orgId)
+        .then((res) => {
+          setOrganization(res)
+        })
+    }
+    fetchOrganization()
+  }, [userInfo.organization?.orgId])
 
   useEffect(() => {
     return () => {
@@ -44,6 +63,10 @@ const CoursesTable: React.FC = () => {
         search,
       ),
   )
+
+  if (!organization) {
+    return <CenteredSpinner tip="Fetching Organization Info..." />
+  }
 
   return (
     userInfo &&
@@ -105,6 +128,11 @@ const CoursesTable: React.FC = () => {
             showSizeChanger={false}
           />
         )}
+        <BatchCourseCloneModal
+          open={isCloneModalOpen}
+          onClose={() => setIsCloneModalOpen(false)}
+          organization={organization}
+        />
       </>
     )
   )

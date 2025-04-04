@@ -38,7 +38,7 @@ export default function CoursesPage(): ReactElement {
         console.error(error)
         message.error(
           'Failed to fetch semesters for organization with id: ' +
-            userInfo.organization?.id,
+            userInfo.organization?.orgId,
         )
       })
   }, [])

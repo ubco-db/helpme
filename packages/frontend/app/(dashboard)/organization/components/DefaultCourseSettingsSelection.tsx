@@ -1,104 +1,29 @@
-import {
-  CourseCloneAttributes,
-  GetOrganizationResponse,
-  OrganizationProfessor,
-  SemesterPartial,
-} from '@koh/common'
-import { Checkbox, Form, Select, Tag, Tooltip, Button, Spin } from 'antd'
-import React from 'react'
+import { CourseCloneAttributes, SemesterPartial } from '@koh/common'
+import { Checkbox, Form, Select, FormInstance } from 'antd'
+import React, { useEffect } from 'react'
 
-type CourseSettingsSelectionProps = {
-  professors?: OrganizationProfessor[]
-  onDone: (values: CourseCloneAttributes) => void
+type DefaultCourseSettingsSelectionProps = {
   defaultValues: CourseCloneAttributes
   organizationSemesters: SemesterPartial[]
+  form: FormInstance
 }
 
-const CourseSettingsSelection: React.FC<CourseSettingsSelectionProps> = ({
-  professors,
-  onDone,
-  defaultValues,
-  organizationSemesters,
-}) => {
-  const [form] = Form.useForm<CourseCloneAttributes>()
-  form.setFieldsValue(defaultValues)
-
-  const handleSubmit = (values: CourseCloneAttributes) => {
-    onDone(values)
-  }
-
-  if (!professors) {
-    return (
-      <main className="mt-20 flex content-center justify-center">
-        <Spin
-          size="large"
-          className="text-nowrap"
-          tip="Loading Organization Professors..."
-        >
-          <div className="p-16" />
-        </Spin>
-      </main>
-    )
-  }
+const DefaultCourseSettingsSelection: React.FC<
+  DefaultCourseSettingsSelectionProps
+> = ({ defaultValues, organizationSemesters, form }) => {
+  useEffect(() => {
+    form.resetFields()
+  }, [defaultValues, form])
 
   return (
     <Form
       form={form}
-      onFinish={handleSubmit}
       layout="vertical"
       className="w-full"
+      initialValues={defaultValues}
     >
       <Form.Item
-        label="Professors"
-        name="professorIds"
-        tooltip="Professors teaching the course"
-        className="flex-1"
-        required
-      >
-        <Select
-          mode="multiple"
-          placeholder="Select professors"
-          options={professors.map((prof: OrganizationProfessor) => ({
-            label: prof.organizationUser.name,
-            value: prof.organizationUser.id,
-          }))}
-          notFoundContent="There seems to be no professors available. This is likely a server error."
-          tagRender={(props) => {
-            const { label, value, closable, onClose } = props
-            const onPreventMouseDown = (
-              event: React.MouseEvent<HTMLSpanElement>,
-            ) => {
-              event.preventDefault()
-              event.stopPropagation()
-            }
-            const lacksProfOrgRole = professors.find(
-              (prof) => prof.organizationUser.id === value,
-            )?.organizationUser.lacksProfOrgRole
-            return (
-              <Tooltip
-                title={
-                  lacksProfOrgRole
-                    ? 'This user lacks the Professor role in this organization, meaning they cannot create their own courses.'
-                    : ''
-                }
-              >
-                <Tag
-                  color={lacksProfOrgRole ? 'orange' : 'blue'}
-                  onMouseDown={onPreventMouseDown}
-                  closable={closable}
-                  onClose={onClose}
-                  style={{ marginInlineEnd: 4 }}
-                >
-                  {label}
-                </Tag>
-              </Tooltip>
-            )
-          }}
-        />
-      </Form.Item>
-
-      <Form.Item
-        label="New Semester for Cloned Course"
+        label="Semester for Cloned Courses"
         name="newSemesterId"
         className="flex-1"
         rules={[{ required: true, message: 'Please select a semester' }]}
@@ -278,14 +203,8 @@ const CourseSettingsSelection: React.FC<CourseSettingsSelectionProps> = ({
           ) : null
         }
       </Form.Item>
-
-      <Form.Item>
-        <Button type="primary" onClick={() => form.submit()}>
-          Submit
-        </Button>
-      </Form.Item>
     </Form>
   )
 }
 
-export default CourseSettingsSelection
+export default DefaultCourseSettingsSelection

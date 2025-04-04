@@ -14,6 +14,7 @@ import {
   UseGuards,
   UseInterceptors,
   ParseIntPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
@@ -1466,7 +1467,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async getCourses(
     @Param('oid', ParseIntPipe) oid: number,
-    @Param('page', ParseIntPipe) page: number,
+    @Param('page', new DefaultValuePipe(-1), ParseIntPipe) page: number,
     @Query('search') search: string,
   ): Promise<CourseResponse[]> {
     const pageSize = 50;
@@ -1590,15 +1591,13 @@ export class OrganizationController {
   }
 
   @Post(':oid/clone_courses')
-  @UseGuards(JwtAuthGuard, OrgOrCourseRolesGuard, EmailVerifiedGuard)
+  @UseGuards(JwtAuthGuard, OrganizationGuard, EmailVerifiedGuard)
   @OrgRoles(OrganizationRole.ADMIN)
-  async cloneCourse(
+  async batchCloneCourses(
     @Param('oid', ParseIntPipe) oid: number, // unused for now, only for the guard
     @User(['chat_token']) user: UserModel,
     @Body() body: BatchCourseCloneAttributes,
-  ): Promise<void> {
-    const progressLog: BatchCourseCloneResponse[] = [];
-
+  ): Promise<string> {
     if (!user || !user.chat_token) {
       console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
       throw new HttpException(
@@ -1607,49 +1606,48 @@ export class OrganizationController {
       );
     }
 
-    //PAT TODO: move this to a service function so that you can run it async and send a response right away that the info sent is valid
-    //if valid, then just return 200 and the frontend will respond with "process started successfully" or something
+    const asyncClone = async () => {
+      const progressLog: BatchCourseCloneResponse[] = [];
+      for (const key of Object.keys(body)) {
+        const courseId = parseInt(key);
+        const cloneData = body[key];
 
-    for (const key of Object.keys(body)) {
-      const courseId = parseInt(key);
-      const cloneData = body[key];
+        const course = await CourseModel.findOne({ where: { id: courseId } });
+        if (!course) {
+          progressLog.push({
+            success: false,
+            message: `Course with id ${courseId} not found`,
+          });
+        }
 
-      const course = await CourseModel.findOne({ where: { id: courseId } });
-      if (!course) {
-        progressLog.push({
-          success: false,
-          message: `Course with id ${courseId} not found`,
-        });
+        if (!cloneData) {
+          progressLog.push({
+            success: false,
+            message: `Course "${course.name}" with id ${courseId} is missing clone parameters`,
+          });
+        }
+
+        try {
+          await this.courseService.cloneCourse(
+            courseId,
+            user.id,
+            cloneData,
+            user.chat_token.token,
+          );
+
+          progressLog.push({
+            success: true,
+            message: `Successfully cloned course "${course.name}" with id ${courseId}`,
+          });
+        } catch (error) {
+          progressLog.push({
+            success: false,
+            message: `Error cloning course "${course.name}" with id ${courseId}: ${error}`,
+          });
+        }
       }
 
-      if (!cloneData) {
-        progressLog.push({
-          success: false,
-          message: `Course "${course.name}" with id ${courseId} is missing clone parameters`,
-        });
-      }
-
-      try {
-        await this.courseService.cloneCourse(
-          courseId,
-          user.id,
-          cloneData,
-          user.chat_token.token,
-        );
-
-        progressLog.push({
-          success: true,
-          message: `Successfully cloned course "${course.name}" with id ${courseId}`,
-        });
-      } catch (error) {
-        progressLog.push({
-          success: false,
-          message: `Error cloning course "${course.name}" with id ${courseId}: ${error}`,
-        });
-      }
-    }
-
-    const bodyRender = `
+      const bodyRender = `
       <br>
       <h2>Course Clone Summary</h2>
       <br>
@@ -1668,13 +1666,17 @@ export class OrganizationController {
       Note: Do NOT reply to this email.
     `;
 
-    //TODO: style contents of email better
-    this.mailService.sendEmail({
-      receiver: user.email,
-      type: MailServiceType.COURSE_CLONE_SUMMARY,
-      subject: 'HelpMe - Course Clone Summary',
-      content: bodyRender,
-    });
+      //TODO: style contents of email better
+      this.mailService.sendEmail({
+        receiver: user.email,
+        type: MailServiceType.COURSE_CLONE_SUMMARY,
+        subject: 'HelpMe - Course Clone Summary',
+        content: bodyRender,
+      });
+    };
+
+    asyncClone();
+    return 'Batch Cloning Operation Successfully Queued!';
   }
 
   private isValidUrl = (url: string): boolean => {

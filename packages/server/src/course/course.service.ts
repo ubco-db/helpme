@@ -438,6 +438,42 @@ export class CourseService {
         throw new NotFoundException(`Course with id ${courseId} not found`);
       }
 
+      // to generalize operation for batch cloning as well (a single value of -1 means clone the professors as well)
+      const originalProfessors = await manager.find(UserCourseModel, {
+        where: {
+          courseId,
+          role: Role.PROFESSOR,
+        },
+      });
+
+      if (
+        cloneData.professorIds.length === 1 &&
+        cloneData.professorIds[0] === -1
+      ) {
+        cloneData.professorIds = originalProfessors.map(
+          (userCourse) => userCourse.userId,
+        );
+      }
+
+      if (
+        cloneData.useSection &&
+        cloneData.newSection === originalCourse.sectionGroupName
+      ) {
+        throw new HttpException(
+          ERROR_MESSAGES.courseController.sectionSame,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (
+        !cloneData.useSection &&
+        cloneData.newSemesterId === originalCourse.semesterId
+      ) {
+        throw new HttpException(
+          ERROR_MESSAGES.courseController.semesterSame,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       // If the user is not an Organization Administrator, they can only set themselves as the cloned course's professor
       const organizationUser = await manager.findOne(OrganizationUserModel, {
         where: { userId: userId },
