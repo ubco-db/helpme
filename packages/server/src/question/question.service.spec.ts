@@ -64,6 +64,12 @@ describe('QuestionService', () => {
             setQuestions: jest.fn(),
           },
         },
+        {
+          provide: QueueChatService,
+          useValue: {
+            getMyChats: jest.fn(),
+          },
+        },
         NotificationService,
         AlertsService,
         ApplicationConfigService,

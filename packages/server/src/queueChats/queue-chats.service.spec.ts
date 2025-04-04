@@ -9,6 +9,7 @@ import { QuestionFactory, UserFactory } from '../../test/util/factories';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { QueueSSEService } from 'queue/queue-sse.service';
 import { QueueService } from 'queue/queue.service';
+import { SSEService } from 'sse/sse.service';
 
 jest.mock('nestjs-redis');
 
@@ -51,6 +52,7 @@ describe('QueueChatService', () => {
             getQueue: jest.fn().mockResolvedValue({}),
           },
         },
+        SSEService,
         QueueSSEService,
         QueueChatService,
         {
