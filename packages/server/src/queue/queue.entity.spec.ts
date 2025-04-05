@@ -1,27 +1,38 @@
 import { ClosedQuestionStatus, OpenQuestionStatus } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Connection } from 'typeorm';
-import { QuestionFactory, QueueFactory } from '../../test/util/factories';
+import { DataSource } from 'typeorm';
+import {
+  initFactoriesFromService,
+  QuestionFactory,
+  QueueFactory,
+} from '../../test/util/factories';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { QueueModel } from './queue.entity';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('queue entity', () => {
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule],
+      imports: [TestTypeOrmModule, FactoryModule],
     }).compile();
 
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   it('queueSize is handled properly and is equal to them sum of Queued, Drafting, and Helping questions', async () => {
@@ -52,7 +63,11 @@ describe('queue entity', () => {
       });
     }
 
-    const queue = await QueueModel.findOne(queueFactory.id);
+    const queue = await QueueModel.findOne({
+      where: {
+        id: queueFactory.id,
+      },
+    });
     await queue.addQueueSize();
 
     expect(queue.queueSize).toBe(3);

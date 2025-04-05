@@ -1,6 +1,6 @@
 import { ClosedQuestionStatus } from '@koh/common';
 import {
-  Connection,
+  DataSource,
   EntitySubscriberInterface,
   EventSubscriber,
   InsertEvent,
@@ -22,13 +22,13 @@ export class QuestionSubscriber
   private notifService: NotificationService;
   private queueSSEService: QueueSSEService;
   constructor(
-    connection: Connection,
+    dataSource: DataSource,
     notifService: NotificationService,
     queueSSEService: QueueSSEService,
   ) {
     this.notifService = notifService;
     this.queueSSEService = queueSSEService;
-    connection.subscribers.push(this);
+    dataSource.subscribers.push(this);
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -73,8 +73,13 @@ export class QuestionSubscriber
 
     if (numberOfQuestions === 0) {
       const staff = (
-        await QueueModel.findOne(event.entity.queueId, {
-          relations: ['staffList'],
+        await QueueModel.findOne({
+          where: {
+            id: event.entity.queueId,
+          },
+          relations: {
+            staffList: true,
+          },
         })
       ).staffList;
 

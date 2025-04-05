@@ -16,7 +16,6 @@ import {
 } from '@nestjs/common';
 import { Roles } from 'decorators/roles.decorator';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
-import { getRepository } from 'typeorm';
 import { StudentTaskProgressModel } from './studentTaskProgress.entity';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { QueueRolesGuard } from 'guards/queue-role.guard';
@@ -78,21 +77,19 @@ export class StudentTaskProgressController {
   ): Promise<AllStudentAssignmentProgress> {
     // this returns the entire StudentTaskProgress for all students (which includes the assignment progress for stuff we don't care about)
     // TODO: figure out how to only select the needed columns from the join with user. Every way of adding the select statement causes a syntax error.
-    const allStudentTaskProgressForQueue = await getRepository(
-      StudentTaskProgressModel,
-    )
-      .createQueryBuilder('studentTaskProgress')
-      .innerJoinAndSelect('studentTaskProgress.user', 'user')
-      .where('studentTaskProgress.cid = :courseId', { courseId })
-      .andWhere(
-        `studentTaskProgress.taskProgress -> :assignmentName IS NOT NULL`,
-        { assignmentName },
-      )
-      .andWhere(
-        `studentTaskProgress.taskProgress -> :assignmentName ->> 'lastEditedQueueId' = :queueId`,
-        { assignmentName, queueId },
-      )
-      .getMany();
+    const allStudentTaskProgressForQueue =
+      await StudentTaskProgressModel.createQueryBuilder('studentTaskProgress')
+        .innerJoinAndSelect('studentTaskProgress.user', 'user')
+        .where('studentTaskProgress.cid = :courseId', { courseId })
+        .andWhere(
+          `studentTaskProgress.taskProgress -> :assignmentName IS NOT NULL`,
+          { assignmentName },
+        )
+        .andWhere(
+          `studentTaskProgress.taskProgress -> :assignmentName ->> 'lastEditedQueueId' = :queueId`,
+          { assignmentName, queueId },
+        )
+        .getMany();
 
     // this will be the object that we return, it's the student task progress for *only* this assignment (for this queue).
     // It also includes the user details for each student.

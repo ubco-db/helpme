@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProfileService } from './profile.service';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { OrganizationService } from '../organization/organization.service';
-import { UserFactory } from '../../test/util/factories';
+import {
+  initFactoriesFromService,
+  UserFactory,
+} from '../../test/util/factories';
 import {
   BadRequestException,
   NotFoundException,
@@ -14,6 +17,8 @@ import * as fs from 'fs';
 import { AccountType } from '@koh/common';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import * as path from 'path';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 jest.mock('check-disk-space', () => ({ __esModule: true, default: jest.fn() }));
 const mockedCheckDiskSpace = checkDiskSpace as jest.MockedFunction<
@@ -43,7 +48,7 @@ describe('ProfileService', () => {
 
   beforeEach(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule],
+      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule],
       providers: [
         ProfileService,
         {
@@ -60,6 +65,11 @@ describe('ProfileService', () => {
     service = moduleRef.get<ProfileService>(ProfileService);
     redisProfileService =
       moduleRef.get<RedisProfileService>(RedisProfileService);
+
+    // Grab FactoriesService from Nest
+    const factories = moduleRef.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterEach(() => {

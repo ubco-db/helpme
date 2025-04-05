@@ -43,3 +43,6 @@ uploads/*
 
 # postgres.env (place in packages/server)
 postgres.env
+
+# Sentry Config File (Also auto-generated...)
+.env.sentry-build-plugin

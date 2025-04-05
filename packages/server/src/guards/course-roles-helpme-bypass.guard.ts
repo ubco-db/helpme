@@ -10,8 +10,13 @@ export class CourseRolesBypassHelpMeCourseGuard extends RolesGuard {
   async setupData(
     request: any,
   ): Promise<{ courseId: number; user: UserModel }> {
-    const user = await UserModel.findOne(request.user.userId, {
-      relations: ['courses'],
+    const user: any = await UserModel.findOne({
+      where: {
+        id: request.user.userId,
+      },
+      relations: {
+        courses: true,
+      },
     });
     const courseId =
       request.params.id ??

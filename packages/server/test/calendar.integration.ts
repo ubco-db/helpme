@@ -124,7 +124,9 @@ describe('Calendar Integration', () => {
       expect(savedEvent).toBeTruthy();
 
       const calendarStaff = await CalendarStaffModel.find({
-        calendarId: savedEvent.id,
+        where: {
+          calendarId: savedEvent.id,
+        },
       });
       expect(calendarStaff).toHaveLength(3);
       expect(calendarStaff.map((cs) => cs.userId)).toEqual([
@@ -155,7 +157,11 @@ describe('Calendar Integration', () => {
         .send(eventData)
         .expect(403);
 
-      const savedEvent = await CalendarModel.findOne({ title: 'Test Event' });
+      const savedEvent = await CalendarModel.findOne({
+        where: {
+          title: 'Test Event',
+        },
+      });
       expect(savedEvent).toBeUndefined();
     });
     it('should return 404 if the staffId does not exist', async () => {
@@ -181,7 +187,11 @@ describe('Calendar Integration', () => {
         .send(eventData)
         .expect(404);
 
-      const savedEvent = await CalendarModel.findOne({ title: 'Test Event' });
+      const savedEvent = await CalendarModel.findOne({
+        where: {
+          title: 'Test Event',
+        },
+      });
       expect(savedEvent).toBeUndefined();
     });
     it('should return 404 if the course does not exist', async () => {
@@ -206,7 +216,11 @@ describe('Calendar Integration', () => {
         .send(eventData)
         .expect(404);
 
-      const savedEvent = await CalendarModel.findOne({ title: 'Test Event' });
+      const savedEvent = await CalendarModel.findOne({
+        where: {
+          title: 'Test Event',
+        },
+      });
       expect(savedEvent).toBeUndefined();
     });
     it('should create a 1-time cron job for non-recurring events', async () => {
@@ -305,7 +319,11 @@ describe('Calendar Integration', () => {
 
       expect(res.body).toEqual(expect.objectContaining(updateData));
 
-      const updatedEvent = await CalendarModel.findOne(event.id);
+      const updatedEvent = await CalendarModel.findOne({
+        where: {
+          id: event.id,
+        },
+      });
       expect(updatedEvent.title).toBe('Updated Event');
       expect(updatedEvent.locationType).toBe('in-person');
       expect(updatedEvent.locationInPerson).toBe('Room 101');
@@ -339,13 +357,18 @@ describe('Calendar Integration', () => {
         end: oneHourFromNow,
       };
 
-      const res = await supertest({ userId: prof.id })
+      await supertest({ userId: prof.id })
         .patch(`/calendar/${event.id}/${course.id}`)
         .send(updateData)
         .expect(200);
 
-      const updatedEvent = await CalendarModel.findOne(event.id, {
-        relations: ['staff'],
+      const updatedEvent = await CalendarModel.findOne({
+        where: {
+          id: event.id,
+        },
+        relations: {
+          staff: true,
+        },
       });
       expect(updatedEvent.staff).toHaveLength(2);
       expect(updatedEvent.staff.map((s) => s.userId)).toEqual([
@@ -387,8 +410,13 @@ describe('Calendar Integration', () => {
         ERROR_MESSAGES.calendarEvent.invalidRecurringEvent,
       );
 
-      const notUpdatedEvent = await CalendarModel.findOne(event.id, {
-        relations: ['staff'],
+      const notUpdatedEvent = await CalendarModel.findOne({
+        where: {
+          id: event.id,
+        },
+        relations: {
+          staff: true,
+        },
       });
       expect(notUpdatedEvent.staff).toHaveLength(2);
       expect(notUpdatedEvent.staff.map((s) => s.userId)).toEqual([
@@ -441,8 +469,13 @@ describe('Calendar Integration', () => {
         .send(updateData)
         .expect(200);
 
-      const updatedEvent = await CalendarModel.findOne(event.id, {
-        relations: ['staff'],
+      const updatedEvent = await CalendarModel.findOne({
+        where: {
+          id: event.id,
+        },
+        relations: {
+          staff: true,
+        },
       });
       expect(updatedEvent.end).toEqual(todayAt9);
       expect(updatedEvent.daysOfWeek).toEqual(['1', '2', '3', '4']);
@@ -519,7 +552,11 @@ describe('Calendar Integration', () => {
         .delete(`/calendar/${event.id}/${course.id}/delete`)
         .expect(200);
 
-      const deletedEvent = await CalendarModel.findOne(event.id);
+      const deletedEvent = await CalendarModel.findOne({
+        where: {
+          id: event.id,
+        },
+      });
       expect(deletedEvent).toBeUndefined();
     });
 
@@ -574,11 +611,17 @@ describe('Calendar Integration', () => {
         .delete(`/calendar/${event.id}/${course.id}/delete`)
         .expect(200);
 
-      const deletedEvent = await CalendarModel.findOne(event.id);
+      const deletedEvent = await CalendarModel.findOne({
+        where: {
+          id: event.id,
+        },
+      });
       expect(deletedEvent).toBeUndefined();
 
       const calendarStaff = await CalendarStaffModel.find({
-        calendarId: event.id,
+        where: {
+          calendarId: event.id,
+        },
       });
       expect(calendarStaff).toHaveLength(0);
 

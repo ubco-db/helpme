@@ -3,10 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule, TestingModuleBuilder } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RedisModule, RedisService } from 'nestjs-redis';
 import { NotificationService } from 'notification/notification.service';
 import * as supertest from 'supertest';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { addGlobalsToApp } from '../../src/bootstrap';
 import { LoginModule } from '../../src/login/login.module';
 import { ApplicationConfigService } from 'config/application_config.service';
@@ -16,12 +15,17 @@ import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { MailService } from 'mail/mail.service';
 import { RedisMemoryServer } from 'redis-memory-server';
 import { Redis } from 'ioredis';
+import { RedisModule, RedisService } from '@liaoliaots/nestjs-redis';
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
+import { initFactoriesFromService } from './factories';
 
 export interface SupertestOptions {
   userId?: number;
 }
 export type ModuleModifier = (t: TestingModuleBuilder) => TestingModuleBuilder;
-export const TestTypeOrmModule = TypeOrmModule.forRoot({
+export const TestTypeOrmConfig: PostgresConnectionOptions = {
   type: 'postgres',
   host: 'localhost',
   port: 5432,
@@ -30,8 +34,8 @@ export const TestTypeOrmModule = TypeOrmModule.forRoot({
   database: 'test',
   entities: ['./**/*.entity.ts', '../../src/**/*.entity.ts'],
   synchronize: true,
-  keepConnectionAlive: true,
-});
+};
+export const TestTypeOrmModule = TypeOrmModule.forRoot(TestTypeOrmConfig);
 
 export const TestConfigModule = ConfigModule.forRoot({
   envFilePath: ['.env.development'],
@@ -48,7 +52,7 @@ export function setupIntegrationTest(
 } {
   let app: INestApplication;
   let jwtService: JwtService;
-  let conn: Connection;
+  let dataSource: DataSource;
   let appConfig: ApplicationConfigService;
   let schedulerRegistry: SchedulerRegistry;
   let testModule: TestingModule;
@@ -57,8 +61,10 @@ export function setupIntegrationTest(
   let redisTestServer: RedisMemoryServer;
   let redisHost: string;
   let redisPort: number;
+  console.log('setupIntegrationTest');
 
   beforeAll(async () => {
+    console.log('beforeall');
     if (!process.env.CI) {
       // For local testing, start a Redis in-memory server
       console.log('Starting Redis in-memory server');
@@ -81,6 +87,7 @@ export function setupIntegrationTest(
         : 6379;
     }
 
+    console.log('beforeall2');
     // Create the testing module
     let testModuleBuilder = Test.createTestingModule({
       imports: [
@@ -90,14 +97,30 @@ export function setupIntegrationTest(
         TestTypeOrmModule,
         TestConfigModule,
         ApplicationConfigModule,
+        FactoryModule,
         ScheduleModule.forRoot(),
-        RedisModule.register([
-          { name: 'pub', host: redisHost, port: redisPort },
-          { name: 'sub', host: redisHost, port: redisPort },
-          { name: 'db', host: redisHost, port: redisPort },
-        ]),
+        RedisModule.forRoot({
+          readyLog: false,
+          errorLog: true,
+          commonOptions: {
+            host: redisHost,
+            port: redisPort,
+          },
+          config: [
+            {
+              namespace: 'db',
+            },
+            {
+              namespace: 'sub',
+            },
+            {
+              namespace: 'pub',
+            },
+          ],
+        }),
       ],
     });
+    console.log('testmodulebuidler');
 
     if (modifyModule) {
       testModuleBuilder = modifyModule(testModuleBuilder);
@@ -112,12 +135,18 @@ export function setupIntegrationTest(
     appConfig = testModule.get<ApplicationConfigService>(
       ApplicationConfigService,
     );
-    conn = testModule.get<Connection>(Connection);
+    dataSource = testModule.get<DataSource>(DataSource);
     redisService = testModule.get<RedisService>(RedisService);
 
     await appConfig.loadConfig();
     await app.init();
     schedulerRegistry = testModule.get<SchedulerRegistry>(SchedulerRegistry);
+
+    // Grab FactoriesService from Nest
+    const factories = testModule.get<FactoryService>(FactoryService);
+    console.log('factories');
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
 
     // Ensure Redis is connected before proceeding
     await ensureRedisConnected(redisService.getClient('db'));
@@ -125,7 +154,7 @@ export function setupIntegrationTest(
 
   afterAll(async () => {
     await app.close();
-    await conn.close();
+    await dataSource.destroy();
     await redisService.getClient('db').quit();
 
     if (redisTestServer) {
@@ -134,7 +163,7 @@ export function setupIntegrationTest(
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
     await clearAllCronJobs(schedulerRegistry);
     await testModule.get<RedisService>(RedisService).getClient('db').flushall();
   });

@@ -58,7 +58,10 @@ const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
       : AxisChartClasses['md']
   }, [size])
 
-  const xAxis = useMemo(() => xRange(chartData), [chartData, xRange])
+  const xAxis = useMemo(
+    () => (xRange != undefined ? xRange(chartData) : []),
+    [chartData, xRange],
+  )
 
   const xTicks = useMemo(() => generateTickRange(xAxis, 4), [xAxis])
   const yTicks = useMemo(() => {
@@ -76,7 +79,7 @@ const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
         Math.max(...chartData.map((d) => d[zKey])),
       ]
     }
-  }, [zKey])
+  }, [chartData, zKey])
 
   const bubbleSizeRange = useMemo(() => {
     switch (size) {

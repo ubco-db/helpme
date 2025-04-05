@@ -1,9 +1,10 @@
 import { TestingModule, Test } from '@nestjs/testing';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   UserFactory,
   UserCourseFactory,
   CourseFactory,
+  initFactoriesFromService,
 } from '../../test/util/factories';
 import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
 import { CourseService } from './course.service';
@@ -11,37 +12,57 @@ import { UserModel } from 'profile/user.entity';
 import { CourseModel } from './course.entity';
 import { Role, UserPartial } from '@koh/common';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
-import { RedisModule } from 'nestjs-redis';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('CourseService', () => {
   let service: CourseService;
-
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
-        RedisModule.register([
-          { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
-          { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
-          { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
-        ]),
+        FactoryModule,
+        RedisModule.forRoot({
+          readyLog: false,
+          errorLog: true,
+          commonOptions: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: 6379,
+          },
+          config: [
+            {
+              namespace: 'db',
+            },
+            {
+              namespace: 'sub',
+            },
+            {
+              namespace: 'pub',
+            },
+          ],
+        }),
       ],
       providers: [CourseService, RedisProfileService],
     }).compile();
 
     service = module.get<CourseService>(CourseService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('getUserInfo', () => {
