@@ -10,17 +10,9 @@ import { ProfileModule } from '../src/profile/profile.module';
 import { DesktopNotifModel } from 'notification/desktop-notif.entity';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { AccountType } from '@koh/common';
-import { RedisService } from 'nestjs-redis';
 
 describe('Profile Integration', () => {
-  const { supertest, getTestModule } = setupIntegrationTest(ProfileModule);
-
-  let redisService: RedisService;
-
-  beforeEach(async () => {
-    const testModule = getTestModule();
-    redisService = testModule.get<RedisService>(RedisService);
-  });
+  const { supertest } = setupIntegrationTest(ProfileModule);
 
   describe('GET /profile', () => {
     it('returns the logged-in user profile', async () => {
@@ -65,8 +57,6 @@ describe('Profile Integration', () => {
           course: {
             id: 1,
             name: 'CS 2500',
-            enabled: true,
-            semesterId: 1,
           },
           role: 'student',
         },

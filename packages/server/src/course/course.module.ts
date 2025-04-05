@@ -8,7 +8,6 @@ import { OrganizationModule } from 'organization/organization.module';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueCleanService } from '../queue/queue-clean/queue-clean.service';
-import { RedisProfileService } from '../redisProfile/redis-profile.service';
 
 @Module({
   controllers: [CourseController],
@@ -18,13 +17,11 @@ import { RedisProfileService } from '../redisProfile/redis-profile.service';
     CacheModule.register(),
     OrganizationModule,
     RedisQueueService,
-    RedisProfileService,
   ],
   providers: [
     HeatmapService,
     CourseService,
     RedisQueueService,
-    RedisProfileService,
     ApplicationConfigService,
     QueueCleanService,
   ],
