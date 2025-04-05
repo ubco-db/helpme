@@ -23,6 +23,7 @@ interface QueueChatProps {
   staffId: number
   isMobile: boolean
   hidden: boolean
+  bubbleHidden: boolean
   isStaff: boolean
   messageCounts: Record<string, MessageCount>
   setMessageCounts: (
@@ -43,6 +44,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
   staffId,
   isMobile,
   hidden,
+  bubbleHidden,
   isStaff,
   disableTheButton = false,
   messageCounts,
@@ -82,18 +84,11 @@ const QueueChat: React.FC<QueueChatProps> = ({
     onClose()
   }, [onClose, resetNewMessageCount, setIsOpen])
 
-  // log when the component mounts
-  useEffect(() => {
-    console.log('component mounted!!')
-  }, [])
-
   const messagesEndRef = useRef<HTMLDivElement | null>(null) // This handles auto scrolling
   // To always auto scroll to the bottom of the page when new messages are added
   useEffect(() => {
     if (messagesEndRef.current && (isOpen || newMessageCount > 0)) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
-      console.log('isOpen', isOpen)
-      console.log('newMessageCount2', newMessageCount)
     }
   }, [isOpen, newMessageCount])
 
@@ -106,7 +101,6 @@ const QueueChat: React.FC<QueueChatProps> = ({
       // This is for desktop's default behavior (auto open the chat) -- mobile has css to handle this
       openChat()
     } else {
-      console.log('newMessageCount :(', newMessageCount)
       const chatId = `${questionId}-${staffId}`
       if (newMessageCount !== messageCounts[chatId]?.newMessages) {
         setMessageCounts({
@@ -121,10 +115,10 @@ const QueueChat: React.FC<QueueChatProps> = ({
   const sendMessage = async () => {
     setIsLoading(true)
     if (questionId) {
-      API.queueChats
+      await API.queueChats
         .sendMessage(queueId, questionId, staffId, input)
-        .then(() => {
-          mutateQueueChat()
+        .then(async () => {
+          await mutateQueueChat()
           setInput('')
         })
         .catch((e) => {
@@ -302,7 +296,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
         open={showNameTooltip === true ? true : undefined}
       >
         <Badge
-          count={newMessageCount}
+          count={bubbleHidden ? 0 : newMessageCount}
           overflowCount={9}
           style={{ zIndex: 1050 }}
           offset={[-4, 4]}

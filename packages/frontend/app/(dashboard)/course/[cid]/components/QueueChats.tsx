@@ -55,16 +55,6 @@ const QueueChats: React.FC<QueueChatsProps> = ({
     setMessageCounts({})
   }
 
-  // log when message counts change
-  useEffect(() => {
-    console.log('messageCounts', messageCounts)
-  }, [messageCounts])
-
-  // log when the component mounts
-  useEffect(() => {
-    console.log('component mounted')
-  }, [])
-
   useEffect(() => {
     const seenQueueChatPopover =
       localStorage.getItem('seenChatPopover') == 'true'
@@ -94,8 +84,6 @@ const QueueChats: React.FC<QueueChatsProps> = ({
   if (!queueChats) {
     return <></>
   }
-
-  console.log(newMessagesInQueueChats)
 
   return isMobile ? (
     <Popover
@@ -129,7 +117,11 @@ const QueueChats: React.FC<QueueChatsProps> = ({
         }}
       >
         <Badge
-          count={newMessagesInQueueChats}
+          count={
+            !mobileQueueChatsExpanded && queueChats.length > 1
+              ? newMessagesInQueueChats
+              : 0
+          }
           overflowCount={9}
           style={{ zIndex: 1050 }}
           className="md:hidden"
@@ -170,6 +162,9 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                     staffId={chat.staff.id}
                     isMobile={isMobile}
                     isStaff={isStaff}
+                    bubbleHidden={
+                      !mobileQueueChatsExpanded && queueChats.length > 1
+                    }
                     disableTheButton={
                       !mobileQueueChatsExpanded && queueChats.length > 1
                     }
@@ -237,6 +232,7 @@ const QueueChats: React.FC<QueueChatsProps> = ({
             hidden={false}
             messageCounts={messageCounts}
             setMessageCounts={setMessageCounts}
+            bubbleHidden={false}
           />
         )
       })}
