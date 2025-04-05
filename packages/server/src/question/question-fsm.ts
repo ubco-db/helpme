@@ -73,6 +73,7 @@ export const QUESTION_STATES: Record<QuestionStatus, AllowableTransitions> = {
       ClosedQuestionStatus.LeftDueToNoStaff,
       ClosedQuestionStatus.Stale,
     ],
+    ta: [LimboQuestionStatus.TADeleted],
   },
   [LimboQuestionStatus.TADeleted]: {
     student: [

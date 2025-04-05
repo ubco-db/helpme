@@ -41,6 +41,9 @@ const EventTooltip: React.FC<EventTooltipProps> = ({ info }) => {
                 Link:{' '}
                 <Popconfirm
                   title="Are you sure you want to open this link?"
+                  getPopupContainer={(trigger) =>
+                    trigger.parentNode as HTMLElement
+                  }
                   okText="Yes"
                   cancelText="No"
                   okButtonProps={{

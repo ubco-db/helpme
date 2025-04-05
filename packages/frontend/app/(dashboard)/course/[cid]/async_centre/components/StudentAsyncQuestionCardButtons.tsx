@@ -29,6 +29,7 @@ const StudentAsyncQuestionCardButtons: React.FC<
         title="Are you sure you want to delete your question?"
         okText="Yes"
         cancelText="No"
+        getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
         okButtonProps={{ loading: deleteLoading }}
         onConfirm={async () => {
           setDeleteLoading(true)

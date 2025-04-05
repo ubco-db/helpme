@@ -67,6 +67,7 @@ const JoinZoomNowModal: React.FC<JoinZoomNowModalProps> = ({
         </JoinZoomButton>
         <Popconfirm
           title="Are you sure you want to temporarily leave the queue?"
+          getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
           okButtonProps={{ loading: isLoadingRequeue }}
           onConfirm={() => {
             setIsLoadingRequeue(true)

@@ -17,6 +17,7 @@ import {
   QueueTypes,
   LimboQuestionStatus,
   OpenQuestionStatus,
+  GetQueueChatsResponse,
 } from '@koh/common'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
 import QuestionCard from './QuestionCard'
@@ -138,30 +139,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
     [taskTree],
   )
 
-  const renderQuestion = (question: Question) => {
-    const isMyQuestion =
-      question.id === studentDemoId || question.id === studentQuestionId
-    const isPaused = question.status === OpenQuestionStatus.Paused
-    const isBeingHelped = question.status === OpenQuestionStatus.Helping
-
-    return (
-      <QuestionCard
-        key={question.id}
-        question={question}
-        queueType={queueType}
-        cid={cid}
-        qid={qid}
-        isStaff={isStaff}
-        configTasks={configTasks}
-        studentAssignmentProgress={studentAssignmentProgress}
-        isMyQuestion={isMyQuestion}
-        isBeingReQueued={question.status === LimboQuestionStatus.ReQueueing}
-        isPaused={isPaused}
-        isBeingHelped={isBeingHelped}
-      />
-    )
-  }
-
   // TODO: this does still needs to be updated to the newest version of Collapse from antd, where it uses the 'items' prop instead of Collapse.Panel.
   // This will help with all the console deprecation warnings.
   // However, this is kind of a difficult task as the Divider will need to be separate and there will likely need to be two Collapse components instead, which may mess with things.
@@ -254,9 +231,29 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                       </div>
                     }
                   >
-                    {filteredQuestions.map((question: Question) =>
-                      renderQuestion(question),
-                    )}
+                    {filteredQuestions.map((question: Question) => (
+                      <QuestionCard
+                        key={question.id}
+                        question={question}
+                        queueType={queueType}
+                        cid={cid}
+                        qid={qid}
+                        isStaff={isStaff}
+                        configTasks={configTasks}
+                        studentAssignmentProgress={studentAssignmentProgress}
+                        isMyQuestion={
+                          question.id === studentDemoId ||
+                          question.id === studentQuestionId
+                        }
+                        isBeingReQueued={
+                          question.status === LimboQuestionStatus.ReQueueing
+                        }
+                        isPaused={question.status === OpenQuestionStatus.Paused}
+                        isBeingHelped={
+                          question.status === OpenQuestionStatus.Helping
+                        }
+                      />
+                    ))}
                   </Panel>
                 )
               )
@@ -310,9 +307,29 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                     </div>
                   }
                 >
-                  {filteredQuestions.map((question: Question) =>
-                    renderQuestion(question),
-                  )}
+                  {filteredQuestions.map((question: Question) => (
+                    <QuestionCard
+                      key={question.id}
+                      question={question}
+                      queueType={queueType}
+                      cid={cid}
+                      qid={qid}
+                      isStaff={isStaff}
+                      configTasks={configTasks}
+                      studentAssignmentProgress={studentAssignmentProgress}
+                      isMyQuestion={
+                        question.id === studentDemoId ||
+                        question.id === studentQuestionId
+                      }
+                      isBeingReQueued={
+                        question.status === LimboQuestionStatus.ReQueueing
+                      }
+                      isPaused={question.status === OpenQuestionStatus.Paused}
+                      isBeingHelped={
+                        question.status === OpenQuestionStatus.Helping
+                      }
+                    />
+                  ))}
                 </Panel>
               )
             )
@@ -322,15 +339,71 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
         <>
           {!isStaff && (
             <>
-              {questionsGettingHelp.map((question: Question) =>
-                renderQuestion(question),
-              )}
-              {pausedQuestions.map((question: Question) =>
-                renderQuestion(question),
-              )}
+              {questionsGettingHelp.map((question: Question) => (
+                <QuestionCard
+                  key={question.id}
+                  question={question}
+                  queueType={queueType}
+                  cid={cid}
+                  qid={qid}
+                  isStaff={isStaff}
+                  configTasks={configTasks}
+                  studentAssignmentProgress={studentAssignmentProgress}
+                  isMyQuestion={
+                    question.id === studentDemoId ||
+                    question.id === studentQuestionId
+                  }
+                  isBeingReQueued={
+                    question.status === LimboQuestionStatus.ReQueueing
+                  }
+                  isPaused={question.status === OpenQuestionStatus.Paused}
+                  isBeingHelped={question.status === OpenQuestionStatus.Helping}
+                />
+              ))}
+              {pausedQuestions.map((question: Question) => (
+                <QuestionCard
+                  key={question.id}
+                  question={question}
+                  queueType={queueType}
+                  cid={cid}
+                  qid={qid}
+                  isStaff={isStaff}
+                  configTasks={configTasks}
+                  studentAssignmentProgress={studentAssignmentProgress}
+                  isMyQuestion={
+                    question.id === studentDemoId ||
+                    question.id === studentQuestionId
+                  }
+                  isBeingReQueued={
+                    question.status === LimboQuestionStatus.ReQueueing
+                  }
+                  isPaused={question.status === OpenQuestionStatus.Paused}
+                  isBeingHelped={question.status === OpenQuestionStatus.Helping}
+                />
+              ))}
             </>
           )}
-          {questions.map((question: Question) => renderQuestion(question))}
+          {questions.map((question: Question) => (
+            <QuestionCard
+              key={question.id}
+              question={question}
+              queueType={queueType}
+              cid={cid}
+              qid={qid}
+              isStaff={isStaff}
+              configTasks={configTasks}
+              studentAssignmentProgress={studentAssignmentProgress}
+              isMyQuestion={
+                question.id === studentDemoId ||
+                question.id === studentQuestionId
+              }
+              isBeingReQueued={
+                question.status === LimboQuestionStatus.ReQueueing
+              }
+              isPaused={question.status === OpenQuestionStatus.Paused}
+              isBeingHelped={question.status === OpenQuestionStatus.Helping}
+            />
+          ))}
         </>
       )}
     </div>

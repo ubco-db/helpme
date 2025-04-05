@@ -3,14 +3,10 @@ import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
 import dayGridPlugin from '@fullcalendar/daygrid'
-import { message, Popconfirm, Spin, Tooltip } from 'antd'
+import { message, Spin } from 'antd'
 import { API } from '@/app/api'
 import { format } from 'date-fns'
-import {
-  Calendar,
-  calendarEventLocationType,
-  getCalendarEventLocationTypeFormatted,
-} from '@koh/common'
+import { Calendar } from '@koh/common'
 import { Event } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'

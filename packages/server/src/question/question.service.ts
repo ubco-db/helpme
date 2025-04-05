@@ -28,7 +28,7 @@ import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgres
 import { QueueService } from '../queue/queue.service';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
-
+import { QueueSSEService } from 'queue/queue-sse.service';
 @Injectable()
 export class QuestionService {
   constructor(
@@ -36,6 +36,7 @@ export class QuestionService {
     public queueService: QueueService,
     public redisQueueService: RedisQueueService,
     public readonly queueChatService: QueueChatService,
+    private readonly queueSSEService: QueueSSEService,
   ) {}
 
   async changeStatus(
@@ -146,19 +147,33 @@ export class QuestionService {
     try {
       if (isResolving) {
         // Save chat metadata in database (if messages were exchanged)
-        await this.queueChatService.endChat(question.queueId, question.id);
-      } else if (newStatus in ClosedQuestionStatus) {
+        await this.queueChatService.endChats(question.queueId, question.id);
+      } else if (
+        newStatus in ClosedQuestionStatus ||
+        newStatus === LimboQuestionStatus.CantFind ||
+        newStatus === LimboQuestionStatus.TADeleted
+      ) {
         // Don't save chat metadata in database
-        await this.queueChatService.clearChat(question.queueId, question.id);
+        await this.queueChatService.clearChats(question.queueId, question.id);
       } else if (isFirstHelped) {
         // Create chat metadata in Redis
-        await this.queueChatService.createChat(
-          question.queueId,
-          question.taHelped,
-          question,
-        );
+        if (
+          !(await this.queueChatService.checkChatExists(
+            question.queueId,
+            question.id,
+            question.taHelpedId,
+          ))
+        ) {
+          await this.queueChatService.createChat(
+            question.queueId,
+            question.taHelped,
+            question,
+          );
+          await this.queueSSEService.updateQueueChats(question.queueId);
+        }
       }
     } catch (err) {
+      console.error(err);
       throw new HttpException(
         ERROR_MESSAGES.questionService.queueChatUpdateFailure,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -196,7 +211,7 @@ export class QuestionService {
 
     let queue: QueueModel;
     try {
-      queue = await QueueModel.findOneOrFail(queueId);
+      queue = await QueueModel.findOneOrFail({ where: { id: queueId } });
     } catch (err) {
       throw new BadRequestException(
         ERROR_MESSAGES.questionController.studentTaskProgress.queueDoesNotExist,
@@ -333,7 +348,7 @@ export class QuestionService {
   }
 
   async resolveQuestions(queueId: number, helperId: number): Promise<void> {
-    const queue = await QueueModel.findOneOrFail(queueId);
+    const queue = await QueueModel.findOneOrFail({ where: { id: queueId } });
     const questions = await QuestionModel.find({
       where: {
         queueId,

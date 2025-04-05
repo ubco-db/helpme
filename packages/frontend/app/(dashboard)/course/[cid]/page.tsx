@@ -91,7 +91,7 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
       <>
         <title>{`HelpMe | ${course.name}`}</title>
         {(!onlyChatBotEnabled && (
-          <div className="mt-8">
+          <div className="mt-1 md:mt-8">
             <Row gutter={64} className="!mx-0 md:!mx-2 lg:!mx-4 xl:!mx-8">
               <Col
                 className="mb-4 !px-0 md:!px-2 lg:!px-4 xl:!px-8"
@@ -121,7 +121,6 @@ export default function CoursePage({ params }: CoursePageProps): ReactElement {
                   sortedQueues?.map((q) => (
                     <QueueCard
                       cid={cid}
-                      type={q.type!}
                       linkId={
                         skipLinkTarget == 'first-queue' &&
                         q.id === sortedQueues[0].id

@@ -288,6 +288,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
               messages.length > 1 ? (
                 <Popconfirm
                   title="Are you sure? this will reset the chat"
+                  getPopupContainer={(trigger) =>
+                    trigger.parentNode as HTMLElement
+                  }
                   open={tempChatbotQuestionType !== null}
                   onConfirm={() => {
                     if (tempChatbotQuestionType) {
@@ -323,6 +326,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
               )}
               <Popconfirm
                 title="Are you sure you want to reset the chat?"
+                getPopupContainer={(trigger) =>
+                  trigger.parentNode as HTMLElement
+                }
                 open={popResetOpen}
                 onOpenChange={(open) => {
                   if (messages.length > 1) {
@@ -334,7 +340,11 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 }}
                 onConfirm={() => resetChat()}
               >
-                <Button danger type="link" className="mr-3">
+                <Button
+                  danger
+                  type="link"
+                  className="ml-3 mr-3 px-0 md:ml-0 md:px-2"
+                >
                   Reset Chat
                 </Button>
               </Popconfirm>
@@ -598,7 +608,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
           type="primary"
           icon={<Bot className="mt-0.5" />}
           size="large"
-          className="z-50 mx-5 hidden rounded-sm shadow-md shadow-slate-400 md:flex"
+          className="z-50 mr-5 hidden rounded-sm shadow-md shadow-slate-400 md:flex"
           onClick={() => setIsOpen(true)}
         >
           Chatbot

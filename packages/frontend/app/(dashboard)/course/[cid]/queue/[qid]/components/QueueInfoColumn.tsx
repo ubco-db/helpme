@@ -28,7 +28,7 @@ import RenderEvery from '@/app/components/RenderEvery'
 import TagGroupSwitch from './TagGroupSwitch'
 import StaffList from './StaffList'
 import { getQueueTypeLabel } from '../utils/commonQueueFunctions'
-import { QueuePartial } from '@koh/common'
+import { QueuePartial, GetQueueChatsResponse } from '@koh/common'
 
 interface QueueInfoColumnProps {
   cid: number
@@ -41,6 +41,7 @@ interface QueueInfoColumnProps {
   setTagGroupsEnabled: (tagGroupsEnabled: boolean) => void
   staffListHidden: boolean
   setStaffListHidden: (hidden: boolean) => void
+  queueChats?: GetQueueChatsResponse
 }
 
 const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
@@ -54,6 +55,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
   setTagGroupsEnabled,
   staffListHidden,
   setStaffListHidden,
+  queueChats,
 }) => {
   const router = useRouter()
 
@@ -66,7 +68,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
   //   }
   // };
   return (
-    <div className="relative flex flex-shrink-0 flex-col pb-3 md:mt-8 md:w-72 md:pb-7">
+    <div className="relative flex flex-shrink-0 flex-col pb-1 md:mt-8 md:w-72 md:pb-7">
       {/* only show the queue title and warning here on desktop, it's moved further down on mobile (and placed in queue page.tsx) */}
       <div className="justify-left mb-0 hidden items-center md:mb-2 md:flex">
         <h2 className="mb-0 inline-block text-2xl font-bold text-[#212934]">
@@ -118,7 +120,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
         <h3 className="mb-0 text-2xl font-semibold">Staff</h3>
         {/* Button to hide staff list on mobile */}
         <Button
-          className="sm:hidden"
+          className="md:hidden"
           onClick={() => setStaffListHidden(!staffListHidden)}
           type="text"
           icon={staffListHidden ? <UpOutlined /> : <DownOutlined />}
@@ -137,7 +139,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
 
       {/* buttons for staff on mobile */}
       {isStaff && (
-        <div className="my-3 flex flex-wrap items-center justify-between gap-y-2 sm:hidden">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-y-2 md:hidden">
           {buttons}
         </div>
       )}
@@ -159,6 +161,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
             okText="Yes"
             cancelText="No"
             placement="top"
+            getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
             arrow={{ pointAtCenter: true }}
             onConfirm={() => clearQueue(queueId, queue)}
           >
@@ -179,11 +182,13 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
       )}
 
       {/* mobile only */}
-      <div className="mt-5 flex w-full items-center justify-around gap-y-2 sm:hidden">
-        {!isStaff && buttons}
-      </div>
-      <div className="mt-2 flex w-full items-center justify-between sm:hidden">
-        <div className="flex w-full flex-col gap-2">
+      {!isStaff && (
+        <div className="mt-2 flex w-full items-center justify-around gap-y-2 md:hidden">
+          {buttons}
+        </div>
+      )}
+      <div className="mt-2 flex w-full items-center justify-between md:hidden">
+        <div className="flex w-full flex-col gap-0">
           <h3 className="my-0 text-2xl font-semibold">
             {tagGroupsEnabled ? 'Queue Groups By Tag' : 'Queue'}
           </h3>
@@ -211,7 +216,7 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
             ) : null}
           </Row>
           {queue?.notes && queue?.notes.length > 0 && (
-            <div className="flex max-h-[200px] w-full items-center overflow-y-auto px-2 text-xl text-[#5f6b79] sm:hidden">
+            <div className="flex max-h-[200px] w-full items-center overflow-y-auto px-2 text-xl text-[#5f6b79] md:hidden">
               <Linkify>
                 <div className="min-w-0 whitespace-pre-wrap break-words text-sm italic md:text-base">
                   {`Notes: ${queue?.notes}`}
