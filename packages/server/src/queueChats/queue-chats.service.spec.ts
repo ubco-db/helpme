@@ -28,6 +28,11 @@ describe('QueueChatService', () => {
     exists: jest.fn().mockResolvedValue(1), // Simulates redis.exists() returning 1 (key exists)
     llen: jest.fn().mockResolvedValue(2), // Simulates redis.llen() returning 2 (list length)
     keys: jest.fn().mockResolvedValue(['key1', 'key2']), // Simulates redis.keys() returning an array of keys
+    pipeline: jest.fn().mockReturnValue({
+      del: jest.fn().mockReturnThis(),
+      unlink: jest.fn().mockReturnThis(),
+      exec: jest.fn().mockResolvedValue([]),
+    }),
   });
 
   const staticDate = new Date('2023-01-01T00:00:00Z');
@@ -118,14 +123,14 @@ describe('QueueChatService', () => {
           lastName: question.creator.lastName,
           photoURL: question.creator.photoURL,
         },
-        questionId: question.id,
         startedAt: staticDate.toISOString(),
+        questionId: question.id,
       };
       expect(redisMock.set).toHaveBeenCalledWith(
         key_metadata,
         JSON.stringify(expectedMetadata),
       );
-      expect(redisMock.expire).toHaveBeenCalledWith(key_metadata, 604800); // one week in seconds
+      expect(redisMock.expire).toHaveBeenCalledWith(key_metadata, 86400); // 1 day in seconds
       expect(queueChatMetadata).toEqual(expectedMetadata);
     });
   });
@@ -217,14 +222,20 @@ describe('QueueChatService', () => {
     });
   });
 
-  describe('endChat', () => {
+  describe('endChats', () => {
     it('should save chat data to the database and delete Redis keys', async () => {
+      // Setup Redis mock for keys command to return one chat key
+      redisMock.keys.mockResolvedValueOnce(['queue_chat_metadata:123:2:1']);
+
+      // Setup metadata response
       const metadata = {
         staff: { id: 1, firstName: 'Staff', lastName: 'Last' },
         student: { id: 2, firstName: 'Student', lastName: 'Last' },
         startedAt: staticDate.toISOString(),
       };
+      redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
 
+      // Setup messages response
       const messages = [
         JSON.stringify({
           isStaff: true,
@@ -232,38 +243,281 @@ describe('QueueChatService', () => {
           timestamp: staticDate,
         }),
       ];
-
-      redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
       redisMock.lrange.mockResolvedValueOnce(messages);
 
-      const mockSave = jest
-        .spyOn(QueueChatsModel.prototype, 'save')
-        .mockResolvedValueOnce(undefined);
+      // Create a model to track properties
+      const queueChatModel = new QueueChatsModel();
 
+      // Mock the QueueChatsModel constructor
+      const originalConstructor = QueueChatsModel.constructor;
+      QueueChatsModel.constructor = function () {
+        return queueChatModel;
+      };
+
+      // Mock the save method to return the model
+      const originalSave = QueueChatsModel.prototype.save;
+      QueueChatsModel.prototype.save = jest.fn(() => {
+        return Promise.resolve(queueChatModel);
+      });
+
+      // Create a mock pipeline
+      const mockPipeline = {
+        del: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValueOnce([]),
+      };
+      redisMock.pipeline.mockReturnValueOnce(mockPipeline);
+
+      // Call the service method
       await service.endChats(123, 2);
 
-      expect(mockSave).toHaveBeenCalledWith();
-      expect(redisMock.del).toHaveBeenCalledWith('queue_chat_metadata:123:2:1');
+      // Restore original methods
+      QueueChatsModel.constructor = originalConstructor;
+      QueueChatsModel.prototype.save = originalSave;
+
+      // Verify a model was saved and check properties
+      expect(queueChatModel.queueId).toBe(123);
+      expect(queueChatModel.staffId).toBe(1);
+      expect(queueChatModel.studentId).toBe(2);
+      expect(queueChatModel.startedAt instanceof Date).toBe(true);
+      expect(queueChatModel.messageCount).toBe(1);
+
+      // Verify that pipeline was used to delete Redis keys
+      expect(mockPipeline.del).toHaveBeenCalledWith(
+        'queue_chat_metadata:123:2:1',
+      );
+      expect(mockPipeline.del).toHaveBeenCalledWith(
+        'queue_chat_messages:123:2:1',
+      );
+      expect(mockPipeline.exec).toHaveBeenCalled();
     });
 
     it('should not save data if no messages exist', async () => {
+      // Setup Redis mock for keys command to return one chat key
+      redisMock.keys.mockResolvedValueOnce(['queue_chat_metadata:123:2:1']);
+
+      // Setup metadata response
       const metadata = {
         staff: { id: 1, firstName: 'Staff', lastName: 'Last' },
         student: { id: 2, firstName: 'Student', lastName: 'Last' },
-        startedAt: staticDate,
+        startedAt: staticDate.toISOString(),
       };
-
       redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
+
+      // Setup empty messages response
       redisMock.lrange.mockResolvedValueOnce([]);
 
+      // Mock the QueueChatsModel save method to track if it was called
+      const originalSave = QueueChatsModel.prototype.save;
+      const saveMock = jest.fn().mockResolvedValue({});
+      QueueChatsModel.prototype.save = saveMock;
+
+      // Create a mock pipeline
+      const mockPipeline = {
+        del: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValueOnce([]),
+      };
+      redisMock.pipeline.mockReturnValueOnce(mockPipeline);
+
+      // Call the service method
       await service.endChats(123, 2);
 
-      expect(
-        QueueChatsModel.find({ where: { queueId: 123, studentId: 2 } }),
-      ).resolves.toEqual([]);
-      expect(redisMock.del).not.toHaveBeenCalledWith(
+      // Restore original prototype method
+      QueueChatsModel.prototype.save = originalSave;
+
+      // Verify save was never called
+      expect(saveMock).not.toHaveBeenCalled();
+
+      // Verify that pipeline was still used to delete Redis keys
+      expect(mockPipeline.del).toHaveBeenCalledWith(
+        'queue_chat_metadata:123:2:1',
+      );
+      expect(mockPipeline.del).toHaveBeenCalledWith(
         'queue_chat_messages:123:2:1',
       );
+      expect(mockPipeline.exec).toHaveBeenCalled();
+    });
+
+    it('should handle multiple chats for a question', async () => {
+      // Setup Redis mock for keys command to return multiple chat keys
+      redisMock.keys.mockResolvedValueOnce([
+        'queue_chat_metadata:123:2:1',
+        'queue_chat_metadata:123:2:3',
+      ]);
+
+      // Setup metadata responses for first chat
+      const metadata1 = {
+        staff: { id: 1, firstName: 'Staff1', lastName: 'Last1' },
+        student: { id: 2, firstName: 'Student', lastName: 'Last' },
+        startedAt: staticDate.toISOString(),
+      };
+      redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata1));
+
+      // Setup messages for first chat
+      const messages1 = [
+        JSON.stringify({
+          isStaff: true,
+          message: 'Hello from TA 1!',
+          timestamp: staticDate,
+        }),
+      ];
+      redisMock.lrange.mockResolvedValueOnce(messages1);
+
+      // Setup metadata responses for second chat
+      const metadata2 = {
+        staff: { id: 3, firstName: 'Staff2', lastName: 'Last2' },
+        student: { id: 2, firstName: 'Student', lastName: 'Last' },
+        startedAt: staticDate.toISOString(),
+      };
+      redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata2));
+
+      // Setup messages for second chat
+      const messages2 = [
+        JSON.stringify({
+          isStaff: true,
+          message: 'Hello from TA 2!',
+          timestamp: staticDate,
+        }),
+      ];
+      redisMock.lrange.mockResolvedValueOnce(messages2);
+
+      // Create models to track properties
+      const queueChatModel1 = new QueueChatsModel();
+      const queueChatModel2 = new QueueChatsModel();
+      let modelCounter = 0;
+
+      // Mock the save method to return our prepared models in sequence
+      const originalSave = QueueChatsModel.prototype.save;
+      QueueChatsModel.prototype.save = jest.fn(() => {
+        // First call returns the first model, second call returns the second model
+        const model = modelCounter === 0 ? queueChatModel1 : queueChatModel2;
+        modelCounter++;
+        return Promise.resolve(model);
+      });
+
+      // Create a mock pipeline
+      const mockPipeline = {
+        del: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValueOnce([]),
+      };
+      redisMock.pipeline.mockReturnValueOnce(mockPipeline);
+
+      // Call the service method
+      await service.endChats(123, 2);
+
+      // Restore original prototype method
+      QueueChatsModel.prototype.save = originalSave;
+
+      // Verify that save was called twice
+      expect(modelCounter).toBe(2);
+
+      // Verify the first saved chat had the correct properties
+      expect(queueChatModel1.queueId).toBe(123);
+      expect(queueChatModel1.staffId).toBe(1);
+      expect(queueChatModel1.studentId).toBe(2);
+
+      // Verify the second saved chat had the correct properties
+      expect(queueChatModel2.queueId).toBe(123);
+      expect(queueChatModel2.staffId).toBe(3);
+      expect(queueChatModel2.studentId).toBe(2);
+
+      // Verify pipeline was called to delete all Redis keys
+      expect(mockPipeline.del).toHaveBeenCalledWith(
+        'queue_chat_metadata:123:2:1',
+      );
+      expect(mockPipeline.del).toHaveBeenCalledWith(
+        'queue_chat_messages:123:2:1',
+      );
+      expect(mockPipeline.del).toHaveBeenCalledWith(
+        'queue_chat_metadata:123:2:3',
+      );
+      expect(mockPipeline.del).toHaveBeenCalledWith(
+        'queue_chat_messages:123:2:3',
+      );
+      expect(mockPipeline.exec).toHaveBeenCalled();
+    });
+
+    it('should handle errors from pipeline execution', async () => {
+      // Setup Redis mock for keys command to return one chat key
+      redisMock.keys.mockResolvedValueOnce(['queue_chat_metadata:123:2:1']);
+
+      // Setup metadata response
+      const metadata = {
+        staff: { id: 1, firstName: 'Staff', lastName: 'Last' },
+        student: { id: 2, firstName: 'Student', lastName: 'Last' },
+        startedAt: staticDate.toISOString(),
+      };
+      redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
+
+      // Setup messages response
+      const messages = [
+        JSON.stringify({
+          isStaff: true,
+          message: 'Hello!',
+          timestamp: staticDate,
+        }),
+      ];
+      redisMock.lrange.mockResolvedValueOnce(messages);
+
+      // Mock the QueueChatsModel save method
+      const originalSave = QueueChatsModel.prototype.save;
+      QueueChatsModel.prototype.save = jest.fn().mockResolvedValue({});
+
+      // Mock the pipeline to throw an error
+      const mockPipeline = {
+        del: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockRejectedValueOnce(new Error('Redis error')),
+      };
+      redisMock.pipeline.mockReturnValueOnce(mockPipeline);
+
+      // The service should throw an HttpException
+      await expect(service.endChats(123, 2)).rejects.toThrow();
+
+      // Restore original prototype method
+      QueueChatsModel.prototype.save = originalSave;
+    });
+  });
+
+  describe('clearChats', () => {
+    it('should delete Redis keys without saving to database', async () => {
+      // Setup Redis mock for keys commands
+      redisMock.keys.mockResolvedValueOnce(['queue_chat_metadata:123:2:1']);
+      redisMock.keys.mockResolvedValueOnce(['queue_chat_messages:123:2:1']);
+
+      // Mock the pipeline
+      const mockPipeline = {
+        unlink: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValueOnce([]),
+      };
+      redisMock.pipeline.mockReturnValueOnce(mockPipeline);
+
+      // Mock QueueSSEService updateQueueChats
+      const queueSSEService = service['queueSSEService'] as any;
+      jest
+        .spyOn(queueSSEService, 'updateQueueChats')
+        .mockResolvedValueOnce(undefined);
+
+      // Call the service method
+      await service.clearChats(123, 2);
+
+      // Verify the keys calls
+      expect(redisMock.keys).toHaveBeenCalledWith(
+        'queue_chat_metadata:123:2:*',
+      );
+      expect(redisMock.keys).toHaveBeenCalledWith(
+        'queue_chat_messages:123:2:*',
+      );
+
+      // Verify pipeline was used for Redis operations
+      expect(mockPipeline.unlink).toHaveBeenCalledWith(
+        'queue_chat_metadata:123:2:1',
+      );
+      expect(mockPipeline.unlink).toHaveBeenCalledWith(
+        'queue_chat_messages:123:2:1',
+      );
+      expect(mockPipeline.exec).toHaveBeenCalled();
+
+      // Verify SSE service was called
+      expect(queueSSEService.updateQueueChats).toHaveBeenCalledWith(123);
     });
   });
 
@@ -278,7 +532,7 @@ describe('QueueChatService', () => {
       expect(await service.checkPermissions(123, 2, 1, 1)).toBe(true);
 
       redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
-      expect(await service.checkPermissions(123, 2, 2, 1)).toBe(true);
+      expect(await service.checkPermissions(123, 2, 1, 2)).toBe(true);
     });
 
     it('should return false if the user is not a participant', async () => {
@@ -287,15 +541,29 @@ describe('QueueChatService', () => {
         student: { id: 6 },
       };
 
+      // Make sure Redis client returns exactly what we want for this specific test
+      // Clear any previous mock implementations
+      redisMock.get.mockReset();
       redisMock.get.mockResolvedValueOnce(JSON.stringify(metadata));
 
-      expect(await service.checkPermissions(123, 2, 5, 1)).toBe(false);
+      // User ID 1 is not among participants (staff ID 5 or student ID 6)
+      const result = await service.checkPermissions(123, 2, 5, 1);
+
+      // Verify the mock was called with the expected parameters
+      expect(redisMock.get).toHaveBeenCalledWith('queue_chat_metadata:123:2:5');
+      expect(result).toBe(false);
     });
 
     it('should return false if no metadata exists', async () => {
+      // Clear any previous mock implementations
+      redisMock.get.mockReset();
       redisMock.get.mockResolvedValueOnce(null);
 
-      expect(await service.checkPermissions(123, 2, 1, 1)).toBe(false);
+      const result = await service.checkPermissions(123, 2, 1, 1);
+
+      // Verify the mock was called with the expected parameters
+      expect(redisMock.get).toHaveBeenCalledWith('queue_chat_metadata:123:2:1');
+      expect(result).toBe(false);
     });
   });
 

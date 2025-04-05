@@ -79,6 +79,10 @@ describe('QuestionService', () => {
           provide: QueueChatService,
           useValue: {
             getMyChats: jest.fn(),
+            endChats: jest.fn(),
+            clearChats: jest.fn(),
+            checkChatExists: jest.fn(),
+            createChat: jest.fn(),
           },
         },
         NotificationService,
