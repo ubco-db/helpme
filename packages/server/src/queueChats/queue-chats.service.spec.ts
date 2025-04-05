@@ -123,7 +123,7 @@ describe('QueueChatService', () => {
           lastName: question.creator.lastName,
           photoURL: question.creator.photoURL,
         },
-        startedAt: staticDate.toISOString(),
+        startedAt: staticDate,
         questionId: question.id,
       };
       expect(redisMock.set).toHaveBeenCalledWith(
@@ -245,19 +245,22 @@ describe('QueueChatService', () => {
       ];
       redisMock.lrange.mockResolvedValueOnce(messages);
 
-      // Create a model to track properties
-      const queueChatModel = new QueueChatsModel();
-
-      // Mock the QueueChatsModel constructor
+      // Mock QueueChatsModel constructor to capture created instances
+      const savedModelData: any = {};
       const originalConstructor = QueueChatsModel.constructor;
-      QueueChatsModel.constructor = function () {
-        return queueChatModel;
-      };
-
-      // Mock the save method to return the model
       const originalSave = QueueChatsModel.prototype.save;
-      QueueChatsModel.prototype.save = jest.fn(() => {
-        return Promise.resolve(queueChatModel);
+
+      // Create mock implementation for save
+      QueueChatsModel.prototype.save = jest.fn(function () {
+        // Capture properties from 'this'
+        Object.assign(savedModelData, {
+          queueId: this.queueId,
+          staffId: this.staffId,
+          studentId: this.studentId,
+          startedAt: this.startedAt,
+          messageCount: this.messageCount,
+        });
+        return Promise.resolve(this);
       });
 
       // Create a mock pipeline
@@ -270,16 +273,15 @@ describe('QueueChatService', () => {
       // Call the service method
       await service.endChats(123, 2);
 
-      // Restore original methods
-      QueueChatsModel.constructor = originalConstructor;
+      // Restore original prototype method
       QueueChatsModel.prototype.save = originalSave;
 
-      // Verify a model was saved and check properties
-      expect(queueChatModel.queueId).toBe(123);
-      expect(queueChatModel.staffId).toBe(1);
-      expect(queueChatModel.studentId).toBe(2);
-      expect(queueChatModel.startedAt instanceof Date).toBe(true);
-      expect(queueChatModel.messageCount).toBe(1);
+      // Verify the model was saved with correct data
+      expect(savedModelData.queueId).toBe(123);
+      expect(savedModelData.staffId).toBe(1);
+      expect(savedModelData.studentId).toBe(2);
+      expect(savedModelData.startedAt instanceof Date).toBe(true);
+      expect(savedModelData.messageCount).toBe(1);
 
       // Verify that pipeline was used to delete Redis keys
       expect(mockPipeline.del).toHaveBeenCalledWith(
@@ -380,18 +382,19 @@ describe('QueueChatService', () => {
       ];
       redisMock.lrange.mockResolvedValueOnce(messages2);
 
-      // Create models to track properties
-      const queueChatModel1 = new QueueChatsModel();
-      const queueChatModel2 = new QueueChatsModel();
-      let modelCounter = 0;
+      // Create an array to capture saved model data
+      const savedModelsData: any[] = [];
 
-      // Mock the save method to return our prepared models in sequence
+      // Create mock implementation for save
       const originalSave = QueueChatsModel.prototype.save;
-      QueueChatsModel.prototype.save = jest.fn(() => {
-        // First call returns the first model, second call returns the second model
-        const model = modelCounter === 0 ? queueChatModel1 : queueChatModel2;
-        modelCounter++;
-        return Promise.resolve(model);
+      QueueChatsModel.prototype.save = jest.fn(function () {
+        // Capture properties from 'this'
+        savedModelsData.push({
+          queueId: this.queueId,
+          staffId: this.staffId,
+          studentId: this.studentId,
+        });
+        return Promise.resolve(this);
       });
 
       // Create a mock pipeline
@@ -408,17 +411,17 @@ describe('QueueChatService', () => {
       QueueChatsModel.prototype.save = originalSave;
 
       // Verify that save was called twice
-      expect(modelCounter).toBe(2);
+      expect(savedModelsData.length).toBe(2);
 
       // Verify the first saved chat had the correct properties
-      expect(queueChatModel1.queueId).toBe(123);
-      expect(queueChatModel1.staffId).toBe(1);
-      expect(queueChatModel1.studentId).toBe(2);
+      expect(savedModelsData[0].queueId).toBe(123);
+      expect(savedModelsData[0].staffId).toBe(1);
+      expect(savedModelsData[0].studentId).toBe(2);
 
       // Verify the second saved chat had the correct properties
-      expect(queueChatModel2.queueId).toBe(123);
-      expect(queueChatModel2.staffId).toBe(3);
-      expect(queueChatModel2.studentId).toBe(2);
+      expect(savedModelsData[1].queueId).toBe(123);
+      expect(savedModelsData[1].staffId).toBe(3);
+      expect(savedModelsData[1].studentId).toBe(2);
 
       // Verify pipeline was called to delete all Redis keys
       expect(mockPipeline.del).toHaveBeenCalledWith(
