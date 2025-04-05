@@ -181,7 +181,7 @@ export class QueueChatService {
       }
     });
     return metadataString
-      ? (JSON.parse(metadataString) as QueueChatPartial)
+      ? (JSON.parse(metadataString) satisfies QueueChatPartial)
       : null;
   }
 
