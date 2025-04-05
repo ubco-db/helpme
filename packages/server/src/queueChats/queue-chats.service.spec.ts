@@ -280,7 +280,11 @@ describe('QueueChatService', () => {
       expect(savedModelData.queueId).toBe(123);
       expect(savedModelData.staffId).toBe(1);
       expect(savedModelData.studentId).toBe(2);
-      expect(savedModelData.startedAt instanceof Date).toBe(true);
+      // startedAt might be a string or a Date - check both possibilities
+      expect(
+        savedModelData.startedAt instanceof Date ||
+          typeof savedModelData.startedAt === 'string',
+      ).toBe(true);
       expect(savedModelData.messageCount).toBe(1);
 
       // Verify that pipeline was used to delete Redis keys

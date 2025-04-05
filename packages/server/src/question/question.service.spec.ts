@@ -69,6 +69,7 @@ describe('QuestionService', () => {
         {
           provide: QueueSSEService,
           useValue: {
+            updateQueueChats: jest.fn(),
             updateQuestions: jest.fn(),
             updateQueue: jest.fn(),
             sendToRoom: jest.fn(),
