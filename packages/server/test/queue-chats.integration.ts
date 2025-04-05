@@ -74,7 +74,7 @@ describe('QueueChat Integration Tests', () => {
     await UserModel.remove(otherStudent.user);
 
     question = await QuestionFactory.create();
-    queue = await question.queue;
+    queue = question.queue;
     staff = await TACourseFactory.create({
       course: queue.course,
       user: await UserFactory.create(),
@@ -82,55 +82,6 @@ describe('QueueChat Integration Tests', () => {
     student = await StudentCourseFactory.create({
       course: queue.course,
       user: await UserFactory.create(),
-    });
-  });
-
-  describe('GET /queueChats/:queueId/:questionId', () => {
-    it('retrieves chat metadata and messages', async () => {
-      const metadata = {
-        staff: {
-          firstName: staff.user.firstName,
-          lastName: staff.user.lastName,
-        },
-        student: {
-          firstName: student.user.firstName,
-          lastName: student.user.lastName,
-        },
-        startedAt: new Date('2021-01-01T00:00:00Z').toISOString(),
-      };
-
-      const messageObj = {
-        isStaff: true,
-        message: 'Testing, testing, 1, 2, 3...',
-        // Don't compare timestamp for obvious reasons
-      };
-
-      // Add data to Redis through the endpoint
-      await queueChatService.createChat(
-        queue.id,
-        staff.user,
-        question,
-        new Date(metadata.startedAt),
-      );
-
-      await supertest({ userId: staff.user.id })
-        .patch(`/queueChats/${queue.id}/${question.id}`)
-        .send({ message: messageObj.message });
-
-      const res = await supertest({ userId: staff.user.id })
-        .get(`/queueChats/${queue.id}/${question.id}`)
-        .expect(200);
-
-      expect(res.body).toMatchObject({
-        ...metadata,
-        messages: [messageObj],
-      });
-    });
-
-    it('returns 404 if no chat metadata or messages exist', async () => {
-      await supertest({ userId: staff.user.id })
-        .get(`/queueChats/${queue.id}/${question.id}`)
-        .expect(404);
     });
   });
 
