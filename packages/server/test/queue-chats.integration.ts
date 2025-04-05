@@ -271,6 +271,7 @@ describe('QueueChat Integration Tests', () => {
           lastName: student.user.lastName,
         },
         startedAt: new Date('2021-01-01T00:00:00Z').toISOString(),
+        questionId: question.id,
       };
 
       await queueChatService.createChat(
@@ -343,69 +344,6 @@ describe('QueueChat Integration Tests', () => {
 
       await supertest({ userId: otherStudent.user.id })
         .patch(`/queueChats/${queue.id}/${question.id}/${staff.user.id}`)
-        .send({ message: 'Unauthorized' })
-        .expect(403);
-    });
-  });
-
-  describe('PATCH /queueChats/:queueId/:questionId', () => {
-    it('stores a new message in Redis', async () => {
-      const metadata = {
-        staff: {
-          id: staff.user.id,
-          firstName: staff.user.firstName,
-          lastName: staff.user.lastName,
-        },
-        student: {
-          id: student.user.id,
-          firstName: student.user.firstName,
-          lastName: student.user.lastName,
-        },
-        startedAt: new Date('2021-01-01T00:00:00Z').toISOString(),
-      };
-
-      await queueChatService.createChat(
-        queue.id,
-        staff.user,
-        question,
-        new Date(metadata.startedAt),
-      );
-
-      const message = 'Hello, student!';
-      const res = await supertest({ userId: staff.user.id })
-        .patch(`/queueChats/${queue.id}/${question.id}`)
-        .send({ message })
-        .expect(200);
-
-      expect(res.body).toEqual({ message: 'Message sent' });
-
-      const result = await supertest({ userId: staff.user.id })
-        .get(`/queueChats/${queue.id}/${question.id}`)
-        .expect(200);
-
-      expect(result.body.messages).toEqual([
-        expect.objectContaining({
-          isStaff: true,
-          message,
-        }),
-      ]);
-    });
-
-    it('returns 403 if user is not authorized', async () => {
-      const otherStudent = await StudentCourseFactory.create({
-        course: queue.course,
-        user: await UserFactory.create(),
-      });
-
-      await queueChatService.createChat(
-        queue.id,
-        staff.user,
-        question,
-        new Date('2021-01-01T00:00:00Z'),
-      );
-
-      await supertest({ userId: otherStudent.user.id })
-        .patch(`/queueChats/${queue.id}/${question.id}`)
         .send({ message: 'Unauthorized' })
         .expect(403);
     });
