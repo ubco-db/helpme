@@ -233,12 +233,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
       <div
         className={`flex rounded-md bg-white p-2 shadow-md md:mb-3 md:p-3 ${shouldShowEdit ? 'cursor-pointer' : ''}`}
       >
-        <UserAvatar
-          size={48}
-          username={ta.name}
-          photoURL={ta.photoURL}
-          style={{ flexShrink: 0 }}
-        />
+        <UserAvatar size={48} username={ta.name} photoURL={ta.photoURL} />
         <div className="ml-2 flex-grow">
           <Row justify="space-between">
             <div className="font-bold text-gray-900">{ta.name}</div>
