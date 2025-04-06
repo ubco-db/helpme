@@ -30,7 +30,7 @@ const MessageButton: React.FC<{
   const [isSendingLoading, setIsSendingLoading] = useState(false)
   const { queueChats, mutateQueueChats } = useQueueChatsMetadatas(queueId) // TODO: figure out a way to make useQueueChatMetadatas more efficient since there can be a lot of MessageButtons
   const hasAssociatedQueueChat = queueChats?.some(
-    (chat) => chat.questionId === questionId,
+    (chat) => chat.questionId === questionId && chat.staff.id === staffId,
   )
   const [form] = Form.useForm()
   const textAreaRef = useRef<HTMLTextAreaElement>(null)

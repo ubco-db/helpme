@@ -40,7 +40,7 @@ const QueueChats: React.FC<QueueChatsProps> = ({
   >({})
   const [mobileQueueChatsExpanded, setMobileQueueChatsExpanded] =
     useState(false) // To store the state of the mobile queue chat drawer
-  const [currentChatQuestionId, setCurrentChatQuestionId] = useState<number>(-1) // To store the currently opened chat via the question id
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null) // To store the currently opened chat via the question id
   const [seenChatPopover, setSeenChatPopover] = useState(false)
   const [showNameTooltips, setShowNameTooltips] = useState(false)
 
@@ -103,9 +103,7 @@ const QueueChats: React.FC<QueueChatsProps> = ({
         className={cn(
           isChatbotOpen ? 'hidden ' : '',
           'fixed ',
-          currentChatQuestionId === -1
-            ? 'bottom-6 right-5'
-            : 'bottom-1 right-0',
+          currentChatId === null ? 'bottom-6 right-5' : 'bottom-1 right-0',
         )}
         style={{ zIndex: 1050 }}
         onClick={() => {
@@ -173,23 +171,22 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                       setChatbotOpen(false)
                       setRenderSmallChatbot(false)
                       resetNewMessagesInQueueChats()
-                      setCurrentChatQuestionId(chat.questionId)
+                      setCurrentChatId(chatId)
                     }}
                     onClose={() => {
                       setRenderSmallChatbot(true)
-                      setCurrentChatQuestionId(-1)
+                      setCurrentChatId(null)
                       setMobileQueueChatsExpanded(false)
                     }}
                     hidden={
-                      (currentChatQuestionId != chat.questionId &&
-                        currentChatQuestionId != -1) ||
+                      (currentChatId != chatId && currentChatId != null) ||
                       (isMobile && isChatbotOpen)
                     }
                   />
                 </div>
               )
             })}
-            {mobileQueueChatsExpanded && currentChatQuestionId === -1 && (
+            {mobileQueueChatsExpanded && currentChatId === null && (
               <Button
                 type="default"
                 shape="circle"

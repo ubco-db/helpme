@@ -190,9 +190,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
                         <UserAvatar
                           size="small"
                           username={
-                            message.isStaff
-                              ? queueChatData.staff.firstName
-                              : queueChatData.student.firstName
+                            !isStaff
+                              ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+                              : `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
                           }
                           photoURL={
                             message.isStaff
@@ -206,9 +206,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
                         <UserAvatar
                           size="small"
                           username={
-                            message.isStaff
-                              ? queueChatData.staff.firstName
-                              : queueChatData.student.firstName
+                            !isStaff
+                              ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+                              : `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
                           }
                           photoURL={
                             message.isStaff
