@@ -146,38 +146,6 @@ export class QueueChatController {
     return chatData;
   }
 
-  /* used by students to get all the chats they have for their question */
-  // @Get(':queueId/:questionId')
-  // @UseGuards(QueueRolesGuard)
-  // @Roles(Role.STUDENT)
-  // async getQueueChatsForMyQuestion(
-  //   @Param('queueId') queueId: number,
-  //   @Param('questionId') questionId: number,
-  //   @UserId() userId: number,
-  // ): Promise<QueueChatPartial[]> {
-  //   const chats = await this.queueChatService.getChatsForMyQuestion(
-  //     queueId,
-  //     questionId,
-  //     userId,
-  //   );
-  //   return chats;
-  // }
-
-  // /* Used by staff to get all the chats they have for a given queue */
-  // @Get(':queueId')
-  // @UseGuards(QueueRolesGuard)
-  // @Roles(Role.TA, Role.PROFESSOR)
-  // async getMyQueueChatsForGivenQueue(
-  //   @Param('queueId') queueId: number,
-  //   @UserId() userId: number,
-  // ): Promise<QueueChatPartial[]> {
-  //   const chats = await this.queueChatService.getChatsForGivenStaffId(
-  //     queueId,
-  //     userId,
-  //   );
-  //   return chats;
-  // }
-
   @Get(':queueId')
   @UseGuards(QueueRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)

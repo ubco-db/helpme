@@ -743,15 +743,6 @@ class APIClient {
       ),
     getMyQueueChats: async (queueId: number): Promise<GetQueueChatsResponse> =>
       this.req('GET', `/api/v1/queueChats/${queueId}`),
-    getChatsForMyQuestion: async (
-      queueId: number,
-      questionId: number,
-    ): Promise<QueueChatPartial[]> =>
-      this.req('GET', `/api/v1/queueChats/${queueId}/${questionId}`),
-    getChatsForGivenQueue: async (
-      queueId: number,
-    ): Promise<QueueChatPartial[]> =>
-      this.req('GET', `/api/v1/queueChats/${queueId}`),
     sendMessage: async (
       queueId: number,
       questionId: number,

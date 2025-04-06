@@ -39,6 +39,8 @@ function callOnUpdates(key: string) {
 
 /**
  * Gets all queue chat metadatas for the user for a given queue.
+ * Note that I haven't really done anything special for this, it works similar to useQueue
+ *
  * @param qid Queue ID to get data for
  * @param onUpdate Optional callback to listen for when data is refetched, whether via HTTP or SSE
  */

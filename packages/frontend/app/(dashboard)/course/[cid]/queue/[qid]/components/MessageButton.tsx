@@ -28,7 +28,7 @@ const MessageButton: React.FC<{
   const [isTooltipOpen, setIsTooltipOpen] = useState(false)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const [isSendingLoading, setIsSendingLoading] = useState(false)
-  const { queueChats, mutateQueueChats } = useQueueChatsMetadatas(queueId) // TODO: figure out a way to make useQueueChatMetadatas more efficient since there can be a lot of MessageButtons
+  const { queueChats, mutateQueueChats } = useQueueChatsMetadatas(queueId) // TODO: figure out a way to make useQueueChatMetadatas more efficient since there can be a lot of MessageButtons (probably with a context, but while you're at it you probably want to do something similar with useQueue and useQuestions)
   const hasAssociatedQueueChat = queueChats?.some(
     (chat) => chat.questionId === questionId && chat.staff.id === staffId,
   )

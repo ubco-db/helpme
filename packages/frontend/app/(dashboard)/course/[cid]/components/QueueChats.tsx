@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
+import { ReactElement, useEffect, useMemo, useState } from 'react'
 import { Badge, Button, Popover } from 'antd'
 import { X } from 'lucide-react'
 import QueueChat from './QueueChat'
@@ -33,8 +33,6 @@ const QueueChats: React.FC<QueueChatsProps> = ({
   setChatbotOpen,
   queueChats,
 }): ReactElement => {
-  // const { queueChats, queueChatsError, mutateQueueChats } =
-  //   useQueueChatsMetadatas(queueId)
   const [messageCounts, setMessageCounts] = useState<
     Record<string, MessageCount>
   >({})

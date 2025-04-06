@@ -90,7 +90,7 @@ export class QueueController {
     @UserId() userId: number,
   ): Promise<ListQuestionsResponse> {
     try {
-      const queueKeys = await this.redisQueueService.getKey(`q:${queueId}`); // wait, this redis logic might not actually do anything since queue-sse service doesn't have it?
+      const queueKeys = await this.redisQueueService.getKey(`q:${queueId}`); // wait, this redis logic might not actually do anything since queue-sse service doesn't have it? And all queue question data is sent over the sse events
       let queueQuestions: any;
 
       if (Object.keys(queueKeys).length === 0) {

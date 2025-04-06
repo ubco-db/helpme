@@ -10,6 +10,12 @@ type QueueClientMetadata = { userId: number; role: Role };
 const idToRoom = (queueId: number) => `q-${queueId}`;
 /**
  * Handle sending queue sse events
+ *
+ * Exposes the following:
+ * - subscribeClient: subscribes someone to a redis room for a particular queue (they will then be subscribed to a particular queueId).
+ *   Then, when a 'pub' event to a particular queueId happens in redis, this will take the new data and pump it into res to be sent to the client over a websocket.
+ * - updateQuestions/updateQueue/updateQueueChats: get the latest data for this queue and send it to all clients that are subscribed
+ *  to the redis room
  */
 @Injectable()
 export class QueueSSEService {

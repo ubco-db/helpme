@@ -253,6 +253,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                   extraTAStatus={ta.extraStatus}
                 />
               ) : (
+                // this 1 dot is enough to make the button wrap onto the next row, so i'm only showing it as "..." if there's no button (it looks weird if it's still "..")
                 'Looking for my next student..' + (isStaff ? '.' : '')
               )}
             </div>
