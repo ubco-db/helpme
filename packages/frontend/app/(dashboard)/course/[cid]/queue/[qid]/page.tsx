@@ -814,7 +814,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                         configTasks={configTasks}
                         studentAssignmentProgress={studentAssignmentProgress}
                         isStaff={isStaff}
-                        isBeingHelped={true}
                       />
                     )
                   })}
@@ -840,8 +839,6 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       queueType={queue.type}
                       studentAssignmentProgress={studentAssignmentProgress}
                       isStaff={isStaff}
-                      isBeingHelped={true}
-                      isPaused={true}
                     />
                   ))}
                   <Divider className={'my-3 hidden md:block'} />

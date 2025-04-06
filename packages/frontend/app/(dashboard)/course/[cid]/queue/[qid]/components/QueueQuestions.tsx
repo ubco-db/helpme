@@ -245,13 +245,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                           question.id === studentDemoId ||
                           question.id === studentQuestionId
                         }
-                        isBeingReQueued={
-                          question.status === LimboQuestionStatus.ReQueueing
-                        }
-                        isPaused={question.status === OpenQuestionStatus.Paused}
-                        isBeingHelped={
-                          question.status === OpenQuestionStatus.Helping
-                        }
                       />
                     ))}
                   </Panel>
@@ -321,13 +314,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                         question.id === studentDemoId ||
                         question.id === studentQuestionId
                       }
-                      isBeingReQueued={
-                        question.status === LimboQuestionStatus.ReQueueing
-                      }
-                      isPaused={question.status === OpenQuestionStatus.Paused}
-                      isBeingHelped={
-                        question.status === OpenQuestionStatus.Helping
-                      }
                     />
                   ))}
                 </Panel>
@@ -353,11 +339,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                     question.id === studentDemoId ||
                     question.id === studentQuestionId
                   }
-                  isBeingReQueued={
-                    question.status === LimboQuestionStatus.ReQueueing
-                  }
-                  isPaused={question.status === OpenQuestionStatus.Paused}
-                  isBeingHelped={question.status === OpenQuestionStatus.Helping}
                 />
               ))}
               {pausedQuestions.map((question: Question) => (
@@ -374,11 +355,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                     question.id === studentDemoId ||
                     question.id === studentQuestionId
                   }
-                  isBeingReQueued={
-                    question.status === LimboQuestionStatus.ReQueueing
-                  }
-                  isPaused={question.status === OpenQuestionStatus.Paused}
-                  isBeingHelped={question.status === OpenQuestionStatus.Helping}
                 />
               ))}
             </>
@@ -397,11 +373,6 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                 question.id === studentDemoId ||
                 question.id === studentQuestionId
               }
-              isBeingReQueued={
-                question.status === LimboQuestionStatus.ReQueueing
-              }
-              isPaused={question.status === OpenQuestionStatus.Paused}
-              isBeingHelped={question.status === OpenQuestionStatus.Helping}
             />
           ))}
         </>

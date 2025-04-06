@@ -26,9 +26,6 @@ interface QuestionCardProps {
   studentAssignmentProgress?: StudentAssignmentProgress
   configTasks?: ConfigTasks
   isMyQuestion?: boolean
-  isBeingHelped?: boolean
-  isBeingReQueued?: boolean
-  isPaused?: boolean
   className?: string // used to highlight questions or add other classes
 }
 
@@ -41,13 +38,14 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   studentAssignmentProgress,
   configTasks,
   isMyQuestion,
-  isBeingHelped,
-  isBeingReQueued,
-  isPaused,
   className,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const [truncateText, setTruncateText] = useState(true) // after the max-height transition is finished on expanding the text, truncate it to show a `...`
+
+  const isBeingReQueued = question.status === LimboQuestionStatus.ReQueueing
+  const isPaused = question.status === OpenQuestionStatus.Paused
+  const isBeingHelped = question.status === OpenQuestionStatus.Helping
 
   const tasks = question.isTaskQuestion
     ? parseTaskIdsFromQuestionText(question.text)
