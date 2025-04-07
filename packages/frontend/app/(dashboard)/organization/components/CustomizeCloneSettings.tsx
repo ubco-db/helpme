@@ -30,9 +30,6 @@ interface CustomizeCloneSettingsProps {
   organizationSemesters: SemesterPartial[]
 }
 
-// PAT TODO: fix the professor id display so that empty means copy originals, otherwise set new ones specified
-// I like keeping the tag there for same as original so figure out a way to make it mutually exclusive
-
 const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
   courses,
   professors,
