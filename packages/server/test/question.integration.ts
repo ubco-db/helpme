@@ -846,6 +846,9 @@ describe('Question Integration', () => {
         user: student,
         courseId: queue.courseId,
       });
+      const deleteMe1 = await QuestionFactory.create();
+      const deleteMe2 = await QuestionFactory.create();
+      const deleteMe3 = await QuestionFactory.create();
       const q = await QuestionFactory.create({
         text: 'Help pls',
         status: QuestionStatusKeys.Drafting,
@@ -1165,7 +1168,8 @@ describe('Question Integration', () => {
         staffList: [ta],
       });
       expect(await queue.checkIsOpen()).toBe(true);
-
+      const deleteMe1 = await QuestionFactory.create();
+      const deleteMe2 = await QuestionFactory.create();
       const q = await QuestionFactory.create({
         text: 'Help pls',
         status: QuestionStatusKeys.Helping,
@@ -1366,6 +1370,10 @@ describe('Question Integration', () => {
           },
         },
       });
+      const deleteMe3 = await QuestionFactory.create();
+      const deleteMe4 = await QuestionFactory.create();
+      const deleteMe5 = await QuestionFactory.create();
+      const deleteMe6 = await QuestionFactory.create();
 
       const q1 = await QuestionFactory.create({
         text: 'Mark "task2"',
@@ -1460,6 +1468,12 @@ describe('Question Integration', () => {
         },
       });
 
+      const deleteMe3 = await QuestionFactory.create();
+      const deleteMe4 = await QuestionFactory.create();
+      const deleteMe5 = await QuestionFactory.create();
+      const deleteMe6 = await QuestionFactory.create();
+      const deleteMe7 = await QuestionFactory.create();
+
       const q1 = await QuestionFactory.create({
         text: 'Mark "task1"',
         queue: queue,
@@ -1551,6 +1565,13 @@ describe('Question Integration', () => {
         },
       });
 
+      const deleteMe3 = await QuestionFactory.create();
+      const deleteMe4 = await QuestionFactory.create();
+      const deleteMe5 = await QuestionFactory.create();
+      const deleteMe6 = await QuestionFactory.create();
+      const deleteMe7 = await QuestionFactory.create();
+      const deleteMe8 = await QuestionFactory.create();
+
       const q1 = await QuestionFactory.create({
         text: 'Mark "task1"',
         queue: queue,
@@ -1626,6 +1647,14 @@ describe('Question Integration', () => {
           },
         },
       });
+
+      const deleteMe3 = await QuestionFactory.create();
+      const deleteMe4 = await QuestionFactory.create();
+      const deleteMe5 = await QuestionFactory.create();
+      const deleteMe6 = await QuestionFactory.create();
+      const deleteMe7 = await QuestionFactory.create();
+      const deleteMe8 = await QuestionFactory.create();
+      const deleteMe9 = await QuestionFactory.create();
 
       const q1 = await QuestionFactory.create({
         text: 'Mark "taskX"', // taskX does not exist
@@ -1705,6 +1734,8 @@ describe('Question Integration', () => {
         },
       });
 
+      const deleteMe3 = await QuestionFactory.create();
+
       const q1 = await QuestionFactory.create({
         text: 'Mark "SELECT * FROM users', // invalid text
         queue: queue,
@@ -1778,6 +1809,15 @@ describe('Question Integration', () => {
           },
         },
       });
+
+      const deleteMe3 = await QuestionFactory.create();
+      const deleteMe4 = await QuestionFactory.create();
+      const deleteMe5 = await QuestionFactory.create();
+      const deleteMe6 = await QuestionFactory.create();
+      const deleteMe7 = await QuestionFactory.create();
+      const deleteMe8 = await QuestionFactory.create();
+      const deleteMe9 = await QuestionFactory.create();
+      const deleteMe10 = await QuestionFactory.create();
 
       const q1 = await QuestionFactory.create({
         text: 'Mark "task2"',
@@ -1939,6 +1979,16 @@ describe('Question Integration', () => {
         user: student,
         courseId: queue.courseId,
       });
+      const deleteMe3 = await QuestionFactory.create();
+      const deleteMe4 = await QuestionFactory.create();
+      const deleteMe5 = await QuestionFactory.create();
+      const deleteMe6 = await QuestionFactory.create();
+      const deleteMe7 = await QuestionFactory.create();
+      const deleteMe8 = await QuestionFactory.create();
+      const deleteMe9 = await QuestionFactory.create();
+      const deleteMe10 = await QuestionFactory.create();
+      const deleteMe11 = await QuestionFactory.create();
+
       const q = await QuestionFactory.create({
         text: 'Mark "task1" "task2"',
         status: QuestionStatusKeys.Helping,
@@ -2006,6 +2056,16 @@ describe('Question Integration', () => {
         user: student,
         courseId: queue.courseId,
       });
+      const deleteMe3 = await QuestionFactory.create();
+      const deleteMe4 = await QuestionFactory.create();
+      const deleteMe5 = await QuestionFactory.create();
+      const deleteMe6 = await QuestionFactory.create();
+      const deleteMe7 = await QuestionFactory.create();
+      const deleteMe8 = await QuestionFactory.create();
+      const deleteMe9 = await QuestionFactory.create();
+      const deleteMe10 = await QuestionFactory.create();
+      const deleteMe11 = await QuestionFactory.create();
+      const deleteMe12 = await QuestionFactory.create();
       const q = await QuestionFactory.create({
         text: 'Mark "task1"',
         status: QuestionStatusKeys.Helping,
