@@ -377,7 +377,7 @@ export class QueueChatService {
     );
 
     // now notify everyone in the queue to re-fetch their chats
-    await this.queueSSEService.updateQueueChats(queueId);
+    //await this.queueSSEService.updateQueueChats(queueId);
   }
 
   /**
