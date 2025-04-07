@@ -32,9 +32,32 @@ import { forEach } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 import { QUESTION_STATES } from '../src/question/question-fsm';
+import { RedisService } from 'nestjs-redis';
+import { QueueSSEService } from '../src/queue/queue-sse.service';
 
 describe('Question Integration', () => {
-  const { supertest } = setupIntegrationTest(QuestionModule, modifyMockNotifs);
+  const { supertest, getTestModule } = setupIntegrationTest(
+    QuestionModule,
+    modifyMockNotifs,
+  );
+  let redisService: RedisService;
+  let queueSSEService: QueueSSEService;
+
+  beforeEach(async () => {
+    const testModule = getTestModule();
+    redisService = testModule.get<RedisService>(RedisService);
+    queueSSEService = testModule.get<QueueSSEService>(QueueSSEService);
+  });
+
+  afterEach(async () => {
+    // Ensure all Redis operations are complete before closing connections
+    const redis = redisService.getClient('db');
+    const redisSub = redisService.getClient('sub');
+    const redisPub = redisService.getClient('pub');
+
+    // Wait for any pending operations to complete
+    await Promise.all([redis.quit(), redisSub.quit(), redisPub.quit()]);
+  });
 
   const QuestionTypes = [
     {
