@@ -304,10 +304,10 @@ export class QueueChatService {
       });
       if (!question) return [];
 
-      return await this.getChatsForQuestion(queueId, question.id);
+      return this.getChatsForQuestion(queueId, question.id);
     } else {
       // if i'm staff, get all chats with my staffId
-      return await this.getChatsForGivenStaffId(queueId, userId);
+      return this.getChatsForGivenStaffId(queueId, userId);
     }
   }
 

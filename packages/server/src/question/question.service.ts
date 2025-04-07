@@ -169,7 +169,7 @@ export class QuestionService {
             question.taHelped,
             question,
           );
-          await this.queueSSEService.updateQueueChats(question.queueId);
+          //await this.queueSSEService.updateQueueChats(question.queueId);
         }
       }
     } catch (err) {
