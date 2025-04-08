@@ -76,15 +76,15 @@ describe('Question Integration', () => {
   ];
 
   describe('POST /questions', () => {
-    const postQuestion = (
+    const postQuestion = async (
       user: UserModel,
       queue: QueueModel,
       questionTypes: QuestionTypeModel[],
       force = false,
       isTaskQuestion = false,
       questionText = "Don't know recursion",
-    ): supertest.Test =>
-      supertest({ userId: user.id }).post('/questions').send({
+    ): Promise<supertest.Test> =>
+      await supertest({ userId: user.id }).post('/questions').send({
         text: questionText,
         questionTypes: questionTypes,
         queueId: queue.id,
@@ -215,7 +215,8 @@ describe('Question Integration', () => {
 
       await TACourseFactory.create({ user, courseId: queue.courseId });
       expect(await QuestionModel.count({ where: { queueId: 1 } })).toEqual(0);
-      await postQuestion(user, queue, questionTypes).expect(403);
+      const response = await postQuestion(user, queue, questionTypes);
+      expect(response.status).toBe(403);
     });
     it('post question fails with non-existent queue', async () => {
       await supertest({ userId: 99 })
@@ -259,7 +260,8 @@ describe('Question Integration', () => {
         questionTypes.push(currentQuestionType);
       });
 
-      await postQuestion(user, queueImNotIn, questionTypes).expect(404);
+      const response = await postQuestion(user, queueImNotIn, questionTypes);
+      expect(response.status).toBe(404);
     });
 
     it('post question fails on closed queue', async () => {
@@ -284,8 +286,8 @@ describe('Question Integration', () => {
       expect(result).toBe(false);
       const user = await UserFactory.create();
       await StudentCourseFactory.create({ user, courseId: queue.courseId });
-      await supertest({ userId: user.id });
-      await postQuestion(user, queue, questionTypes).expect(400);
+      const response = await postQuestion(user, queue, questionTypes);
+      expect(response.status).toBe(400);
     });
 
     // it('post question fails with bad params', async () => {
@@ -610,11 +612,16 @@ describe('Question Integration', () => {
         courseId: course.id,
       });
 
-      await postQuestion(user, queue2, [], false, true, 'Mark "task1"').expect(
-        201,
+      const res1 = await postQuestion(
+        user,
+        queue2,
+        [],
+        false,
+        true,
+        'Mark "task1"',
       );
+      expect(res1.status).toBe(201);
       const response = await postQuestion(user, queue2, [], false, false);
-
       expect(response.status).toBe(201);
 
       // now try to create a demo question and a regular question. It should fail
@@ -725,7 +732,8 @@ describe('Question Integration', () => {
         questionTypes.push(currentQuestionType);
       });
 
-      await postQuestion(user, queue, questionTypes).expect(201);
+      const response = await postQuestion(user, queue, questionTypes);
+      expect(response.status).toBe(201);
     });
     it('lets student (who is TA in other class) create question', async () => {
       const user = await UserFactory.create();
@@ -763,7 +771,8 @@ describe('Question Integration', () => {
         questionTypes.push(currentQuestionType);
       });
 
-      await postQuestion(user, queue, questionTypes).expect(201);
+      const response = await postQuestion(user, queue, questionTypes);
+      expect(response.status).toBe(201);
     });
     it('works when other queues and courses exist', async () => {
       const user = await UserFactory.create();
@@ -797,7 +806,8 @@ describe('Question Integration', () => {
         questionTypes.push(currentQuestionType);
       });
 
-      await postQuestion(user, queue, questionTypes).expect(201);
+      const response = await postQuestion(user, queue, questionTypes);
+      expect(response.status).toBe(201);
     });
   });
 
