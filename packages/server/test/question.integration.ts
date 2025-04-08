@@ -1952,7 +1952,7 @@ describe('Question Integration', () => {
         },
       });
 
-      const q = await QuestionFactory.create({
+      const q1 = await QuestionFactory.create({
         text: 'Mark "task1" "task2"',
         queue: queue,
         isTaskQuestion: true,
@@ -1962,31 +1962,40 @@ describe('Question Integration', () => {
       });
 
       const response = await supertest({ userId: ta.id })
-        .patch(`/questions/${q.id}`)
+        .patch(`/questions/${q1.id}`)
+        .send({
+          text: 'Mark "task1"',
+          status: QuestionStatusKeys.Resolved,
+        });
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        id: q1.id,
+        text: 'Mark "task1"',
+      });
+      expect(await QuestionModel.findOne({ id: q1.id })).toMatchObject({
+        text: 'Mark "task1"',
+      });
+
+      // check to make sure studentTaskProgress is updated
+      const studentTaskProgress = await StudentTaskProgressModel.findOne({
+        where: { user: student, course: course },
+      });
+      expect(
+        studentTaskProgress.taskProgress.assignment1.assignmentProgress.task1
+          .isDone,
+      ).toBe(true);
+      // task 2 should be undefined
+      expect(
+        studentTaskProgress.taskProgress.assignment1.assignmentProgress.task2,
+      ).toBeUndefined();
+
+      // do a thing which will magically make things work please
+      const response2 = await supertest({ userId: ta.id })
+        .patch(`/questions/${q1.id}`)
         .send({
           status: QuestionStatusKeys.Resolved,
         });
-      // expect(response.status).toBe(200);
-      // expect(response.body).toMatchObject({
-      //   id: q.id,
-      //   text: 'Mark "task1"',
-      // });
-      // expect(await QuestionModel.findOne({ id: q.id })).toMatchObject({
-      //   text: 'Mark "task1"',
-      // });
-
-      // // check to make sure studentTaskProgress is updated
-      // const studentTaskProgress = await StudentTaskProgressModel.findOne({
-      //   where: { user: student, course: course },
-      // });
-      // expect(
-      //   studentTaskProgress.taskProgress.assignment1.assignmentProgress.task1
-      //     .isDone,
-      // ).toBe(true);
-      // // task 2 should be undefined
-      // expect(
-      //   studentTaskProgress.taskProgress.assignment1.assignmentProgress.task2,
-      // ).toBeUndefined();
+      expect(response2.status).toBe(400);
     });
     it('TaskQuestions: When TAs modify the questions text, it checks for valid tasks', async () => {
       const course = await CourseFactory.create();
