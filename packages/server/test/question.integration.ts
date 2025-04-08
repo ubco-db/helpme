@@ -892,15 +892,6 @@ describe('Question Integration', () => {
         courseId: queue.courseId,
       });
 
-      const deleteMe1 = await QuestionFactory.create();
-      const deleteMe2 = await QuestionFactory.create();
-      const deleteMe3 = await QuestionFactory.create();
-      const deleteMe4 = await QuestionFactory.create();
-      const deleteMe5 = await QuestionFactory.create();
-      const deleteMe6 = await QuestionFactory.create();
-      const deleteMe7 = await QuestionFactory.create();
-      const deleteMe8 = await QuestionFactory.create();
-
       const q = await QuestionFactory.create({
         text: 'Mark "task1" "task2"',
         status: QuestionStatusKeys.Helping,
@@ -917,6 +908,8 @@ describe('Question Integration', () => {
           status: QuestionStatusKeys.Resolved,
         })
         .expect(200);
+      // wait 0.25s to help connection issue?
+      await new Promise((resolve) => setTimeout(resolve, 250));
       expect(response.body).toMatchObject({
         id: q.id,
         text: 'Mark "task1"',
