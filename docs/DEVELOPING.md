@@ -11,6 +11,7 @@
       - [Migrations](#migrations)
     - [Adding an API Route](#adding-an-api-route)
     - [Testing](#testing)
+      - [All tests are failing locally](#all-tests-are-failing-locally)
     - [Installing new packages](#installing-new-packages)
   - [Code Formatting](#code-formatting)
   - [Tips](#tips)
@@ -132,6 +133,24 @@ If `yarn test` is not running all of the tests, navigate to `server/test` folder
 
 > [!NOTE]
 > cypress is currently broken (and its code was recently removed). Only the endpoints are being tested right now
+
+#### All tests are failing locally
+
+If all your tests are failing locally but passing on github actions, it likely means that there is still stuff in your `test` database that hasn't been deleted.
+
+To fix this, run the following sql command on your `test` database to delete all tables:
+
+```sql
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO public;
+```
+
+From there, your tests should start passing again.
+
+If you're getting "deadlock detected", there is no known way of fixing that.
 
 ### Installing new packages
 
