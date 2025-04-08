@@ -1923,8 +1923,13 @@ describe('Question Integration', () => {
     });
     it("TaskQuestions: Allows TAs to edit a task question's text while it is being marked and only marks the new tasks", async () => {
       const course = await CourseFactory.create();
+      const student = await UserFactory.create();
       const ta = await UserFactory.create();
       await TACourseFactory.create({ course: course, user: ta });
+      await StudentCourseFactory.create({
+        user: student,
+        course: course,
+      });
       const queue = await QueueFactory.create({
         course: course,
         staffList: [ta],
@@ -1946,48 +1951,43 @@ describe('Question Integration', () => {
           },
         },
       });
-      const student = await UserFactory.create();
-      await StudentCourseFactory.create({
-        user: student,
-        courseId: queue.courseId,
-      });
 
       const q = await QuestionFactory.create({
         text: 'Mark "task1" "task2"',
-        status: QuestionStatusKeys.Helping,
         queue: queue,
-        creator: student,
         isTaskQuestion: true,
+        status: QuestionStatusKeys.Helping,
+        creator: student,
         taHelped: ta,
       });
 
-      // const response = await supertest({ userId: ta.id })
-      //   .patch(`/questions/${q.id}`)
-      //   .send({
-      //     // text: 'Mark "task1"',
-      //     status: QuestionStatusKeys.Resolved,
-      //   })
-      //   .expect(200);
-      // expect(response.body).toMatchObject({
-      //   id: q.id,
-      //   text: 'Mark "task1"',
-      // });
-      // expect(await QuestionModel.findOne({ id: q.id })).toMatchObject({
-      //   text: 'Mark "task1"',
-      // });
+      const response = await supertest({ userId: ta.id })
+        .patch(`/questions/${q.id}`)
+        .send({
+          text: 'Mark "task1"',
+          status: QuestionStatusKeys.Resolved,
+        });
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        id: q.id,
+        text: 'Mark "task1"',
+      });
+      expect(await QuestionModel.findOne({ id: q.id })).toMatchObject({
+        text: 'Mark "task1"',
+      });
 
-      // // check to make sure studentTaskProgress is updated
-      // const studentTaskProgress = await StudentTaskProgressModel.findOne({
-      //   where: { user: student, course: course },
-      // });
-      // expect(
-      //   studentTaskProgress.taskProgress.assignment1.assignmentProgress.task1
-      //     .isDone,
-      // ).toBe(true);
-      // // task 2 should be undefined
-      // expect(
-      //   studentTaskProgress.taskProgress.assignment1.assignmentProgress.task2,
-      // ).toBeUndefined();
+      // check to make sure studentTaskProgress is updated
+      const studentTaskProgress = await StudentTaskProgressModel.findOne({
+        where: { user: student, course: course },
+      });
+      expect(
+        studentTaskProgress.taskProgress.assignment1.assignmentProgress.task1
+          .isDone,
+      ).toBe(true);
+      // task 2 should be undefined
+      expect(
+        studentTaskProgress.taskProgress.assignment1.assignmentProgress.task2,
+      ).toBeUndefined();
     });
     it('TaskQuestions: When TAs modify the questions text, it checks for valid tasks', async () => {
       const course = await CourseFactory.create();
