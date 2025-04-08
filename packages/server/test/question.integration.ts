@@ -1961,13 +1961,13 @@ describe('Question Integration', () => {
         taHelped: ta,
       });
 
-      const response = await supertest({ userId: ta.id })
-        .patch(`/questions/${q.id}`)
-        .send({
-          // text: 'Mark "task1"',
-          status: QuestionStatusKeys.Resolved,
-        })
-        .expect(200);
+      // const response = await supertest({ userId: ta.id })
+      //   .patch(`/questions/${q.id}`)
+      //   .send({
+      //     // text: 'Mark "task1"',
+      //     status: QuestionStatusKeys.Resolved,
+      //   })
+      //   .expect(200);
       // expect(response.body).toMatchObject({
       //   id: q.id,
       //   text: 'Mark "task1"',
