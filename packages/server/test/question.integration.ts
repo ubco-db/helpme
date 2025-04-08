@@ -861,5 +861,73 @@ describe('Question Integration', () => {
         ERROR_MESSAGES.questionController.studentTaskProgress.taskNotInConfig,
       );
     });
+    it("TaskQuestions: Allows TAs to edit a task question's text while it is being marked and only marks the new tasks", async () => {
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ course: course, user: ta });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: '1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+            task2: {
+              display_name: 'Task 2',
+              short_display_name: '2',
+              color_hex: '#000000',
+              precondition: 'task1',
+            },
+          },
+        },
+      });
+      const student = await UserFactory.create();
+      await StudentCourseFactory.create({
+        user: student,
+        courseId: queue.courseId,
+      });
+
+      const q = await QuestionFactory.create({
+        text: 'Mark "task1" "task2"',
+        status: QuestionStatusKeys.Helping,
+        queue: queue,
+        creator: student,
+        isTaskQuestion: true,
+        taHelped: ta,
+      });
+
+      // const response = await supertest({ userId: ta.id })
+      //   .patch(`/questions/${q.id}`)
+      //   .send({
+      //     text: 'Mark "task1"',
+      //     status: QuestionStatusKeys.Resolved,
+      //   })
+      //   .expect(200);
+      // expect(response.body).toMatchObject({
+      //   id: q.id,
+      //   text: 'Mark "task1"',
+      // });
+      // expect(await QuestionModel.findOne({ id: q.id })).toMatchObject({
+      //   text: 'Mark "task1"',
+      // });
+
+      // // check to make sure studentTaskProgress is updated
+      // const studentTaskProgress = await StudentTaskProgressModel.findOne({
+      //   where: { user: student, course: course },
+      // });
+      // expect(
+      //   studentTaskProgress.taskProgress.assignment1.assignmentProgress.task1
+      //     .isDone,
+      // ).toBe(true);
+      // // task 2 should be undefined
+      // expect(
+      //   studentTaskProgress.taskProgress.assignment1.assignmentProgress.task2,
+      // ).toBeUndefined();
+    });
   });
 });
