@@ -150,7 +150,7 @@ GRANT ALL ON SCHEMA public TO public;
 
 From there, your tests should start passing again.
 
-If you're getting "deadlock detected", there is no known way of fixing that.
+If you're getting "deadlock detected", there is no known way of fixing that, other than there may just be tests that are missing awaits and are trying to do stuff at the same time.
 
 ### Installing new packages
 
