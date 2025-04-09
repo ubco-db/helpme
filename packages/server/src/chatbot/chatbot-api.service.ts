@@ -173,6 +173,7 @@ export class ChatbotApiService {
     courseId: number,
     userToken: string,
   ) {
+    // note: will perform an upsert if the body.metadata has an asyncQuestionId, rather than just an insert
     return this.request('POST', 'documentChunk', courseId, userToken, body);
   }
 

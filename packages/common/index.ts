@@ -298,16 +298,25 @@ interface Loc {
   pageNumber: number
 }
 
+export interface ChatbotChunkMetadata {
+  name: string // name when cited (e.g. "L2 Slides")
+  type: string // "inserted_question", "inserted_async_question", etc.
+  source?: string // source url
+  loc?: Loc
+  id?: string
+  courseId?: number
+  // below only added in chunks from April 2025 onwards
+  firstInsertedAt?: Date
+  lastUpdatedAt?: Date
+  shouldProbablyKeepWhenCloning?: boolean
+  asyncQuestionId?: number // inserted async questions only
+}
+
 // source document return type (from chatbot db)
+// Actually this is kinda messy. It's supposed to just be a chunk, not a full document, but it's also used for the full documents on the frontend. TODO: maybe refactor that a little
 export interface SourceDocument {
   id?: string
-  metadata?: {
-    loc?: Loc
-    name: string
-    type?: string
-    source?: string
-    courseId?: string
-  }
+  metadata?: ChatbotChunkMetadata
   type?: string
   // TODO: is it content or pageContent? since this file uses both. EDIT: It seems to be both/either. Gross.
   content?: string
@@ -358,14 +367,7 @@ export interface ChatbotAskSuggestedParams {
 
 export interface AddDocumentChunkParams {
   documentText: string
-  metadata: {
-    name: string
-    type: string
-    source?: string
-    loc?: Loc
-    id?: string
-    courseId?: number
-  }
+  metadata: ChatbotChunkMetadata
 }
 
 export interface UpdateChatbotQuestionParams {
@@ -848,6 +850,10 @@ export class AsyncQuestionParams {
   @IsOptional()
   @IsInt()
   votesSum?: number
+
+  @IsOptional()
+  @IsBoolean()
+  saveToChatbot?: boolean
 }
 export class AsyncQuestionVotes {
   @IsOptional()

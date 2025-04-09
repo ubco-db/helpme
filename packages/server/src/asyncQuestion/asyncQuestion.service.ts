@@ -1,4 +1,4 @@
-import { MailServiceType, Role } from '@koh/common';
+import { AddDocumentChunkParams, MailServiceType, Role } from '@koh/common';
 import { Injectable } from '@nestjs/common';
 import { MailService } from 'mail/mail.service';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
@@ -8,10 +8,13 @@ import { UserModel } from 'profile/user.entity';
 import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
 import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
-
+import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 @Injectable()
 export class AsyncQuestionService {
-  constructor(private mailService: MailService) {}
+  constructor(
+    private mailService: MailService,
+    private readonly chatbotApiService: ChatbotApiService,
+  ) {}
 
   async sendNewCommentOnMyQuestionEmail(
     commenter: UserModel,
@@ -336,6 +339,34 @@ export class AsyncQuestionService {
         { userId: question.creatorId }, // notify ONLY question creator
       )
       .execute();
+  }
+
+  async upsertQAToChatbot(
+    question: AsyncQuestionModel,
+    courseId: number,
+    userToken: string,
+  ) {
+    const now = new Date();
+    // Since the name can take up quite a bit of space, no more than 60 characters (show ... if longer)
+    const chunkName = `${(question.questionAbstract ?? question.questionText).slice(0, 60)}${(question.questionAbstract ?? question.questionText).length > 60 ? '...' : ''}`;
+    const chunkParams: AddDocumentChunkParams = {
+      documentText: `Question: ${question.questionText}\nAnswer: ${question.answerText}`,
+      metadata: {
+        name: chunkName,
+        type: 'inserted_async_question',
+        asyncQuestionId: question.id,
+        source: `/course/${courseId}/async_centre`,
+        courseId: courseId,
+        firstInsertedAt: now, // note that the chatbot will ignore this field if its an update
+        lastUpdatedAt: now,
+        shouldProbablyKeepWhenCloning: true,
+      },
+    };
+    await this.chatbotApiService.addDocumentChunk(
+      chunkParams,
+      courseId,
+      userToken,
+    );
   }
 
   /**

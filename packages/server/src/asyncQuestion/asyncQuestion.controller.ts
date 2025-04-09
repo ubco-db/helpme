@@ -187,7 +187,7 @@ export class asyncQuestionController {
   @Patch('student/:questionId')
   @UseGuards(AsyncQuestionRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR) // since were letting staff post questions, they might end up calling this endpoint to update their own questions
-  async updateStudentQuestion(
+  async updateQuestionStudent(
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
     @UserId() userId: number,
@@ -282,10 +282,10 @@ export class asyncQuestionController {
   @Patch('faculty/:questionId')
   @UseGuards(AsyncQuestionRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
-  async updateTAQuestion(
+  async updateQuestionStaff(
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
-    @UserId() userId: number,
+    @User(['chat_token']) user: UserModel,
   ): Promise<AsyncQuestionParams> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
@@ -312,7 +312,7 @@ export class asyncQuestionController {
     // Verify if user is TA/PROF of the course
     const requester = await UserCourseModel.findOne({
       where: {
-        userId: userId,
+        userId: user.id,
         courseId: courseId,
       },
     });
@@ -331,7 +331,7 @@ export class asyncQuestionController {
 
     if (body.status === asyncQuestionStatus.HumanAnswered) {
       question.closedAt = new Date();
-      question.taHelpedId = userId;
+      question.taHelpedId = user.id;
       await this.asyncQuestionService.sendQuestionAnsweredEmail(question);
     } else if (
       body.status !== asyncQuestionStatus.TADeleted &&
@@ -348,12 +348,21 @@ export class asyncQuestionController {
 
     const updatedQuestion = await question.save();
 
+    // if saveToChatbot is true, add the question to the chatbot
+    if (body.saveToChatbot) {
+      await this.asyncQuestionService.upsertQAToChatbot(
+        updatedQuestion,
+        courseId,
+        user.chat_token.token,
+      );
+    }
+
     // Mark as new unread for all students if the question is marked as visible
     if (body.visible && !oldQuestion.visible) {
       await this.asyncQuestionService.markUnreadForRoles(
         updatedQuestion,
         [Role.STUDENT],
-        userId,
+        user.id,
       );
     }
     // When the question creator gets their question human verified, notify them

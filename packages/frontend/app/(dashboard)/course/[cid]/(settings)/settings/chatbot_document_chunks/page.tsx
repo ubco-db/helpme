@@ -10,20 +10,22 @@ import EditDocumentChunkModal from './components/EditChatbotDocumentChunkModal'
 import { AddDocumentChunkParams, SourceDocument } from '@koh/common'
 import { API } from '@/app/api'
 import ChunkHelpTooltip from './components/ChunkHelpTooltip'
+import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
 
 interface FormValues {
   content: string
+  name: string
   source: string
   pageNumber: string
 }
 
-interface ChatbotDocumentsProps {
+interface ChatbotDocumentChunksProps {
   params: { cid: string }
 }
 
-export default function ChatbotDocuments({
+export default function ChatbotDocumentChunks({
   params,
-}: ChatbotDocumentsProps): ReactElement {
+}: ChatbotDocumentChunksProps): ReactElement {
   const courseId = Number(params.cid)
   const [documents, setDocuments] = useState<SourceDocument[]>([])
   const [filteredDocuments, setFilteredDocuments] = useState<SourceDocument[]>(
@@ -36,17 +38,23 @@ export default function ChatbotDocuments({
   const [editRecordModalOpen, setEditRecordModalOpen] = useState(false)
   const [form] = Form.useForm()
   const [addDocChunkPopupVisible, setAddDocChunkPopupVisible] = useState(false)
+  const [dataLoading, setDataLoading] = useState(false)
 
   const addDocument = async (values: FormValues) => {
+    const now = new Date()
     const body: AddDocumentChunkParams = {
       documentText: values.content,
       metadata: {
-        name: 'Manually Inserted Information',
+        name: values.name ?? 'Manually Inserted Info',
         type: 'inserted_document',
         source: values.source ?? undefined,
         loc: values.pageNumber
           ? { pageNumber: parseInt(values.pageNumber) }
           : undefined,
+        shouldProbablyKeepWhenCloning: true,
+        courseId: courseId,
+        firstInsertedAt: now,
+        lastUpdatedAt: now,
       },
     }
     await API.chatbot.staffOnly
@@ -62,6 +70,7 @@ export default function ChatbotDocuments({
   }
 
   const fetchDocuments = useCallback(async () => {
+    setDataLoading(true)
     await API.chatbot.staffOnly
       .getAllDocumentChunks(courseId)
       .then((response) => {
@@ -76,7 +85,10 @@ export default function ChatbotDocuments({
         const errorMessage = getErrorMessage(e)
         message.error('Failed to load documents: ' + errorMessage)
       })
-  }, [courseId, setDocuments, setFilteredDocuments])
+      .finally(() => {
+        setDataLoading(false)
+      })
+  }, [courseId, setDocuments, setFilteredDocuments, setDataLoading])
 
   useEffect(() => {
     if (courseId) {
@@ -84,7 +96,7 @@ export default function ChatbotDocuments({
     }
   }, [courseId, fetchDocuments])
 
-  const columns = [
+  const columns: any[] = [
     {
       title: 'Name',
       dataIndex: ['metadata', 'name'],
@@ -105,7 +117,12 @@ export default function ChatbotDocuments({
             prefetch={false}
             rel="noopener noreferrer"
           >
-            {text}
+            <Highlighter
+              highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+              searchWords={[search]}
+              autoEscape
+              textToHighlight={text ? text.toString() : ''}
+            />
           </Link>
         </ExpandableText>
       ),
@@ -130,6 +147,24 @@ export default function ChatbotDocuments({
       dataIndex: ['metadata', 'loc', 'pageNumber'],
       key: 'pageNumber',
       width: 40,
+    },
+    {
+      title: 'Created At',
+      dataIndex: ['metadata', 'firstInsertedAt'],
+      key: 'firstInsertedAt',
+      defaultSortOrder: 'descend',
+      width: 90,
+      sorter: (a: SourceDocument, b: SourceDocument) => {
+        const A = a.metadata?.firstInsertedAt
+          ? new Date(a.metadata.firstInsertedAt).getTime()
+          : 0
+        const B = b.metadata?.firstInsertedAt
+          ? new Date(b.metadata.firstInsertedAt).getTime()
+          : 0
+        return A - B
+      },
+      render: (firstInsertedAt: Date) =>
+        formatDateAndTimeForExcel(firstInsertedAt),
     },
     {
       title: 'Actions',
@@ -190,7 +225,8 @@ export default function ChatbotDocuments({
     const searchTerm = e.target.value.toLowerCase()
     const filtered = documents.filter((doc) => {
       const isNameMatch = doc.pageContent
-        ? doc.pageContent.toLowerCase().includes(searchTerm)
+        ? doc.pageContent.toLowerCase().includes(searchTerm) ||
+          doc.metadata?.name?.toLowerCase().includes(searchTerm)
         : false
       return isNameMatch
     })
@@ -258,11 +294,18 @@ export default function ChatbotDocuments({
               >
                 <Input.TextArea />
               </Form.Item>
+              <Form.Item
+                label="Name"
+                name="name"
+                tooltip={`When this chunk is cited, it will show this name. Defaults to "Manually Inserted Info" if not specified.`}
+              >
+                <Input placeholder="Manually Inserted Info" />
+              </Form.Item>
               {/* <Form.Item label="Edited Chunk" name="editedChunk">
               <Input.TextArea />
             </Form.Item> */}
               <Form.Item
-                label="Source"
+                label="Source URL"
                 name="source"
                 rules={[
                   {
@@ -270,13 +313,14 @@ export default function ChatbotDocuments({
                     message: 'Please enter a valid URL',
                   },
                 ]}
-                tooltip="When a student clicks on the citation, they will be redirected to this link"
+                tooltip="When a student clicks on the citation, they will be redirected to this link. Can be a link to anything."
               >
-                <Input />
+                <Input placeholder="https://canvas.ubc.ca/courses/.../pages/..." />
               </Form.Item>
               <Form.Item
                 label="Page Number"
                 name="pageNumber"
+                tooltip="If the document in the Source URL is multi-page (e.g. a PDF), the content of the chunk should be found on this page. This is only for display purposes so that the citation says 'My doc p.3' for example. Feel free to leave this as 0 or blank."
                 rules={[
                   {
                     type: 'number',
@@ -319,7 +363,13 @@ export default function ChatbotDocuments({
         onPressEnter={fetchDocuments}
       />
       <div className="flex justify-between">
-        <Table columns={columns} dataSource={filteredDocuments} size="small" />
+        <Table
+          columns={columns}
+          dataSource={filteredDocuments}
+          size="small"
+          bordered
+          loading={documents.length === 0 && dataLoading}
+        />
       </div>
       {editingRecord && (
         <EditDocumentChunkModal

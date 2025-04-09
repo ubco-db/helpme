@@ -69,13 +69,17 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   const handleOkInsert = async () => {
     const values = await form.validateFields()
     setSaveLoading(true)
+    const now = new Date()
     const newChunk: AddDocumentChunkParams = {
       documentText: values.question + '\nAnswer:' + values.answer,
       metadata: {
-        name: 'inserted Q&A',
+        name: 'Previously Asked Question',
         type: 'inserted_question',
         id: editingRecord.vectorStoreId,
         courseId: cid,
+        firstInsertedAt: now,
+        lastUpdatedAt: now,
+        shouldProbablyKeepWhenCloning: true,
       },
     }
     await API.chatbot.staffOnly
