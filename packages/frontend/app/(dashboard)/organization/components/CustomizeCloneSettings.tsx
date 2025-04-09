@@ -146,8 +146,8 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
     [courses, selectedCourseIds],
   )
   return (
-    <div className="flex h-full">
-      <div className="flex w-1/3 bg-gray-200">
+    <div className="relative flex h-full gap-2">
+      <div className="flex w-1/3">
         <Table
           dataSource={selectedCourses}
           columns={columns}
@@ -162,6 +162,7 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
           }
         />
       </div>
+      <div className="absolute left-1/3 h-full w-0.5 translate-x-1.5 transform bg-gray-300"></div>
       <div className="h-full w-2/3 overflow-y-auto pl-4">
         {selectedCourseId ? (
           <div>
@@ -353,8 +354,12 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
                   curValues.cloneCourseSettings?.chatBotEnabled
                 }
               >
-                {({ getFieldValue }) =>
-                  getFieldValue(['cloneCourseSettings', 'chatBotEnabled']) ? (
+                {({ getFieldValue }) => {
+                  const chatBotEnabled = getFieldValue([
+                    'cloneCourseSettings',
+                    'chatBotEnabled',
+                  ])
+                  return (
                     <>
                       <Form.Item label="Chatbot Settings">
                         <div className="ml-4 flex flex-col">
@@ -363,14 +368,30 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
                             noStyle
                             valuePropName="checked"
                           >
-                            <Checkbox>Model Name</Checkbox>
+                            <Checkbox disabled={!chatBotEnabled}>
+                              Model Name
+                              {!chatBotEnabled && (
+                                <span className="ml-2 text-xs italic text-gray-400">
+                                  (Requires &quot;ChatBot Enabled&quot; to be
+                                  checked)
+                                </span>
+                              )}
+                            </Checkbox>
                           </Form.Item>
                           <Form.Item
                             name={['chatbotSettings', 'prompt']}
                             noStyle
                             valuePropName="checked"
                           >
-                            <Checkbox>Model Prompt</Checkbox>
+                            <Checkbox disabled={!chatBotEnabled}>
+                              Model Prompt
+                              {!chatBotEnabled && (
+                                <span className="ml-2 text-xs italic text-gray-400">
+                                  (Requires &quot;ChatBot Enabled&quot; to be
+                                  checked)
+                                </span>
+                              )}
+                            </Checkbox>
                           </Form.Item>
                           <Form.Item
                             name={[
@@ -380,8 +401,14 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
                             noStyle
                             valuePropName="checked"
                           >
-                            <Checkbox>
+                            <Checkbox disabled={!chatBotEnabled}>
                               Similarity Threshold for Documents
+                              {!chatBotEnabled && (
+                                <span className="ml-2 text-xs italic text-gray-400">
+                                  (Requires &quot;ChatBot Enabled&quot; to be
+                                  checked)
+                                </span>
+                              )}
                             </Checkbox>
                           </Form.Item>
                           <Form.Item
@@ -392,8 +419,14 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
                             noStyle
                             valuePropName="checked"
                           >
-                            <Checkbox>
+                            <Checkbox disabled={!chatBotEnabled}>
                               Similarity Threshold for Questions
+                              {!chatBotEnabled && (
+                                <span className="ml-2 text-xs italic text-gray-400">
+                                  (Requires &quot;ChatBot Enabled&quot; to be
+                                  checked)
+                                </span>
+                              )}
                             </Checkbox>
                           </Form.Item>
                           <Form.Item
@@ -401,14 +434,30 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
                             noStyle
                             valuePropName="checked"
                           >
-                            <Checkbox>Temperature</Checkbox>
+                            <Checkbox disabled={!chatBotEnabled}>
+                              Temperature
+                              {!chatBotEnabled && (
+                                <span className="ml-2 text-xs italic text-gray-400">
+                                  (Requires &quot;ChatBot Enabled&quot; to be
+                                  checked)
+                                </span>
+                              )}
+                            </Checkbox>
                           </Form.Item>
                           <Form.Item
                             name={['chatbotSettings', 'topK']}
                             noStyle
                             valuePropName="checked"
                           >
-                            <Checkbox>Top K</Checkbox>
+                            <Checkbox disabled={!chatBotEnabled}>
+                              Top K
+                              {!chatBotEnabled && (
+                                <span className="ml-2 text-xs italic text-gray-400">
+                                  (Requires &quot;ChatBot Enabled&quot; to be
+                                  checked)
+                                </span>
+                              )}
+                            </Checkbox>
                           </Form.Item>
                         </div>
                       </Form.Item>
@@ -422,9 +471,15 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
                             valuePropName="checked"
                             noStyle
                           >
-                            <Checkbox>
+                            <Checkbox disabled={!chatBotEnabled}>
                               Include Chatbot Documents (This process will take
                               a long time)
+                              {!chatBotEnabled && (
+                                <span className="ml-2 text-xs italic text-gray-400">
+                                  (Requires &quot;ChatBot Enabled&quot; to be
+                                  checked)
+                                </span>
+                              )}
                             </Checkbox>
                           </Form.Item>
                           <Form.Item
@@ -434,26 +489,40 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
                               curValues.includeDocuments
                             }
                           >
-                            {({ getFieldValue }) =>
-                              getFieldValue('includeDocuments') ? (
+                            {({ getFieldValue }) => {
+                              const documentsEnabled =
+                                getFieldValue('includeDocuments')
+                              return (
                                 <Form.Item
                                   name="includeInsertedQuestions"
                                   valuePropName="checked"
                                   noStyle
                                 >
-                                  <Checkbox className="ml-4">
+                                  <Checkbox
+                                    className="ml-4"
+                                    disabled={
+                                      !chatBotEnabled || !documentsEnabled
+                                    }
+                                  >
                                     Include Manually Inserted Questions from
                                     Chatbot Interactions
+                                    {(!chatBotEnabled || !documentsEnabled) && (
+                                      <span className="ml-2 text-xs italic text-gray-400">
+                                        {!chatBotEnabled
+                                          ? '(Requires "ChatBot Enabled" to be checked)'
+                                          : '(Requires "Include Chatbot Documents" to be checked)'}
+                                      </span>
+                                    )}
                                   </Checkbox>
                                 </Form.Item>
-                              ) : null
-                            }
+                              )
+                            }}
                           </Form.Item>
                         </div>
                       </Form.Item>
                     </>
-                  ) : null
-                }
+                  )
+                }}
               </Form.Item>
             </Form>
           </div>

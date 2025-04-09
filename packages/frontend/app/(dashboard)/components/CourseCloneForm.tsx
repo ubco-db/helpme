@@ -392,8 +392,12 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
               curValues.cloneCourseSettings?.chatBotEnabled
             }
           >
-            {({ getFieldValue }) =>
-              getFieldValue(['cloneCourseSettings', 'chatBotEnabled']) ? (
+            {({ getFieldValue }) => {
+              const chatBotEnabled = getFieldValue([
+                'cloneCourseSettings',
+                'chatBotEnabled',
+              ])
+              return (
                 <>
                   <Form.Item label="Chatbot Settings">
                     <div className="ml-4 flex flex-col">
@@ -402,14 +406,30 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                         noStyle
                         valuePropName="checked"
                       >
-                        <Checkbox>Model Name</Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
+                          Model Name
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
+                        </Checkbox>
                       </Form.Item>
                       <Form.Item
                         name={['chatbotSettings', 'prompt']}
                         noStyle
                         valuePropName="checked"
                       >
-                        <Checkbox>Model Prompt</Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
+                          Model Prompt
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
+                        </Checkbox>
                       </Form.Item>
                       <Form.Item
                         name={[
@@ -419,7 +439,15 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                         noStyle
                         valuePropName="checked"
                       >
-                        <Checkbox>Similarity Threshold for Documents</Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
+                          Similarity Threshold for Documents
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
+                        </Checkbox>
                       </Form.Item>
                       <Form.Item
                         name={[
@@ -429,21 +457,45 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                         noStyle
                         valuePropName="checked"
                       >
-                        <Checkbox>Similarity Threshold for Questions</Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
+                          Similarity Threshold for Questions
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
+                        </Checkbox>
                       </Form.Item>
                       <Form.Item
                         name={['chatbotSettings', 'temperature']}
                         noStyle
                         valuePropName="checked"
                       >
-                        <Checkbox>Temperature</Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
+                          Temperature
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
+                        </Checkbox>
                       </Form.Item>
                       <Form.Item
                         name={['chatbotSettings', 'topK']}
                         noStyle
                         valuePropName="checked"
                       >
-                        <Checkbox>Top K</Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
+                          Top K
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
+                        </Checkbox>
                       </Form.Item>
                     </div>
                   </Form.Item>
@@ -457,9 +509,15 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                         valuePropName="checked"
                         noStyle
                       >
-                        <Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
                           Include Chatbot Documents (This process will take a
                           long time)
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
                         </Checkbox>
                       </Form.Item>
                       <Form.Item
@@ -469,26 +527,38 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                           curValues.includeDocuments
                         }
                       >
-                        {({ getFieldValue }) =>
-                          getFieldValue('includeDocuments') ? (
+                        {({ getFieldValue }) => {
+                          const documentsEnabled =
+                            getFieldValue('includeDocuments')
+                          return (
                             <Form.Item
                               name="includeInsertedQuestions"
                               valuePropName="checked"
                               noStyle
                             >
-                              <Checkbox className="ml-4">
+                              <Checkbox
+                                className="ml-4"
+                                disabled={!chatBotEnabled || !documentsEnabled}
+                              >
                                 Include Manually Inserted Questions from Chatbot
                                 Interactions
+                                {(!chatBotEnabled || !documentsEnabled) && (
+                                  <span className="ml-2 text-xs italic text-gray-400">
+                                    {!chatBotEnabled
+                                      ? '(Requires "ChatBot Enabled" to be checked)'
+                                      : '(Requires "Include Chatbot Documents" to be checked)'}
+                                  </span>
+                                )}
                               </Checkbox>
                             </Form.Item>
-                          ) : null
-                        }
+                          )
+                        }}
                       </Form.Item>
                     </div>
                   </Form.Item>
                 </>
-              ) : null
-            }
+              )
+            }}
           </Form.Item>
         </Form>
       </Modal>

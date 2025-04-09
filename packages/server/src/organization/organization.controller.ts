@@ -1623,7 +1623,7 @@ export class OrganizationController {
         if (!cloneData) {
           progressLog.push({
             success: false,
-            message: `Course "${course.name}" with id ${courseId} is missing clone parameters`,
+            message: `Course "${course.name.trim()}" with id ${courseId} is missing clone parameters`,
           });
         }
 
@@ -1637,12 +1637,12 @@ export class OrganizationController {
 
           progressLog.push({
             success: true,
-            message: `Successfully cloned course "${course.name}" with id ${courseId}`,
+            message: `Successfully cloned course "${course.name.trim()}" with id ${courseId}`,
           });
         } catch (error) {
           progressLog.push({
             success: false,
-            message: `Error cloning course "${course.name}" with id ${courseId}: ${error}`,
+            message: `Error cloning course "${course.name.trim()}" with id ${courseId}: ${error}`,
           });
         }
       }

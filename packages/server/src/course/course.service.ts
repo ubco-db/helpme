@@ -560,73 +560,11 @@ export class CourseService {
 
       // -------------- For Chatbot Settings and Documents --------------
 
-      const getSettingsResponse = await fetch(
-        `http://localhost:3003/chat/${courseId}/oneChatbotSetting`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: chatToken,
-          },
-        },
-      );
-
-      if (!getSettingsResponse.ok) {
-        console.error(
-          `Failed to get current course chatbot data in chatbot service: [${getSettingsResponse.status}] ${getSettingsResponse.statusText}`,
-        );
-        throw new BadRequestException(
-          'Failed to fetch current course chatbot data from chatbot service',
-        );
-      }
-
-      const chatbotData: ChatbotSettings = await getSettingsResponse.json();
-
-      const clonedChatbotData: ChatbotSettings = defaultChatbotSetting;
-
-      if (cloneData.chatbotSettings.modelName) {
-        clonedChatbotData.modelName = chatbotData.modelName;
-      }
-      if (cloneData.chatbotSettings.prompt) {
-        clonedChatbotData.prompt = chatbotData.prompt;
-      }
-      if (cloneData.chatbotSettings.similarityThresholdDocuments) {
-        clonedChatbotData.similarityThresholdDocuments =
-          chatbotData.similarityThresholdDocuments;
-      }
-      if (cloneData.chatbotSettings.temperature) {
-        clonedChatbotData.temperature = chatbotData.temperature;
-      }
-      if (cloneData.chatbotSettings.topK) {
-        clonedChatbotData.topK = chatbotData.topK;
-      }
-
-      const patchSettingsResponse = await fetch(
-        `http://localhost:3003/chat/${clonedCourse.id}/updateChatbotSetting`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: chatToken,
-          },
-          body: JSON.stringify(clonedChatbotData),
-        },
-      );
-
-      if (!patchSettingsResponse.ok) {
-        console.error(
-          `Failed to set cloned chatbot data in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
-        );
-        throw new BadRequestException(
-          'Failed to set cloned chatbot data from chatbot service',
-        );
-      }
-
-      if (cloneData.includeDocuments) {
-        const postDocumentsResponse = await fetch(
-          `http://localhost:3003/chat/${courseId}/cloneCourseDocuments/${clonedCourse.id}/${cloneData.includeInsertedQuestions === true}`,
+      if (cloneData.cloneCourseSettings.chatBotEnabled) {
+        const getSettingsResponse = await fetch(
+          `http://localhost:3003/chat/${courseId}/oneChatbotSetting`,
           {
-            method: 'POST',
+            method: 'GET',
             headers: {
               'Content-Type': 'application/json',
               HMS_API_TOKEN: chatToken,
@@ -634,13 +572,77 @@ export class CourseService {
           },
         );
 
-        if (!postDocumentsResponse.ok) {
+        if (!getSettingsResponse.ok) {
           console.error(
-            `Failed to copy chatbot documents from original course in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
+            `Failed to get current course chatbot data in chatbot service: [${getSettingsResponse.status}] ${getSettingsResponse.statusText}`,
           );
           throw new BadRequestException(
-            'Failed to copy chatbot documents from original course in chatbot service',
+            'Failed to fetch current course chatbot data from chatbot service',
           );
+        }
+
+        const chatbotData: ChatbotSettings = await getSettingsResponse.json();
+
+        const clonedChatbotData: ChatbotSettings = defaultChatbotSetting;
+
+        if (cloneData.chatbotSettings.modelName) {
+          clonedChatbotData.modelName = chatbotData.modelName;
+        }
+        if (cloneData.chatbotSettings.prompt) {
+          clonedChatbotData.prompt = chatbotData.prompt;
+        }
+        if (cloneData.chatbotSettings.similarityThresholdDocuments) {
+          clonedChatbotData.similarityThresholdDocuments =
+            chatbotData.similarityThresholdDocuments;
+        }
+        if (cloneData.chatbotSettings.temperature) {
+          clonedChatbotData.temperature = chatbotData.temperature;
+        }
+        if (cloneData.chatbotSettings.topK) {
+          clonedChatbotData.topK = chatbotData.topK;
+        }
+
+        const patchSettingsResponse = await fetch(
+          `http://localhost:3003/chat/${clonedCourse.id}/updateChatbotSetting`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              HMS_API_TOKEN: chatToken,
+            },
+            body: JSON.stringify(clonedChatbotData),
+          },
+        );
+
+        if (!patchSettingsResponse.ok) {
+          console.error(
+            `Failed to set cloned chatbot data in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
+          );
+          throw new BadRequestException(
+            'Failed to set cloned chatbot data from chatbot service',
+          );
+        }
+
+        if (cloneData.includeDocuments) {
+          const postDocumentsResponse = await fetch(
+            `http://localhost:3003/chat/${courseId}/cloneCourseDocuments/${clonedCourse.id}/${cloneData.includeInsertedQuestions === true}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                HMS_API_TOKEN: chatToken,
+              },
+            },
+          );
+
+          if (!postDocumentsResponse.ok) {
+            console.error(
+              `Failed to copy chatbot documents from original course in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
+            );
+            throw new BadRequestException(
+              'Failed to copy chatbot documents from original course in chatbot service',
+            );
+          }
         }
       }
 
