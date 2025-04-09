@@ -159,6 +159,8 @@ export class SSEService<T> implements OnModuleDestroy {
 
     const roomInfo = await redis.smembers(room).catch((err) => {
       console.error(ERROR_MESSAGES.sseService.roomMembers);
+      console.error('problem room: ' + room);
+      console.error('problem payload: ' + payload.toString());
       console.error(err);
     });
 

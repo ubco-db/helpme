@@ -88,6 +88,8 @@ import {
   ChatbotQuestionResponseChatbotDB,
   AddDocumentChunkParams,
   UpdateChatbotQuestionParams,
+  QueueChatPartial,
+  GetQueueChatsResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -719,23 +721,37 @@ class APIClient {
   }
 
   queueChats = {
-    index: async (
+    get: async (
       queueId: number,
       questionId: number,
+      staffId: number,
     ): Promise<GetQueueChatResponse> =>
       this.req(
         'GET',
-        `/api/v1/queueChats/${queueId}/${questionId}`,
+        `/api/v1/queueChats/${queueId}/${questionId}/${staffId}`,
         GetQueueChatResponse,
       ),
+    startQueueChat: async (
+      queueId: number,
+      questionId: number,
+      staffId: number,
+    ): Promise<QueueChatPartial> =>
+      this.req(
+        'POST',
+        `/api/v1/queueChats/${queueId}/${questionId}/${staffId}`,
+        QueueChatPartial,
+      ),
+    getMyQueueChats: async (queueId: number): Promise<GetQueueChatsResponse> =>
+      this.req('GET', `/api/v1/queueChats/${queueId}`),
     sendMessage: async (
       queueId: number,
       questionId: number,
+      staffId: number,
       message: string,
     ): Promise<void> => {
       this.req(
         'PATCH',
-        `/api/v1/queueChats/${queueId}/${questionId}`,
+        `/api/v1/queueChats/${queueId}/${questionId}/${staffId}`,
         undefined,
         { message },
       )

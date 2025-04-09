@@ -76,15 +76,15 @@ describe('Question Integration', () => {
   ];
 
   describe('POST /questions', () => {
-    const postQuestion = (
+    const postQuestion = async (
       user: UserModel,
       queue: QueueModel,
       questionTypes: QuestionTypeModel[],
       force = false,
       isTaskQuestion = false,
       questionText = "Don't know recursion",
-    ): supertest.Test =>
-      supertest({ userId: user.id }).post('/questions').send({
+    ): Promise<supertest.Test> =>
+      await supertest({ userId: user.id }).post('/questions').send({
         text: questionText,
         questionTypes: questionTypes,
         queueId: queue.id,
@@ -215,9 +215,12 @@ describe('Question Integration', () => {
 
       await TACourseFactory.create({ user, courseId: queue.courseId });
       expect(await QuestionModel.count({ where: { queueId: 1 } })).toEqual(0);
-      await postQuestion(user, queue, questionTypes).expect(403);
+      const response = await postQuestion(user, queue, questionTypes);
+      expect(response.status).toBe(403);
     });
     it('post question fails with non-existent queue', async () => {
+      // wait 0.25s to help deadlock issue?
+      await new Promise((resolve) => setTimeout(resolve, 250));
       await supertest({ userId: 99 })
         .post('/questions')
         .send({
@@ -259,7 +262,8 @@ describe('Question Integration', () => {
         questionTypes.push(currentQuestionType);
       });
 
-      await postQuestion(user, queueImNotIn, questionTypes).expect(404);
+      const response = await postQuestion(user, queueImNotIn, questionTypes);
+      expect(response.status).toBe(404);
     });
 
     it('post question fails on closed queue', async () => {
@@ -284,8 +288,8 @@ describe('Question Integration', () => {
       expect(result).toBe(false);
       const user = await UserFactory.create();
       await StudentCourseFactory.create({ user, courseId: queue.courseId });
-      await supertest({ userId: user.id });
-      await postQuestion(user, queue, questionTypes).expect(400);
+      const response = await postQuestion(user, queue, questionTypes);
+      expect(response.status).toBe(400);
     });
 
     // it('post question fails with bad params', async () => {
@@ -610,11 +614,16 @@ describe('Question Integration', () => {
         courseId: course.id,
       });
 
-      await postQuestion(user, queue2, [], false, true, 'Mark "task1"').expect(
-        201,
+      const res1 = await postQuestion(
+        user,
+        queue2,
+        [],
+        false,
+        true,
+        'Mark "task1"',
       );
+      expect(res1.status).toBe(201);
       const response = await postQuestion(user, queue2, [], false, false);
-
       expect(response.status).toBe(201);
 
       // now try to create a demo question and a regular question. It should fail
@@ -725,7 +734,8 @@ describe('Question Integration', () => {
         questionTypes.push(currentQuestionType);
       });
 
-      await postQuestion(user, queue, questionTypes).expect(201);
+      const response = await postQuestion(user, queue, questionTypes);
+      expect(response.status).toBe(201);
     });
     it('lets student (who is TA in other class) create question', async () => {
       const user = await UserFactory.create();
@@ -763,7 +773,8 @@ describe('Question Integration', () => {
         questionTypes.push(currentQuestionType);
       });
 
-      await postQuestion(user, queue, questionTypes).expect(201);
+      const response = await postQuestion(user, queue, questionTypes);
+      expect(response.status).toBe(201);
     });
     it('works when other queues and courses exist', async () => {
       const user = await UserFactory.create();
@@ -797,7 +808,8 @@ describe('Question Integration', () => {
         questionTypes.push(currentQuestionType);
       });
 
-      await postQuestion(user, queue, questionTypes).expect(201);
+      const response = await postQuestion(user, queue, questionTypes);
+      expect(response.status).toBe(201);
     });
   });
 
@@ -846,6 +858,7 @@ describe('Question Integration', () => {
         user: student,
         courseId: queue.courseId,
       });
+
       const q = await QuestionFactory.create({
         text: 'Help pls',
         status: QuestionStatusKeys.Drafting,
@@ -1165,7 +1178,6 @@ describe('Question Integration', () => {
         staffList: [ta],
       });
       expect(await queue.checkIsOpen()).toBe(true);
-
       const q = await QuestionFactory.create({
         text: 'Help pls',
         status: QuestionStatusKeys.Helping,
@@ -1662,6 +1674,99 @@ describe('Question Integration', () => {
         updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress,
       ).not.toHaveProperty('taskX');
     });
+    /* Tale:
+    i spent so long trying to fix this one test that kept giving this error where it was trying to do something with redis sse service after the test finished and it took sooo long to fix
+    ```
+    Cannot log after tests are done. Did you forget to wait for something async in your test?
+    Attempted to log "Error: Connection is closed."
+    ...
+    at SSEService.sendEvent (../src/sse/sse.service.ts:160:22)
+    at QueueSSEService.sendToRoom (../src/queue/queue-sse.service.ts:70:5)
+    ```
+    There was:
+      - unhelpful error message, and no there was no missing await anywhere
+      - an issue where tests weren't running locally due to the question.integration tests getting a bunch of deadlock errors when running locally (meaning I had to keep using github actions)
+      - it did not say what test was failing or causing the issue, meaning i had to keep deleting half the tests until i could isolate the one causing the issue (it wasn't obvious)
+      - this test that was failing was not modified (or in fact all of the question.integration tests were unmodified, and only one just started erroring)
+      - there is a passing test almost exactly the same as the failing test. Making these two tests exactly the same will still have one of the tests fail
+    and you wanna guess
+    what
+    the
+    fix
+    was?
+    MOVING THE TEST FURTHER UP THE FILE
+    or in other words something that should have NO EFFECT on the tests
+    
+    i love fragile tests that are seemingly fragile for no reason
+    */
+    it("TaskQuestions: Allows TAs to edit a task question's text while it is being marked and only marks the new tasks", async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ course: course, user: ta });
+      await StudentCourseFactory.create({
+        user: student,
+        course: course,
+      });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+        config: {
+          assignment_id: 'assignment1',
+          tasks: {
+            task1: {
+              display_name: 'Task 1',
+              short_display_name: '1',
+              color_hex: '#000000',
+              precondition: null,
+            },
+            task2: {
+              display_name: 'Task 2',
+              short_display_name: '2',
+              color_hex: '#000000',
+              precondition: 'task1',
+            },
+          },
+        },
+      });
+
+      const q1 = await QuestionFactory.create({
+        text: 'Mark "task1" "task2"',
+        queue: queue,
+        isTaskQuestion: true,
+        status: QuestionStatusKeys.Helping,
+        creator: student,
+        taHelped: ta,
+      });
+
+      const response = await supertest({ userId: ta.id })
+        .patch(`/questions/${q1.id}`)
+        .send({
+          text: 'Mark "task1"',
+          status: QuestionStatusKeys.Resolved,
+        });
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        id: q1.id,
+        text: 'Mark "task1"',
+      });
+      expect(await QuestionModel.findOne({ id: q1.id })).toMatchObject({
+        text: 'Mark "task1"',
+      });
+
+      // check to make sure studentTaskProgress is updated
+      const studentTaskProgress = await StudentTaskProgressModel.findOne({
+        where: { user: student, course: course },
+      });
+      expect(
+        studentTaskProgress.taskProgress.assignment1.assignmentProgress.task1
+          .isDone,
+      ).toBe(true);
+      // task 2 should be undefined
+      expect(
+        studentTaskProgress.taskProgress.assignment1.assignmentProgress.task2,
+      ).toBeUndefined();
+    });
     it('TaskQuestions marking: Will not allow question text with invalid text', async () => {
       const course = await CourseFactory.create();
       const student = await UserFactory.create();
@@ -1909,73 +2014,6 @@ describe('Question Integration', () => {
         ERROR_MESSAGES.questionController.studentTaskProgress.taskNotInConfig,
       );
     });
-    it("TaskQuestions: Allows TAs to edit a task question's text while it is being marked and only marks the new tasks", async () => {
-      const course = await CourseFactory.create();
-      const ta = await UserFactory.create();
-      await TACourseFactory.create({ course: course, user: ta });
-      const queue = await QueueFactory.create({
-        course: course,
-        staffList: [ta],
-        config: {
-          assignment_id: 'assignment1',
-          tasks: {
-            task1: {
-              display_name: 'Task 1',
-              short_display_name: '1',
-              color_hex: '#000000',
-              precondition: null,
-            },
-            task2: {
-              display_name: 'Task 2',
-              short_display_name: '2',
-              color_hex: '#000000',
-              precondition: 'task1',
-            },
-          },
-        },
-      });
-      const student = await UserFactory.create();
-      await StudentCourseFactory.create({
-        user: student,
-        courseId: queue.courseId,
-      });
-      const q = await QuestionFactory.create({
-        text: 'Mark "task1" "task2"',
-        status: QuestionStatusKeys.Helping,
-        queue: queue,
-        creator: student,
-        isTaskQuestion: true,
-        taHelped: ta,
-      });
-
-      const response = await supertest({ userId: ta.id })
-        .patch(`/questions/${q.id}`)
-        .send({
-          text: 'Mark "task1"',
-          status: QuestionStatusKeys.Resolved,
-        })
-        .expect(200);
-      expect(response.body).toMatchObject({
-        id: q.id,
-        text: 'Mark "task1"',
-      });
-      expect(await QuestionModel.findOne({ id: q.id })).toMatchObject({
-        text: 'Mark "task1"',
-      });
-
-      // check to make sure studentTaskProgress is updated
-      const studentTaskProgress = await StudentTaskProgressModel.findOne({
-        where: { user: student, course: course },
-      });
-      expect(
-        studentTaskProgress.taskProgress.assignment1.assignmentProgress.task1
-          .isDone,
-      ).toBe(true);
-      // task 2 should be undefined
-      expect(
-        studentTaskProgress.taskProgress.assignment1.assignmentProgress.task2,
-      ).toBeUndefined();
-    });
     it('TaskQuestions: When TAs modify the questions text, it checks for valid tasks', async () => {
       const course = await CourseFactory.create();
       const ta = await UserFactory.create();
@@ -2006,6 +2044,7 @@ describe('Question Integration', () => {
         user: student,
         courseId: queue.courseId,
       });
+
       const q = await QuestionFactory.create({
         text: 'Mark "task1"',
         status: QuestionStatusKeys.Helping,
