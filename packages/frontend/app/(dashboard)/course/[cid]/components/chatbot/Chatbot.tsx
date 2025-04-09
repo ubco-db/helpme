@@ -483,6 +483,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                         ) && (
                                           <SourceLinkButton
                                             docName={sourceDocument.docName}
+                                            documentText={
+                                              sourceDocument.pageContent ??
+                                              sourceDocument.content
+                                            }
                                             sourceLink={
                                               extractLMSLink(
                                                 sourceDocument.content,
@@ -497,6 +501,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                             <SourceLinkButton
                                               key={`${sourceDocument.docName}-${part}`}
                                               docName={sourceDocument.docName}
+                                              documentText={
+                                                sourceDocument.pageContent ??
+                                                sourceDocument.content
+                                              }
                                               sourceLink={
                                                 sourceDocument.sourceLink
                                               }
@@ -631,31 +639,39 @@ const SourceLinkButton: React.FC<{
   docName: string
   sourceLink?: string
   part?: number
-}> = ({ docName, sourceLink, part }) => {
+  documentText?: string
+}> = ({ docName, sourceLink, part, documentText }) => {
   if (!sourceLink) {
     return null
   }
   const pageNumber = part && !isNaN(part) ? Number(part) : undefined
 
   return (
-    <a
-      className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
-        sourceLink && 'hover:bg-black-300 cursor-pointer hover:text-white'
-      }`}
-      key={`${docName}-${part}`}
-      href={
-        sourceLink +
-        (pageNumber && sourceLink.startsWith('/api/v1/chatbot/document/')
-          ? `#page=${pageNumber}`
-          : '')
-      }
-      rel="noopener noreferrer"
-      // open in new tab
-      target="_blank"
+    <Tooltip
+      title={documentText ?? ''}
+      classNames={{
+        body: 'w-96 max-h-[80vh] overflow-y-auto',
+      }}
     >
-      <p className="h-fit w-fit text-xs leading-4">
-        {part ? `p. ${part}` : 'Source'}
-      </p>
-    </a>
+      <a
+        className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
+          sourceLink && 'hover:bg-black-300 cursor-pointer hover:text-white'
+        }`}
+        key={`${docName}-${part}`}
+        href={
+          sourceLink +
+          (pageNumber && sourceLink.startsWith('/api/v1/chatbot/document/')
+            ? `#page=${pageNumber}`
+            : '')
+        }
+        rel="noopener noreferrer"
+        // open in new tab
+        target="_blank"
+      >
+        <p className="h-fit w-fit text-xs leading-4">
+          {part ? `p. ${part}` : 'Source'}
+        </p>
+      </a>
+    </Tooltip>
   )
 }
