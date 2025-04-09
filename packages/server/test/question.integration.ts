@@ -32,13 +32,9 @@ import { forEach } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 import { QUESTION_STATES } from '../src/question/question-fsm';
-import { QueueSSEService } from '../src/queue/queue-sse.service';
 
 describe('Question Integration', () => {
-  const { supertest, getTestModule } = setupIntegrationTest(
-    QuestionModule,
-    modifyMockNotifs,
-  );
+  const { supertest } = setupIntegrationTest(QuestionModule, modifyMockNotifs);
 
   const QuestionTypes = [
     {
@@ -1678,16 +1674,32 @@ describe('Question Integration', () => {
         updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress,
       ).not.toHaveProperty('taskX');
     });
+    /* Tale:
+    i spent so long trying to fix this one test that kept giving this error where it was trying to do something with redis sse service after the test finished and it took sooo long to fix
+    ```
+    Cannot log after tests are done. Did you forget to wait for something async in your test?
+    Attempted to log "Error: Connection is closed."
+    ...
+    at SSEService.sendEvent (../src/sse/sse.service.ts:160:22)
+    at QueueSSEService.sendToRoom (../src/queue/queue-sse.service.ts:70:5)
+    ```
+    There was:
+      - unhelpful error message, and no there was no missing await anywhere
+      - an issue where tests weren't running locally due to the question.integration tests getting a bunch of deadlock errors when running locally (meaning I had to keep using github actions)
+      - it did not say what test was failing or causing the issue, meaning i had to keep deleting half the tests until i could isolate the one causing the issue (it wasn't obvious)
+      - this test that was failing was not modified (or in fact all of the question.integration tests were unmodified, and only one just started erroring)
+      - there is a passing test almost exactly the same as the failing test. Making these two tests exactly the same will still have one of the tests fail
+    and you wanna guess
+    what
+    the
+    fix
+    was?
+    MOVING THE TEST FURTHER UP THE FILE
+    or in other words something that should have NO EFFECT on the tests
+    
+    i love fragile tests that are seemingly fragile for no reason
+    */
     it("TaskQuestions: Allows TAs to edit a task question's text while it is being marked and only marks the new tasks", async () => {
-      // Get the QueueSSEService from the test module
-      // const queueSSEService =
-      //   getTestModule().get<QueueSSEService>(QueueSSEService);
-      // // Spy on the updateQueueChats method and mock its implementation
-      // const spy = jest
-      //   .spyOn(queueSSEService, 'updateQueueChats')
-      //   .mockImplementation(() => Promise.resolve());
-
-      // try {
       const course = await CourseFactory.create();
       const student = await UserFactory.create();
       const ta = await UserFactory.create();
@@ -1754,13 +1766,6 @@ describe('Question Integration', () => {
       expect(
         studentTaskProgress.taskProgress.assignment1.assignmentProgress.task2,
       ).toBeUndefined();
-
-      // Verify that our mock was called
-      // expect(spy).toHaveBeenCalledWith(queue.id);
-      // } finally {
-      //   // Restore the original method
-      //   spy.mockRestore();
-      // }
     });
     it('TaskQuestions marking: Will not allow question text with invalid text', async () => {
       const course = await CourseFactory.create();
