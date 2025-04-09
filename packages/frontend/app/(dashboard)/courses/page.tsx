@@ -1,40 +1,18 @@
 'use client'
 
-import { ReactElement, useEffect, useState } from 'react'
-import { Alert, Button, Empty, message, Segmented } from 'antd'
+import { ReactElement } from 'react'
+import { Alert, Button, Empty } from 'antd'
 import { OrganizationRole } from '@/app/typings/user'
 import { useUserInfo } from '@/app/contexts/userContext'
 import CoursesSection from '../components/coursesSection'
 import OrganizationCard from '../components/organizationCard'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
-import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons'
-import ArchivedCoursesSection from '../components/ArchivedCoursesSection'
-import { API } from '@/app/api'
-import { SemesterPartial } from '@koh/common'
 
 export default function CoursesPage(): ReactElement {
   const { userInfo } = useUserInfo()
   const searchParams = useSearchParams()
   const error = searchParams.get('err')
-
-  const [enabledTableView, setEnabledTableView] = useState(false)
-  const [semesters, setSemesters] = useState<SemesterPartial[]>([])
-
-  useEffect(() => {
-    API.semesters
-      .get(userInfo.organization?.orgId || -1)
-      .then((semesters) => {
-        setSemesters(semesters)
-      })
-      .catch((error) => {
-        console.error(error)
-        message.error(
-          'Failed to fetch semesters for organization with id: ' +
-            userInfo.organization?.id,
-        )
-      })
-  }, [])
 
   return (
     <>
@@ -77,51 +55,19 @@ export default function CoursesPage(): ReactElement {
       )}
       <div className="mt-5 flex items-center justify-between align-middle">
         <h1 className="mt-0">My Courses</h1>
-        <div className="flex gap-2">
-          {(userInfo?.organization?.organizationRole ===
-            OrganizationRole.PROFESSOR ||
-            userInfo?.organization?.organizationRole ===
-              OrganizationRole.ADMIN) && (
-            <Button type="primary" href={`organization/course/add`}>
-              Add New Course
-            </Button>
-          )}
-          <Segmented
-            options={[
-              { value: false, icon: <AppstoreOutlined /> },
-              { value: true, icon: <BarsOutlined /> },
-            ]}
-            onChange={(value) => {
-              setEnabledTableView(value)
-            }}
-          />
-        </div>
-      </div>
-      <div className="flex min-h-96 items-center justify-center">
-        {userInfo?.courses?.filter((userCourse) => userCourse.course.enabled)
-          .length === 0 ? (
-          <Empty
-            className="max-h-min"
-            description="You are not enrolled in any course"
-          />
-        ) : (
-          <CoursesSection
-            courses={userInfo.courses.filter(
-              (userCourse) => userCourse.course.enabled,
-            )}
-            semesters={semesters}
-            enabledTableView={enabledTableView}
-          />
+        {(userInfo?.organization?.organizationRole ===
+          OrganizationRole.PROFESSOR ||
+          userInfo?.organization?.organizationRole ===
+            OrganizationRole.ADMIN) && (
+          <Button type="primary" href={`organization/course/add`}>
+            Add New Course
+          </Button>
         )}
       </div>
-      {userInfo?.courses?.filter((userCourse) => !userCourse.course.enabled)
-        .length !== 0 && (
-        <ArchivedCoursesSection
-          archivedCourses={userInfo.courses.filter(
-            (userCourse) => !userCourse.course.enabled,
-          )}
-          semesters={semesters}
-        />
+      {userInfo?.courses?.length === 0 ? (
+        <Empty description="You are not enrolled in any course" />
+      ) : (
+        <CoursesSection courses={userInfo.courses} />
       )}
     </>
   )

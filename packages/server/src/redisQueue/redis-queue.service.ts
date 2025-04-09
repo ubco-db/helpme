@@ -47,7 +47,7 @@ export class RedisQueueService {
    * @param questions {any} The questions to set in cache
    */
   async setQuestions(key: string, questions: any): Promise<void> {
-    const pipeline = this.redis.pipeline(); // TODO: remove pipeline since there is only one query
+    const pipeline = this.redis.pipeline();
 
     const jsonStr = JSON.stringify(questions);
     const compressedData = zlib.gzipSync(jsonStr);
@@ -97,8 +97,6 @@ export class RedisQueueService {
     asyncQuestion: AsyncQuestionModel,
   ): Promise<void> {
     const jsonStr = JSON.stringify(asyncQuestion);
-
-    // Compress data since base64 encoding adds ~33% overhead
     const compressedData = zlib.gzipSync(jsonStr);
     const base64Encoded = compressedData.toString('base64');
 

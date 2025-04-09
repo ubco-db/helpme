@@ -16,19 +16,22 @@ import {
 import { partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
-import { Between, In } from 'typeorm';
+import {
+  Between,
+  Brackets,
+  createQueryBuilder,
+  getRepository,
+  In,
+} from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { CourseModel } from './course.entity';
 import { UserModel } from 'profile/user.entity';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
-import { RedisProfileService } from 'redisProfile/redis-profile.service';
 
 @Injectable()
 export class CourseService {
-  constructor(private readonly redisProfileService: RedisProfileService) {}
-
   async getTACheckInCheckOutTimes(
     courseId: number,
     startDate: string,
@@ -114,7 +117,6 @@ export class CourseService {
         userId: userCourse.userId,
         courseId: userCourse.courseId,
       });
-      await this.redisProfileService.deleteProfile(`u:${userCourse.userId}`);
     } catch (err) {
       console.error(err);
       throw new HttpException(
@@ -317,8 +319,6 @@ export class CourseService {
       updatedUserCourse.push(userCourse);
       user.courses = updatedUserCourse;
       await user.save();
-
-      await this.redisProfileService.deleteProfile(`u:${user.id}`);
 
       return true;
     } catch {
