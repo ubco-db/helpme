@@ -4,14 +4,24 @@ import {
   UserFactory,
   UserCourseFactory,
   CourseFactory,
+  SemesterFactory,
+  OrganizationFactory,
+  OrganizationUserFactory,
+  CourseSettingsFactory,
 } from '../../test/util/factories';
 import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
 import { CourseService } from './course.service';
 import { UserModel } from 'profile/user.entity';
 import { CourseModel } from './course.entity';
-import { Role, UserPartial } from '@koh/common';
+import {
+  Role,
+  UserPartial,
+  OrganizationRole,
+  CourseCloneAttributes,
+} from '@koh/common';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { RedisModule } from 'nestjs-redis';
+import { HttpException } from '@nestjs/common';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -398,6 +408,200 @@ describe('CourseService', () => {
       const resp = await service.addStudentToCourse(course, user);
 
       expect(resp).toEqual(false);
+    });
+  });
+
+  describe('cloneCourse', () => {
+    let professor: UserModel;
+    let course: CourseModel;
+    let newSemester: any;
+    let organization: any;
+    let chatToken: string;
+
+    // Mock global fetch for chatbot service calls
+    const originalFetch = global.fetch;
+
+    beforeEach(async () => {
+      // Setup mock for fetch
+      global.fetch = jest.fn().mockImplementation((url, options) => {
+        if (url.includes('/oneChatbotSetting')) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                modelName: 'gpt-3.5-turbo-0125',
+                prompt: 'Test prompt',
+                similarityThresholdDocuments: 0.6,
+                similarityThresholdQuestions: 0.9,
+                temperature: 0.7,
+                topK: 5,
+              }),
+          });
+        }
+        if (url.includes('/updateChatbotSetting')) {
+          return Promise.resolve({ ok: true });
+        }
+        if (url.includes('/cloneCourseDocuments')) {
+          return Promise.resolve({ ok: true });
+        }
+        return Promise.reject(new Error(`Unhandled request: ${url}`));
+      }) as jest.Mock;
+
+      // Set up test data
+      organization = await OrganizationFactory.create();
+      const semester = await SemesterFactory.create({
+        organization,
+      });
+      newSemester = await SemesterFactory.create({
+        organization,
+        name: 'New Test Semester',
+      });
+
+      professor = await UserFactory.create();
+      await OrganizationUserFactory.create({
+        organization,
+        organizationUser: professor,
+        role: OrganizationRole.ADMIN,
+      });
+
+      course = await CourseFactory.create({
+        name: 'Test Course',
+        sectionGroupName: '001',
+        semester,
+      });
+
+      await CourseSettingsFactory.create({
+        course,
+        chatBotEnabled: true,
+        asyncQueueEnabled: true,
+        queueEnabled: true,
+        scheduleOnFrontPage: false,
+      });
+
+      await UserCourseFactory.create({
+        user: professor,
+        course,
+        role: Role.PROFESSOR,
+      });
+
+      chatToken = 'test-chat-token';
+    });
+
+    afterEach(() => {
+      // Restore original fetch implementation
+      global.fetch = originalFetch;
+    });
+
+    it('should successfully clone a course with a new section', async () => {
+      const cloneData: CourseCloneAttributes = {
+        professorIds: [professor.id],
+        useSection: true,
+        newSection: '002',
+        includeDocuments: false,
+        cloneAttributes: {
+          coordinator_email: true,
+          zoomLink: false,
+          courseInviteCode: false,
+        },
+        cloneCourseSettings: {
+          chatBotEnabled: true,
+          asyncQueueEnabled: true,
+          queueEnabled: true,
+          scheduleOnFrontPage: false,
+        },
+        chatbotSettings: {
+          modelName: true,
+          prompt: true,
+          similarityThresholdDocuments: true,
+          similarityThresholdQuestions: true,
+          temperature: true,
+          topK: true,
+        },
+      };
+
+      const result = await service.cloneCourse(
+        course.id,
+        professor.id,
+        cloneData,
+        chatToken,
+      );
+
+      expect(result).toBeDefined();
+      expect(result?.course.name).toBe('Test Course');
+      expect(result?.course.sectionGroupName).toBe('002');
+      expect(result?.role).toBe(Role.PROFESSOR);
+    });
+
+    it('should successfully clone a course with a new semester', async () => {
+      const cloneData: CourseCloneAttributes = {
+        professorIds: [professor.id],
+        useSection: false,
+        newSemesterId: newSemester.id,
+        includeDocuments: true,
+        includeInsertedQuestions: true,
+        cloneAttributes: {
+          coordinator_email: true,
+          zoomLink: true,
+          courseInviteCode: true,
+        },
+        cloneCourseSettings: {
+          chatBotEnabled: true,
+          asyncQueueEnabled: true,
+          queueEnabled: true,
+          scheduleOnFrontPage: true,
+          asyncCentreAIAnswers: true,
+        },
+        chatbotSettings: {
+          modelName: true,
+          prompt: true,
+          similarityThresholdDocuments: true,
+          similarityThresholdQuestions: true,
+          temperature: true,
+          topK: true,
+        },
+      };
+
+      const result = await service.cloneCourse(
+        course.id,
+        professor.id,
+        cloneData,
+        chatToken,
+      );
+
+      expect(result).toBeDefined();
+      expect(result?.course.name).toBe('Test Course');
+      expect(result?.course.sectionGroupName).toBe('001');
+      expect(result?.role).toBe(Role.PROFESSOR);
+    });
+
+    it('should throw error when neither new section nor new semester is specified', async () => {
+      const cloneData: CourseCloneAttributes = {
+        professorIds: [professor.id],
+        useSection: false,
+        includeDocuments: false,
+        cloneAttributes: {
+          coordinator_email: true,
+          zoomLink: false,
+          courseInviteCode: false,
+        },
+        cloneCourseSettings: {
+          chatBotEnabled: true,
+          asyncQueueEnabled: true,
+          queueEnabled: true,
+        },
+        chatbotSettings: {
+          modelName: true,
+          prompt: true,
+          similarityThresholdDocuments: true,
+          similarityThresholdQuestions: true,
+          temperature: true,
+          topK: true,
+        },
+      };
+
+      await expect(
+        service.cloneCourse(course.id, professor.id, cloneData, chatToken),
+      ).rejects.toThrow(HttpException);
     });
   });
 });
