@@ -13,7 +13,12 @@ import {
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
-import { DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons'
+import {
+  DeleteOutlined,
+  QuestionCircleOutlined,
+  RedoOutlined,
+  RollbackOutlined,
+} from '@ant-design/icons'
 import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
 
 interface FormValues {
@@ -38,6 +43,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [saveToChatbot, setSaveToChatbot] = useState(true)
 
   const onFinish = async (values: FormValues) => {
     setIsLoading(true)
@@ -59,6 +65,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
         visible: values.visible,
         status: newStatus,
         verified: values.verified,
+        saveToChatbot: saveToChatbot,
       })
       .then(() => {
         message.success('Response Successfully Posted/Edited')
@@ -77,8 +84,19 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
     <Modal
       open={open}
       title="Post/Edit response to Student question"
-      okText="Finish"
+      okText="Finish Changes"
       cancelText="Cancel"
+      cancelButtonProps={{
+        className: 'w-24',
+      }}
+      width={{
+        xs: '100%',
+        sm: '100%',
+        md: '100%',
+        lg: '60%',
+        xl: '50%',
+        xxl: '40%',
+      }}
       okButtonProps={{
         autoFocus: true,
         htmlType: 'submit',
@@ -87,28 +105,46 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
       onCancel={onCancel}
       // display delete button for mobile in footer
       footer={(_, { OkBtn, CancelBtn }) => (
-        <div className="flex justify-between md:justify-end">
-          <Popconfirm
-            className="inline-flex md:hidden"
-            title="Are you sure you want to delete the question?"
-            okText="Yes"
-            cancelText="No"
-            getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
-            okButtonProps={{ loading: deleteLoading }}
-            onConfirm={async () => {
-              setDeleteLoading(true)
-              await deleteAsyncQuestion(question.id, true, onPostResponse)
-              setDeleteLoading(false)
-            }}
-          >
-            <Button danger type="primary" icon={<DeleteOutlined />}>
-              {' '}
-              Delete Question{' '}
-            </Button>
-          </Popconfirm>
-          <div className="flex gap-2">
+        <div className="flex items-end justify-between gap-2">
+          <div className="flex flex-col items-center justify-center gap-2">
+            <Popconfirm
+              className="inline-flex md:hidden"
+              title="Are you sure you want to delete this question?"
+              okText="Yes"
+              cancelText="No"
+              getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
+              okButtonProps={{ loading: deleteLoading }}
+              onConfirm={async () => {
+                setDeleteLoading(true)
+                await deleteAsyncQuestion(question.id, true, onPostResponse)
+                setDeleteLoading(false)
+              }}
+            >
+              <Button danger type="primary" icon={<DeleteOutlined />}>
+                {' '}
+                Delete
+              </Button>
+            </Popconfirm>
             <CancelBtn />
+          </div>
+          <div className="flex flex-col items-center justify-center gap-2 rounded-md bg-blue-100 p-1 px-2">
             <OkBtn />
+            <Checkbox
+              checked={saveToChatbot}
+              onChange={(e) => setSaveToChatbot(e.target.checked)}
+              // checkboxes will automatically put its children into a span with some padding, so this targets it to get rid of the padding
+              className="[&>span]:!pr-0"
+            >
+              <Tooltip
+                placement="bottom"
+                title="Keeping this enabled will insert this question and answer as a new Chatbot Document Chunk (or update existing), effectively allowing the chatbot to reference it in future answers. Please consider disabling this if the question contains private information."
+              >
+                <span className="pb-2">
+                  Save to Chatbot
+                  <QuestionCircleOutlined className="ml-1 text-gray-500" />
+                </span>
+              </Tooltip>
+            </Checkbox>
           </div>
         </div>
       )}
@@ -123,7 +159,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
             visible: question.visible,
             verified: question.verified,
           }}
-          clearOnDestroy
+          // clearOnDestroy
           onFinish={(values) => onFinish(values)}
         >
           {dom}
@@ -138,25 +174,36 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
         <Input.TextArea
           placeholder="Your response to the question"
           autoSize={{ minRows: 3, maxRows: 15 }}
-          allowClear
+          allowClear={{
+            clearIcon: (
+              <Tooltip title="Revert to original answer">
+                <RollbackOutlined />
+              </Tooltip>
+            ),
+          }}
+          onClear={() => {
+            form.setFieldsValue({
+              answerText: question.answerText,
+            })
+          }}
         />
       </Form.Item>
       <Form.Item
         name="visible"
-        label={
-          <div className="flex flex-row items-center gap-1">
-            Set question visible to all students
-            <Tooltip title="Questions can normally only be seen by staff and the student who asked it. This will make it visible to all students (the student themselves will appear anonymous to other students)">
-              <QuestionCircleOutlined style={{ color: 'gray' }} />
-            </Tooltip>
-          </div>
-        }
+        tooltip="Questions can normally only be seen by staff and the student who asked it. This will make it visible to all students (the student themselves will appear anonymous to other students)"
+        label="Set question visible to all students"
         valuePropName="checked"
+        layout="horizontal"
       >
         <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />
       </Form.Item>
-      <Form.Item name="verified" valuePropName="checked">
-        <Checkbox>Mark as verified by faculty</Checkbox>
+      <Form.Item
+        name="verified"
+        valuePropName="checked"
+        label="Mark as verified by faculty"
+        layout="horizontal"
+      >
+        <Checkbox />
       </Form.Item>
     </Modal>
   )
