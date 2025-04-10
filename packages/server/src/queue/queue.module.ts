@@ -10,6 +10,7 @@ import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueInviteController } from './queue-invite.controller';
 import { QueueChatService } from 'queueChats/queue-chats.service';
+import { QueueChatsModule } from 'queueChats/queue-chats.module';
 import { QueueCleanService } from './queue-clean/queue-clean.service';
 import { QuestionModule } from '../question/question.module';
 import { QuestionService } from '../question/question.service';
@@ -23,7 +24,6 @@ import { QuestionService } from '../question/question.service';
     QueueSubscriber,
     AlertsService,
     RedisQueueService,
-    QueueChatService,
     QueueCleanService,
     QuestionService,
   ],
@@ -40,6 +40,7 @@ import { QuestionService } from '../question/question.service';
     ApplicationConfigService,
     SSEModule,
     AlertsModule,
+    forwardRef(() => QueueChatsModule),
     forwardRef(() => QuestionModule),
   ],
 })

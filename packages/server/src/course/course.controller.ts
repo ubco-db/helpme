@@ -293,7 +293,7 @@ export class CourseController {
       .then(async () => {
         const course = await CourseModel.findOne({
           where: {
-            courseId,
+            id: courseId,
           },
           relations: ['userCourses'],
         });
@@ -302,7 +302,7 @@ export class CourseController {
         if (course) {
           course.userCourses.map(async (userCourse) => {
             await this.redisProfileService.deleteProfile(
-              `u:${userCourse.user.id}`,
+              `u:${userCourse.userId}`,
             );
           });
         }

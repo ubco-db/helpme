@@ -9,11 +9,10 @@ import {
 } from 'react'
 import Chatbot from './Chatbot'
 import {
-  PreDeterminedQuestion,
-  Message,
   chatbotStartingMessageCourse,
   ChatbotQuestionType,
 } from '@/app/typings/chatbot'
+import { Message, PreDeterminedQuestion } from '@koh/common'
 
 interface ChatbotContextType {
   setCid: React.Dispatch<React.SetStateAction<number | null>>

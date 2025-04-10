@@ -10,6 +10,9 @@ import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
 import { NotificationService } from '../notification/notification.service';
+import { QueueSSEService } from 'queue/queue-sse.service';
+import { SSEModule } from 'sse/sse.module';
+import { QueueChatsModule } from 'queueChats/queue-chats.module';
 
 @Module({
   controllers: [QuestionController],
@@ -22,8 +25,14 @@ import { NotificationService } from '../notification/notification.service';
     RedisQueueService,
     QueueChatService,
     NotificationService,
+    QueueSSEService,
   ],
-  imports: [NotificationModule, forwardRef(() => QueueModule)],
+  imports: [
+    NotificationModule,
+    SSEModule,
+    forwardRef(() => QueueModule),
+    forwardRef(() => QueueChatsModule),
+  ],
   exports: [
     QuestionService,
     AlertsService,

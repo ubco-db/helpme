@@ -428,6 +428,7 @@ export class OrganizationController {
       message: message,
     });
   }
+
   @Patch(':oid/update_course/:cid')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrgOrCourseRolesGuard)
   @CourseRoles(Role.PROFESSOR)
@@ -587,12 +588,11 @@ export class OrganizationController {
         where: {
           courseId: cid,
         },
-        relations: ['user'],
       });
 
       // Clear cache of all members of the course
       members.forEach(async (m) => {
-        await this.redisProfileService.deleteProfile(`u:${m.user.id}`);
+        await this.redisProfileService.deleteProfile(`u:${m.userId}`);
       });
     });
 

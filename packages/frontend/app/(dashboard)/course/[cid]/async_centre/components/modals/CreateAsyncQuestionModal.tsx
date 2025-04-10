@@ -57,17 +57,13 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
         const data = {
           question: question,
           history: [],
+          onlySaveInChatbotDB: true,
         }
-        const response = await fetch(`/chat/${courseId}/ask`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: userInfo.chat_token.token,
-          },
-          body: JSON.stringify(data),
-        })
-        const json = await response.json()
-        return json.answer
+        const response = await API.chatbot.studentsOrStaff.askQuestion(
+          courseId,
+          data,
+        )
+        return response.chatbotRepoVersion.answer
       } else {
         return 'All AI uses have been used up for today. Please try again tomorrow.'
       }
@@ -196,6 +192,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
               title="Are you sure you want to delete your question?"
               okText="Yes"
               cancelText="No"
+              getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
               okButtonProps={{ loading: deleteLoading }}
               onConfirm={async () => {
                 setDeleteLoading(true)
@@ -244,6 +241,9 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
     >
       <Form.Item
         name="QuestionAbstract"
+        label="Question Abstract"
+        tooltip="A short summary/description of the question (or the question itself)"
+        required={true}
         rules={[
           { required: true, message: 'Please input your question abstract' },
           {
@@ -253,16 +253,20 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
         ]}
       >
         <Input
-          placeholder="Question Abstract"
+          placeholder="Stuck on Lab 3 part C"
           count={{
             show: true,
             max: 100,
           }}
         />
       </Form.Item>
-      <Form.Item name="questionText">
+      <Form.Item
+        name="questionText"
+        label="Question Text"
+        tooltip="Your full question text. The placeholder text is just an example"
+      >
         <Input.TextArea
-          placeholder="Question Text"
+          placeholder="It's asking me to... but I got an incorrect answer. Here is my work:..."
           autoSize={{ minRows: 3, maxRows: 6 }}
           allowClear
         />
@@ -295,9 +299,10 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           </Form.Item>
         </Tooltip>
       )}
-      <div className="text-gray-600">
-        Your question will be anonymous. Other students will not see your name
-        or profile image.
+      <div className="text-gray-500">
+        Only you and faculty will be able to see your question unless a faculty
+        member chooses to mark it public, in which case it will appear fully
+        anonymous to other students.
       </div>
     </Modal>
   )

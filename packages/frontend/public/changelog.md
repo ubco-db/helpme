@@ -1,3 +1,34 @@
+## Version 1.4.4 - April 5th, 2025
+
+#### Improvements
+
+- Fixed an issue where newly updated chatbot documents were rarely being used by the chatbot
+  - **Important**: If you have uploaded any chatbot documents in the past week, you will need to re-upload them. Alternatively, you can change the "Similarity Threshold Documents" under Chatbot Settings to 0.0. Apologies in advance.
+    - Documents uploaded before this time remain unaffected.  
+
+***
+
+## Version 1.4.3 - Mar 30th, 2025
+
+#### New Features
+
+- ***Faculty-only***
+  - Overhauled chatbot document source links
+    - Previously you would need to provide an external "Source URL" that students can click on to see a preview of the document (e.g. a link to the document on canvas)
+    - Now, when you upload a document to the chatbot, the document is now stored in the system and will automatically generate a source link
+    - When you now click on a link to the document, it will now show in your browser's built-in pdf viewer
+    - The links to these documents are protected (outside people cannot access them without being in your HelpMe course)
+
+#### Improvements
+
+- You can now upload .xlsx, .md, as well as images to the chatbot
+- When clicking on a citation from the chatbot with a page number, it will now take you to said page (if the browser's pdf viewer supports it) 
+- Fixed how uploaded slide decks were not given page numbers
+- Improved more tooltips around the chatbot
+- Various security improvements and bug fixes
+
+***
+
 ## Version 1.4.2 - Mar 9th, 2025
 
 #### Improvements
@@ -10,6 +41,7 @@
 ## Version 1.4.1 - Mar 4th, 2025
 
 #### New Features
+
 - ***Faculty-only***
   - Added new AI models
     - Deepseek R1 - A "thinking" model with much smarter answers with reasonable performance, hosted on UBC servers
@@ -18,6 +50,7 @@
       - This will be replacing the old llama3 and gemma2 models
 
 #### Improvements
+
 - Fixed an issue where staff would always show up as "busy"
 
 ***
@@ -25,6 +58,7 @@
 ## Version 1.4.0 - Mar 2nd, 2025
 
 #### New Features
+
 - ***General***
   - You can now leave comments on Anytime questions!
     - Note that since questions are made hidden from other students initially, only faculty can leave comments on questions until a faculty member marks the question as public
@@ -47,6 +81,7 @@
     - For chatbot questions with multiple interactions containing said chatbot question, those are now grouped (useful if one wanted to see what sorts of questions students are asking after selecting a suggested question)
 
 #### Improvements
+
 - Staff are now shown if they are helping a student in another queue or another course (would previously show the staff member as "available")
   - This should help those that are hosting help sessions in different courses at the same time
 - Calendar events now show more details on them
@@ -74,6 +109,7 @@
 ## Version 1.3.0 - Feb 05, 2025
 
 #### New Features
+
 - ***General***
   - Added a new "System" Chatbot toggle, allowing you to ask any questions or feedback regarding the HelpMe system 
   	- By default, it will still be in "Course" mode, which will query uploaded course documents as before
@@ -86,6 +122,7 @@
   		- Professors to compare and see which students is in your HelpMe course and not your Canvas course (or vise-versa)
 
 #### Improvements
+
 - Adjusted and improved tooltips under Chatbot Settings and Export Data (under Course Settings)
 
 
@@ -94,6 +131,7 @@
 ## Version 1.2.3 - Feb 02, 2025
 
 #### New Features
+
 - ***General***
   - On the course page, you can now see if you have any unread Anytime Questions
 - ***Faculty-only***
@@ -102,6 +140,7 @@
   - Faculty now have the option to add students to the queue with a demo (only works with queues with an assignment ID)
 
 #### Improvements
+
 - Reworked how question text is truncated on question cards. You now click to expand the question card. This also fixes an issue where sometimes the question text tooltip would not show up and thus the full text could not be read
 - Fixed an issue where the "Join Zoom Now" modal would not go away once done helping
 - Misc bug fixes and improvements
@@ -111,6 +150,7 @@
 ## Version 1.2.2 - Jan 19, 2025
 
 #### Improvements
+
 - Fixed a bug where end date would appear as "Invalid Date" when creating repeat events
 - Fixed this modal being very thin on some browsers
 - Fixed bug where verifying your email would not work when manually typing in the code
@@ -124,11 +164,13 @@
 ## Version 1.2.1 - Jan 15, 2025
 
 #### New Features
+
 - ***General***
   - Users using the chatbot now have the option convert their question into an Anytime question
     - This is useful if the chatbot gave an unsatisfactory answer, as a faculty member can then review the Anytime question
 
 #### Improvements
+
 - Faculty can now create Anytime questions 
   - While this isn't really intended, this was enabled so that faculty can better learn the system or if they want to demo the system to students
 - Fixed a bug where all Anytime questions would be marked as "Human Verified" even if the faculty member did not modify the answer nor clicked the box to mark it as faculty verified
@@ -139,6 +181,7 @@
 ## Version 1.2.0 - Jan 11, 2025
 
 #### New Features
+
 - ***General***
   - When the last TA checks out of a queue, students with questions will now be prompted whether they would like to leave the queue or stay
     - If they don't respond in 10 minutes, the question will automatically be closed
@@ -150,6 +193,7 @@
     - You can access this on the Course Settings page
 
 #### Improvements
+
 - When you create a recurring event, it will temporarily save what you made the end date and make it so your next events you create are automatically set to this end date (this should speed up creating several recurring events at say the start of the semester)
 - Queues now properly get cleaned at midnight
 - Fixed the search and pagination of the organization users table
@@ -160,11 +204,13 @@
 ## Version 1.1.1 - Jan 3, 2025
 
 #### New Features
+
 - ***General***
   - Added a changelog
     - If there are new changes, it will auto-open if you are a professor
 
 #### Improvements
+
 - Revamped the "You're question was deleted by a TA, would you like to rejoin?" popup modal
 - Various small bug fixes
 

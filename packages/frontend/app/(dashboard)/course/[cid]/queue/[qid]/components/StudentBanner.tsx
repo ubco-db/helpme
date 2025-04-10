@@ -139,6 +139,7 @@ function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => Promise<void> }) {
       title={`Are you sure you want to leave the queue?`}
       okText="Yes"
       cancelText="No"
+      getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
       okButtonProps={{ loading: isLeavingLoading }}
       onConfirm={() => {
         setIsLeavingLoading(true)
