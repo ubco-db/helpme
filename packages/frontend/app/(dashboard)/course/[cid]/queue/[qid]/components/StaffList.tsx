@@ -2,6 +2,7 @@ import {
   ExtraTAStatus,
   OpenQuestionStatus,
   Question,
+  QueueChatPartial,
   QueuePartial,
   Role,
   StaffMember,
@@ -17,6 +18,7 @@ import { API } from '@/app/api'
 import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
 import { QuestionCircleOutlined } from '@ant-design/icons'
 import { useUserInfo } from '@/app/contexts/userContext'
+import MessageButton from './MessageButton'
 
 interface StaffListProps {
   queue: QueuePartial
@@ -53,13 +55,16 @@ const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
       taToQuestions[question.taHelped.id].push(question)
     }
   }
+  const myQuestionId = queueQuestions.yourQuestions?.[0]?.id
 
   return (
     <Col className="my-1 flex flex-col gap-y-2 md:block">
       {staffList.map((ta) => (
         <Col key={ta.id}>
           <StatusCard
+            queueId={queueId}
             myId={userInfo.id}
+            myQuestionId={myQuestionId}
             myRole={role}
             courseId={courseId}
             ta={ta}
@@ -82,6 +87,8 @@ const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
 
 interface StatusCardProps {
   courseId: number
+  queueId?: number
+  myQuestionId?: number
   ta: StaffMember
   myRole?: Role
   myId?: number
@@ -94,6 +101,8 @@ interface StatusCardProps {
  */
 const StatusCard: React.FC<StatusCardProps> = ({
   courseId,
+  queueId,
+  myQuestionId,
   ta,
   myRole,
   myId,
@@ -107,6 +116,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveSuccessful, setSaveSuccessful] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
+  const isStaff = myRole === Role.TA || myRole === Role.PROFESSOR
 
   // you can edit the notes if it's you or if you're a professor
   const shouldShowEdit =
@@ -221,15 +231,10 @@ const StatusCard: React.FC<StatusCardProps> = ({
       }
     >
       <div
-        className={`flex rounded-md bg-white p-3 shadow-md md:mb-4 md:p-4 ${shouldShowEdit ? 'cursor-pointer' : ''}`}
+        className={`flex rounded-md bg-white p-2 shadow-md md:mb-3 md:p-3 ${shouldShowEdit ? 'cursor-pointer' : ''}`}
       >
-        <UserAvatar
-          size={48}
-          username={ta.name}
-          photoURL={ta.photoURL}
-          style={{ flexShrink: 0 }}
-        />
-        <div className="ml-4 flex-grow">
+        <UserAvatar size={48} username={ta.name} photoURL={ta.photoURL} />
+        <div className="ml-2 flex-grow">
           <Row justify="space-between">
             <div className="font-bold text-gray-900">{ta.name}</div>
             <span>
@@ -237,17 +242,30 @@ const StatusCard: React.FC<StatusCardProps> = ({
               {isBusy ? 'Busy' : 'Available'}
             </span>
           </Row>
-          <div className="mt-1 italic">
-            {grouped ? (
-              'Helping a group'
-            ) : isBusy && helpedAt ? (
-              <HelpingFor
-                studentName={studentName}
-                helpedAt={helpedAt}
-                extraTAStatus={ta.extraStatus}
+          <div className="flex items-start justify-between">
+            <div className="mt-1 italic">
+              {grouped ? (
+                'Helping a group'
+              ) : isBusy && helpedAt ? (
+                <HelpingFor
+                  studentName={studentName}
+                  helpedAt={helpedAt}
+                  extraTAStatus={ta.extraStatus}
+                />
+              ) : (
+                // this 1 dot is enough to make the button wrap onto the next row, so i'm only showing it as "..." if there's no button (it looks weird if it's still "..")
+                'Looking for my next student..' + (isStaff ? '.' : '')
+              )}
+            </div>
+            {/* Students have a button to message their TAs */}
+            {!isStaff && queueId && (
+              <MessageButton
+                recipientName={ta.name}
+                staffId={ta.id}
+                queueId={queueId}
+                questionId={myQuestionId}
+                isStaff={false}
               />
-            ) : (
-              'Looking for my next student...'
             )}
           </div>
         </div>

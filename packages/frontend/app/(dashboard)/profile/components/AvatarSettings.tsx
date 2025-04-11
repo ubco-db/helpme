@@ -78,6 +78,9 @@ const AvatarSettings: React.FC = () => {
             {userInfo?.photoURL && (
               <Popconfirm
                 title="Are you sure you want to delete your profile avatar?"
+                getPopupContainer={(trigger) =>
+                  trigger.parentNode as HTMLElement
+                }
                 onConfirm={async () => {
                   await API.profile
                     .deleteProfilePicture()

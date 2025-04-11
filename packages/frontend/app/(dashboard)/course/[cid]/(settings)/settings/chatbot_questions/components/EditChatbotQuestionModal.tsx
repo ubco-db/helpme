@@ -9,8 +9,11 @@ import {
   Tooltip,
   Collapse,
 } from 'antd'
-import axios from 'axios'
-import { SourceDocument, User } from '@koh/common'
+import {
+  AddDocumentChunkParams,
+  SourceDocument,
+  UpdateChatbotQuestionParams,
+} from '@koh/common'
 import { ChatbotQuestionFrontend } from '../page'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import {
@@ -21,6 +24,7 @@ import {
   QuestionCircleOutlined,
 } from '@ant-design/icons'
 import MarkdownGuideTooltipBody from './MarkdownGuideTooltipBody'
+import { API } from '@/app/api'
 
 interface FormValues {
   question: string
@@ -40,7 +44,6 @@ interface EditChatbotQuestionModalProps {
   onCancel: () => void
   onSuccessfulUpdate: () => void
   cid: number
-  profile: User
   deleteQuestion: (id: string) => void
 }
 
@@ -50,11 +53,9 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   onCancel,
   onSuccessfulUpdate,
   cid,
-  profile,
   deleteQuestion,
 }) => {
   const [form] = Form.useForm()
-  const chatbotToken = profile.chat_token.token
   const [saveLoading, setSaveLoading] = useState(false)
 
   const [successfulQAInsert, setSuccessfulQAInsert] = useState(false)
@@ -68,69 +69,41 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   const handleOkInsert = async () => {
     const values = await form.validateFields()
     setSaveLoading(true)
-    await axios
-      .post(
-        `/chat/${cid}/documentChunk`,
-        {
-          documentText: values.question + '\nAnswer:' + values.answer,
-          metadata: {
-            name: 'inserted Q&A',
-            type: 'inserted_question',
-            id: editingRecord.vectorStoreId,
-            courseId: cid,
-          },
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: chatbotToken,
-          },
-        },
-      )
-      .then(async (res) => {
-        if (res.status !== 200 && res.status !== 201) {
-          const errorMessage = getErrorMessage(res)
-          message.error('Insert unsuccessful:' + errorMessage)
-        } else {
-          await axios
-            .patch(
-              `/chat/${cid}/question`,
-              {
-                id: editingRecord.vectorStoreId,
-                inserted: true,
-              },
-              {
-                headers: {
-                  'Content-Type': 'application/json',
-                  HMS_API_TOKEN: chatbotToken,
-                },
-              },
-            )
-            .then((res) => {
-              if (res.status !== 200 && res.status !== 201) {
-                const errorMessage = getErrorMessage(res)
-                message.error('Insert unsuccessful:' + errorMessage)
-              } else {
-                message.success(
-                  'Document inserted successfully. You can now cancel or save the changes you made to the Q&A',
-                  6,
-                )
-                setSuccessfulQAInsert(true)
-              }
-            })
-            .catch((e) => {
-              throw e
-            })
+    const newChunk: AddDocumentChunkParams = {
+      documentText: values.question + '\nAnswer:' + values.answer,
+      metadata: {
+        name: 'inserted Q&A',
+        type: 'inserted_question',
+        id: editingRecord.vectorStoreId,
+        courseId: cid,
+      },
+    }
+    await API.chatbot.staffOnly
+      .addDocumentChunk(cid, newChunk)
+      .then(async () => {
+        const updatedQuestion: UpdateChatbotQuestionParams = {
+          id: editingRecord.vectorStoreId,
+          inserted: true,
         }
+        await API.chatbot.staffOnly
+          .updateQuestion(cid, updatedQuestion)
+          .then(() => {
+            message.success(
+              'Document inserted successfully. You can now cancel or save the changes you made to the Q&A',
+              6,
+            )
+            setSuccessfulQAInsert(true)
+          })
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
-        message.error('Failed to insert document:' + errorMessage)
+        message.error('Failed to add document: ' + errorMessage)
       })
       .finally(() => {
         setSaveLoading(false)
       })
   }
+
   const confirmInsert = () => {
     Modal.confirm({
       title:
@@ -177,26 +150,17 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       id: editingRecord.vectorStoreId,
       sourceDocuments: values.sourceDocuments || [],
     }
-    try {
-      const response = await fetch(`/chat/${cid}/question`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          HMS_API_TOKEN: chatbotToken,
-        },
-        body: JSON.stringify(valuesWithId),
-      })
-      if (!response.ok) {
-        const errorMessage = getErrorMessage(response)
-        message.error('Save unsuccessful:' + errorMessage)
-      } else {
+
+    await API.chatbot.staffOnly
+      .updateQuestion(cid, valuesWithId)
+      .then(() => {
         message.success('Question updated successfully')
         onSuccessfulUpdate()
-      }
-    } catch (error) {
-      const errorMessage = getErrorMessage(error)
-      message.error('Error saving question:' + errorMessage)
-    }
+      })
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Error updating question:' + errorMessage)
+      })
   }
 
   return (
@@ -233,6 +197,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
                 cancelText: 'No',
                 onOk() {
                   deleteQuestion(editingRecord.vectorStoreId)
+                  onCancel()
                 },
               })
             }}
@@ -260,7 +225,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
             sourceDocuments: editingRecord.sourceDocuments,
           }}
           clearOnDestroy
-          onFinish={(values) => onFinish(values)}
+          onFinish={onFinish}
         >
           {dom}
         </Form>
@@ -416,10 +381,6 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
                             {
                               required: true,
                               message: 'Please provide a document preview URL.',
-                            },
-                            {
-                              type: 'url',
-                              message: 'Please enter a valid URL.',
                             },
                           ]}
                           label="Source Link"

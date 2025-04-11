@@ -345,22 +345,18 @@ export enum AccountType {
 
 // chatbot questions and interactions
 
-export interface ChatbotQuestion {
-  id?: number
-  interactionId?: number
-  questionText?: string
-  responseText?: string
-  timestamp?: Date
-  userScore?: number
-  suggested?: boolean
-  isPreviousQuestion?: boolean
-  vectorStoreId?: string
+export interface UpdateDocumentChunkParams {
+  documentText: string
+  metadata: {
+    name: string
+    source: string
+  }
 }
 
-// comes from chatbot db
+// comes from helpme db
 export interface ChatbotQuestionResponseHelpMeDB {
   id: number
-  vectorStoreId?: string
+  vectorStoreId: string
   interactionId: number
   questionText: string
   responseText: string
@@ -415,16 +411,110 @@ export interface SourceDocument {
   pageNumbersString?: string // used only for the edit question modal
   sourceLink?: string
   pageNumber?: number
+  key?: string // used for front-end rendering
 }
 
-export interface ChatbotRequestParams {
-  interactionId: number
-  questionText: string
+export interface PreDeterminedQuestion {
+  id: string
+  pageContent: string
+  metadata: {
+    answer: string
+    courseId: string
+    inserted: boolean
+    sourceDocuments: SourceDocument[]
+    suggested: boolean
+    verified: boolean
+  }
+}
+
+export interface Message {
+  type: 'apiMessage' | 'userMessage'
+  message: string | void
+  verified?: boolean
+  sourceDocuments?: SourceDocument[]
+  questionId?: string
+  thinkText?: string | null // used on frontend only
+}
+
+export interface ChatbotAskParams {
+  question: string
+  history: Message[]
+  interactionId?: number
+  onlySaveInChatbotDB?: boolean
+}
+
+export interface ChatbotAskSuggestedParams {
+  question: string
   responseText: string
-  userScore?: number
-  suggested?: boolean
-  isPreviousQuestion?: boolean
   vectorStoreId: string
+}
+
+export interface AddDocumentChunkParams {
+  documentText: string
+  metadata: {
+    name: string
+    type: string
+    source?: string
+    loc?: Loc
+    id?: string
+    courseId?: number
+  }
+}
+
+export interface UpdateChatbotQuestionParams {
+  id: string
+  inserted?: boolean
+  sourceDocuments?: SourceDocument[]
+  question?: string
+  answer?: string
+  verified?: boolean
+  suggested?: boolean
+  selectedDocuments?: {
+    docId: string
+    pageNumbersString: string
+  }[]
+}
+
+// this is the response from the backend when new questions are asked
+// if question is I don't know, only answer and questionId are returned
+export interface ChatbotAskResponse {
+  chatbotRepoVersion: ChatbotAskResponseChatbotDB
+  helpmeRepoVersion: ChatbotQuestionResponseHelpMeDB | null
+}
+
+// comes from /ask from chatbot db
+export interface ChatbotAskResponseChatbotDB {
+  question: string
+  answer: string
+  questionId: string
+  interactionId: number
+  sourceDocuments?: SourceDocument[]
+  verified: boolean
+  courseId: string
+  isPreviousQuestion: boolean
+}
+
+export interface AddChatbotQuestionParams {
+  question: string
+  answer: string
+  verified: boolean
+  suggested: boolean
+  sourceDocuments: SourceDocument[]
+}
+
+export interface ChatbotSettings {
+  id: string
+  AvailableModelTypes: Record<string, string>
+  pageContent: string
+  metadata: ChatbotSettingsMetadata
+}
+
+export interface ChatbotSettingsMetadata {
+  modelName: string
+  prompt: string
+  similarityThresholdDocuments: number
+  temperature: number
+  topK: number
 }
 
 export interface InteractionResponse {
@@ -440,8 +530,10 @@ export class ChatbotDocument {
   subDocumentIds!: string[]
 }
 
-export type GetInteractionsAndQuestionsResponse = InteractionResponse[]
-
+export type GetInteractionsAndQuestionsResponse = {
+  helpmeDB: InteractionResponse[]
+  chatbotDB: ChatbotQuestionResponseChatbotDB[]
+}
 /**
  * Represents one of two possible roles for the global account
  */
@@ -893,6 +985,8 @@ export class QueueChatPartial {
 
   student!: QueueChatUserPartial
 
+  questionId!: number
+
   @IsDate()
   startedAt!: Date
 
@@ -1309,8 +1403,6 @@ export class GetCourseResponse {
 
   zoomLink!: string
 
-  questionTimer?: number
-
   selfEnroll!: boolean
 
   asyncQuestionDisplayTypes?: string[]
@@ -1386,14 +1478,6 @@ export type OrganizationProfessor = {
   userId: number
 }
 
-export class InteractionParams {
-  @IsInt()
-  courseId!: number
-
-  @IsInt()
-  userId!: number
-}
-
 export class UpdateOrganizationCourseDetailsParams {
   @IsString()
   @IsOptional()
@@ -1444,6 +1528,8 @@ export class GetQueueResponse extends QueuePartial {}
 export class GetCourseQueuesResponse extends Array<QueuePartial> {}
 
 export class GetQueueChatResponse extends QueueChatPartial {}
+
+export class GetQueueChatsResponse extends Array<QueueChatPartial> {}
 
 export class ListQuestionsResponse {
   @Type(() => Question)
@@ -1836,6 +1922,7 @@ export class SemesterPartial {
 export class SSEQueueResponse {
   queue?: GetQueueResponse
   queueQuestions?: ListQuestionsResponse
+  queueChats?: QueueChatPartial[] // just the metadata for the chats, not the messages
 }
 
 export class SSEQueueChatResponse {
@@ -2900,6 +2987,12 @@ export const ERROR_MESSAGES = {
     chatNotAuthorized: 'User is not allowed to retrieve requested chat data',
     sendNotAuthorized: 'User is not allowed to send messages to this chat',
     internalSendError: 'Error occurred while sending message',
+    chatAlreadyExists: 'Chat already exists',
+    staffNotFound: 'This staff member does not exist or is not in this course',
+    queueNotFound: 'This queue does not exist',
+    questionNotFound: 'This question does not exist or is not in this queue',
+    questionNotAuthorized:
+      'Students cannot create chats for questions they did not create',
   },
   queueRoleGuard: {
     queueNotFound: 'Queue not found',
