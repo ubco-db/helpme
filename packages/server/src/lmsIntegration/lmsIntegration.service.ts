@@ -631,12 +631,12 @@ export class LMSIntegrationService {
     switch (type) {
       case LMSUpload.Announcements: {
         const a = item as LMSAnnouncement;
-        documentText = `(Course Announcement)\n Title: ${a.title}\nContent: ${a.message}\nPosted: ${a.posted.getTime()}${a.modified != undefined ? `\nModified: ${a.modified.getTime()}` : ''}`;
+        documentText = `(Course Announcement)\n Title: ${a.title}\nContent: ${a.message}\nPosted: ${new Date(a.posted).getTime()}${!isNaN(new Date(a.modified).valueOf()) ? `\nModified: ${new Date(a.modified).getTime()}` : ''}`;
         break;
       }
       case LMSUpload.Assignments: {
         const a = item as any as LMSAssignment;
-        documentText = `(Course Assignment)\n Name: ${a.name}\n${a.due != undefined ? `Due Date: ${a.due.toLocaleDateString()}\n` : 'Due Date: No due date\n'}${a.description && `Description: ${a.description}`}`;
+        documentText = `(Course Assignment)\n Name: ${a.name}\n${!isNaN(new Date(a.due).valueOf()) ? `Due Date: ${new Date(a.due).toLocaleDateString()}\n` : 'Due Date: No due date\n'}${a.description && `Description: ${a.description}`}`;
         break;
       }
       default:
