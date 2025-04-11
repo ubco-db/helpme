@@ -91,6 +91,21 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
       })
   }
 
+  const getModalTitle = () => {
+    switch (currentStep) {
+      case CloneSteps.SelectCourses:
+        return 'Batch Course Clone - Select Courses'
+      case CloneSteps.DefaultSettings:
+        return 'Batch Course Clone - Default Settings'
+      case CloneSteps.CustomizeCourses:
+        return 'Batch Course Clone - Customize Courses'
+      case CloneSteps.FinalConfirmation:
+        return 'Batch Course Clone - Confirmation'
+      default:
+        return 'Batch Course Clone'
+    }
+  }
+
   const renderStepContent = () => {
     switch (currentStep) {
       case CloneSteps.SelectCourses: {
@@ -134,7 +149,7 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
                 Due to the heavy processing that comes with cloning courses in a
                 batch, you will be notified via email when the cloning process
                 is done with a summary of courses that have been successfully
-                cloned, and any courses that might have had issues.{' '}
+                cloned, and any courses that might have had issues.
               </p>
               <p>
                 Click the &apos;Clone All&apos; button below to start the batch
@@ -238,7 +253,7 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
 
   return courses ? (
     <Modal
-      title="Batch Course Clone"
+      title={getModalTitle()}
       open={open}
       onCancel={onClose}
       footer={renderFooter()}

@@ -17,8 +17,6 @@ import {
   Tooltip,
   Tag,
 } from 'antd'
-import { fastifyIntegration } from '@sentry/nextjs'
-import { FileProtectOutlined } from '@ant-design/icons'
 
 interface CustomizeCloneSettingsProps {
   courses: CourseResponse[]
@@ -93,7 +91,7 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
       align: 'left',
       render: (text: string, course: CourseResponse) => (
         <div
-          className="h-full w-full hover:cursor-pointer"
+          className="h-full w-full"
           onClick={() => {
             if (!isSelectedCourseSaved) {
               notification.open({
@@ -157,8 +155,8 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
           pagination={selectedCourses.length > 16 ? { pageSize: 16 } : false}
           rowClassName={(record) =>
             record.courseId === selectedCourseId
-              ? 'bg-helpmeblue text-white hover:text-black '
-              : 'bg-gray-100 '
+              ? 'bg-helpmeblue text-white hover:text-black'
+              : 'bg-white hover:cursor-pointer'
           }
         />
       </div>
