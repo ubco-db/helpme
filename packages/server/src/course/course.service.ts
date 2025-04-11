@@ -6,12 +6,19 @@ import {
   EditCourseInfoParams,
   GetCourseUserInfoResponse,
   UserPartial,
+  CourseCloneAttributes,
+  ChatbotSettings,
+  defaultChatbotSetting,
+  OrganizationRole,
+  CoursePartial,
+  UserCourse,
 } from '@koh/common';
 import {
   HttpException,
   HttpStatus,
   Injectable,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
@@ -24,6 +31,11 @@ import { UserModel } from 'profile/user.entity';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
+import { CourseSettingsModel } from './course_settings.entity';
+import { getManager } from 'typeorm';
+import { OrganizationUserModel } from 'organization/organization-user.entity';
+import { OrganizationCourseModel } from 'organization/organization-course.entity';
+import { SemesterModel } from 'semester/semester.entity';
 
 @Injectable()
 export class CourseService {
@@ -393,5 +405,263 @@ export class CourseService {
     } else {
       return `/courses?err=notInCourse`;
     }
+  }
+
+  async cloneCourse(
+    courseId: number,
+    userId: number,
+    cloneData: CourseCloneAttributes,
+    chatToken: string,
+  ): Promise<UserCourse | null> {
+    if (!cloneData.professorIds || cloneData.professorIds.length === 0) {
+      throw new BadRequestException(
+        'At least one professor must be provided for your course clone.',
+      );
+    }
+
+    if (
+      (!cloneData.newSemesterId || cloneData.newSemesterId == -1) &&
+      (!cloneData.newSection || cloneData.newSection == '')
+    ) {
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.newSectionOrSemesterMissing,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return await getManager().transaction(async (manager) => {
+      const originalCourse = await manager.findOne(CourseModel, {
+        where: { id: courseId },
+        relations: ['courseSettings', 'semester'],
+      });
+      if (!originalCourse) {
+        throw new NotFoundException(`Course with id ${courseId} not found`);
+      }
+
+      // to generalize operation for batch cloning as well (a single value of -1 means clone the professors as well)
+      const originalProfessors = await manager.find(UserCourseModel, {
+        where: {
+          courseId,
+          role: Role.PROFESSOR,
+        },
+      });
+
+      if (
+        cloneData.professorIds.length === 1 &&
+        cloneData.professorIds[0] === -1
+      ) {
+        cloneData.professorIds = originalProfessors.map(
+          (userCourse) => userCourse.userId,
+        );
+      }
+
+      if (
+        cloneData.useSection &&
+        cloneData.newSection === originalCourse.sectionGroupName
+      ) {
+        throw new HttpException(
+          ERROR_MESSAGES.courseController.sectionSame,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (
+        !cloneData.useSection &&
+        cloneData.newSemesterId === originalCourse.semesterId
+      ) {
+        throw new HttpException(
+          ERROR_MESSAGES.courseController.semesterSame,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // If the user is not an Organization Administrator, they can only set themselves as the cloned course's professor
+      const organizationUser = await manager.findOne(OrganizationUserModel, {
+        where: { userId: userId },
+      });
+      if (organizationUser.role !== OrganizationRole.ADMIN) {
+        cloneData.professorIds = [userId];
+      }
+
+      const professorIds = Array.isArray(cloneData.professorIds)
+        ? cloneData.professorIds
+        : [cloneData.professorIds];
+      const professors = await manager.findByIds(UserModel, professorIds);
+      if (professors.length !== professorIds.length) {
+        throw new NotFoundException(`One or more professors not found`);
+      }
+
+      const clonedCourse = new CourseModel();
+      clonedCourse.enabled = true;
+      clonedCourse.name = originalCourse.name;
+      clonedCourse.timezone = originalCourse.timezone;
+
+      if (cloneData.cloneAttributes?.coordinator_email) {
+        clonedCourse.coordinator_email = originalCourse.coordinator_email;
+      }
+      if (cloneData.cloneAttributes?.zoomLink) {
+        clonedCourse.zoomLink = originalCourse.zoomLink;
+      }
+      if (cloneData.cloneAttributes?.courseInviteCode) {
+        clonedCourse.courseInviteCode = originalCourse.courseInviteCode;
+      }
+
+      if (cloneData.useSection) {
+        clonedCourse.sectionGroupName = cloneData.newSection;
+        clonedCourse.semester = originalCourse.semester;
+      } else if (cloneData.useSection === false) {
+        const semester = await manager.findOneOrFail(SemesterModel, {
+          where: { id: cloneData.newSemesterId },
+        });
+        clonedCourse.semester = semester;
+        clonedCourse.sectionGroupName = originalCourse.sectionGroupName;
+      } else {
+        throw new BadRequestException(
+          'Either a new semester or new section must be provided for your course clone.',
+        );
+      }
+      await manager.save(clonedCourse);
+
+      if (originalCourse.courseSettings) {
+        const origSettings = originalCourse.courseSettings;
+        const clonedSettings = new CourseSettingsModel();
+        clonedSettings.courseId = clonedCourse.id;
+        if (cloneData.cloneCourseSettings?.chatBotEnabled) {
+          clonedSettings.chatBotEnabled = origSettings.chatBotEnabled;
+        }
+        if (cloneData.cloneCourseSettings?.asyncQueueEnabled) {
+          clonedSettings.asyncQueueEnabled = origSettings.asyncQueueEnabled;
+        }
+        if (cloneData.cloneCourseSettings?.queueEnabled) {
+          clonedSettings.queueEnabled = origSettings.queueEnabled;
+        }
+        if (cloneData.cloneCourseSettings?.scheduleOnFrontPage) {
+          clonedSettings.scheduleOnFrontPage = origSettings.scheduleOnFrontPage;
+        }
+        if (cloneData.cloneCourseSettings?.asyncCentreAIAnswers) {
+          clonedSettings.asyncCentreAIAnswers =
+            origSettings.asyncCentreAIAnswers;
+        }
+        await manager.save(clonedSettings);
+      }
+
+      for (const professor of professors) {
+        const profUserCourse = new UserCourseModel();
+        profUserCourse.user = professor;
+        profUserCourse.course = clonedCourse;
+        profUserCourse.role = Role.PROFESSOR;
+        await manager.save(profUserCourse);
+      }
+
+      const organizationCourse = new OrganizationCourseModel();
+
+      organizationCourse.courseId = clonedCourse.id;
+      organizationCourse.organizationId = organizationUser.organizationId;
+      await manager.save(organizationCourse);
+
+      // -------------- For Chatbot Settings and Documents --------------
+
+      if (cloneData.cloneCourseSettings.chatBotEnabled) {
+        const getSettingsResponse = await fetch(
+          `http://localhost:3003/chat/${courseId}/oneChatbotSetting`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              HMS_API_TOKEN: chatToken,
+            },
+          },
+        );
+
+        if (!getSettingsResponse.ok) {
+          console.error(
+            `Failed to get current course chatbot data in chatbot service: [${getSettingsResponse.status}] ${getSettingsResponse.statusText}`,
+          );
+          throw new BadRequestException(
+            'Failed to fetch current course chatbot data from chatbot service',
+          );
+        }
+
+        const chatbotData: ChatbotSettings = await getSettingsResponse.json();
+
+        const clonedChatbotData: ChatbotSettings = defaultChatbotSetting;
+
+        if (cloneData.chatbotSettings.modelName) {
+          clonedChatbotData.modelName = chatbotData.modelName;
+        }
+        if (cloneData.chatbotSettings.prompt) {
+          clonedChatbotData.prompt = chatbotData.prompt;
+        }
+        if (cloneData.chatbotSettings.similarityThresholdDocuments) {
+          clonedChatbotData.similarityThresholdDocuments =
+            chatbotData.similarityThresholdDocuments;
+        }
+        if (cloneData.chatbotSettings.temperature) {
+          clonedChatbotData.temperature = chatbotData.temperature;
+        }
+        if (cloneData.chatbotSettings.topK) {
+          clonedChatbotData.topK = chatbotData.topK;
+        }
+
+        const patchSettingsResponse = await fetch(
+          `http://localhost:3003/chat/${clonedCourse.id}/updateChatbotSetting`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              HMS_API_TOKEN: chatToken,
+            },
+            body: JSON.stringify(clonedChatbotData),
+          },
+        );
+
+        if (!patchSettingsResponse.ok) {
+          console.error(
+            `Failed to set cloned chatbot data in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
+          );
+          throw new BadRequestException(
+            'Failed to set cloned chatbot data from chatbot service',
+          );
+        }
+
+        if (cloneData.includeDocuments) {
+          const postDocumentsResponse = await fetch(
+            `http://localhost:3003/chat/${courseId}/cloneCourseDocuments/${clonedCourse.id}/${cloneData.includeInsertedQuestions === true}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                HMS_API_TOKEN: chatToken,
+              },
+            },
+          );
+
+          if (!postDocumentsResponse.ok) {
+            console.error(
+              `Failed to copy chatbot documents from original course in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
+            );
+            throw new BadRequestException(
+              'Failed to copy chatbot documents from original course in chatbot service',
+            );
+          }
+        }
+      }
+
+      if (professorIds.includes(userId)) {
+        await this.redisProfileService.deleteProfile(`u:${userId}`);
+        return {
+          course: {
+            id: clonedCourse.id,
+            name: clonedCourse.name,
+            semesterId: clonedCourse.semesterId,
+            enabled: clonedCourse.enabled,
+            sectionGroupName: clonedCourse.sectionGroupName,
+          },
+          role: Role.PROFESSOR,
+          favourited: true,
+        };
+      } else {
+        return null;
+      }
+    });
   }
 }

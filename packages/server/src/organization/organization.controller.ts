@@ -14,7 +14,7 @@ import {
   UseGuards,
   UseInterceptors,
   ParseIntPipe,
-  ForbiddenException,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
@@ -35,6 +35,9 @@ import {
   CourseResponse,
   OrgUser,
   GetOrganizationResponse,
+  BatchCourseCloneAttributes,
+  BatchCourseCloneResponse,
+  MailServiceType,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -62,7 +65,6 @@ import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import _ from 'lodash';
 import * as sharp from 'sharp';
-import { UserId } from '../decorators/user.decorator';
 import { User } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
@@ -70,6 +72,8 @@ import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { CourseRoles } from 'decorators/course-roles.decorator';
+import { CourseService } from 'course/course.service';
+import { MailService } from 'mail/mail.service';
 
 // TODO: put the error messages in ERROR_MESSAGES object
 
@@ -78,6 +82,8 @@ export class OrganizationController {
   constructor(
     private organizationService: OrganizationService,
     private redisProfileService: RedisProfileService,
+    private courseService: CourseService,
+    private mailService: MailService,
     private schedulerRegistry: SchedulerRegistry,
   ) {}
 
@@ -1461,7 +1467,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async getCourses(
     @Param('oid', ParseIntPipe) oid: number,
-    @Param('page', ParseIntPipe) page: number,
+    @Param('page', new DefaultValuePipe(-1), ParseIntPipe) page: number,
     @Query('search') search: string,
   ): Promise<CourseResponse[]> {
     const pageSize = 50;
@@ -1582,6 +1588,95 @@ export class OrganizationController {
       .catch((err) => {
         res.status(500).send({ message: err });
       });
+  }
+
+  @Post(':oid/clone_courses')
+  @UseGuards(JwtAuthGuard, OrganizationGuard, EmailVerifiedGuard)
+  @OrgRoles(OrganizationRole.ADMIN)
+  async batchCloneCourses(
+    @Param('oid', ParseIntPipe) oid: number, // unused for now, only for the guard
+    @User(['chat_token']) user: UserModel,
+    @Body() body: BatchCourseCloneAttributes,
+  ): Promise<string> {
+    if (!user || !user.chat_token) {
+      console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
+      throw new HttpException(
+        ERROR_MESSAGES.profileController.accountNotAvailable,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const asyncClone = async () => {
+      const progressLog: BatchCourseCloneResponse[] = [];
+      for (const key of Object.keys(body)) {
+        const courseId = parseInt(key);
+        const cloneData = body[key];
+
+        const course = await CourseModel.findOne({ where: { id: courseId } });
+        if (!course) {
+          progressLog.push({
+            success: false,
+            message: `Course with id ${courseId} not found`,
+          });
+        }
+
+        if (!cloneData) {
+          progressLog.push({
+            success: false,
+            message: `Course "${course.name.trim()}" with id ${courseId} is missing clone parameters`,
+          });
+        }
+
+        try {
+          await this.courseService.cloneCourse(
+            courseId,
+            user.id,
+            cloneData,
+            user.chat_token.token,
+          );
+
+          progressLog.push({
+            success: true,
+            message: `Successfully cloned course "${course.name.trim()}" with id ${courseId}`,
+          });
+        } catch (error) {
+          progressLog.push({
+            success: false,
+            message: `Error cloning course "${course.name.trim()}" with id ${courseId}: ${error}`,
+          });
+        }
+      }
+
+      const bodyRender = `
+      <br>
+      <h2>Course Clone Summary</h2>
+      <br>
+      <p>Here is the summary of the course cloning process:</p>
+      <ul>
+        ${progressLog
+          .map(
+            (log) =>
+              `<li style="color: ${
+                log.success ? 'green' : 'red'
+              }">${log.message}</li>`,
+          )
+          .join('')}
+      </ul>
+      <br>
+      Note: Do NOT reply to this email.
+    `;
+
+      //TODO: style contents of email better
+      this.mailService.sendEmail({
+        receiver: user.email,
+        type: MailServiceType.COURSE_CLONE_SUMMARY,
+        subject: 'HelpMe - Course Clone Summary',
+        content: bodyRender,
+      });
+    };
+
+    asyncClone();
+    return 'Batch Cloning Operation Successfully Queued!';
   }
 
   private isValidUrl = (url: string): boolean => {

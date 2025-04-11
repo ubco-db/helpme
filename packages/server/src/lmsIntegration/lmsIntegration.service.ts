@@ -800,6 +800,9 @@ export class LMSIntegrationService {
       course: {
         id: lmsIntegration.courseId,
         name: lmsIntegration.course.name,
+        sectionGroupName: lmsIntegration.course.sectionGroupName,
+        semesterId: lmsIntegration.course.semesterId,
+        enabled: lmsIntegration.course.enabled,
       } satisfies CoursePartial,
       apiCourseId: lmsIntegration.apiCourseId,
       apiKeyExpiry: lmsIntegration.apiKeyExpiry,
