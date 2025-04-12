@@ -2,9 +2,10 @@
 
 #### New Features
 
-- ***Faculty-only***
+- ***General***
   - Faculty can now message students who have questions in their queue (or vise versa)
     - Previously, you were limited to only being able to message each other if the question was actively being helped
+- ***Faculty-only***
   - Faculty can now delete questions that are in the "Not Ready" state in queues
 
 #### Improvements
