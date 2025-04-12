@@ -19,6 +19,7 @@ import { AsyncQuestionVotesModel } from './asyncQuestionVotes.entity';
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
+import { AsyncQuestionImageModel } from './asyncQuestionImage.entity';
 
 @Entity('async_question_model')
 export class AsyncQuestionModel extends BaseEntity {
@@ -102,4 +103,7 @@ export class AsyncQuestionModel extends BaseEntity {
   sumVotes() {
     this.votesSum = this.votes.reduce((acc, vote) => acc + vote.vote, 0);
   }
+
+  @OneToMany(() => AsyncQuestionImageModel, (image) => image.asyncQuestion)
+  images: AsyncQuestionImageModel[];
 }

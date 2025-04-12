@@ -1,5 +1,10 @@
-import { AddDocumentChunkParams, MailServiceType, Role } from '@koh/common';
-import { Injectable } from '@nestjs/common';
+import {
+  AddDocumentChunkParams,
+  ERROR_MESSAGES,
+  MailServiceType,
+  Role,
+} from '@koh/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { MailService } from 'mail/mail.service';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -9,6 +14,12 @@ import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
 import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
+import { AsyncQuestionImageModel } from './asyncQuestionImage.entity';
+import { getManager } from 'typeorm';
+import * as checkDiskSpace from 'check-disk-space';
+import * as path from 'path';
+import * as sharp from 'sharp';
+
 @Injectable()
 export class AsyncQuestionService {
   constructor(
@@ -369,6 +380,136 @@ export class AsyncQuestionService {
     );
   }
 
+  async createAsyncQuestion(
+    questionData: Partial<AsyncQuestionModel>,
+    imageBuffers: tempFile[],
+  ): Promise<AsyncQuestionModel> {
+    const startTime = Date.now();
+
+    // Check disk space before proceeding
+    const spaceLeft = await checkDiskSpace(path.parse(process.cwd()).root);
+    if (spaceLeft.free < 1_000_000_000) {
+      throw new ServiceUnavailableException(ERROR_MESSAGES.common.noDiskSpace);
+    }
+
+    let question;
+    // Create the question first
+    const entityManager = getManager();
+    await entityManager.transaction(async (transactionalEntityManager) => {
+      question = await transactionalEntityManager.save(
+        AsyncQuestionModel.create(questionData),
+      );
+
+      // Process and save images
+      if (imageBuffers.length > 0) {
+        const imagePromises = imageBuffers.map(async (buffer) => {
+          const imageModel = new AsyncQuestionImageModel();
+          imageModel.asyncQuestion = question;
+          imageModel.imageBuffer = buffer.processedBuffer;
+          imageModel.previewImageBuffer = buffer.previewBuffer;
+          imageModel.imageSizeBytes = buffer.processedBuffer.length;
+          imageModel.previewImageSizeBytes = buffer.previewBuffer.length;
+
+          imageModel.originalFileName = buffer.originalFileName;
+          imageModel.newFileName = buffer.newFileName;
+
+          return transactionalEntityManager.save(imageModel);
+        });
+
+        await Promise.all(imagePromises);
+      }
+    });
+
+    const endTime = Date.now();
+    const processingTime = endTime - startTime;
+
+    if (processingTime > 10000) {
+      // more than 10 seconds
+      console.error(`createAsyncQuestion took too long: ${processingTime}ms`);
+    }
+
+    return question;
+  }
+
+  async convertAndResizeImages(
+    images: Express.Multer.File[],
+  ): Promise<tempFile[]> {
+    const startTime = Date.now();
+    const results = await Promise.all(
+      images.map(async (image) => {
+        // create both full and preview versions (the preview version is much smaller), they all get converted to webp
+        const [processedBuffer, previewBuffer] = await Promise.all([
+          sharp(image.buffer)
+            .resize(1920, 1080, {
+              fit: 'inside', // resize to fit within 1920x1080, but keep aspect ratio
+              withoutEnlargement: true, // don't enlarge the image
+            })
+            .webp({ quality: 80 }) // convert to webp with quality 80
+            .toBuffer(),
+          sharp(image.buffer) // preview images get sent first so they need to be low quality so they get sent fast.
+            .resize(400, 300, { fit: 'inside', withoutEnlargement: true })
+            .webp({ quality: 30 })
+            .toBuffer(),
+        ]);
+
+        // Remove the original extension and replace with .webp
+        const sanitizedFilename =
+          image.originalname
+            .replace(/[/\\?%*:|"<>]/g, '_') // Replace unsafe characters with underscores
+            .replace(/\.[^/.]+$/, '') // Remove the original extension
+            .trim() + '.webp'; // Add .webp extension
+
+        return {
+          processedBuffer,
+          previewBuffer,
+          originalFileName: image.originalname,
+          newFileName: sanitizedFilename,
+        };
+      }),
+    );
+
+    const endTime = Date.now();
+    const processingTime = endTime - startTime;
+    if (processingTime > 10000) {
+      // more than 10 seconds
+      console.error(
+        `convertAndResizeImages took too long: ${processingTime}ms`,
+      );
+    }
+
+    return results;
+  }
+
+  async getImageById(
+    imageId: number,
+    preview: boolean,
+  ): Promise<{
+    buffer: Buffer;
+    contentType: string;
+    newFileName: string;
+  } | null> {
+    let image;
+    if (preview) {
+      image = await AsyncQuestionImageModel.findOne({
+        where: { imageId },
+        select: ['previewImageBuffer', 'newFileName'],
+      });
+    } else {
+      image = await AsyncQuestionImageModel.findOne({
+        where: { imageId },
+        select: ['imageBuffer', 'newFileName'],
+      });
+    }
+
+    if (!image) return null;
+
+    return {
+      buffer: preview ? image.previewImageBuffer : image.imageBuffer,
+      contentType: 'image/webp',
+      newFileName: image.newFileName,
+    };
+  }
+
   /**
    * Takes in a userId and async questionId and hashes them to return a random index from ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
    * Note that 70 is the length of ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
@@ -378,4 +519,11 @@ export class AsyncQuestionService {
     const hash = userId + questionId;
     return hash % 70;
   }
+}
+
+export interface tempFile {
+  processedBuffer: Buffer;
+  previewBuffer: Buffer;
+  originalFileName: string;
+  newFileName: string;
 }

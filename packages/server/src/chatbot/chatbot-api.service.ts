@@ -5,6 +5,7 @@ import {
   AddDocumentChunkParams,
   ChatbotQuestionResponseChatbotDB,
   UpdateChatbotQuestionParams,
+  ChatbotAskResponseChatbotDB,
 } from '@koh/common';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -91,11 +92,53 @@ export class ChatbotApiService {
     history: any,
     userToken: string,
     courseId: number,
-  ) {
-    return this.request('POST', 'ask', courseId, userToken, {
-      question,
-      history,
-    });
+    images?: Buffer[],
+  ): Promise<ChatbotAskResponseChatbotDB> {
+    try {
+      const formData = new FormData();
+      formData.append('question', question);
+      formData.append('history', JSON.stringify(history));
+
+      // Add images if they exist
+      if (images && images.length > 0) {
+        images.forEach((imageBuffer, index) => {
+          formData.append(
+            'images',
+            new Blob([imageBuffer], { type: 'image/jpeg' }),
+            `image${index + 1}.jpg`,
+          );
+        });
+      }
+
+      const url = new URL(`${this.chatbotApiUrl}/${courseId}/ask`);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'HMS-API-KEY': this.chatbotApiKey,
+          HMS_API_TOKEN: userToken,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new HttpException(
+          error.error || 'Error from chatbot service',
+          response.status,
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Failed to connect to chatbot service',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   async getAllQuestions(courseId: number, userToken: string) {

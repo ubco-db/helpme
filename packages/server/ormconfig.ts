@@ -40,6 +40,7 @@ import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entit
 import { UnreadAsyncQuestionModel } from './src/asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from './src/asyncQuestion/asyncQuestionComment.entity';
 import { ChatbotDocPdfModel } from './src/chatbot/chatbot-doc-pdf.entity';
+import { AsyncQuestionImageModel } from './src/asyncQuestion/asyncQuestionImage.entity';
 import { isProd } from '@koh/common';
 import * as fs from 'fs';
 
@@ -115,6 +116,7 @@ const typeorm = {
     UnreadAsyncQuestionModel,
     LMSAnnouncementModel,
     ChatbotDocPdfModel,
+    AsyncQuestionImageModel,
   ],
   keepConnectionAlive: true,
   logging:

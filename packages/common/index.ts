@@ -830,10 +830,6 @@ export class AsyncQuestionParams {
   @IsString()
   answerText?: string
 
-  @IsOptional()
-  @IsString()
-  aiAnswerText?: string
-
   @Type(() => Date)
   closedAt?: Date
 
@@ -854,6 +850,10 @@ export class AsyncQuestionParams {
   @IsOptional()
   @IsBoolean()
   saveToChatbot?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  refreshAIAnswer?: boolean
 }
 export class AsyncQuestionVotes {
   @IsOptional()
@@ -1542,7 +1542,11 @@ export class ResolveGroupParams {
   queueId!: number
 }
 
-export class CreateAsyncQuestions extends AsyncQuestionParams {}
+export class CreateAsyncQuestions extends AsyncQuestionParams {
+  @IsOptional()
+  @IsArray()
+  images?: any // This will be handled by FormData, so we don't need to specify the type here
+}
 
 export class UpdateAsyncQuestions extends AsyncQuestionParams {}
 
@@ -2737,6 +2741,8 @@ export enum LMSIntegrationPlatform {
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
+    noDiskSpace:
+      'There is not enough disk space left to store an image (<1GB). Please immediately contact your course staff and let them know. They will contact the HelpMe team as soon as possible.',
   },
   questionService: {
     getDBClient: 'Error getting DB client',
@@ -2952,8 +2958,6 @@ export const ERROR_MESSAGES = {
     noProfilePicture: "User doesn't have a profile picture",
     noCoursesToDelete: "User doesn't have any courses to delete",
     emailInUse: 'Email is already in use',
-    noDiskSpace:
-      'There is no disk space left to store an image. Please immediately contact your course staff and let them know. They will contact the Khoury Office Hours team as soon as possible.',
   },
   alertController: {
     duplicateAlert: 'This alert has already been sent',
@@ -2975,11 +2979,6 @@ export const ERROR_MESSAGES = {
     serialize: 'Unable to serialize payload',
     publish: 'Publisher client is unable to publish',
     clientIdNotFound: 'Client ID not found during subscribing to client',
-  },
-  resourcesService: {
-    noDiskSpace:
-      'There is no disk space left to store a iCal file. Please immediately contact your course staff and let them know. They will contact the Khoury Office Hours team as soon as possible.',
-    saveCalError: 'There was an error saving an iCal to disk',
   },
   questionType: {
     questionTypeNotFound: 'Question type not found',

@@ -25,6 +25,10 @@ import {
   Post,
   Res,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
+  Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { Roles } from '../decorators/roles.decorator';
@@ -40,10 +44,14 @@ import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { AsyncQuestionRolesGuard } from 'guards/async-question-roles.guard';
 import { pick } from 'lodash';
 import { UserModel } from 'profile/user.entity';
-import { Not } from 'typeorm';
+import { In, Not } from 'typeorm';
 import { ApplicationConfigService } from '../config/application_config.service';
-import { AsyncQuestionService } from './asyncQuestion.service';
+import { ChatbotApiService } from 'chatbot/chatbot-api.service';
+import { AsyncQuestionService, tempFile } from './asyncQuestion.service';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { AsyncQuestionImageModel } from './asyncQuestionImage.entity';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -52,6 +60,7 @@ export class asyncQuestionController {
     private readonly redisQueueService: RedisQueueService,
     private readonly appConfig: ApplicationConfigService,
     private readonly asyncQuestionService: AsyncQuestionService,
+    private readonly chatbotApiService: ChatbotApiService,
   ) {}
 
   @Post('vote/:qid/:vote')
@@ -110,6 +119,7 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'images',
       ],
     });
 
@@ -132,56 +142,137 @@ export class asyncQuestionController {
   @Post(':cid')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR) // we let staff post questions too since they might want to use the system for demonstration purposes
+  @UseInterceptors(
+    FilesInterceptor('images', 8, {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit per file
+      },
+      fileFilter: (req, file, cb) => {
+        // Check mimetype (it can be spoofed fyi so we also need to check the file extension)
+        if (!file.mimetype.startsWith('image/')) {
+          cb(new Error('Only image files are allowed'), false);
+          return;
+        }
+        // Check file extension
+        const allowedExtensions = [
+          '.jpg',
+          '.jpeg',
+          '.png',
+          '.gif',
+          '.webp',
+          '.bmp',
+          '.svg',
+          '.tiff',
+          '.gif',
+        ];
+        const fileExt = file.originalname
+          .toLowerCase()
+          .substring(file.originalname.lastIndexOf('.'));
+        if (!allowedExtensions.includes(fileExt)) {
+          cb(new Error('Only image files are allowed'), false);
+          return;
+        }
+        cb(null, true);
+      },
+    }),
+  )
   async createQuestion(
-    @Body() body: CreateAsyncQuestions,
+    @Body() body: CreateAsyncQuestions | FormData | any, // delete FormData | any for better type checking temporarily
     @Param('cid', ParseIntPipe) cid: number,
-    @UserId() userId: number,
+    @User(['chat_token']) user: UserModel,
     @Res() res: Response,
-  ): Promise<any> {
-    try {
-      const question = await AsyncQuestionModel.create({
+    @UploadedFiles() images?: Express.Multer.File[],
+  ): Promise<AsyncQuestionModel> {
+    // the body *should* follow CreateAsyncQuestions, but since we're using formdata, we have to manually parse the fields and validate them
+    if (body.questionTypes) {
+      try {
+        body.questionTypes = JSON.parse(body.questionTypes);
+      } catch (error) {
+        throw new BadRequestException(
+          'Question Types field must be a valid JSON array',
+        );
+      }
+    }
+    if (!body.questionAbstract) {
+      throw new BadRequestException('Question Abstract is required');
+    }
+    body.questionText = body.questionText ? body.questionText.toString() : '';
+    body.questionAbstract = body.questionAbstract
+      ? body.questionAbstract.toString()
+      : '';
+    body.status = body.status
+      ? body.status.toString()
+      : asyncQuestionStatus.AIAnswered;
+    if (images) {
+      console.log('images');
+      console.log(images);
+    }
+    // Convert images to buffers if they exist
+    let processedImageBuffers: tempFile[] = [];
+    if (images && images.length > 0) {
+      processedImageBuffers =
+        await this.asyncQuestionService.convertAndResizeImages(images);
+    }
+
+    let aiAnswerText: string | null = null;
+    if (user.chat_token.used >= user.chat_token.max_uses) {
+      aiAnswerText =
+        'All AI uses have been used up for today. Please try again tomorrow.';
+    } else {
+      const chatbotResponse = await this.chatbotApiService.askQuestion(
+        `
+          Question Abstract: ${body.questionAbstract}
+          Question Text: ${body.questionText}
+          Question Types: ${body.questionTypes.map((questionType) => questionType.name).join(', ')}
+        `,
+        [],
+        user.chat_token.token,
+        cid,
+        processedImageBuffers.map((result) => result.processedBuffer), // give chatbot the higher-quality, non-preview images
+      );
+      aiAnswerText = chatbotResponse.answer;
+    }
+
+    const question = await this.asyncQuestionService.createAsyncQuestion(
+      {
         courseId: cid,
-        creatorId: userId,
+        creatorId: user.id,
         questionAbstract: body.questionAbstract,
         questionText: body.questionText || null,
-        answerText: body.answerText || null,
-        aiAnswerText: body.aiAnswerText,
-        questionTypes: body.questionTypes,
+        answerText: aiAnswerText, // answer text initially becomes the ai answer text
+        aiAnswerText,
+        questionTypes: body.questionTypes as QuestionTypeModel[],
         status: body.status || asyncQuestionStatus.AIAnswered,
         visible: false,
         verified: false,
         createdAt: new Date(),
-      }).save();
+      },
+      processedImageBuffers,
+    );
 
-      const newQuestion = await AsyncQuestionModel.findOne({
-        where: {
-          courseId: cid,
-          id: question.id,
-        },
-        relations: [
-          'creator',
-          'taHelped',
-          'votes',
-          'comments',
-          'comments.creator',
-          'comments.creator.courses',
-        ],
-      });
+    const newQuestion = await AsyncQuestionModel.findOne({
+      where: {
+        courseId: cid,
+        id: question.id,
+      },
+      relations: [
+        'creator',
+        'taHelped',
+        'votes',
+        'comments',
+        'comments.creator',
+        'comments.creator.courses',
+        'images',
+      ],
+    });
 
-      await this.redisQueueService.addAsyncQuestion(`c:${cid}:aq`, newQuestion);
-      await this.asyncQuestionService.createUnreadNotificationsForQuestion(
-        newQuestion,
-      );
+    await this.redisQueueService.addAsyncQuestion(`c:${cid}:aq`, newQuestion);
+    await this.asyncQuestionService.createUnreadNotificationsForQuestion(
+      newQuestion,
+    );
 
-      res.status(HttpStatus.CREATED).send(newQuestion);
-      return;
-    } catch (err) {
-      console.error(err);
-      res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .send({ message: ERROR_MESSAGES.questionController.saveQError });
-      return;
-    }
+    res.status(HttpStatus.CREATED).send(newQuestion);
+    return;
   }
 
   @Patch('student/:questionId')
@@ -190,7 +281,7 @@ export class asyncQuestionController {
   async updateQuestionStudent(
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
-    @UserId() userId: number,
+    @User(['chat_token']) user: UserModel,
   ): Promise<AsyncQuestionParams> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
@@ -200,6 +291,7 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'images',
       ],
     });
     // deep copy question since it changes
@@ -211,7 +303,7 @@ export class asyncQuestionController {
       throw new NotFoundException('Question Not Found');
     }
 
-    if (question.creatorId !== userId) {
+    if (question.creatorId !== user.id) {
       throw new ForbiddenException('You can only update your own questions');
     }
     // if you created the question (i.e. a student), you can't update the status to illegal ones
@@ -237,6 +329,29 @@ export class asyncQuestionController {
       }
     });
 
+    if (body.refreshAIAnswer) {
+      if (user.chat_token.used >= user.chat_token.max_uses) {
+        question.aiAnswerText =
+          'All AI uses have been used up for today. Please try again tomorrow.';
+        question.answerText =
+          'All AI uses have been used up for today. Please try again tomorrow.';
+      } else {
+        const chatbotResponse = await this.chatbotApiService.askQuestion(
+          `
+            Question Abstract: ${question.questionAbstract}
+            Question Text: ${question.questionText}
+            Question Types: ${question.questionTypes.map((questionType) => questionType.name).join(', ')}
+          `,
+          [],
+          user.chat_token.token,
+          question.courseId,
+          // TODO: add images support
+        );
+        question.aiAnswerText = chatbotResponse.answer;
+        question.answerText = chatbotResponse.answer;
+      }
+    }
+
     const updatedQuestion = await question.save();
 
     // Mark as new unread for all staff if the question needs attention
@@ -247,16 +362,19 @@ export class asyncQuestionController {
       await this.asyncQuestionService.markUnreadForRoles(
         updatedQuestion,
         [Role.TA, Role.PROFESSOR],
-        userId,
+        user.id,
       );
     }
     // if the question is visible and they rewrote their question and got a new answer text, mark it as unread for everyone
     if (
       updatedQuestion.visible &&
-      body.aiAnswerText !== oldQuestion.aiAnswerText &&
+      body.refreshAIAnswer &&
       body.questionText !== oldQuestion.questionText
     ) {
-      await this.asyncQuestionService.markUnreadForAll(updatedQuestion, userId);
+      await this.asyncQuestionService.markUnreadForAll(
+        updatedQuestion,
+        user.id,
+      );
     }
 
     if (body.status === asyncQuestionStatus.StudentDeleted) {
@@ -296,6 +414,7 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'images',
       ],
     });
     // deep copy question since it changes
@@ -435,6 +554,7 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'images',
       ],
     });
 
@@ -553,6 +673,7 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'images',
       ],
     });
 
@@ -630,6 +751,7 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'images',
       ],
     });
 
@@ -665,11 +787,17 @@ export class asyncQuestionController {
     let all: AsyncQuestionModel[] = [];
 
     if (!asyncQuestionKeys || Object.keys(asyncQuestionKeys).length === 0) {
-      console.log('Fetching from Database');
+      console.log('Fetching async questions from Database');
       all = await AsyncQuestionModel.find({
         where: {
           courseId,
-          status: Not(asyncQuestionStatus.StudentDeleted),
+          // don't include studentDeleted or TADeleted questions
+          status: Not(
+            In([
+              asyncQuestionStatus.StudentDeleted,
+              asyncQuestionStatus.TADeleted,
+            ]),
+          ),
         },
         relations: [
           'creator',
@@ -678,6 +806,7 @@ export class asyncQuestionController {
           'comments',
           'comments.creator',
           'comments.creator.courses',
+          'images',
         ],
         order: {
           createdAt: 'DESC',
@@ -688,7 +817,7 @@ export class asyncQuestionController {
       if (all)
         await this.redisQueueService.setAsyncQuestions(`c:${courseId}:aq`, all);
     } else {
-      console.log('Fetching from Redis');
+      console.log('Fetching async questions from Redis');
       all = Object.values(asyncQuestionKeys).map(
         (question) => question as AsyncQuestionModel,
       );
@@ -735,6 +864,7 @@ export class asyncQuestionController {
         'questionTypes',
         'votesSum',
         'isTaskQuestion',
+        'images',
       ]);
 
       if (!question.comments) {
@@ -851,5 +981,41 @@ export class asyncQuestionController {
       { readLatest: true },
     );
     return;
+  }
+  @Get(':courseId/image/:imageId')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+  async getImage(
+    @Param('courseId', ParseIntPipe) courseId: number, // used for guard
+    @Param('imageId', ParseIntPipe) imageId: number,
+    @Query('preview') preview: boolean,
+    @Res() res: Response,
+  ) {
+    const image = await this.asyncQuestionService.getImageById(
+      imageId,
+      preview,
+    );
+
+    if (!image) {
+      throw new NotFoundException('Image not found');
+    }
+
+    // Encode the filename for Content-Disposition
+    const encodedFilename = encodeURIComponent(image.newFileName)
+      .replace(/['()]/g, (match) => {
+        return match === "'" ? '%27' : match === '(' ? '%28' : '%29';
+      }) // Replace special chars with percent encoding
+      .replace(/\*/g, '%2A');
+
+    // Create filename* parameter with UTF-8 encoding per RFC 5987
+    const filenameAsterisk = `UTF-8''${encodedFilename}`;
+
+    res.set({
+      'Content-Type': 'image/webp',
+      'Cache-Control': 'public, max-age=1296000', // Cache for 4 months
+      'Content-Disposition': `inline; filename="${image.newFileName}"; filename*=${filenameAsterisk}`,
+    });
+
+    res.send(image.buffer);
   }
 }

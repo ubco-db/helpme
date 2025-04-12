@@ -95,7 +95,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
         md: '100%',
         lg: '60%',
         xl: '50%',
-        xxl: '40%',
+        xxl: '35%',
       }}
       okButtonProps={{
         autoFocus: true,
