@@ -788,6 +788,15 @@ export type AsyncQuestion = {
   votes?: AsyncQuestionVotes[]
   comments: AsyncQuestionComment[]
   votesSum: number
+  images: AsyncQuestionImage[]
+}
+
+export type AsyncQuestionImage = {
+  imageId: number
+  originalFileName: string
+  newFileName: string
+  imageSizeBytes: number
+  previewImageSizeBytes: number
 }
 
 /**

@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from 'react'
-import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
+import { Button, Col, message, Row, Tag, Tooltip, Image } from 'antd'
 import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common'
 import {
   CheckCircleOutlined,
@@ -359,6 +359,30 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 )}
               >
                 {<MarkdownCustom>{question.questionText ?? ''}</MarkdownCustom>}
+                {question.images && question.images.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {question.images.map((image) => (
+                      <div
+                        key={image.imageId}
+                        onClick={(e) => {
+                          e.stopPropagation() // stop clicks from expanding card
+                        }}
+                      >
+                        <Image
+                          key={image.imageId}
+                          width={80}
+                          loading="lazy"
+                          src={`/api/v1/asyncQuestions/${courseId}/image/${image.imageId}?preview=true`}
+                          alt={image.originalFileName}
+                          preview={{
+                            src: `/api/v1/asyncQuestions/${courseId}/image/${image.imageId}`,
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {question.answerText && (
                   <>
                     <br />

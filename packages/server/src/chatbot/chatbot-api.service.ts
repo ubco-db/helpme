@@ -93,6 +93,7 @@ export class ChatbotApiService {
     userToken: string,
     courseId: number,
     images?: Buffer[],
+    skipSimilaritySearch?: boolean,
   ): Promise<ChatbotAskResponseChatbotDB> {
     try {
       const formData = new FormData();
@@ -110,7 +111,9 @@ export class ChatbotApiService {
         });
       }
 
-      const url = new URL(`${this.chatbotApiUrl}/${courseId}/ask`);
+      const url = new URL(
+        `${this.chatbotApiUrl}/${courseId}/ask${skipSimilaritySearch ? '?skipSimilaritySearch=true' : ''}`,
+      );
 
       const response = await fetch(url, {
         method: 'POST',

@@ -223,6 +223,11 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
                     (questionType) => questionType.id,
                   )
                 : [],
+            images: question?.images.map((image) => ({
+              uid: image.imageId,
+              name: image.originalFileName,
+              url: `/api/v1/asyncQuestions/${courseId}/image/${image.imageId}`,
+            })),
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
@@ -275,6 +280,8 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           listType="picture-card"
           accept="image/*"
           onPreview={handlePreviewImage}
+          maxCount={8}
+          multiple={true}
         >
           {form.getFieldValue('images')?.length >= 8 ? null : <UploadButton />}
         </Upload>

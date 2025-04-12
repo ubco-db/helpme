@@ -229,6 +229,7 @@ export class asyncQuestionController {
         user.chat_token.token,
         cid,
         processedImageBuffers.map((result) => result.processedBuffer), // give chatbot the higher-quality, non-preview images
+        true,
       );
       aiAnswerText = chatbotResponse.answer;
     }
@@ -346,6 +347,8 @@ export class asyncQuestionController {
           user.chat_token.token,
           question.courseId,
           // TODO: add images support
+          [],
+          true,
         );
         question.aiAnswerText = chatbotResponse.answer;
         question.answerText = chatbotResponse.answer;
@@ -1012,7 +1015,8 @@ export class asyncQuestionController {
 
     res.set({
       'Content-Type': 'image/webp',
-      'Cache-Control': 'public, max-age=1296000', // Cache for 4 months
+      // 'Cache-Control': 'public, max-age=1296000', // Cache for 4 months
+      'Cache-Control': 'public, max-age=1', // Cache for 4 months
       'Content-Disposition': `inline; filename="${image.newFileName}"; filename*=${filenameAsterisk}`,
     });
 
