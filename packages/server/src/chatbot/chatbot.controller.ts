@@ -16,6 +16,7 @@ import {
   InternalServerErrorException,
   Res,
   Req,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ChatbotService } from './chatbot.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -35,6 +36,7 @@ import {
   AddDocumentChunkParams,
   ChatbotQuestionResponseChatbotDB,
   UpdateChatbotQuestionParams,
+  ERROR_MESSAGES,
 } from '@koh/common';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { Roles } from 'decorators/roles.decorator';
@@ -49,6 +51,8 @@ import { CourseModel } from 'course/course.entity';
 import { generateHTMLForMarkdownToPDF } from './markdown-to-pdf-styles';
 import { ChatbotDocPdfModel } from './chatbot-doc-pdf.entity';
 import { Response, Request } from 'express';
+import checkDiskSpace from 'check-disk-space';
+import path from 'path';
 
 @Controller('chatbot')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -552,6 +556,13 @@ export class ChatbotController {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
+
+    // Check disk space before proceeding
+    const spaceLeft = await checkDiskSpace(path.parse(process.cwd()).root);
+    if (spaceLeft.free < 1_000_000_000) {
+      throw new ServiceUnavailableException(ERROR_MESSAGES.common.noDiskSpace);
+    }
+
     const fileExtension = file.originalname.split('.').pop()?.toLowerCase();
 
     // if the file is a text file (including markdown and csv), don't allow sizes over 2 MB (since 4MB of text is actually a lot)

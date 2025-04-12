@@ -126,8 +126,9 @@ export class ProfileService {
       // Check disk space before proceeding
       const spaceLeft = await checkDiskSpace(path.parse(process.cwd()).root);
       if (spaceLeft.free < 1_000_000_000) {
+        // 1GB
         throw new ServiceUnavailableException(
-          ERROR_MESSAGES.profileController.noDiskSpace,
+          ERROR_MESSAGES.common.noDiskSpace,
         );
       }
 
