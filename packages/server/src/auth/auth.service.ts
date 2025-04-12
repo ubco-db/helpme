@@ -108,75 +108,67 @@ export class AuthService {
     auth_code: string,
     organizationId: number,
   ): Promise<number> {
-    try {
-      const { tokens } = await this.client.getToken(auth_code);
+    const { tokens } = await this.client.getToken(auth_code);
 
-      const ticket = await this.client.verifyIdToken({
-        idToken: tokens.id_token,
-        audience: `${process.env.GOOGLE_CLIENT_ID}.apps.googleusercontent.com`,
-      });
+    const ticket = await this.client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: `${process.env.GOOGLE_CLIENT_ID}.apps.googleusercontent.com`,
+    });
 
-      const payload = ticket.getPayload();
+    const payload = ticket.getPayload();
 
-      if (!payload.email_verified) {
-        throw new BadRequestException('Email not verified');
-      }
+    if (!payload.email_verified) {
+      throw new BadRequestException('Email not verified');
+    }
 
-      const user = await UserModel.findOne({
-        where: {
-          email: payload.email,
-          organizationUser: {
-            organizationId: organizationId,
-          },
+    const user = await UserModel.findOne({
+      where: {
+        email: payload.email,
+        organizationUser: {
+          organizationId: organizationId,
         },
-        relations: ['organizationUser'],
-      });
+      },
+      relations: ['organizationUser'],
+    });
 
-      if (user && user.password) {
-        throw new BadRequestException(
-          'User collisions with legacy account are not allowed',
-        );
-      }
+    if (user && user.password) {
+      throw new BadRequestException(
+        'A non-SSO account already exists with this email. Please login with your email and password instead.',
+      );
+    }
 
-      if (user && user.accountType !== AccountType.GOOGLE) {
-        throw new BadRequestException(
-          'User collisions with other account types are not allowed',
-        );
-      }
+    if (user && user.accountType !== AccountType.GOOGLE) {
+      throw new BadRequestException(
+        'A non-google account already exists with this email on HelpMe. Please try logging in with your email and password instead (or another SSO provider)',
+      );
+    }
 
-      if (user) {
-        return user.id;
-      }
+    if (user) {
+      return user.id;
+    } else {
+      const newUser = await UserModel.create({
+        email: payload.email,
+        firstName: payload.given_name,
+        lastName: payload.family_name,
+        photoURL: payload.picture,
+        accountType: AccountType.GOOGLE,
+        emailVerified: true,
+      }).save();
 
-      if (!user) {
-        const newUser = await UserModel.create({
-          email: payload.email,
-          firstName: payload.given_name,
-          lastName: payload.family_name,
-          photoURL: payload.picture,
-          accountType: AccountType.GOOGLE,
-          emailVerified: true,
-        }).save();
+      const userId = newUser.id;
 
-        const userId = newUser.id;
+      await OrganizationUserModel.create({
+        organizationId,
+        userId: userId,
+      }).save();
 
-        await OrganizationUserModel.create({
-          organizationId,
-          userId: userId,
-        }).save();
+      await ChatTokenModel.create({
+        user: newUser,
+        token: v4(),
+      }).save();
 
-        await ChatTokenModel.create({
-          user: newUser,
-          token: v4(),
-        }).save();
-
-        await this.createStudentSubscriptions(userId);
-        return userId;
-      }
-
-      throw new InternalServerErrorException('Unexpected error');
-    } catch (err) {
-      throw new BadRequestException(err.message);
+      await this.createStudentSubscriptions(userId);
+      return userId;
     }
   }
 

@@ -183,7 +183,7 @@ describe('AuthService', () => {
       await expect(
         service.loginWithGoogle('valid_code', organization.id),
       ).rejects.toThrowError(
-        'User collisions with legacy account are not allowed',
+        'A non-SSO account already exists with this email. Please login with your email and password instead.',
       );
     });
 
@@ -201,7 +201,7 @@ describe('AuthService', () => {
       await expect(
         service.loginWithGoogle('valid_code', organization.id),
       ).rejects.toThrowError(
-        'User collisions with other account types are not allowed',
+        'A non-google account already exists with this email on HelpMe. Please try logging in with your email and password instead (or another SSO provider)',
       );
     });
 

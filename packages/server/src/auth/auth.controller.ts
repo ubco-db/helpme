@@ -98,7 +98,7 @@ export class AuthController {
         );
       }
       return res.redirect(
-        `/login?error=errorCode${HttpStatus.BAD_REQUEST}${encodeURIComponent(err.message)}`,
+        `/login?error=errorCode${HttpStatus.INTERNAL_SERVER_ERROR}${encodeURIComponent(err.message)}`,
       );
     }
   }
@@ -482,7 +482,15 @@ export class AuthController {
 
         this.enter(req, res, payload);
       } catch (err) {
-        res.redirect(`/failed/40001`);
+        if (err instanceof HttpException) {
+          res.redirect(
+            `/login?error=errorCode${err.getStatus()}${encodeURIComponent(err.message)}`,
+          );
+        } else {
+          res.redirect(
+            `/login?error=errorCode${HttpStatus.INTERNAL_SERVER_ERROR}${encodeURIComponent(err.message)}`,
+          );
+        }
       }
     }
   }
