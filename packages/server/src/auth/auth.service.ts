@@ -57,59 +57,50 @@ export class AuthService {
 
   async loginWithShibboleth(
     mail: string,
-    role: string,
     givenName: string,
     lastName: string,
     organizationId: number,
   ): Promise<number> {
-    try {
-      const user = await UserModel.findOne({ email: mail });
+    const user = await UserModel.findOne({ email: mail });
 
-      if (user && user.password) {
-        throw new BadRequestException(
-          'User collisions with legacy account are not allowed',
-        );
-      }
+    if (user && user.password) {
+      throw new BadRequestException(
+        'A non-SSO account already exists with this email. Please login with your email and password instead.',
+      );
+    }
 
-      if (user && user.accountType !== AccountType.SHIBBOLETH) {
-        throw new BadRequestException(
-          'User collisions with other account types are not allowed',
-        );
-      }
+    if (user && user.accountType !== AccountType.SHIBBOLETH) {
+      throw new BadRequestException(
+        'A non-SSO account already exists with this email. Please login with your email and password instead.',
+      );
+    }
 
-      if (user) {
-        return user.id;
-      }
+    if (user) {
+      return user.id;
+    } else {
+      const newUser = await UserModel.create({
+        email: mail,
+        firstName: givenName,
+        lastName: lastName,
+        accountType: AccountType.SHIBBOLETH,
+        emailVerified: true,
+      }).save();
 
-      if (!user) {
-        const newUser = await UserModel.create({
-          email: mail,
-          firstName: givenName,
-          lastName: lastName,
-          accountType: AccountType.SHIBBOLETH,
-          emailVerified: true,
-        }).save();
+      const userId = newUser.id;
 
-        const userId = newUser.id;
+      await OrganizationUserModel.create({
+        organizationId,
+        userId: userId,
+        role: OrganizationRole.MEMBER,
+      }).save();
 
-        await OrganizationUserModel.create({
-          organizationId,
-          userId: userId,
-          role: OrganizationRole.MEMBER,
-        }).save();
+      await ChatTokenModel.create({
+        user: newUser,
+        token: v4(),
+      }).save();
 
-        await ChatTokenModel.create({
-          user: newUser,
-          token: v4(),
-        }).save();
-
-        await this.createStudentSubscriptions(userId);
-        return userId;
-      }
-
-      throw new InternalServerErrorException('Unexpected error');
-    } catch (err) {
-      throw new BadRequestException(err.message);
+      await this.createStudentSubscriptions(userId);
+      return userId;
     }
   }
 
