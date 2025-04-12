@@ -40,10 +40,6 @@ type StaffHelpingInOtherQueues = {
   helpedAt: Date;
 }[];
 
-/**
- * Get data in service of the queue controller and SSE
- * WHY? To ensure data returned by endpoints is *exactly* equal to data sent by SSE
- */
 @Injectable()
 export class QueueService {
   constructor(

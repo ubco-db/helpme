@@ -1,36 +1,58 @@
-import { Fragment, ReactElement, useEffect, useRef, useState } from 'react'
+import {
+  Fragment,
+  ReactElement,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { Badge, Button, Card, message, Space } from 'antd'
 import UserAvatar from '@/app/components/UserAvatar'
-import { MessageCircleMore } from 'lucide-react'
 import TextArea from 'antd/es/input/TextArea'
 import { API } from '@/app/api'
 import { useQueueChat } from '@/app/hooks/useQueueChat'
 import { CloseOutlined } from '@ant-design/icons'
 import { Tooltip } from 'antd'
 import { cn } from '@/app/utils/generalUtils'
+import { MessageCount } from './QueueChats'
 
 interface QueueChatProps {
   queueId: number
   questionId: number
+  staffId: number
   isMobile: boolean
   hidden: boolean
+  bubbleHidden: boolean
   isStaff: boolean
+  messageCounts: Record<string, MessageCount>
+  setMessageCounts: (
+    messageCounts: SetStateAction<Record<string, MessageCount>>,
+  ) => void
   isChatbotOpen?: boolean
-  announceNewMessage?: (newCount: number) => void
   onOpen?: () => void
   onClose?: () => void
+  disableTheButton?: boolean // used to disable the onClick and hover effects of the button
+  className?: string
+  style?: React.CSSProperties
+  showNameTooltip?: boolean
 }
 
 const QueueChat: React.FC<QueueChatProps> = ({
   queueId,
   questionId,
+  staffId,
   isMobile,
   hidden,
+  bubbleHidden,
   isStaff,
+  disableTheButton = false,
+  messageCounts,
+  setMessageCounts,
+  className,
+  style,
   isChatbotOpen = false,
-  announceNewMessage = (newCount: number) => {
-    return
-  },
+  showNameTooltip,
   onOpen = () => {
     return
   },
@@ -38,49 +60,65 @@ const QueueChat: React.FC<QueueChatProps> = ({
     return
   },
 }): ReactElement => {
-  const [isOpen, setIsOpen] = useState<boolean>(isMobile ? false : true)
-  const [hasStudentEverOpenedIt, setHasStudentEverOpenedIt] =
-    useState<boolean>(false)
+  const [isOpen, setIsOpen] = useState<boolean>(false)
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const {
     queueChatData,
     queueChatError,
     mutateQueueChat,
     newMessageCount,
     resetNewMessageCount,
-  } = useQueueChat(queueId, questionId)
-  const messagesEndRef = useRef<HTMLDivElement | null>(null) // This handles auto scrolling
+  } = useQueueChat(queueId, questionId, staffId)
 
+  const openChat = useCallback(() => {
+    setIsOpen(true)
+    resetNewMessageCount()
+    onOpen()
+  }, [onOpen, resetNewMessageCount, setIsOpen])
+
+  const closeChat = useCallback(() => {
+    setIsOpen(false)
+    resetNewMessageCount()
+    onClose()
+  }, [onClose, resetNewMessageCount, setIsOpen])
+
+  const messagesEndRef = useRef<HTMLDivElement | null>(null) // This handles auto scrolling
   // To always auto scroll to the bottom of the page when new messages are added
   useEffect(() => {
-    if (messagesEndRef.current && isOpen) {
+    if (messagesEndRef.current && (isOpen || newMessageCount > 0)) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [isOpen, queueChatData, queueChatData?.messages])
+  }, [isOpen, newMessageCount])
 
   // To handle new message events
   useEffect(() => {
-    if (newMessageCount == 0 || !queueChatData) {
+    if (newMessageCount == 0 || isOpen) {
       return
     }
     if (!isMobile) {
       // This is for desktop's default behavior (auto open the chat) -- mobile has css to handle this
-      setIsOpen(true)
-      resetNewMessageCount()
-      onOpen()
+      openChat()
     } else {
-      announceNewMessage(newMessageCount) // For mobile "view chats" button in queue page to know there are new messages
+      const chatId = `${questionId}-${staffId}`
+      if (newMessageCount !== messageCounts[chatId]?.newMessages) {
+        setMessageCounts({
+          // For mobile "view chats" button in queue page to know there are new messages
+          ...messageCounts,
+          [chatId]: { newMessages: newMessageCount },
+        })
+      }
     }
-  }, [newMessageCount, setIsOpen])
+  }, [isMobile, newMessageCount, openChat, isOpen])
 
   const sendMessage = async () => {
     setIsLoading(true)
     if (questionId) {
-      API.queueChats
-        .sendMessage(queueId, questionId, input)
-        .then(() => {
-          mutateQueueChat()
+      await API.queueChats
+        .sendMessage(queueId, questionId, staffId, input)
+        .then(async () => {
+          await mutateQueueChat()
           setInput('')
         })
         .catch((e) => {
@@ -98,11 +136,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
 
   return isOpen ? (
     <div
-      className={cn(
-        !isStaff ? 'fixed bottom-0 right-[1px] md:bottom-1 md:right-1' : '',
-        !isStaff && isChatbotOpen ? 'md:right-[408px]' : 'md:right-40',
-        'z-50 box-border w-full md:max-w-[400px]',
-      )}
+      className={cn('z-50 box-border w-full md:right-40 md:max-w-[400px]')}
       style={{ zIndex: 1050 }}
     >
       <Card
@@ -119,15 +153,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
         }}
         className="grow-1 flex min-h-[20vh] w-full flex-auto flex-col"
         extra={
-          <Button
-            onClick={() => {
-              setIsOpen(false)
-              resetNewMessageCount()
-              onClose()
-            }}
-            type="text"
-            icon={<CloseOutlined />}
-          />
+          <Button onClick={closeChat} type="text" icon={<CloseOutlined />} />
         }
       >
         <div className="flex flex-auto flex-col justify-between md:h-full">
@@ -164,9 +190,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
                         <UserAvatar
                           size="small"
                           username={
-                            message.isStaff
-                              ? queueChatData.staff.firstName
-                              : queueChatData.student.firstName
+                            !isStaff
+                              ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+                              : `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
                           }
                           photoURL={
                             message.isStaff
@@ -180,9 +206,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
                         <UserAvatar
                           size="small"
                           username={
-                            message.isStaff
-                              ? queueChatData.staff.firstName
-                              : queueChatData.student.firstName
+                            !isStaff
+                              ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+                              : `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
                           }
                           photoURL={
                             message.isStaff
@@ -215,7 +241,8 @@ const QueueChat: React.FC<QueueChatProps> = ({
           <div>
             <Space.Compact block size="large">
               <TextArea
-                id="queuechat-input"
+                ref={inputRef}
+                id={`queuechat-input-${staffId}-${questionId}`}
                 autoSize={{ minRows: 1.35, maxRows: 20 }}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -233,6 +260,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
               <Button
                 type="primary"
                 onClick={sendMessage}
+                loading={isLoading}
                 disabled={input.trim().length === 0 || isLoading}
               >
                 Send
@@ -242,94 +270,91 @@ const QueueChat: React.FC<QueueChatProps> = ({
         </div>
       </Card>
     </div>
-  ) : isMobile && isStaff ? (
-    // For mobile staff view, the queue chats go inside a drawer so this will look a little different
-    <div style={{ zIndex: 1050, width: '100%', padding: '0.75rem' }}>
-      <Badge
-        count={newMessageCount}
-        style={{ zIndex: 1050 }}
-        className={`${hidden ? 'hidden ' : ''}${isStaff ? 'w-full ' : `${!isStaff ? `fixed ` : ''}bottom-5 right-5`}`}
-        overflowCount={99}
-      >
-        <Button
-          type="primary"
-          size="large"
-          className={`z-50 w-full rounded-sm shadow-md`}
-          onClick={() => {
-            setIsOpen(true)
-            onOpen()
-          }}
-        >
-          {queueChatData && queueChatData.staff && queueChatData.student
-            ? isStaff
-              ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
-              : `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
-            : 'Loading...'}
-        </Button>
-      </Badge>
-    </div>
-  ) : !isStaff ? (
-    // if you're a student, show the pfp of the TA helping you as the button
+  ) : (
+    // if not open, show the pfp of the other person as the button
     <div
       className={cn(
         hidden ? 'hidden ' : '',
-        isChatbotOpen ? 'md:right-[408px]' : 'md:right-40',
-        'fixed bottom-5 right-5 md:bottom-8',
+        // isChatbotOpen ? 'md:right-[408px]' : 'md:right-40',
+        // 'relative bottom-0 md:bottom-4 ',
+        'md:mb-7',
+        className,
       )}
-      style={{ zIndex: 1050 }}
+      style={{ zIndex: 1050, ...style }}
     >
       <Tooltip
         title={
-          queueChatData && queueChatData.staff
-            ? `Message ${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
-            : 'Message TA'
+          !isStaff
+            ? queueChatData.staff
+              ? `Message ${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+              : 'Message TA'
+            : queueChatData.student
+              ? `Message ${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
+              : 'Message Student'
         }
         placement={isMobile ? 'left' : 'top'}
-        open={isMobile && !hasStudentEverOpenedIt ? true : undefined}
+        open={showNameTooltip === true ? true : undefined}
       >
-        <Button
-          type="primary"
-          size="large"
-          className={cn(
-            'ring-helpmeblue-light ring-offset-2 hover:ring focus:ring',
-            'shadow-lg shadow-slate-400',
-            'outline-3 outline-helpmeblue/50 outline md:outline-2',
-            'rounded-full p-6 md:p-7 ',
-          )}
-          icon={
-            <UserAvatar
-              size={isMobile ? 54 : 60}
-              className=""
-              photoURL={queueChatData.staff.photoURL}
-              username={`${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`}
-            />
-          }
-          onClick={() => {
-            setIsOpen(true)
-            setHasStudentEverOpenedIt(true)
-            onOpen()
-          }}
-        />
+        <Badge
+          count={bubbleHidden ? 0 : newMessageCount}
+          overflowCount={9}
+          style={{ zIndex: 1050 }}
+          offset={[-4, 4]}
+        >
+          <Button
+            type="primary"
+            size="large"
+            className={cn(
+              disableTheButton
+                ? 'pointer-events-none'
+                : 'ring-helpmeblue-light ring-offset-2 hover:ring focus:ring',
+              'shadow-lg shadow-slate-400',
+              'md:outline-3 outline-helpmeblue/50 outline outline-4',
+              'rounded-full p-5 md:p-6 ',
+            )}
+            // className={cn(
+            //   disableTheButton ? '' : 'hover:ring focus:ring',
+            //   'ring-helpmeblue-light ring-offset-2',
+            //   'shadow-lg shadow-slate-400',
+            //   'outline-3 outline-helpmeblue/50 outline md:outline-2',
+            //   'rounded-full p-6 md:p-7 ',
+            // )}
+            icon={
+              <UserAvatar
+                size={isMobile ? 48 : 54}
+                className=""
+                photoURL={
+                  !isStaff
+                    ? queueChatData.staff.photoURL
+                    : queueChatData.student.photoURL
+                }
+                username={
+                  !isStaff
+                    ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
+                    : `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
+                }
+              />
+            }
+            onClick={() => {
+              if (disableTheButton) {
+                return
+              }
+              openChat()
+              if (!isMobile) {
+                // if not on mobile, auto-focus the input right away.
+                // I don't want to focus it on mobile since that would cause the
+                // keyboard to show up right away and be a little jarring if you
+                // just want to read your messages
+                setTimeout(() => {
+                  if (inputRef.current) {
+                    inputRef.current.focus()
+                  }
+                }, 100)
+              }
+            }}
+          />
+        </Badge>
       </Tooltip>
-    </div>
-  ) : (
-    // desktop for staff
-    <div className="mb-7">
-      <Button
-        type="primary"
-        size="large"
-        className="rounded-sm shadow-md shadow-slate-400"
-        icon={<MessageCircleMore />}
-        onClick={() => {
-          setIsOpen(true)
-          resetNewMessageCount()
-          onOpen()
-        }}
-      >
-        {queueChatData && queueChatData.staff && queueChatData.student
-          ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
-          : 'Loading...'}
-      </Button>
     </div>
   )
 }
