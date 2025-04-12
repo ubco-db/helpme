@@ -23,6 +23,7 @@ import { UserModel } from '../profile/user.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 } from 'uuid';
 import * as Sentry from '@sentry/browser';
+import { ConfigService } from '@nestjs/config';
 
 export enum LMSGet {
   Course,
@@ -38,10 +39,16 @@ export enum LMSUpload {
 
 @Injectable()
 export class LMSIntegrationService {
+  private readonly chatbotApiKey;
+
   constructor(
     @Inject(LMSIntegrationAdapter)
     private integrationAdapter: LMSIntegrationAdapter,
-  ) {}
+    @Inject(ConfigService)
+    private configService: ConfigService,
+  ) {
+    this.chatbotApiKey = this.configService.get<string>('CHATBOT_API_KEY');
+  }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async resynchronizeCourseIntegrations() {
@@ -688,6 +695,7 @@ export class LMSIntegrationService {
       }),
       headers: {
         'Content-Type': 'application/json',
+        'HMS-API-KEY': this.chatbotApiKey,
         HMS_API_TOKEN: token.token,
       },
     };
@@ -746,6 +754,7 @@ export class LMSIntegrationService {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
+        'HMS-API-KEY': this.chatbotApiKey,
         HMS_API_TOKEN: token.token,
       },
     };
