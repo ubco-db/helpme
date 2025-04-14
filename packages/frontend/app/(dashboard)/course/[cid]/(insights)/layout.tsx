@@ -11,12 +11,10 @@ export default async function Layout({
   params: { cid: string }
   children: React.ReactNode
 }) {
-  const profile: User = await (await userApi.getUser()).json()
-  const cid = Number(params.cid)
-
-  if (!profile) {
+  const profile = await userApi.getUser().catch((error) => {
     redirect(`/course/${params.cid}`)
-  }
+  })
+  const cid = Number(params.cid)
 
   const courseRole = profile.courses.find((e) => e.course.id === cid)?.role
 

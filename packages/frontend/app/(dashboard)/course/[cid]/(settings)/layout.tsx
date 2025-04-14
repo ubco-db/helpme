@@ -1,5 +1,5 @@
 import { userApi } from '@/app/api/userApi'
-import { GetProfileResponse, Role } from '@koh/common'
+import { Role } from '@koh/common'
 import { redirect } from 'next/navigation'
 import CourseSettingsMenu from './components/CourseSettingsMenu'
 import { courseApi } from '@/app/api/courseApi'
@@ -12,12 +12,10 @@ export default async function Layout({
   params: { cid: string }
   children: React.ReactNode
 }) {
-  const profile: GetProfileResponse = await (await userApi.getUser()).json()
-  const cid = Number(params.cid)
-
-  if (!profile) {
+  const profile = await userApi.getUser().catch(() => {
     redirect(`/course/${params.cid}`)
-  }
+  })
+  const cid = Number(params.cid)
 
   const courseRole = profile.courses.find((uc) => uc.course.id === cid)?.role
 

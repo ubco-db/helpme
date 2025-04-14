@@ -9,7 +9,7 @@ type CourseEditPageProps = {
 }
 
 export default async function CourseEditPage({ params }: CourseEditPageProps) {
-  const currentUser: User = await (await userApi.getUser()).json()
+  const currentUser = await userApi.getUser()
   const organization: GetOrganizationResponse =
     await organizationApi.getOrganization(currentUser.organization?.orgId ?? -1)
   const courseId = Number(params.courseId)

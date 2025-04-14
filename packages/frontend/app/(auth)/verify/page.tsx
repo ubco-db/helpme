@@ -16,10 +16,9 @@ export default function VerifyEmailPage() {
 
   useEffect(() => {
     const fetchUserDetails = async () => {
-      const userDetails = await userApi.getUser()
-      const response = await userDetails.json()
-
-      setProfile(response)
+      await userApi.getUser().then((userDetails) => {
+        setProfile(userDetails)
+      })
     }
 
     fetchUserDetails()

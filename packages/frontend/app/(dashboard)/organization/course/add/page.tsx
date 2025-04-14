@@ -126,7 +126,7 @@ export default function AddCoursePage(): ReactElement {
       .then(async () => {
         message.success('Course was created')
         // need to update userInfo so the course shows up in /courses
-        await (await userApi.getUser()).json().then((userDetails) => {
+        await userApi.getUser().then((userDetails) => {
           setUserInfo(userDetails)
           router.push('/courses')
         })
