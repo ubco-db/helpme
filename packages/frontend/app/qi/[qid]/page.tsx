@@ -107,11 +107,9 @@ export default function QueueInvitePage({
 
   useEffect(() => {
     const fetchUserDetails = async () => {
-      const userDetails = await userApi.getUser()
-      const response = await userDetails.json()
-      if (!(response.statusCode >= 400)) {
-        setProfile(response)
-      }
+      await userApi.getUser().then((userDetails) => {
+        setProfile(userDetails)
+      })
       setHasGettingUserBeenResolved(true)
     }
     fetchUserDetails()

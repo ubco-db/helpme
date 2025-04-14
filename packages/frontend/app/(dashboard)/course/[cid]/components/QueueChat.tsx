@@ -247,7 +247,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 className="rounded-r-none"
-                placeholder={`Chat with your ${isStaff ? 'Student' : 'TA'}`}
+                placeholder={`Message ${isStaff ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}` : `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`}...`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()

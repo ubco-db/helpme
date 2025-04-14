@@ -48,7 +48,7 @@ export async function middleware(
   if (cookies.has('auth_token') && !isPublicPageRequested) {
     // Check if the auth token is valid
     try {
-      const data = await userApi.getUser()
+      const data = await userApi.getUser(true)
 
       // If the auth token is invalid, redirect to /login
       if (data.status === 401) {
