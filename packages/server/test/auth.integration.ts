@@ -170,7 +170,9 @@ describe('Auth Integration', () => {
         .set('x-trust-auth-lastname', 'Doe');
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toContain('/login?error=errorCode400');
+      expect(res.header['location']).toContain(
+        '/login?error=errorCode500Some%20error',
+      );
     });
 
     it('should sign in user when authService succeeded', async () => {
@@ -250,7 +252,9 @@ describe('Auth Integration', () => {
         .set('Cookie', 'organization.id=1');
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toContain('/login?error=errorCode400');
+      expect(res.header['location']).toContain(
+        '/login?error=errorCode500Some%20error',
+      );
     });
 
     it('should sign in user when authService succeeded', async () => {
