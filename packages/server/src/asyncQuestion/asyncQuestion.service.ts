@@ -361,7 +361,7 @@ export class AsyncQuestionService {
     // Since the name can take up quite a bit of space, no more than 60 characters (show ... if longer)
     const chunkName = `${(question.questionAbstract ?? question.questionText).slice(0, 60)}${(question.questionAbstract ?? question.questionText).length > 60 ? '...' : ''}`;
     const chunkParams: AddDocumentChunkParams = {
-      documentText: `Question: ${question.questionText}\nAnswer: ${question.answerText}`,
+      documentText: `${this.formatQuestionTextForChatbot(question, true)}\n\nAnswer: ${question.answerText}`,
       metadata: {
         name: chunkName,
         type: 'inserted_async_question',
@@ -378,6 +378,20 @@ export class AsyncQuestionService {
       courseId,
       userToken,
     );
+  }
+
+  /* Just for formatting the details of the question for sending to the chatbot or for a chunk. 
+  Does stuff like if there's only an abstract, the abstract will just be called "Question" instead of having "Question Abstract" and "Question Text"
+  */
+  formatQuestionTextForChatbot(
+    question: AsyncQuestionModel,
+    includeImageDescriptions = false,
+  ) {
+    return `${question.questionText ? `Question Abstract: ${question.questionAbstract}` : `Question: ${question.questionAbstract}`}
+  ${question.questionText ? `Question Text: ${question.questionText}` : ''}
+  ${question.questionTypes && question.questionTypes.length > 0 ? `Question Types: ${question.questionTypes.map((questionType) => questionType.name).join(', ')}` : ''}
+  ${includeImageDescriptions ? `Question Image Descriptions: ${question.images.map((image, idx) => `Image ${idx + 1}: ${image.aiSummary}`).join('\n')}` : ''}
+`;
   }
 
   async createAsyncQuestion(

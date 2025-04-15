@@ -246,11 +246,10 @@ export class asyncQuestionController {
           'All AI uses have been used up for today. Please try again tomorrow.';
       } else {
         const chatbotResponse = await this.chatbotApiService.askQuestion(
-          `
-            ${body.questionText ? `Question Abstract: ${body.questionAbstract}` : `Question: ${body.questionAbstract}`}
-            ${body.questionText ? `Question Text: ${body.questionText}` : ''}
-            ${body.questionTypes && body.questionTypes.length > 0 ? `Question Types: ${body.questionTypes.map((questionType) => questionType.name).join(', ')}` : ''}
-          `,
+          this.asyncQuestionService.formatQuestionTextForChatbot(
+            question,
+            false,
+          ),
           [],
           user.chat_token.token,
           cid,
@@ -378,11 +377,10 @@ export class asyncQuestionController {
           'All AI uses have been used up for today. Please try again tomorrow.';
       } else {
         const chatbotResponse = await this.chatbotApiService.askQuestion(
-          `
-            Question Abstract: ${question.questionAbstract}
-            Question Text: ${question.questionText}
-            Question Types: ${question.questionTypes.map((questionType) => questionType.name).join(', ')}
-          `,
+          this.asyncQuestionService.formatQuestionTextForChatbot(
+            question,
+            true,
+          ),
           [],
           user.chat_token.token,
           question.courseId,
