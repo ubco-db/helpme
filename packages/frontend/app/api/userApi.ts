@@ -1,5 +1,7 @@
+import { User } from '@/middlewareType'
 import { LoginData, PasswordResetData, RegisterData } from '../typings/user'
 import { fetchAuthToken } from './cookieApi'
+import * as Sentry from '@sentry/nextjs'
 
 /**
  * User "API".
@@ -42,9 +44,12 @@ export const userApi = {
 
   /**
    * Get user information from server
-   * @returns {Promise<Response>} - The response from the server
+   * @param provideBaseResponse - Whether to return the raw Response object
+   * @returns The user information or the raw Response based on the parameter
    */
-  getUser: async (): Promise<Response> => {
+  getUser: async <T extends boolean = false>(
+    provideBaseResponse?: T,
+  ): Promise<T extends true ? Response : User> => {
     const authToken = await fetchAuthToken()
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
 
@@ -57,8 +62,32 @@ export const userApi = {
       },
       credentials: 'include',
     })
+    if (provideBaseResponse) {
+      return response as any // Type assertion needed due to conditional return type
+    }
 
-    return response
+    if (response.headers.get('content-type')?.includes('application/json')) {
+      if (response.status >= 400) {
+        const body = await response.json()
+        return Promise.reject(body)
+      }
+      return response.json() as any // Type assertion needed due to conditional return type
+    } else if (response.headers.get('content-type')?.includes('text/html')) {
+      const text = await response.text()
+      Sentry.captureEvent({
+        message: `Unknown error in getUser ${response.status}: ${response.statusText}`,
+        level: 'error',
+        extra: {
+          text,
+          response,
+        },
+      })
+      return Promise.reject(text)
+    } else {
+      return Promise.reject(
+        'Unknown error in getUser' + JSON.stringify(response),
+      )
+    }
   },
 
   /**

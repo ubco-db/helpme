@@ -35,6 +35,7 @@ export class User {
   chat_token!: ChatTokenPartial
   accountType!: AccountType
   emailVerified!: boolean
+  readChangeLog!: boolean
 }
 
 export enum AccountType {
