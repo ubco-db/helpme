@@ -229,77 +229,34 @@ export class SeedController {
       serviceType: MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST,
       name: 'Notify when someone comments on an anytime question you commented on',
     });
-    const course1Exists = await CourseModel.findOne({
+    const courseExists = await CourseModel.findOne({
       where: { name: 'CS 304' },
     });
 
-    const course2Exists = await CourseModel.findOne({
-      where: { name: 'CS 310' },
-    });
-
-    const organization = await OrganizationFactory.create({
-      name: 'UBCO',
-      description: 'UBC Okanagan',
-      legacyAuthEnabled: true,
-    });
-
-    const semester1 = await SemesterFactory.create({
-      organization: organization,
-      startDate: new Date('2020-09-01'),
-      endDate: new Date('2020-12-31'),
-      name: 'Fall 2020',
-    });
-
-    const semester2 = await SemesterFactory.create({
-      organization: organization,
-      startDate: new Date('2020-05-01'),
-      endDate: new Date('2020-08-31'),
-      name: 'Summer 2020',
-    });
-
-    if (!course1Exists) {
+    if (!courseExists) {
       // possible collision:
       // If the dev env is active at midnight, the cron job will rescrape events from the ical which
       // synthetically creates events centered around your time.
       // But since the semester is centered in Fall 2020,
       // the events will get filtered out since they arent in that date.
       // you will need to reseed data!
-
-      // comments above are from legacy implementation
+      const semester = await SemesterFactory.create({
+        season: 'Fall',
+        year: 2023,
+      });
 
       await CourseFactory.create({
         timezone: 'America/Los_Angeles',
-        semester: semester1,
+        semesterId: semester.id,
       });
     }
 
-    if (!course2Exists) {
-      await CourseFactory.create({
-        name: 'CS 310',
-        timezone: 'America/Los_Angeles',
-        semester: semester2,
-      });
-    }
-
-    const course1 = await CourseModel.findOne({
+    const course = await CourseModel.findOne({
       where: { name: 'CS 304' },
     });
 
-    const course2 = await CourseModel.findOne({
-      where: { name: 'CS 310' },
-    });
-
     await CourseSettingsFactory.create({
-      course: course1,
-      courseId: course1.id,
-      chatBotEnabled: true,
-      asyncQueueEnabled: true,
-      adsEnabled: true,
-      queueEnabled: true,
-    });
-    await CourseSettingsFactory.create({
-      course: course2,
-      courseId: course2.id,
+      course: course,
       chatBotEnabled: true,
       asyncQueueEnabled: true,
       adsEnabled: true,
@@ -328,12 +285,7 @@ export class SeedController {
       await UserCourseFactory.create({
         user: user1,
         role: Role.STUDENT,
-        course: course1,
-      });
-      await UserCourseFactory.create({
-        user: user1,
-        role: Role.STUDENT,
-        course: course2,
+        course: course,
       });
       await userSubscriptionFactory.create({
         isSubscribed: true,
@@ -380,13 +332,7 @@ export class SeedController {
       await UserCourseFactory.create({
         user: user2,
         role: Role.STUDENT,
-        course: course1,
-      });
-
-      await UserCourseFactory.create({
-        user: user2,
-        role: Role.STUDENT,
-        course: course2,
+        course: course,
       });
 
       await userSubscriptionFactory.create({
@@ -413,12 +359,7 @@ export class SeedController {
       await UserCourseFactory.create({
         user: user3,
         role: Role.TA,
-        course: course1,
-      });
-      await UserCourseFactory.create({
-        user: user3,
-        role: Role.TA,
-        course: course2,
+        course: course,
       });
 
       // TA 2
@@ -440,16 +381,10 @@ export class SeedController {
       await UserCourseFactory.create({
         user: user4,
         role: Role.TA,
-        course: course1,
+        course: course,
       });
 
-      await UserCourseFactory.create({
-        user: user4,
-        role: Role.TA,
-        course: course2,
-      });
-
-      // Professor for COSC 304
+      // Professor
       const user5 = await UserFactory.create({
         email: 'Ramon@ubc.ca',
         firstName: 'Ramon',
@@ -473,7 +408,7 @@ export class SeedController {
       await UserCourseFactory.create({
         user: user5,
         role: Role.PROFESSOR,
-        course: course1,
+        course: course,
       });
 
       await userSubscriptionFactory.create({
@@ -481,38 +416,10 @@ export class SeedController {
         user: user5,
         service: facultyMailService,
       });
-
-      // Professor for COSC 310
-      const user6 = await UserFactory.create({
-        email: 'orgProfessor@ubc.ca',
-        firstName: 'Organization',
-        lastName: 'Professor',
-        insights: [
-          'QuestionTypeBreakdown',
-          'TotalQuestionsAsked',
-          'TotalStudents',
-        ],
-        password: hashedPassword1,
-        emailVerified: true,
-      });
-
-      await ChatTokenFactory.create({
-        user: user6,
-        used: 0,
-        max_uses: 20,
-        token: 'test_token6',
-      });
-
-      await UserCourseFactory.create({
-        user: user6,
-        role: Role.PROFESSOR,
-        course: course2,
-      });
-
-      await userSubscriptionFactory.create({
-        isSubscribed: true,
-        user: user6,
-        service: facultyMailService,
+      const organization = await OrganizationFactory.create({
+        name: 'UBCO',
+        description: 'UBC Okanagan',
+        legacyAuthEnabled: true,
       });
 
       await OrganizationUserFactory.create({
@@ -551,104 +458,84 @@ export class SeedController {
         organization: organization,
       });
 
-      await OrganizationUserFactory.create({
-        userId: user6.id,
-        organizationId: organization.id,
-        role: OrganizationRole.PROFESSOR,
-        organizationUser: user6,
-        organization: organization,
-      });
-
       await OrganizationCourseFactory.create({
         organizationId: organization.id,
-        courseId: course1.id,
+        courseId: course.id,
         organization: organization,
-        course: course1,
+        course: course,
       });
     }
 
-    const queue1 = await QueueFactory.create({
+    const queue = await QueueFactory.create({
       room: 'Online',
       config: exampleConfig as QueueConfig,
-      course: course1,
+      course: course,
       allowQuestions: true,
     });
 
-    const queue2 = await QueueFactory.create({
-      room: 'Online',
-      config: exampleConfig as QueueConfig,
-      course: course2,
-      allowQuestions: true,
-    });
-
-    const questionType1 = await QuestionTypeFactory.create({
-      cid: course1.id,
-      queue: queue1,
-    });
-
-    const questionType3 = await QuestionTypeFactory.create({
-      cid: course2.id,
-      queue: queue2,
+    const questionType = await QuestionTypeFactory.create({
+      cid: course.id,
+      queue: queue,
     });
 
     await QuestionTypeFactory.create({
-      cid: course1.id,
-      queue: queue1,
+      cid: course.id,
+      queue: queue,
       name: 'General',
       color: '#66FF66',
     });
     await QuestionTypeFactory.create({
-      cid: course1.id,
-      queue: queue1,
+      cid: course.id,
+      queue: queue,
       name: 'Bugs',
       color: '#66AA66',
     });
     await QuestionTypeFactory.create({
-      cid: course1.id,
-      queue: queue1,
+      cid: course.id,
+      queue: queue,
       name: 'Important',
       color: '#FF0000',
     });
 
     await QuestionFactory.create({
-      queue: queue1,
+      queue: queue,
       createdAt: new Date(Date.now() - 3500000),
-      questionTypes: [questionType1],
+      questionTypes: [questionType],
     });
 
     await QuestionFactory.create({
-      queue: queue1,
+      queue: queue,
       createdAt: new Date(Date.now() - 2500000),
-      questionTypes: [questionType1],
+      questionTypes: [questionType],
     });
 
     await QuestionFactory.create({
-      queue: queue1,
+      queue: queue,
       createdAt: new Date(Date.now() - 1500000),
-      questionTypes: [questionType1],
+      questionTypes: [questionType],
     });
 
     const queueLab = await QueueFactory.create({
       room: 'Example Lab Room',
-      course: course1,
+      course: course,
       allowQuestions: true,
       config: exampleLabConfig as QueueConfig,
     });
 
     await QuestionTypeFactory.create({
-      cid: course1.id,
+      cid: course.id,
       queue: queueLab,
       name: 'General',
       color: '#66FF66',
     });
     await QuestionTypeFactory.create({
-      cid: course1.id,
+      cid: course.id,
       queue: queueLab,
       name: 'Bugs',
       color: '#66AA66',
     });
     await QuestionTypeFactory.create({
-      cid: course1.id,
+      cid: course.id,
       queue: queueLab,
       name: 'Important',
       color: '#FF0000',
@@ -662,21 +549,21 @@ export class SeedController {
 
     await EventFactory.create({
       user: eventTA,
-      course: course1,
+      course: course,
       time: yesterday,
       eventType: EventType.TA_CHECKED_IN,
     });
 
     await EventFactory.create({
       user: eventTA,
-      course: course1,
+      course: course,
       time: new Date(Date.now() - 80000000),
       eventType: EventType.TA_CHECKED_OUT,
     });
 
     await EventFactory.create({
       user: eventTA,
-      course: course1,
+      course: course,
       time: new Date(Date.now() - 70000000),
       eventType: EventType.TA_CHECKED_IN,
     });
@@ -686,20 +573,20 @@ export class SeedController {
 
     await EventFactory.create({
       user: eventTA,
-      course: course1,
+      course: course,
       time: todayAtMidnight,
       eventType: EventType.TA_CHECKED_OUT_FORCED,
     });
 
     const professorQueue = await QueueFactory.create({
       room: "Professor Lawrence's Hours",
-      course: course1,
+      course: course,
       allowQuestions: true,
       isProfessorQueue: true,
     });
 
     const questionType2 = await QuestionTypeFactory.create({
-      cid: course1.id,
+      cid: course.id,
       queue: professorQueue,
       name: 'Important',
       color: '#FF0000',
