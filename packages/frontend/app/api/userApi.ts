@@ -67,6 +67,10 @@ export const userApi = {
     }
 
     if (response.headers.get('content-type')?.includes('application/json')) {
+      if (response.status >= 400) {
+        const body = await response.json()
+        return Promise.reject(body)
+      }
       return response.json() as any // Type assertion needed due to conditional return type
     } else if (response.headers.get('content-type')?.includes('text/html')) {
       const text = await response.text()
@@ -78,9 +82,11 @@ export const userApi = {
           response,
         },
       })
-      throw new Error(text)
+      return Promise.reject(text)
     } else {
-      throw new Error('Unknown error in getUser' + JSON.stringify(response))
+      return Promise.reject(
+        'Unknown error in getUser' + JSON.stringify(response),
+      )
     }
   },
 
