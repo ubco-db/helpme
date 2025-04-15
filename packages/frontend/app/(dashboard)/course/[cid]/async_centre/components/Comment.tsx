@@ -175,9 +175,6 @@ const Comment: React.FC<CommentProps> = ({
                       title="Are you sure you want to delete your comment?"
                       okText="Yes"
                       cancelText="No"
-                      getPopupContainer={(trigger) =>
-                        trigger.parentNode as HTMLElement
-                      }
                       okButtonProps={{ loading: deleteLoading }}
                       cancelButtonProps={{ disabled: deleteLoading }}
                       onConfirm={async (e) => {
