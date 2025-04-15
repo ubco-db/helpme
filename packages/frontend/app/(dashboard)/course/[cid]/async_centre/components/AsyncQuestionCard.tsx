@@ -382,6 +382,15 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                     ))}
                   </div>
                 )}
+                <div className="flex flex-wrap">
+                  {question.questionTypes?.map((questionType, index) => (
+                    <QuestionTagElement
+                      key={index}
+                      tagName={questionType.name}
+                      tagColor={questionType.color}
+                    />
+                  ))}
+                </div>
 
                 {question.answerText && (
                   <>
@@ -424,15 +433,6 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 isPostingComment={uiState.isPostingComment}
                 showStudents={showStudents}
               />
-            </div>
-            <div className="flex flex-wrap">
-              {question.questionTypes?.map((questionType, index) => (
-                <QuestionTagElement
-                  key={index}
-                  tagName={questionType.name}
-                  tagColor={questionType.color}
-                />
-              ))}
             </div>
           </div>
           {question.status === asyncQuestionStatus.AIAnswered &&
