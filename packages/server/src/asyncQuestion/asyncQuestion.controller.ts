@@ -462,9 +462,24 @@ export class asyncQuestionController {
             );
           }
         }
+        // save the changes
+        await transactionalEntityManager.save(question);
 
-        const updatedQuestion = await transactionalEntityManager.save(question);
-
+        // re-fetch the updated question
+        const updatedQuestion = await transactionalEntityManager.findOne(
+          AsyncQuestionModel,
+          {
+            where: { id: questionId },
+            relations: [
+              'creator',
+              'votes',
+              'comments',
+              'comments.creator',
+              'comments.creator.courses',
+              'images',
+            ],
+          },
+        );
         // if the question is visible and they rewrote their question and got a new answer text, mark it as unread for everyone
         if (
           updatedQuestion.visible &&
