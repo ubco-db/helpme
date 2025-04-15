@@ -32,7 +32,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           setProfile(userDetails)
         })
         .catch((error) => {
-          setErrorGettingUser(error)
+          if (error.status === 401) {
+            router.push('/api/v1/logout')
+          } else {
+            setErrorGettingUser(error.toString())
+          }
         })
     }
     fetchUserDetails()
