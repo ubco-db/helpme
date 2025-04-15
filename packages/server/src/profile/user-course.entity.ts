@@ -47,4 +47,7 @@ export class UserCourseModel extends BaseEntity {
   /* This represents the notes that professors can put on their TA's profiles*/
   @Column({ type: 'text', nullable: true })
   TANotes: string;
+
+  @Column({ nullable: true, default: true })
+  favourited: boolean;
 }

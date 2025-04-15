@@ -4,7 +4,9 @@ import { API } from '@/app/api'
 import {
   GetOrganizationResponse,
   OrganizationCourseResponse,
+  Role,
   User,
+  UserCourse,
 } from '@koh/common'
 import { Card, message, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
@@ -14,6 +16,8 @@ import { useRouter } from 'next/navigation'
 import CourseInviteCode from './CourseInviteCode'
 import CourseFeaturesForm from './CourseFeaturesForm'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
+import CourseCloneForm from './CourseCloneForm'
+import { useUserInfo } from '@/app/contexts/userContext'
 import { QuestionCircleOutlined } from '@ant-design/icons'
 
 type EditCourseProps = {
@@ -29,6 +33,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
 }) => {
   const [courseData, setCourseData] = useState<OrganizationCourseResponse>()
   const [featuresEnabled, setFeaturesEnabled] = useState(false)
+  const { userInfo, setUserInfo } = useUserInfo()
 
   const router = useRouter()
 
@@ -47,6 +52,26 @@ const EditCourse: React.FC<EditCourseProps> = ({
     if (!response) return
 
     setCourseData(response)
+
+    // Added since this is the endpoint contacted to fetch new course data
+    setUserInfo({
+      ...userInfo,
+      courses: userInfo.courses.map((uc) =>
+        uc.course.id === response.course!.id
+          ? {
+              course: {
+                id: response.course!.id,
+                name: response.course!.name,
+                semesterId: response.course!.semester?.id,
+                enabled: response.course!.enabled,
+                sectionGroupName: response.course!.sectionGroupName!,
+              },
+              role: 'professor' as Role,
+              favourited: uc.favourited,
+            }
+          : uc,
+      ),
+    })
   }
 
   const checkFeaturesDisabled = async () => {
@@ -110,6 +135,15 @@ const EditCourse: React.FC<EditCourseProps> = ({
             </Card>
           </>
         )}
+
+        <Card bordered={true} title="Clone Course">
+          <CourseCloneForm
+            organization={organization}
+            courseId={courseData.course?.id ?? -1}
+            courseSectionGroupName={courseData.course?.sectionGroupName ?? ''}
+            courseSemesterId={courseData.course?.semester?.id ?? -1}
+          />
+        </Card>
 
         <Card
           bordered={true}
