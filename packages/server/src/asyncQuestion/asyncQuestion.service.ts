@@ -1,10 +1,18 @@
 import {
   AddDocumentChunkParams,
+  asyncQuestionStatus,
+  CreateAsyncQuestions,
   ERROR_MESSAGES,
   MailServiceType,
   Role,
+  UpdateAsyncQuestions,
 } from '@koh/common';
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { MailService } from 'mail/mail.service';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -15,7 +23,7 @@ import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { AsyncQuestionImageModel } from './asyncQuestionImage.entity';
-import { EntityManager, getManager } from 'typeorm';
+import { EntityManager, getManager, In } from 'typeorm';
 import * as checkDiskSpace from 'check-disk-space';
 import * as path from 'path';
 import * as sharp from 'sharp';
@@ -301,41 +309,79 @@ export class AsyncQuestionService {
     question: AsyncQuestionModel,
     roles: Role[],
     userToNotNotifyId: number,
+    transactionalEntityManager?: EntityManager,
   ) {
-    await UnreadAsyncQuestionModel.createQueryBuilder()
-      .update(UnreadAsyncQuestionModel)
-      .set({ readLatest: false })
-      .where('asyncQuestionId = :asyncQuestionId', {
-        asyncQuestionId: question.id,
-      })
-      .andWhere('userId != :userId', { userId: userToNotNotifyId }) // don't notify me (person who called endpoint)
-      // Use a subquery to filter by roles
-      .andWhere(
-        `"userId" IN (
+    if (transactionalEntityManager) {
+      await transactionalEntityManager
+        .createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: question.id,
+        })
+        .andWhere('userId != :userId', { userId: userToNotNotifyId }) // don't notify me (person who called endpoint)
+        // Use a subquery to filter by roles
+        .andWhere(
+          `"userId" IN (
            SELECT "user_course_model"."userId"
            FROM "user_course_model"
            WHERE "user_course_model"."role" IN (:...roles)
         )`,
-        { roles }, // notify all specified roles
-      )
-      .execute();
+          { roles }, // notify all specified roles
+        )
+        .execute();
+    } else {
+      await UnreadAsyncQuestionModel.createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: question.id,
+        })
+        .andWhere('userId != :userId', { userId: userToNotNotifyId }) // don't notify me (person who called endpoint)
+        // Use a subquery to filter by roles
+        .andWhere(
+          `"userId" IN (
+             SELECT "user_course_model"."userId"
+             FROM "user_course_model"
+             WHERE "user_course_model"."role" IN (:...roles)
+          )`,
+          { roles }, // notify all specified roles
+        )
+        .execute();
+    }
   }
 
   async markUnreadForAll(
     question: AsyncQuestionModel,
     userToNotNotifyId: number,
+    transactionalEntityManager?: EntityManager,
   ) {
-    await UnreadAsyncQuestionModel.createQueryBuilder()
-      .update(UnreadAsyncQuestionModel)
-      .set({ readLatest: false })
-      .where('asyncQuestionId = :asyncQuestionId', {
-        asyncQuestionId: question.id,
-      })
-      .andWhere(
-        `userId != :userId`,
-        { userId: userToNotNotifyId }, // don't notify me (person who called endpoint)
-      )
-      .execute();
+    if (transactionalEntityManager) {
+      await transactionalEntityManager
+        .createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: question.id,
+        })
+        .andWhere(
+          `userId != :userId`,
+          { userId: userToNotNotifyId }, // don't notify me (person who called endpoint)
+        )
+        .execute();
+    } else {
+      await UnreadAsyncQuestionModel.createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: question.id,
+        })
+        .andWhere(
+          `userId != :userId`,
+          { userId: userToNotNotifyId }, // don't notify me (person who called endpoint)
+        )
+        .execute();
+    }
   }
 
   async markUnreadForCreator(question: AsyncQuestionModel) {
@@ -385,7 +431,7 @@ export class AsyncQuestionService {
   */
   formatQuestionTextForChatbot(
     question: AsyncQuestionModel,
-    includeImageDescriptions = false,
+    includeImageDescriptions = false, // unused atm
   ) {
     return `${question.questionText ? `Question Abstract: ${question.questionAbstract}` : `Question: ${question.questionAbstract}`}
   ${question.questionText ? `Question Text: ${question.questionText}` : ''}
@@ -399,18 +445,32 @@ export class AsyncQuestionService {
     imageBuffers: tempFile[],
     transactionalEntityManager: EntityManager,
   ): Promise<AsyncQuestionModel> {
-    const startTime = Date.now();
+    // Create the question first
+    const question = await transactionalEntityManager.save(
+      AsyncQuestionModel.create(questionData),
+    );
 
+    // Process and save images
+    await this.saveImagesToDb(
+      question,
+      imageBuffers,
+      transactionalEntityManager,
+    );
+
+    return question;
+  }
+
+  async saveImagesToDb(
+    question: AsyncQuestionModel,
+    imageBuffers: tempFile[],
+    transactionalEntityManager: EntityManager,
+  ) {
     // Check disk space before proceeding
     const spaceLeft = await checkDiskSpace(path.parse(process.cwd()).root);
     if (spaceLeft.free < 1_000_000_000) {
       throw new ServiceUnavailableException(ERROR_MESSAGES.common.noDiskSpace);
     }
-
-    // Create the question first
-    const question = await transactionalEntityManager.save(
-      AsyncQuestionModel.create(questionData),
-    );
+    const startTime = Date.now();
 
     // Process and save images
     if (imageBuffers.length > 0) {
@@ -439,10 +499,43 @@ export class AsyncQuestionService {
 
     if (processingTime > 10000) {
       // more than 10 seconds
-      console.error(`createAsyncQuestion took too long: ${processingTime}ms`);
+      console.error(`saveImagesToDb took too long: ${processingTime}ms`);
     }
+  }
 
-    return question;
+  async deleteImages(
+    questionId: number,
+    imageIds: number[],
+    transactionalEntityManager: EntityManager,
+  ) {
+    await transactionalEntityManager.delete(AsyncQuestionImageModel, {
+      imageId: In(imageIds),
+      asyncQuestionId: questionId,
+    });
+  }
+
+  async saveImageDescriptions(
+    imageDescriptions: { imageId: string; description: string }[],
+    transactionalEntityManager: EntityManager,
+  ) {
+    // map over imageDescriptions and update the images with the descriptions
+    for (const imageDescription of imageDescriptions) {
+      if (
+        Number.isInteger(imageDescription.imageId) &&
+        Number(imageDescription.imageId) > 0
+      ) {
+        await transactionalEntityManager.update(
+          AsyncQuestionImageModel,
+          {
+            // using .update() instead of .save() so we don't have to load the image into memory again
+            imageId: Number(imageDescription.imageId),
+          },
+          {
+            aiSummary: imageDescription.description,
+          },
+        );
+      }
+    }
   }
 
   async convertAndResizeImages(
@@ -524,6 +617,15 @@ export class AsyncQuestionService {
     };
   }
 
+  async getCurrentImageCount(
+    questionId: number,
+    transactionalEntityManager: EntityManager,
+  ) {
+    return await transactionalEntityManager.count(AsyncQuestionImageModel, {
+      where: { asyncQuestionId: questionId },
+    });
+  }
+
   /**
    * Takes in a userId and async questionId and hashes them to return a random index from ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
    * Note that 70 is the length of ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES
@@ -532,6 +634,78 @@ export class AsyncQuestionService {
   getAnonId(userId: number, questionId: number) {
     const hash = userId + questionId;
     return hash % 70;
+  }
+
+  validateBodyCreateAsyncQuestions(
+    body: CreateAsyncQuestions | FormData | any,
+  ) {
+    // the body *should* follow CreateAsyncQuestions, but since we're using formdata, we have to manually parse the fields and validate them
+    if (body.questionTypes) {
+      try {
+        body.questionTypes = JSON.parse(body.questionTypes);
+      } catch (error) {
+        throw new BadRequestException(
+          'Question Types field must be a valid JSON array',
+        );
+      }
+    }
+    if (!body.questionAbstract) {
+      throw new BadRequestException('Question Abstract is required');
+    }
+    body.questionText = body.questionText ? body.questionText.toString() : '';
+    body.questionAbstract = body.questionAbstract
+      ? body.questionAbstract.toString()
+      : '';
+    body.status = body.status
+      ? body.status.toString()
+      : asyncQuestionStatus.AIAnswered;
+  }
+
+  validateBodyUpdateAsyncQuestions(
+    body: UpdateAsyncQuestions | FormData | any,
+  ) {
+    // the body *should* follow UpdateAsyncQuestions, but since we're using formdata, we have to manually parse the fields and validate them
+    if (body.questionTypes) {
+      try {
+        body.questionTypes = JSON.parse(body.questionTypes);
+      } catch (error) {
+        throw new BadRequestException(
+          'Question Types field must be a valid JSON array',
+        );
+      }
+    }
+
+    body.questionText = body.questionText ? body.questionText.toString() : '';
+    body.questionAbstract = body.questionAbstract
+      ? body.questionAbstract.toString()
+      : '';
+    body.status = body.status
+      ? body.status.toString()
+      : asyncQuestionStatus.AIAnswered;
+
+    if (body.deleteImageIds) {
+      try {
+        body.deleteImageIds = JSON.parse(body.deleteImageIds);
+      } catch (error) {
+        throw new BadRequestException(
+          'Delete Image Ids field must be a valid JSON array',
+        );
+      }
+    }
+
+    // if you created the question (i.e. a student), you can't update the status to illegal ones
+    if (
+      body.status === asyncQuestionStatus.TADeleted ||
+      body.status === asyncQuestionStatus.HumanAnswered
+    ) {
+      throw new ForbiddenException(
+        `You cannot update your own question's status to ${body.status}`,
+      );
+    }
+
+    if (body.refreshAIAnswer) {
+      body.refreshAIAnswer = body.refreshAIAnswer.toString() === 'true';
+    }
   }
 }
 

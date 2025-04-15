@@ -1562,7 +1562,15 @@ export class CreateAsyncQuestions extends AsyncQuestionParams {
   images?: any // This will be handled by FormData, so we don't need to specify the type here
 }
 
-export class UpdateAsyncQuestions extends AsyncQuestionParams {}
+export class UpdateAsyncQuestions extends AsyncQuestionParams {
+  @IsOptional()
+  @IsArray()
+  newImages?: any // This will be handled by FormData, so we don't need to specify the type here
+
+  @IsOptional()
+  @IsArray()
+  deletedImageIds?: number[]
+}
 
 export type TAUpdateStatusResponse = QueuePartial
 export type QueueNotePayloadType = {

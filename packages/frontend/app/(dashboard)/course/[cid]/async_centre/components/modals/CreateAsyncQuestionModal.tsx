@@ -97,15 +97,41 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
 
     // If editing a question, update the question. Else create a new one
     if (question) {
-      await API.asyncQuestions
-        .studentUpdate(question.id, {
-          questionTypes: newQuestionTypeInput,
-          questionText: values.questionText,
-          questionAbstract: values.QuestionAbstract,
-          refreshAIAnswer: values.refreshAIAnswer
-            ? values.refreshAIAnswer
-            : undefined,
+      // create FormData for the request
+      const formData = new FormData()
+      formData.append('questionText', values.questionText || '')
+      formData.append('questionAbstract', values.QuestionAbstract)
+      formData.append('questionTypes', JSON.stringify(newQuestionTypeInput))
+      if (values.refreshAIAnswer) {
+        formData.append('refreshAIAnswer', 'true')
+      }
+
+      // to find out what images are deleted, compare question.images.imageId with values.images.uid
+      const deletedImageIds = question.images
+        .filter(
+          (image) =>
+            !values.images.some((file) => Number(file.uid) === image.imageId),
+        )
+        .map((image) => image.imageId)
+      formData.append('deletedImageIds', JSON.stringify(deletedImageIds))
+      console.log(deletedImageIds)
+
+      // to find out what images are new, get all values.images where uid is NaN
+      const newImages = values.images.filter((file) => isNaN(Number(file.uid)))
+      console.log(newImages)
+
+      // Append each new image file
+      if (newImages) {
+        newImages.forEach((file: any) => {
+          // Only append if it's a real file (antd's Upload component adds some metadata we don't want)
+          if (file.originFileObj) {
+            formData.append('newImages', file.originFileObj)
+          }
         })
+      }
+
+      await API.asyncQuestions
+        .studentUpdate(question.id, formData)
         .then(() => {
           message.success('Question Updated')
           onCreateOrUpdateQuestion()

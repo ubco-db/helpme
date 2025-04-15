@@ -521,7 +521,7 @@ class APIClient {
         AsyncQuestionParams,
         body,
       ),
-    studentUpdate: async (qid: number, body: UpdateAsyncQuestions) =>
+    studentUpdate: async (qid: number, body: UpdateAsyncQuestions | FormData) =>
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/student/${qid}`,

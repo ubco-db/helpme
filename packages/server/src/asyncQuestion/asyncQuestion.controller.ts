@@ -184,28 +184,9 @@ export class asyncQuestionController {
     @Res() res: Response,
     @UploadedFiles() images?: Express.Multer.File[],
   ): Promise<AsyncQuestionModel> {
-    // the body *should* follow CreateAsyncQuestions, but since we're using formdata, we have to manually parse the fields and validate them
-    if (body.questionTypes) {
-      try {
-        body.questionTypes = JSON.parse(body.questionTypes);
-      } catch (error) {
-        throw new BadRequestException(
-          'Question Types field must be a valid JSON array',
-        );
-      }
-    }
-    if (!body.questionAbstract) {
-      throw new BadRequestException('Question Abstract is required');
-    }
-    body.questionText = body.questionText ? body.questionText.toString() : '';
-    body.questionAbstract = body.questionAbstract
-      ? body.questionAbstract.toString()
-      : '';
-    body.status = body.status
-      ? body.status.toString()
-      : asyncQuestionStatus.AIAnswered;
+    this.asyncQuestionService.validateBodyCreateAsyncQuestions(body); // note that this *will* mutate body
 
-    // Convert images to buffers if they exist
+    // Convert & resize images to buffers if they exist
     let processedImageBuffers: tempFile[] = [];
     if (images && images.length > 0) {
       processedImageBuffers =
@@ -261,27 +242,13 @@ export class asyncQuestionController {
 
         // update the question with the ai answer text
         question.aiAnswerText = aiAnswerText;
-        question.answerText = aiAnswerText; // answer text initially becomes the ai answer text
+        question.answerText = aiAnswerText; // answer text initially becomes the ai answer text (staff can later edit it)
         await transactionalEntityManager.save(question);
 
-        // map over imageDescriptions and update the images with the descriptions
-        for (const imageDescription of imageDescriptions) {
-          if (
-            Number.isInteger(imageDescription.imageId) &&
-            Number(imageDescription.imageId) > 0
-          ) {
-            await transactionalEntityManager.update(
-              AsyncQuestionImageModel,
-              {
-                // using .update() instead of .save() so we don't have to load the image into memory again
-                imageId: Number(imageDescription.imageId),
-              },
-              {
-                aiSummary: imageDescription.description,
-              },
-            );
-          }
-        }
+        await this.asyncQuestionService.saveImageDescriptions(
+          imageDescriptions,
+          transactionalEntityManager,
+        );
       }
       questionId = question.id;
     });
@@ -318,122 +285,218 @@ export class asyncQuestionController {
   @Patch('student/:questionId')
   @UseGuards(AsyncQuestionRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR) // since were letting staff post questions, they might end up calling this endpoint to update their own questions
+  @UseInterceptors(
+    FilesInterceptor('newImages', 8, {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit per file
+      },
+      fileFilter: (req, file, cb) => {
+        // Check mimetype (it can be spoofed fyi so we also need to check the file extension)
+        if (!file.mimetype.startsWith('image/')) {
+          cb(new Error('Only image files are allowed'), false);
+          return;
+        }
+        // Check file extension
+        const allowedExtensions = [
+          '.jpg',
+          '.jpeg',
+          '.png',
+          '.gif',
+          '.webp',
+          '.bmp',
+          '.svg',
+          '.tiff',
+          '.gif',
+        ];
+        const fileExt = file.originalname
+          .toLowerCase()
+          .substring(file.originalname.lastIndexOf('.'));
+        if (!allowedExtensions.includes(fileExt)) {
+          cb(new Error('Only image files are allowed'), false);
+          return;
+        }
+        cb(null, true);
+      },
+    }),
+  )
   async updateQuestionStudent(
     @Param('questionId', ParseIntPipe) questionId: number,
-    @Body() body: UpdateAsyncQuestions,
+    @Body() body: UpdateAsyncQuestions | FormData | any, // delete FormData | any for better type checking temporarily
     @User(['chat_token']) user: UserModel,
+    @UploadedFiles() newImages?: Express.Multer.File[],
   ): Promise<AsyncQuestionParams> {
-    const question = await AsyncQuestionModel.findOne({
-      where: { id: questionId },
-      relations: [
-        'creator',
-        'votes',
-        'comments',
-        'comments.creator',
-        'comments.creator.courses',
-        'images',
-      ],
-    });
-    // deep copy question since it changes
-    const oldQuestion: AsyncQuestionModel = JSON.parse(
-      JSON.stringify(question),
-    );
+    this.asyncQuestionService.validateBodyUpdateAsyncQuestions(body); // note that this *will* mutate body
 
-    if (!question) {
-      throw new NotFoundException('Question Not Found');
-    }
-
-    if (question.creatorId !== user.id) {
-      throw new ForbiddenException('You can only update your own questions');
-    }
-    // if you created the question (i.e. a student), you can't update the status to illegal ones
-    if (
-      body.status === asyncQuestionStatus.TADeleted ||
-      body.status === asyncQuestionStatus.HumanAnswered
-    ) {
-      throw new ForbiddenException(
-        `You cannot update your own question's status to ${body.status}`,
-      );
-    }
-    if (
-      body.status === asyncQuestionStatus.AIAnsweredNeedsAttention &&
-      question.status != asyncQuestionStatus.AIAnsweredNeedsAttention
-    ) {
-      await this.asyncQuestionService.sendNeedsAttentionEmail(question);
-    }
-
-    // Update allowed fields
-    Object.keys(body).forEach((key) => {
-      if (body[key] !== undefined && body[key] !== null) {
-        question[key] = body[key];
+    let question: AsyncQuestionModel | null = null;
+    const entityManager = getManager();
+    await entityManager.transaction(async (transactionalEntityManager) => {
+      question = await transactionalEntityManager.findOne(AsyncQuestionModel, {
+        where: { id: questionId },
+        relations: [
+          'creator',
+          'votes',
+          'comments',
+          'comments.creator',
+          'comments.creator.courses',
+          'images',
+        ],
+      });
+      if (!question) {
+        throw new NotFoundException('Question Not Found');
       }
-    });
+      if (question.creatorId !== user.id) {
+        throw new ForbiddenException('You can only update your own questions');
+      }
 
-    if (body.refreshAIAnswer) {
-      if (user.chat_token.used >= user.chat_token.max_uses) {
-        question.aiAnswerText =
-          'All AI uses have been used up for today. Please try again tomorrow.';
-        question.answerText =
-          'All AI uses have been used up for today. Please try again tomorrow.';
-      } else {
-        const chatbotResponse = await this.chatbotApiService.askQuestion(
-          this.asyncQuestionService.formatQuestionTextForChatbot(
-            question,
-            true,
-          ),
-          [],
-          user.chat_token.token,
-          question.courseId,
-          // TODO: add images support
-          [],
-          true,
+      // deep copy question since it changes
+      const oldQuestion: AsyncQuestionModel = JSON.parse(
+        JSON.stringify(question),
+      );
+      // this doesn't include if question types have changed but meh
+      const isChangingQuestion =
+        question.questionText !== oldQuestion.questionText ||
+        question.questionAbstract !== oldQuestion.questionAbstract ||
+        (newImages && newImages.length > 0) ||
+        (body.deleteImageIds && body.deleteImageIds.length > 0);
+
+      // if they're changing the status to needs attention, send the email but don't change anything else
+      if (
+        body.status === asyncQuestionStatus.AIAnsweredNeedsAttention &&
+        question.status != asyncQuestionStatus.AIAnsweredNeedsAttention
+      ) {
+        await this.asyncQuestionService.sendNeedsAttentionEmail(question);
+        // Mark as new unread for all staff if the question needs attention
+        await this.asyncQuestionService.markUnreadForRoles(
+          question,
+          [Role.TA, Role.PROFESSOR],
+          user.id,
+          transactionalEntityManager,
         );
-        question.aiAnswerText = chatbotResponse.answer;
-        question.answerText = chatbotResponse.answer;
+      } else {
+        // Update allowed fields
+        Object.keys(body).forEach((key) => {
+          if (
+            body[key] !== undefined &&
+            body[key] !== null &&
+            question[key] !== undefined
+          ) {
+            question[key] = body[key];
+          }
+        });
+
+        // delete any images that are in the deleteImageIds array
+        if (body.deleteImageIds && body.deleteImageIds.length > 0) {
+          await this.asyncQuestionService.deleteImages(
+            questionId,
+            body.deleteImageIds,
+            transactionalEntityManager,
+          );
+        }
+
+        // Convert & resize images to buffers if they exist
+        let processedImageBuffers: tempFile[] = [];
+        if (newImages && newImages.length > 0) {
+          const currentImageCount =
+            await this.asyncQuestionService.getCurrentImageCount(
+              questionId,
+              transactionalEntityManager,
+            );
+          if (currentImageCount + newImages.length > 8) {
+            throw new BadRequestException(
+              'You can have at most 8 images uploaded per question',
+            );
+          }
+          processedImageBuffers =
+            await this.asyncQuestionService.convertAndResizeImages(newImages);
+          // save the images to the db (while also setting the imageIds of processedImageBuffers)
+          await this.asyncQuestionService.saveImagesToDb(
+            question,
+            processedImageBuffers,
+            transactionalEntityManager,
+          );
+        }
+
+        if (body.refreshAIAnswer) {
+          if (user.chat_token.used >= user.chat_token.max_uses) {
+            question.aiAnswerText =
+              'All AI uses have been used up for today. Please try again tomorrow.';
+            question.answerText =
+              'All AI uses have been used up for today. Please try again tomorrow.';
+          } else {
+            // before we ask the chatbot, we need to gather any previously uploaded images from the database and append them onto processedImageBuffers
+            const images = await transactionalEntityManager.find(
+              AsyncQuestionImageModel,
+              {
+                where: {
+                  asyncQuestionId: questionId,
+                },
+                select: ['imageBuffer', 'newFileName', 'imageId'], // not including the old aiSummaries since getting a new description for them may give a better ai answer
+              },
+            );
+            processedImageBuffers.push(
+              ...images.map((image) => ({
+                processedBuffer: image.imageBuffer,
+                previewBuffer: image.imageBuffer, // unused. Didn't want to include it in the query so that less memory is used
+                originalFileName: image.originalFileName,
+                newFileName: image.newFileName,
+                imageId: image.imageId,
+              })),
+            );
+
+            const chatbotResponse = await this.chatbotApiService.askQuestion(
+              this.asyncQuestionService.formatQuestionTextForChatbot(
+                question,
+                false,
+              ),
+              [],
+              user.chat_token.token,
+              question.courseId,
+              processedImageBuffers,
+              true,
+            );
+            question.aiAnswerText = chatbotResponse.answer;
+            question.answerText = chatbotResponse.answer;
+            await this.asyncQuestionService.saveImageDescriptions(
+              chatbotResponse.imageDescriptions,
+              transactionalEntityManager,
+            );
+          }
+        }
+
+        const updatedQuestion = await transactionalEntityManager.save(question);
+
+        // if the question is visible and they rewrote their question and got a new answer text, mark it as unread for everyone
+        if (
+          updatedQuestion.visible &&
+          body.refreshAIAnswer &&
+          isChangingQuestion
+        ) {
+          await this.asyncQuestionService.markUnreadForAll(
+            updatedQuestion,
+            user.id,
+            transactionalEntityManager,
+          );
+        }
+
+        if (body.status === asyncQuestionStatus.StudentDeleted) {
+          await this.redisQueueService.deleteAsyncQuestion(
+            `c:${question.courseId}:aq`,
+            updatedQuestion,
+          );
+          // delete all unread notifications for this question
+          await UnreadAsyncQuestionModel.delete({
+            asyncQuestionId: questionId,
+          });
+        } else {
+          await this.redisQueueService.updateAsyncQuestion(
+            `c:${question.courseId}:aq`,
+            updatedQuestion,
+          );
+        }
+        delete question.taHelped;
+        delete question.votes;
       }
-    }
-
-    const updatedQuestion = await question.save();
-
-    // Mark as new unread for all staff if the question needs attention
-    if (
-      body.status === asyncQuestionStatus.AIAnsweredNeedsAttention &&
-      oldQuestion.status !== asyncQuestionStatus.AIAnsweredNeedsAttention
-    ) {
-      await this.asyncQuestionService.markUnreadForRoles(
-        updatedQuestion,
-        [Role.TA, Role.PROFESSOR],
-        user.id,
-      );
-    }
-    // if the question is visible and they rewrote their question and got a new answer text, mark it as unread for everyone
-    if (
-      updatedQuestion.visible &&
-      body.refreshAIAnswer &&
-      body.questionText !== oldQuestion.questionText
-    ) {
-      await this.asyncQuestionService.markUnreadForAll(
-        updatedQuestion,
-        user.id,
-      );
-    }
-
-    if (body.status === asyncQuestionStatus.StudentDeleted) {
-      await this.redisQueueService.deleteAsyncQuestion(
-        `c:${question.courseId}:aq`,
-        updatedQuestion,
-      );
-      // delete all unread notifications for this question
-      await UnreadAsyncQuestionModel.delete({ asyncQuestionId: questionId });
-    } else {
-      await this.redisQueueService.updateAsyncQuestion(
-        `c:${question.courseId}:aq`,
-        updatedQuestion,
-      );
-    }
-    delete question.taHelped;
-    delete question.votes;
-
+    });
     return question;
   }
 
