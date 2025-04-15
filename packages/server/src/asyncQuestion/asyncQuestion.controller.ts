@@ -53,7 +53,7 @@ import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { AsyncQuestionImageModel } from './asyncQuestionImage.entity';
-
+import { RedisProfileService } from 'redisProfile/redis-profile.service';
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class asyncQuestionController {
@@ -62,6 +62,7 @@ export class asyncQuestionController {
     private readonly appConfig: ApplicationConfigService,
     private readonly asyncQuestionService: AsyncQuestionService,
     private readonly chatbotApiService: ChatbotApiService,
+    private readonly redisProfileService: RedisProfileService,
   ) {}
 
   @Post('vote/:qid/:vote')
@@ -457,12 +458,17 @@ export class asyncQuestionController {
               processedImageBuffers,
               true,
             );
+            console.log(chatbotResponse);
             question.aiAnswerText = chatbotResponse.answer;
             question.answerText = chatbotResponse.answer;
             await this.asyncQuestionService.saveImageDescriptions(
               chatbotResponse.imageDescriptions,
               transactionalEntityManager,
             );
+          }
+          // delete the old redis cache since chat_token 'used' got updated (only do if max_uses - used < 10)
+          if (user.chat_token.max_uses - user.chat_token.used < 10) {
+            await this.redisProfileService.deleteProfile(`u:${user.id}`);
           }
         }
         // save the changes

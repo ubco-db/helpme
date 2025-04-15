@@ -24,7 +24,7 @@ import * as fs from 'fs';
 import { memoryStorage } from 'multer';
 import * as path from 'path';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { User } from '../decorators/user.decorator';
+import { User, UserId } from '../decorators/user.decorator';
 import { UserModel } from './user.entity';
 import { ProfileService } from './profile.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
@@ -83,6 +83,12 @@ export class ProfileController {
       console.log('Fetching profile from Redis');
       return redisRecord;
     }
+  }
+
+  @Delete('/clear_cache')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  async clearCache(@UserId() userId: number): Promise<void> {
+    await this.redisProfileService.deleteProfile(`u:${userId}`);
   }
 
   @Patch()

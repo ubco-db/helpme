@@ -23,7 +23,7 @@ import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { AsyncQuestionImageModel } from './asyncQuestionImage.entity';
-import { EntityManager, getManager, In } from 'typeorm';
+import { EntityManager, In } from 'typeorm';
 import * as checkDiskSpace from 'check-disk-space';
 import * as path from 'path';
 import * as sharp from 'sharp';

@@ -160,6 +160,8 @@ class APIClient {
       this.req('DELETE', `/api/v1/profile/delete_profile_picture`),
     readChangelog: async (): Promise<void> =>
       this.req('PATCH', `/api/v1/profile/read_changelog`, undefined),
+    clearCache: async (): Promise<void> =>
+      this.req('DELETE', `/api/v1/profile/clear_cache`),
   }
 
   chatbot = {

@@ -68,7 +68,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
   onCreateOrUpdateQuestion,
   question,
 }) => {
-  const { userInfo } = useUserInfo()
+  const { userInfo, setUserInfo } = useUserInfo()
   const [questionTypes] = useQuestionTypes(courseId, null)
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
@@ -141,6 +141,15 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           message.error('Error updating question:' + errorMessage)
         })
         .finally(() => {
+          if (values.refreshAIAnswer) {
+            setUserInfo({
+              ...userInfo,
+              chat_token: {
+                ...userInfo.chat_token,
+                used: userInfo.chat_token.used + 1,
+              },
+            })
+          }
           setIsLoading(false)
         })
     } else {
