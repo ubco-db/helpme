@@ -683,9 +683,9 @@ export class AsyncQuestionService {
       ? body.status.toString()
       : asyncQuestionStatus.AIAnswered;
 
-    if (body.deleteImageIds) {
+    if (body.deletedImageIds) {
       try {
-        body.deleteImageIds = JSON.parse(body.deleteImageIds);
+        body.deletedImageIds = JSON.parse(body.deletedImageIds);
       } catch (error) {
         throw new BadRequestException(
           'Delete Image Ids field must be a valid JSON array',

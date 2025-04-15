@@ -338,7 +338,6 @@ export class asyncQuestionController {
           'comments',
           'comments.creator',
           'comments.creator.courses',
-          'images',
         ],
       });
       if (!question) {
@@ -357,7 +356,7 @@ export class asyncQuestionController {
         question.questionText !== oldQuestion.questionText ||
         question.questionAbstract !== oldQuestion.questionAbstract ||
         (newImages && newImages.length > 0) ||
-        (body.deleteImageIds && body.deleteImageIds.length > 0);
+        (body.deletedImageIds && body.deletedImageIds.length > 0);
 
       // if they're changing the status to needs attention, send the email but don't change anything else
       if (
@@ -384,11 +383,11 @@ export class asyncQuestionController {
           }
         });
 
-        // delete any images that are in the deleteImageIds array
-        if (body.deleteImageIds && body.deleteImageIds.length > 0) {
+        // delete any images that are in the deletedImageIds array
+        if (body.deletedImageIds && body.deletedImageIds.length > 0) {
           await this.asyncQuestionService.deleteImages(
             questionId,
-            body.deleteImageIds,
+            body.deletedImageIds,
             transactionalEntityManager,
           );
         }
@@ -424,11 +423,15 @@ export class asyncQuestionController {
               'All AI uses have been used up for today. Please try again tomorrow.';
           } else {
             // before we ask the chatbot, we need to gather any previously uploaded images from the database and append them onto processedImageBuffers
+            const alreadyProcessedImageIds = processedImageBuffers.map(
+              (image) => image.imageId,
+            );
             const images = await transactionalEntityManager.find(
               AsyncQuestionImageModel,
               {
                 where: {
                   asyncQuestionId: questionId,
+                  imageId: Not(In(alreadyProcessedImageIds)), // don't retrieve from the db the image buffers we just uploaded to it (to save memory)
                 },
                 select: ['imageBuffer', 'newFileName', 'imageId'], // not including the old aiSummaries since getting a new description for them may give a better ai answer
               },
