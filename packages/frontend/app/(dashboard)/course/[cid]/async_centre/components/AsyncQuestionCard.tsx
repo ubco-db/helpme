@@ -373,7 +373,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                           width={80}
                           loading="lazy"
                           src={`/api/v1/asyncQuestions/${courseId}/image/${image.imageId}?preview=true`}
-                          alt={image.originalFileName}
+                          alt={image.aiSummary || image.originalFileName}
                           preview={{
                             src: `/api/v1/asyncQuestions/${courseId}/image/${image.imageId}`,
                           }}

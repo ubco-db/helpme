@@ -29,6 +29,7 @@ import {
   UploadedFiles,
   Query,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { Roles } from '../decorators/roles.decorator';
@@ -44,7 +45,7 @@ import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { AsyncQuestionRolesGuard } from 'guards/async-question-roles.guard';
 import { pick } from 'lodash';
 import { UserModel } from 'profile/user.entity';
-import { In, Not } from 'typeorm';
+import { getManager, In, Not } from 'typeorm';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { AsyncQuestionService, tempFile } from './asyncQuestion.service';
@@ -203,10 +204,7 @@ export class asyncQuestionController {
     body.status = body.status
       ? body.status.toString()
       : asyncQuestionStatus.AIAnswered;
-    if (images) {
-      console.log('images');
-      console.log(images);
-    }
+
     // Convert images to buffers if they exist
     let processedImageBuffers: tempFile[] = [];
     if (images && images.length > 0) {
@@ -214,47 +212,89 @@ export class asyncQuestionController {
         await this.asyncQuestionService.convertAndResizeImages(images);
     }
 
-    let aiAnswerText: string | null = null;
-    if (user.chat_token.used >= user.chat_token.max_uses) {
-      aiAnswerText =
-        'All AI uses have been used up for today. Please try again tomorrow.';
-    } else {
-      const chatbotResponse = await this.chatbotApiService.askQuestion(
-        `
-          Question Abstract: ${body.questionAbstract}
-          Question Text: ${body.questionText}
-          Question Types: ${body.questionTypes.map((questionType) => questionType.name).join(', ')}
-        `,
-        [],
-        user.chat_token.token,
-        cid,
-        processedImageBuffers.map((result) => result.processedBuffer), // give chatbot the higher-quality, non-preview images
-        true,
+    let questionId: number | null = null;
+    const entityManager = getManager();
+    await entityManager.transaction(async (transactionalEntityManager) => {
+      /* order:
+      1. create the question to get async question id
+      2. save the images to the database to get their ids
+      3. query the chatbot to get the ai answer and the image summaries
+      4. update the question with the ai answer and the images with their summaries
+      */
+      const question = await this.asyncQuestionService.createAsyncQuestion(
+        // this also saves the images to the db
+        {
+          courseId: cid,
+          creatorId: user.id,
+          questionAbstract: body.questionAbstract,
+          questionText: body.questionText || null,
+          answerText: '', // both start as an empty string
+          aiAnswerText: '',
+          questionTypes: body.questionTypes as QuestionTypeModel[],
+          status: body.status || asyncQuestionStatus.AIAnswered,
+          visible: false,
+          verified: false,
+          createdAt: new Date(),
+        },
+        processedImageBuffers,
+        transactionalEntityManager,
       );
-      aiAnswerText = chatbotResponse.answer;
-    }
+      // now that we have the images, their ids, and the rest of the question, query the chatbot to get both the ai answer and the image summaries (and then store everything in the db)
+      let aiAnswerText: string | null = null;
+      if (user.chat_token.used >= user.chat_token.max_uses) {
+        aiAnswerText =
+          'All AI uses have been used up for today. Please try again tomorrow.';
+      } else {
+        const chatbotResponse = await this.chatbotApiService.askQuestion(
+          `
+            ${body.questionText ? `Question Abstract: ${body.questionAbstract}` : `Question: ${body.questionAbstract}`}
+            ${body.questionText ? `Question Text: ${body.questionText}` : ''}
+            ${body.questionTypes && body.questionTypes.length > 0 ? `Question Types: ${body.questionTypes.map((questionType) => questionType.name).join(', ')}` : ''}
+          `,
+          [],
+          user.chat_token.token,
+          cid,
+          processedImageBuffers,
+          true,
+        );
+        aiAnswerText = chatbotResponse.answer;
+        const imageDescriptions = chatbotResponse.imageDescriptions;
 
-    const question = await this.asyncQuestionService.createAsyncQuestion(
-      {
-        courseId: cid,
-        creatorId: user.id,
-        questionAbstract: body.questionAbstract,
-        questionText: body.questionText || null,
-        answerText: aiAnswerText, // answer text initially becomes the ai answer text
-        aiAnswerText,
-        questionTypes: body.questionTypes as QuestionTypeModel[],
-        status: body.status || asyncQuestionStatus.AIAnswered,
-        visible: false,
-        verified: false,
-        createdAt: new Date(),
-      },
-      processedImageBuffers,
-    );
+        // update the question with the ai answer text
+        question.aiAnswerText = aiAnswerText;
+        question.answerText = aiAnswerText; // answer text initially becomes the ai answer text
+        await transactionalEntityManager.save(question);
+
+        // map over imageDescriptions and update the images with the descriptions
+        for (const imageDescription of imageDescriptions) {
+          if (
+            Number.isInteger(imageDescription.imageId) &&
+            Number(imageDescription.imageId) > 0
+          ) {
+            await transactionalEntityManager.update(
+              AsyncQuestionImageModel,
+              {
+                // using .update() instead of .save() so we don't have to load the image into memory again
+                imageId: Number(imageDescription.imageId),
+              },
+              {
+                aiSummary: imageDescription.description,
+              },
+            );
+          }
+        }
+      }
+      questionId = question.id;
+    });
+
+    if (!questionId) {
+      throw new InternalServerErrorException('Failed to create question');
+    }
 
     const newQuestion = await AsyncQuestionModel.findOne({
       where: {
         courseId: cid,
-        id: question.id,
+        id: questionId,
       },
       relations: [
         'creator',

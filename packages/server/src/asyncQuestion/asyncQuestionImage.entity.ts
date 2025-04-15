@@ -39,4 +39,7 @@ export class AsyncQuestionImageModel extends BaseEntity {
 
   @Column({ default: 0 })
   previewImageSizeBytes: number;
+
+  @Column({ default: '' })
+  aiSummary: string; // used for the alt text of the image
 }

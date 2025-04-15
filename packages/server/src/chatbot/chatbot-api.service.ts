@@ -9,6 +9,7 @@ import {
 } from '@koh/common';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { tempFile } from 'asyncQuestion/asyncQuestion.service';
 
 @Injectable()
 /* This is a list of all endpoints from the chatbot repo.
@@ -92,7 +93,7 @@ export class ChatbotApiService {
     history: any,
     userToken: string,
     courseId: number,
-    images?: Buffer[],
+    images?: tempFile[], // only really used for async questions right now, feel free to refactor this to be more generalizable if needed in the future
     skipSimilaritySearch?: boolean,
   ): Promise<ChatbotAskResponseChatbotDB> {
     try {
@@ -105,8 +106,11 @@ export class ChatbotApiService {
         images.forEach((imageBuffer, index) => {
           formData.append(
             'images',
-            new Blob([imageBuffer], { type: 'image/jpeg' }),
-            `image${index + 1}.jpg`,
+            new Blob(
+              [imageBuffer.processedBuffer], // give chatbot the higher-quality, non-preview images
+              { type: 'image/webp' },
+            ),
+            `${imageBuffer.imageId ?? `image${index + 1}`}.webp`,
           );
         });
       }

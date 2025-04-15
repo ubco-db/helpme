@@ -101,7 +101,9 @@ export class AsyncQuestionModel extends BaseEntity {
 
   @AfterLoad()
   sumVotes() {
-    this.votesSum = this.votes.reduce((acc, vote) => acc + vote.vote, 0);
+    this.votesSum = this.votes
+      ? this.votes.reduce((acc, vote) => acc + vote.vote, 0)
+      : 0;
   }
 
   @OneToMany(() => AsyncQuestionImageModel, (image) => image.asyncQuestion)

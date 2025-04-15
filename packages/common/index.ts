@@ -401,6 +401,10 @@ export interface ChatbotAskResponseChatbotDB {
   verified: boolean
   courseId: string
   isPreviousQuestion: boolean
+  imageDescriptions?: {
+    imageId: string // should be a number but I don't trust it
+    description: string
+  }[]
 }
 
 export interface AddChatbotQuestionParams {
@@ -797,6 +801,7 @@ export type AsyncQuestionImage = {
   newFileName: string
   imageSizeBytes: number
   previewImageSizeBytes: number
+  aiSummary: string
 }
 
 /**

@@ -39,7 +39,6 @@ const UploadButton: React.FC = () => (
 )
 /* I think this is just to make sure the file list is an array */
 const normFile = (e: any) => {
-  console.log('Upload event:', e)
   if (Array.isArray(e)) {
     return e
   }
@@ -88,7 +87,6 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
   }
 
   const onFinish = async (values: FormValues) => {
-    console.log(values)
     setIsLoading(true)
     const newQuestionTypeInput =
       values.questionTypesInput && questionTypes

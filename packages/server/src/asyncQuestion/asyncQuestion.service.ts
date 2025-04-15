@@ -15,7 +15,7 @@ import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { AsyncQuestionImageModel } from './asyncQuestionImage.entity';
-import { getManager } from 'typeorm';
+import { EntityManager, getManager } from 'typeorm';
 import * as checkDiskSpace from 'check-disk-space';
 import * as path from 'path';
 import * as sharp from 'sharp';
@@ -383,6 +383,7 @@ export class AsyncQuestionService {
   async createAsyncQuestion(
     questionData: Partial<AsyncQuestionModel>,
     imageBuffers: tempFile[],
+    transactionalEntityManager: EntityManager,
   ): Promise<AsyncQuestionModel> {
     const startTime = Date.now();
 
@@ -392,33 +393,32 @@ export class AsyncQuestionService {
       throw new ServiceUnavailableException(ERROR_MESSAGES.common.noDiskSpace);
     }
 
-    let question;
     // Create the question first
-    const entityManager = getManager();
-    await entityManager.transaction(async (transactionalEntityManager) => {
-      question = await transactionalEntityManager.save(
-        AsyncQuestionModel.create(questionData),
-      );
+    const question = await transactionalEntityManager.save(
+      AsyncQuestionModel.create(questionData),
+    );
 
-      // Process and save images
-      if (imageBuffers.length > 0) {
-        const imagePromises = imageBuffers.map(async (buffer) => {
-          const imageModel = new AsyncQuestionImageModel();
-          imageModel.asyncQuestion = question;
-          imageModel.imageBuffer = buffer.processedBuffer;
-          imageModel.previewImageBuffer = buffer.previewBuffer;
-          imageModel.imageSizeBytes = buffer.processedBuffer.length;
-          imageModel.previewImageSizeBytes = buffer.previewBuffer.length;
+    // Process and save images
+    if (imageBuffers.length > 0) {
+      const imagePromises = imageBuffers.map(async (buffer) => {
+        const imageModel = new AsyncQuestionImageModel();
+        imageModel.asyncQuestion = question;
+        imageModel.imageBuffer = buffer.processedBuffer;
+        imageModel.previewImageBuffer = buffer.previewBuffer;
+        imageModel.imageSizeBytes = buffer.processedBuffer.length;
+        imageModel.previewImageSizeBytes = buffer.previewBuffer.length;
 
-          imageModel.originalFileName = buffer.originalFileName;
-          imageModel.newFileName = buffer.newFileName;
+        imageModel.originalFileName = buffer.originalFileName;
+        imageModel.newFileName = buffer.newFileName;
 
-          return transactionalEntityManager.save(imageModel);
-        });
+        const image = await transactionalEntityManager.save(imageModel);
+        buffer.imageId = image.imageId; // add the image id to the buffer so we can use it later (for passing to chatbot)
 
-        await Promise.all(imagePromises);
-      }
-    });
+        return buffer;
+      });
+
+      await Promise.all(imagePromises);
+    }
 
     const endTime = Date.now();
     const processingTime = endTime - startTime;
@@ -526,4 +526,5 @@ export interface tempFile {
   previewBuffer: Buffer;
   originalFileName: string;
   newFileName: string;
+  imageId?: number;
 }
