@@ -9,7 +9,6 @@ import { BackfillModule } from './backfill/backfill.module';
 import { CommandModule } from 'nestjs-command';
 import { RedisModule } from 'nestjs-redis';
 import * as typeormConfig from '../ormconfig';
-import { AdminModule } from './admin/admin.module';
 import { CourseModule } from './course/course.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { HealthcheckModule } from './healthcheck/healthcheck.module';
@@ -68,7 +67,6 @@ import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
       ],
       isGlobal: true,
     }),
-    AdminModule,
     CommandModule,
     SSEModule,
     BackfillModule,
