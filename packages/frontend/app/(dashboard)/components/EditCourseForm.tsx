@@ -152,7 +152,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         <Form.Item
           label="Coordinator Email"
           name="coordinatorEmail"
-          tooltip="Email of the coordinator of the course"
+          tooltip="Email of the coordinator/instructor of the course"
           className="flex-1"
         >
           <Input allowClear={true} />

@@ -352,7 +352,13 @@ export default function AsyncCentrePage({
           }
         />
         <VerticalDivider />
-        <div className="flex-grow md:mt-4">
+        {/* Learnt a thing: So flex items have a default of min-width: auto, which prevents them
+        from shrinking below their content's natural width. So, if there's some child element that wants
+        more width, it will cause all question cards to grow past the parent's max width (causing an overflow).
+        Doing overflow-hidden will cause outlines to be cut off. So, the real solution here is to add
+        min-w-0, which overrides min-width: auto and thus allows this flex item to shrink smaller than
+        its content's natural width. */}
+        <div className="min-w-0 flex-grow md:mt-4">
           {/* Filters on DESKTOP ONLY */}
           <div className="mb-4 hidden items-center gap-x-4 md:flex">
             <h3 className="hidden flex-shrink-0 text-lg font-bold md:block">

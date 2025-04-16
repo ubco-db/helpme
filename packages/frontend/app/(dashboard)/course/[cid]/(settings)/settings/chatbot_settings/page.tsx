@@ -151,6 +151,7 @@ export default function ChatbotSettings({
       .getAllAggregateDocuments(courseId)
       .then((response) => {
         const formattedDocuments = response.map((doc) => ({
+          ...doc,
           key: doc.id,
           docId: doc.id,
           docName: doc.pageContent,

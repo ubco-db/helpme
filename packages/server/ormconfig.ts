@@ -16,7 +16,7 @@ import { QuestionTypeModel } from './src/questionType/question-type.entity';
 import { AsyncQuestionModel } from './src/asyncQuestion/asyncQuestion.entity';
 import { ChatbotQuestionModel } from './src/chatbot/question.entity';
 import { InteractionModel } from './src/chatbot/interaction.entity';
-import { QuestionDocumentModel } from './src/chatbot/questionDocument.entity';
+import { ChatbotQuestionSourceDocumentCitationModel } from './src/chatbot/questionDocument.entity';
 import { CalendarModel } from './src/calendar/calendar.entity';
 import { CalendarStaffModel } from './src/calendar/calendar-staff.entity';
 import { OrganizationUserModel } from './src/organization/organization-user.entity';
@@ -40,6 +40,7 @@ import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entit
 import { UnreadAsyncQuestionModel } from './src/asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from './src/asyncQuestion/asyncQuestionComment.entity';
 import { ChatbotDocPdfModel } from './src/chatbot/chatbot-doc-pdf.entity';
+import { AsyncQuestionImageModel } from './src/asyncQuestion/asyncQuestionImage.entity';
 import { isProd } from '@koh/common';
 import * as fs from 'fs';
 
@@ -95,7 +96,7 @@ const typeorm = {
     CalendarModel,
     CalendarStaffModel,
     LastRegistrationModel,
-    QuestionDocumentModel,
+    ChatbotQuestionSourceDocumentCitationModel,
     OrganizationUserModel,
     OrganizationModel,
     OrganizationCourseModel,
@@ -115,6 +116,7 @@ const typeorm = {
     UnreadAsyncQuestionModel,
     LMSAnnouncementModel,
     ChatbotDocPdfModel,
+    AsyncQuestionImageModel,
   ],
   keepConnectionAlive: true,
   logging:

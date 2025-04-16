@@ -160,6 +160,8 @@ class APIClient {
       this.req('DELETE', `/api/v1/profile/delete_profile_picture`),
     readChangelog: async (): Promise<void> =>
       this.req('PATCH', `/api/v1/profile/read_changelog`, undefined),
+    clearCache: async (): Promise<void> =>
+      this.req('DELETE', `/api/v1/profile/clear_cache`),
   }
 
   chatbot = {
@@ -514,14 +516,14 @@ class APIClient {
   asyncQuestions = {
     get: async (cid: number): Promise<AsyncQuestion[]> =>
       this.req('GET', `/api/v1/asyncQuestions/${cid}`, undefined),
-    create: async (body: CreateAsyncQuestions, cid: number) =>
+    create: async (body: CreateAsyncQuestions | FormData, cid: number) =>
       this.req(
         'POST',
         `/api/v1/asyncQuestions/${cid}`,
         AsyncQuestionParams,
         body,
       ),
-    studentUpdate: async (qid: number, body: UpdateAsyncQuestions) =>
+    studentUpdate: async (qid: number, body: UpdateAsyncQuestions | FormData) =>
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/student/${qid}`,

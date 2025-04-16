@@ -19,10 +19,10 @@ import { UserModel } from './user.entity';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { pick } from 'lodash';
 import { OrganizationService } from '../organization/organization.service';
-import checkDiskSpace from 'check-disk-space';
+import * as checkDiskSpace from 'check-disk-space';
 import * as path from 'path';
 import * as fs from 'fs';
-import sharp from 'sharp';
+import * as sharp from 'sharp';
 
 @Injectable()
 export class ProfileService {
@@ -126,8 +126,9 @@ export class ProfileService {
       // Check disk space before proceeding
       const spaceLeft = await checkDiskSpace(path.parse(process.cwd()).root);
       if (spaceLeft.free < 1_000_000_000) {
+        // 1GB
         throw new ServiceUnavailableException(
-          ERROR_MESSAGES.profileController.noDiskSpace,
+          ERROR_MESSAGES.common.noDiskSpace,
         );
       }
 

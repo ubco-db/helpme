@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from 'react'
-import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
+import { Button, Col, message, Row, Tag, Tooltip, Image } from 'antd'
 import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common'
 import {
   CheckCircleOutlined,
@@ -24,6 +24,7 @@ import {
   AsyncQuestionCardUIReducer,
   initialUIState,
 } from './AsyncQuestionCardUIReducer'
+import SourceLinkCitations from '../../components/chatbot/SourceLinkCitations'
 
 const statusDisplayMap = {
   // if the question has no answer text, it will say "awaiting answer"
@@ -359,6 +360,39 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 )}
               >
                 {<MarkdownCustom>{question.questionText ?? ''}</MarkdownCustom>}
+                {question.images && question.images.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {question.images.map((image) => (
+                      <div
+                        key={image.imageId}
+                        onClick={(e) => {
+                          e.stopPropagation() // stop clicks from expanding card
+                        }}
+                      >
+                        <Image
+                          key={image.imageId}
+                          width={80}
+                          loading="lazy"
+                          src={`/api/v1/asyncQuestions/${courseId}/image/${image.imageId}?preview=true`}
+                          alt={image.aiSummary || image.originalFileName}
+                          preview={{
+                            src: `/api/v1/asyncQuestions/${courseId}/image/${image.imageId}`,
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex flex-wrap">
+                  {question.questionTypes?.map((questionType, index) => (
+                    <QuestionTagElement
+                      key={index}
+                      tagName={questionType.name}
+                      tagColor={questionType.color}
+                    />
+                  ))}
+                </div>
+
                 {question.answerText && (
                   <>
                     <br />
@@ -383,6 +417,12 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                     <MarkdownCustom>
                       {thinkText ? cleanAnswer : question.answerText}
                     </MarkdownCustom>
+                    {question.citations && question.citations.length > 0 && (
+                      <SourceLinkCitations
+                        sourceDocuments={question.citations}
+                        chatbotQuestionType={'Course'}
+                      />
+                    )}
                   </>
                 )}
               </div>
@@ -400,15 +440,6 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 isPostingComment={uiState.isPostingComment}
                 showStudents={showStudents}
               />
-            </div>
-            <div className="flex flex-wrap">
-              {question.questionTypes?.map((questionType, index) => (
-                <QuestionTagElement
-                  key={index}
-                  tagName={questionType.name}
-                  tagColor={questionType.color}
-                />
-              ))}
             </div>
           </div>
           {question.status === asyncQuestionStatus.AIAnswered &&

@@ -1,5 +1,19 @@
-import { MailServiceType, Role } from '@koh/common';
-import { Injectable } from '@nestjs/common';
+import {
+  AddDocumentChunkParams,
+  asyncQuestionStatus,
+  CreateAsyncQuestions,
+  ERROR_MESSAGES,
+  MailServiceType,
+  Role,
+  SourceDocument,
+  UpdateAsyncQuestions,
+} from '@koh/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { MailService } from 'mail/mail.service';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -8,10 +22,20 @@ import { UserModel } from 'profile/user.entity';
 import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
 import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
+import { ChatbotApiService } from 'chatbot/chatbot-api.service';
+import { AsyncQuestionImageModel } from './asyncQuestionImage.entity';
+import { EntityManager, In } from 'typeorm';
+import * as checkDiskSpace from 'check-disk-space';
+import * as path from 'path';
+import * as sharp from 'sharp';
+import { ChatbotQuestionSourceDocumentCitationModel } from 'chatbot/questionDocument.entity';
 
 @Injectable()
 export class AsyncQuestionService {
-  constructor(private mailService: MailService) {}
+  constructor(
+    private mailService: MailService,
+    private readonly chatbotApiService: ChatbotApiService,
+  ) {}
 
   async sendNewCommentOnMyQuestionEmail(
     commenter: UserModel,
@@ -150,9 +174,10 @@ export class AsyncQuestionService {
           content: `<br> <b>A new question has been posted on the Anytime Question Hub and has been marked as needing attention:</b> 
                     <br> ${question.questionAbstract ? `<b>Question Abstract:</b> ${question.questionAbstract}` : ''}
                     <br> ${question.questionTypes?.length > 0 ? `<b>Question Types:</b> ${question.questionTypes.map((qt) => qt.name).join(', ')}` : ''}
-                    <br> ${question.questionText ? `<b>Question Text:</b> ${question.questionText}` : ''}
+                    ${question.questionText ? `<br> <b>Question Text:</b> ${question.questionText}` : ''}
+                    ${question.images?.length > 0 ? `<br> Question also has ${question.images.length} image${question.images.length === 1 ? '' : 's'}.` : ''}
                     <br>
-                    <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
+                    <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre"><b>View and Answer It Here</b></a> <br>`,
         }),
       ),
     );
@@ -287,55 +312,339 @@ export class AsyncQuestionService {
     question: AsyncQuestionModel,
     roles: Role[],
     userToNotNotifyId: number,
+    transactionalEntityManager?: EntityManager,
   ) {
-    await UnreadAsyncQuestionModel.createQueryBuilder()
-      .update(UnreadAsyncQuestionModel)
-      .set({ readLatest: false })
-      .where('asyncQuestionId = :asyncQuestionId', {
-        asyncQuestionId: question.id,
-      })
-      .andWhere('userId != :userId', { userId: userToNotNotifyId }) // don't notify me (person who called endpoint)
-      // Use a subquery to filter by roles
-      .andWhere(
-        `"userId" IN (
+    if (transactionalEntityManager) {
+      await transactionalEntityManager
+        .createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: question.id,
+        })
+        .andWhere('userId != :userId', { userId: userToNotNotifyId }) // don't notify me (person who called endpoint)
+        // Use a subquery to filter by roles
+        .andWhere(
+          `"userId" IN (
            SELECT "user_course_model"."userId"
            FROM "user_course_model"
            WHERE "user_course_model"."role" IN (:...roles)
         )`,
-        { roles }, // notify all specified roles
-      )
-      .execute();
+          { roles }, // notify all specified roles
+        )
+        .execute();
+    } else {
+      await UnreadAsyncQuestionModel.createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: question.id,
+        })
+        .andWhere('userId != :userId', { userId: userToNotNotifyId }) // don't notify me (person who called endpoint)
+        // Use a subquery to filter by roles
+        .andWhere(
+          `"userId" IN (
+             SELECT "user_course_model"."userId"
+             FROM "user_course_model"
+             WHERE "user_course_model"."role" IN (:...roles)
+          )`,
+          { roles }, // notify all specified roles
+        )
+        .execute();
+    }
   }
 
   async markUnreadForAll(
     question: AsyncQuestionModel,
     userToNotNotifyId: number,
+    transactionalEntityManager?: EntityManager,
   ) {
-    await UnreadAsyncQuestionModel.createQueryBuilder()
-      .update(UnreadAsyncQuestionModel)
-      .set({ readLatest: false })
-      .where('asyncQuestionId = :asyncQuestionId', {
-        asyncQuestionId: question.id,
-      })
-      .andWhere(
-        `userId != :userId`,
-        { userId: userToNotNotifyId }, // don't notify me (person who called endpoint)
-      )
-      .execute();
+    if (transactionalEntityManager) {
+      await transactionalEntityManager
+        .createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: question.id,
+        })
+        .andWhere(
+          `userId != :userId`,
+          { userId: userToNotNotifyId }, // don't notify me (person who called endpoint)
+        )
+        .execute();
+    } else {
+      await UnreadAsyncQuestionModel.createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: question.id,
+        })
+        .andWhere(
+          `userId != :userId`,
+          { userId: userToNotNotifyId }, // don't notify me (person who called endpoint)
+        )
+        .execute();
+    }
   }
 
-  async markUnreadForCreator(question: AsyncQuestionModel) {
-    await UnreadAsyncQuestionModel.createQueryBuilder()
-      .update(UnreadAsyncQuestionModel)
-      .set({ readLatest: false })
-      .where('asyncQuestionId = :asyncQuestionId', {
+  async markUnreadForCreator(
+    question: AsyncQuestionModel,
+    transactionalEntityManager?: EntityManager,
+  ) {
+    if (transactionalEntityManager) {
+      await transactionalEntityManager
+        .createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: question.id,
+        })
+        .andWhere(
+          `userId = :userId`,
+          { userId: question.creatorId }, // notify ONLY question creator
+        )
+        .execute();
+    } else {
+      await UnreadAsyncQuestionModel.createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: question.id,
+        })
+        .andWhere(
+          `userId = :userId`,
+          { userId: question.creatorId }, // notify ONLY question creator
+        )
+        .execute();
+    }
+  }
+
+  async upsertQAToChatbot(
+    question: AsyncQuestionModel,
+    courseId: number,
+    userToken: string,
+  ) {
+    const now = new Date();
+    // Since the name can take up quite a bit of space, no more than 60 characters (show ... if longer)
+    const chunkName = `${(question.questionAbstract ?? question.questionText).slice(0, 60)}${(question.questionAbstract ?? question.questionText).length > 60 ? '...' : ''}`;
+    const chunkParams: AddDocumentChunkParams = {
+      documentText: `${this.formatQuestionTextForChatbot(question, true)}\n\nAnswer: ${question.answerText}`,
+      metadata: {
+        name: chunkName,
+        type: 'inserted_async_question',
         asyncQuestionId: question.id,
-      })
-      .andWhere(
-        `userId = :userId`,
-        { userId: question.creatorId }, // notify ONLY question creator
-      )
-      .execute();
+        source: `/course/${courseId}/async_centre`,
+        courseId: courseId,
+        firstInsertedAt: now, // note that the chatbot will ignore this field if its an update
+        lastUpdatedAt: now,
+        shouldProbablyKeepWhenCloning: true,
+      },
+    };
+    await this.chatbotApiService.addDocumentChunk(
+      chunkParams,
+      courseId,
+      userToken,
+    );
+  }
+
+  /* Just for formatting the details of the question for sending to the chatbot or for a chunk. 
+  Does stuff like if there's only an abstract, the abstract will just be called "Question" instead of having "Question Abstract" and "Question Text"
+  */
+  formatQuestionTextForChatbot(
+    question: AsyncQuestionModel,
+    includeImageDescriptions = false, // unused atm
+  ) {
+    return `${question.questionText ? `Question Abstract: ${question.questionAbstract}` : `Question: ${question.questionAbstract}`}
+  ${question.questionText ? `Question Text: ${question.questionText}` : ''}
+  ${question.questionTypes && question.questionTypes.length > 0 ? `Question Types: ${question.questionTypes.map((questionType) => questionType.name).join(', ')}` : ''}
+  ${includeImageDescriptions ? `Question Image Descriptions: ${question.images.map((image, idx) => `Image ${idx + 1}: ${image.aiSummary}`).join('\n')}` : ''}
+`;
+  }
+
+  async createAsyncQuestion(
+    questionData: Partial<AsyncQuestionModel>,
+    imageBuffers: tempFile[],
+    transactionalEntityManager: EntityManager,
+  ): Promise<AsyncQuestionModel> {
+    // Create the question first
+    const question = await transactionalEntityManager.save(
+      AsyncQuestionModel.create(questionData),
+    );
+
+    // Process and save images
+    await this.saveImagesToDb(
+      question,
+      imageBuffers,
+      transactionalEntityManager,
+    );
+
+    return question;
+  }
+
+  async saveImagesToDb(
+    question: AsyncQuestionModel,
+    imageBuffers: tempFile[],
+    transactionalEntityManager: EntityManager,
+  ) {
+    // Check disk space before proceeding
+    const spaceLeft = await checkDiskSpace(path.parse(process.cwd()).root);
+    if (spaceLeft.free < 1_000_000_000) {
+      throw new ServiceUnavailableException(ERROR_MESSAGES.common.noDiskSpace);
+    }
+    const startTime = Date.now();
+
+    // Process and save images
+    if (imageBuffers.length > 0) {
+      const imagePromises = imageBuffers.map(async (buffer) => {
+        const imageModel = new AsyncQuestionImageModel();
+        imageModel.asyncQuestion = question;
+        imageModel.imageBuffer = buffer.processedBuffer;
+        imageModel.previewImageBuffer = buffer.previewBuffer;
+        imageModel.imageSizeBytes = buffer.processedBuffer.length;
+        imageModel.previewImageSizeBytes = buffer.previewBuffer.length;
+
+        imageModel.originalFileName = buffer.originalFileName;
+        imageModel.newFileName = buffer.newFileName;
+
+        const image = await transactionalEntityManager.save(imageModel);
+        buffer.imageId = image.imageId; // add the image id to the buffer so we can use it later (for passing to chatbot)
+
+        return buffer;
+      });
+
+      await Promise.all(imagePromises);
+    }
+
+    const endTime = Date.now();
+    const processingTime = endTime - startTime;
+
+    if (processingTime > 10000) {
+      // more than 10 seconds
+      console.error(`saveImagesToDb took too long: ${processingTime}ms`);
+    }
+  }
+
+  async deleteImages(
+    questionId: number,
+    imageIds: number[],
+    transactionalEntityManager: EntityManager,
+  ) {
+    await transactionalEntityManager.delete(AsyncQuestionImageModel, {
+      imageId: In(imageIds),
+      asyncQuestionId: questionId,
+    });
+  }
+
+  async saveImageDescriptions(
+    imageDescriptions: { imageId: string; description: string }[],
+    transactionalEntityManager: EntityManager,
+  ) {
+    // map over imageDescriptions and update the images with the descriptions
+    for (const imageDescription of imageDescriptions) {
+      if (
+        Number.isInteger(imageDescription.imageId) &&
+        Number(imageDescription.imageId) > 0
+      ) {
+        await transactionalEntityManager.update(
+          AsyncQuestionImageModel,
+          {
+            // using .update() instead of .save() so we don't have to load the image into memory again
+            imageId: Number(imageDescription.imageId),
+          },
+          {
+            aiSummary: imageDescription.description,
+          },
+        );
+      }
+    }
+  }
+
+  async convertAndResizeImages(
+    images: Express.Multer.File[],
+  ): Promise<tempFile[]> {
+    const startTime = Date.now();
+    const results = await Promise.all(
+      images.map(async (image) => {
+        // create both full and preview versions (the preview version is much smaller), they all get converted to webp
+        const [processedBuffer, previewBuffer] = await Promise.all([
+          sharp(image.buffer)
+            .resize(1920, 1080, {
+              fit: 'inside', // resize to fit within 1920x1080, but keep aspect ratio
+              withoutEnlargement: true, // don't enlarge the image
+            })
+            .webp({ quality: 80 }) // convert to webp with quality 80
+            .toBuffer(),
+          sharp(image.buffer) // preview images get sent first so they need to be low quality so they get sent fast.
+            .resize(400, 300, { fit: 'inside', withoutEnlargement: true })
+            .webp({ quality: 30 })
+            .toBuffer(),
+        ]);
+
+        // Remove the original extension and replace with .webp
+        const sanitizedFilename =
+          image.originalname
+            .replace(/[/\\?%*:|"<>]/g, '_') // Replace unsafe characters with underscores
+            .replace(/\.[^/.]+$/, '') // Remove the original extension
+            .trim() + '.webp'; // Add .webp extension
+
+        return {
+          processedBuffer,
+          previewBuffer,
+          originalFileName: image.originalname,
+          newFileName: sanitizedFilename,
+        };
+      }),
+    );
+
+    const endTime = Date.now();
+    const processingTime = endTime - startTime;
+    if (processingTime > 10000) {
+      // more than 10 seconds
+      console.error(
+        `convertAndResizeImages took too long: ${processingTime}ms`,
+      );
+    }
+
+    return results;
+  }
+
+  async getImageById(
+    imageId: number,
+    preview: boolean,
+  ): Promise<{
+    buffer: Buffer;
+    contentType: string;
+    newFileName: string;
+  } | null> {
+    let image;
+    if (preview) {
+      image = await AsyncQuestionImageModel.findOne({
+        where: { imageId },
+        select: ['previewImageBuffer', 'newFileName'],
+      });
+    } else {
+      image = await AsyncQuestionImageModel.findOne({
+        where: { imageId },
+        select: ['imageBuffer', 'newFileName'],
+      });
+    }
+
+    if (!image) return null;
+
+    return {
+      buffer: preview ? image.previewImageBuffer : image.imageBuffer,
+      contentType: 'image/webp',
+      newFileName: image.newFileName,
+    };
+  }
+
+  async getCurrentImageCount(
+    questionId: number,
+    transactionalEntityManager: EntityManager,
+  ) {
+    return await transactionalEntityManager.count(AsyncQuestionImageModel, {
+      where: { asyncQuestionId: questionId },
+    });
   }
 
   /**
@@ -347,4 +656,118 @@ export class AsyncQuestionService {
     const hash = userId + questionId;
     return hash % 70;
   }
+
+  validateBodyCreateAsyncQuestions(
+    body: CreateAsyncQuestions | FormData | any,
+  ) {
+    // the body *should* follow CreateAsyncQuestions, but since we're using formdata, we have to manually parse the fields and validate them
+    if (body.questionTypes) {
+      try {
+        body.questionTypes = JSON.parse(body.questionTypes);
+      } catch (error) {
+        throw new BadRequestException(
+          'Question Types field must be a valid JSON array',
+        );
+      }
+    }
+    if (!body.questionAbstract) {
+      throw new BadRequestException('Question Abstract is required');
+    }
+    body.questionText = body.questionText ? body.questionText.toString() : '';
+    body.questionAbstract = body.questionAbstract
+      ? body.questionAbstract.toString()
+      : '';
+    body.status = body.status
+      ? body.status.toString()
+      : asyncQuestionStatus.AIAnswered;
+  }
+
+  validateBodyUpdateAsyncQuestions(
+    body: UpdateAsyncQuestions | FormData | any,
+  ) {
+    // the body *should* follow UpdateAsyncQuestions, but since we're using formdata, we have to manually parse the fields and validate them
+    if (body.questionTypes) {
+      try {
+        body.questionTypes = JSON.parse(body.questionTypes);
+      } catch (error) {
+        throw new BadRequestException(
+          'Question Types field must be a valid JSON array',
+        );
+      }
+    }
+
+    body.questionText = body.questionText ? body.questionText.toString() : '';
+    body.questionAbstract = body.questionAbstract
+      ? body.questionAbstract.toString()
+      : '';
+    body.status = body.status
+      ? body.status.toString()
+      : asyncQuestionStatus.AIAnswered;
+
+    if (body.deletedImageIds) {
+      try {
+        body.deletedImageIds = JSON.parse(body.deletedImageIds);
+      } catch (error) {
+        throw new BadRequestException(
+          'Delete Image Ids field must be a valid JSON array',
+        );
+      }
+    }
+
+    // if you created the question (i.e. a student), you can't update the status to illegal ones
+    if (
+      body.status === asyncQuestionStatus.TADeleted ||
+      body.status === asyncQuestionStatus.HumanAnswered
+    ) {
+      throw new ForbiddenException(
+        `You cannot update your own question's status to ${body.status}`,
+      );
+    }
+
+    if (body.refreshAIAnswer) {
+      body.refreshAIAnswer = body.refreshAIAnswer.toString() === 'true';
+    }
+  }
+
+  async deleteExistingCitations(
+    questionId: number,
+    transactionalEntityManager: EntityManager,
+  ) {
+    await transactionalEntityManager.delete(
+      ChatbotQuestionSourceDocumentCitationModel,
+      { asyncQuestionId: questionId },
+    );
+  }
+
+  async saveCitations(
+    sourceDocuments: SourceDocument[],
+    question: AsyncQuestionModel,
+    transactionalEntityManager: EntityManager,
+  ) {
+    const citations = sourceDocuments.map((sourceDocument) => {
+      const citation = new ChatbotQuestionSourceDocumentCitationModel();
+      citation.asyncQuestion = question;
+      citation.pageContent = sourceDocument.pageContent;
+      citation.content = sourceDocument.content;
+      citation.sourceDocumentChunkId = sourceDocument.id;
+      citation.metadata = sourceDocument.metadata;
+      citation.docName = sourceDocument.docName;
+      citation.sourceLink = sourceDocument.sourceLink;
+      citation.pageNumbers = sourceDocument.pageNumbers;
+      citation.pageNumber = sourceDocument.pageNumber;
+      return citation;
+    });
+    await transactionalEntityManager.save(
+      ChatbotQuestionSourceDocumentCitationModel,
+      citations,
+    );
+  }
+}
+
+export interface tempFile {
+  processedBuffer: Buffer;
+  previewBuffer: Buffer;
+  originalFileName: string;
+  newFileName: string;
+  imageId?: number;
 }

@@ -37,6 +37,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { PreDeterminedQuestion, Role, Message } from '@koh/common'
 import { Bot } from 'lucide-react'
+import SourceLinkCitationButton from './SourceLinkCitationButton'
+import SourceLinkCitations from './SourceLinkCitations'
 
 const { TextArea } = Input
 
@@ -243,13 +245,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setInput('')
   }
 
-  const extractLMSLink = (content?: string) => {
-    if (!content) return undefined
-    const idx = content.indexOf('Page Link:')
-    if (idx < 0) return undefined
-    return content.substring(idx + 'Page Link:'.length).trim()
-  }
-
   if (!cid || !courseFeatures?.chatBotEnabled) {
     return <></>
   } else {
@@ -448,68 +443,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
                               )}
                             </div>
                           </div>
-                          <div className="flex flex-col gap-1">
-                            {item.sourceDocuments &&
-                            chatbotQuestionType === 'System' ? (
-                              <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
-                                <p className="px-2 py-1">User Guide</p>
-                                <SourceLinkButton
-                                  docName="User Guide"
-                                  sourceLink="https://github.com/ubco-db/helpme/blob/main/packages/frontend/public/userguide.md"
-                                />
-                              </div>
-                            ) : (
-                              item.sourceDocuments &&
-                              item.sourceDocuments.map(
-                                (sourceDocument, idx) => (
-                                  <Tooltip
-                                    title={
-                                      sourceDocument.type &&
-                                      sourceDocument.type !=
-                                        'inserted_lms_document'
-                                        ? sourceDocument.content
-                                        : ''
-                                    }
-                                    key={idx}
-                                  >
-                                    <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
-                                      <p className="px-2 py-1">
-                                        {sourceDocument.docName}
-                                      </p>
-                                      {sourceDocument.type ==
-                                        'inserted_lms_document' &&
-                                        extractLMSLink(
-                                          sourceDocument.content,
-                                        ) && (
-                                          <SourceLinkButton
-                                            docName={sourceDocument.docName}
-                                            sourceLink={
-                                              extractLMSLink(
-                                                sourceDocument.content,
-                                              ) ?? ''
-                                            }
-                                            part={0}
-                                          />
-                                        )}
-                                      {sourceDocument.pageNumbers &&
-                                        sourceDocument.pageNumbers.map(
-                                          (part) => (
-                                            <SourceLinkButton
-                                              key={`${sourceDocument.docName}-${part}`}
-                                              docName={sourceDocument.docName}
-                                              sourceLink={
-                                                sourceDocument.sourceLink
-                                              }
-                                              part={part}
-                                            />
-                                          ),
-                                        )}
-                                    </div>
-                                  </Tooltip>
-                                ),
-                              )
-                            )}
-                          </div>
+                          <SourceLinkCitations
+                            sourceDocuments={item.sourceDocuments ?? []}
+                            chatbotQuestionType={chatbotQuestionType}
+                          />
                           {item.type === 'apiMessage' &&
                             index === messages.length - 1 &&
                             index !== 0 && (
@@ -626,36 +563,3 @@ const Chatbot: React.FC<ChatbotProps> = ({
 }
 
 export default Chatbot
-
-const SourceLinkButton: React.FC<{
-  docName: string
-  sourceLink?: string
-  part?: number
-}> = ({ docName, sourceLink, part }) => {
-  if (!sourceLink) {
-    return null
-  }
-  const pageNumber = part && !isNaN(part) ? Number(part) : undefined
-
-  return (
-    <a
-      className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
-        sourceLink && 'hover:bg-black-300 cursor-pointer hover:text-white'
-      }`}
-      key={`${docName}-${part}`}
-      href={
-        sourceLink +
-        (pageNumber && sourceLink.startsWith('/api/v1/chatbot/document/')
-          ? `#page=${pageNumber}`
-          : '')
-      }
-      rel="noopener noreferrer"
-      // open in new tab
-      target="_blank"
-    >
-      <p className="h-fit w-fit text-xs leading-4">
-        {part ? `p. ${part}` : 'Source'}
-      </p>
-    </a>
-  )
-}

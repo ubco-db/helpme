@@ -5,9 +5,11 @@ import {
   AddDocumentChunkParams,
   ChatbotQuestionResponseChatbotDB,
   UpdateChatbotQuestionParams,
+  ChatbotAskResponseChatbotDB,
 } from '@koh/common';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { tempFile } from 'asyncQuestion/asyncQuestion.service';
 
 @Injectable()
 /* This is a list of all endpoints from the chatbot repo.
@@ -91,11 +93,59 @@ export class ChatbotApiService {
     history: any,
     userToken: string,
     courseId: number,
-  ) {
-    return this.request('POST', 'ask', courseId, userToken, {
-      question,
-      history,
-    });
+    images?: tempFile[], // only really used for async questions right now, feel free to refactor this to be more generalizable if needed in the future
+    skipSimilaritySearch?: boolean,
+  ): Promise<ChatbotAskResponseChatbotDB> {
+    try {
+      const formData = new FormData();
+      formData.append('question', question);
+      formData.append('history', JSON.stringify(history));
+
+      // Add images if they exist
+      if (images && images.length > 0) {
+        images.forEach((imageBuffer, index) => {
+          formData.append(
+            'images',
+            new Blob(
+              [imageBuffer.processedBuffer], // give chatbot the higher-quality, non-preview images
+              { type: 'image/webp' },
+            ),
+            `${imageBuffer.imageId ?? `image${index + 1}`}.webp`,
+          );
+        });
+      }
+
+      const url = new URL(
+        `${this.chatbotApiUrl}/${courseId}/ask${skipSimilaritySearch ? '?skipSimilaritySearch=true' : ''}`,
+      );
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'HMS-API-KEY': this.chatbotApiKey,
+          HMS_API_TOKEN: userToken,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new HttpException(
+          error.error || 'Error from chatbot service',
+          response.status,
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Failed to connect to chatbot service',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   async getAllQuestions(courseId: number, userToken: string) {
@@ -173,6 +223,7 @@ export class ChatbotApiService {
     courseId: number,
     userToken: string,
   ) {
+    // note: will perform an upsert if the body.metadata has an asyncQuestionId, rather than just an insert
     return this.request('POST', 'documentChunk', courseId, userToken, body);
   }
 

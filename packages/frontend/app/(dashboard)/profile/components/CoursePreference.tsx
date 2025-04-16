@@ -6,7 +6,6 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 import { ExclamationCircleOutlined } from '@ant-design/icons'
 import { UserCourse } from '@koh/common'
 import { Button, message, Modal, Table, TableColumnsType } from 'antd'
-import useSWR from 'swr'
 
 const { confirm } = Modal
 
@@ -51,12 +50,6 @@ const CoursePreference: React.FC = () => {
         withdraw(course)
       },
     })
-  }
-
-  const InstructorCell = ({ courseId }: { courseId: number }) => {
-    const course = useCourse(courseId)
-
-    return <>{course.course?.coordinator_email}</>
   }
 
   const columns: TableColumnsType = [
@@ -126,6 +119,16 @@ const CoursePreference: React.FC = () => {
         />
       </div>
     )
+  )
+}
+
+const InstructorCell = ({ courseId }: { courseId: number }) => {
+  const course = useCourse(courseId)
+
+  return (
+    <div className="max-w-[5.45rem] overflow-x-scroll whitespace-nowrap md:max-w-full md:overflow-x-auto">
+      {course.course?.coordinator_email}
+    </div>
   )
 }
 

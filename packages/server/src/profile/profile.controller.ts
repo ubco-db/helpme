@@ -24,7 +24,7 @@ import * as fs from 'fs';
 import { memoryStorage } from 'multer';
 import * as path from 'path';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { User } from '../decorators/user.decorator';
+import { User, UserId } from '../decorators/user.decorator';
 import { UserModel } from './user.entity';
 import { ProfileService } from './profile.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
@@ -85,6 +85,12 @@ export class ProfileController {
     }
   }
 
+  @Delete('/clear_cache')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  async clearCache(@UserId() userId: number): Promise<void> {
+    await this.redisProfileService.deleteProfile(`u:${userId}`);
+  }
+
   @Patch()
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async patch(
@@ -107,6 +113,36 @@ export class ProfileController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit per file
+      },
+      fileFilter: (req, file, cb) => {
+        // Check mimetype
+        if (!file.mimetype.startsWith('image/')) {
+          cb(new Error('Only image files are allowed'), false);
+          return;
+        }
+        // Check file extension
+        const allowedExtensions = [
+          '.jpg',
+          '.jpeg',
+          '.png',
+          '.gif',
+          '.webp',
+          '.bmp',
+          '.svg',
+          '.tiff',
+          '.gif',
+        ];
+        const fileExt = file.originalname
+          .toLowerCase()
+          .substring(file.originalname.lastIndexOf('.'));
+        if (!allowedExtensions.includes(fileExt)) {
+          cb(new Error('Only image files are allowed'), false);
+          return;
+        }
+        cb(null, true);
+      },
     }),
   )
   async uploadImage(

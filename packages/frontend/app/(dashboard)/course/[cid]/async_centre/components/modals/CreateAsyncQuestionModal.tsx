@@ -8,6 +8,8 @@ import {
   Tooltip,
   Button,
   Popconfirm,
+  Upload,
+  Image,
 } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
@@ -15,15 +17,40 @@ import { QuestionTagSelector } from '../../../components/QuestionTagElement'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
-import { DeleteOutlined } from '@ant-design/icons'
+import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
+import type { GetProp, UploadFile, UploadProps } from 'antd'
+
+// stuff from antd example code for upload and form
+type FileType = Parameters<GetProp<UploadProps, 'beforeUpload'>>[0]
+const getBase64 = (file: FileType): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = (error) => reject(error)
+  })
+const UploadButton: React.FC = () => (
+  <button className="border-none bg-transparent" type="button">
+    <PlusOutlined />
+    <div className="mt-1">Upload</div>
+  </button>
+)
+/* I think this is just to make sure the file list is an array */
+const normFile = (e: any) => {
+  if (Array.isArray(e)) {
+    return e
+  }
+  return e?.fileList
+}
 
 interface FormValues {
   QuestionAbstract: string
   questionText: string
   questionTypesInput: number[]
   refreshAIAnswer: boolean
+  images: UploadFile[]
 }
 
 interface CreateAsyncQuestionModalProps {
@@ -41,34 +68,57 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
   onCreateOrUpdateQuestion,
   question,
 }) => {
-  const { userInfo } = useUserInfo()
+  const { userInfo, setUserInfo } = useUserInfo()
   const [questionTypes] = useQuestionTypes(courseId, null)
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const courseFeatures = useCourseFeatures(courseId)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewImage, setPreviewImage] = useState('')
 
-  const getAiAnswer = async (question: string) => {
-    if (!courseFeatures?.asyncCentreAIAnswers) {
-      return ''
+  const handlePreviewImage = async (file: UploadFile) => {
+    if (!file.url && !file.preview) {
+      file.preview = await getBase64(file.originFileObj as FileType)
     }
-    try {
-      if (userInfo.chat_token.used < userInfo.chat_token.max_uses) {
-        const data = {
-          question: question,
-          history: [],
-          onlySaveInChatbotDB: true,
+
+    setPreviewImage(file.url || (file.preview as string))
+    setPreviewOpen(true)
+  }
+
+  // Handle pasting images from clipboard
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items
+    const MAX_IMAGES = 8
+    const currentImages = form.getFieldValue('images') || []
+
+    if (currentImages.length >= MAX_IMAGES) {
+      message.warning(`Maximum ${MAX_IMAGES} images allowed`)
+      return
+    }
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile()
+        if (file) {
+          // Create a unique name for the pasted image
+          const fileName = `pasted-image-${Date.now()}.png`
+
+          const uploadFile = {
+            uid: `paste-${Date.now()}`,
+            name: fileName,
+            status: 'done',
+            originFileObj: file,
+          } as UploadFile
+
+          // Add the pasted image to the form
+          const newFileList = [...currentImages, uploadFile]
+          form.setFieldsValue({ images: newFileList })
+
+          message.success('Image pasted successfully')
+          break // Only process one image per paste event
         }
-        const response = await API.chatbot.studentsOrStaff.askQuestion(
-          courseId,
-          data,
-        )
-        return response.chatbotRepoVersion.answer
-      } else {
-        return 'All AI uses have been used up for today. Please try again tomorrow.'
       }
-    } catch (e) {
-      return ''
     }
   }
 
@@ -83,86 +133,104 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
 
     // If editing a question, update the question. Else create a new one
     if (question) {
+      // create FormData for the request
+      const formData = new FormData()
+      formData.append('questionText', values.questionText || '')
+      formData.append('questionAbstract', values.QuestionAbstract)
+      formData.append('questionTypes', JSON.stringify(newQuestionTypeInput))
       if (values.refreshAIAnswer) {
-        await getAiAnswer(
-          `
-            Question Abstract: ${values.QuestionAbstract}
-            Question Text: ${values.questionText}
-            Question Types: ${newQuestionTypeInput.map((questionType) => questionType.name).join(', ')}
-          `,
-        ).then(async (aiAnswer) => {
-          await API.asyncQuestions
-            .studentUpdate(question.id, {
-              questionTypes: newQuestionTypeInput,
-              questionText: values.questionText,
-              questionAbstract: values.QuestionAbstract,
-              aiAnswerText: aiAnswer,
-              answerText: aiAnswer,
-            })
-            .then(() => {
-              message.success('Question Updated')
-              setIsLoading(false)
-              onCreateOrUpdateQuestion()
-            })
-            .catch((e) => {
-              const errorMessage = getErrorMessage(e)
-              message.error('Error updating question:' + errorMessage)
-              setIsLoading(false)
-            })
-        })
-      } else {
-        await API.asyncQuestions
-          .studentUpdate(question.id, {
-            questionTypes: newQuestionTypeInput,
-            questionText: values.questionText,
-            questionAbstract: values.QuestionAbstract,
-          })
-          .then(() => {
-            message.success('Question Updated')
-            onCreateOrUpdateQuestion()
-          })
-          .catch((e) => {
-            const errorMessage = getErrorMessage(e)
-            message.error('Error updating question:' + errorMessage)
-          })
-          .finally(() => {
-            setIsLoading(false)
-          })
+        formData.append('refreshAIAnswer', 'true')
       }
+
+      // to find out what images are deleted, compare question.images.imageId with values.images.uid
+      const deletedImageIds = question.images
+        .filter(
+          (image) =>
+            !values.images.some((file) => Number(file.uid) === image.imageId),
+        )
+        .map((image) => image.imageId)
+      formData.append('deletedImageIds', JSON.stringify(deletedImageIds))
+      console.log(deletedImageIds)
+
+      // to find out what images are new, get all values.images where uid is NaN
+      const newImages = values.images.filter((file) => isNaN(Number(file.uid)))
+      console.log(newImages)
+
+      // Append each new image file
+      if (newImages) {
+        newImages.forEach((file: any) => {
+          // Only append if it's a real file (antd's Upload component adds some metadata we don't want)
+          if (file.originFileObj) {
+            formData.append('newImages', file.originFileObj)
+          }
+        })
+      }
+
+      await API.asyncQuestions
+        .studentUpdate(question.id, formData)
+        .then(() => {
+          message.success('Question Updated')
+          onCreateOrUpdateQuestion()
+        })
+        .catch((e) => {
+          const errorMessage = getErrorMessage(e)
+          message.error('Error updating question:' + errorMessage)
+        })
+        .finally(() => {
+          if (values.refreshAIAnswer) {
+            setUserInfo({
+              ...userInfo,
+              chat_token: {
+                ...userInfo.chat_token,
+                used: userInfo.chat_token.used + 1,
+              },
+            })
+          }
+          setIsLoading(false)
+        })
     } else {
-      // since the ai chatbot may not be running, we don't have a catch statement if it fails and instead we just give it a question text of ''
-      await getAiAnswer(
-        `
-          Question Abstract: ${values.QuestionAbstract}
-          Question Text: ${values.questionText}
-          Question Types: ${newQuestionTypeInput.map((questionType) => questionType.name).join(', ')}
-        `,
-      ).then(async (aiAnswer) => {
-        await API.asyncQuestions
-          .create(
-            {
-              questionTypes: newQuestionTypeInput,
-              questionText: values.questionText,
-              aiAnswerText: aiAnswer,
-              answerText: aiAnswer,
-              questionAbstract: values.QuestionAbstract,
-              status: courseFeatures?.asyncCentreAIAnswers
-                ? asyncQuestionStatus.AIAnswered
-                : asyncQuestionStatus.AIAnsweredNeedsAttention,
+      // Create FormData for the request
+      const formData = new FormData()
+      formData.append('questionText', values.questionText || '')
+      formData.append('questionAbstract', values.QuestionAbstract)
+      formData.append('questionTypes', JSON.stringify(newQuestionTypeInput))
+      formData.append(
+        'status',
+        courseFeatures?.asyncCentreAIAnswers
+          ? asyncQuestionStatus.AIAnswered
+          : asyncQuestionStatus.AIAnsweredNeedsAttention,
+      )
+
+      // Append each image file
+      if (values.images) {
+        values.images.forEach((file: any) => {
+          // Only append if it's a real file (antd's Upload component adds some metadata we don't want)
+          if (file.originFileObj) {
+            formData.append('images', file.originFileObj)
+          }
+        })
+      }
+
+      await API.asyncQuestions
+        .create(formData, courseId)
+        .then(() => {
+          message.success('Question Posted')
+          onCreateOrUpdateQuestion()
+        })
+        .catch((e) => {
+          const errorMessage = getErrorMessage(e)
+          message.error('Error creating question:' + errorMessage)
+        })
+        .finally(() => {
+          setUserInfo({
+            ...userInfo,
+            chat_token: {
+              ...userInfo.chat_token,
+              used: userInfo.chat_token.used + 1,
             },
-            courseId,
-          )
-          .then(() => {
-            message.success('Question Posted')
-            setIsLoading(false)
-            onCreateOrUpdateQuestion()
           })
-          .catch((e) => {
-            const errorMessage = getErrorMessage(e)
-            message.error('Error creating question:' + errorMessage)
-            setIsLoading(false)
-          })
-      })
+          setIsLoading(false)
+        })
     }
   }
 
@@ -231,6 +299,11 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
                     (questionType) => questionType.id,
                   )
                 : [],
+            images: question?.images.map((image) => ({
+              uid: image.imageId,
+              name: image.originalFileName,
+              url: `/api/v1/asyncQuestions/${courseId}/image/${image.imageId}`,
+            })),
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
@@ -263,14 +336,46 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
       <Form.Item
         name="questionText"
         label="Question Text"
-        tooltip="Your full question text. The placeholder text is just an example"
+        tooltip="Your full question text. The placeholder text is just an example. You can also paste images here from your clipboard"
       >
         <Input.TextArea
           placeholder="It's asking me to... but I got an incorrect answer. Here is my work:..."
           autoSize={{ minRows: 3, maxRows: 6 }}
           allowClear
+          onPaste={handlePaste}
         />
       </Form.Item>
+      <Form.Item
+        label="Images (optional)"
+        tooltip="When the AI is generating an answer, it will use these images to help. You can upload up to 8 images"
+        name="images"
+        valuePropName="fileList"
+        getValueFromEvent={normFile}
+      >
+        <Upload
+          name="files"
+          listType="picture-card"
+          accept="image/*"
+          onPreview={handlePreviewImage}
+          maxCount={8}
+          multiple={true}
+        >
+          {form.getFieldValue('images')?.length >= 8 ? null : <UploadButton />}
+        </Upload>
+      </Form.Item>
+      {previewImage && (
+        <Image
+          wrapperStyle={{ display: 'none' }}
+          width={200}
+          preview={{
+            visible: previewOpen,
+            onVisibleChange: (visible) => setPreviewOpen(visible),
+            afterOpenChange: (visible) => !visible && setPreviewImage(''),
+          }}
+          src={previewImage}
+          alt={`Preview of ${previewImage}`}
+        />
+      )}
       {questionTypes && questionTypes.length > 0 && (
         <Form.Item
           name="questionTypesInput"

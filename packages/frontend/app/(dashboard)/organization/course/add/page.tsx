@@ -188,7 +188,7 @@ export default function AddCoursePage(): ReactElement {
                     <Form.Item
                       label="Coordinator Email"
                       name="coordinatorEmail"
-                      tooltip="Email of the coordinator of the course"
+                      tooltip="Email of the coordinator/instructor of the course"
                     >
                       <Input allowClear={true} />
                     </Form.Item>
