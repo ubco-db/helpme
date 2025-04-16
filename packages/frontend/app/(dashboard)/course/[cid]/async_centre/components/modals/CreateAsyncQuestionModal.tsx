@@ -86,6 +86,42 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
     setPreviewOpen(true)
   }
 
+  // Handle pasting images from clipboard
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items
+    const MAX_IMAGES = 8
+    const currentImages = form.getFieldValue('images') || []
+
+    if (currentImages.length >= MAX_IMAGES) {
+      message.warning(`Maximum ${MAX_IMAGES} images allowed`)
+      return
+    }
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile()
+        if (file) {
+          // Create a unique name for the pasted image
+          const fileName = `pasted-image-${Date.now()}.png`
+
+          const uploadFile = {
+            uid: `paste-${Date.now()}`,
+            name: fileName,
+            status: 'done',
+            originFileObj: file,
+          } as UploadFile
+
+          // Add the pasted image to the form
+          const newFileList = [...currentImages, uploadFile]
+          form.setFieldsValue({ images: newFileList })
+
+          message.success('Image pasted successfully')
+          break // Only process one image per paste event
+        }
+      }
+    }
+  }
+
   const onFinish = async (values: FormValues) => {
     setIsLoading(true)
     const newQuestionTypeInput =
@@ -300,12 +336,13 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
       <Form.Item
         name="questionText"
         label="Question Text"
-        tooltip="Your full question text. The placeholder text is just an example"
+        tooltip="Your full question text. The placeholder text is just an example. You can also paste images here from your clipboard"
       >
         <Input.TextArea
           placeholder="It's asking me to... but I got an incorrect answer. Here is my work:..."
           autoSize={{ minRows: 3, maxRows: 6 }}
           allowClear
+          onPaste={handlePaste}
         />
       </Form.Item>
       <Form.Item
