@@ -793,6 +793,7 @@ export type AsyncQuestion = {
   comments: AsyncQuestionComment[]
   votesSum: number
   images: AsyncQuestionImage[]
+  citations: SourceDocument[]
 }
 
 export type AsyncQuestionImage = {

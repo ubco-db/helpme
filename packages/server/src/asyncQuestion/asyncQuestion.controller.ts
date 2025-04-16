@@ -54,6 +54,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { AsyncQuestionImageModel } from './asyncQuestionImage.entity';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
+import { ChatbotQuestionSourceDocumentCitationModel } from 'chatbot/questionDocument.entity';
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class asyncQuestionController {
@@ -122,6 +123,7 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
         'images',
+        'citations',
       ],
     });
 
@@ -250,6 +252,12 @@ export class asyncQuestionController {
           imageDescriptions,
           transactionalEntityManager,
         );
+
+        await this.asyncQuestionService.saveCitations(
+          chatbotResponse.sourceDocuments,
+          question,
+          transactionalEntityManager,
+        );
       }
       questionId = question.id;
     });
@@ -271,6 +279,7 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
         'images',
+        'citations',
       ],
     });
 
@@ -458,11 +467,20 @@ export class asyncQuestionController {
               processedImageBuffers,
               true,
             );
-            console.log(chatbotResponse);
             question.aiAnswerText = chatbotResponse.answer;
             question.answerText = chatbotResponse.answer;
             await this.asyncQuestionService.saveImageDescriptions(
               chatbotResponse.imageDescriptions,
+              transactionalEntityManager,
+            );
+            // first delete old citations, then add the new ones
+            await this.asyncQuestionService.deleteExistingCitations(
+              questionId,
+              transactionalEntityManager,
+            );
+            await this.asyncQuestionService.saveCitations(
+              chatbotResponse.sourceDocuments,
+              question,
               transactionalEntityManager,
             );
           }
@@ -486,6 +504,7 @@ export class asyncQuestionController {
               'comments.creator',
               'comments.creator.courses',
               'images',
+              'citations',
             ],
           },
         );
@@ -543,6 +562,7 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
         'images',
+        'citations',
       ],
     });
     // deep copy question since it changes
@@ -683,6 +703,7 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
         'images',
+        'citations',
       ],
     });
 
@@ -802,6 +823,7 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
         'images',
+        'citations',
       ],
     });
 
@@ -880,6 +902,7 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
         'images',
+        'citations',
       ],
     });
 
@@ -935,6 +958,7 @@ export class asyncQuestionController {
           'comments.creator',
           'comments.creator.courses',
           'images',
+          'citations',
         ],
         order: {
           createdAt: 'DESC',
@@ -993,6 +1017,7 @@ export class asyncQuestionController {
         'votesSum',
         'isTaskQuestion',
         'images',
+        'citations',
       ]);
 
       if (!question.comments) {

@@ -16,7 +16,7 @@ import { QuestionTypeModel } from './src/questionType/question-type.entity';
 import { AsyncQuestionModel } from './src/asyncQuestion/asyncQuestion.entity';
 import { ChatbotQuestionModel } from './src/chatbot/question.entity';
 import { InteractionModel } from './src/chatbot/interaction.entity';
-import { QuestionDocumentModel } from './src/chatbot/questionDocument.entity';
+import { ChatbotQuestionSourceDocumentCitationModel } from './src/chatbot/questionDocument.entity';
 import { CalendarModel } from './src/calendar/calendar.entity';
 import { CalendarStaffModel } from './src/calendar/calendar-staff.entity';
 import { OrganizationUserModel } from './src/organization/organization-user.entity';
@@ -96,7 +96,7 @@ const typeorm = {
     CalendarModel,
     CalendarStaffModel,
     LastRegistrationModel,
-    QuestionDocumentModel,
+    ChatbotQuestionSourceDocumentCitationModel,
     OrganizationUserModel,
     OrganizationModel,
     OrganizationCourseModel,

@@ -24,6 +24,7 @@ import {
   AsyncQuestionCardUIReducer,
   initialUIState,
 } from './AsyncQuestionCardUIReducer'
+import SourceLinkCitations from '../../components/chatbot/SourceLinkCitations'
 
 const statusDisplayMap = {
   // if the question has no answer text, it will say "awaiting answer"
@@ -416,6 +417,10 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                     <MarkdownCustom>
                       {thinkText ? cleanAnswer : question.answerText}
                     </MarkdownCustom>
+                    <SourceLinkCitations
+                      sourceDocuments={question.citations}
+                      chatbotQuestionType={'Course'}
+                    />
                   </>
                 )}
               </div>

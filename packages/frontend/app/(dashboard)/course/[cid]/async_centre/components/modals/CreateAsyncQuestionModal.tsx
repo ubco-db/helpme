@@ -186,6 +186,13 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           message.error('Error creating question:' + errorMessage)
         })
         .finally(() => {
+          setUserInfo({
+            ...userInfo,
+            chat_token: {
+              ...userInfo.chat_token,
+              used: userInfo.chat_token.used + 1,
+            },
+          })
           setIsLoading(false)
         })
     }

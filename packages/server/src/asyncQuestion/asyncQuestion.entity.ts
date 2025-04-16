@@ -20,6 +20,7 @@ import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { AsyncQuestionImageModel } from './asyncQuestionImage.entity';
+import { ChatbotQuestionSourceDocumentCitationModel } from 'chatbot/questionDocument.entity';
 
 @Entity('async_question_model')
 export class AsyncQuestionModel extends BaseEntity {
@@ -108,4 +109,14 @@ export class AsyncQuestionModel extends BaseEntity {
 
   @OneToMany(() => AsyncQuestionImageModel, (image) => image.asyncQuestion)
   images: AsyncQuestionImageModel[];
+
+  @OneToMany(
+    () => ChatbotQuestionSourceDocumentCitationModel,
+    (citation) => citation.asyncQuestion,
+  )
+  citations: ChatbotQuestionSourceDocumentCitationModel[];
+
+  // this is the chatbot question id of the aiAnswer
+  @Column({ nullable: true })
+  chatbotQuestionId: string;
 }

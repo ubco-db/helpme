@@ -5,6 +5,7 @@ import {
   ERROR_MESSAGES,
   MailServiceType,
   Role,
+  SourceDocument,
   UpdateAsyncQuestions,
 } from '@koh/common';
 import {
@@ -27,6 +28,7 @@ import { EntityManager, In } from 'typeorm';
 import * as checkDiskSpace from 'check-disk-space';
 import * as path from 'path';
 import * as sharp from 'sharp';
+import { ChatbotQuestionSourceDocumentCitationModel } from 'chatbot/questionDocument.entity';
 
 @Injectable()
 export class AsyncQuestionService {
@@ -706,6 +708,40 @@ export class AsyncQuestionService {
     if (body.refreshAIAnswer) {
       body.refreshAIAnswer = body.refreshAIAnswer.toString() === 'true';
     }
+  }
+
+  async deleteExistingCitations(
+    questionId: number,
+    transactionalEntityManager: EntityManager,
+  ) {
+    await transactionalEntityManager.delete(
+      ChatbotQuestionSourceDocumentCitationModel,
+      { asyncQuestionId: questionId },
+    );
+  }
+
+  async saveCitations(
+    sourceDocuments: SourceDocument[],
+    question: AsyncQuestionModel,
+    transactionalEntityManager: EntityManager,
+  ) {
+    const citations = sourceDocuments.map((sourceDocument) => {
+      const citation = new ChatbotQuestionSourceDocumentCitationModel();
+      citation.asyncQuestion = question;
+      citation.pageContent = sourceDocument.pageContent;
+      citation.content = sourceDocument.content;
+      citation.sourceDocumentChunkId = sourceDocument.id;
+      citation.metadata = sourceDocument.metadata;
+      citation.docName = sourceDocument.docName;
+      citation.sourceLink = sourceDocument.sourceLink;
+      citation.pageNumbers = sourceDocument.pageNumbers;
+      citation.pageNumber = sourceDocument.pageNumber;
+      return citation;
+    });
+    await transactionalEntityManager.save(
+      ChatbotQuestionSourceDocumentCitationModel,
+      citations,
+    );
   }
 }
 
