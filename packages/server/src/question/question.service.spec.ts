@@ -28,6 +28,8 @@ import { AlertsService } from 'alerts/alerts.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
 import { RedisMemoryServer } from 'redis-memory-server';
+import { SSEService } from 'sse/sse.service';
+import { QueueSSEService } from 'queue/queue-sse.service';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
@@ -82,6 +84,26 @@ describe('QuestionService', () => {
           provide: RedisQueueService,
           useValue: {
             setQuestions: jest.fn(),
+          },
+        },
+        {
+          provide: QueueSSEService,
+          useValue: {
+            updateQueueChats: jest.fn(),
+            updateQuestions: jest.fn(),
+            updateQueue: jest.fn(),
+            sendToRoom: jest.fn(),
+            subscribeClient: jest.fn(),
+          },
+        },
+        {
+          provide: QueueChatService,
+          useValue: {
+            getMyChats: jest.fn(),
+            endChats: jest.fn(),
+            clearChats: jest.fn(),
+            checkChatExists: jest.fn(),
+            createChat: jest.fn(),
           },
         },
         NotificationService,

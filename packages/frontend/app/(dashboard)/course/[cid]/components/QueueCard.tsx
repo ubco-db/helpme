@@ -9,7 +9,7 @@ import { Button, Card, Divider, Input, message, Row, Tag, Tooltip } from 'antd'
 import Link from 'next/link'
 import { ReactElement, useState } from 'react'
 import UserAvatar from '@/app/components/UserAvatar'
-import { QueuePartial, QueueTypes } from '@koh/common'
+import { QueuePartial } from '@koh/common'
 import { getQueueTypeLabel } from '../queue/[qid]/utils/commonQueueFunctions'
 import { useCourse } from '@/app/hooks/useCourse'
 import { API } from '@/app/api'
@@ -17,7 +17,6 @@ import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 
 interface QueueCardProps {
   cid: number
-  type: QueueTypes
   queue: QueuePartial
   isStaff: boolean
   linkId: string
@@ -25,7 +24,6 @@ interface QueueCardProps {
 
 const QueueCard: React.FC<QueueCardProps> = ({
   cid,
-  type,
   queue,
   isStaff,
   linkId,

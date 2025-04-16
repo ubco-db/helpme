@@ -1,3 +1,32 @@
+## Version 1.4.5 - April 12th, 2025
+
+#### New Features
+
+- ***General***
+  - Faculty can now message students who have questions in their queue (or vise versa)
+    - Previously, you were limited to only being able to message each other if the question was actively being helped
+- ***Faculty-only***
+  - Faculty can now delete questions that are in the "Not Ready" state in queues
+
+#### Improvements
+
+- Added/improved some tooltips around creating anytime questions
+- Fixed an issue where profile pictures in the Staff List on the queue page always appeared gray
+- Fixed an issue where LMS synchronize documents was not working
+  - This bug was first introduced on March 30th. Any documents that weren't synchronized as a result of this bug should now be synchronized properly
+
+***
+
+## Version 1.4.4 - April 5th, 2025
+
+#### Improvements
+
+- Fixed an issue where newly updated chatbot documents were rarely being used by the chatbot
+  - **Important**: If you have uploaded any chatbot documents in the past week, you will need to re-upload them. Alternatively, you can change the "Similarity Threshold Documents" under Chatbot Settings to 0.0. Apologies in advance.
+    - Documents uploaded before this time remain unaffected.  
+
+***
+
 ## Version 1.4.3 - Mar 30th, 2025
 
 #### New Features

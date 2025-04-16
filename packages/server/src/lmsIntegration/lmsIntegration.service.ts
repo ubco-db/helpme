@@ -23,6 +23,7 @@ import { UserModel } from '../profile/user.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 } from 'uuid';
 import * as Sentry from '@sentry/browser';
+import { ConfigService } from '@nestjs/config';
 
 export enum LMSGet {
   Course,
@@ -38,10 +39,16 @@ export enum LMSUpload {
 
 @Injectable()
 export class LMSIntegrationService {
+  private readonly chatbotApiKey;
+
   constructor(
     @Inject(LMSIntegrationAdapter)
     private integrationAdapter: LMSIntegrationAdapter,
-  ) {}
+    @Inject(ConfigService)
+    private configService: ConfigService,
+  ) {
+    this.chatbotApiKey = this.configService.get<string>('CHATBOT_API_KEY');
+  }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async resynchronizeCourseIntegrations() {
@@ -637,12 +644,12 @@ export class LMSIntegrationService {
     switch (type) {
       case LMSUpload.Announcements: {
         const a = item as LMSAnnouncement;
-        documentText = `(Course Announcement)\n Title: ${a.title}\nContent: ${a.message}\nPosted: ${a.posted.getTime()}${a.modified != undefined ? `\nModified: ${a.modified.getTime()}` : ''}`;
+        documentText = `(Course Announcement)\n Title: ${a.title}\nContent: ${a.message}\nPosted: ${new Date(a.posted).getTime()}${!isNaN(new Date(a.modified).valueOf()) ? `\nModified: ${new Date(a.modified).getTime()}` : ''}`;
         break;
       }
       case LMSUpload.Assignments: {
         const a = item as any as LMSAssignment;
-        documentText = `(Course Assignment)\n Name: ${a.name}\n${a.due != undefined ? `Due Date: ${a.due.toLocaleDateString()}\n` : 'Due Date: No due date\n'}${a.description && `Description: ${a.description}`}`;
+        documentText = `(Course Assignment)\n Name: ${a.name}\n${!isNaN(new Date(a.due).valueOf()) ? `Due Date: ${new Date(a.due).toLocaleDateString()}\n` : 'Due Date: No due date\n'}${a.description && `Description: ${a.description}`}`;
         break;
       }
       default:
@@ -694,6 +701,7 @@ export class LMSIntegrationService {
       }),
       headers: {
         'Content-Type': 'application/json',
+        'HMS-API-KEY': this.chatbotApiKey,
         HMS_API_TOKEN: token.token,
       },
     };
@@ -752,6 +760,7 @@ export class LMSIntegrationService {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
+        'HMS-API-KEY': this.chatbotApiKey,
         HMS_API_TOKEN: token.token,
       },
     };

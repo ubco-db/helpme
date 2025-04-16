@@ -146,17 +146,17 @@ describe('Auth Integration', () => {
       expect(res.header['location']).toBe('/failed/40002');
     });
 
-    it('should redirect to failed/40001 when headers are missing', async () => {
+    it('should redirect to login?error when headers are missing', async () => {
       const organization = await OrganizationFactory.create({
         ssoEnabled: true,
       });
       const res = await supertest().get(`/auth/shibboleth/${organization.id}`);
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/failed/40001');
+      expect(res.header['location']).toContain('/login?error=errorCode400');
     });
 
-    it('should redirect to failed/40001 when authService failed', async () => {
+    it('should redirect to login?error when authService failed', async () => {
       const organization = await OrganizationFactory.create({
         ssoEnabled: true,
       });
@@ -170,7 +170,9 @@ describe('Auth Integration', () => {
         .set('x-trust-auth-lastname', 'Doe');
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/failed/40001');
+      expect(res.header['location']).toContain(
+        '/login?error=errorCode500Some%20error',
+      );
     });
 
     it('should sign in user when authService succeeded', async () => {
@@ -244,13 +246,15 @@ describe('Auth Integration', () => {
       expect(res.header['location']).toBe('/failed/40000');
     });
 
-    it('should redirect to /failed/40001 when authService failed', async () => {
+    it('should redirect to login?error when authService failed', async () => {
       const res = await supertest()
         .get('/auth/callback/google')
         .set('Cookie', 'organization.id=1');
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/failed/40001');
+      expect(res.header['location']).toContain(
+        '/login?error=errorCode500Some%20error',
+      );
     });
 
     it('should sign in user when authService succeeded', async () => {

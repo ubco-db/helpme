@@ -10,6 +10,7 @@ import {
   Req,
   Res,
   UseGuards,
+  HttpException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -70,28 +71,35 @@ export class AuthController {
       return res.redirect(`/failed/40002`);
     }
 
-    const uid = req.headers['x-trust-auth-uid'] ?? null;
+    // const uid = req.headers['x-trust-auth-uid'] ?? null;
     const mail = req.headers['x-trust-auth-mail'] ?? null;
-    const role = req.headers['x-trust-auth-role'] ?? null;
+    // const role = req.headers['x-trust-auth-role'] ?? null;
     const givenName = req.headers['x-trust-auth-givenname'] ?? null;
     const lastName = req.headers['x-trust-auth-lastname'] ?? null;
 
-    if (!uid || !mail || !role || !givenName || !lastName) {
-      return res.redirect(`/failed/40001`);
+    if (!mail || !givenName || !lastName) {
+      return res.redirect(
+        `/login?error=errorCode${HttpStatus.BAD_REQUEST}${encodeURIComponent('The login service you logged in with did not provide the required email, first name, and last name headers')}`,
+      );
     }
 
     try {
       const userId = await this.authService.loginWithShibboleth(
         String(mail),
-        String(role),
         String(givenName),
         String(lastName),
         organizationId,
       );
-
       this.enter(req, res, userId);
     } catch (err) {
-      return res.redirect(`/failed/40001`);
+      if (err instanceof HttpException) {
+        return res.redirect(
+          `/login?error=errorCode${err.getStatus()}${encodeURIComponent(err.message)}`,
+        );
+      }
+      return res.redirect(
+        `/login?error=errorCode${HttpStatus.INTERNAL_SERVER_ERROR}${encodeURIComponent(err.message)}`,
+      );
     }
   }
 
@@ -474,7 +482,15 @@ export class AuthController {
 
         this.enter(req, res, payload);
       } catch (err) {
-        res.redirect(`/failed/40001`);
+        if (err instanceof HttpException) {
+          res.redirect(
+            `/login?error=errorCode${err.getStatus()}${encodeURIComponent(err.message)}`,
+          );
+        } else {
+          res.redirect(
+            `/login?error=errorCode${HttpStatus.INTERNAL_SERVER_ERROR}${encodeURIComponent(err.message)}`,
+          );
+        }
       }
     }
   }

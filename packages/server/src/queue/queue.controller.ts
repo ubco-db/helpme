@@ -57,6 +57,9 @@ export class QueueController {
   /*
   Gets all queue info.
   Note there is a method that is very similar to this in queue-invite.controller.ts
+  Also, don't add any additional info to this endpoint (instead change the getQueue() service method).
+  This is because there is a Server Side Event (SSE) listener that will call queueService.getQueue() and then send the data to the client over a websocket connection.
+  If you add any additional info, the SSE listener will not have the same info as the client.
   */
   @Get(':queueId')
   @Roles(Role.TA, Role.PROFESSOR, Role.STUDENT)
@@ -76,7 +79,8 @@ export class QueueController {
 
   /*
   Gets all questions in a queue and personalizes them.
-  Note there is a method that is very similar to this in queue-invite.controller.ts
+  Note there is a method that is very similar to this in queue-invite.controller.ts.
+  And note that just like getQueue(), this endpoint's functionality needs to be the same as updateQuestions inside queue-sse.service.ts
   */
   @Get(':queueId/questions')
   @Roles(Role.TA, Role.PROFESSOR, Role.STUDENT)
@@ -86,7 +90,7 @@ export class QueueController {
     @UserId() userId: number,
   ): Promise<ListQuestionsResponse> {
     try {
-      const queueKeys = await this.redisQueueService.getKey(`q:${queueId}`);
+      const queueKeys = await this.redisQueueService.getKey(`q:${queueId}`); // wait, this redis logic might not actually do anything since queue-sse service doesn't have it? And all queue question data is sent over the sse events
       let queueQuestions: any;
 
       if (Object.keys(queueKeys).length === 0) {

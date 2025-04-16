@@ -93,6 +93,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
             title="Are you sure you want to delete the question?"
             okText="Yes"
             cancelText="No"
+            getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
             okButtonProps={{ loading: deleteLoading }}
             onConfirm={async () => {
               setDeleteLoading(true)
