@@ -1,5 +1,4 @@
 import { config } from 'dotenv';
-import { AdminUserModel } from './src/admin/admin-user.entity';
 import { CourseModel } from './src/course/course.entity';
 import { SemesterModel } from './src/semester/semester.entity';
 import { CourseSectionMappingModel } from './src/login/course-section-mapping.entity';
@@ -88,7 +87,6 @@ const typeorm = {
     QuestionTypeModel,
     QueueModel,
     DesktopNotifModel,
-    AdminUserModel,
     EventModel,
     QuestionGroupModel,
     AlertModel,
