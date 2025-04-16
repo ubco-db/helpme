@@ -16,10 +16,10 @@ import { API } from '@/app/api'
 import {
   DeleteOutlined,
   QuestionCircleOutlined,
-  RedoOutlined,
   RollbackOutlined,
 } from '@ant-design/icons'
 import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
+import SourceLinkCitations from '../../../components/chatbot/SourceLinkCitations'
 
 interface FormValues {
   answerText: string
@@ -44,6 +44,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [saveToChatbot, setSaveToChatbot] = useState(true)
+  const [deleteCitations, setDeleteCitations] = useState(false) // put into state rather than FormValues since we need to change(re-render) how the source links appear when toggled
 
   const onFinish = async (values: FormValues) => {
     setIsLoading(true)
@@ -66,6 +67,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
         status: newStatus,
         verified: values.verified,
         saveToChatbot: saveToChatbot,
+        deleteCitations: deleteCitations,
       })
       .then(() => {
         message.success('Response Successfully Posted/Edited')
@@ -188,6 +190,32 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
           }}
         />
       </Form.Item>
+      {question.citations && question.citations.length > 0 && (
+        <Form.Item
+          label="Document citations"
+          tooltip="These source document citations were retrieved when the question first got an AI answer. You may choose to delete them (doing so will only delete the citations themselves, the original source documents will remain unchanged)"
+          layout="horizontal"
+        >
+          <div className="flex flex-wrap gap-2 rounded-md p-2 outline-dashed outline-1 outline-gray-300">
+            <SourceLinkCitations
+              sourceDocuments={question.citations}
+              chatbotQuestionType={'Course'}
+              appearDeleted={deleteCitations}
+            />
+            <Form.Item
+              name="deleteCitations"
+              label="Delete citations"
+              valuePropName="checked"
+              layout="horizontal"
+              className="mb-0"
+            >
+              <Checkbox
+                onChange={(e) => setDeleteCitations(e.target.checked)}
+              />
+            </Form.Item>
+          </div>
+        </Form.Item>
+      )}
       <Form.Item
         name="visible"
         tooltip="Questions can normally only be seen by staff and the student who asked it. This will make it visible to all students (the student themselves will appear anonymous to other students)"

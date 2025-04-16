@@ -1571,6 +1571,11 @@ export class UpdateAsyncQuestions extends AsyncQuestionParams {
   @IsOptional()
   @IsArray()
   deletedImageIds?: number[]
+
+  // used with staff to delete citations when posting a response
+  @IsOptional()
+  @IsBoolean()
+  deleteCitations?: boolean
 }
 
 export type TAUpdateStatusResponse = QueuePartial

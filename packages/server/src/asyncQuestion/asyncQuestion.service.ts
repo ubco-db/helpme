@@ -174,9 +174,10 @@ export class AsyncQuestionService {
           content: `<br> <b>A new question has been posted on the Anytime Question Hub and has been marked as needing attention:</b> 
                     <br> ${question.questionAbstract ? `<b>Question Abstract:</b> ${question.questionAbstract}` : ''}
                     <br> ${question.questionTypes?.length > 0 ? `<b>Question Types:</b> ${question.questionTypes.map((qt) => qt.name).join(', ')}` : ''}
-                    <br> ${question.questionText ? `<b>Question Text:</b> ${question.questionText}` : ''}
+                    ${question.questionText ? `<br> <b>Question Text:</b> ${question.questionText}` : ''}
+                    ${question.images?.length > 0 ? `<br> Question also has ${question.images.length} image${question.images.length === 1 ? '' : 's'}.` : ''}
                     <br>
-                    <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
+                    <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre"><b>View and Answer It Here</b></a> <br>`,
         }),
       ),
     );
@@ -386,18 +387,36 @@ export class AsyncQuestionService {
     }
   }
 
-  async markUnreadForCreator(question: AsyncQuestionModel) {
-    await UnreadAsyncQuestionModel.createQueryBuilder()
-      .update(UnreadAsyncQuestionModel)
-      .set({ readLatest: false })
-      .where('asyncQuestionId = :asyncQuestionId', {
-        asyncQuestionId: question.id,
-      })
-      .andWhere(
-        `userId = :userId`,
-        { userId: question.creatorId }, // notify ONLY question creator
-      )
-      .execute();
+  async markUnreadForCreator(
+    question: AsyncQuestionModel,
+    transactionalEntityManager?: EntityManager,
+  ) {
+    if (transactionalEntityManager) {
+      await transactionalEntityManager
+        .createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: question.id,
+        })
+        .andWhere(
+          `userId = :userId`,
+          { userId: question.creatorId }, // notify ONLY question creator
+        )
+        .execute();
+    } else {
+      await UnreadAsyncQuestionModel.createQueryBuilder()
+        .update(UnreadAsyncQuestionModel)
+        .set({ readLatest: false })
+        .where('asyncQuestionId = :asyncQuestionId', {
+          asyncQuestionId: question.id,
+        })
+        .andWhere(
+          `userId = :userId`,
+          { userId: question.creatorId }, // notify ONLY question creator
+        )
+        .execute();
+    }
   }
 
   async upsertQAToChatbot(

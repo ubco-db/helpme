@@ -527,7 +527,7 @@ export class asyncQuestionController {
             updatedQuestion,
           );
           // delete all unread notifications for this question
-          await UnreadAsyncQuestionModel.delete({
+          await transactionalEntityManager.delete(UnreadAsyncQuestionModel, {
             asyncQuestionId: questionId,
           });
         } else {
@@ -552,115 +552,135 @@ export class asyncQuestionController {
     @Body() body: UpdateAsyncQuestions,
     @User(['chat_token']) user: UserModel,
   ): Promise<AsyncQuestionParams> {
-    const question = await AsyncQuestionModel.findOne({
-      where: { id: questionId },
-      relations: [
-        'creator',
-        'taHelped',
-        'votes',
-        'comments',
-        'comments.creator',
-        'comments.creator.courses',
-        'images',
-        'citations',
-      ],
-    });
-    // deep copy question since it changes
-    const oldQuestion: AsyncQuestionModel = JSON.parse(
-      JSON.stringify(question),
-    );
-
-    if (!question) {
-      throw new NotFoundException('Question Not Found');
-    }
-
-    const courseId = question.courseId;
-
-    // Verify if user is TA/PROF of the course
-    const requester = await UserCourseModel.findOne({
-      where: {
-        userId: user.id,
-        courseId: courseId,
-      },
-    });
-
-    if (!requester || requester.role === Role.STUDENT) {
-      throw new ForbiddenException(
-        'You must be a TA/PROF to update this question',
+    let question: AsyncQuestionModel | null = null;
+    const entityManager = getManager();
+    await entityManager.transaction(async (transactionalEntityManager) => {
+      question = await transactionalEntityManager.findOne(AsyncQuestionModel, {
+        where: { id: questionId },
+        relations: [
+          'creator',
+          'taHelped',
+          'votes',
+          'comments',
+          'comments.creator',
+          'comments.creator.courses',
+          'images',
+          'citations',
+        ],
+      });
+      // deep copy question since it changes
+      const oldQuestion: AsyncQuestionModel = JSON.parse(
+        JSON.stringify(question),
       );
-    }
 
-    Object.keys(body).forEach((key) => {
-      if (body[key] !== undefined && body[key] !== null) {
-        question[key] = body[key];
+      if (!question) {
+        throw new NotFoundException('Question Not Found');
       }
+
+      const courseId = question.courseId;
+
+      // Verify if user is TA/PROF of the course
+      const requester = await transactionalEntityManager.findOne(
+        UserCourseModel,
+        {
+          where: {
+            userId: user.id,
+            courseId: courseId,
+          },
+        },
+      );
+
+      if (!requester || requester.role === Role.STUDENT) {
+        throw new ForbiddenException(
+          'You must be a TA/PROF to update this question',
+        );
+      }
+
+      Object.keys(body).forEach((key) => {
+        if (body[key] !== undefined && body[key] !== null) {
+          question[key] = body[key];
+        }
+      });
+
+      if (body.status === asyncQuestionStatus.HumanAnswered) {
+        question.closedAt = new Date();
+        question.taHelpedId = user.id;
+        await this.asyncQuestionService.sendQuestionAnsweredEmail(question);
+      } else if (
+        body.status !== asyncQuestionStatus.TADeleted &&
+        body.status !== asyncQuestionStatus.StudentDeleted
+      ) {
+        // don't send status change email if its deleted
+        // (I don't like the vibes of notifying a student that their question was deleted by staff)
+        // Though technically speaking this isn't even really used yet since there isn't a status that the TA would really turn it to that isn't HumanAnswered or TADeleted
+        await this.asyncQuestionService.sendGenericStatusChangeEmail(
+          question,
+          body.status,
+        );
+      }
+
+      const updatedQuestion = await transactionalEntityManager.save(question);
+
+      if (body.deleteCitations) {
+        await this.asyncQuestionService.deleteExistingCitations(
+          questionId,
+          transactionalEntityManager,
+        );
+        question.citations = [];
+      }
+      // if saveToChatbot is true, add the question to the chatbot
+      if (body.saveToChatbot) {
+        await this.asyncQuestionService.upsertQAToChatbot(
+          updatedQuestion,
+          courseId,
+          user.chat_token.token,
+        );
+      }
+
+      // Mark as new unread for all students if the question is marked as visible
+      if (body.visible && !oldQuestion.visible) {
+        await this.asyncQuestionService.markUnreadForRoles(
+          updatedQuestion,
+          [Role.STUDENT],
+          user.id,
+          transactionalEntityManager,
+        );
+      }
+      // When the question creator gets their question human verified, notify them
+      if (
+        oldQuestion.status !== asyncQuestionStatus.HumanAnswered &&
+        !oldQuestion.verified &&
+        (body.status === asyncQuestionStatus.HumanAnswered ||
+          body.verified === true)
+      ) {
+        await this.asyncQuestionService.markUnreadForCreator(
+          updatedQuestion,
+          transactionalEntityManager,
+        );
+      }
+
+      if (
+        body.status === asyncQuestionStatus.TADeleted ||
+        body.status === asyncQuestionStatus.StudentDeleted
+      ) {
+        await this.redisQueueService.deleteAsyncQuestion(
+          `c:${courseId}:aq`,
+          updatedQuestion,
+        );
+        // delete all unread notifications for this question
+        await transactionalEntityManager.delete(UnreadAsyncQuestionModel, {
+          asyncQuestionId: questionId,
+        });
+      } else {
+        await this.redisQueueService.updateAsyncQuestion(
+          `c:${courseId}:aq`,
+          updatedQuestion,
+        );
+      }
+
+      delete question.taHelped;
+      delete question.votes;
     });
-
-    if (body.status === asyncQuestionStatus.HumanAnswered) {
-      question.closedAt = new Date();
-      question.taHelpedId = user.id;
-      await this.asyncQuestionService.sendQuestionAnsweredEmail(question);
-    } else if (
-      body.status !== asyncQuestionStatus.TADeleted &&
-      body.status !== asyncQuestionStatus.StudentDeleted
-    ) {
-      // don't send status change email if its deleted
-      // (I don't like the vibes of notifying a student that their question was deleted by staff)
-      // Though technically speaking this isn't even really used yet since there isn't a status that the TA would really turn it to that isn't HumanAnswered or TADeleted
-      await this.asyncQuestionService.sendGenericStatusChangeEmail(
-        question,
-        body.status,
-      );
-    }
-
-    const updatedQuestion = await question.save();
-
-    // if saveToChatbot is true, add the question to the chatbot
-    if (body.saveToChatbot) {
-      await this.asyncQuestionService.upsertQAToChatbot(
-        updatedQuestion,
-        courseId,
-        user.chat_token.token,
-      );
-    }
-
-    // Mark as new unread for all students if the question is marked as visible
-    if (body.visible && !oldQuestion.visible) {
-      await this.asyncQuestionService.markUnreadForRoles(
-        updatedQuestion,
-        [Role.STUDENT],
-        user.id,
-      );
-    }
-    // When the question creator gets their question human verified, notify them
-    if (
-      oldQuestion.status !== asyncQuestionStatus.HumanAnswered &&
-      !oldQuestion.verified &&
-      (body.status === asyncQuestionStatus.HumanAnswered ||
-        body.verified === true)
-    ) {
-      await this.asyncQuestionService.markUnreadForCreator(updatedQuestion);
-    }
-
-    if (
-      body.status === asyncQuestionStatus.TADeleted ||
-      body.status === asyncQuestionStatus.StudentDeleted
-    ) {
-      await this.redisQueueService.deleteAsyncQuestion(
-        `c:${courseId}:aq`,
-        updatedQuestion,
-      );
-      // delete all unread notifications for this question
-      await UnreadAsyncQuestionModel.delete({ asyncQuestionId: questionId });
-    } else {
-      await this.redisQueueService.updateAsyncQuestion(
-        `c:${courseId}:aq`,
-        updatedQuestion,
-      );
-    }
-
-    delete question.taHelped;
-    delete question.votes;
 
     return question;
   }

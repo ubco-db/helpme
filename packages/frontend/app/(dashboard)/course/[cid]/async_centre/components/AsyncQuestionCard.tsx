@@ -417,10 +417,12 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                     <MarkdownCustom>
                       {thinkText ? cleanAnswer : question.answerText}
                     </MarkdownCustom>
-                    <SourceLinkCitations
-                      sourceDocuments={question.citations}
-                      chatbotQuestionType={'Course'}
-                    />
+                    {question.citations && question.citations.length > 0 && (
+                      <SourceLinkCitations
+                        sourceDocuments={question.citations}
+                        chatbotQuestionType={'Course'}
+                      />
+                    )}
                   </>
                 )}
               </div>
