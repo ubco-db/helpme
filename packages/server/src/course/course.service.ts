@@ -311,7 +311,7 @@ export class CourseService {
   ): Promise<boolean> {
     try {
       const userInCourse = await UserCourseModel.findOne({
-        where: { user: user, course: course },
+        where: { userId: user.id, courseId: course.id },
       });
 
       if (userInCourse) {
@@ -319,8 +319,8 @@ export class CourseService {
       }
 
       const userCourse = await UserCourseModel.create({
-        user: user,
-        course: course,
+        userId: user.id,
+        courseId: course.id,
         role: Role.STUDENT,
       }).save();
 

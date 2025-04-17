@@ -111,7 +111,7 @@ export class InsightsService {
   ): Promise<InsightDashboardPartial[]> {
     if (!userCourse) {
       userCourse = await UserCourseModel.findOne({
-        where: { user, courseId },
+        where: { userId: user.id, courseId },
       });
 
       if (!userCourse || userCourse.role != Role.PROFESSOR) {
@@ -120,7 +120,7 @@ export class InsightsService {
     }
 
     const allPresets = await InsightDashboardModel.find({
-      where: { userCourse },
+      where: { userCourseId: userCourse.id },
     });
 
     return allPresets.map(this.mapDashboardPartial);
@@ -133,7 +133,7 @@ export class InsightsService {
     name?: string,
   ): Promise<InsightDashboardPartial[]> {
     const userCourse = await UserCourseModel.findOne({
-      where: { user, courseId },
+      where: { userId: user.id, courseId },
     });
 
     if (!userCourse || userCourse.role != Role.PROFESSOR) {
@@ -141,13 +141,13 @@ export class InsightsService {
     }
 
     const [_, count] = await InsightDashboardModel.findAndCount({
-      where: { userCourse },
+      where: { userCourseId: userCourse.id },
     });
 
     name ??= `Preset #${count + 1}`;
     await InsightDashboardModel.upsert(
       {
-        userCourse,
+        userCourseId: userCourse.id,
         name,
         insights,
       },
@@ -163,7 +163,7 @@ export class InsightsService {
     name: string,
   ): Promise<InsightDashboardPartial[]> {
     const userCourse = await UserCourseModel.findOne({
-      where: { user, courseId },
+      where: { userId: user.id, courseId },
     });
 
     if (!userCourse) {
@@ -171,7 +171,7 @@ export class InsightsService {
     }
 
     const dashboard = await InsightDashboardModel.findOne({
-      where: { userCourse, name },
+      where: { userCourseId: userCourse.id, name },
     });
 
     if (!dashboard) {

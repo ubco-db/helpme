@@ -1370,9 +1370,11 @@ describe('Question Integration', () => {
       // retrieve studentTaskProgress and see if it updated
       const updatedStudentTaskProgress = await StudentTaskProgressModel.findOne(
         {
-          where: { user: student, course: course },
+          where: { uid: student.id, cid: course.id },
         },
       );
+
+      expect(updatedStudentTaskProgress).not.toBeNull();
 
       expect(
         updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress
@@ -1463,9 +1465,11 @@ describe('Question Integration', () => {
       // retrieve studentTaskProgress and see if it updated
       const updatedStudentTaskProgress = await StudentTaskProgressModel.findOne(
         {
-          where: { user: student, course: course },
+          where: { uid: student.id, cid: course.id },
         },
       );
+
+      expect(updatedStudentTaskProgress).not.toBeNull();
 
       expect(
         updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress
@@ -1478,8 +1482,10 @@ describe('Question Integration', () => {
       // make sure the studentTaskProgress in the other course has not been updated
       const updatedStudentTaskProgress2 =
         await StudentTaskProgressModel.findOne({
-          where: { user: student, course: course2 },
+          where: { uid: student.id, cid: course2.id },
         });
+
+      expect(updatedStudentTaskProgress2).not.toBeNull();
 
       expect(
         updatedStudentTaskProgress2.taskProgress.assignment1.assignmentProgress
@@ -1554,9 +1560,11 @@ describe('Question Integration', () => {
       // retrieve studentTaskProgress and see if it updated
       const updatedStudentTaskProgress = await StudentTaskProgressModel.findOne(
         {
-          where: { user: student, course: course },
+          where: { uid: student.id, cid: course.id },
         },
       );
+
+      expect(updatedStudentTaskProgress).not.toBeNull();
 
       expect(
         updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress
@@ -1633,9 +1641,11 @@ describe('Question Integration', () => {
       // retrieve studentTaskProgress and see if it updated
       const updatedStudentTaskProgress = await StudentTaskProgressModel.findOne(
         {
-          where: { user: student, course: course },
+          where: { uid: student.id, cid: course.id },
         },
       );
+
+      expect(updatedStudentTaskProgress).not.toBeNull();
 
       expect(
         updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress
@@ -1729,8 +1739,11 @@ describe('Question Integration', () => {
 
       // check to make sure studentTaskProgress is updated
       const studentTaskProgress = await StudentTaskProgressModel.findOne({
-        where: { user: student, course: course },
+        where: { uid: student.id, cid: course.id },
       });
+
+      expect(studentTaskProgress).not.toBeNull();
+
       expect(
         studentTaskProgress.taskProgress.assignment1.assignmentProgress.task1
           .isDone,
@@ -1806,9 +1819,11 @@ describe('Question Integration', () => {
       // retrieve studentTaskProgress and see if it updated
       const updatedStudentTaskProgress = await StudentTaskProgressModel.findOne(
         {
-          where: { user: student, course: course },
+          where: { uid: student.id, cid: course.id },
         },
       );
+
+      expect(updatedStudentTaskProgress).not.toBeNull();
 
       expect(
         updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress
@@ -1881,9 +1896,11 @@ describe('Question Integration', () => {
       // retrieve studentTaskProgress and see if it updated
       const updatedStudentTaskProgress = await StudentTaskProgressModel.findOne(
         {
-          where: { user: student, course: course },
+          where: { uid: student.id, cid: course.id },
         },
       );
+
+      expect(updatedStudentTaskProgress).not.toBeNull();
 
       expect(
         updatedStudentTaskProgress.taskProgress.assignment1.assignmentProgress

@@ -101,7 +101,9 @@ describe('Calendar Integration', () => {
         .send(eventData)
         .expect(201);
 
-      const savedEvent = await CalendarModel.findOne(res.body.id);
+      const savedEvent = await CalendarModel.findOne({
+        where: { id: res.body.id },
+      });
       expect(savedEvent).toBeTruthy();
     });
     it('allows the user to pass in staffIds, creating calendar_staff entries', async () => {
@@ -120,7 +122,9 @@ describe('Calendar Integration', () => {
         .send(eventData)
         .expect(201);
 
-      const savedEvent = await CalendarModel.findOne(res.body.id);
+      const savedEvent = await CalendarModel.findOne({
+        where: { id: res.body.id },
+      });
       expect(savedEvent).toBeTruthy();
 
       const calendarStaff = await CalendarStaffModel.find({
@@ -162,7 +166,7 @@ describe('Calendar Integration', () => {
           title: 'Test Event',
         },
       });
-      expect(savedEvent).toBeUndefined();
+      expect(savedEvent).toBeNull();
     });
     it('should return 404 if the staffId does not exist', async () => {
       const user = await UserFactory.create();
@@ -192,7 +196,7 @@ describe('Calendar Integration', () => {
           title: 'Test Event',
         },
       });
-      expect(savedEvent).toBeUndefined();
+      expect(savedEvent).toBeNull();
     });
     it('should return 404 if the course does not exist', async () => {
       const user = await UserFactory.create();
@@ -221,7 +225,7 @@ describe('Calendar Integration', () => {
           title: 'Test Event',
         },
       });
-      expect(savedEvent).toBeUndefined();
+      expect(savedEvent).toBeNull();
     });
     it('should create a 1-time cron job for non-recurring events', async () => {
       const eventData = {
@@ -557,7 +561,7 @@ describe('Calendar Integration', () => {
           id: event.id,
         },
       });
-      expect(deletedEvent).toBeUndefined();
+      expect(deletedEvent).toBeNull();
     });
 
     it('should return 403 if a student tries to delete an event', async () => {
@@ -616,7 +620,7 @@ describe('Calendar Integration', () => {
           id: event.id,
         },
       });
-      expect(deletedEvent).toBeUndefined();
+      expect(deletedEvent).toBeNull();
 
       const calendarStaff = await CalendarStaffModel.find({
         where: {

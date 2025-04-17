@@ -69,7 +69,7 @@ describe('QuestionType Integration', () => {
         id: questionType.id,
       },
     });
-    expect(unchangedQuestionType).not.toBeUndefined();
+    expect(unchangedQuestionType).not.toBeNull();
     expect(unchangedQuestionType.name).toBe(questionType.name);
     expect(unchangedQuestionType.color).toBe(questionType.color);
   };
@@ -281,7 +281,7 @@ describe('QuestionType Integration', () => {
           name: newQuestionType.name,
         },
       });
-      expect(questionType).not.toBeUndefined();
+      expect(questionType).not.toBeNull();
       expect(questionType.name).toBe(newQuestionType.name);
       expect(questionType.color).toBe(newQuestionType.color);
     });
@@ -333,7 +333,7 @@ describe('QuestionType Integration', () => {
           name: newQuestionType.name,
         },
       });
-      expect(questionType).not.toBeUndefined();
+      expect(questionType).not.toBeNull();
       expect(questionType.name).toBe(newQuestionType.name);
       expect(questionType.color).toBe(newQuestionType.color);
     });
@@ -533,7 +533,7 @@ describe('QuestionType Integration', () => {
           cid: course.id,
         },
       });
-      expect(deletedQuestionType).toBeUndefined();
+      expect(deletedQuestionType).toBeNull();
     });
 
     it('should return 404 if the question type does not exist', async () => {
@@ -621,7 +621,7 @@ describe('QuestionType Integration', () => {
           cid: course.id,
         },
       });
-      expect(deletedQuestionType).toBeUndefined();
+      expect(deletedQuestionType).toBeNull();
 
       const updatedQueue = await QueueModel.findOne({
         where: {
@@ -667,7 +667,7 @@ describe('QuestionType Integration', () => {
           cid: course.id,
         },
       });
-      expect(deletedQuestionType).toBeUndefined();
+      expect(deletedQuestionType).toBeNull();
 
       const updatedQueue = await QueueModel.findOne({
         where: {
@@ -705,7 +705,7 @@ describe('QuestionType Integration', () => {
         },
         withDeleted: true,
       });
-      expect(deletedQuestionType).not.toBeUndefined();
+      expect(deletedQuestionType).not.toBeNull();
       expect(deletedQuestionType.deletedAt).not.toBeUndefined();
     });
   });
@@ -762,7 +762,7 @@ describe('QuestionType Integration', () => {
           cid: course.id,
         },
       });
-      expect(updatedQuestionTypeModel).not.toBeUndefined();
+      expect(updatedQuestionTypeModel).not.toBeNull();
       expect(updatedQuestionTypeModel.name).toBe(updatedQuestionType.name);
       expect(updatedQuestionTypeModel.color).toBe(updatedQuestionType.color);
     });

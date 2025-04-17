@@ -543,14 +543,6 @@ export class SeedController {
         organization: organization,
       });
 
-      await this.factoryService.OrganizationUserFactory.create({
-        userId: user6.id,
-        organizationId: organization.id,
-        role: OrganizationRole.PROFESSOR,
-        organizationUser: user6,
-        organization: organization,
-      });
-
       await this.factoryService.OrganizationCourseFactory.create({
         organizationId: organization.id,
         courseId: course1.id,

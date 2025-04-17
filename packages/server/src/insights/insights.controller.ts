@@ -52,7 +52,7 @@ export class InsightsController {
     @User() user: UserModel,
   ): Promise<InsightDashboardPartial[]> {
     const userCourse = await UserCourseModel.findOne({
-      where: { courseId, user },
+      where: { courseId: courseId, userId: user.id },
     });
     // Check that the current user's role has access to dashboards
     if (userCourse?.role != Role.PROFESSOR) {
@@ -80,7 +80,7 @@ export class InsightsController {
     },
   ): Promise<InsightDashboardPartial[]> {
     const userCourse = await UserCourseModel.findOne({
-      where: { courseId, user },
+      where: { courseId: courseId, userId: user.id },
     });
     // Check that the current user's role has access to dashboards
     if (userCourse?.role != Role.PROFESSOR) {
@@ -104,7 +104,7 @@ export class InsightsController {
     @User() user: UserModel,
   ): Promise<InsightDashboardPartial[]> {
     const userCourse = await UserCourseModel.findOne({
-      where: { courseId, user },
+      where: { courseId: courseId, userId: user.id },
     });
     // Check that the current user's role has access to dashboards
     if (userCourse?.role != Role.PROFESSOR) {
