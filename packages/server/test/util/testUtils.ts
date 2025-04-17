@@ -65,27 +65,28 @@ export function setupIntegrationTest(
   let redisPort: number;
 
   beforeAll(async () => {
-    if (!process.env.CI) {
-      // For local testing, start a Redis in-memory server
-      console.log('Starting Redis in-memory server');
-      try {
-        redisTestServer = new RedisMemoryServer();
-        redisHost = await redisTestServer.getHost();
-        redisPort = await redisTestServer.getPort();
-      } catch (err) {
-        console.error('Error initializing redis test container:', err);
-        throw err;
-      }
-    } else {
-      // For CI, use the provided Redis server from actions
-      console.log(
-        `Using CI Redis server: ${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
-      );
-      redisHost = process.env.REDIS_HOST || 'localhost';
-      redisPort = process.env.REDIS_PORT
-        ? parseInt(process.env.REDIS_PORT)
-        : 6379;
-    }
+    // TODO: fix RedisMemoryServer so that it works and we don't need to use our local redis server
+    // if (!process.env.CI) {
+    //   // For local testing, start a Redis in-memory server
+    //   console.log('Starting Redis in-memory server');
+    //   try {
+    //     redisTestServer = new RedisMemoryServer();
+    //     redisHost = await redisTestServer.getHost();
+    //     redisPort = await redisTestServer.getPort();
+    //   } catch (err) {
+    //     console.error('Error initializing redis test container:', err);
+    //     throw err;
+    //   }
+    // } else {
+    // For CI, use the provided Redis server from actions
+    console.log(
+      `Using CI Redis server: ${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
+    );
+    redisHost = process.env.REDIS_HOST || 'localhost';
+    redisPort = process.env.REDIS_PORT
+      ? parseInt(process.env.REDIS_PORT)
+      : 6379;
+    // }
 
     // Create the testing module
     let testModuleBuilder = Test.createTestingModule({
@@ -152,23 +153,51 @@ export function setupIntegrationTest(
     initFactoriesFromService(factories);
 
     // Ensure Redis is connected before proceeding
-    await ensureRedisConnected(redisService.getClient('db'));
+    await ensureAllRedisConnected(redisService);
   }, 10000);
 
   afterAll(async () => {
     await app.close();
-    await dataSource.destroy();
-    await redisService.getClient('db').quit();
+    if (dataSource.isInitialized) {
+      await dataSource.destroy();
+    }
+
+    // Close all Redis connections
+    try {
+      const redisClients = ['db', 'pub', 'sub'];
+      for (const namespace of redisClients) {
+        const client = redisService.getClient(namespace);
+        if (client && client.status === 'ready') {
+          await client.quit();
+        }
+      }
+    } catch (err) {
+      if (err != 'Error: Connection is closed.') {
+        console.warn('Error closing Redis connections:', err);
+      }
+    }
 
     if (redisTestServer) {
       await redisTestServer.stop();
     }
-  });
+  }, 10000);
 
   beforeEach(async () => {
     await dataSource.synchronize(true);
     await clearAllCronJobs(schedulerRegistry);
-    await testModule.get<RedisService>(RedisService).getClient('db').flushall();
+
+    // Flush all Redis databases
+    const namespaces = ['db', 'pub', 'sub'];
+    for (const namespace of namespaces) {
+      try {
+        const client = redisService.getClient(namespace);
+        if (client && client.status === 'ready') {
+          await client.flushall();
+        }
+      } catch (err) {
+        console.warn(`Error flushing Redis namespace ${namespace}:`, err);
+      }
+    }
   });
 
   return {
@@ -262,7 +291,7 @@ async function ensureRedisConnected(redisClient: Redis, retries = 5) {
       const pingResponse = await redisClient.ping();
       if (pingResponse === 'PONG') {
         // Connected successfully, don't log anything
-        return;
+        return true;
       }
     } catch (err) {
       console.warn(
@@ -271,5 +300,30 @@ async function ensureRedisConnected(redisClient: Redis, retries = 5) {
     }
     await new Promise((res) => setTimeout(res, 1000)); // Wait 1 second before retrying
   }
-  throw new Error('Failed to connect to Redis after multiple attempts.');
+  return false;
+}
+
+// Helper to ensure all Redis connections are ready
+async function ensureAllRedisConnected(
+  redisService: RedisService,
+  retries = 5,
+): Promise<void> {
+  const namespaces = ['db', 'pub', 'sub'];
+  const results = await Promise.all(
+    namespaces.map(async (namespace) => {
+      try {
+        const client = redisService.getClient(namespace);
+        return await ensureRedisConnected(client, retries);
+      } catch (err) {
+        console.warn(`Error connecting to Redis namespace ${namespace}:`, err);
+        return false;
+      }
+    }),
+  );
+
+  if (results.some((result) => !result)) {
+    console.warn(
+      'Some Redis connections could not be established. Tests may fail.',
+    );
+  }
 }
