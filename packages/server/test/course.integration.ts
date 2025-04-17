@@ -40,14 +40,15 @@ describe('Course Integration', () => {
         timezone: 'America/New_York',
       });
       await QueueFactory.create();
+      const user = await UserFactory.create();
 
       await UserCourseFactory.create({
-        user: await UserFactory.create(),
+        user: user,
         course: course,
       });
       // will not load b/c office hours aren't happening right now
       // (unless you go back in time and run these tests )
-      const response = await supertest({ userId: 1 })
+      const response = await supertest({ userId: user.id })
         .get(`/courses/${course.id}`)
         .expect(200);
       expect(response.body).toMatchSnapshot();
@@ -313,8 +314,12 @@ describe('Course Integration', () => {
       });
 
       expect(
-        (await QueueModel.findOne({ relations: { staffList: true } })).staffList
-          .length,
+        (
+          await QueueModel.findOne({
+            relations: { staffList: true },
+            where: { id: queue.id },
+          })
+        ).staffList.length,
       ).toEqual(1);
 
       await supertest({ userId: ta.id })
@@ -322,7 +327,10 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({ relations: { staffList: true } }),
+        await QueueModel.findOne({
+          relations: { staffList: true },
+          where: { id: queue.id },
+        }),
       ).toMatchObject({
         staffList: [],
       });
@@ -361,7 +369,10 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({ relations: { staffList: true } }),
+        await QueueModel.findOne({
+          relations: { staffList: true },
+          where: { id: queue.id },
+        }),
       ).toMatchObject({
         staffList: [],
       });
@@ -399,7 +410,10 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({ relations: { staffList: true } }),
+        await QueueModel.findOne({
+          relations: { staffList: true },
+          where: { id: queue1.id },
+        }),
       ).toMatchObject({
         staffList: [],
       });
@@ -428,7 +442,10 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({ relations: { staffList: true } }),
+        await QueueModel.findOne({
+          relations: { staffList: true },
+          where: { id: queue1.id },
+        }),
       ).toMatchObject({
         staffList: [ta2],
       });
@@ -467,7 +484,10 @@ describe('Course Integration', () => {
         .expect(200);
 
       expect(
-        await QueueModel.findOne({ relations: { staffList: true } }),
+        await QueueModel.findOne({
+          relations: { staffList: true },
+          where: { id: queue.id },
+        }),
       ).toMatchObject({
         staffList: [],
       });
@@ -491,7 +511,7 @@ describe('Course Integration', () => {
         course: ucp.course,
       });
 
-      await supertest({ userId: ucp.user.id })
+      const response = await supertest({ userId: ucp.user.id })
         .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
         .send({ notes: 'example note 1', isProfessorQueue: false })
         .expect(201);
@@ -619,7 +639,7 @@ describe('Course Integration', () => {
         .expect(400);
 
       const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
-      expect(q1).toEqual(undefined);
+      expect(q1).toEqual(null);
     });
 
     it('creates question types for each tag defined in the config', async () => {
@@ -693,7 +713,7 @@ describe('Course Integration', () => {
         .expect(400);
 
       const q1 = await QueueModel.findOne({ where: { room: 'abcd1' } });
-      expect(q1).toBeUndefined();
+      expect(q1).toBeNull();
 
       const questionTypes = await QuestionTypeModel.find({
         where: {
@@ -992,9 +1012,9 @@ describe('Course Integration', () => {
       const userCourse = await UserCourseModel.findOne({
         where: { courseId: course.id, userId: professor.id },
       });
-      expect(testSPresent).toBeUndefined();
-      expect(testTPresent).toBeUndefined();
-      expect(testPPresent).toBeUndefined();
+      expect(testSPresent).toBeNull();
+      expect(testTPresent).toBeNull();
+      expect(testPPresent).toBeNull();
       expect(userCourse).toBeDefined();
     });
   });

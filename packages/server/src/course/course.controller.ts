@@ -160,7 +160,7 @@ export class CourseController {
   @Roles(Role.PROFESSOR, Role.STUDENT, Role.TA)
   async get(
     @Param('id', ParseIntPipe) id: number,
-    @User() user: UserModel,
+    @UserId() userId: number,
   ): Promise<GetCourseResponse> {
     // TODO: for all course endpoint, check if they're a student or a TA
     const course = await CourseModel.findOne({
@@ -171,39 +171,26 @@ export class CourseController {
         queues: {
           staffList: true,
         },
-        organizationCourse: true,
+        organizationCourse: {
+          organization: true,
+        },
       },
     });
     if (course === null || course === undefined) {
-      console.error(
-        ERROR_MESSAGES.courseController.courseNotFound + 'Course ID: ' + id,
-      );
       throw new HttpException(
         ERROR_MESSAGES.courseController.courseNotFound,
         HttpStatus.NOT_FOUND,
       );
     }
 
-    const userCourseModel = await UserCourseModel.findOne({
-      where: {
-        user,
-        courseId: id,
-      },
-    });
-
-    if (userCourseModel === undefined || userCourseModel === null) {
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.courseModelError,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    course.queues = course.queues.filter(async (q) => !q.isDisabled);
+    course.queues = course.queues.filter((q) => !q.isDisabled);
 
     try {
-      await async.each(course.queues, async (q) => {
-        await q.addQueueSize();
-      });
+      await Promise.all(
+        course.queues.map((q) => {
+          q.addQueueSize();
+        }),
+      );
     } catch (err) {
       console.error(
         ERROR_MESSAGES.courseController.updatedQueueError +
@@ -216,16 +203,6 @@ export class CourseController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-
-    const organizationCourse = await OrganizationCourseModel.findOne({
-      where: {
-        courseId: id,
-      },
-      relations: ['organization'],
-    });
-
-    const organization =
-      organizationCourse === undefined ? null : organizationCourse.organization;
 
     let heatmap: Heatmap | false = false;
     try {
@@ -248,7 +225,7 @@ export class CourseController {
       ...course,
       heatmap,
       crns: null,
-      organizationCourse: organization,
+      organizationCourse: course.organizationCourse?.organization ?? null,
     };
     try {
       course_response.crns = await CourseSectionMappingModel.find({
@@ -310,7 +287,7 @@ export class CourseController {
   async createQueue(
     @Param('id', ParseIntPipe) courseId: number,
     @Param('room') room: string,
-    @User() user: UserModel,
+    @UserId() userId: number,
     @Body()
     body: {
       notes: string;
@@ -330,8 +307,8 @@ export class CourseController {
 
     const userCourseModel = await UserCourseModel.findOne({
       where: {
-        user,
-        courseId,
+        userId: userId,
+        courseId: courseId,
       },
     });
 
@@ -450,8 +427,8 @@ export class CourseController {
 
     const userCourseModel = await UserCourseModel.findOne({
       where: {
-        user,
-        courseId,
+        userId: user.id,
+        courseId: courseId,
       },
     });
 
