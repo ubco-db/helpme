@@ -20,6 +20,8 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
 import { initFactoriesFromService } from './factories';
+import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter';
+import { APP_FILTER } from '@nestjs/core';
 
 export interface SupertestOptions {
   userId?: number;
@@ -61,10 +63,8 @@ export function setupIntegrationTest(
   let redisTestServer: RedisMemoryServer;
   let redisHost: string;
   let redisPort: number;
-  console.log('setupIntegrationTest');
 
   beforeAll(async () => {
-    console.log('beforeall');
     if (!process.env.CI) {
       // For local testing, start a Redis in-memory server
       console.log('Starting Redis in-memory server');
@@ -87,7 +87,6 @@ export function setupIntegrationTest(
         : 6379;
     }
 
-    console.log('beforeall2');
     // Create the testing module
     let testModuleBuilder = Test.createTestingModule({
       imports: [
@@ -119,8 +118,13 @@ export function setupIntegrationTest(
           ],
         }),
       ],
+      providers: [
+        {
+          provide: APP_FILTER,
+          useClass: BaseExceptionFilter,
+        },
+      ],
     });
-    console.log('testmodulebuidler');
 
     if (modifyModule) {
       testModuleBuilder = modifyModule(testModuleBuilder);
@@ -144,7 +148,6 @@ export function setupIntegrationTest(
 
     // Grab FactoriesService from Nest
     const factories = testModule.get<FactoryService>(FactoryService);
-    console.log('factories');
     // Initialize the named exports to point to the actual factories
     initFactoriesFromService(factories);
 

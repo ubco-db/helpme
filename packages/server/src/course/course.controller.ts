@@ -441,6 +441,12 @@ export class CourseController {
         staffList: true,
       },
     });
+    if (!queue) {
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.queueNotFound,
+        HttpStatus.NOT_FOUND,
+      );
+    }
 
     const userCourseModel = await UserCourseModel.findOne({
       where: {
@@ -449,16 +455,10 @@ export class CourseController {
       },
     });
 
-    if (!queue) {
-      if (userCourseModel === null || userCourseModel === undefined) {
-        throw new HttpException(
-          ERROR_MESSAGES.courseController.courseModelError,
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
+    if (!userCourseModel) {
       throw new HttpException(
-        ERROR_MESSAGES.courseController.queueNotFound,
+        // shouldn't ever run since we use CourseRolesGuard but just in case
+        ERROR_MESSAGES.courseController.courseModelError,
         HttpStatus.NOT_FOUND,
       );
     }

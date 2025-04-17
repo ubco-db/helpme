@@ -2769,7 +2769,7 @@ export const ERROR_MESSAGES = {
     courseOfficeHourError: "Unable to find a course's office hours",
     courseHeatMapError: "Unable to get course's cached heatmap",
     courseCrnsError: "Unable to get course's crn numbers",
-    courseModelError: 'Course Model not found',
+    courseModelError: 'User not in course',
     noUserFound: 'No user found with given email',
     noSemesterFound: 'No semester exists for the submitted course',
     updatedQueueError: 'Error updating a course queue',
