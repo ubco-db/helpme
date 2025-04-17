@@ -67,7 +67,7 @@ export class ProfileController {
           chat_token: true,
         },
       });
-      if (user.accountDeactivated) {
+      if (!user || user.accountDeactivated) {
         throw new HttpException(
           ERROR_MESSAGES.profileController.accountDeactivated,
           HttpStatus.FORBIDDEN,

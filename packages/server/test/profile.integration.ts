@@ -10,6 +10,9 @@ import { ProfileModule } from '../src/profile/profile.module';
 import { DesktopNotifModel } from 'notification/desktop-notif.entity';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { AccountType } from '@koh/common';
+import { CourseModel } from 'course/course.entity';
+import { UserModel } from 'profile/user.entity';
+import { OrganizationModel } from 'organization/organization.entity';
 
 describe('Profile Integration', () => {
   const { supertest } = setupIntegrationTest(ProfileModule);
@@ -68,13 +71,19 @@ describe('Profile Integration', () => {
     it('returns desktop notif information', async () => {
       const user = await UserFactory.create();
       const dn = await DesktopNotifModel.create({
-        user,
+        userId: user.id,
         auth: '',
         p256dh: '',
         endpoint: 'abc',
         name: 'firefox',
       }).save();
-      await dn.reload();
+      console.log(dn.id); // undefined
+
+      const testorg = await OrganizationModel.create({
+        name: 'UBC',
+      }).save();
+      console.log(testorg);
+
       const res = await supertest({ userId: user.id })
         .get('/profile')
         .expect(200);

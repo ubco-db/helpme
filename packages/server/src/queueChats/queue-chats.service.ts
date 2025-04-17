@@ -371,11 +371,11 @@ export class QueueChatService {
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
-    }
 
-    console.log(
-      `Deleted ${keysToDelete.length} queue chats for question id ${questionId}`,
-    );
+      console.log(
+        `Deleted ${keysToDelete.length} queue chats for question id ${questionId}`,
+      );
+    }
 
     // now notify everyone in the queue to re-fetch their chats
     await this.queueSSEService.updateQueueChats(queueId);

@@ -92,11 +92,12 @@ describe('Alerts service', () => {
       const openAlert = await createAlerts(queue);
 
       expect(
-        (await AlertModel.find({ where: { course: queue.course } })).length,
+        (await AlertModel.find({ where: { courseId: queue.course.id } }))
+          .length,
       ).toBe(2);
 
       const nonStaleAlerts = await service.removeStaleAlerts(
-        await AlertModel.find({ where: { course: queue.course } }),
+        await AlertModel.find({ where: { courseId: queue.course.id } }),
       );
 
       expect(nonStaleAlerts.length).toBe(1);
@@ -154,7 +155,7 @@ describe('Alerts service', () => {
       });
       const openAlert = await createAlerts(queue);
       await service.removeStaleAlerts(
-        await AlertModel.find({ where: { course: queue.course } }),
+        await AlertModel.find({ where: { courseId: queue.course.id } }),
       );
 
       const unresolvedAlerts = await service.getUnresolvedRephraseQuestionAlert(
