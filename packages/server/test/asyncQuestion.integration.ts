@@ -274,9 +274,10 @@ describe('AsyncQuestion Integration', () => {
       const updatedVote = await AsyncQuestionVotesModel.findOne({
         where: {
           userId: studentUser.id,
-          question: asyncQuestion,
+          questionId: asyncQuestion.id,
         },
       });
+      expect(updatedVote).not.toBeNull();
       expect(updatedVote.vote).toBe(1);
     });
     it('should not allow voting by unauthorized users', async () => {
