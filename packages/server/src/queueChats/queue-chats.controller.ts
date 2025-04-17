@@ -46,7 +46,7 @@ export class QueueChatController {
     @Param('queueId', ParseIntPipe) queueId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
     @Param('staffId', ParseIntPipe) staffId: number,
-    @User(['courses']) user: UserModel,
+    @User({ courses: true }) user: UserModel,
   ) {
     if (
       await this.queueChatService.checkChatExists(queueId, questionId, staffId)

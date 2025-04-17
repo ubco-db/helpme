@@ -1721,7 +1721,9 @@ describe('Question Integration', () => {
         id: q1.id,
         text: 'Mark "task1"',
       });
-      expect(await QuestionModel.findOne({ id: q1.id })).toMatchObject({
+      expect(
+        await QuestionModel.findOne({ where: { id: q1.id } }),
+      ).toMatchObject({
         text: 'Mark "task1"',
       });
 
