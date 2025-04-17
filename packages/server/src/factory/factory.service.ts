@@ -44,6 +44,15 @@ import { QueueChatsModel } from '../queueChats/queue-chats.entity';
 import { DataSource } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 
+/* Has all of our factories and initializes them with the db dataSource. 
+  If you want to use one of these factories, import it from factories.ts instead.
+
+  If you are creating a new factory, first create it here and then modify factories.ts so that it exports it.
+  Also make sure your test file calls the initFactoriesFromService function otherwise you will not be able to use the factories from factories.ts!
+
+  IMPORTANT: The order in which the factories are created is important.
+  If a factory has a .assocOne() to another factory, it must be created after the other factory.
+*/
 @Injectable()
 export class FactoryService {
   public UserFactory: Factory<UserModel>;
@@ -99,6 +108,10 @@ export class FactoryService {
       'role',
       Role.TA,
     );
+
+    this.OrganizationFactory = new Factory(OrganizationModel, dataSource)
+      .attr('name', 'UBCO')
+      .attr('description', 'UBC Okanagan');
 
     this.SemesterFactory = new Factory(SemesterModel, dataSource)
       .attr('name', 'Test Semester')
@@ -225,10 +238,6 @@ export class FactoryService {
       .attr('createdAt', new Date('2025-01-02T00:00:00.000Z'))
       .assocOne('question', this.AsyncQuestionFactory)
       .assocOne('creator', this.UserFactory);
-
-    this.OrganizationFactory = new Factory(OrganizationModel, dataSource)
-      .attr('name', 'UBCO')
-      .attr('description', 'UBC Okanagan');
 
     this.InteractionFactory = new Factory(InteractionModel, dataSource)
       .assocOne('course', this.CourseFactory)
