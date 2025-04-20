@@ -77,12 +77,6 @@ describe('Profile Integration', () => {
         endpoint: 'abc',
         name: 'firefox',
       }).save();
-      console.log(dn.id); // undefined
-
-      const testorg = await OrganizationModel.create({
-        name: 'UBC',
-      }).save();
-      console.log(testorg);
 
       const res = await supertest({ userId: user.id })
         .get('/profile')

@@ -5,7 +5,7 @@ import {
 } from '@koh/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { MailServiceModel } from './mail-services.entity';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import * as fs from 'fs';
 
