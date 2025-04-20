@@ -1263,6 +1263,7 @@ describe('Organization Integration', () => {
 
       // Verify that the chat tokens were reset
       const updatedProfessorToken = await ChatTokenModel.findOne({
+        relations: { user: true },
         where: {
           user: {
             id: professor.id,
@@ -1270,6 +1271,7 @@ describe('Organization Integration', () => {
         },
       });
       const updatedMemberToken = await ChatTokenModel.findOne({
+        relations: { user: true },
         where: {
           user: {
             id: member.id,

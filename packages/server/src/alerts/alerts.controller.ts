@@ -17,8 +17,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
-import { User } from 'decorators/user.decorator';
-import { UserModel } from 'profile/user.entity';
+import { UserId } from 'decorators/user.decorator';
 import { Roles } from '../decorators/roles.decorator';
 import { AlertModel } from './alerts.entity';
 import { AlertsService } from './alerts.service';
@@ -33,12 +32,12 @@ export class AlertsController {
   @Get(':courseId')
   async getAlerts(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User() user: UserModel,
+    @UserId() userId: number,
   ): Promise<GetAlertsResponse> {
     const alerts = await AlertModel.find({
       where: {
         courseId,
-        user,
+        userId,
         resolved: IsNull(),
       },
     });
