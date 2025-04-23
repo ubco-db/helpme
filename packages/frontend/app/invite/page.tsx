@@ -22,13 +22,14 @@ export default function CourseInvitePage(): ReactElement {
   const [profile, setProfile] = useState<User>()
   useEffect(() => {
     const fetchUserDetails = async () => {
-      const userDetails = await userApi.getUser()
-      const response = await userDetails.json()
-      if (response.statusCode === 401) {
-        setErrorGettingUser(true)
-        return
-      }
-      setProfile(response)
+      const userDetails = await userApi
+        .getUser()
+        .then((userDetails) => {
+          setProfile(userDetails)
+        })
+        .catch((error) => {
+          setErrorGettingUser(true)
+        })
     }
     fetchUserDetails()
   }, [])

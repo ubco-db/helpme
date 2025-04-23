@@ -5,31 +5,68 @@ import { UserInfoProvider } from '../contexts/userContext'
 import { User } from '@koh/common'
 import { userApi } from '../api/userApi'
 import Link from 'next/link'
-import { Spin } from 'antd'
+import { Button, Spin } from 'antd'
 import HeaderBar from '../components/HeaderBar'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { LayoutProps } from '@/app/typings/types'
 import StandardPageContainer from '../components/standardPageContainer'
 import Image from 'next/image'
 import ChatbotContextProvider from './course/[cid]/components/chatbot/ChatbotProvider'
 import FooterBar from './components/FooterBar'
 import { AsyncActionsProvider } from '../contexts/AsyncActionsContext'
+import { ReloadOutlined, LogoutOutlined } from '@ant-design/icons'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [profile, setProfile] = useState<User>()
+  const [errorGettingUser, setErrorGettingUser] = useState<string | undefined>(
+    undefined,
+  )
   const pathname = usePathname()
+  const router = useRouter()
   const URLSegments = pathname.split('/')
 
   useEffect(() => {
     const fetchUserDetails = async () => {
-      const userDetails = await userApi.getUser()
-      const response = await userDetails.json()
-      setProfile(response)
+      await userApi
+        .getUser()
+        .then((userDetails) => {
+          setProfile(userDetails)
+        })
+        .catch((error) => {
+          if (error.status === 401) {
+            router.push('/api/v1/logout')
+          } else {
+            setErrorGettingUser(error.toString())
+          }
+        })
     }
     fetchUserDetails()
   }, [])
 
-  return !profile ? (
+  return errorGettingUser ? (
+    <main className="mt-20 flex content-center justify-center gap-3">
+      <p>There was an error getting your user details: </p>
+      <p>{errorGettingUser}</p>
+      <Button
+        type="primary"
+        icon={<ReloadOutlined />}
+        onClick={() => {
+          router.refresh()
+        }}
+      >
+        Try again
+      </Button>
+      <Button
+        icon={<LogoutOutlined />}
+        onClick={() => {
+          router.push('/api/v1/logout')
+        }}
+        danger
+      >
+        Log Out
+      </Button>
+    </main>
+  ) : !profile ? (
     <main className="mt-20 flex content-center justify-center">
       <Spin size="large" className="text-nowrap" tip="Loading User...">
         <div className="p-16" />

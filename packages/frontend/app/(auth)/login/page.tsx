@@ -147,17 +147,33 @@ export default function LoginPage() {
 
   async function loginWithGoogle() {
     const response = await userApi.loginWithGoogle(organization?.id ?? -1)
-    const data = await response.json()
-    if (response.status !== 200) {
-      message.error(data.message)
-      return
-    }
-    router.push(data.redirectUri)
-  }
-
-  async function loginWithInstitution() {
-    if (organization) {
-      router.push(`/api/v1/auth/shibboleth/${organization.id}`)
+    if (response.headers.get('content-type')?.includes('application/json')) {
+      const data = await response.json()
+      if (response.status !== 200) {
+        message.error(data.message)
+        Sentry.captureEvent({
+          message: `Error with loginWithGoogle ${response.status}: ${response.statusText}`,
+          level: 'error',
+          extra: {
+            text: data.message,
+            data,
+            response,
+          },
+        })
+        return
+      }
+      router.push(data.redirectUri)
+    } else {
+      const text = await response.text()
+      Sentry.captureEvent({
+        message: `Error with loginWithGoogle ${response.status}: ${response.statusText}`,
+        level: 'error',
+        extra: {
+          text,
+          response,
+        },
+      })
+      message.error(text)
     }
   }
 
@@ -265,23 +281,25 @@ export default function LoginPage() {
             {loginMenu && (
               <div>
                 {organization && organization.ssoEnabled && (
-                  <Button
-                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left"
-                    onClick={() => loginWithInstitution()}
+                  <Link
+                    href={`/api/v1/auth/shibboleth/${organization.id}`}
+                    prefetch={false}
                   >
-                    {organization.logoUrl && (
-                      <Image
-                        src={`/api/v1/organization/${organization.id}/get_logo/${organization.logoUrl}`}
-                        loading="lazy"
-                        alt="Org Logo"
-                        width={24}
-                        height={24}
-                      />
-                    )}
-                    <span className="font-semibold">
-                      Log in with Institution
-                    </span>
-                  </Button>
+                    <Button className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left">
+                      {organization.logoUrl && (
+                        <Image
+                          src={`/api/v1/organization/${organization.id}/get_logo/${organization.logoUrl}`}
+                          loading="lazy"
+                          alt="Org Logo"
+                          width={24}
+                          height={24}
+                        />
+                      )}
+                      <span className="font-semibold">
+                        Log in with Institution
+                      </span>
+                    </Button>
+                  </Link>
                 )}
                 {organization && organization.googleAuthEnabled && (
                   <Button

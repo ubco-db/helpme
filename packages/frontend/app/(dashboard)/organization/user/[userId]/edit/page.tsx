@@ -10,7 +10,7 @@ type UserEditPageProps = {
 
 export default async function UserEditPage({ params }: UserEditPageProps) {
   const userId = Number(params.userId)
-  const currentUser: User = await (await userApi.getUser()).json()
+  const currentUser = await userApi.getUser()
   const organization: GetOrganizationResponse =
     await organizationApi.getOrganization(currentUser.organization?.orgId ?? -1)
 
