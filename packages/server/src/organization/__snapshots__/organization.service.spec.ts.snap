@@ -54,11 +54,11 @@ exports[`OrganizationService getOrganizationCourse should return organization co
     "selfEnroll": false,
     "semester": SemesterModel {
       "description": "Test Semester Description",
-      "endDate": "2022-12-30",
+      "endDate": "2022-12-31",
       "id": 1,
       "name": "Test Semester",
       "organizationId": 2,
-      "startDate": "2020-08-31",
+      "startDate": "2020-09-01",
     },
     "semesterId": 1,
     "timezone": null,
