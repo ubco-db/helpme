@@ -15,7 +15,7 @@ import {
   ParseArrayPipe,
   Post,
 } from '@nestjs/common';
-import { JwtAuthGuard } from 'guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import {
   GetInsightOutputResponse,
   ERROR_MESSAGES,

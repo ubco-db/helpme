@@ -101,13 +101,12 @@ docker-compose build && docker-compose up
 `table_name.module.ts` files are used to define the module for the table. What is a module? It's a way to group together related entities, controllers, and services. It's a NestJS thing.
 
 If you're creating a new `table_name.module.ts` file, you must also add it to the `app.module.ts` file 
-If you're creating a new `table_name.controller.ts` file, you must also add it to the `ormconfig.ts` file 
 
 Also, you must update the `seed.controller.ts` file to reflect the new database changes. This seed file is used to populate the database with dummy data on http://localhost:3000/dev.
 
 #### Migrations
 
-If you change an entity, you MUST run `yarn migration:generate -n [migration-name]`, to make the migration file, then `yarn migration:run` will automatically run on deployment to staging/production. Commit the migration file to Git!
+If you change an entity, you MUST run `yarn migration:generate ./migration/your-migration-name -d ./typeORMCLI.config.ts`, to make the migration file, then `yarn migration:run` will automatically run on deployment to staging/production. Commit the migration file to Git!
 
 ### Adding an API Route
 
