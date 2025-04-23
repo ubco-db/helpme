@@ -119,7 +119,7 @@ const typeorm = {
   keepConnectionAlive: true,
   logging:
     process.env.NODE_ENV !== 'production'
-      ? ['error']
+      ? ['query', 'error', 'schema', 'warn', 'info', 'log']
       : !!process.env.TYPEORM_LOGGING,
   ...(!!process.env.TYPEORM_CLI ? inCLI : {}),
 };
