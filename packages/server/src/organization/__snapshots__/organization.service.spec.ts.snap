@@ -8,6 +8,8 @@ exports[`OrganizationService getCourses should return organization courses 1`] =
     "courseId": 1,
     "courseName": "CS 304",
     "isEnabled": true,
+    "sectionGroupName": "001",
+    "semesterId": 1,
   },
 ]
 `;
@@ -18,6 +20,8 @@ exports[`OrganizationService getCourses should return organization courses with 
     "courseId": 1,
     "courseName": "test",
     "isEnabled": true,
+    "sectionGroupName": "001",
+    "semesterId": 1,
   },
 ]
 `;
@@ -46,15 +50,15 @@ exports[`OrganizationService getOrganizationCourse should return organization co
     "id": 1,
     "name": "CS 304",
     "questionTimer": null,
-    "sectionGroupName": "CS 304",
+    "sectionGroupName": "001",
     "selfEnroll": false,
     "semester": SemesterModel {
       "description": "Test Semester Description",
-      "endDate": "2022-12-31",
+      "endDate": "2022-12-30",
       "id": 1,
       "name": "Test Semester",
       "organizationId": 2,
-      "startDate": "2020-09-01",
+      "startDate": "2020-08-31",
     },
     "semesterId": 1,
     "timezone": null,

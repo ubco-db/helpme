@@ -12,6 +12,7 @@ import {
   OrganizationRole,
   CoursePartial,
   UserCourse,
+  CloneChatbotSettings,
 } from '@koh/common';
 import {
   HttpException,
@@ -581,9 +582,10 @@ export class CourseService {
           );
         }
 
-        const chatbotData: ChatbotSettings = await getSettingsResponse.json();
+        const chatbotData: CloneChatbotSettings =
+          await getSettingsResponse.json();
 
-        const clonedChatbotData: ChatbotSettings = defaultChatbotSetting;
+        const clonedChatbotData: CloneChatbotSettings = defaultChatbotSetting;
 
         if (cloneData.chatbotSettings.modelName) {
           clonedChatbotData.modelName = chatbotData.modelName;

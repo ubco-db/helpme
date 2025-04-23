@@ -242,7 +242,7 @@ export type BatchCourseCloneResponse = {
   message: string
 }
 
-export type ChatbotSettings = {
+export type CloneChatbotSettings = {
   modelName: string
   prompt: string
   similarityThresholdDocuments: number
