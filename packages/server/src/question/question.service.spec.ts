@@ -27,8 +27,6 @@ import { QueueService } from 'queue/queue.service';
 import { AlertsService } from 'alerts/alerts.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
-import { RedisMemoryServer } from 'redis-memory-server';
-import { SSEService } from 'sse/sse.service';
 import { QueueSSEService } from 'queue/queue-sse.service';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { FactoryModule } from 'factory/factory.module';
@@ -37,15 +35,14 @@ import { FactoryService } from 'factory/factory.service';
 describe('QuestionService', () => {
   let service: QuestionService;
   let dataSource: DataSource;
-  let redisMock: RedisMemoryServer;
+  // TODO: fix this test so that it uses RedisMemoryServer instead of our redis container.
+  // let redisMock: RedisMemoryServer;
   let module: TestingModule;
 
   beforeAll(async () => {
-    redisMock = new RedisMemoryServer();
-    const redisHost = await redisMock.getHost();
-    const redisPort = await redisMock.getPort();
-    console.log('redisHost', redisHost);
-    console.log('redisPort', redisPort);
+    // redisMock = new RedisMemoryServer();
+    // const redisHost = await redisMock.getHost();
+    // const redisPort = await redisMock.getPort();
 
     module = await Test.createTestingModule({
       imports: [
@@ -141,9 +138,9 @@ describe('QuestionService', () => {
       console.error('Error cleaning up:', err);
     } finally {
       // Always stop Redis in finally block
-      if (redisMock) {
-        await redisMock.stop();
-      }
+      // if (redisMock) {
+      //   await redisMock.stop();
+      // }
     }
   });
 

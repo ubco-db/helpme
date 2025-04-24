@@ -958,7 +958,7 @@ export const StaffWorkload: InsightObject = {
     const staffNames: { id: number; name: string }[] =
       await UserModel.createQueryBuilder()
         .select('UserModel.id', 'id')
-        .addSelect("UserModel.firstName || ' ' || UserModel.lastName", 'name')
+        .addSelect('UserModel.name', 'name')
         .where('UserModel.id IN (:...ids)', { ids })
         .getRawMany<{ id: number; name: string }>();
 

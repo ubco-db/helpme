@@ -649,6 +649,6 @@ export class QueueService {
       return false;
     }
 
-    return queueInvite.isQuestionsVisible;
+    return !!queueInvite.isQuestionsVisible;
   }
 }

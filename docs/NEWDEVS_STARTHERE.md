@@ -152,7 +152,7 @@ Want to conditionally render something like an `elseif` statement? Do: `{conditi
 
 `service` - These define methods that make calls to the database. Unit tests test these.
 
-`entity` - These define the database schema. If you make any changes to these, be sure to make a migration (see `DEVELOPING.md`).
+`entity` - These define the database schema. If you make any changes to these, be sure to make a migration (see `DEVELOPING.md`). If you are making a new entity, be sure to add it inside `ormconfig.ts`!
 
 #### Redis
 

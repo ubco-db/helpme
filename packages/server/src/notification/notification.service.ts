@@ -46,7 +46,6 @@ export class NotificationService {
     });
     if (!dn) {
       dn = await DesktopNotifModel.create(info).save();
-      await dn.reload();
     }
     return dn;
   }
