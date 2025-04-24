@@ -3221,4 +3221,81 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(200);
     });
   });
+
+  describe('POST /organization/:oid/clone_courses', () => {
+    it('should return 401 if user is not logged in', async () => {
+      const organization = await OrganizationFactory.create();
+      const response = await supertest().post(
+        `/organization/${organization.id}/clone_courses`,
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 403 if user is not an admin', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+        role: OrganizationRole.MEMBER,
+      }).save();
+
+      const response = await supertest({ userId: user.id }).post(
+        `/organization/${organization.id}/clone_courses`,
+      );
+
+      expect(response.status).toBe(403);
+    });
+
+    it('should return 404 if user has no chat token', async () => {
+      const admin = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: admin.id,
+        organizationId: organization.id,
+        role: OrganizationRole.ADMIN,
+      }).save();
+
+      const response = await supertest({ userId: admin.id }).post(
+        `/organization/${organization.id}/clone_courses`,
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should queue batch cloning operation successfully', async () => {
+      const admin = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course1 = await CourseFactory.create();
+      const course2 = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: admin.id,
+        organizationId: organization.id,
+        role: OrganizationRole.ADMIN,
+      }).save();
+
+      await ChatTokenModel.create({
+        user: admin,
+        token: 'test-chat-token',
+      }).save();
+
+      const cloneAttributes = {
+        [course1.id]: { name: 'Cloned Course 1', semesterId: 1 },
+        [course2.id]: { name: 'Cloned Course 2', semesterId: 2 },
+      };
+
+      const response = await supertest({ userId: admin.id })
+        .post(`/organization/${organization.id}/clone_courses`)
+        .send(cloneAttributes);
+
+      expect(response.status).toBe(201);
+      expect(response.text).toBe(
+        'Batch Cloning Operation Successfully Queued!',
+      );
+    });
+  });
 });
