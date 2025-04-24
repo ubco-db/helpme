@@ -19,6 +19,11 @@
       - [Why some endpoints have `@Res` and some don't](#why-some-endpoints-have-res-and-some-dont)
         - [Ways to return errors/http status codes + messages](#ways-to-return-errorshttp-status-codes--messages)
       - [TypeORM](#typeorm)
+        - [Examples of typeorm runtime errors](#examples-of-typeorm-runtime-errors)
+          - [Missing relations](#missing-relations)
+          - [Querying with models and IsNull()](#querying-with-models-and-isnull)
+          - [.find() returns null not undefined if not found](#find-returns-null-not-undefined-if-not-found)
+        - [Transactions](#transactions)
       - [Testing](#testing)
         - [What is mocking?](#what-is-mocking)
         - [To mock or not to mock?](#to-mock-or-not-to-mock)
@@ -207,6 +212,10 @@ Note that we are currently on an outdated version of it (0.2.x) and the newest v
 
 This section may be expanded upon in the future, but for now it might be best to just look at how other services/controllers do queries and kinda copy that.
 
+##### Examples of typeorm runtime errors
+
+###### Missing relations
+
 One thing to note is that sometimes the types for the queries may be wrong.
 For example, you might want to check if the user is a TA or Prof in any course, so you do:
 ```ts
@@ -230,6 +239,77 @@ const user: UserModel = await UserModel.findOne({
       }
     });
 ```
+
+###### Querying with models and IsNull()
+
+```ts
+const alerts = await AlertModel.find({	    
+  where: {	   
+    courseId,	
+    user,	
+    resolved: null,	      
+  },
+});
+```
+
+This would cause a runtime error for two reasons:
+1. You cannot query with `null` and must instead use `IsNull()`
+2. For some reason you can no longer query with a Model (in this case it was a UserModel). You must query with an id.
+
+Example fix:
+```ts
+const alerts = await AlertModel.find({	    
+  where: {	   
+    courseId,	
+    userId: user.id,	
+    resolved: IsNull(),	      
+  },
+});
+```
+
+###### .find() returns null not undefined if not found
+
+This was a change relevant to typeorm going from v0.2.x to v0.3.x.
+
+This only really matters if you are checking if a particular entity exists in the database.
+
+##### Transactions
+
+If your endpoint involves multiple database calls, it is recommended to use a transactionalEntityManager so that all the queries will run in a transaction. 
+
+This is important because if any queries fail, you usually want all queries in the transaction to be automatically rolled back. 
+
+Here is an example from the addEvent() method inside calendar.controller.ts:
+
+```ts
+await this.dataSource.transaction(async (transactionalEntityManager) => {
+  event = await transactionalEntityManager.save(CalendarModel, { // Important that you do this instead of CalendarModel.save() otherwise it will not be inside the transaction.
+    title: body.title,
+    start: body.start,
+    // other attributes...
+  });
+  if (body.staffIds) {
+    for (const staffId of body.staffIds) {
+      await this.calendarService.createCalendarStaff(
+        staffId,
+        event,
+        transactionalEntityManager, // notice how you can pass the transactionalEntityManager to service methods, which can then use it to make queries that would outside of the transaction otherwise
+      );
+      await this.calendarService.createAutoCheckoutCronJob(
+        staffId, // even if this method throws an error, the transaction will fail and all the above queries will get rolled back
+        event.id,
+        event.startDate,
+        event.endDate,
+        event.end,
+        event.daysOfWeek || [],
+        cid,
+      );
+    }
+  }
+});
+```
+
+There are more examples inside asyncQuestion.controller.ts
 
 #### Testing
 
@@ -271,6 +351,10 @@ During the 2024 Summer, a massive undertaking was done to refactor and re-write 
 - Rename files and components to make more sense
 
 [2024-07-29] Renamed Asynchronous Question Centre to Anytime Questions Hub. Most code will still refer to it as the Async Centre/Async Questions.
+
+[2025-04] Finally updated the typeorm version from 0.2.x to 0.3.x. You can now rely on typeorm documentation and it will be accurate (doing this also fixes a 9.7 critical vulnerability and allows us to start running migrations on prod)
+
+[2025-05] (not here yet) Upgraded from Next.js v14 to v15. The most notable advantage of this is it now uses the React 19 compiler, making useCallback and useMemo not really necessary, plus other free performance gains. Also started using turbopack for dev for faster compile times (making it easier to manually test). Though production build still uses webpack since sentry does not support it yet.
 
 # TODO
 
