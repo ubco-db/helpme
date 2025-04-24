@@ -38,7 +38,7 @@ export class QueueSSEService {
   updateQuestions = this.throttleUpdate(async (queueId) => {
     const queueQuestions = await this.queueService.getQuestions(queueId);
     if (queueQuestions) {
-      this.sendToRoom(queueId, async ({ role, userId }) => ({
+      await this.sendToRoom(queueId, async ({ role, userId }) => ({
         queueQuestions: await this.queueService.personalizeQuestions(
           queueId,
           queueQuestions,
@@ -57,7 +57,7 @@ export class QueueSSEService {
   });
 
   updateQueueChats = this.throttleUpdate(async (queueId) => {
-    this.sendToRoom(queueId, async ({ role, userId }) => ({
+    await this.sendToRoom(queueId, async ({ role, userId }) => ({
       queueChats: await this.queueChatService.getMyChats(queueId, role, userId),
     }));
   });

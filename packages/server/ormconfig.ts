@@ -33,7 +33,7 @@ const typeorm: DataSourceOptions = {
   entities: ['src/**/**.entity.ts'],
   logging:
     process.env.NODE_ENV !== 'production'
-      ? ['query', 'error', 'schema', 'warn', 'info', 'log']
+      ? ['error', 'warn']
       : !!process.env.TYPEORM_LOGGING,
   ...(!!process.env.TYPEORM_CLI ? inCLI : {}),
 };

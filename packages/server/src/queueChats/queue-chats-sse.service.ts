@@ -62,19 +62,18 @@ export class QueueChatSSEService {
   ) {
     await this.sseService.sendEvent(
       idToRoom(queueId, questionId, staffId),
-      (metadata: QueueClientMetadata) => {
+      async (metadata: QueueClientMetadata) => {
         if (
-          !this.queueChatService.checkPermissions(
+          !(await this.queueChatService.checkPermissions(
             queueId,
             questionId,
             staffId,
             metadata.userId,
-          )
+          ))
         ) {
-          return data(metadata).then((response) => {
-            delete response.queueChat; // Remove chat data if user is not allowed to see it
-            return response;
-          });
+          const response = await data(metadata);
+          delete response.queueChat; // Remove chat data if user is not allowed to see it
+          return response;
         } else {
           return data(metadata);
         }
