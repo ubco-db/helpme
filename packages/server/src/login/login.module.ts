@@ -6,6 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CourseService } from 'course/course.service';
 import { RedisProfileModule } from 'redisProfile/redis-profile.module';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
+import { MailService } from 'mail/mail.service';
 
 @Module({
   imports: [
@@ -18,6 +19,6 @@ import { RedisProfileService } from 'redisProfile/redis-profile.service';
     }),
   ],
   controllers: [LoginController],
-  providers: [JwtStrategy, CourseService, RedisProfileService],
+  providers: [JwtStrategy, MailService, CourseService, RedisProfileService],
 })
 export class LoginModule {}
