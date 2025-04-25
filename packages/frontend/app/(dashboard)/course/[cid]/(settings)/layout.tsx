@@ -5,13 +5,14 @@ import CourseSettingsMenu from './components/CourseSettingsMenu'
 import { courseApi } from '@/app/api/courseApi'
 import AddChatbot from '@/app/(dashboard)/components/AddChatbot'
 
-export default async function Layout({
-  params,
-  children,
-}: {
-  params: { cid: string }
+export default async function Layout(props: {
+  params: Promise<{ cid: string }>
   children: React.ReactNode
 }) {
+  const params = await props.params
+
+  const { children } = props
+
   const profile = await userApi.getUser().catch(() => {
     redirect(`/course/${params.cid}`)
   })

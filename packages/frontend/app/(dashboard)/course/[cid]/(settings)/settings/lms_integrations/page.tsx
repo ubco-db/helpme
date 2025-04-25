@@ -12,7 +12,7 @@ import {
   Tabs,
   Tooltip,
 } from 'antd'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, use } from 'react'
 import {
   LMSAnnouncement,
   LMSApiResponseStatus,
@@ -29,11 +29,10 @@ import LMSDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/
 import { DeleteOutlined, EditOutlined, SyncOutlined } from '@ant-design/icons'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 
-export default function CourseLMSIntegrationPage({
-  params,
-}: {
-  params: { cid: string }
+export default function CourseLMSIntegrationPage(props: {
+  params: Promise<{ cid: string }>
 }) {
+  const params = use(props.params)
   const courseId = useMemo(() => Number(params.cid) ?? -1, [params.cid])
 
   const [updateFlag, setUpdateFlag] = useState<boolean>(false)

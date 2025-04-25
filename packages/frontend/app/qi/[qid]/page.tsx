@@ -10,7 +10,14 @@ import {
   Switch,
   Tooltip,
 } from 'antd'
-import { ReactElement, useCallback, useEffect, useRef, useState } from 'react'
+import {
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  use,
+} from 'react'
 import {
   decodeBase64,
   encodeBase64,
@@ -44,15 +51,16 @@ import printQRCode from '@/app/utils/QRCodePrintUtils'
 const Panel = Collapse.Panel
 
 type QueueInvitePageProps = {
-  params: { qid: string }
+  params: Promise<{ qid: string }>
 }
 /**
  * NOTE: This is the QUEUE INVITES page.
  * The reason the folder is called `qi` is to shorten the URL so the QR code is easier to scan.
  */
-export default function QueueInvitePage({
-  params,
-}: QueueInvitePageProps): ReactElement {
+export default function QueueInvitePage(
+  props: QueueInvitePageProps,
+): ReactElement {
+  const params = use(props.params)
   const qid = Number(params.qid)
   const searchParams = useSearchParams()
   const router = useRouter()
