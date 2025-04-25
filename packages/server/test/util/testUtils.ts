@@ -31,7 +31,6 @@ export const TestTypeOrmModule = TypeOrmModule.forRoot({
   entities: ['./**/*.entity.ts', '../../src/**/*.entity.ts'],
   synchronize: true,
   keepConnectionAlive: true,
-  logging: ['query', 'error', 'schema'],
 });
 
 export const TestConfigModule = ConfigModule.forRoot({
