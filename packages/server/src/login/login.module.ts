@@ -7,6 +7,7 @@ import { CourseService } from 'course/course.service';
 import { RedisProfileModule } from 'redisProfile/redis-profile.module';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
 import { MailService } from 'mail/mail.service';
+import { MailerService } from '@nestjs-modules/mailer';
 
 @Module({
   imports: [
@@ -19,6 +20,12 @@ import { MailService } from 'mail/mail.service';
     }),
   ],
   controllers: [LoginController],
-  providers: [JwtStrategy, MailService, CourseService, RedisProfileService],
+  providers: [
+    JwtStrategy,
+    MailService,
+    MailerService,
+    CourseService,
+    RedisProfileService,
+  ],
 })
 export class LoginModule {}
