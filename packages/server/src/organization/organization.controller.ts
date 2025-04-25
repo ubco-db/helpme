@@ -1591,7 +1591,7 @@ export class OrganizationController {
   }
 
   @Post(':oid/clone_courses')
-  @UseGuards(JwtAuthGuard, OrganizationGuard, EmailVerifiedGuard)
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @OrgRoles(OrganizationRole.ADMIN)
   async batchCloneCourses(
     @Param('oid', ParseIntPipe) oid: number, // unused for now, only for the guard
@@ -1606,76 +1606,7 @@ export class OrganizationController {
       );
     }
 
-    const asyncClone = async () => {
-      const progressLog: BatchCourseCloneResponse[] = [];
-      for (const key of Object.keys(body)) {
-        const courseId = parseInt(key);
-        const cloneData = body[key];
-
-        const course = await CourseModel.findOne({ where: { id: courseId } });
-        if (!course) {
-          progressLog.push({
-            success: false,
-            message: `Course with id ${courseId} not found`,
-          });
-        }
-
-        if (!cloneData) {
-          progressLog.push({
-            success: false,
-            message: `Course "${course.name.trim()}" with id ${courseId} is missing clone parameters`,
-          });
-        }
-
-        try {
-          await this.courseService.cloneCourse(
-            courseId,
-            user.id,
-            cloneData,
-            user.chat_token.token,
-          );
-
-          progressLog.push({
-            success: true,
-            message: `Successfully cloned course "${course.name.trim()}" with id ${courseId}`,
-          });
-        } catch (error) {
-          progressLog.push({
-            success: false,
-            message: `Error cloning course "${course.name.trim()}" with id ${courseId}: ${error}`,
-          });
-        }
-      }
-
-      const bodyRender = `
-      <br>
-      <h2>Course Clone Summary</h2>
-      <br>
-      <p>Here is the summary of the course cloning process:</p>
-      <ul>
-        ${progressLog
-          .map(
-            (log) =>
-              `<li style="color: ${
-                log.success ? 'green' : 'red'
-              }">${log.message}</li>`,
-          )
-          .join('')}
-      </ul>
-      <br>
-      Note: Do NOT reply to this email.
-    `;
-
-      //TODO: style contents of email better
-      this.mailService.sendEmail({
-        receiver: user.email,
-        type: MailServiceType.COURSE_CLONE_SUMMARY,
-        subject: 'HelpMe - Course Clone Summary',
-        content: bodyRender,
-      });
-    };
-
-    asyncClone();
+    this.courseService.performBatchClone(user, body);
     return 'Batch Cloning Operation Successfully Queued!';
   }
 

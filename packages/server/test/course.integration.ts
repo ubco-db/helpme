@@ -4,6 +4,7 @@ import {
   QuestionStatusKeys,
   Role,
   TACheckinTimesResponse,
+  UserCourse,
 } from '@koh/common';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
@@ -2293,16 +2294,24 @@ describe('Course Integration', () => {
           .fn()
           .mockImplementation((courseId, userId, body, token) => {
             return Promise.resolve({
-              id: 999,
-              courseId: 123,
-              userId: userId,
+              course: {
+                id: courseId,
+                name: 'Test Sample Course',
+                semesterId: 1,
+                enabled: true,
+                sectionGroupName: '001',
+              },
               role: Role.PROFESSOR,
-            });
+              favourited: true,
+            } as UserCourse);
           }),
       });
     };
 
-    const { supertest } = setupIntegrationTest(CourseModule, modifyModule);
+    const { supertest, getTestModule } = setupIntegrationTest(
+      CourseModule,
+      modifyModule,
+    );
 
     it('should return 401 if user is not authenticated', async () => {
       await supertest().post('/courses/1/clone_course').expect(401);
@@ -2311,11 +2320,22 @@ describe('Course Integration', () => {
     it('should return 404 if user has no chat token', async () => {
       const professor = await UserFactory.create({ chat_token: null });
       const course = await CourseFactory.create();
+      const organization = await OrganizationFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: professor,
+        organization: organization,
+      });
+
+      await OrganizationCourseFactory.create({
+        course: course,
+        organization: organization,
+      });
 
       await UserCourseFactory.create({
         user: professor,
         role: Role.PROFESSOR,
-        course: course,
+        course,
       });
 
       await supertest({ userId: professor.id })
@@ -2333,11 +2353,22 @@ describe('Course Integration', () => {
       student.chat_token = chatToken;
       await student.save();
 
+      const organization = await OrganizationFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: student,
+        organization: organization,
+      });
+
       const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        course: course,
+        organization: organization,
+      });
       await UserCourseFactory.create({
         user: student,
         role: Role.STUDENT,
-        course: course,
+        course,
       });
 
       await supertest({ userId: student.id })
@@ -2349,17 +2380,28 @@ describe('Course Integration', () => {
         .expect(403);
     });
 
-    it('should return 200 and call cloneCourse with the right params when user is a professor', async () => {
+    it('should return 201 and call cloneCourse with the right params when user is a professor', async () => {
       const professor = await UserFactory.create();
       const chatToken = await ChatTokenFactory.create({ user: professor });
       professor.chat_token = chatToken;
       await professor.save();
 
+      const organization = await OrganizationFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: professor,
+        organization: organization,
+      });
+
       const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        course: course,
+        organization: organization,
+      });
       await UserCourseFactory.create({
         user: professor,
         role: Role.PROFESSOR,
-        course: course,
+        course,
       });
 
       const cloneParams = {
@@ -2372,8 +2414,9 @@ describe('Course Integration', () => {
         .send(cloneParams)
         .expect(201);
 
-      // Check the mock was called with correct parameters
-      const courseService = modifyModule(null).useValue;
+      const module = getTestModule();
+      const courseService = module.get<CourseService>(CourseService);
+
       expect(courseService.cloneCourse).toHaveBeenCalledWith(
         course.id,
         professor.id,
@@ -2381,7 +2424,6 @@ describe('Course Integration', () => {
         chatToken.token,
       );
 
-      // Verify the response contains the expected user course
       expect(response.body).toEqual({
         id: 999,
         courseId: 123,

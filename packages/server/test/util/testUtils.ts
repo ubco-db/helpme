@@ -31,6 +31,7 @@ export const TestTypeOrmModule = TypeOrmModule.forRoot({
   entities: ['./**/*.entity.ts', '../../src/**/*.entity.ts'],
   synchronize: true,
   keepConnectionAlive: true,
+  logging: ['query', 'error', 'schema'],
 });
 
 export const TestConfigModule = ConfigModule.forRoot({
@@ -124,8 +125,11 @@ export function setupIntegrationTest(
   }, 10000);
 
   afterAll(async () => {
+    if (conn && conn.isConnected) {
+      await conn.close();
+    }
+
     await app.close();
-    await conn.close();
     await redisService.getClient('db').quit();
 
     if (redisTestServer) {

@@ -13,6 +13,9 @@ import {
   CoursePartial,
   UserCourse,
   CloneChatbotSettings,
+  BatchCourseCloneResponse,
+  BatchCourseCloneAttributes,
+  MailServiceType,
 } from '@koh/common';
 import {
   HttpException,
@@ -37,10 +40,14 @@ import { getManager } from 'typeorm';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
+import { MailService } from 'mail/mail.service';
 
 @Injectable()
 export class CourseService {
-  constructor(private readonly redisProfileService: RedisProfileService) {}
+  constructor(
+    private readonly redisProfileService: RedisProfileService,
+    private readonly mailService: MailService,
+  ) {}
 
   async getTACheckInCheckOutTimes(
     courseId: number,
@@ -664,6 +671,74 @@ export class CourseService {
       } else {
         return null;
       }
+    });
+  }
+
+  async performBatchClone(
+    user: UserModel,
+    body: BatchCourseCloneAttributes,
+  ): Promise<void> {
+    const progressLog: BatchCourseCloneResponse[] = [];
+    for (const key of Object.keys(body)) {
+      const courseId = parseInt(key);
+      const cloneData = body[key];
+      let courseName = `Course ID ${courseId}`; // Default name
+
+      try {
+        const course = await CourseModel.findOne({ where: { id: courseId } });
+        if (!course) {
+          throw new Error(`Course with id ${courseId} not found`);
+        }
+        courseName = course.name.trim();
+
+        if (!cloneData) {
+          throw new Error(`Missing clone parameters`);
+        }
+
+        await this.cloneCourse(
+          courseId,
+          user.id,
+          cloneData,
+          user.chat_token.token,
+        );
+
+        progressLog.push({
+          success: true,
+          message: `Successfully cloned course "${courseName}" with id ${courseId}`,
+        });
+      } catch (error) {
+        progressLog.push({
+          success: false,
+          message: `Error cloning course "${courseName}" with id ${courseId}: ${error.message || error}`,
+        });
+      }
+    }
+
+    // Send summary email
+    const bodyRender = `
+      <br>
+      <h2>Course Clone Summary</h2>
+      <br>
+      <p>Here is the summary of the course cloning process:</p>
+      <ul>
+        ${progressLog
+          .map(
+            (log) =>
+              `<li style="color: ${
+                log.success ? 'green' : 'red'
+              }">${log.message}</li>`,
+          )
+          .join('')}
+      </ul>
+      <br>
+      Note: Do NOT reply to this email.
+    `;
+
+    this.mailService.sendEmail({
+      receiver: user.email,
+      type: MailServiceType.COURSE_CLONE_SUMMARY,
+      subject: 'HelpMe - Course Clone Summary',
+      content: bodyRender,
     });
   }
 }
