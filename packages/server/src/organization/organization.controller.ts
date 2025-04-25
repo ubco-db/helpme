@@ -36,8 +36,6 @@ import {
   OrgUser,
   GetOrganizationResponse,
   BatchCourseCloneAttributes,
-  BatchCourseCloneResponse,
-  MailServiceType,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -73,7 +71,6 @@ import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { CourseService } from 'course/course.service';
-import { MailService } from 'mail/mail.service';
 
 // TODO: put the error messages in ERROR_MESSAGES object
 
@@ -83,7 +80,6 @@ export class OrganizationController {
     private organizationService: OrganizationService,
     private redisProfileService: RedisProfileService,
     private courseService: CourseService,
-    private mailService: MailService,
     private schedulerRegistry: SchedulerRegistry,
   ) {}
 
