@@ -14,6 +14,7 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 import { QueueModel } from '../src/queue/queue.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { MailModule } from 'mail/mail.module';
 
 async function delay(ms) {
   // return await for better async stack trace support in case of errors.
@@ -21,7 +22,9 @@ async function delay(ms) {
 }
 
 describe('Queue Integration', () => {
-  const { supertest } = setupIntegrationTest(QueueModule);
+  const { supertest } = setupIntegrationTest(QueueModule, undefined, [
+    MailModule,
+  ]);
 
   describe('GET /queues/:id', () => {
     it('get a queue', async () => {

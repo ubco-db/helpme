@@ -8,7 +8,7 @@ import { CourseService } from 'course/course.service';
 import { MailModule } from 'mail/mail.module';
 
 @Module({
-  imports: [RedisProfileModule, ScheduleModule.forRoot()],
+  imports: [RedisProfileModule, ScheduleModule.forRoot(), MailModule],
   controllers: [OrganizationController],
   providers: [OrganizationService, CourseService],
   exports: [OrganizationService],
