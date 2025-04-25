@@ -7,9 +7,9 @@ import { CourseService } from 'course/course.service';
 import { MailService } from 'mail/mail.service';
 
 @Module({
-  imports: [RedisProfileModule, ScheduleModule.forRoot()],
+  imports: [RedisProfileModule, ScheduleModule.forRoot(), MailService],
   controllers: [OrganizationController],
-  providers: [OrganizationService, MailService, CourseService],
+  providers: [OrganizationService, CourseService],
   exports: [OrganizationService],
 })
 export class OrganizationModule {}
