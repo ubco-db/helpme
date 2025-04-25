@@ -1,8 +1,22 @@
 // Webpack config for building for production
 const path = require('path');
 const nodeExternals = require('webpack-node-externals');
+const SentryWebpackPlugin = require('@sentry/webpack-plugin');
 
 module.exports = function (options) {
+  const plugins = options.plugins || [];
+  
+  // Only add Sentry plugin if auth token is available
+  if (process.env.SENTRY_AUTH_TOKEN) {
+    plugins.push(
+      new SentryWebpackPlugin({
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        org: "university-of-british-colum-p0",
+        project: "helpme-nestjs",
+      })
+    );
+  }
+  
   return {
     ...options,
     cache: {
@@ -32,10 +46,9 @@ module.exports = function (options) {
       ],
     },
     devtool: 'source-map',
-    plugins: [   sentryWebpackPlugin({
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-      org: "university-of-british-colum-p0",
-      project: "helpme-nestjs",
-    }),],
+    plugins: plugins,
+    optimization: {
+      emitOnErrors: false,
+    },
   };
 };
