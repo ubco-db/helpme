@@ -11,6 +11,7 @@
   "dependencies": {
     "@ant-design/icons": "^5.3.7",
     "@ant-design/nextjs-registry": "^1.0.0",
+    "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "@fullcalendar/common": "^5.11.5",
     "@fullcalendar/react": "^6.1.15",
     "@radix-ui/react-dialog": "^1.1.1",
