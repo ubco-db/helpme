@@ -34,9 +34,12 @@ import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { CourseService } from '../src/course/course.service';
+import { MailModule } from 'mail/mail.module';
 
 describe('Course Integration', () => {
-  const { supertest } = setupIntegrationTest(CourseModule);
+  const { supertest } = setupIntegrationTest(CourseModule, undefined, [
+    MailModule,
+  ]);
 
   describe('GET /courses/:id', () => {
     it('gets office hours no queues, since no queue is happening right now', async () => {
@@ -2311,6 +2314,7 @@ describe('Course Integration', () => {
     const { supertest, getTestModule } = setupIntegrationTest(
       CourseModule,
       modifyModule,
+      [MailModule],
     );
 
     it('should return 401 if user is not authenticated', async () => {

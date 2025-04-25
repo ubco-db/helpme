@@ -22,6 +22,7 @@ import {
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { RedisModule } from 'nestjs-redis';
 import { HttpException } from '@nestjs/common';
+import { MailModule } from 'mail/mail.module';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -33,6 +34,7 @@ describe('CourseService', () => {
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
+        MailModule,
         RedisModule.register([
           { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
           { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },

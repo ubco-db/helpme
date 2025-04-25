@@ -29,9 +29,14 @@ import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { CourseService } from 'course/course.service';
 import { CourseModule } from 'course/course.module';
+import { MailModule } from 'mail/mail.module';
 
 describe('Organization Integration', () => {
-  const { supertest, getTestModule } = setupIntegrationTest(OrganizationModule);
+  const { supertest, getTestModule } = setupIntegrationTest(
+    OrganizationModule,
+    undefined,
+    [MailModule],
+  );
   let courseService: CourseService;
 
   beforeAll(async () => {
@@ -3266,6 +3271,7 @@ describe('Organization Integration', () => {
     const { supertest, getTestModule } = setupIntegrationTest(
       CourseModule,
       modifyModule,
+      [MailModule],
     );
 
     it('should return 401 if user is not logged in', async () => {
