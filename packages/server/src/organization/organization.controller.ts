@@ -14,6 +14,7 @@ import {
   UseGuards,
   UseInterceptors,
   ParseIntPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
@@ -35,8 +36,6 @@ import {
   OrgUser,
   GetOrganizationResponse,
   BatchCourseCloneAttributes,
-  BatchCourseCloneResponse,
-  MailServiceType,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -73,7 +72,6 @@ import { OrgRoles } from 'decorators/org-roles.decorator';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { SuperCourseModel } from 'course/super-course.entity';
 import { CourseService } from 'course/course.service';
-import { MailService } from 'mail/mail.service';
 
 // TODO: put the error messages in ERROR_MESSAGES object
 
@@ -83,7 +81,6 @@ export class OrganizationController {
     private organizationService: OrganizationService,
     private redisProfileService: RedisProfileService,
     private courseService: CourseService,
-    private mailService: MailService,
     private schedulerRegistry: SchedulerRegistry,
   ) {}
 
@@ -443,6 +440,7 @@ export class OrganizationController {
       message: message,
     });
   }
+
   @Patch(':oid/update_course/:cid')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrgOrCourseRolesGuard)
   @CourseRoles(Role.PROFESSOR)
@@ -619,12 +617,11 @@ export class OrganizationController {
         where: {
           courseId: cid,
         },
-        relations: ['user'],
       });
 
       // Clear cache of all members of the course
       members.forEach(async (m) => {
-        await this.redisProfileService.deleteProfile(`u:${m.user.id}`);
+        await this.redisProfileService.deleteProfile(`u:${m.userId}`);
       });
     });
 
@@ -1499,7 +1496,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async getCourses(
     @Param('oid', ParseIntPipe) oid: number,
-    @Param('page', ParseIntPipe) page: number,
+    @Param('page', new DefaultValuePipe(-1), ParseIntPipe) page: number,
     @Query('search') search: string,
   ): Promise<CourseResponse[]> {
     const pageSize = 50;
@@ -1623,15 +1620,13 @@ export class OrganizationController {
   }
 
   @Post(':oid/clone_courses')
-  @UseGuards(JwtAuthGuard, OrgOrCourseRolesGuard, EmailVerifiedGuard)
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @OrgRoles(OrganizationRole.ADMIN)
-  async cloneCourse(
-    @Param('oid', ParseIntPipe) oid: number,
+  async batchCloneCourses(
+    @Param('oid', ParseIntPipe) oid: number, // unused for now, only for the guard
     @User(['chat_token']) user: UserModel,
     @Body() body: BatchCourseCloneAttributes,
-  ): Promise<void> {
-    const progressLog: BatchCourseCloneResponse[] = [];
-
+  ): Promise<string> {
     if (!user || !user.chat_token) {
       console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
       throw new HttpException(
@@ -1640,52 +1635,8 @@ export class OrganizationController {
       );
     }
 
-    for (const key of Object.keys(body)) {
-      const courseId = parseInt(key);
-      const cloneData = body[key];
-
-      const course = await CourseModel.findOne({ where: { id: courseId } });
-      if (!course) {
-        progressLog.push({
-          success: false,
-          message: `Course with id ${courseId} not found`,
-        });
-      }
-
-      if (!cloneData) {
-        progressLog.push({
-          success: false,
-          message: `Course "${course.name}" with id ${courseId} is missing clone parameters`,
-        });
-      }
-
-      try {
-        await this.courseService.cloneCourse(
-          courseId,
-          user.id,
-          cloneData,
-          user.chat_token.token,
-        );
-
-        progressLog.push({
-          success: true,
-          message: `Successfully cloned course "${course.name}" with id ${courseId}`,
-        });
-      } catch (error) {
-        progressLog.push({
-          success: false,
-          message: `Error cloning course "${course.name}" with id ${courseId}: ${error}`,
-        });
-      }
-    }
-
-    //PAT TODO: test this out and style contents of email
-    this.mailService.sendEmail({
-      receiver: user.email,
-      type: MailServiceType.COURSE_CLONE_SUMMARY,
-      subject: 'HelpMe - Course Clone Summary',
-      content: JSON.stringify(progressLog),
-    });
+    this.courseService.performBatchClone(user, body);
+    return 'Batch Cloning Operation Successfully Queued!';
   }
 
   private isValidUrl = (url: string): boolean => {

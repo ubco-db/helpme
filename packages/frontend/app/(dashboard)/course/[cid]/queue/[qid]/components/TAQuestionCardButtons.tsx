@@ -25,8 +25,10 @@ import { useCourse } from '@/app/hooks/useCourse'
 import { useQuestions } from '@/app/hooks/useQuestions'
 import { isCheckedIn } from '../../../utils/commonCourseFunctions'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
+import MessageButton from './MessageButton'
+import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
 
 const PRORITY_QUEUED_MESSAGE_TEXT =
   'This student has been temporarily removed from the queue. They must select to rejoin the queue and will then be placed where they were before'
@@ -50,6 +52,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
 }) => {
   const { course } = useCourse(courseId)
   const { mutateQuestions } = useQuestions(queueId)
+  const { mutateQueueChats, queueChats } = useQueueChatsMetadatas(queueId)
   const { userInfo } = useUserInfo()
   const staffList = course?.queues?.find((q) => q.id === queueId)?.staffList
   const isUserCheckedIn = isCheckedIn(staffList, userInfo.id)
@@ -63,7 +66,16 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
   const [requeueButtonLoading, setRequeueButtonLoading] = useState(false)
   const [pauseButtonLoading, setPauseButtonLoading] = useState(false)
 
-  // let timerCheckout=useRef(null);
+  const preemptivelyDeleteAssociatedQueueChatsForQuestion = useCallback(() => {
+    // preemptively mutate (i.e. update locally) the queue chats to remove any queue chats that are associated with the deleted question
+    if (queueChats) {
+      const updatedQueueChats = queueChats.filter(
+        (chat) => chat.questionId !== question.id,
+      )
+      mutateQueueChats(updatedQueueChats)
+    }
+  }, [queueChats, mutateQueueChats, question.id])
+
   const changeStatus = useCallback(
     async (status: QuestionStatus) => {
       await API.questions
@@ -88,20 +100,19 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
             } else {
               message.success('Your Question has ended')
             }
+            preemptivelyDeleteAssociatedQueueChatsForQuestion()
           }
         })
         .catch((e) => {
           const errorMessage = getErrorMessage(e)
           message.error('Failed to update question status: ' + errorMessage)
         })
-      // if (status===LimboQuestionStatus.CantFind||status===ClosedQuestionStatus.Resolved){
-      // timerCheckout.current = setTimeout(() => {
-      //     message.warning("You are checked out due to inactivity");
-      //     checkOutTA();
-      //  }, 1000*20);
-      // }
     },
-    [question.id, mutateQuestions],
+    [
+      question.id,
+      mutateQuestions,
+      preemptivelyDeleteAssociatedQueueChatsForQuestion,
+    ],
   )
 
   const markSelected = useCallback(async () => {
@@ -124,22 +135,17 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           'Marked ' + tasksSelectedForMarking.join(', ') + ' as done',
         )
       }
+      preemptivelyDeleteAssociatedQueueChatsForQuestion()
     } catch (e) {
       message.error('Failed to mark tasks as done')
     }
-  }, [question.id, mutateQuestions, tasksSelectedForMarking])
+  }, [
+    tasksSelectedForMarking,
+    question.id,
+    mutateQuestions,
+    preemptivelyDeleteAssociatedQueueChatsForQuestion,
+  ])
 
-  // const checkOutTA = async ()=>{
-  //     // await API.taStatus.checkOut(courseId, queue?.room);
-  //     // mutateCourse();
-  // }
-  // function setCheckOutTimer() {
-  //     timerCheckout.current = setTimeout(() => {
-  //         message.warning("You are checked out due to inactivity");
-  //         checkOutTA();
-  //      }, 1000*20);
-  // }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const sendRephraseAlert = async () => {
     setRephraseButtonLoading(true)
     const payload: RephraseQuestionPayload = {
@@ -154,7 +160,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
         payload,
         targetUserId: question.creatorId,
       })
-      await mutateQuestions()
+      // await mutateQuestions()
       message.success('Successfully asked student to rephrase their question.')
     } catch (e: any) {
       if (
@@ -175,19 +181,6 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
     changeStatus(OpenQuestionStatus.Helping).then(() => {
       setHelpButtonLoading(false)
     })
-    //delete inactive timer
-    // editing: shouldn't log students out after 15 minutes
-    // reset timer if help another student
-
-    if (course?.questionTimer) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, prefer-const
-      let questionTimer = setTimeout(
-        () => {
-          changeStatus(ClosedQuestionStatus.Resolved)
-        },
-        course.questionTimer * 60 * 1000,
-      )
-    }
   }
   const deleteQuestion = async () => {
     setDeleteButtonLoading(true)
@@ -197,6 +190,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
         : LimboQuestionStatus.TADeleted,
     ).then(() => {
       setDeleteButtonLoading(false)
+      preemptivelyDeleteAssociatedQueueChatsForQuestion()
     })
     await API.questions.notify(question.id)
   }
@@ -398,10 +392,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
       >
         <Popconfirm
           title="Are you sure you want to delete this question from the queue?"
-          disabled={
-            !isUserCheckedIn ||
-            question.status === LimboQuestionStatus.ReQueueing
-          }
+          disabled={!isUserCheckedIn}
           okText="Yes"
           cancelText="No"
           onConfirm={async () => {
@@ -409,7 +400,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           }}
         >
           <Tooltip
-            className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
+            className={`${!isUserCheckedIn ? 'cursor-not-allowed' : ''}`}
             title={
               isUserCheckedIn
                 ? 'Remove From Queue'
@@ -423,62 +414,62 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                 customVariant="red"
                 icon={<DeleteOutlined />}
                 disabled={
-                  !isUserCheckedIn ||
-                  helpButtonLoading ||
-                  rephraseButtonLoading ||
-                  question.status === LimboQuestionStatus.ReQueueing
+                  !isUserCheckedIn || helpButtonLoading || rephraseButtonLoading
                 }
                 loading={deleteButtonLoading}
               />
             </span>
           </Tooltip>
         </Popconfirm>
-        {!question.isTaskQuestion && (
-          // TODO: add new buttons for task questions
+        {!question.isTaskQuestion &&
+          question.status !== LimboQuestionStatus.ReQueueing && (
+            <Tooltip
+              className={`${!isUserCheckedIn ? 'cursor-not-allowed' : ''}`}
+              title={rephraseTooltip}
+            >
+              <span>
+                <CircleButton
+                  customVariant="orange"
+                  icon={<QuestionOutlined />}
+                  onClick={sendRephraseAlert}
+                  disabled={
+                    !canRephrase || helpButtonLoading || deleteButtonLoading
+                  }
+                  loading={rephraseButtonLoading}
+                />
+              </span>
+            </Tooltip>
+          )}
+        <MessageButton
+          recipientName={question.creator.name}
+          staffId={userInfo.id}
+          queueId={queueId}
+          questionId={question.id}
+          isStaff={true}
+        />
+        {question.status !== LimboQuestionStatus.ReQueueing && (
           <Tooltip
-            className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
-            title={rephraseTooltip}
+            className={`${!isUserCheckedIn ? 'cursor-not-allowed' : ''}`}
+            title={helpTooltip}
           >
             <span>
               <CircleButton
-                customVariant="orange"
-                icon={<QuestionOutlined />}
-                onClick={sendRephraseAlert}
+                customVariant="primary"
+                icon={<Play size={22} className="shrink-0 pl-0.5 pt-0.5" />}
+                onClick={() => {
+                  // message.success("timer cleared")
+                  // clearTimeout(timerCheckout.current);
+                  helpStudent()
+                }}
                 disabled={
-                  !canRephrase ||
-                  helpButtonLoading ||
-                  deleteButtonLoading ||
-                  question.status === LimboQuestionStatus.ReQueueing
+                  !canHelp || rephraseButtonLoading || deleteButtonLoading
                 }
-                loading={rephraseButtonLoading}
+                className="flex items-center justify-center"
+                loading={helpButtonLoading}
               />
             </span>
           </Tooltip>
         )}
-        <Tooltip
-          className={`${!isUserCheckedIn || question.status === LimboQuestionStatus.ReQueueing ? 'cursor-not-allowed' : ''}`}
-          title={helpTooltip}
-        >
-          <span>
-            <CircleButton
-              customVariant="primary"
-              icon={<Play size={22} className="shrink-0 pl-1" />}
-              onClick={() => {
-                // message.success("timer cleared")
-                // clearTimeout(timerCheckout.current);
-                helpStudent()
-              }}
-              disabled={
-                !canHelp ||
-                rephraseButtonLoading ||
-                deleteButtonLoading ||
-                question.status === LimboQuestionStatus.ReQueueing
-              }
-              className="flex items-center justify-center"
-              loading={helpButtonLoading}
-            />
-          </span>
-        </Tooltip>
       </div>
     )
   }

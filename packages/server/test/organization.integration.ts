@@ -1,6 +1,7 @@
 import { OrganizationModule } from 'organization/organization.module';
 import { setupIntegrationTest } from './util/testUtils';
 import {
+  ChatTokenFactory,
   CourseFactory,
   mailServiceFactory,
   OrganizationCourseFactory,
@@ -12,7 +13,13 @@ import {
 } from './util/factories';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
-import { MailServiceType, OrganizationRole, Role, UserRole } from '@koh/common';
+import {
+  MailServiceType,
+  OrganizationRole,
+  Role,
+  UserCourse,
+  UserRole,
+} from '@koh/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -20,9 +27,23 @@ import { CourseSettingsModel } from 'course/course_settings.entity';
 import { CourseModel } from 'course/course.entity';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
+import { CourseService } from 'course/course.service';
+import { CourseModule } from 'course/course.module';
+import { MailModule } from 'mail/mail.module';
 
 describe('Organization Integration', () => {
-  const { supertest } = setupIntegrationTest(OrganizationModule);
+  const { supertest, getTestModule } = setupIntegrationTest(
+    OrganizationModule,
+    undefined,
+    [MailModule],
+  );
+  let courseService: CourseService;
+
+  beforeAll(async () => {
+    // Get the instance of CourseService from the module fixture
+    const testModule = getTestModule();
+    courseService = testModule.get<CourseService>(CourseService);
+  });
 
   describe('POST /organization/:oid/populate_chat_token_table', () => {
     it('should return 401 when user is not logged in', async () => {
@@ -3219,6 +3240,133 @@ describe('Organization Integration', () => {
       );
 
       expect(res.status).toBe(200);
+    });
+  });
+
+  describe('POST /organization/:oid/clone_courses', () => {
+    const modifyModule = (builder) => {
+      return builder.overrideProvider(CourseService).useValue({
+        cloneCourse: jest
+          .fn()
+          .mockImplementation((courseId, userId, body, token) => {
+            return Promise.resolve({
+              course: {
+                id: courseId,
+                name: 'Test Sample Course',
+                semesterId: 1,
+                enabled: true,
+                sectionGroupName: '001',
+              },
+              role: Role.PROFESSOR,
+              favourited: true,
+            } as UserCourse);
+          }),
+        performBatchClone: jest.fn().mockImplementation(async () => {
+          // Do nothing to prevent async operations after DB closure
+          return Promise.resolve();
+        }),
+      });
+    };
+
+    const { supertest, getTestModule } = setupIntegrationTest(
+      CourseModule,
+      modifyModule,
+      [MailModule],
+    );
+
+    it('should return 401 if user is not logged in', async () => {
+      const organization = await OrganizationFactory.create();
+      const response = await supertest().post(
+        `/organization/${organization.id}/clone_courses`,
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 401 if user is not an admin', async () => {
+      0;
+      const user = await UserFactory.create();
+      // Ensure user has a chat token for the guard to pass initial checks before role check
+      const token = await ChatTokenFactory.create({ user });
+      user.chat_token = token;
+      await user.save();
+      const organization = await OrganizationFactory.create();
+
+      // Use factory to create the organization user link
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: organization,
+        role: OrganizationRole.MEMBER,
+      });
+
+      const response = await supertest({ userId: user.id }).post(
+        `/organization/${organization.id}/clone_courses`,
+      );
+
+      // Expect 401 Unauthorized because the user is logged in but not an admin
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 404 if user has no chat token', async () => {
+      const admin = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: admin.id,
+        organizationId: organization.id,
+        role: OrganizationRole.ADMIN,
+      }).save();
+
+      const response = await supertest({ userId: admin.id }).post(
+        `/organization/${organization.id}/clone_courses`,
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should queue batch cloning operation successfully', async () => {
+      const admin = await UserFactory.create();
+      // Associate chat token via factory relationship
+      const chatToken = await ChatTokenFactory.create({ user: admin });
+      admin.chat_token = chatToken;
+      await admin.save();
+
+      const organization = await OrganizationFactory.create();
+      const course1 = await CourseFactory.create();
+      const course2 = await CourseFactory.create();
+      const semester1 = await SemesterFactory.create({ organization }); // Ensure semesters belong to the org
+      const semester2 = await SemesterFactory.create({ organization });
+
+      // Use factory for consistency
+      await OrganizationUserFactory.create({
+        organizationUser: admin,
+        organization: organization,
+        role: OrganizationRole.ADMIN,
+      });
+
+      // Use factory for consistency
+      await OrganizationCourseFactory.create({
+        course: course1,
+        organization: organization,
+      });
+      await OrganizationCourseFactory.create({
+        course: course2,
+        organization: organization,
+      });
+
+      const cloneAttributes = {
+        [course1.id]: { name: 'Cloned Course 1', semesterId: semester1.id },
+        [course2.id]: { name: 'Cloned Course 2', semesterId: semester2.id },
+      };
+
+      const response = await supertest({ userId: admin.id })
+        .post(`/organization/${organization.id}/clone_courses`)
+        .send(cloneAttributes);
+
+      expect(response.status).toBe(201);
+      expect(response.text).toBe(
+        'Batch Cloning Operation Successfully Queued!',
+      );
     });
   });
 });

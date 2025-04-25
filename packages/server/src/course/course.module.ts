@@ -9,6 +9,7 @@ import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueCleanService } from '../queue/queue-clean/queue-clean.service';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
+import { MailModule } from 'mail/mail.module';
 
 @Module({
   controllers: [CourseController],
@@ -17,6 +18,7 @@ import { RedisProfileService } from '../redisProfile/redis-profile.service';
     LoginModule,
     CacheModule.register(),
     OrganizationModule,
+    MailModule,
     RedisQueueService,
     RedisProfileService,
   ],

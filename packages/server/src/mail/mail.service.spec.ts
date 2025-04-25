@@ -62,7 +62,7 @@ describe('MailService', () => {
       expect(mailerService.sendMail).toHaveBeenCalledWith({
         to: receiver,
         from: '"HelpMe" <no-reply@coursehelp.ubc.ca>',
-        subject: 'Pasword Reset Request',
+        subject: 'Password Reset Request',
         text: expect.stringContaining(url),
       });
     });

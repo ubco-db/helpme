@@ -12,6 +12,10 @@ import {
   OrganizationRole,
   CoursePartial,
   UserCourse,
+  CloneChatbotSettings,
+  BatchCourseCloneResponse,
+  BatchCourseCloneAttributes,
+  MailServiceType,
 } from '@koh/common';
 import {
   HttpException,
@@ -37,10 +41,14 @@ import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
 import { SuperCourseModel } from './super-course.entity';
+import { MailService } from 'mail/mail.service';
 
 @Injectable()
 export class CourseService {
-  constructor(private readonly redisProfileService: RedisProfileService) {}
+  constructor(
+    private readonly redisProfileService: RedisProfileService,
+    private readonly mailService: MailService,
+  ) {}
 
   async getTACheckInCheckOutTimes(
     courseId: number,
@@ -439,6 +447,42 @@ export class CourseService {
         throw new NotFoundException(`Course with id ${courseId} not found`);
       }
 
+      // to generalize operation for batch cloning as well (a single value of -1 means clone the professors as well)
+      const originalProfessors = await manager.find(UserCourseModel, {
+        where: {
+          courseId,
+          role: Role.PROFESSOR,
+        },
+      });
+
+      if (
+        cloneData.professorIds.length === 1 &&
+        cloneData.professorIds[0] === -1
+      ) {
+        cloneData.professorIds = originalProfessors.map(
+          (userCourse) => userCourse.userId,
+        );
+      }
+
+      if (
+        cloneData.useSection &&
+        cloneData.newSection === originalCourse.sectionGroupName
+      ) {
+        throw new HttpException(
+          ERROR_MESSAGES.courseController.sectionSame,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (
+        !cloneData.useSection &&
+        cloneData.newSemesterId === originalCourse.semesterId
+      ) {
+        throw new HttpException(
+          ERROR_MESSAGES.courseController.semesterSame,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       // If the user is not an Organization Administrator, they can only set themselves as the cloned course's professor
       const organizationUser = await manager.findOne(OrganizationUserModel, {
         where: { userId: userId },
@@ -541,73 +585,11 @@ export class CourseService {
 
       // -------------- For Chatbot Settings and Documents --------------
 
-      const getSettingsResponse = await fetch(
-        `http://localhost:3003/chat/${courseId}/oneChatbotSetting`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: chatToken,
-          },
-        },
-      );
-
-      if (!getSettingsResponse.ok) {
-        console.error(
-          `Failed to get current course chatbot data in chatbot service: [${getSettingsResponse.status}] ${getSettingsResponse.statusText}`,
-        );
-        throw new BadRequestException(
-          'Failed to fetch current course chatbot data from chatbot service',
-        );
-      }
-
-      const chatbotData: ChatbotSettings = await getSettingsResponse.json();
-
-      const clonedChatbotData: ChatbotSettings = defaultChatbotSetting;
-
-      if (cloneData.chatbotSettings.modelName) {
-        clonedChatbotData.modelName = chatbotData.modelName;
-      }
-      if (cloneData.chatbotSettings.prompt) {
-        clonedChatbotData.prompt = chatbotData.prompt;
-      }
-      if (cloneData.chatbotSettings.similarityThresholdDocuments) {
-        clonedChatbotData.similarityThresholdDocuments =
-          chatbotData.similarityThresholdDocuments;
-      }
-      if (cloneData.chatbotSettings.temperature) {
-        clonedChatbotData.temperature = chatbotData.temperature;
-      }
-      if (cloneData.chatbotSettings.topK) {
-        clonedChatbotData.topK = chatbotData.topK;
-      }
-
-      const patchSettingsResponse = await fetch(
-        `http://localhost:3003/chat/${clonedCourse.id}/updateChatbotSetting`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            HMS_API_TOKEN: chatToken,
-          },
-          body: JSON.stringify(clonedChatbotData),
-        },
-      );
-
-      if (!patchSettingsResponse.ok) {
-        console.error(
-          `Failed to set cloned chatbot data in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
-        );
-        throw new BadRequestException(
-          'Failed to set cloned chatbot data from chatbot service',
-        );
-      }
-
-      if (cloneData.includeDocuments) {
-        const postDocumentsResponse = await fetch(
-          `http://localhost:3003/chat/${courseId}/cloneCourseDocuments/${clonedCourse.id}/${cloneData.includeInsertedQuestions === true}`,
+      if (cloneData.cloneCourseSettings.chatBotEnabled) {
+        const getSettingsResponse = await fetch(
+          `http://localhost:3003/chat/${courseId}/oneChatbotSetting`,
           {
-            method: 'POST',
+            method: 'GET',
             headers: {
               'Content-Type': 'application/json',
               HMS_API_TOKEN: chatToken,
@@ -615,13 +597,78 @@ export class CourseService {
           },
         );
 
-        if (!postDocumentsResponse.ok) {
+        if (!getSettingsResponse.ok) {
           console.error(
-            `Failed to copy chatbot documents from original course in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
+            `Failed to get current course chatbot data in chatbot service: [${getSettingsResponse.status}] ${getSettingsResponse.statusText}`,
           );
           throw new BadRequestException(
-            'Failed to copy chatbot documents from original course in chatbot service',
+            'Failed to fetch current course chatbot data from chatbot service',
           );
+        }
+
+        const chatbotData: CloneChatbotSettings =
+          await getSettingsResponse.json();
+
+        const clonedChatbotData: CloneChatbotSettings = defaultChatbotSetting;
+
+        if (cloneData.chatbotSettings.modelName) {
+          clonedChatbotData.modelName = chatbotData.modelName;
+        }
+        if (cloneData.chatbotSettings.prompt) {
+          clonedChatbotData.prompt = chatbotData.prompt;
+        }
+        if (cloneData.chatbotSettings.similarityThresholdDocuments) {
+          clonedChatbotData.similarityThresholdDocuments =
+            chatbotData.similarityThresholdDocuments;
+        }
+        if (cloneData.chatbotSettings.temperature) {
+          clonedChatbotData.temperature = chatbotData.temperature;
+        }
+        if (cloneData.chatbotSettings.topK) {
+          clonedChatbotData.topK = chatbotData.topK;
+        }
+
+        const patchSettingsResponse = await fetch(
+          `http://localhost:3003/chat/${clonedCourse.id}/updateChatbotSetting`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              HMS_API_TOKEN: chatToken,
+            },
+            body: JSON.stringify(clonedChatbotData),
+          },
+        );
+
+        if (!patchSettingsResponse.ok) {
+          console.error(
+            `Failed to set cloned chatbot data in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
+          );
+          throw new BadRequestException(
+            'Failed to set cloned chatbot data from chatbot service',
+          );
+        }
+
+        if (cloneData.includeDocuments) {
+          const postDocumentsResponse = await fetch(
+            `http://localhost:3003/chat/${courseId}/cloneCourseDocuments/${clonedCourse.id}/${cloneData.includeInsertedQuestions === true}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                HMS_API_TOKEN: chatToken,
+              },
+            },
+          );
+
+          if (!postDocumentsResponse.ok) {
+            console.error(
+              `Failed to copy chatbot documents from original course in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
+            );
+            throw new BadRequestException(
+              'Failed to copy chatbot documents from original course in chatbot service',
+            );
+          }
         }
       }
 
@@ -641,6 +688,74 @@ export class CourseService {
       } else {
         return null;
       }
+    });
+  }
+
+  async performBatchClone(
+    user: UserModel,
+    body: BatchCourseCloneAttributes,
+  ): Promise<void> {
+    const progressLog: BatchCourseCloneResponse[] = [];
+    for (const key of Object.keys(body)) {
+      const courseId = parseInt(key);
+      const cloneData = body[key];
+      let courseName = `Course ID ${courseId}`; // Default name
+
+      try {
+        const course = await CourseModel.findOne({ where: { id: courseId } });
+        if (!course) {
+          throw new Error(`Course with id ${courseId} not found`);
+        }
+        courseName = course.name.trim();
+
+        if (!cloneData) {
+          throw new Error(`Missing clone parameters`);
+        }
+
+        await this.cloneCourse(
+          courseId,
+          user.id,
+          cloneData,
+          user.chat_token.token,
+        );
+
+        progressLog.push({
+          success: true,
+          message: `Successfully cloned course "${courseName}" with id ${courseId}`,
+        });
+      } catch (error) {
+        progressLog.push({
+          success: false,
+          message: `Error cloning course "${courseName}" with id ${courseId}: ${error.message || error}`,
+        });
+      }
+    }
+
+    // Send summary email
+    const bodyRender = `
+      <br>
+      <h2>Course Clone Summary</h2>
+      <br>
+      <p>Here is the summary of the course cloning process:</p>
+      <ul>
+        ${progressLog
+          .map(
+            (log) =>
+              `<li style="color: ${
+                log.success ? 'green' : 'red'
+              }">${log.message}</li>`,
+          )
+          .join('')}
+      </ul>
+      <br>
+      Note: Do NOT reply to this email.
+    `;
+
+    this.mailService.sendEmail({
+      receiver: user.email,
+      type: MailServiceType.COURSE_CLONE_SUMMARY,
+      subject: 'HelpMe - Course Clone Summary',
+      content: bodyRender,
     });
   }
 }

@@ -25,8 +25,8 @@ export const TestTypeOrmModule = TypeOrmModule.forRoot({
   type: 'postgres',
   host: 'localhost',
   port: 5432,
-  username: process.env.POSTGRES_USER || 'helpme',
-  password: process.env.TESTDBPASS || 'mysecretpassword',
+  username: process.env.POSTGRES_NONROOT_USER,
+  password: process.env.POSTGRES_NONROOT_PASSWORD,
   database: 'test',
   entities: ['./**/*.entity.ts', '../../src/**/*.entity.ts'],
   synchronize: true,
@@ -124,8 +124,11 @@ export function setupIntegrationTest(
   }, 10000);
 
   afterAll(async () => {
+    if (conn && conn.isConnected) {
+      await conn.close();
+    }
+
     await app.close();
-    await conn.close();
     await redisService.getClient('db').quit();
 
     if (redisTestServer) {

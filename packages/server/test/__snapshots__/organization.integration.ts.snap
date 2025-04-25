@@ -51,6 +51,8 @@ exports[`Organization Integration GET /organization/:oid/get_courses/:page? shou
     "courseId": 1,
     "courseName": "CS 304",
     "isEnabled": true,
+    "sectionGroupName": "001",
+    "semesterId": 1,
   },
 ]
 `;

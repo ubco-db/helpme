@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   Button,
   Modal,
@@ -16,56 +16,29 @@ import {
 } from 'antd'
 import {
   CourseCloneAttributes,
+  defaultCourseCloneAttributes,
   GetOrganizationResponse,
-  OrganizationCourseResponse,
   OrganizationProfessor,
   OrganizationRole,
-  User,
   UserCourse,
 } from '@koh/common'
 import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { ExclamationCircleFilled } from '@ant-design/icons'
 import { useAsyncActions } from '@/app/contexts/AsyncActionsContext'
 
-const defaultValues: CourseCloneAttributes = {
-  professorIds: [],
-  includeDocuments: false,
-  useSection: false,
-  includeInsertedQuestions: false,
-  cloneAttributes: {
-    coordinator_email: true,
-    zoomLink: false,
-    courseInviteCode: false,
-  },
-  cloneCourseSettings: {
-    chatBotEnabled: true,
-    asyncQueueEnabled: true,
-    queueEnabled: true,
-    scheduleOnFrontPage: false,
-    asyncCentreAIAnswers: true,
-  },
-  chatbotSettings: {
-    modelName: true,
-    prompt: true,
-    similarityThresholdDocuments: true,
-    similarityThresholdQuestions: true,
-    temperature: true,
-    topK: true,
-  },
-}
-
 type CourseCloneFormProps = {
-  user: User
   organization: GetOrganizationResponse
-  courseData: OrganizationCourseResponse
+  courseId: number
+  courseSemesterId: number
+  courseSectionGroupName: string
 }
 
 const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
-  user,
   organization,
-  courseData,
+  courseId,
+  courseSemesterId,
+  courseSectionGroupName,
 }) => {
   const [visible, setVisible] = useState(false)
   const [professors, setProfessors] = useState<OrganizationProfessor[]>()
@@ -74,14 +47,16 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   const { runAsync } = useAsyncActions()
 
   const openModal = () => {
-    form.setFieldsValue(defaultValues)
+    form.setFieldsValue(defaultCourseCloneAttributes)
     setVisible(true)
   }
 
-  //PAT TODO: link courses with new model and write script to auto generate supercourses for all existing courses
-
-  const isAdmin =
-    user && user.organization?.organizationRole === OrganizationRole.ADMIN
+  const isAdmin = useMemo(
+    () =>
+      userInfo &&
+      userInfo.organization?.organizationRole === OrganizationRole.ADMIN,
+    [userInfo],
+  )
 
   const handleClone = async () => {
     const cloneData = form.getFieldsValue()
@@ -91,7 +66,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
         message.error('Please select a professor')
         return
       }
-      cloneData.professorIds = [user.id]
+      cloneData.professorIds = [userInfo.id]
     }
 
     if (!cloneData.newSemesterId && !cloneData.newSection) {
@@ -100,7 +75,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
     }
 
     runAsync(
-      () => API.course.createClone(courseData.courseId!, cloneData),
+      () => API.course.createClone(courseId, cloneData),
       (userCourse) => {
         if (userCourse)
           setUserInfo({
@@ -122,7 +97,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
     const fetchProfessors = async () => {
       if (!isAdmin) return
       await API.organizations
-        .getProfessors(organization.id, courseData.courseId)
+        .getProfessors(organization.id)
         .then((response) => {
           setProfessors(response ?? [])
         })
@@ -132,7 +107,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
         })
     }
     fetchProfessors()
-  }, [courseData.courseId, isAdmin, organization.id])
+  }, [courseId, isAdmin, organization.id])
 
   const handleCancelCloneModal = () => {
     setVisible(false)
@@ -229,8 +204,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
         }}
       >
         <Form form={form} layout="vertical" className="w-full">
-          {user.organization?.organizationRole === OrganizationRole.ADMIN &&
-          professors ? (
+          {isAdmin && professors ? (
             <Form.Item
               label="Professors"
               name="professorIds"
@@ -308,10 +282,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                     { required: true, message: 'Please enter a section' },
                     {
                       validator: (_, value) => {
-                        if (
-                          value &&
-                          value === courseData.course?.sectionGroupName
-                        ) {
+                        if (value && value === courseSectionGroupName) {
                           return Promise.reject(
                             'Section cannot match the original section group name.',
                           )
@@ -337,10 +308,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                     notFoundContent="There seems to be no other semesters in this organization to clone to."
                   >
                     {organization.semesters
-                      .filter(
-                        (semester) =>
-                          semester.id !== courseData.course?.semester?.id,
-                      )
+                      .filter((semester) => semester.id !== courseSemesterId)
                       .map((semester) => (
                         <Select.Option key={semester.id} value={semester.id}>
                           <span>{`${semester.name}`}</span>{' '}
@@ -424,8 +392,12 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
               curValues.cloneCourseSettings?.chatBotEnabled
             }
           >
-            {({ getFieldValue }) =>
-              getFieldValue(['cloneCourseSettings', 'chatBotEnabled']) ? (
+            {({ getFieldValue }) => {
+              const chatBotEnabled = getFieldValue([
+                'cloneCourseSettings',
+                'chatBotEnabled',
+              ])
+              return (
                 <>
                   <Form.Item label="Chatbot Settings">
                     <div className="ml-4 flex flex-col">
@@ -434,14 +406,30 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                         noStyle
                         valuePropName="checked"
                       >
-                        <Checkbox>Model Name</Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
+                          Model Name
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
+                        </Checkbox>
                       </Form.Item>
                       <Form.Item
                         name={['chatbotSettings', 'prompt']}
                         noStyle
                         valuePropName="checked"
                       >
-                        <Checkbox>Model Prompt</Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
+                          Model Prompt
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
+                        </Checkbox>
                       </Form.Item>
                       <Form.Item
                         name={[
@@ -451,7 +439,15 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                         noStyle
                         valuePropName="checked"
                       >
-                        <Checkbox>Similarity Threshold for Documents</Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
+                          Similarity Threshold for Documents
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
+                        </Checkbox>
                       </Form.Item>
                       <Form.Item
                         name={[
@@ -461,21 +457,45 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                         noStyle
                         valuePropName="checked"
                       >
-                        <Checkbox>Similarity Threshold for Questions</Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
+                          Similarity Threshold for Questions
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
+                        </Checkbox>
                       </Form.Item>
                       <Form.Item
                         name={['chatbotSettings', 'temperature']}
                         noStyle
                         valuePropName="checked"
                       >
-                        <Checkbox>Temperature</Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
+                          Temperature
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
+                        </Checkbox>
                       </Form.Item>
                       <Form.Item
                         name={['chatbotSettings', 'topK']}
                         noStyle
                         valuePropName="checked"
                       >
-                        <Checkbox>Top K</Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
+                          Top K
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
+                        </Checkbox>
                       </Form.Item>
                     </div>
                   </Form.Item>
@@ -489,9 +509,15 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                         valuePropName="checked"
                         noStyle
                       >
-                        <Checkbox>
+                        <Checkbox disabled={!chatBotEnabled}>
                           Include Chatbot Documents (This process will take a
                           long time)
+                          {!chatBotEnabled && (
+                            <span className="ml-2 text-xs italic text-gray-400">
+                              (Requires &quot;ChatBot Enabled&quot; to be
+                              checked)
+                            </span>
+                          )}
                         </Checkbox>
                       </Form.Item>
                       <Form.Item
@@ -501,26 +527,38 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                           curValues.includeDocuments
                         }
                       >
-                        {({ getFieldValue }) =>
-                          getFieldValue('includeDocuments') ? (
+                        {({ getFieldValue }) => {
+                          const documentsEnabled =
+                            getFieldValue('includeDocuments')
+                          return (
                             <Form.Item
                               name="includeInsertedQuestions"
                               valuePropName="checked"
                               noStyle
                             >
-                              <Checkbox className="ml-4">
+                              <Checkbox
+                                className="ml-4"
+                                disabled={!chatBotEnabled || !documentsEnabled}
+                              >
                                 Include Manually Inserted Questions from Chatbot
                                 Interactions
+                                {(!chatBotEnabled || !documentsEnabled) && (
+                                  <span className="ml-2 text-xs italic text-gray-400">
+                                    {!chatBotEnabled
+                                      ? '(Requires "ChatBot Enabled" to be checked)'
+                                      : '(Requires "Include Chatbot Documents" to be checked)'}
+                                  </span>
+                                )}
                               </Checkbox>
                             </Form.Item>
-                          ) : null
-                        }
+                          )
+                        }}
                       </Form.Item>
                     </div>
                   </Form.Item>
                 </>
-              ) : null
-            }
+              )
+            }}
           </Form.Item>
         </Form>
       </Modal>

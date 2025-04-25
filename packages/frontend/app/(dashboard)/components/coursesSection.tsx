@@ -73,18 +73,24 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
       key: 'favourite',
       width: '5%',
       align: 'center',
-      render: (_, course) =>
-        course.favourited ? (
-          <StarFilled
-            onClick={() => toggleFavourite(course)}
-            style={{ color: 'gold', cursor: 'pointer', fontSize: '1rem' }}
-          />
-        ) : (
-          <StarOutlined
-            onClick={() => toggleFavourite(course)}
-            style={{ color: 'grey', cursor: 'pointer' }}
-          />
-        ),
+      render: (_, course) => (
+        <Tooltip
+          title="Toggle favourited courses you wish to see on your dashboard"
+          mouseEnterDelay={0.5}
+        >
+          {course.favourited ? (
+            <StarFilled
+              onClick={() => toggleFavourite(course)}
+              style={{ color: 'gold', cursor: 'pointer', fontSize: '1rem' }}
+            />
+          ) : (
+            <StarOutlined
+              onClick={() => toggleFavourite(course)}
+              style={{ color: 'grey', cursor: 'pointer', fontSize: '1rem' }}
+            />
+          )}
+        </Tooltip>
+      ),
     },
     {
       dataIndex: ['course', 'name'],
@@ -228,7 +234,9 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                       )}
                     rowKey={(course) => course.course.id}
                     pagination={
-                      semesterCourses.length > 5 ? { pageSize: 5 } : false
+                      semesterCourses.length > 5
+                        ? { pageSize: 5, showQuickJumper: true }
+                        : false
                     }
                     showHeader={false}
                   />
