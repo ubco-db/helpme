@@ -2429,14 +2429,19 @@ describe('Course Integration', () => {
       );
 
       expect(response.body).toEqual({
-        id: 999,
-        courseId: 123,
-        userId: professor.id,
+        course: {
+          id: course.id,
+          name: 'Test Sample Course',
+          semesterId: 1,
+          enabled: true,
+          sectionGroupName: '001',
+        },
         role: Role.PROFESSOR,
+        favourited: true,
       });
     });
 
-    it('should return 200 when organization admin calls the endpoint', async () => {
+    it('should return 201 when organization admin calls the endpoint', async () => {
       const adminUser = await UserFactory.create();
       const chatToken = await ChatTokenFactory.create({ user: adminUser });
       adminUser.chat_token = chatToken;
@@ -2465,12 +2470,16 @@ describe('Course Integration', () => {
         .send(cloneParams)
         .expect(201);
 
-      // Verify the response contains the expected user course
       expect(response.body).toEqual({
-        id: 999,
-        courseId: 123,
-        userId: adminUser.id,
+        course: {
+          id: course.id,
+          name: 'Test Sample Course',
+          semesterId: 1,
+          enabled: true,
+          sectionGroupName: '001',
+        },
         role: Role.PROFESSOR,
+        favourited: true,
       });
     });
   });

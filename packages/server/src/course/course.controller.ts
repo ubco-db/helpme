@@ -1109,7 +1109,6 @@ export class CourseController {
     await userCourse.save();
   }
 
-  // The batch cloning route is in the organization controller
   @Post(':courseId/clone_course')
   @UseGuards(JwtAuthGuard, OrgOrCourseRolesGuard, EmailVerifiedGuard)
   @CourseRoles(Role.PROFESSOR)

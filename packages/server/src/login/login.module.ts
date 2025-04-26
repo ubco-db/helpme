@@ -17,6 +17,7 @@ import { MailModule } from 'mail/mail.module';
         secret: configService.get('JWT_SECRET'),
       }),
     }),
+    MailModule,
   ],
   controllers: [LoginController],
   providers: [JwtStrategy, CourseService, RedisProfileService],
