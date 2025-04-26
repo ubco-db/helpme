@@ -136,7 +136,7 @@ exports[`Course Integration GET /courses/:id gets office hours no queues, since 
   "organizationCourse": null,
   "questionTimer": null,
   "queues": [],
-  "sectionGroupName": "CS 304",
+  "sectionGroupName": "001",
   "selfEnroll": false,
   "semesterId": 1,
   "timezone": "America/New_York",

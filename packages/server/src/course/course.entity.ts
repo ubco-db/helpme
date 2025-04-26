@@ -23,7 +23,9 @@ import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question.entity';
+import { SuperCourseModel } from './super-course.entity';
 import { ChatbotDocPdfModel } from '../chatbot/chatbot-doc-pdf.entity';
+
 @Entity('course_model')
 export class CourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -39,18 +41,18 @@ export class CourseModel extends BaseEntity {
   sectionGroupName: string; // from admin
 
   @Column('text', { nullable: true })
-  coordinator_email: string;
+  coordinator_email: string; // Legacy but in the course settings page
 
   @Column('text', { nullable: true })
   @Exclude()
-  icalURL: string;
+  icalURL: string; // Legacy
 
   @Column('text', { nullable: true })
   zoomLink: string;
 
   @Column('integer', { nullable: true })
   @Exclude()
-  questionTimer: number;
+  questionTimer: number; // Legacy
 
   @OneToMany((type) => UserCourseModel, (ucm) => ucm.course)
   @Exclude()
@@ -93,10 +95,10 @@ export class CourseModel extends BaseEntity {
   // Whether or not students are allowed to self-enroll in the class
   // WARNING: THIS SHOULD ONLY BE USED AS A TEMPORARY MEASURE WHEN THINGS LIKE BANNER ARE DOWN
   @Column('boolean', { nullable: true, default: false })
-  selfEnroll: boolean;
+  selfEnroll: boolean; // Legacy
 
   @Column('text', { array: true, nullable: true, default: [] })
-  asyncQuestionDisplayTypes: string[];
+  asyncQuestionDisplayTypes: string[]; // Legacy
 
   @DeleteDateColumn()
   deletedAt?: Date;
@@ -138,6 +140,13 @@ export class CourseModel extends BaseEntity {
   )
   @Exclude()
   unreadAsyncQuestions: UnreadAsyncQuestionModel[];
+
+  @ManyToOne(() => SuperCourseModel, (course) => course.courses)
+  @JoinColumn({ name: 'superCourseId' })
+  superCourse: SuperCourseModel;
+
+  @Column({ nullable: true })
+  superCourseId: number;
 
   @OneToMany(
     (type) => ChatbotDocPdfModel,

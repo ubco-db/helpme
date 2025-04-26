@@ -12,19 +12,20 @@ import {
 import React, { useMemo } from 'react'
 import Meta from 'antd/es/card/Meta'
 import Link from 'next/link'
-import stringToHexColor from '@/app/utils/generalUtils'
+import stringToHexColor, { getErrorMessage } from '@/app/utils/generalUtils'
 import { ColumnsType } from 'antd/es/table'
+import { StarFilled, StarOutlined } from '@ant-design/icons'
+import { API } from '@/app/api'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 // TODO: remove all code for unassigned semesters when all production courses have new semesters set
 
 interface CoursesSectionProps {
-  courses: UserCourse[]
   semesters: SemesterPartial[]
   enabledTableView: boolean
 }
 
 const CoursesSection: React.FC<CoursesSectionProps> = ({
-  courses,
   semesters,
   enabledTableView,
 }) => {
@@ -45,14 +46,64 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
     },
   })
 
+  const { userInfo, setUserInfo } = useUserInfo()
+
+  // Updated toggleFavourite function to use API object
+  const toggleFavourite = (course: UserCourse) => {
+    const newStatus = !course.favourited
+    API.course
+      .toggleFavourited(course.course.id)
+      .then(() => {
+        setUserInfo((prev) => ({
+          ...prev,
+          courses: prev.courses.map((c) =>
+            c.course.id === course.course.id
+              ? { ...c, favourited: newStatus }
+              : c,
+          ),
+        }))
+      })
+      .catch((err) => {
+        message.error(getErrorMessage(err))
+      })
+  }
+
   const columns: ColumnsType<UserCourse> = [
+    {
+      key: 'favourite',
+      width: '5%',
+      align: 'center',
+      render: (_, course) => (
+        <Tooltip
+          title="Toggle favourited courses you wish to see on your dashboard"
+          mouseEnterDelay={0.5}
+        >
+          {course.favourited ? (
+            <StarFilled
+              onClick={() => toggleFavourite(course)}
+              style={{ color: 'gold', cursor: 'pointer', fontSize: '1rem' }}
+            />
+          ) : (
+            <StarOutlined
+              onClick={() => toggleFavourite(course)}
+              style={{ color: 'grey', cursor: 'pointer', fontSize: '1rem' }}
+            />
+          )}
+        </Tooltip>
+      ),
+    },
     {
       dataIndex: ['course', 'name'],
       key: 'name',
       width: '70%',
       align: 'left',
       render: (text, course) => (
-        <span className="text-lg font-semibold">{text}</span>
+        <span className="flex items-center text-lg font-semibold">
+          {text}
+          {course.course.sectionGroupName && (
+            <span className="ml-1 text-sm text-gray-600">{`[${course.course.sectionGroupName}]`}</span>
+          )}
+        </span>
       ),
     },
     {
@@ -101,33 +152,38 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
     },
   ]
 
+  // Allow recalculation for course favouriting feature (harder to memoize)
   const coursesWithoutSemester = useMemo(() => {
-    return courses.filter((userCourse) => {
+    return userInfo.courses.filter((userCourse) => {
       return !semesters?.some(
         (semester) => semester.id === userCourse.course.semesterId,
       )
     })
-  }, [courses, semesters])
+  }, [userInfo.courses, semesters])
 
   const sortedCoursesInCardView = useMemo(() => {
-    return [...courses].sort((a, b) => {
-      const semesterA = semesters?.find(
-        (semester) => semester.id === a.course.semesterId,
+    return [...userInfo.courses]
+      .filter(
+        (userCourse) => userCourse.favourited && userCourse.course.enabled,
       )
-      const semesterB = semesters?.find(
-        (semester) => semester.id === b.course.semesterId,
-      )
-      if (semesterA && semesterB) {
-        const diff = semesterB.endDate.valueOf() - semesterA.endDate.valueOf()
-        if (diff === 0) {
-          return a.course.name.localeCompare(b.course.name)
-        } else {
-          return diff
+      .sort((a, b) => {
+        const semesterA = semesters?.find(
+          (semester) => semester.id === a.course.semesterId,
+        )
+        const semesterB = semesters?.find(
+          (semester) => semester.id === b.course.semesterId,
+        )
+        if (semesterA && semesterB) {
+          const diff = semesterB.endDate.valueOf() - semesterA.endDate.valueOf()
+          if (diff === 0) {
+            return a.course.name.localeCompare(b.course.name)
+          } else {
+            return diff
+          }
         }
-      }
-      return 0
-    })
-  }, [courses, semesters])
+        return 0
+      })
+  }, [userInfo.courses, semesters])
 
   return (
     <div className="mb-8 mt-5 w-full">
@@ -136,7 +192,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
           {semesters
             ?.sort((a, b) => b.endDate.valueOf() - a.endDate.valueOf())
             .map((semester) => {
-              const semesterCourses = courses.filter(
+              const semesterCourses = userInfo.courses.filter(
                 (userCourse) => userCourse.course.semesterId === semester.id,
               )
               if (semesterCourses.length === 0) {
@@ -171,12 +227,16 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                   <Table
                     columns={columns}
                     size="small"
-                    dataSource={semesterCourses.sort((a, b) =>
-                      a.course.name.localeCompare(b.course.name),
-                    )}
+                    dataSource={semesterCourses
+                      .filter((userCourse) => userCourse.course.enabled)
+                      .sort((a, b) =>
+                        a.course.name.localeCompare(b.course.name),
+                      )}
                     rowKey={(course) => course.course.id}
                     pagination={
-                      semesterCourses.length > 5 ? { pageSize: 5 } : false
+                      semesterCourses.length > 5
+                        ? { pageSize: 5, showQuickJumper: true }
+                        : false
                     }
                     showHeader={false}
                   />
@@ -260,8 +320,19 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                   </div>
                 }
               >
-                <div className="flex flex-wrap items-center justify-between align-middle">
-                  <Meta title={course.course.name} />
+                <div className="flex flex-wrap items-start justify-between align-middle">
+                  <Meta
+                    title={course.course.name}
+                    description={
+                      course.course.sectionGroupName ? (
+                        <div className="h-4 text-xs font-semibold text-gray-600">
+                          {`[${course.course.sectionGroupName}]`}
+                        </div>
+                      ) : (
+                        <div className="h-4"></div>
+                      )
+                    }
+                  />
                   <Tag
                     color={
                       course.role === Role.STUDENT

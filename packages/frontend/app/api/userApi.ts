@@ -1,4 +1,4 @@
-import { User } from '@/middlewareType'
+import { User } from '@koh/common'
 import { LoginData, PasswordResetData, RegisterData } from '../typings/user'
 import { fetchAuthToken } from './cookieApi'
 import * as Sentry from '@sentry/nextjs'

@@ -14,7 +14,7 @@ import {
   UseGuards,
   UseInterceptors,
   ParseIntPipe,
-  ForbiddenException,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
@@ -35,6 +35,7 @@ import {
   CourseResponse,
   OrgUser,
   GetOrganizationResponse,
+  BatchCourseCloneAttributes,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -62,7 +63,6 @@ import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import _ from 'lodash';
 import * as sharp from 'sharp';
-import { UserId } from '../decorators/user.decorator';
 import { User } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
@@ -70,6 +70,8 @@ import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { CourseRoles } from 'decorators/course-roles.decorator';
+import { SuperCourseModel } from 'course/super-course.entity';
+import { CourseService } from 'course/course.service';
 
 // TODO: put the error messages in ERROR_MESSAGES object
 
@@ -78,6 +80,7 @@ export class OrganizationController {
   constructor(
     private organizationService: OrganizationService,
     private redisProfileService: RedisProfileService,
+    private courseService: CourseService,
     private schedulerRegistry: SchedulerRegistry,
   ) {}
 
@@ -377,17 +380,32 @@ export class OrganizationController {
           `Semester ID is invalid`,
           HttpStatus.BAD_REQUEST,
         );
-      } else if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
-        const semester = await manager.findOne(SemesterModel, {
-          where: { id: courseDetails.semesterId },
-          relations: ['courses'],
-        });
-        if (!semester) {
-          throw new HttpException(`Semester not found`, HttpStatus.NOT_FOUND);
-        }
-        newCourse.semester = semester;
-        await manager.save(newCourse);
+      } else if (courseDetails.semesterId && courseDetails.semesterId == -1) {
+        throw new HttpException(`Semester must be set`, HttpStatus.BAD_REQUEST);
       }
+
+      const semester = await manager.findOne(SemesterModel, {
+        where: { id: courseDetails.semesterId },
+        relations: ['courses'],
+      });
+      if (!semester) {
+        throw new HttpException(`Semester not found`, HttpStatus.NOT_FOUND);
+      }
+      newCourse.semester = semester;
+
+      const superCourse = await manager.findOne(SuperCourseModel, {
+        where: { name: newCourse.name },
+      });
+      if (!superCourse) {
+        const newSuperCourse = manager.create(SuperCourseModel, {
+          name: newCourse.name,
+          organizationId: oid,
+        });
+        await manager.save(newSuperCourse);
+      }
+      newCourse.superCourse = superCourse;
+
+      await manager.save(newCourse);
 
       // Create default settings
       const newCourseSettings = manager.create(CourseSettingsModel, {
@@ -505,17 +523,17 @@ export class OrganizationController {
         );
       } else if (courseDetails.semesterId && courseDetails.semesterId == -1) {
         throw new HttpException(`Semester must be set`, HttpStatus.BAD_REQUEST);
-      } else if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
-        const semester = await manager.findOne(SemesterModel, {
-          where: { id: courseDetails.semesterId },
-          relations: ['courses'],
-        });
-        if (!semester) {
-          throw new HttpException(`Semester not found`, HttpStatus.NOT_FOUND);
-        }
-
-        courseInfo.course.semester = semester;
       }
+
+      const semester = await manager.findOne(SemesterModel, {
+        where: { id: courseDetails.semesterId },
+        relations: ['courses'],
+      });
+      if (!semester) {
+        throw new HttpException(`Semester not found`, HttpStatus.NOT_FOUND);
+      }
+
+      courseInfo.course.semester = semester;
 
       courseInfo.course.name = courseDetails.name;
 
@@ -529,6 +547,23 @@ export class OrganizationController {
 
       courseInfo.course.zoomLink = courseDetails.zoomLink;
       courseInfo.course.timezone = courseDetails.timezone;
+
+      // To update production courses with the new super course feature when they update their course
+      // TODO: remove once all existing production courses have non-null super courses
+      const standardizedCourseName = courseInfo.course.name
+        .trim()
+        .toLowerCase();
+      const superCourse = await manager.findOne(SuperCourseModel, {
+        where: { name: standardizedCourseName },
+      });
+      if (!superCourse) {
+        const newSuperCourse = manager.create(SuperCourseModel, {
+          name: standardizedCourseName,
+          organizationId: oid,
+        });
+        await manager.save(newSuperCourse);
+      }
+      courseInfo.course.superCourse = superCourse;
 
       await manager.save(courseInfo.course);
       // Remove current professors
@@ -1461,7 +1496,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async getCourses(
     @Param('oid', ParseIntPipe) oid: number,
-    @Param('page', ParseIntPipe) page: number,
+    @Param('page', new DefaultValuePipe(-1), ParseIntPipe) page: number,
     @Query('search') search: string,
   ): Promise<CourseResponse[]> {
     const pageSize = 50;
@@ -1582,6 +1617,26 @@ export class OrganizationController {
       .catch((err) => {
         res.status(500).send({ message: err });
       });
+  }
+
+  @Post(':oid/clone_courses')
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
+  @OrgRoles(OrganizationRole.ADMIN)
+  async batchCloneCourses(
+    @Param('oid', ParseIntPipe) oid: number, // unused for now, only for the guard
+    @User(['chat_token']) user: UserModel,
+    @Body() body: BatchCourseCloneAttributes,
+  ): Promise<string> {
+    if (!user || !user.chat_token) {
+      console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
+      throw new HttpException(
+        ERROR_MESSAGES.profileController.accountNotAvailable,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    this.courseService.performBatchClone(user, body);
+    return 'Batch Cloning Operation Successfully Queued!';
   }
 
   private isValidUrl = (url: string): boolean => {

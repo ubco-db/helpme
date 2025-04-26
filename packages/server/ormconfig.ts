@@ -39,7 +39,8 @@ import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';
 import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entity';
 import { UnreadAsyncQuestionModel } from './src/asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from './src/asyncQuestion/asyncQuestionComment.entity';
-import { ChatbotDocPdfModel } from './src/chatbot/chatbot-doc-pdf.entity';
+import { SuperCourseModel } from './src/course/super-course.entity';
+import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
 import { isProd } from '@koh/common';
 import * as fs from 'fs';
 
@@ -76,10 +77,10 @@ const typeorm = {
   entities: [
     CourseModel,
     MailServiceModel,
-    UserSubscriptionModel,
     CourseSectionMappingModel,
     SemesterModel,
     UserModel,
+    UserSubscriptionModel,
     UserCourseModel,
     QuestionModel,
     ChatbotQuestionModel,
@@ -108,6 +109,7 @@ const typeorm = {
     ApplicationConfigModel,
     QueueInviteModel,
     QueueChatsModel,
+    SuperCourseModel,
     InsightDashboardModel,
     LMSOrganizationIntegrationModel,
     LMSCourseIntegrationModel,

@@ -21,13 +21,7 @@ import { RedisProfileService } from 'redisProfile/redis-profile.service';
     MailModule,
   ],
   controllers: [AuthController],
-  providers: [
-    JwtStrategy,
-    AuthService,
-    MailService,
-    CourseService,
-    RedisProfileService,
-  ],
+  providers: [JwtStrategy, AuthService, CourseService, RedisProfileService],
   exports: [AuthService],
 })
 export class AuthModule {}

@@ -25,21 +25,6 @@ const ArchiveCourse: React.FC<ArchiveCourseProps> = ({
       .updateCourseAccess(organization.id, Number(courseData.courseId))
       .then(() => {
         message.success('Course access was updated')
-        setUserInfo({
-          ...userInfo,
-          courses: userInfo.courses.map((userCourse) => {
-            if (userCourse.course.id === courseData.courseId) {
-              return {
-                ...userCourse,
-                course: {
-                  ...userCourse.course,
-                  enabled: !courseData.course?.enabled,
-                },
-              }
-            }
-            return userCourse
-          }),
-        })
         fetchCourseData()
       })
       .catch((error) => {
