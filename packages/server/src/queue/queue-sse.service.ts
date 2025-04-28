@@ -92,7 +92,7 @@ export class QueueSSEService {
           await updateFunction(queueId);
         } catch (e) {}
       },
-      150,
+      150, // Don't make too high, since it can cause tests to fail as it will run updateFunction even after the endpoint is finished
       {
         leading: true,
         trailing: true,
