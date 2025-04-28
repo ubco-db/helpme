@@ -201,7 +201,6 @@ export type CourseCloneAttributes = {
     modelName: boolean
     prompt: boolean
     similarityThresholdDocuments: boolean
-    similarityThresholdQuestions: boolean
     temperature: boolean
     topK: boolean
   }
@@ -228,7 +227,6 @@ export const defaultCourseCloneAttributes: CourseCloneAttributes = {
     modelName: true,
     prompt: true,
     similarityThresholdDocuments: true,
-    similarityThresholdQuestions: true,
     temperature: true,
     topK: true,
   },
@@ -246,7 +244,6 @@ export type CloneChatbotSettings = {
   modelName: string
   prompt: string
   similarityThresholdDocuments: number
-  similarityThresholdQuestions: number
   temperature: number
   topK: number
 }
@@ -257,11 +254,10 @@ export const defaultChatbotSetting = {
     2) If you unsure of the answer, you shall PREFACE your answer with "I'm not sure, but this is what I think."
     3) Provide an answer in ONLY 5 sentences or less. Try to be as concise as possible.
     4) Do not use any other resources apart from the context provided to you.`,
-  modelName: 'gpt-3.5-turbo-0125',
+  modelName: 'qwen2.5:7b',
   temperature: 0.7,
   topK: 5,
   similarityThresholdDocuments: 0.6,
-  similarityThresholdQuestions: 0.9,
 }
 
 export class RegistrationTokenDetails {

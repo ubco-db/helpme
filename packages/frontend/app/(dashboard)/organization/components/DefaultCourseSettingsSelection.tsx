@@ -164,20 +164,6 @@ const DefaultCourseSettingsSelection: React.FC<
                     </Checkbox>
                   </Form.Item>
                   <Form.Item
-                    name={['chatbotSettings', 'similarityThresholdQuestions']}
-                    noStyle
-                    valuePropName="checked"
-                  >
-                    <Checkbox disabled={!chatBotEnabled}>
-                      Similarity Threshold for Questions
-                      {!chatBotEnabled && (
-                        <span className="ml-2 text-xs italic text-gray-400">
-                          (Requires &quot;ChatBot Enabled&quot; to be checked)
-                        </span>
-                      )}
-                    </Checkbox>
-                  </Form.Item>
-                  <Form.Item
                     name={['chatbotSettings', 'temperature']}
                     noStyle
                     valuePropName="checked"
