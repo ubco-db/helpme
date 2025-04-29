@@ -10,7 +10,7 @@ import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueCleanService } from '../queue/queue-clean/queue-clean.service';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { MailModule } from 'mail/mail.module';
-
+import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 @Module({
   controllers: [CourseController],
   imports: [
@@ -29,6 +29,7 @@ import { MailModule } from 'mail/mail.module';
     RedisProfileService,
     ApplicationConfigService,
     QueueCleanService,
+    ChatbotApiService,
   ],
 })
 export class CourseModule {}

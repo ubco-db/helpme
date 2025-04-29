@@ -240,26 +240,6 @@ export type BatchCourseCloneResponse = {
   message: string
 }
 
-export type CloneChatbotSettings = {
-  modelName: string
-  prompt: string
-  similarityThresholdDocuments: number
-  temperature: number
-  topK: number
-}
-
-export const defaultChatbotSetting = {
-  prompt: `RULES: 
-    1) If you don't know the answer just say that you "I don't know", do not try to make up an answer.
-    2) If you unsure of the answer, you shall PREFACE your answer with "I'm not sure, but this is what I think."
-    3) Provide an answer in ONLY 5 sentences or less. Try to be as concise as possible.
-    4) Do not use any other resources apart from the context provided to you.`,
-  modelName: 'qwen2.5:7b',
-  temperature: 0.7,
-  topK: 5,
-  similarityThresholdDocuments: 0.6,
-}
-
 export class RegistrationTokenDetails {
   @IsString()
   token!: string
@@ -511,6 +491,13 @@ export interface ChatbotSettingsMetadata {
   similarityThresholdDocuments: number
   temperature: number
   topK: number
+}
+export interface ChatbotSettingsUpdateParams {
+  modelName?: string
+  prompt?: string
+  similarityThresholdDocuments?: number
+  temperature?: number
+  topK?: number
 }
 
 export interface InteractionResponse {

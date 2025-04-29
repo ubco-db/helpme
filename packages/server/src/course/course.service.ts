@@ -8,14 +8,13 @@ import {
   UserPartial,
   CourseCloneAttributes,
   ChatbotSettings,
-  defaultChatbotSetting,
   OrganizationRole,
   CoursePartial,
   UserCourse,
-  CloneChatbotSettings,
   BatchCourseCloneResponse,
   BatchCourseCloneAttributes,
   MailServiceType,
+  ChatbotSettingsMetadata,
 } from '@koh/common';
 import {
   HttpException,
@@ -41,12 +40,14 @@ import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
 import { MailService } from 'mail/mail.service';
-
+import { ChatbotApiService } from 'chatbot/chatbot-api.service';
+import { InternalServerErrorException } from '@nestjs/common';
 @Injectable()
 export class CourseService {
   constructor(
     private readonly redisProfileService: RedisProfileService,
     private readonly mailService: MailService,
+    private readonly chatbotApiService: ChatbotApiService,
   ) {}
 
   async getTACheckInCheckOutTimes(
@@ -569,89 +570,73 @@ export class CourseService {
       // -------------- For Chatbot Settings and Documents --------------
 
       if (cloneData.cloneCourseSettings.chatBotEnabled) {
-        const getSettingsResponse = await fetch(
-          `http://localhost:3003/chat/${courseId}/oneChatbotSetting`,
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              HMS_API_TOKEN: chatToken,
-            },
-          },
-        );
+        const oldChatbotSettings = await this.chatbotApiService
+          .getChatbotSettings(courseId, chatToken)
+          .catch((err) => {
+            console.error(
+              `Failed to get current course chatbot data in chatbot service:`,
+              err,
+            );
+            throw new InternalServerErrorException(
+              `Failed to fetch chatbot settings for current course from chatbot service: ${err.message}`,
+            );
+          });
 
-        if (!getSettingsResponse.ok) {
-          console.error(
-            `Failed to get current course chatbot data in chatbot service: [${getSettingsResponse.status}] ${getSettingsResponse.statusText}`,
-          );
-          throw new BadRequestException(
-            'Failed to fetch current course chatbot data from chatbot service',
-          );
-        }
-
-        const chatbotData: CloneChatbotSettings =
-          await getSettingsResponse.json();
-
-        const clonedChatbotData: CloneChatbotSettings = defaultChatbotSetting;
-
+        // cloned course was initialized with default chatbot settings. now just need to create an object with the settings we want to copy
+        // over and then patch the settings for the cloned course
+        const clonedChatbotDataToPatch: Partial<ChatbotSettingsMetadata> = {};
         if (cloneData.chatbotSettings.modelName) {
-          clonedChatbotData.modelName = chatbotData.modelName;
+          clonedChatbotDataToPatch.modelName =
+            oldChatbotSettings.metadata.modelName;
         }
         if (cloneData.chatbotSettings.prompt) {
-          clonedChatbotData.prompt = chatbotData.prompt;
+          clonedChatbotDataToPatch.prompt = oldChatbotSettings.metadata.prompt;
         }
         if (cloneData.chatbotSettings.similarityThresholdDocuments) {
-          clonedChatbotData.similarityThresholdDocuments =
-            chatbotData.similarityThresholdDocuments;
+          clonedChatbotDataToPatch.similarityThresholdDocuments =
+            oldChatbotSettings.metadata.similarityThresholdDocuments;
         }
         if (cloneData.chatbotSettings.temperature) {
-          clonedChatbotData.temperature = chatbotData.temperature;
+          clonedChatbotDataToPatch.temperature =
+            oldChatbotSettings.metadata.temperature;
         }
         if (cloneData.chatbotSettings.topK) {
-          clonedChatbotData.topK = chatbotData.topK;
+          clonedChatbotDataToPatch.topK = oldChatbotSettings.metadata.topK;
         }
 
-        const patchSettingsResponse = await fetch(
-          `http://localhost:3003/chat/${clonedCourse.id}/updateChatbotSetting`,
-          {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              HMS_API_TOKEN: chatToken,
-            },
-            body: JSON.stringify(clonedChatbotData),
-          },
-        );
-
-        if (!patchSettingsResponse.ok) {
-          console.error(
-            `Failed to set cloned chatbot data in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
-          );
-          throw new BadRequestException(
-            'Failed to set cloned chatbot data from chatbot service',
-          );
-        }
+        await this.chatbotApiService
+          .updateChatbotSettings(
+            clonedChatbotDataToPatch,
+            clonedCourse.id,
+            chatToken,
+          )
+          .catch((err) => {
+            console.error(
+              `Failed to set cloned chatbot data in chatbot service:`,
+              err,
+            );
+            throw new InternalServerErrorException(
+              `Failed to set cloned chatbot data from chatbot service: ${err.message}`,
+            );
+          });
 
         if (cloneData.includeDocuments) {
-          const postDocumentsResponse = await fetch(
-            `http://localhost:3003/chat/${courseId}/cloneCourseDocuments/${clonedCourse.id}/${cloneData.includeInsertedQuestions === true}`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                HMS_API_TOKEN: chatToken,
-              },
-            },
-          );
-
-          if (!postDocumentsResponse.ok) {
-            console.error(
-              `Failed to copy chatbot documents from original course in chatbot service: [${patchSettingsResponse.status}] ${patchSettingsResponse.statusText}`,
-            );
-            throw new BadRequestException(
-              'Failed to copy chatbot documents from original course in chatbot service',
-            );
-          }
+          await this.chatbotApiService
+            .cloneCourseDocuments(
+              courseId,
+              chatToken,
+              clonedCourse.id,
+              cloneData.includeInsertedQuestions === true,
+            )
+            .catch((err) => {
+              console.error(
+                `Failed to clone chatbot documents from original course in chatbot service:`,
+                err,
+              );
+              throw new InternalServerErrorException(
+                `Failed to clone chatbot documents from original course in chatbot service: ${err.message}`,
+              );
+            });
         }
       }
 

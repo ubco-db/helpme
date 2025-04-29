@@ -5,6 +5,8 @@ import {
   AddDocumentChunkParams,
   ChatbotQuestionResponseChatbotDB,
   UpdateChatbotQuestionParams,
+  ChatbotSettings,
+  ChatbotSettingsUpdateParams,
 } from '@koh/common';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -132,12 +134,15 @@ export class ChatbotApiService {
   }
 
   // Chatbot settings endpoints
-  async getChatbotSettings(courseId: number, userToken: string) {
+  async getChatbotSettings(
+    courseId: number,
+    userToken: string,
+  ): Promise<ChatbotSettings> {
     return this.request('GET', 'oneChatbotSetting', courseId, userToken);
   }
 
   async updateChatbotSettings(
-    settings: ChatbotSettingsMetadata,
+    settings: ChatbotSettingsUpdateParams,
     courseId: number,
     userToken: string,
   ) {
@@ -281,5 +286,23 @@ export class ChatbotApiService {
     return this.request('POST', 'document/url/github', courseId, userToken, {
       url,
     });
+  }
+
+  async cloneCourseDocuments(
+    courseId: number,
+    userToken: string,
+    cloneCourseId: number,
+    includeInsertedQuestions: boolean,
+  ) {
+    return this.request(
+      'POST',
+      `cloneCourseDocuments/${cloneCourseId}`,
+      courseId,
+      userToken,
+      undefined,
+      {
+        includeInsertedQuestions,
+      },
+    );
   }
 }

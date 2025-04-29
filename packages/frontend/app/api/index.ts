@@ -92,6 +92,7 @@ import {
   UpdateChatbotQuestionParams,
   QueueChatPartial,
   GetQueueChatsResponse,
+  ChatbotSettingsUpdateParams,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -302,7 +303,7 @@ class APIClient {
         this.req('GET', `/api/v1/chatbot/settings/${courseId}`),
       updateSettings: async (
         courseId: number,
-        settings: ChatbotSettingsMetadata,
+        settings: ChatbotSettingsUpdateParams,
       ): Promise<{ success: boolean }> =>
         this.req(
           'PATCH',
