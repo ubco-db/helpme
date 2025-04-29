@@ -66,7 +66,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
                 enabled: response.course!.enabled,
                 sectionGroupName: response.course!.sectionGroupName!,
               },
-              role: 'professor' as Role,
+              role: Role.PROFESSOR,
               favourited: uc.favourited,
             }
           : uc,

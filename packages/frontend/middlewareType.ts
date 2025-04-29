@@ -1,3 +1,10 @@
+/*
+  This file contains stuff that we would otherwise like to have inside our common/index.ts to use
+  in our middleware but can't due to some error when importing it into the middleware.
+
+  This was a while back though so idk what the error is exactly or if its still relevant but i'll add a comment explaining this
+*/
+
 export const PROD_URL = 'https://coursehelp.ubc.ca'
 
 // Get domain. works on node and browser
@@ -16,6 +23,7 @@ export const getEnv = (): 'production' | 'dev' => {
 
 export const isProd = (): boolean => domain() === PROD_URL
 
+/* Duplicate of the User type in common/index.ts */
 export class User {
   id!: number
   email!: string
