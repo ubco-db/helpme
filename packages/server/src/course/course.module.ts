@@ -31,5 +31,6 @@ import { ChatbotApiService } from 'chatbot/chatbot-api.service';
     QueueCleanService,
     ChatbotApiService,
   ],
+  exports: [CourseService, ChatbotApiService],
 })
 export class CourseModule {}

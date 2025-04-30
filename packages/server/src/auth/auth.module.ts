@@ -8,7 +8,7 @@ import { MailService } from 'mail/mail.service';
 import { MailModule } from 'mail/mail.module';
 import { CourseService } from 'course/course.service';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
-
+import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 @Module({
   imports: [
     JwtModule.registerAsync({
@@ -21,7 +21,13 @@ import { RedisProfileService } from 'redisProfile/redis-profile.service';
     MailModule,
   ],
   controllers: [AuthController],
-  providers: [JwtStrategy, AuthService, CourseService, RedisProfileService],
+  providers: [
+    JwtStrategy,
+    AuthService,
+    CourseService,
+    RedisProfileService,
+    ChatbotApiService,
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}
