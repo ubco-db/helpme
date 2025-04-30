@@ -479,6 +479,7 @@ export class CourseService {
         );
       }
 
+      //  If they're cloning the course with same semester different section (useSection = true), then the sections must be different.
       if (
         cloneData.useSection &&
         cloneData.newSection === originalCourse.sectionGroupName
@@ -488,6 +489,7 @@ export class CourseService {
           HttpStatus.BAD_REQUEST,
         );
       }
+      // Otherwise, if they're cloning the course with same section different semester (useSection = false), then the semesters must be different.
       if (
         !cloneData.useSection &&
         cloneData.newSemesterId === originalCourse.semesterId
@@ -565,6 +567,10 @@ export class CourseService {
           clonedSettings.asyncCentreAIAnswers =
             origSettings.asyncCentreAIAnswers;
         }
+        await manager.save(clonedSettings);
+      } else {
+        const clonedSettings = new CourseSettingsModel();
+        clonedSettings.courseId = clonedCourse.id;
         await manager.save(clonedSettings);
       }
 
