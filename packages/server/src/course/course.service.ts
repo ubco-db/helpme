@@ -574,12 +574,26 @@ export class CourseService {
         await manager.save(clonedSettings);
       }
 
-      for (const professor of professors) {
+      if (professors.length > 0) {
+        for (const professor of professors) {
+          const profUserCourse = new UserCourseModel();
+          profUserCourse.user = professor;
+          profUserCourse.course = clonedCourse;
+          profUserCourse.role = Role.PROFESSOR;
+          await manager.save(profUserCourse);
+          // delete that professor's cache from redis
+          await this.redisProfileService.deleteProfile(`u:${professor.id}`);
+        }
+      } else {
+        console.error(
+          `Somehow no professors were provided for course clone of course ${originalCourse.id}. New course Id ${clonedCourse.id}. Assigning the cloner to the course`,
+        );
         const profUserCourse = new UserCourseModel();
-        profUserCourse.user = professor;
-        profUserCourse.course = clonedCourse;
+        profUserCourse.userId = userId;
+        profUserCourse.courseId = clonedCourse.id;
         profUserCourse.role = Role.PROFESSOR;
         await manager.save(profUserCourse);
+        await this.redisProfileService.deleteProfile(`u:${userId}`);
       }
 
       const organizationCourse = new OrganizationCourseModel();
@@ -662,7 +676,6 @@ export class CourseService {
       }
 
       if (professorIds.includes(userId)) {
-        await this.redisProfileService.deleteProfile(`u:${userId}`);
         return {
           course: {
             id: clonedCourse.id,
