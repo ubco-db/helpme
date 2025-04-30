@@ -4,13 +4,14 @@ import { getRoleInCourse } from '@/app/utils/generalUtils'
 import StudentSchedulePanel from './components/StudentSchedulePanel'
 import TAFacultySchedulePanel from './components/TASchedulePanel'
 import { Role } from '@koh/common'
-import { useEffect } from 'react'
+import { useEffect, use } from 'react'
 import { useChatbotContext } from '../components/chatbot/ChatbotProvider'
 type SchedulePageProps = {
-  params: { cid: string }
+  params: Promise<{ cid: string }>
 }
 
-export default function SchedulePage({ params }: SchedulePageProps) {
+export default function SchedulePage(props: SchedulePageProps) {
+  const params = use(props.params)
   const cid = Number(params.cid)
   // chatbot
   const { setCid, setRenderSmallChatbot } = useChatbotContext()

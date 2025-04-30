@@ -19,13 +19,16 @@ import { Calendar, ERROR_MESSAGES, OrganizationRole, Role } from '@koh/common';
 import { CourseModel } from '../course/course.entity';
 import { Roles } from '../decorators/roles.decorator';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
-import { getManager } from 'typeorm';
 import { OrganizationRolesGuard } from '../guards/organization-roles.guard';
+import { DataSource } from 'typeorm';
 
 @Controller('calendar')
 @UseGuards(JwtAuthGuard)
 export class CalendarController {
-  constructor(private readonly calendarService: CalendarService) {}
+  constructor(
+    private readonly calendarService: CalendarService,
+    private dataSource: DataSource,
+  ) {}
   @Post(':cid')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
@@ -33,7 +36,11 @@ export class CalendarController {
     @Body() body: Calendar,
     @Param('cid', ParseIntPipe) cid: number,
   ): Promise<CalendarModel> {
-    const course = await CourseModel.findOne(cid);
+    const course = await CourseModel.findOne({
+      where: {
+        id: cid,
+      },
+    });
     if (!course) {
       throw new HttpException(
         ERROR_MESSAGES.courseController.courseNotFound,
@@ -51,9 +58,8 @@ export class CalendarController {
       );
     }
     try {
-      const entityManager = getManager();
       let event: null | CalendarModel = null;
-      await entityManager.transaction(async (transactionalEntityManager) => {
+      await this.dataSource.transaction(async (transactionalEntityManager) => {
         event = await transactionalEntityManager.save(CalendarModel, {
           title: body.title,
           start: body.start,
@@ -105,11 +111,18 @@ export class CalendarController {
   @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async updateEvent(
-    @Param('calId', ParseIntPipe) calId: string,
+    @Param('calId', ParseIntPipe) calId: number,
     @Param('cid', ParseIntPipe) cid: number,
     @Body() body: Partial<Calendar>,
   ): Promise<CalendarModel> {
-    const event = await CalendarModel.findOne(calId, { relations: ['staff'] });
+    const event = await CalendarModel.findOne({
+      where: {
+        id: calId,
+      },
+      relations: {
+        staff: true,
+      },
+    });
     if (!event) {
       console.error('Event not found with calID: ' + calId);
       throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
@@ -125,8 +138,7 @@ export class CalendarController {
       );
     }
     try {
-      const entityManager = getManager();
-      await entityManager.transaction(async (transactionalEntityManager) => {
+      await this.dataSource.transaction(async (transactionalEntityManager) => {
         const oldStaff = event.staff.map((staff) => ({ ...staff }));
         Object.assign(event, body);
         await event.save();
@@ -184,8 +196,16 @@ export class CalendarController {
     const events: (CalendarModel & { staffIds?: number[] } & {
       staffNames?: string[];
     })[] = await CalendarModel.find({
-      where: { course: cid },
-      relations: ['staff', 'staff.user'],
+      where: {
+        course: {
+          id: cid,
+        },
+      },
+      relations: {
+        staff: {
+          user: true,
+        },
+      },
     });
     events.forEach((event) => {
       // reduce staff from [{userId: 1, calendarId: 2}, {userId: 3, calendarId: 2}] to [1, 3]
@@ -215,8 +235,14 @@ export class CalendarController {
     const dayOfWeek = targetDate.getDay().toString();
     // Retrieve all events for the given course
     const events = await CalendarModel.find({
-      where: { course: cid },
-      relations: ['staff'],
+      where: {
+        course: {
+          id: cid,
+        },
+      },
+      relations: {
+        staff: true,
+      },
     });
     // Filter to get events occurring on the target date
     const filteredEvents: (CalendarModel & { staffIds?: number[] })[] =
@@ -248,8 +274,13 @@ export class CalendarController {
   async deleteCalendarEvent(
     @Param('eventId', ParseIntPipe) eventId: number,
   ): Promise<CalendarModel> {
-    const event = await CalendarModel.findOne(eventId, {
-      relations: ['staff'],
+    const event = await CalendarModel.findOne({
+      where: {
+        id: eventId,
+      },
+      relations: {
+        staff: true,
+      },
     });
     if (!event) {
       console.error('Event not found');

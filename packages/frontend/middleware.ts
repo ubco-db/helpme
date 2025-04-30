@@ -250,7 +250,8 @@ export const config = {
      * - favicon.ico (favicon file)
      * - scripts
      * - styles
+     * - sentry-tunnel (Sentry monitoring)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|scripts|styles).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|scripts|styles|sentry-tunnel).*)',
   ],
 }

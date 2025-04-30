@@ -1,11 +1,7 @@
 import { OrganizationRole, SemesterPartial } from '@koh/common';
 import { setupIntegrationTest } from './util/testUtils';
 import { SemesterModule } from '../src/semester/semester.module';
-import {
-  OrganizationFactory,
-  OrganizationUserFactory,
-  SemesterFactory,
-} from './util/factories';
+import { OrganizationUserFactory, SemesterFactory } from './util/factories';
 import { SemesterModel } from '../src/semester/semester.entity';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { UserModel } from '../src/profile/user.entity';
@@ -170,7 +166,7 @@ describe('SemesterController Integration', () => {
       const deletedSemester = await SemesterModel.findOne({
         where: { id: semester1.id },
       });
-      expect(deletedSemester).toBeUndefined();
+      expect(deletedSemester).toBeNull();
     });
 
     it('should return 400 if semester is not found', async () => {

@@ -15,7 +15,10 @@ export const CourseRole = createParamDecorator(
       request.params.id ??
       null;
     const userCourse = await UserCourseModel.findOne({
-      where: { userId: request.user.userId, courseId },
+      where: {
+        userId: request.user.userId,
+        courseId: courseId,
+      },
     });
 
     if (!userCourse) {

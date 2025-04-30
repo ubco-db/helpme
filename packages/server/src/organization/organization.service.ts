@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { OrganizationUserModel } from './organization-user.entity';
 import { UserModel } from 'profile/user.entity';
-import { Brackets, getRepository } from 'typeorm';
+import { Brackets } from 'typeorm';
 import { OrganizationCourseModel } from './organization-course.entity';
 import { CourseModel } from 'course/course.entity';
 import {
@@ -84,8 +84,7 @@ export class OrganizationService {
     pageSize: number,
     search?: string,
   ): Promise<CourseResponse[]> {
-    const organizationCourses = await getRepository(OrganizationCourseModel)
-      .createQueryBuilder()
+    const organizationCourses = OrganizationCourseModel.createQueryBuilder()
       .leftJoin(
         CourseModel,
         'CourseModel',
@@ -147,8 +146,7 @@ export class OrganizationService {
     pageSize: number,
     search?: string,
   ): Promise<OrgUser[]> {
-    const organizationUsers = await getRepository(OrganizationUserModel)
-      .createQueryBuilder()
+    const organizationUsers = OrganizationUserModel.createQueryBuilder()
       .leftJoin(
         UserModel,
         'UserModel',

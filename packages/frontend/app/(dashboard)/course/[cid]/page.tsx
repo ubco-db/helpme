@@ -2,7 +2,7 @@
 
 import { Role } from '@koh/common'
 import { Col, Row, Button } from 'antd'
-import { ReactElement, useEffect, useMemo, useState } from 'react'
+import { ReactElement, useEffect, useMemo, useState, use } from 'react'
 import QueueCard from './components/QueueCard'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -22,10 +22,11 @@ import { useChatbotContext } from './components/chatbot/ChatbotProvider'
 import Chatbot from './components/chatbot/Chatbot'
 
 type CoursePageProps = {
-  params: { cid: string }
+  params: Promise<{ cid: string }>
 }
 
-export default function CoursePage({ params }: CoursePageProps): ReactElement {
+export default function CoursePage(props: CoursePageProps): ReactElement {
+  const params = use(props.params)
   const cid = Number(params.cid)
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, cid)

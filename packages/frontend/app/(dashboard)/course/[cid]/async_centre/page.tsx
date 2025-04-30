@@ -6,7 +6,13 @@ import {
   Role,
   asyncQuestionStatus,
 } from '@koh/common'
-import React, { ReactElement, useCallback, useEffect, useState } from 'react'
+import React, {
+  ReactElement,
+  useCallback,
+  useEffect,
+  useState,
+  use,
+} from 'react'
 import { Button, Checkbox, Popover, Segmented, Select, Tooltip } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getRoleInCourse } from '@/app/utils/generalUtils'
@@ -37,12 +43,13 @@ import ConvertChatbotQToAnytimeQModal from './components/modals/ConvertChatbotQT
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 type AsyncCentrePageProps = {
-  params: { cid: string }
+  params: Promise<{ cid: string }>
 }
 
-export default function AsyncCentrePage({
-  params,
-}: AsyncCentrePageProps): ReactElement {
+export default function AsyncCentrePage(
+  props0: AsyncCentrePageProps,
+): ReactElement {
+  const params = use(props0.params)
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()

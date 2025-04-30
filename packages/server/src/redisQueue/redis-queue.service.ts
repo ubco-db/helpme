@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { RedisService } from 'nestjs-redis';
 import { Redis } from 'ioredis';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import * as zlib from 'zlib';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 
 @Injectable()
 export class RedisQueueService {

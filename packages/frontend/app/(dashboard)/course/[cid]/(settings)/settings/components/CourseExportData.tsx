@@ -215,9 +215,9 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
               if (!myAssignmentProgress[taskId]) {
                 rowObject[taskId] = false
               } else {
-                rowObject[taskId] = myAssignmentProgress[taskId].isDone
+                rowObject[taskId] = myAssignmentProgress[taskId]?.isDone
 
-                if (myAssignmentProgress[taskId].isDone) {
+                if (myAssignmentProgress[taskId]?.isDone) {
                   rowObject.tasksCompleted++
                 }
               }

@@ -158,7 +158,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                             isMyQuestion &&
                             studentAssignmentProgress &&
                             studentAssignmentProgress[taskKey] &&
-                            studentAssignmentProgress[taskKey].isDone
+                            studentAssignmentProgress[taskKey]?.isDone
                               ? '✔️'
                               : taskValue.short_display_name
                           }

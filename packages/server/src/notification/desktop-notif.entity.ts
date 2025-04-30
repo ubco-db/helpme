@@ -26,16 +26,18 @@ export class DesktopNotifModel extends BaseEntity {
   @Column('text')
   auth: string;
 
-  @ManyToOne((type) => UserModel, (user) => user.desktopNotifs)
+  @ManyToOne((type) => UserModel, (user) => user.desktopNotifs, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'userId' })
   user: UserModel;
 
-  @Column({ nullable: true })
+  @Column()
   userId: number;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', default: '' })
   name: string;
 }

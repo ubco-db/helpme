@@ -2,7 +2,7 @@
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
 import { Role, TACheckinPair } from '@koh/common'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, use } from 'react'
 import { API } from '@/app/api'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -14,12 +14,13 @@ import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { format } from 'date-fns'
 
 type TACheckInCheckOutTimesProps = {
-  params: { cid: string }
+  params: Promise<{ cid: string }>
 }
 
-export default function TACheckInCheckOutTimes({
-  params,
-}: TACheckInCheckOutTimesProps) {
+export default function TACheckInCheckOutTimes(
+  props: TACheckInCheckOutTimesProps,
+) {
+  const params = use(props.params)
   const courseId = Number(params.cid)
 
   const { userInfo } = useUserInfo()

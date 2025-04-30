@@ -7,7 +7,6 @@ export class BackfillDefaultUserTeamsMessages {
   @Command({
     command: 'backfill:default-user-teams-messages',
     describe: 'set default Teams chat message for all users.',
-    autoExit: true,
   })
   async fix(): Promise<void> {
     const users = await UserModel.find();

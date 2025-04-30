@@ -76,24 +76,15 @@ export class QueueModel extends BaseEntity {
   @OneToMany((type) => QuestionTypeModel, (qtm) => qtm.queue)
   questionTypes: QuestionTypeModel[];
 
-  startTime: Date;
-  endTime: Date;
-
-  isOpen: boolean;
-
-  // This seems really weird, since staffList is always going to be >=0, so all queues are always open.
-  async checkIsOpen(): Promise<boolean> {
-    if (!this.staffList) {
-      console.error(ERROR_MESSAGES.queueController.missingStaffList, this.id);
-      throw new HttpException(
-        ERROR_MESSAGES.queueController.missingStaffList,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-    this.isOpen = this.staffList.length >= 0 && !this.isDisabled;
-    return this.isOpen;
-  }
-
+  // I really didn't want to make this a column
+  // but typeorm no longer allows you to have a property that is not a column on an entity class.
+  // It is a pain in the arse to fix this too,
+  // since getQueue first adds on the queueSize with addQueueSize and then returns a QueueModel,
+  // which other service functions will take, modify, and then run .save on it.
+  // Other endpoints will just return what getQueue returns.
+  // Basically, just know that you SHOULD NOT expect queueSize to be up-to-date in the database,
+  // and that it's literally only there so that we can have this regular class attribute here.
+  @Column({ default: 0 })
   queueSize: number;
 
   async addQueueSize(): Promise<void> {

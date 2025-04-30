@@ -1,4 +1,4 @@
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   LMSGet,
   LMSIntegrationService,
@@ -12,6 +12,7 @@ import {
 } from './lmsIntegration.adapter';
 import {
   CourseFactory,
+  initFactoriesFromService,
   lmsCourseIntFactory,
   lmsOrgIntFactory,
   OrganizationCourseFactory,
@@ -31,6 +32,8 @@ import { CourseModel } from '../course/course.entity';
 import { OrganizationModel } from '../organization/organization.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 /*
 Note:
@@ -39,25 +42,30 @@ Note:
 */
 describe('LMSIntegrationService', () => {
   let service: LMSIntegrationService;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule],
+      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule],
       providers: [LMSIntegrationService, LMSIntegrationAdapter],
     }).compile();
 
     service = module.get<LMSIntegrationService>(LMSIntegrationService);
-    conn = module.get<Connection>(Connection);
-  }, 10000);
+    dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
+  });
 
   afterAll(async () => {
     jest.clearAllMocks();
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('resynchronizeCourseIntegrations', () => {
@@ -93,7 +101,9 @@ describe('LMSIntegrationService', () => {
       await service.resynchronizeCourseIntegrations();
 
       expect(findSpy).toHaveBeenCalledTimes(1);
-      expect(findSpy).toHaveBeenCalledWith({ lmsSynchronize: true });
+      expect(findSpy).toHaveBeenCalledWith({
+        where: { lmsSynchronize: true },
+      });
 
       expect(service.syncDocuments).toHaveBeenCalledTimes(2);
       let i = 1;
@@ -166,7 +176,7 @@ describe('LMSIntegrationService', () => {
         LMSIntegrationPlatform.Canvas,
       );
 
-      const created = await LMSOrganizationIntegrationModel.findOne(undefined, {
+      const created = await LMSOrganizationIntegrationModel.findOne({
         where: {
           organizationId: org.id,
           apiPlatform: LMSIntegrationPlatform.Canvas,
@@ -191,7 +201,7 @@ describe('LMSIntegrationService', () => {
         LMSIntegrationPlatform.Canvas,
       );
 
-      const updated = await LMSOrganizationIntegrationModel.findOne(undefined, {
+      const updated = await LMSOrganizationIntegrationModel.findOne({
         where: {
           organizationId: org.id,
           apiPlatform: LMSIntegrationPlatform.Canvas,
@@ -221,7 +231,11 @@ describe('LMSIntegrationService', () => {
     it('should create a new course integration without an expiry', async () => {
       await service.createCourseLMSIntegration(orgInt, course.id, 'abc', 'def');
 
-      const check = await LMSCourseIntegrationModel.findOne(course.id);
+      const check = await LMSCourseIntegrationModel.findOne({
+        where: {
+          courseId: course.id,
+        },
+      });
       expect(check).toBeTruthy();
       expect(check.apiKeyExpiry).toBeNull();
     });
@@ -234,7 +248,11 @@ describe('LMSIntegrationService', () => {
         'def',
         new Date(),
       );
-      const check = await LMSCourseIntegrationModel.findOne(course.id);
+      const check = await LMSCourseIntegrationModel.findOne({
+        where: {
+          courseId: course.id,
+        },
+      });
       expect(check).toBeTruthy();
       expect(check.apiKeyExpiry).toBeTruthy();
     });

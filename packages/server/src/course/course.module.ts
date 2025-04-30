@@ -1,4 +1,5 @@
-import { CacheModule, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
 import { QueueModule } from '../queue/queue.module';
 import { LoginModule } from '../login/login.module';
 import { CourseController } from './course.controller';
@@ -9,6 +10,8 @@ import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueCleanService } from '../queue/queue-clean/queue-clean.service';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
+import { ApplicationConfigModule } from '../config/application_config.module';
+import { RedisQueueModule } from '../redisQueue/redis-queue.module';
 import { MailModule } from 'mail/mail.module';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 @Module({
@@ -19,16 +22,16 @@ import { ChatbotApiService } from 'chatbot/chatbot-api.service';
     CacheModule.register(),
     OrganizationModule,
     MailModule,
-    RedisQueueService,
-    RedisProfileService,
+    RedisQueueModule,
+    ApplicationConfigModule,
   ],
   providers: [
     HeatmapService,
     CourseService,
     RedisQueueService,
     RedisProfileService,
-    ApplicationConfigService,
     QueueCleanService,
+    ApplicationConfigService,
     ChatbotApiService,
   ],
   exports: [CourseService, ChatbotApiService],

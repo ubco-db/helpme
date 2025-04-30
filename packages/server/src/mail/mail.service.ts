@@ -5,7 +5,7 @@ import {
 } from '@koh/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { MailServiceModel } from './mail-services.entity';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import * as fs from 'fs';
 
@@ -133,7 +133,11 @@ export class MailService {
     mailService: MailServiceModel,
   ): Promise<MailServiceModel> {
     await MailServiceModel.update({ id }, mailService);
-    return MailServiceModel.findOne(id);
+    return MailServiceModel.findOne({
+      where: {
+        id: id,
+      },
+    });
   }
 
   async remove(id: number): Promise<void> {

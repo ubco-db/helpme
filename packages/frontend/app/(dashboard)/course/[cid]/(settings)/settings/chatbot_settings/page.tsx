@@ -1,7 +1,14 @@
 'use client'
 
 import { Button, Input, Pagination, Progress, Table, message } from 'antd'
-import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  use,
+} from 'react'
 import Link from 'next/link'
 import { TableRowSelection } from 'antd/es/table/interface'
 import ChatbotSettingsModal from './components/ChatbotSettingsModal'
@@ -13,11 +20,12 @@ import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 
 interface ChatbotPanelProps {
-  params: { cid: string }
+  params: Promise<{ cid: string }>
 }
-export default function ChatbotSettings({
-  params,
-}: ChatbotPanelProps): ReactElement {
+export default function ChatbotSettings(
+  props: ChatbotPanelProps,
+): ReactElement {
+  const params = use(props.params)
   const { userInfo } = useUserInfo()
   const courseId = Number(params.cid)
   const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =

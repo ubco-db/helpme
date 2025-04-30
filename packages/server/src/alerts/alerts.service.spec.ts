@@ -1,9 +1,9 @@
 import { AlertType } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Connection } from 'typeorm';
 import {
   AlertFactory,
   CourseFactory,
+  initFactoriesFromService,
   QuestionFactory,
   QueueFactory,
   TACourseFactory,
@@ -13,27 +13,35 @@ import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { AlertModel } from './alerts.entity';
 import { AlertsService } from './alerts.service';
 import { QueueModel } from '../queue/queue.entity';
+import { DataSource } from 'typeorm';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('Alerts service', () => {
   let service: AlertsService;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule],
+      imports: [TestTypeOrmModule, FactoryModule],
       providers: [AlertsService],
     }).compile();
 
     service = module.get<AlertsService>(AlertsService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   async function createAlerts(queue: QueueModel): Promise<AlertModel> {
@@ -84,11 +92,12 @@ describe('Alerts service', () => {
       const openAlert = await createAlerts(queue);
 
       expect(
-        (await AlertModel.find({ where: { course: queue.course } })).length,
+        (await AlertModel.find({ where: { courseId: queue.course.id } }))
+          .length,
       ).toBe(2);
 
       const nonStaleAlerts = await service.removeStaleAlerts(
-        await AlertModel.find({ where: { course: queue.course } }),
+        await AlertModel.find({ where: { courseId: queue.course.id } }),
       );
 
       expect(nonStaleAlerts.length).toBe(1);
@@ -146,7 +155,7 @@ describe('Alerts service', () => {
       });
       const openAlert = await createAlerts(queue);
       await service.removeStaleAlerts(
-        await AlertModel.find({ where: { course: queue.course } }),
+        await AlertModel.find({ where: { courseId: queue.course.id } }),
       );
 
       const unresolvedAlerts = await service.getUnresolvedRephraseQuestionAlert(

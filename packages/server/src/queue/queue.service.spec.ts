@@ -2,8 +2,9 @@ import { ListQuestionsResponse, QuestionStatusKeys, Role } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { mapValues, zip } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
+  initFactoriesFromService,
   QuestionFactory,
   QueueFactory,
   UserFactory,
@@ -13,32 +14,39 @@ import { QueueModel } from './queue.entity';
 import { QueueService } from './queue.service';
 import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationTestingConfigModule } from 'config/application_config.module';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('QueueService', () => {
   let service: QueueService;
-
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
+        FactoryModule,
         ApplicationTestingConfigModule,
       ],
       providers: [QueueService, AlertsService],
     }).compile();
 
     service = module.get<QueueService>(QueueService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   // create 1 question for each status that exists, and put them all in a queue

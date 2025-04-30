@@ -2,8 +2,9 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { each } from 'async';
 import { serialize } from 'class-transformer';
 import { Response } from 'express';
-import { RedisService } from 'nestjs-redis';
 import { ERROR_MESSAGES } from '@koh/common';
+import Redis from 'ioredis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 
 /**
  * A connection to a particular frontend client
@@ -36,10 +37,6 @@ export class SSEService<T> implements OnModuleDestroy {
 
   constructor(private readonly redisService: RedisService) {
     const redisSub = this.redisService.getClient('sub');
-
-    if (!redisSub) {
-      throw new Error(ERROR_MESSAGES.sseService.getSubClient);
-    }
 
     // If channel is managed by this instance, send the message to the Response object.
     redisSub.on('message', (channel, message) => {
@@ -78,13 +75,6 @@ export class SSEService<T> implements OnModuleDestroy {
   ): Promise<void> {
     const redisSub = this.redisService.getClient('sub');
     const redis = this.redisService.getClient('db');
-
-    if (!redisSub) {
-      throw new Error(ERROR_MESSAGES.sseService.getSubClient);
-    }
-    if (!redis) {
-      throw new Error(ERROR_MESSAGES.sseService.getDBClient);
-    }
 
     // Keep track of responses so we can send sse through them
     const clientId = await redis.incr('sse::client::id').catch((err) => {
@@ -148,14 +138,6 @@ export class SSEService<T> implements OnModuleDestroy {
   ): Promise<void> {
     const redisPub = this.redisService.getClient('pub');
     const redis = this.redisService.getClient('db');
-
-    if (!redisPub) {
-      throw new Error(ERROR_MESSAGES.sseService.getPubClient);
-    }
-
-    if (!redis) {
-      throw new Error(ERROR_MESSAGES.sseService.getDBClient);
-    }
 
     const roomInfo = await redis.smembers(room).catch((err) => {
       console.error(ERROR_MESSAGES.sseService.roomMembers);

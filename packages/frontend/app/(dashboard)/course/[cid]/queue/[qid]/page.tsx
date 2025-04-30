@@ -1,6 +1,13 @@
 'use client'
 
-import { ReactElement, useCallback, useState, useEffect, useRef } from 'react'
+import {
+  ReactElement,
+  useCallback,
+  useState,
+  useEffect,
+  useRef,
+  use,
+} from 'react'
 import {
   QuestionTypeParams,
   ClosedQuestionStatus,
@@ -65,10 +72,11 @@ import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
 import QueueChats from '../../components/QueueChats'
 
 type QueuePageProps = {
-  params: { cid: string; qid: string }
+  params: Promise<{ cid: string; qid: string }>
 }
 
-export default function QueuePage({ params }: QueuePageProps): ReactElement {
+export default function QueuePage(props: QueuePageProps): ReactElement {
+  const params = use(props.params)
   const isMobile = useMediaQuery('(max-width: 768px)')
   const cid = Number(params.cid)
   const qid = Number(params.qid)
@@ -596,12 +604,15 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               <>
                 <Tooltip
                   title={
-                    (queue.isDisabled &&
+                    (!isUserCheckedIn &&
+                      queue.isDisabled &&
                       'Cannot check into a disabled queue!') ||
-                    (helpingQuestions &&
+                    (isUserCheckedIn &&
+                      helpingQuestions &&
                       helpingQuestions.length > 0 &&
                       'You cannot check out while helping a student') ||
-                    (queue.isProfessorQueue &&
+                    (!isUserCheckedIn &&
+                      queue.isProfessorQueue &&
                       role !== Role.PROFESSOR &&
                       'Only professors can check into this queue')
                   }
@@ -611,9 +622,13 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       courseId={cid}
                       queueId={qid}
                       disabled={
-                        (helpingQuestions && helpingQuestions.length > 0) ||
-                        (queue.isProfessorQueue && role !== Role.PROFESSOR) ||
-                        queue.isDisabled
+                        (isUserCheckedIn &&
+                          helpingQuestions &&
+                          helpingQuestions.length > 0) ||
+                        (!isUserCheckedIn &&
+                          queue.isProfessorQueue &&
+                          role !== Role.PROFESSOR) ||
+                        (!isUserCheckedIn && queue.isDisabled)
                       }
                       state={isUserCheckedIn ? 'CheckedIn' : 'CheckedOut'}
                       className="w-full md:mb-3"

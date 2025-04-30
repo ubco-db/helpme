@@ -1,11 +1,10 @@
 import { Card } from 'antd'
 import CourseRosterTables from '../components/CourseRosterTables'
 
-export default async function CourseRoster({
-  params,
-}: {
-  params: { cid: string }
+export default async function CourseRoster(props: {
+  params: Promise<{ cid: string }>
 }) {
+  const params = await props.params
   return (
     <Card
       title="Course Roster"

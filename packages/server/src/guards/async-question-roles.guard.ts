@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { RolesGuard } from './role.guard';
 import { UserModel } from '../profile/user.entity';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
-import { createQueryBuilder } from 'typeorm';
 
 /**
  * Works similarly to course-roles guard except it will grab the courseId from
@@ -13,8 +12,13 @@ export class AsyncQuestionRolesGuard extends RolesGuard {
   async setupData(
     request: any,
   ): Promise<{ courseId: number; user: UserModel }> {
-    const user: UserModel = await UserModel.findOne(request.user.userId, {
-      relations: ['courses'],
+    const user: UserModel = await UserModel.findOne({
+      where: {
+        id: request.user.userId,
+      },
+      relations: {
+        courses: true,
+      },
     });
     // asnyc questionId given in the request parameter. Can be qid or questionId
     const questionId = request.params.qid ?? request.params.questionId ?? null;
@@ -25,7 +29,7 @@ export class AsyncQuestionRolesGuard extends RolesGuard {
     }
 
     // get the courseId from the async question
-    const aq = await createQueryBuilder(AsyncQuestionModel)
+    const aq = await AsyncQuestionModel.createQueryBuilder()
       .select('"courseId"')
       .where('id = :questionId', { questionId })
       .getRawOne<{ courseId: number }>();

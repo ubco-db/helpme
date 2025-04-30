@@ -40,10 +40,13 @@ module.exports = function (options) {
     },
     devtool: 'source-map',
     plugins: [
-      ...options.plugins,
+      ...(options.plugins || []),
       new webpack.HotModuleReplacementPlugin(),
       new webpack.WatchIgnorePlugin({ paths: [/\.js$/, /\.d\.ts$/] }),
       new StartServerPlugin(),
     ],
+    optimization: {
+      emitOnErrors: false,
+    },
   };
 };

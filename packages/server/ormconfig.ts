@@ -1,4 +1,7 @@
 import { config } from 'dotenv';
+import { isProd } from '@koh/common';
+import * as fs from 'fs';
+import { DataSourceOptions } from 'typeorm';
 import { AdminUserModel } from './src/admin/admin-user.entity';
 import { CourseModel } from './src/course/course.entity';
 import { SemesterModel } from './src/semester/semester.entity';
@@ -40,8 +43,6 @@ import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entit
 import { UnreadAsyncQuestionModel } from './src/asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from './src/asyncQuestion/asyncQuestionComment.entity';
 import { ChatbotDocPdfModel } from './src/chatbot/chatbot-doc-pdf.entity';
-import { isProd } from '@koh/common';
-import * as fs from 'fs';
 
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
@@ -62,12 +63,9 @@ if (fs.existsSync('postgres.env')) {
 // Options only used whe run via CLI
 const inCLI = {
   migrations: ['migration/*.ts'],
-  cli: {
-    migrationsDir: 'migration',
-  },
 };
 
-const typeorm = {
+const typeorm: DataSourceOptions = {
   type: 'postgres',
   url: !isProd()
     ? `postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@localhost:5432/dev`
@@ -116,10 +114,9 @@ const typeorm = {
     LMSAnnouncementModel,
     ChatbotDocPdfModel,
   ],
-  keepConnectionAlive: true,
   logging:
     process.env.NODE_ENV !== 'production'
-      ? ['error']
+      ? ['error', 'warn']
       : !!process.env.TYPEORM_LOGGING,
   ...(!!process.env.TYPEORM_CLI ? inCLI : {}),
 };

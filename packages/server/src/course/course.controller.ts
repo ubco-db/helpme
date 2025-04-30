@@ -7,6 +7,7 @@ import {
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
+  Heatmap,
   OrganizationRole,
   QuestionStatusKeys,
   QueueConfig,
@@ -27,24 +28,24 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpException,
   HttpStatus,
   NotFoundException,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
-  Res,
   Req,
+  Res,
   UnauthorizedException,
   UseGuards,
   UseInterceptors,
-  ParseIntPipe,
-  ForbiddenException,
 } from '@nestjs/common';
 import async from 'async';
-import { Response, Request } from 'express';
+import { Request, Response } from 'express';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Roles } from '../decorators/roles.decorator';
@@ -63,11 +64,10 @@ import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
 import { ApplicationConfigService } from '../config/application_config.service';
-import { getManager } from 'typeorm';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
-import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { CourseRole } from 'decorators/course-role.decorator';
+import { DataSource } from 'typeorm';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { CourseRoles } from 'decorators/course-roles.decorator';
@@ -84,6 +84,7 @@ export class CourseController {
     private queueCleanService: QueueCleanService,
     private redisProfileService: RedisProfileService,
     private readonly appConfig: ApplicationConfigService,
+    private dataSource: DataSource,
   ) {}
 
   @Get(':oid/organization_courses')
@@ -165,76 +166,37 @@ export class CourseController {
   @Roles(Role.PROFESSOR, Role.STUDENT, Role.TA)
   async get(
     @Param('id', ParseIntPipe) id: number,
-    @User() user: UserModel,
+    @UserId() userId: number,
   ): Promise<GetCourseResponse> {
     // TODO: for all course endpoint, check if they're a student or a TA
-    const course = await CourseModel.findOne(id, {
-      relations: ['queues', 'queues.staffList', 'organizationCourse'],
+    const course = await CourseModel.findOne({
+      where: {
+        id: id,
+      },
+      relations: {
+        queues: {
+          staffList: true,
+        },
+        organizationCourse: {
+          organization: true,
+        },
+      },
     });
     if (course === null || course === undefined) {
-      console.error(
-        ERROR_MESSAGES.courseController.courseNotFound + 'Course ID: ' + id,
-      );
       throw new HttpException(
         ERROR_MESSAGES.courseController.courseNotFound,
         HttpStatus.NOT_FOUND,
       );
     }
 
-    // Use raw query for performance (avoid entity instantiation and serialization)
-    try {
-      course.heatmap = await this.heatmapService.getCachedHeatmapFor(id);
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.courseOfficeHourError +
-          '\n' +
-          'Error message: ' +
-          err,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.courseHeatMapError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    const userCourseModel = await UserCourseModel.findOne({
-      where: {
-        user,
-        courseId: id,
-      },
-    });
-
-    if (userCourseModel === undefined || userCourseModel === null) {
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.courseModelError,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    if (
-      userCourseModel.role === Role.PROFESSOR ||
-      userCourseModel.role === Role.TA
-    ) {
-      course.queues = await async.filter(
-        course.queues,
-        async (q) => !q.isDisabled,
-      );
-    } else if (userCourseModel.role === Role.STUDENT) {
-      course.queues = await async.filter(
-        course.queues,
-        async (q) => !q.isDisabled && (await q.checkIsOpen()),
-      );
-    }
-
-    // make sure all of isopen is populated since we need it in FE
-    for (const que of course.queues) {
-      await que.checkIsOpen();
-    }
+    course.queues = course.queues.filter((q) => !q.isDisabled);
 
     try {
-      await async.each(course.queues, async (q) => {
-        await q.addQueueSize();
-      });
+      await Promise.all(
+        course.queues.map((q) => {
+          q.addQueueSize();
+        }),
+      );
     } catch (err) {
       console.error(
         ERROR_MESSAGES.courseController.updatedQueueError +
@@ -248,23 +210,35 @@ export class CourseController {
       );
     }
 
-    const organizationCourse = await OrganizationCourseModel.findOne({
-      where: {
-        courseId: id,
-      },
-      relations: ['organization'],
-    });
-
-    const organization =
-      organizationCourse === undefined ? null : organizationCourse.organization;
+    let heatmap: Heatmap | false = false;
+    try {
+      // Use raw query for performance (avoid entity instantiation and serialization)
+      heatmap = await this.heatmapService.getCachedHeatmapFor(id);
+    } catch (err) {
+      console.error(
+        ERROR_MESSAGES.courseController.courseOfficeHourError +
+          '\n' +
+          'Error message: ' +
+          err,
+      );
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.courseHeatMapError,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
 
     const course_response = {
       ...course,
+      heatmap,
       crns: null,
-      organizationCourse: organization,
+      organizationCourse: course.organizationCourse?.organization ?? null,
     };
     try {
-      course_response.crns = await CourseSectionMappingModel.find({ course });
+      course_response.crns = await CourseSectionMappingModel.find({
+        where: {
+          courseId: course.id,
+        },
+      });
     } catch (err) {
       console.error(
         ERROR_MESSAGES.courseController.courseOfficeHourError +
@@ -295,16 +269,20 @@ export class CourseController {
           where: {
             id: courseId,
           },
-          relations: ['userCourses'],
+          relations: {
+            userCourses: true,
+          },
         });
 
         // Won't be a costly operation since courses are not modified often
         if (course) {
-          course.userCourses.map(async (userCourse) => {
-            await this.redisProfileService.deleteProfile(
-              `u:${userCourse.userId}`,
-            );
-          });
+          await Promise.all(
+            course.userCourses.map(async (userCourse) => {
+              await this.redisProfileService.deleteProfile(
+                `u:${userCourse.userId}`,
+              );
+            }),
+          );
         }
       });
   }
@@ -346,7 +324,7 @@ export class CourseController {
   async createQueue(
     @Param('id', ParseIntPipe) courseId: number,
     @Param('room') room: string,
-    @User() user: UserModel,
+    @UserId() userId: number,
     @Body()
     body: {
       notes: string;
@@ -366,8 +344,8 @@ export class CourseController {
 
     const userCourseModel = await UserCourseModel.findOne({
       where: {
-        user,
-        courseId,
+        userId: userId,
+        courseId: courseId,
       },
     });
 
@@ -379,9 +357,11 @@ export class CourseController {
     }
 
     const queue = await QueueModel.findOne({
-      room,
-      courseId,
-      isDisabled: false,
+      where: {
+        room: room,
+        courseId: courseId,
+        isDisabled: false,
+      },
     });
 
     if (queue) {
@@ -397,7 +377,9 @@ export class CourseController {
       );
     }
     const queuesCount = await QueueModel.count({
-      courseId,
+      where: {
+        courseId: courseId,
+      },
     });
 
     if (queuesCount >= this.appConfig.get('max_queues_per_course')) {
@@ -409,8 +391,7 @@ export class CourseController {
 
     try {
       let createdQueue = null;
-      const entityManager = getManager();
-      await entityManager.transaction(async (transactionalEntityManager) => {
+      await this.dataSource.transaction(async (transactionalEntityManager) => {
         try {
           createdQueue = await transactionalEntityManager
             .create(QueueModel, {
@@ -465,31 +446,33 @@ export class CourseController {
     @Param('qid', ParseIntPipe) qid: number,
     @User() user: UserModel,
   ): Promise<QueuePartial> {
-    const queue = await QueueModel.findOne(
-      {
+    const queue = await QueueModel.findOne({
+      where: {
         id: qid,
         isDisabled: false,
       },
-      { relations: ['staffList'] },
-    );
+      relations: {
+        staffList: true,
+      },
+    });
+    if (!queue) {
+      throw new HttpException(
+        ERROR_MESSAGES.courseController.queueNotFound,
+        HttpStatus.NOT_FOUND,
+      );
+    }
 
     const userCourseModel = await UserCourseModel.findOne({
       where: {
-        user,
-        courseId,
+        userId: user.id,
+        courseId: courseId,
       },
     });
 
-    if (!queue) {
-      if (userCourseModel === null || userCourseModel === undefined) {
-        throw new HttpException(
-          ERROR_MESSAGES.courseController.courseModelError,
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
+    if (!userCourseModel) {
       throw new HttpException(
-        ERROR_MESSAGES.courseController.queueNotFound,
+        // shouldn't ever run since we use CourseRolesGuard but just in case
+        ERROR_MESSAGES.courseController.courseModelError,
         HttpStatus.NOT_FOUND,
       );
     }
@@ -567,13 +550,15 @@ export class CourseController {
     @Param('qid') qid: number,
     @User() user: UserModel,
   ): Promise<TACheckoutResponse> {
-    const queue = await QueueModel.findOne(
-      {
+    const queue = await QueueModel.findOne({
+      where: {
         id: qid,
         isDisabled: false,
       },
-      { relations: ['staffList'] },
-    );
+      relations: {
+        staffList: true,
+      },
+    });
 
     if (queue === undefined || queue === null) {
       throw new HttpException(
@@ -770,14 +755,13 @@ export class CourseController {
       search = '';
     }
     const roles = role === 'staff' ? [Role.TA, Role.PROFESSOR] : [role];
-    const users = await this.courseService.getUserInfo(
+    return await this.courseService.getUserInfo(
       courseId,
       page,
       pageSize,
       search,
       roles,
     );
-    return users;
   }
 
   @Post('enroll_by_invite_code/:code')
@@ -886,7 +870,11 @@ export class CourseController {
       return;
     }
 
-    const course = await CourseModel.findOne({ id: courseId });
+    const course = await CourseModel.findOne({
+      where: {
+        id: courseId,
+      },
+    });
 
     await this.courseService
       .addStudentToCourse(course, user)
@@ -917,7 +905,12 @@ export class CourseController {
     @Param('role') role: Role,
     @Res() res: Response,
   ): Promise<void> {
-    const user = await UserCourseModel.findOne({ userId, courseId });
+    const user = await UserCourseModel.findOne({
+      where: {
+        userId: userId,
+        courseId: courseId,
+      },
+    });
 
     if (!user) {
       res.status(HttpStatus.NOT_FOUND).send({ message: 'User not found' });
