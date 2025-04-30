@@ -26,6 +26,7 @@ import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
 import { HttpException } from '@nestjs/common';
 import { MailModule } from 'mail/mail.module';
+import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -58,7 +59,7 @@ describe('CourseService', () => {
           ],
         }),
       ],
-      providers: [CourseService, RedisProfileService],
+      providers: [CourseService, RedisProfileService, ChatbotApiService],
     }).compile();
 
     service = module.get<CourseService>(CourseService);
