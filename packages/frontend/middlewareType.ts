@@ -79,11 +79,17 @@ export class DesktopNotifPartial {
 export interface UserCourse {
   course: CoursePartial
   role: Role
+  favourited: boolean
+  unreadCount?: number
 }
 
 export interface CoursePartial {
   id: number
   name: string
+  sectionGroupName: string
+  semesterId?: number
+  enabled?: boolean
+  favourited?: boolean
 }
 
 export enum Role {

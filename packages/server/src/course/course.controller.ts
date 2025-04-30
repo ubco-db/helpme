@@ -1108,7 +1108,7 @@ export class CourseController {
   @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async cloneCourse(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
     @Body() body: CourseCloneAttributes,
   ): Promise<UserCourse | null> {
     if (!user || !user.chat_token) {

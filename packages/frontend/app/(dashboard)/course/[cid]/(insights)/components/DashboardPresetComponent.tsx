@@ -30,7 +30,7 @@ import {
   GanttChartComponent,
 } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
 import { API } from '@/app/api'
-import { CloseIcon } from 'next/dist/client/components/react-dev-overlay/internal/icons/CloseIcon'
+import { X } from 'lucide-react'
 
 type DashboardPresetComponentProps = {
   selectedDashboard?: string
@@ -270,7 +270,7 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
                 }
                 onClick={() => setIsOpen(!isOpen)}
               >
-                {isOpen ? <CloseIcon /> : <FolderOpenIcon />}
+                {isOpen ? <X /> : <FolderOpenIcon />}
               </Button>
             </div>
             {isOpen ? (

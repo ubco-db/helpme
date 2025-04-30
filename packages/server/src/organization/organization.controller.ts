@@ -1584,7 +1584,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async batchCloneCourses(
     @Param('oid', ParseIntPipe) oid: number, // unused for now, only for the guard
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
     @Body() body: BatchCourseCloneAttributes,
   ): Promise<string> {
     if (!user || !user.chat_token) {

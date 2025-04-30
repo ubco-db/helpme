@@ -157,10 +157,6 @@ export function setupIntegrationTest(
   }, 10000);
 
   afterAll(async () => {
-    if (conn && conn.isConnected) {
-      await conn.close();
-    }
-
     await app.close();
     if (dataSource.isInitialized) {
       await dataSource.destroy();
