@@ -1,15 +1,15 @@
 import {
+  Body,
   Controller,
   Get,
   HttpStatus,
   Param,
+  ParseIntPipe,
+  Post,
   Query,
   Req,
   Res,
-  Post,
-  Body,
   UseGuards,
-  ParseIntPipe,
   HttpException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
@@ -143,7 +143,9 @@ export class AuthController {
         token,
         token_type: TokenType.EMAIL_VERIFICATION,
         token_action: TokenAction.ACTION_PENDING,
-        user: userId,
+        user: {
+          id: userId,
+        },
       },
       relations: ['user'],
     });
@@ -258,9 +260,7 @@ export class AuthController {
     await passwordToken.save();
 
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    passwordToken.user.password = hashedPassword;
+    passwordToken.user.password = await bcrypt.hash(password, salt);
     await passwordToken.user.save();
 
     return res.status(HttpStatus.ACCEPTED).send({

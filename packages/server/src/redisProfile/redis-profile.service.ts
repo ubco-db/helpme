@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { RedisService } from 'nestjs-redis';
 import { Redis } from 'ioredis';
 import * as zlib from 'zlib';
 import { GetProfileResponse } from '@koh/common';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 
 @Injectable()
 export class RedisProfileService {

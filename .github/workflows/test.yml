@@ -12,7 +12,7 @@ jobs:
       CI: "true"
     services:
       postgres:
-        image: postgres:11.5
+        image: postgres:15
         env:
           POSTGRES_DB: test
           POSTGRES_USER: helpme
@@ -29,6 +29,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Create postgres.env from example
         run: cp packages/server/postgres.env.example packages/server/postgres.env
+      - name: Create .env from .env.development
+        run: cp packages/server/.env.development packages/server/.env
       - name: install node v20
         uses: actions/setup-node@v4
         with:

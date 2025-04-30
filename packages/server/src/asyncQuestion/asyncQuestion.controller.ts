@@ -75,10 +75,10 @@ export class asyncQuestionController {
     }
 
     let thisUserThisQuestionVote = await AsyncQuestionVotesModel.findOne({
-      where: { userId, questionId: qid },
+      where: { userId: userId, questionId: qid },
     });
 
-    const hasVoted = thisUserThisQuestionVote !== undefined;
+    const hasVoted = thisUserThisQuestionVote !== null;
     const sumVotes = thisUserThisQuestionVote?.vote ?? 0;
 
     const newValue = sumVotes + vote;
@@ -436,7 +436,7 @@ export class asyncQuestionController {
 
     const myUserCourse = await UserCourseModel.findOne({
       where: {
-        user,
+        userId: user.id,
         courseId: question.courseId,
       },
     });

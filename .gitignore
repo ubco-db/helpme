@@ -51,3 +51,7 @@ husky.sh
 
 # location of emails sent on dev environment
 /packages/server/src/mail/sent_dev_emails.log
+
+# location of desktop notifications sent on dev environment
+/packages/server/src/notification/desktop_notifications.log
+

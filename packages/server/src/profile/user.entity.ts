@@ -1,5 +1,4 @@
 import { Exclude } from 'class-transformer';
-import { INSIGHTS_MAP } from '../insights/insight-objects';
 import {
   AfterLoad,
   BaseEntity,
@@ -105,8 +104,6 @@ export class UserModel extends BaseEntity {
   @Column({ type: 'simple-array', nullable: true })
   hideInsights: string[];
 
-  insights: string[];
-
   @OneToOne((type) => OrganizationUserModel, (ou) => ou.organizationUser)
   organizationUser: OrganizationUserModel;
 
@@ -122,23 +119,11 @@ export class UserModel extends BaseEntity {
   })
   chat_token: ChatTokenModel;
 
-  @AfterLoad()
-  computeInsights(): void {
-    let hideInsights = this.hideInsights;
-    if (!hideInsights) {
-      hideInsights = [];
-    }
-    const insightNames = Object.keys(INSIGHTS_MAP);
-    this.insights = insightNames.filter((name) => !hideInsights.includes(name));
-  }
-
+  @Column({
+    generatedType: 'STORED',
+    asExpression: `COALESCE("firstName", '') || ' ' || COALESCE("lastName", '')`,
+  })
   name: string;
-
-  @AfterLoad()
-  setFullNames(): void {
-    // it is possible that lastname is null
-    this.name = this.firstName + ' ' + (this.lastName ?? '');
-  }
 
   @OneToMany(
     (type) => StudentTaskProgressModel,

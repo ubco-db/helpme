@@ -211,7 +211,11 @@ export class QuestionService {
 
     let queue: QueueModel;
     try {
-      queue = await QueueModel.findOneOrFail({ where: { id: queueId } });
+      queue = await QueueModel.findOneOrFail({
+        where: {
+          id: queueId,
+        },
+      });
     } catch (err) {
       throw new BadRequestException(
         ERROR_MESSAGES.questionController.studentTaskProgress.queueDoesNotExist,
@@ -348,7 +352,11 @@ export class QuestionService {
   }
 
   async resolveQuestions(queueId: number, helperId: number): Promise<void> {
-    const queue = await QueueModel.findOneOrFail({ where: { id: queueId } });
+    const queue = await QueueModel.findOneOrFail({
+      where: {
+        id: queueId,
+      },
+    });
     const questions = await QuestionModel.find({
       where: {
         queueId,

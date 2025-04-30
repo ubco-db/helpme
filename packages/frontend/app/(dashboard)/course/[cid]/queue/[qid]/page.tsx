@@ -596,12 +596,15 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
               <>
                 <Tooltip
                   title={
-                    (queue.isDisabled &&
+                    (!isUserCheckedIn &&
+                      queue.isDisabled &&
                       'Cannot check into a disabled queue!') ||
-                    (helpingQuestions &&
+                    (isUserCheckedIn &&
+                      helpingQuestions &&
                       helpingQuestions.length > 0 &&
                       'You cannot check out while helping a student') ||
-                    (queue.isProfessorQueue &&
+                    (!isUserCheckedIn &&
+                      queue.isProfessorQueue &&
                       role !== Role.PROFESSOR &&
                       'Only professors can check into this queue')
                   }
@@ -611,9 +614,13 @@ export default function QueuePage({ params }: QueuePageProps): ReactElement {
                       courseId={cid}
                       queueId={qid}
                       disabled={
-                        (helpingQuestions && helpingQuestions.length > 0) ||
-                        (queue.isProfessorQueue && role !== Role.PROFESSOR) ||
-                        queue.isDisabled
+                        (isUserCheckedIn &&
+                          helpingQuestions &&
+                          helpingQuestions.length > 0) ||
+                        (!isUserCheckedIn &&
+                          queue.isProfessorQueue &&
+                          role !== Role.PROFESSOR) ||
+                        (!isUserCheckedIn && queue.isDisabled)
                       }
                       state={isUserCheckedIn ? 'CheckedIn' : 'CheckedOut'}
                       className="w-full md:mb-3"

@@ -16,25 +16,7 @@ import { QuestionGroupModel } from 'question/question-group.entity';
 import { SemesterModel } from 'semester/semester.entity';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { OrganizationModel } from 'organization/organization.entity';
-import { getManager } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import {
-  CourseFactory,
-  EventFactory,
-  QuestionFactory,
-  QueueFactory,
-  SemesterFactory,
-  UserCourseFactory,
-  UserFactory,
-  OrganizationFactory,
-  OrganizationUserFactory,
-  OrganizationCourseFactory,
-  CourseSettingsFactory,
-  QuestionTypeFactory,
-  ChatTokenFactory,
-  mailServiceFactory,
-  userSubscriptionFactory,
-} from '../../test/util/factories';
 import { CourseModel } from '../course/course.entity';
 import { NonProductionGuard } from '../guards/non-production.guard';
 import { QuestionModel } from '../question/question.entity';
@@ -58,6 +40,8 @@ import { CalendarModel } from '../calendar/calendar.entity';
 import { LMSAnnouncementModel } from 'lmsIntegration/lmsAnnouncement.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 import { QueueChatsModel } from 'queueChats/queue-chats.entity';
+import { DataSource } from 'typeorm';
+import { FactoryService } from 'factory/factory.service';
 
 const exampleConfig = {
   fifo_queue_view_enabled: true,
@@ -135,7 +119,11 @@ const exampleLabConfig = {
 @UseGuards(NonProductionGuard)
 @Controller('seeds')
 export class SeedController {
-  constructor(private seedService: SeedService) {}
+  constructor(
+    private seedService: SeedService,
+    private dataSource: DataSource,
+    private factoryService: FactoryService,
+  ) {}
 
   @Get('delete')
   async deleteAll(): Promise<string> {
@@ -174,7 +162,7 @@ export class SeedController {
     await this.seedService.deleteAll(QuestionTypeModel);
     await this.seedService.deleteAll(CourseSettingsModel);
     await this.seedService.deleteAll(MailServiceModel);
-    const manager = getManager();
+    const manager = this.dataSource;
     manager.query('ALTER SEQUENCE user_model_id_seq RESTART WITH 1;');
     manager.query('ALTER SEQUENCE organization_model_id_seq RESTART WITH 1;');
 
@@ -197,38 +185,44 @@ export class SeedController {
     const tomorrow = new Date();
     tomorrow.setUTCHours(now.getUTCHours() + 19);
 
-    const facultyMailService = await mailServiceFactory.create({
-      mailType: OrganizationRole.PROFESSOR,
-      serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
-      name: 'Notify when a new anytime question is flagged as needing attention',
-    });
-    const studentMailService = await mailServiceFactory.create({
-      mailType: OrganizationRole.MEMBER,
-      serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
-      name: 'Notify when your anytime question has been answered by faculty',
-    });
+    const facultyMailService =
+      await this.factoryService.mailServiceFactory.create({
+        mailType: OrganizationRole.PROFESSOR,
+        serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
+        name: 'Notify when a new anytime question is flagged as needing attention',
+      });
+    const studentMailService =
+      await this.factoryService.mailServiceFactory.create({
+        mailType: OrganizationRole.MEMBER,
+        serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
+        name: 'Notify when your anytime question has been answered by faculty',
+      });
 
-    const studentMailService2 = await mailServiceFactory.create({
-      mailType: OrganizationRole.MEMBER,
-      serviceType: MailServiceType.ASYNC_QUESTION_STATUS_CHANGED,
-      name: 'Notify when the status of your anytime question has changed',
-    });
+    const studentMailService2 =
+      await this.factoryService.mailServiceFactory.create({
+        mailType: OrganizationRole.MEMBER,
+        serviceType: MailServiceType.ASYNC_QUESTION_STATUS_CHANGED,
+        name: 'Notify when the status of your anytime question has changed',
+      });
 
-    const studentMailService3 = await mailServiceFactory.create({
-      mailType: OrganizationRole.MEMBER,
-      serviceType: MailServiceType.ASYNC_QUESTION_UPVOTED,
-      name: 'Notify when your anytime question has been upvoted',
-    });
-    const studentMailService4 = await mailServiceFactory.create({
-      mailType: OrganizationRole.MEMBER,
-      serviceType: MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST,
-      name: 'Notify when someone comments on your anytime question',
-    });
-    const studentMailService5 = await mailServiceFactory.create({
-      mailType: OrganizationRole.MEMBER,
-      serviceType: MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST,
-      name: 'Notify when someone comments on an anytime question you commented on',
-    });
+    const studentMailService3 =
+      await this.factoryService.mailServiceFactory.create({
+        mailType: OrganizationRole.MEMBER,
+        serviceType: MailServiceType.ASYNC_QUESTION_UPVOTED,
+        name: 'Notify when your anytime question has been upvoted',
+      });
+    const studentMailService4 =
+      await this.factoryService.mailServiceFactory.create({
+        mailType: OrganizationRole.MEMBER,
+        serviceType: MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST,
+        name: 'Notify when someone comments on your anytime question',
+      });
+    const studentMailService5 =
+      await this.factoryService.mailServiceFactory.create({
+        mailType: OrganizationRole.MEMBER,
+        serviceType: MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST,
+        name: 'Notify when someone comments on an anytime question you commented on',
+      });
     const course1Exists = await CourseModel.findOne({
       where: { name: 'CS 304' },
     });
@@ -237,20 +231,20 @@ export class SeedController {
       where: { name: 'CS 310' },
     });
 
-    const organization = await OrganizationFactory.create({
+    const organization = await this.factoryService.OrganizationFactory.create({
       name: 'UBCO',
       description: 'UBC Okanagan',
       legacyAuthEnabled: true,
     });
 
-    const semester1 = await SemesterFactory.create({
+    const semester1 = await this.factoryService.SemesterFactory.create({
       organization: organization,
       startDate: new Date('2020-09-01'),
       endDate: new Date('2020-12-31'),
       name: 'Fall 2020',
     });
 
-    const semester2 = await SemesterFactory.create({
+    const semester2 = await this.factoryService.SemesterFactory.create({
       organization: organization,
       startDate: new Date('2020-05-01'),
       endDate: new Date('2020-08-31'),
@@ -267,14 +261,14 @@ export class SeedController {
 
       // comments above are from legacy implementation
 
-      await CourseFactory.create({
+      await this.factoryService.CourseFactory.create({
         timezone: 'America/Los_Angeles',
         semester: semester1,
       });
     }
 
     if (!course2Exists) {
-      await CourseFactory.create({
+      await this.factoryService.CourseFactory.create({
         name: 'CS 310',
         timezone: 'America/Los_Angeles',
         semester: semester2,
@@ -289,7 +283,7 @@ export class SeedController {
       where: { name: 'CS 310' },
     });
 
-    await CourseSettingsFactory.create({
+    await this.factoryService.CourseSettingsFactory.create({
       course: course1,
       courseId: course1.id,
       chatBotEnabled: true,
@@ -297,7 +291,7 @@ export class SeedController {
       adsEnabled: true,
       queueEnabled: true,
     });
-    await CourseSettingsFactory.create({
+    await this.factoryService.CourseSettingsFactory.create({
       course: course2,
       courseId: course2.id,
       chatBotEnabled: true,
@@ -306,11 +300,11 @@ export class SeedController {
       queueEnabled: true,
     });
 
-    const userExists = await UserModel.findOne();
+    const userExists = (await UserModel.find())?.pop();
 
     if (!userExists) {
       // Student 1
-      const user1 = await UserFactory.create({
+      const user1 = await this.factoryService.UserFactory.create({
         email: 'studentOne@ubc.ca',
         firstName: 'studentOne',
         lastName: 'studentOne',
@@ -318,51 +312,51 @@ export class SeedController {
         emailVerified: true,
       });
 
-      await ChatTokenFactory.create({
+      await this.factoryService.ChatTokenFactory.create({
         user: user1,
         used: 0,
         max_uses: 20,
         token: 'test_token',
       });
 
-      await UserCourseFactory.create({
+      await this.factoryService.UserCourseFactory.create({
         user: user1,
         role: Role.STUDENT,
         course: course1,
       });
-      await UserCourseFactory.create({
+      await this.factoryService.UserCourseFactory.create({
         user: user1,
         role: Role.STUDENT,
         course: course2,
       });
-      await userSubscriptionFactory.create({
+      await this.factoryService.userSubscriptionFactory.create({
         isSubscribed: true,
         user: user1,
         service: studentMailService,
       });
-      await userSubscriptionFactory.create({
+      await this.factoryService.userSubscriptionFactory.create({
         isSubscribed: true,
         user: user1,
         service: studentMailService2,
       });
-      await userSubscriptionFactory.create({
+      await this.factoryService.userSubscriptionFactory.create({
         isSubscribed: true,
         user: user1,
         service: studentMailService3,
       });
-      await userSubscriptionFactory.create({
+      await this.factoryService.userSubscriptionFactory.create({
         isSubscribed: true,
         user: user1,
         service: studentMailService4,
       });
-      await userSubscriptionFactory.create({
+      await this.factoryService.userSubscriptionFactory.create({
         isSubscribed: true,
         user: user1,
         service: studentMailService5,
       });
 
       // Student 2
-      const user2 = await UserFactory.create({
+      const user2 = await this.factoryService.UserFactory.create({
         email: 'studentTwo@ubc.ca',
         firstName: 'studentTwo',
         lastName: 'studentTwo',
@@ -370,32 +364,32 @@ export class SeedController {
         emailVerified: true,
       });
 
-      await ChatTokenFactory.create({
+      await this.factoryService.ChatTokenFactory.create({
         user: user2,
         used: 0,
         max_uses: 20,
         token: 'test_token2',
       });
 
-      await UserCourseFactory.create({
+      await this.factoryService.UserCourseFactory.create({
         user: user2,
         role: Role.STUDENT,
         course: course1,
       });
 
-      await UserCourseFactory.create({
+      await this.factoryService.UserCourseFactory.create({
         user: user2,
         role: Role.STUDENT,
         course: course2,
       });
 
-      await userSubscriptionFactory.create({
+      await this.factoryService.userSubscriptionFactory.create({
         isSubscribed: true,
         user: user2,
         service: studentMailService,
       });
       // TA 1
-      const user3 = await UserFactory.create({
+      const user3 = await this.factoryService.UserFactory.create({
         email: 'TaOne@ubc.ca',
         firstName: 'TaOne',
         lastName: 'TaOne',
@@ -403,26 +397,26 @@ export class SeedController {
         emailVerified: true,
       });
 
-      await ChatTokenFactory.create({
+      await this.factoryService.ChatTokenFactory.create({
         user: user3,
         used: 0,
         max_uses: 20,
         token: 'test_token3',
       });
 
-      await UserCourseFactory.create({
+      await this.factoryService.UserCourseFactory.create({
         user: user3,
         role: Role.TA,
         course: course1,
       });
-      await UserCourseFactory.create({
+      await this.factoryService.UserCourseFactory.create({
         user: user3,
         role: Role.TA,
         course: course2,
       });
 
       // TA 2
-      const user4 = await UserFactory.create({
+      const user4 = await this.factoryService.UserFactory.create({
         email: 'TaTwo@ubc.ca',
         firstName: 'TaTwo',
         lastName: 'TaTwo',
@@ -430,120 +424,110 @@ export class SeedController {
         emailVerified: true,
       });
 
-      await ChatTokenFactory.create({
+      await this.factoryService.ChatTokenFactory.create({
         user: user4,
         used: 0,
         max_uses: 20,
         token: 'test_token4',
       });
 
-      await UserCourseFactory.create({
+      await this.factoryService.UserCourseFactory.create({
         user: user4,
         role: Role.TA,
         course: course1,
       });
 
-      await UserCourseFactory.create({
+      await this.factoryService.UserCourseFactory.create({
         user: user4,
         role: Role.TA,
         course: course2,
       });
 
       // Professor for COSC 304
-      const user5 = await UserFactory.create({
+      const user5 = await this.factoryService.UserFactory.create({
         email: 'Ramon@ubc.ca',
         firstName: 'Ramon',
         lastName: 'Lawrence',
-        insights: [
-          'QuestionTypeBreakdown',
-          'TotalQuestionsAsked',
-          'TotalStudents',
-        ],
         password: hashedPassword1,
         emailVerified: true,
       });
 
-      await ChatTokenFactory.create({
+      await this.factoryService.ChatTokenFactory.create({
         user: user5,
         used: 0,
         max_uses: 20,
         token: 'test_token5',
       });
 
-      await UserCourseFactory.create({
+      await this.factoryService.UserCourseFactory.create({
         user: user5,
         role: Role.PROFESSOR,
         course: course1,
       });
 
-      await userSubscriptionFactory.create({
+      await this.factoryService.userSubscriptionFactory.create({
         isSubscribed: true,
         user: user5,
         service: facultyMailService,
       });
 
       // Professor for COSC 310
-      const user6 = await UserFactory.create({
+      const user6 = await this.factoryService.UserFactory.create({
         email: 'orgProfessor@ubc.ca',
         firstName: 'Organization',
         lastName: 'Professor',
-        insights: [
-          'QuestionTypeBreakdown',
-          'TotalQuestionsAsked',
-          'TotalStudents',
-        ],
         password: hashedPassword1,
         emailVerified: true,
       });
 
-      await ChatTokenFactory.create({
+      await this.factoryService.ChatTokenFactory.create({
         user: user6,
         used: 0,
         max_uses: 20,
         token: 'test_token6',
       });
 
-      await UserCourseFactory.create({
+      await this.factoryService.UserCourseFactory.create({
         user: user6,
         role: Role.PROFESSOR,
         course: course2,
       });
 
-      await userSubscriptionFactory.create({
+      await this.factoryService.userSubscriptionFactory.create({
         isSubscribed: true,
         user: user6,
         service: facultyMailService,
       });
 
-      await OrganizationUserFactory.create({
+      await this.factoryService.OrganizationUserFactory.create({
         userId: user1.id,
         organizationId: organization.id,
         organizationUser: user1,
         organization: organization,
       });
 
-      await OrganizationUserFactory.create({
+      await this.factoryService.OrganizationUserFactory.create({
         userId: user2.id,
         organizationId: organization.id,
         organizationUser: user2,
         organization: organization,
       });
 
-      await OrganizationUserFactory.create({
+      await this.factoryService.OrganizationUserFactory.create({
         userId: user3.id,
         organizationId: organization.id,
         organizationUser: user3,
         organization: organization,
       });
 
-      await OrganizationUserFactory.create({
+      await this.factoryService.OrganizationUserFactory.create({
         userId: user4.id,
         organizationId: organization.id,
         organizationUser: user4,
         organization: organization,
       });
 
-      await OrganizationUserFactory.create({
+      await this.factoryService.OrganizationUserFactory.create({
         userId: user5.id,
         organizationId: organization.id,
         role: OrganizationRole.ADMIN,
@@ -551,7 +535,7 @@ export class SeedController {
         organization: organization,
       });
 
-      await OrganizationUserFactory.create({
+      await this.factoryService.OrganizationUserFactory.create({
         userId: user6.id,
         organizationId: organization.id,
         role: OrganizationRole.PROFESSOR,
@@ -559,7 +543,7 @@ export class SeedController {
         organization: organization,
       });
 
-      await OrganizationCourseFactory.create({
+      await this.factoryService.OrganizationCourseFactory.create({
         organizationId: organization.id,
         courseId: course1.id,
         organization: organization,
@@ -567,87 +551,87 @@ export class SeedController {
       });
     }
 
-    const queue1 = await QueueFactory.create({
+    const queue1 = await this.factoryService.QueueFactory.create({
       room: 'Online',
       config: exampleConfig as QueueConfig,
       course: course1,
       allowQuestions: true,
     });
 
-    const queue2 = await QueueFactory.create({
+    const queue2 = await this.factoryService.QueueFactory.create({
       room: 'Online',
       config: exampleConfig as QueueConfig,
       course: course2,
       allowQuestions: true,
     });
 
-    const questionType1 = await QuestionTypeFactory.create({
+    const questionType1 = await this.factoryService.QuestionTypeFactory.create({
       cid: course1.id,
       queue: queue1,
     });
 
-    const questionType3 = await QuestionTypeFactory.create({
+    const questionType3 = await this.factoryService.QuestionTypeFactory.create({
       cid: course2.id,
       queue: queue2,
     });
 
-    await QuestionTypeFactory.create({
+    await this.factoryService.QuestionTypeFactory.create({
       cid: course1.id,
       queue: queue1,
       name: 'General',
       color: '#66FF66',
     });
-    await QuestionTypeFactory.create({
+    await this.factoryService.QuestionTypeFactory.create({
       cid: course1.id,
       queue: queue1,
       name: 'Bugs',
       color: '#66AA66',
     });
-    await QuestionTypeFactory.create({
+    await this.factoryService.QuestionTypeFactory.create({
       cid: course1.id,
       queue: queue1,
       name: 'Important',
       color: '#FF0000',
     });
 
-    await QuestionFactory.create({
+    await this.factoryService.QuestionFactory.create({
       queue: queue1,
       createdAt: new Date(Date.now() - 3500000),
       questionTypes: [questionType1],
     });
 
-    await QuestionFactory.create({
+    await this.factoryService.QuestionFactory.create({
       queue: queue1,
       createdAt: new Date(Date.now() - 2500000),
       questionTypes: [questionType1],
     });
 
-    await QuestionFactory.create({
+    await this.factoryService.QuestionFactory.create({
       queue: queue1,
       createdAt: new Date(Date.now() - 1500000),
       questionTypes: [questionType1],
     });
 
-    const queueLab = await QueueFactory.create({
+    const queueLab = await this.factoryService.QueueFactory.create({
       room: 'Example Lab Room',
       course: course1,
       allowQuestions: true,
       config: exampleLabConfig as QueueConfig,
     });
 
-    await QuestionTypeFactory.create({
+    await this.factoryService.QuestionTypeFactory.create({
       cid: course1.id,
       queue: queueLab,
       name: 'General',
       color: '#66FF66',
     });
-    await QuestionTypeFactory.create({
+    await this.factoryService.QuestionTypeFactory.create({
       cid: course1.id,
       queue: queueLab,
       name: 'Bugs',
       color: '#66AA66',
     });
-    await QuestionTypeFactory.create({
+    await this.factoryService.QuestionTypeFactory.create({
       cid: course1.id,
       queue: queueLab,
       name: 'Important',
@@ -660,21 +644,21 @@ export class SeedController {
       },
     });
 
-    await EventFactory.create({
+    await this.factoryService.EventFactory.create({
       user: eventTA,
       course: course1,
       time: yesterday,
       eventType: EventType.TA_CHECKED_IN,
     });
 
-    await EventFactory.create({
+    await this.factoryService.EventFactory.create({
       user: eventTA,
       course: course1,
       time: new Date(Date.now() - 80000000),
       eventType: EventType.TA_CHECKED_OUT,
     });
 
-    await EventFactory.create({
+    await this.factoryService.EventFactory.create({
       user: eventTA,
       course: course1,
       time: new Date(Date.now() - 70000000),
@@ -684,28 +668,28 @@ export class SeedController {
     const todayAtMidnight = new Date();
     todayAtMidnight.setHours(0, 0, 0, 0);
 
-    await EventFactory.create({
+    await this.factoryService.EventFactory.create({
       user: eventTA,
       course: course1,
       time: todayAtMidnight,
       eventType: EventType.TA_CHECKED_OUT_FORCED,
     });
 
-    const professorQueue = await QueueFactory.create({
+    const professorQueue = await this.factoryService.QueueFactory.create({
       room: "Professor Lawrence's Hours",
       course: course1,
       allowQuestions: true,
       isProfessorQueue: true,
     });
 
-    const questionType2 = await QuestionTypeFactory.create({
+    const questionType2 = await this.factoryService.QuestionTypeFactory.create({
       cid: course1.id,
       queue: professorQueue,
       name: 'Important',
       color: '#FF0000',
     });
 
-    await QuestionFactory.create({
+    await this.factoryService.QuestionFactory.create({
       queue: queueLab,
       createdAt: new Date(Date.now() - 1500000),
       questionTypes: [questionType2],
@@ -716,24 +700,24 @@ export class SeedController {
 
   @Get('fill_queue')
   async fillQueue(): Promise<string> {
-    const queue = await QueueModel.findOne();
+    const queue = (await QueueModel.find())?.pop();
 
-    const questionType = await QuestionTypeFactory.create({
+    const questionType = await this.factoryService.QuestionTypeFactory.create({
       cid: queue.course.id,
       queue: queue,
     });
 
-    await QuestionFactory.create({
+    await this.factoryService.QuestionFactory.create({
       queue: queue,
       createdAt: new Date(Date.now() - 1500000),
       questionTypes: [questionType],
     });
-    await QuestionFactory.create({
+    await this.factoryService.QuestionFactory.create({
       queue: queue,
       createdAt: new Date(Date.now() - 1500000),
       questionTypes: [questionType],
     });
-    await QuestionFactory.create({
+    await this.factoryService.QuestionFactory.create({
       queue: queue,
       createdAt: new Date(Date.now() - 1500000),
       questionTypes: [questionType],

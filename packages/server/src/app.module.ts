@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -7,7 +6,6 @@ import { InsightsModule } from './insights/insights.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { BackfillModule } from './backfill/backfill.module';
 import { CommandModule } from 'nestjs-command';
-import { RedisModule } from 'nestjs-redis';
 import * as typeormConfig from '../ormconfig';
 import { AdminModule } from './admin/admin.module';
 import { CourseModule } from './course/course.module';
@@ -32,23 +30,39 @@ import { RedisQueueModule } from 'redisQueue/redis-queue.module';
 import { ApplicationConfigModule } from './config/application_config.module';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { SentryGlobalFilter } from '@sentry/nestjs/setup';
+// import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { BackupModule } from 'backup/backup.module';
 import { QueueChatsModule } from 'queueChats/queue-chats.module';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { RateLimitExceptionFilter } from 'exception_filters/429-exception.filter';
 import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
+import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot(typeormConfig),
     SentryModule.forRoot(),
     // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store
-    RedisModule.register([
-      { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
-      { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
-      { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
-    ]),
+    RedisModule.forRoot({
+      readyLog: true,
+      errorLog: true,
+      commonOptions: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: 6379,
+      },
+      config: [
+        {
+          namespace: 'db',
+        },
+        {
+          namespace: 'sub',
+        },
+        {
+          namespace: 'pub',
+        },
+      ],
+    }),
     ScheduleModule.forRoot(),
     ApplicationConfigModule,
     LoginModule,
@@ -96,7 +110,7 @@ import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
   providers: [
     {
       provide: APP_FILTER,
-      useClass: SentryGlobalFilter,
+      useClass: BaseExceptionFilter,
     },
     {
       provide: APP_GUARD,

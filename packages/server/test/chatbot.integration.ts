@@ -8,6 +8,7 @@ import {
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { ChatbotQuestionModel } from 'chatbot/question.entity';
+import { DeepPartial } from 'typeorm';
 
 describe('ChatbotController Integration', () => {
   const { supertest } = setupIntegrationTest(ChatbotModule);

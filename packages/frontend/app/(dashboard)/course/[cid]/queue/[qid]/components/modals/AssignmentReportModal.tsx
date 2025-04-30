@@ -167,8 +167,7 @@ const AssignmentReportModal: React.FC<AssignmentReportModalProps> = ({
                             taskKey
                           ] &&
                           studentDetailsAndProgress.assignmentProgress[taskKey]
-                            .isDone
-
+                            ?.isDone
                         return (
                           <QuestionTagElement
                             key={index}

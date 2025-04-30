@@ -1,15 +1,15 @@
 import { TestingModule, Test } from '@nestjs/testing';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
-import { Connection } from 'typeorm';
 import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
-import { RedisModule } from 'nestjs-redis';
 import { GetProfileResponse, AccountType, UserRole } from '@koh/common';
 import Redis from 'ioredis';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { DataSource } from 'typeorm';
 
 describe('RedisProfileService', () => {
   let service: RedisProfileService;
   let redis: Redis;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     redis = new Redis();
@@ -20,26 +20,40 @@ describe('RedisProfileService', () => {
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
-        RedisModule.register([
-          { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
-          { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
-          { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
-        ]),
+        RedisModule.forRoot({
+          readyLog: false,
+          errorLog: true,
+          commonOptions: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: 6379,
+          },
+          config: [
+            {
+              namespace: 'db',
+            },
+            {
+              namespace: 'sub',
+            },
+            {
+              namespace: 'pub',
+            },
+          ],
+        }),
       ],
       providers: [RedisProfileService],
     }).compile();
 
     service = module.get<RedisProfileService>(RedisProfileService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterEach(async () => {
     await redis.flushall();
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
     redis.disconnect();
   });
 
@@ -63,7 +77,6 @@ describe('RedisProfileService', () => {
         courses: [],
         desktopNotifsEnabled: true,
         desktopNotifs: [],
-        insights: ['Dashboard'],
         userRole: UserRole.USER,
         organization: undefined,
         chat_token: {
@@ -107,7 +120,6 @@ describe('RedisProfileService', () => {
         courses: [],
         desktopNotifsEnabled: false,
         desktopNotifs: [],
-        insights: ['Queues'],
         userRole: UserRole.ADMIN,
         organization: undefined,
         chat_token: {

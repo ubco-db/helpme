@@ -23,7 +23,6 @@ import { ChatTokenModel } from 'chatbot/chat-token.entity';
 
 describe('Organization Integration', () => {
   const { supertest } = setupIntegrationTest(OrganizationModule);
-
   describe('POST /organization/:oid/populate_chat_token_table', () => {
     it('should return 401 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();
@@ -1264,10 +1263,20 @@ describe('Organization Integration', () => {
 
       // Verify that the chat tokens were reset
       const updatedProfessorToken = await ChatTokenModel.findOne({
-        where: { user: professor.id },
+        relations: { user: true },
+        where: {
+          user: {
+            id: professor.id,
+          },
+        },
       });
       const updatedMemberToken = await ChatTokenModel.findOne({
-        where: { user: member.id },
+        relations: { user: true },
+        where: {
+          user: {
+            id: member.id,
+          },
+        },
       });
 
       expect(updatedProfessorToken.used).toBe(0);

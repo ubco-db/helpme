@@ -79,7 +79,7 @@ const QueueCard: React.FC<QueueCardProps> = ({
         classNames={{
           header: cn(
             'text-white rounded-t-lg',
-            queue.isOpen ? 'bg-[#25426C]' : 'bg-[#1e3659]',
+            queue.staffList.length > 0 ? 'bg-[#25426C]' : 'bg-[#1e3659]',
           ),
           body: 'pt-4',
         }}
@@ -111,7 +111,7 @@ const QueueCard: React.FC<QueueCardProps> = ({
                     Professor Queue
                   </Tag>
                 )}
-                {queue.isOpen && !queue.allowQuestions && (
+                {!queue.allowQuestions && (
                   <Tooltip title="This queue is not accepting questions right now">
                     <Tag
                       icon={<StopOutlined />}

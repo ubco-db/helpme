@@ -10,17 +10,12 @@ import { ProfileModule } from '../src/profile/profile.module';
 import { DesktopNotifModel } from 'notification/desktop-notif.entity';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { AccountType } from '@koh/common';
-import { RedisService } from 'nestjs-redis';
+import { CourseModel } from 'course/course.entity';
+import { UserModel } from 'profile/user.entity';
+import { OrganizationModel } from 'organization/organization.entity';
 
 describe('Profile Integration', () => {
-  const { supertest, getTestModule } = setupIntegrationTest(ProfileModule);
-
-  let redisService: RedisService;
-
-  beforeEach(async () => {
-    const testModule = getTestModule();
-    redisService = testModule.get<RedisService>(RedisService);
-  });
+  const { supertest } = setupIntegrationTest(ProfileModule);
 
   describe('GET /profile', () => {
     it('returns the logged-in user profile', async () => {
@@ -76,13 +71,13 @@ describe('Profile Integration', () => {
     it('returns desktop notif information', async () => {
       const user = await UserFactory.create();
       const dn = await DesktopNotifModel.create({
-        user,
+        userId: user.id,
         auth: '',
         p256dh: '',
         endpoint: 'abc',
         name: 'firefox',
       }).save();
-      await dn.reload();
+
       const res = await supertest({ userId: user.id })
         .get('/profile')
         .expect(200);
