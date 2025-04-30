@@ -9,7 +9,6 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
     },
-    missingSuspenseWithCSRBailout: false,
   },
   images: {
     loader: 'custom',

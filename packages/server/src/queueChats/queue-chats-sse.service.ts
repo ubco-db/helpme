@@ -94,9 +94,9 @@ export class QueueChatSSEService {
           await updateFunction(queueId, questionId, staffId);
         } catch (e) {}
       },
-      1000,
+      150,
       {
-        leading: false,
+        leading: true,
         trailing: true,
       },
     );

@@ -3,11 +3,12 @@
 import { Button, Card, Form, Input, message, Spin } from 'antd'
 import { useRouter } from 'next/navigation'
 import { Result } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 import { authApi } from '@/app/api/authApi'
 import { PasswordConfirmationData } from '@/app/typings/user'
 
-const PasswordResetPage = ({ params }: { params: { token: string } }) => {
+const PasswordResetPage = (props: { params: Promise<{ token: string }> }) => {
+  const params = use(props.params)
   const router = useRouter()
   const [isTokenValid, setIsTokenValid] = useState(false)
   const [invalidTokenMessage, setInvalidTokenMessage] = useState(null)

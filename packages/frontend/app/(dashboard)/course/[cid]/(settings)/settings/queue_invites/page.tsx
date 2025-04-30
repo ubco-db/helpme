@@ -9,7 +9,7 @@ import {
   Tooltip,
   message,
 } from 'antd'
-import { ReactElement, useCallback, useEffect, useState } from 'react'
+import { ReactElement, useCallback, useEffect, useState, use } from 'react'
 import type { QueueInvite, QueueInviteParams, QueuePartial } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
@@ -19,11 +19,12 @@ import { useCourse } from '@/app/hooks/useCourse'
 import QueueInviteListItem from './components/QueueInvite'
 
 interface QueueInvitesPageProps {
-  params: { cid: string }
+  params: Promise<{ cid: string }>
 }
-export default function QueueInvitesPage({
-  params,
-}: QueueInvitesPageProps): ReactElement {
+export default function QueueInvitesPage(
+  props: QueueInvitesPageProps,
+): ReactElement {
+  const params = use(props.params)
   const courseId = Number(params.cid)
   const { course } = useCourse(courseId)
   const [queueInvites, setQueueInvites] = useState<QueueInvite[]>([])

@@ -70,6 +70,21 @@ export class QueueSSEService {
     await this.sseService.sendEvent(idToRoom(queueId), data);
   }
 
+  /**
+   * This will throttle the update function to once every 150ms.
+   *
+   * This is helpful since some endpoints may call updateQueue or updateQuestions multiple times in a row, and this
+   * will make it so only 1 updateFunction call is actually made (which is important, since basically every time
+   * one of the update functions are called, it will send data to all subscribed browsers, causing re-renders in their browsers.
+   * And so sending data that's nearly the same to browsers multiple times causes unnecessary expensive re-renders).
+   *
+   * However, despite this,for now I will have leading: true as well. This will make it so the first call of the function
+   * will be called immediately, and the rest will be throttled. For example, for 3 calls, one at t=50ms, one at t=80ms, and one at t=100ms,
+   * the first call will be called at t=50ms, and another will be called at t=200ms (making leading: false will make only 1 call at t=200ms).
+   * This might make it more snappy, but may cause more unnecessary re-renders or unintended buggyness since the endpoint might not be finished
+   * by the first time the function is called.
+   * Set leading to false possibly in the future may be a good idea.
+   */
   private throttleUpdate(updateFunction: (queueId: number) => Promise<void>) {
     return throttle(
       async (queueId: number) => {
@@ -77,9 +92,9 @@ export class QueueSSEService {
           await updateFunction(queueId);
         } catch (e) {}
       },
-      1000,
+      150, // Don't make too high, since it can cause tests to fail as it will run updateFunction even after the endpoint is finished
       {
-        leading: false,
+        leading: true,
         trailing: true,
       },
     );

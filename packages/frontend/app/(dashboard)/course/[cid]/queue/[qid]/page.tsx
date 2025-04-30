@@ -1,6 +1,13 @@
 'use client'
 
-import { ReactElement, useCallback, useState, useEffect, useRef } from 'react'
+import {
+  ReactElement,
+  useCallback,
+  useState,
+  useEffect,
+  useRef,
+  use,
+} from 'react'
 import {
   QuestionTypeParams,
   ClosedQuestionStatus,
@@ -65,10 +72,11 @@ import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
 import QueueChats from '../../components/QueueChats'
 
 type QueuePageProps = {
-  params: { cid: string; qid: string }
+  params: Promise<{ cid: string; qid: string }>
 }
 
-export default function QueuePage({ params }: QueuePageProps): ReactElement {
+export default function QueuePage(props: QueuePageProps): ReactElement {
+  const params = use(props.params)
   const isMobile = useMediaQuery('(max-width: 768px)')
   const cid = Number(params.cid)
   const qid = Number(params.qid)

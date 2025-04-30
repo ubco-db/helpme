@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, ReactElement, useCallback } from 'react'
+import { useState, useEffect, ReactElement, useCallback, use } from 'react'
 import { Table, Button, Modal, Input, Form, message, InputNumber } from 'antd'
 import Link from 'next/link'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -18,12 +18,13 @@ interface FormValues {
 }
 
 interface ChatbotDocumentsProps {
-  params: { cid: string }
+  params: Promise<{ cid: string }>
 }
 
-export default function ChatbotDocuments({
-  params,
-}: ChatbotDocumentsProps): ReactElement {
+export default function ChatbotDocuments(
+  props: ChatbotDocumentsProps,
+): ReactElement {
+  const params = use(props.params)
   const courseId = Number(params.cid)
   const [documents, setDocuments] = useState<SourceDocument[]>([])
   const [filteredDocuments, setFilteredDocuments] = useState<SourceDocument[]>(

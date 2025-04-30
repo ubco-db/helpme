@@ -5,10 +5,11 @@ import { Alert, Spin } from 'antd'
 import OrganizationEditUser from '../../../components/OrganizationEditUser'
 
 type UserEditPageProps = {
-  params: { userId: string }
+  params: Promise<{ userId: string }>
 }
 
-export default async function UserEditPage({ params }: UserEditPageProps) {
+export default async function UserEditPage(props: UserEditPageProps) {
+  const params = await props.params
   const userId = Number(params.userId)
   const currentUser = await userApi.getUser()
   const organization: GetOrganizationResponse =
