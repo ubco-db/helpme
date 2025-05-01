@@ -423,4 +423,4 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
   )
 }
 
-expo
+export default CoursesSection
