@@ -322,15 +322,22 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
               >
                 <div className="flex flex-wrap items-start justify-between align-middle">
                   <Meta
-                    title={course.course.name}
-                    description={
-                      course.course.sectionGroupName ? (
-                        <div className="h-4 text-xs font-semibold text-gray-600">
-                          {`[${course.course.sectionGroupName}]`}
-                        </div>
-                      ) : (
-                        <div className="h-4"></div>
-                      )
+                    title={
+                      <span>
+                        {course.course.name}
+                        {course.course.sectionGroupName && (
+                          <Tooltip
+                            title={
+                              course.course.sectionGroupName +
+                              ' is the section for this course'
+                            }
+                          >
+                            <span className="text-gray-500">
+                              {' ' + course.course.sectionGroupName}
+                            </span>
+                          </Tooltip>
+                        )}
+                      </span>
                     }
                   />
                   <Tag
@@ -353,14 +360,22 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                       content={popoverContent}
                       title={courseSemester.name}
                     >
-                      <Tag color="blue" className="text-base">
+                      <Tag
+                        color="blue"
+                        bordered={false}
+                        className="text-sm opacity-80 hover:opacity-100"
+                      >
                         {courseSemester.name}
                       </Tag>
                     </Popover>
                   ) : (
-                    <Tooltip title="Courses that are not assigned to a semester">
-                      <Tag color="blue" className="text-base">
-                        Not Assigned
+                    <Tooltip title="This course is not assigned to a semester">
+                      <Tag
+                        color="blue"
+                        bordered={false}
+                        className="text-sm opacity-80 hover:opacity-100"
+                      >
+                        No Semester
                       </Tag>
                     </Tooltip>
                   )}
