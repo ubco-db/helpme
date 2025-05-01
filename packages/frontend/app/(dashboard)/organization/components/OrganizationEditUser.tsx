@@ -57,7 +57,7 @@ const OrganizationEditUser: React.FC<OrganizationEditUserProps> = ({
 
   return userData ? (
     <div className="space-y-5">
-      <Card bordered={true} title="General">
+      <Card variant="outlined" title="General">
         <OrganizationEditUserGeneralForm
           userData={userData}
           organization={organization}
@@ -65,7 +65,7 @@ const OrganizationEditUser: React.FC<OrganizationEditUserProps> = ({
         />
       </Card>
 
-      <Card bordered={true} title="Courses Information">
+      <Card variant="outlined" title="Courses Information">
         <OrganizationEditUserCoursesForm
           userData={userData}
           organization={organization}
@@ -74,7 +74,7 @@ const OrganizationEditUser: React.FC<OrganizationEditUserProps> = ({
       </Card>
 
       <Card
-        bordered={true}
+        variant="outlined"
         title="Danger Zone"
         className="border-2 border-rose-500/[.35]"
       >

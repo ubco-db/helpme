@@ -98,7 +98,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
     <>
       <title>{`HelpMe | Editing ${courseData.course?.name}`}</title>
       <div className="mb-5 space-y-5">
-        <Card bordered={true} title="Edit Course">
+        <Card variant="outlined" title="Edit Course">
           <EditCourseForm
             courseData={courseData}
             organization={organization}
@@ -109,12 +109,12 @@ const EditCourse: React.FC<EditCourseProps> = ({
 
         {featuresEnabled && (
           <>
-            <Card bordered={true} title="Course Features">
+            <Card variant="outlined" title="Course Features">
               <CourseFeaturesForm courseData={courseData} />
             </Card>
 
             <Card
-              bordered={true}
+              variant="outlined"
               title={
                 <div className="flex items-center justify-start gap-3">
                   <div>Course Invite Link</div>
@@ -136,7 +136,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
           </>
         )}
 
-        <Card bordered={true} title="Clone Course">
+        <Card variant="outlined" title="Clone Course">
           <CourseCloneForm
             organization={organization}
             courseId={courseData.course?.id ?? -1}
@@ -146,7 +146,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
         </Card>
 
         <Card
-          bordered={true}
+          variant="outlined"
           title="Danger Zone"
           className="border-2 border-rose-500/[.35]"
         >

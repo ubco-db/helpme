@@ -150,7 +150,7 @@ export default function AddCoursePage(): ReactElement {
         <title>{`${organization?.name} | Add Course`}</title>
         <Row>
           <Col span={24}>
-            <Card bordered={true} title="Add Course">
+            <Card variant="outlined" title="Add Course">
               <Form
                 form={form}
                 layout="vertical"

@@ -302,7 +302,7 @@ export default function SettingsPage(): ReactElement {
     <div className="flex flex-col items-center gap-3">
       {userInfo.organization?.organizationRole === OrganizationRole.ADMIN && (
         <>
-          <Card title="General" bordered={true} className="w-full">
+          <Card title="General" variant="outlined" className="w-full">
             <Form
               form={formGeneral}
               onFinish={updateGeneral}
@@ -358,7 +358,7 @@ export default function SettingsPage(): ReactElement {
             </Form>
           </Card>
 
-          <Card title="Logo & Banner" bordered={true} className="w-full">
+          <Card title="Logo & Banner" variant="outlined" className="w-full">
             <Form layout="vertical">
               <Row className="flex justify-around">
                 <Form.Item label="Logo">
@@ -475,7 +475,7 @@ export default function SettingsPage(): ReactElement {
             </Form>
           </Card>
 
-          <Card title="SSO" bordered={true} className="w-full">
+          <Card title="SSO" variant="outlined" className="w-full">
             <Form layout="vertical">
               <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
                 <Col xs={{ span: 24 }} sm={{ span: 12 }}>
