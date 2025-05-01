@@ -59,7 +59,28 @@ describe('CourseService', () => {
           ],
         }),
       ],
-      providers: [CourseService, RedisProfileService, ChatbotApiService],
+      providers: [
+        CourseService,
+        RedisProfileService,
+        {
+          provide: ChatbotApiService,
+          useValue: {
+            getChatbotSettings: jest.fn().mockImplementation(() =>
+              Promise.resolve({
+                metadata: {
+                  modelName: 'gpt-3.5-turbo-0125',
+                  prompt: 'Test prompt',
+                  similarityThresholdDocuments: 0.6,
+                  temperature: 0.7,
+                  topK: 5,
+                },
+              }),
+            ),
+            updateChatbotSettings: jest.fn().mockResolvedValue({ ok: true }),
+            cloneCourseDocuments: jest.fn().mockResolvedValue({ ok: true }),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<CourseService>(CourseService);
@@ -442,34 +463,7 @@ describe('CourseService', () => {
     let organization: any;
     let chatToken: string;
 
-    // Mock global fetch for chatbot service calls
-    const originalFetch = global.fetch;
-
     beforeEach(async () => {
-      // Setup mock for fetch
-      global.fetch = jest.fn().mockImplementation((url, options) => {
-        if (url.includes('/oneChatbotSetting')) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                modelName: 'gpt-3.5-turbo-0125',
-                prompt: 'Test prompt',
-                similarityThresholdDocuments: 0.6,
-                temperature: 0.7,
-                topK: 5,
-              }),
-          });
-        }
-        if (url.includes('/updateChatbotSetting')) {
-          return Promise.resolve({ ok: true });
-        }
-        if (url.includes('/cloneCourseDocuments')) {
-          return Promise.resolve({ ok: true });
-        }
-        return Promise.reject(new Error(`Unhandled request: ${url}`));
-      }) as jest.Mock;
-
       // Set up test data
       organization = await OrganizationFactory.create();
       const semester = await SemesterFactory.create({
@@ -508,11 +502,6 @@ describe('CourseService', () => {
       });
 
       chatToken = 'test-chat-token';
-    });
-
-    afterEach(() => {
-      // Restore original fetch implementation
-      global.fetch = originalFetch;
     });
 
     it('should successfully clone a course with a new section', async () => {
