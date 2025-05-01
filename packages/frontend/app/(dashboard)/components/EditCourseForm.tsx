@@ -2,6 +2,7 @@
 
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 import {
   COURSE_TIMEZONES,
   GetOrganizationResponse,
@@ -216,7 +217,9 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
             {organization.semesters.map((semester) => (
               <Select.Option key={semester.id} value={semester.id}>
                 <span>{`${semester.name}`}</span>{' '}
-                {`(${new Date(semester.startDate).toLocaleDateString()} - ${new Date(semester.endDate).toLocaleDateString()})`}
+                <span className="font-normal">
+                  {formatSemesterDate(semester)}
+                </span>
               </Select.Option>
             ))}
           </Select>

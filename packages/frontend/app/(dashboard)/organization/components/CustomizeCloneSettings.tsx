@@ -17,7 +17,7 @@ import {
   Tooltip,
   Tag,
 } from 'antd'
-
+import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 interface CustomizeCloneSettingsProps {
   courses: CourseResponse[]
   professors: OrganizationProfessor[]
@@ -275,7 +275,9 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
                   {organizationSemesters.map((semester) => (
                     <Select.Option key={semester.id} value={semester.id}>
                       <span>{`${semester.name}`}</span>{' '}
-                      {`(${new Date(semester.startDate).toLocaleDateString()} - ${new Date(semester.endDate).toLocaleDateString()})`}
+                      <span className="font-normal">
+                        {formatSemesterDate(semester)}
+                      </span>
                     </Select.Option>
                   ))}
                 </Select>

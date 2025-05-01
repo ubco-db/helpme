@@ -26,6 +26,7 @@ import { organizationApi } from '@/app/api/organizationApi'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { userApi } from '@/app/api/userApi'
+import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 
 interface FormValues {
   courseName: string
@@ -243,14 +244,20 @@ export default function AddCoursePage(): ReactElement {
                         { required: true, message: 'Please select a semester' },
                       ]}
                     >
-                      <Select placeholder="Select Semester">
+                      <Select
+                        placeholder="Select Semester"
+                        notFoundContent="There seems to be no other semesters in this organization to clone to."
+                      >
                         {organizationSemesters &&
                           organizationSemesters.map((semester) => (
                             <Select.Option
                               key={semester.id}
                               value={semester.id}
                             >
-                              {`${semester.name} (${new Date(semester.startDate).toLocaleDateString()} - ${new Date(semester.endDate).toLocaleDateString()})`}
+                              <span>{`${semester.name}`}</span>{' '}
+                              <span className="font-normal">
+                                {formatSemesterDate(semester)}
+                              </span>
                             </Select.Option>
                           ))}
                       </Select>

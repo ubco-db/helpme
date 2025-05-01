@@ -26,7 +26,7 @@ import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { ExclamationCircleFilled } from '@ant-design/icons'
 import { useAsyncActions } from '@/app/contexts/AsyncActionsContext'
-
+import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 type CourseCloneFormProps = {
   organization: GetOrganizationResponse
   courseId: number
@@ -312,7 +312,9 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                       .map((semester) => (
                         <Select.Option key={semester.id} value={semester.id}>
                           <span>{`${semester.name}`}</span>{' '}
-                          {`(${new Date(semester.startDate).toLocaleDateString()} - ${new Date(semester.endDate).toLocaleDateString()})`}
+                          <span className="font-normal">
+                            {formatSemesterDate(semester)}
+                          </span>
                         </Select.Option>
                       ))}
                   </Select>

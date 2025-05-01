@@ -1,3 +1,4 @@
+import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 import { CourseCloneAttributes, SemesterPartial } from '@koh/common'
 import { Checkbox, Form, Select, FormInstance } from 'antd'
 import React, { useEffect } from 'react'
@@ -35,7 +36,9 @@ const DefaultCourseSettingsSelection: React.FC<
           {organizationSemesters.map((semester) => (
             <Select.Option key={semester.id} value={semester.id}>
               <span>{`${semester.name}`}</span>{' '}
-              {`(${new Date(semester.startDate).toLocaleDateString()} - ${new Date(semester.endDate).toLocaleDateString()})`}
+              <span className="font-normal">
+                {formatSemesterDate(semester)}
+              </span>
             </Select.Option>
           ))}
         </Select>

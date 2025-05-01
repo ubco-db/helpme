@@ -6,7 +6,6 @@ import {
   OrganizationCourseResponse,
   Role,
   User,
-  UserCourse,
 } from '@koh/common'
 import { Card, message, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
