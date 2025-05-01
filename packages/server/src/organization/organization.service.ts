@@ -12,6 +12,7 @@ import {
   UserRole,
 } from '@koh/common';
 import { UserCourseModel } from 'profile/user-course.entity';
+import { SemesterModel } from 'semester/semester.entity';
 
 export interface FlattenedOrganizationResponse {
   id: number;
@@ -90,6 +91,11 @@ export class OrganizationService {
         'CourseModel',
         'CourseModel.id = OrganizationCourseModel.courseId',
       )
+      .leftJoin(
+        SemesterModel,
+        'SemesterModel',
+        'SemesterModel.id = CourseModel.semesterId',
+      )
       .where('OrganizationCourseModel.organizationId = :organizationId', {
         organizationId,
       });
@@ -112,8 +118,15 @@ export class OrganizationService {
         'CourseModel.enabled as isEnabled',
         'CourseModel.sectionGroupName as sectionGroupName',
         'CourseModel.semesterId as semesterId',
+        'SemesterModel.name as semesterName',
+        'SemesterModel.color as semesterColor',
+        'SemesterModel.startDate as semesterStartDate',
+        'SemesterModel.endDate as semesterEndDate',
+        'SemesterModel.description as semesterDescription',
       ])
-      .orderBy('CourseModel.name');
+      // first order by semester end date, then by course name
+      .orderBy('SemesterModel.endDate', 'DESC')
+      .addOrderBy('CourseModel.name', 'ASC');
 
     let coursesSubset: any;
 
@@ -127,13 +140,21 @@ export class OrganizationService {
       coursesSubset = await courses.getRawMany();
     }
 
-    const coursesResponse = coursesSubset.map((course) => {
+    const coursesResponse: CourseResponse[] = coursesSubset.map((course) => {
       return {
         courseId: course.courseid,
         courseName: course.coursename,
         isEnabled: course.isenabled,
         sectionGroupName: course.sectiongroupname,
         semesterId: course.semesterid,
+        semester: {
+          id: course.semesterid,
+          name: course.semestername,
+          color: course.semestercolor,
+          startDate: course.semesterstartdate,
+          endDate: course.semesterenddate,
+          description: course.semesterdescription,
+        },
       };
     });
 

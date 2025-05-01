@@ -10,6 +10,7 @@ import useSWR, { mutate } from 'swr'
 import BatchCourseCloneModal from './BatchCourseCloneModal'
 import { organizationApi } from '@/app/api/organizationApi'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
+import SemesterInfoPopover from '../../components/SemesterInfoPopover'
 
 const CoursesTable: React.FC = () => {
   const { userInfo } = useUserInfo()
@@ -111,7 +112,30 @@ const CoursesTable: React.FC = () => {
                     </Button>,
                   ]}
                 >
-                  <List.Item.Meta title={item.courseName} />
+                  <List.Item.Meta
+                    title={
+                      <span>
+                        {item.courseName}
+                        <span className="text-gray-500">
+                          {' '}
+                          {item.sectionGroupName}
+                        </span>
+                      </span>
+                    }
+                  />
+                  {item.semester && (
+                    <SemesterInfoPopover semester={item.semester}>
+                      <Tag
+                        color={item.semester.color}
+                        bordered={false}
+                        className="text-sm"
+                      >
+                        {item.semester.name === 'Legacy Semester'
+                          ? 'No Semester'
+                          : item.semester.name}
+                      </Tag>
+                    </SemesterInfoPopover>
+                  )}
                   {!item.isEnabled && <Tag color="red">Archived</Tag>}
                 </List.Item>
               </>

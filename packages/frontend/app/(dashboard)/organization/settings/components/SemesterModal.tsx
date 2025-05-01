@@ -71,13 +71,18 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
         >
           <DatePicker />
         </Form.Item>
-        <Form.Item label="Description" name="description">
+        <Form.Item
+          label="Description"
+          name="description"
+          tooltip="Optional description. Do note that this description is visible to students too"
+        >
           <TextArea rows={3} placeholder="Optional description" />
         </Form.Item>
         <Form.Item
           label="Colour"
           name="color"
           layout="horizontal"
+          tooltip="The colour of the semester labels on the card view on the Courses page"
           rules={[{ required: true, message: 'Please select a colour' }]}
         >
           <Select

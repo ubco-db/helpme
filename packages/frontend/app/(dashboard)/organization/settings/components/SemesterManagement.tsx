@@ -129,8 +129,8 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
 
     const semesterDetails: SemesterPartial = {
       name: semesterName,
-      startDate: semesterStartDate,
-      endDate: semesterEndDate,
+      startDate: semesterStartDate.toDate(),
+      endDate: semesterEndDate.toDate(),
       description: semesterDescription || null,
       color: formValues.color,
     }
@@ -141,7 +141,14 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
         setIsSemesterEditModalOpen(false)
         setCurrentSemesterId(-1)
         message.success('Semester updated successfully')
-        setOrganizationSemesters([...organizationSemesters, semesterDetails])
+        setOrganizationSemesters(
+          organizationSemesters.map((s) => {
+            if (s.id === currentSemesterId) {
+              return semesterDetails
+            }
+            return s
+          }),
+        )
       })
       .catch((error) => {
         const errorMessage = error.response.data.message

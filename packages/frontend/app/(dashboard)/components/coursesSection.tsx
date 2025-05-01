@@ -17,6 +17,7 @@ import { ColumnsType } from 'antd/es/table'
 import { StarFilled, StarOutlined } from '@ant-design/icons'
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
+import SemesterInfoPopover from './SemesterInfoPopover'
 
 // TODO: remove all code for unassigned semesters when all production courses have new semesters set
 
@@ -248,7 +249,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
             <div key={-1}>
               <Divider className="my-1 p-2 text-lg font-semibold">
                 <Tooltip title="Courses that are not assigned to a semester">
-                  Not Assigned
+                  No Semester
                 </Tooltip>
               </Divider>
               <Table
@@ -259,7 +260,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                 )}
                 rowKey={(course) => course.course.id}
                 pagination={
-                  coursesWithoutSemester.length > 5 ? { pageSize: 5 } : false
+                  coursesWithoutSemester.length > 10 ? { pageSize: 10 } : false
                 }
                 showHeader={false}
               />
@@ -284,24 +285,6 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                   c.course.name === course.course.name &&
                   c.course.semesterId === course.course.semesterId,
               )
-
-            const popoverContent = courseSemester ? (
-              <div className="p-2">
-                <p>
-                  <strong>Start Date:</strong>{' '}
-                  {new Date(courseSemester.startDate).toLocaleDateString()}
-                </p>
-                <p>
-                  <strong>End Date:</strong>{' '}
-                  {new Date(courseSemester.endDate).toLocaleDateString()}
-                </p>
-                {courseSemester.description && (
-                  <p>
-                    <strong>Description:</strong> {courseSemester.description}
-                  </p>
-                )}
-              </div>
-            ) : null
 
             return (
               <Card
@@ -365,10 +348,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
 
                 <div className="absolute right-2 top-2 flex flex-wrap items-center justify-between align-middle">
                   {courseSemester ? (
-                    <Popover
-                      content={popoverContent}
-                      title={courseSemester.name}
-                    >
+                    <SemesterInfoPopover semester={courseSemester}>
                       <Tag
                         color={courseSemester.color}
                         bordered={false}
@@ -376,7 +356,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                       >
                         {courseSemester.name}
                       </Tag>
-                    </Popover>
+                    </SemesterInfoPopover>
                   ) : (
                     <Tooltip title="This course is not assigned to a semester">
                       <Tag

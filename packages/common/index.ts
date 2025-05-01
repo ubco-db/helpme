@@ -1354,6 +1354,7 @@ export interface CourseResponse {
   isEnabled: boolean
   sectionGroupName: string
   semesterId: number
+  semester: SemesterPartial
 }
 
 export class GetCourseResponse {
