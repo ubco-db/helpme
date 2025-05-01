@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { CourseModel } from '../course/course.entity';
 import { OrganizationModel } from '../organization/organization.entity';
+import { antdTagColor } from '@koh/common';
 
 @Entity('semester_model')
 export class SemesterModel extends BaseEntity {
@@ -52,4 +53,11 @@ export class SemesterModel extends BaseEntity {
 
   @Column({ nullable: true })
   organizationId: number;
+
+  @Column({
+    type: 'enum',
+    enum: antdTagColor,
+    default: antdTagColor.blue,
+  })
+  color: antdTagColor;
 }

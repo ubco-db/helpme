@@ -277,6 +277,14 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
               (s) => s.id === course.course.semesterId,
             )
 
+            const isThereAnotherCourseWithSameNameAndSemester =
+              userInfo.courses.some(
+                (c) =>
+                  c.course.id !== course.course.id &&
+                  c.course.name === course.course.name &&
+                  c.course.semesterId === course.course.semesterId,
+              )
+
             const popoverContent = courseSemester ? (
               <div className="p-2">
                 <p>
@@ -325,18 +333,19 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                     title={
                       <span>
                         {course.course.name}
-                        {course.course.sectionGroupName && (
-                          <Tooltip
-                            title={
-                              course.course.sectionGroupName +
-                              ' is the section for this course'
-                            }
-                          >
-                            <span className="text-gray-500">
-                              {' ' + course.course.sectionGroupName}
-                            </span>
-                          </Tooltip>
-                        )}
+                        {course.course.sectionGroupName &&
+                          isThereAnotherCourseWithSameNameAndSemester && (
+                            <Tooltip
+                              title={
+                                course.course.sectionGroupName +
+                                ' is the section for this course'
+                              }
+                            >
+                              <span className="text-gray-500">
+                                {' ' + course.course.sectionGroupName}
+                              </span>
+                            </Tooltip>
+                          )}
                       </span>
                     }
                   />
@@ -361,7 +370,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                       title={courseSemester.name}
                     >
                       <Tag
-                        color="blue"
+                        color={courseSemester.color}
                         bordered={false}
                         className="text-sm opacity-80 hover:opacity-100"
                       >
@@ -414,4 +423,4 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
   )
 }
 
-export default CoursesSection
+expo

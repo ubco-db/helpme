@@ -1867,6 +1867,38 @@ export class EditCourseInfoParams {
   courseInviteCode?: string | null
 }
 
+export enum antdTagColor {
+  blue = 'blue',
+  gold = 'gold',
+  green = 'green',
+  purple = 'purple',
+  red = 'red',
+  orange = 'orange',
+  yellow = 'yellow',
+  lime = 'lime',
+  cyan = 'cyan',
+  geekblue = 'geekblue',
+  magenta = 'magenta',
+  volcano = 'volcano',
+  blueInverse = 'blue-inverse',
+  goldInverse = 'gold-inverse',
+  greenInverse = 'green-inverse',
+  purpleInverse = 'purple-inverse',
+  redInverse = 'red-inverse',
+  orangeInverse = 'orange-inverse',
+  yellowInverse = 'yellow-inverse',
+  limeInverse = 'lime-inverse',
+  cyanInverse = 'cyan-inverse',
+  geekblueInverse = 'geekblue-inverse',
+  magentaInverse = 'magenta-inverse',
+  volcanoInverse = 'volcano-inverse',
+  success = 'success',
+  processing = 'processing',
+  error = 'error',
+  default = 'default',
+  warning = 'warning',
+}
+
 export class SemesterPartial {
   @IsOptional()
   @IsInt()
@@ -1889,6 +1921,9 @@ export class SemesterPartial {
   @IsOptional()
   @IsString()
   description?: string
+
+  @IsEnum(antdTagColor)
+  color!: antdTagColor
 }
 
 export class SSEQueueResponse {
