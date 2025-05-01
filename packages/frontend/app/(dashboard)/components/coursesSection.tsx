@@ -118,7 +118,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
               ? 'success'
               : role === Role.TA
                 ? 'gold'
-                : 'volcano'
+                : 'blue'
           }
           className="text-base capitalize"
         >
@@ -339,7 +339,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                         ? 'success'
                         : course.role === Role.TA
                           ? 'gold'
-                          : 'volcano'
+                          : 'blue'
                     }
                     className="text-base capitalize"
                   >
