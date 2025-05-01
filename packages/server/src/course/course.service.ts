@@ -27,7 +27,7 @@ import {
 import { partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
-import { Between, In } from 'typeorm';
+import { Between, DataSource, In } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { CourseModel } from './course.entity';
@@ -36,7 +36,6 @@ import { QueueInviteModel } from 'queue/queue-invite.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
 import { CourseSettingsModel } from './course_settings.entity';
-import { getManager } from 'typeorm';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
@@ -49,6 +48,7 @@ export class CourseService {
     private readonly redisProfileService: RedisProfileService,
     private readonly mailService: MailService,
     private readonly chatbotApiService: ChatbotApiService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async getTACheckInCheckOutTimes(
@@ -453,7 +453,7 @@ export class CourseService {
       );
     }
 
-    return await getManager().transaction(async (manager) => {
+    return await this.dataSource.transaction(async (manager) => {
       const originalCourse = await manager.findOne(CourseModel, {
         where: { id: courseId },
         relations: ['courseSettings', 'semester'],
@@ -511,7 +511,9 @@ export class CourseService {
       const professorIds = Array.isArray(cloneData.professorIds)
         ? cloneData.professorIds
         : [cloneData.professorIds];
-      const professors = await manager.findByIds(UserModel, professorIds);
+      const professors = await manager.findBy(UserModel, {
+        id: In(professorIds),
+      });
       if (professors.length !== professorIds.length) {
         throw new NotFoundException(`One or more professors not found`);
       }
