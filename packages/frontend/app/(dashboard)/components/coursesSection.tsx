@@ -103,7 +103,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         >
           <button
             className={cn(
-              `h-7 w-full`,
+              `h-6 w-full`,
               course.favourited
                 ? 'text-yellow-400 hover:text-yellow-500'
                 : 'text-gray-400 hover:text-gray-600',
@@ -121,12 +121,15 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
       width: '70%',
       align: 'left',
       render: (text, course) => (
-        <span className="flex items-center text-lg font-semibold">
+        <Link
+          href={`/course/${course.course.id}`}
+          className="flex items-center text-base font-semibold hover:opacity-80 focus:opacity-80"
+        >
           {text}
           {course.course.sectionGroupName && (
-            <span className="ml-1 text-sm text-gray-600">{`[${course.course.sectionGroupName}]`}</span>
+            <span className="ml-1 text-sm text-blue-700/50">{`${course.course.sectionGroupName}`}</span>
           )}
-        </span>
+        </Link>
       ),
     },
     {
@@ -134,6 +137,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
       key: 'role',
       width: '10%',
       align: 'center',
+      className: 'px-0 md:px-1',
       render: (role) => (
         <Tag
           color={
@@ -143,7 +147,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                 ? 'gold'
                 : 'blue'
           }
-          className="text-base capitalize"
+          className="text-sm capitalize"
         >
           {role}
         </Tag>
@@ -151,22 +155,17 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
     },
     {
       key: 'actions',
-      width: '20%',
+      width: '10%',
       align: 'center',
+      className: 'pl-0 md:pl-1',
       render: (_, course) => (
         <div className="flex w-full flex-col items-end justify-center gap-2 md:flex-row md:items-center md:justify-end">
-          <Link href={`/course/${course.course.id}`}>
-            <Button
-              type="primary"
-              className="text-sm md:p-[1.1rem] md:font-medium"
-            >
-              Course Page
-            </Button>
-          </Link>
           {course.role === Role.PROFESSOR && (
             <Link href={`/course/${course.course.id}/settings`}>
-              <Button className="p-[1.1rem] text-sm md:font-medium">
-                Edit Course
+              <Button className="">
+                <span>
+                  Edit<span className="hidden md:inline"> Course</span>
+                </span>
               </Button>
             </Link>
           )}
@@ -243,7 +242,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
               return (
                 <div key={semester.id}>
                   <Popover content={popoverContent} title={semester.name}>
-                    <Divider className="my-1 p-2 text-lg font-semibold">
+                    <Divider className="my-0.5 text-base font-semibold md:py-1 md:text-lg">
                       {semester.name}
                     </Divider>
                   </Popover>
@@ -256,11 +255,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                         a.course.name.localeCompare(b.course.name),
                       )}
                     rowKey={(course) => course.course.id}
-                    pagination={
-                      semesterCourses.length > 12
-                        ? { pageSize: 12, showQuickJumper: true }
-                        : false
-                    }
+                    pagination={false}
                     showHeader={false}
                   />
                 </div>
@@ -269,7 +264,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
 
           {coursesWithoutSemester.length > 0 && (
             <div key={-1}>
-              <Divider className="my-1 p-2 text-lg font-semibold">
+              <Divider className="m-0 text-base font-semibold md:my-0.5 md:py-1 md:text-lg">
                 <Tooltip title="These courses are not assigned to a semester">
                   No Semester
                 </Tooltip>
@@ -281,9 +276,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                   a.course.name.localeCompare(b.course.name),
                 )}
                 rowKey={(course) => course.course.id}
-                pagination={
-                  coursesWithoutSemester.length > 12 ? { pageSize: 12 } : false
-                }
+                pagination={false}
                 showHeader={false}
               />
             </div>
