@@ -804,8 +804,11 @@ class APIClient {
   semesters = {
     get: async (oid: number): Promise<SemesterPartial[]> =>
       this.req('GET', `/api/v1/semesters/${oid}`),
-    create: async (oid: number, body: SemesterPartial): Promise<void> =>
-      this.req('POST', `/api/v1/semesters/${oid}`, undefined, body),
+    create: async (
+      oid: number,
+      body: SemesterPartial,
+    ): Promise<SemesterPartial> =>
+      this.req('POST', `/api/v1/semesters/${oid}`, SemesterPartial, body),
     edit: async (
       oid: number,
       semesterId: number,

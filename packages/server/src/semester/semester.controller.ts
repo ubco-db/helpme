@@ -53,23 +53,22 @@ export class SemesterController {
   async createSemester(
     @Param('oid', ParseIntPipe) organizationId: number,
     @Body() semesterDetails: SemesterPartial,
-  ): Promise<string> {
-    const organization = await OrganizationModel.findOne({
-      where: { id: organizationId },
-      relations: ['semesters'],
-    });
-
-    if (!organization) {
+  ): Promise<SemesterPartial> {
+    try {
+      await OrganizationModel.findOneOrFail({
+        where: { id: organizationId },
+      });
+    } catch {
       throw new BadRequestException('Organization not found');
     }
 
     try {
-      await SemesterModel.create({
+      const newSemester = await SemesterModel.create({
         ...semesterDetails,
-        organization,
+        organizationId,
       }).save();
 
-      return 'Semester created successfully';
+      return newSemester;
     } catch (error) {
       console.error(error);
       throw new InternalServerErrorException('Failed to create semester');

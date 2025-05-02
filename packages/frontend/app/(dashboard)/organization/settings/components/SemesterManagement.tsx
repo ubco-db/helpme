@@ -6,6 +6,7 @@ import { API } from '@/app/api'
 import { SemesterModal } from './SemesterModal'
 import DeleteConfirmationModal from './DeleteConfirmationModal'
 import dayjs from 'dayjs'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 interface SemesterManagementProps {
   orgId: number
@@ -64,20 +65,23 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
       name: semesterName,
       startDate: semesterStartDate.toDate(),
       endDate: semesterEndDate.toDate(),
-      description: semesterDescription,
+      description: semesterDescription || '',
       color: formValues.color,
     }
 
     await API.semesters
       .create(orgId, semesterDetails)
-      .then(() => {
+      .then((newSemester) => {
         setIsSemesterCreationModalOpen(false)
         message.success('Semester created successfully')
-        setOrganizationSemesters([...organizationSemesters, semesterDetails])
+        setOrganizationSemesters([
+          ...organizationSemesters,
+          { ...semesterDetails, id: newSemester.id },
+        ])
         semesterForm.resetFields()
       })
       .catch((error) => {
-        message.error(error.response.data.message)
+        message.error(getErrorMessage(error))
       })
   }
 
@@ -99,6 +103,8 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
       setIsSemesterEditModalOpen(true)
     }
   }
+
+  console.log(currentSemesterId)
 
   const handleEditSemester = async () => {
     const formValues = await semesterForm.validateFields([
@@ -131,8 +137,9 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
       name: semesterName,
       startDate: semesterStartDate.toDate(),
       endDate: semesterEndDate.toDate(),
-      description: semesterDescription || null,
+      description: semesterDescription || '',
       color: formValues.color,
+      id: currentSemesterId,
     }
 
     await API.semesters
@@ -151,9 +158,7 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
         )
       })
       .catch((error) => {
-        const errorMessage = error.response.data.message
-
-        message.error(errorMessage)
+        message.error(getErrorMessage(error))
       })
   }
 
@@ -194,7 +199,15 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
             <Card.Grid
               key={semester.id}
               className="flex w-[50%] flex-col justify-between gap-2 text-center hover:cursor-pointer"
-              onClick={() => handleOpenEditSemesterModal(semester.id!)}
+              onClick={() => {
+                if (semester.id) {
+                  handleOpenEditSemesterModal(semester.id)
+                } else {
+                  message.error(
+                    'Semester id not set for this semester. Please refresh the page.',
+                  )
+                }
+              }}
             >
               <h3 className="text-lg font-semibold">{semester.name}</h3>
               <p>

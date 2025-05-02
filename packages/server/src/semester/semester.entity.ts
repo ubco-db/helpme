@@ -36,8 +36,8 @@ export class SemesterModel extends BaseEntity {
   @Column('date', { default: () => 'CURRENT_DATE' })
   endDate: Date;
 
-  @Column('text', { nullable: true })
-  description?: string;
+  @Column('text', { default: '', nullable: true })
+  description: string;
 
   @JoinColumn({ name: 'semesterId' })
   @OneToMany((type) => CourseModel, (course) => course.semester)
