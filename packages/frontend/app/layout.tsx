@@ -1,9 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { AntdRegistry } from '@ant-design/nextjs-registry'
 import { cn } from '@/app/utils/generalUtils'
-import { ConfigProvider } from 'antd'
 import AntdProvider from './components/AntdProvider'
 
 const interFontSans = Inter({

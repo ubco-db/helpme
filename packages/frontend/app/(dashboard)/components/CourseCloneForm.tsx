@@ -25,7 +25,7 @@ import {
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { ExclamationCircleFilled } from '@ant-design/icons'
-import { useAsyncActions } from '@/app/contexts/AsyncActionsContext'
+import { useAsyncToaster } from '@/app/contexts/AsyncToasterContext'
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 type CourseCloneFormProps = {
   organization: GetOrganizationResponse
@@ -44,7 +44,10 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   const [professors, setProfessors] = useState<OrganizationProfessor[]>()
   const [form] = Form.useForm<CourseCloneAttributes>()
   const { userInfo, setUserInfo } = useUserInfo()
-  const { runAsync } = useAsyncActions()
+  const { runAsyncToast } = useAsyncToaster()
+  const courseName = userInfo?.courses.find(
+    (uc) => uc.courseId === courseId,
+  )?.course.name
 
   const openModal = () => {
     form.setFieldsValue(defaultCourseCloneAttributes)
@@ -74,7 +77,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
       return
     }
 
-    runAsync(
+    runAsyncToast(
       () => API.course.createClone(courseId, cloneData),
       (userCourse) => {
         if (userCourse)
@@ -84,7 +87,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           })
       },
       {
-        successMsg: 'Course has been cloned successfully',
+        successMsg: `Course has been cloned successfully`,
         errorMsg: 'Failed to clone course',
         appendApiError: true,
       },
@@ -114,10 +117,6 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   }
 
   const includeDocumentsValue = Form.useWatch('includeDocuments', form)
-  const includeInsertedQuestionsValue = Form.useWatch(
-    'includeInsertedQuestions',
-    form,
-  )
 
   return (
     <>
@@ -150,35 +149,23 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           </Button>,
           includeDocumentsValue ? (
             <Popconfirm
-              title="Important Notice"
+              title="Notice"
               description={
-                <div className="flex w-96 flex-col gap-1">
-                  <p className="text-sm">
-                    <b>Include Documents Warning:</b> Cloning chatbot documents
-                    will take much longer (about 30 seconds to a minute).
-                  </p>
-                  {includeInsertedQuestionsValue && (
-                    <p className="text-sm">
-                      <b>Include Inserted Questions Warning:</b> This process
-                      will not filter out answers to inserted questions relating
-                      to timed data (eg. dated announcements, assignments,
-                      etc.).
-                    </p>
-                  )}
-                  <b className="py-2 text-center">
-                    You will be notified on the bottom right of the screen when
-                    the cloning process is successful or fails. You do not need
-                    to remain on this page, but do not refresh this site until
-                    cloning is complete.
-                  </b>
+                <div className="flex w-80 flex-col gap-1">
                   <p>
-                    Are you sure you wish to include chatbot documents in your
-                    clone?
+                    Note that you may want to review and remove any out-of-date
+                    or irrelevant chatbot documents and chunks after the course
+                    is cloned.
+                  </p>
+                  <p>
+                    This process will take a minute to complete. You will be
+                    notified on the bottom-right of the screen once the cloning
+                    completes.
                   </p>
                 </div>
               }
-              okText="Yes"
-              cancelText="No"
+              okText="Continue"
+              cancelText="Cancel"
               icon={<ExclamationCircleFilled className="text-blue-500" />}
               onConfirm={handleClone}
               okButtonProps={{ className: 'px-4' }}
@@ -204,7 +191,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
         }}
       >
         <Form form={form} layout="vertical" className="w-full">
-          {isAdmin && professors ? (
+          {isAdmin && professors && professors.length > 0 && (
             <Form.Item
               label="Professors"
               name="professorIds"
@@ -254,8 +241,6 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                 }}
               />
             </Form.Item>
-          ) : (
-            <></>
           )}
           <Form.Item
             label="Clone by"
@@ -322,24 +307,25 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
               )
             }}
           </Form.Item>
-          <Form.Item label="Course Attributes to Clone">
+          <h3 className="text-lg font-bold">Choose What to Clone</h3>
+          <Form.Item label="General">
             <div className="ml-4 flex flex-col">
               <Form.Item
-                name={['cloneAttributes', 'coordinator_email']}
+                name={['toClone', 'coordinator_email']}
                 valuePropName="checked"
                 noStyle
               >
                 <Checkbox>Coordinator Email</Checkbox>
               </Form.Item>
               <Form.Item
-                name={['cloneAttributes', 'zoomLink']}
+                name={['toClone', 'zoomLink']}
                 valuePropName="checked"
                 noStyle
               >
                 <Checkbox>Zoom Link</Checkbox>
               </Form.Item>
               <Form.Item
-                name={['cloneAttributes', 'courseInviteCode']}
+                name={['toClone', 'courseInviteCode']}
                 valuePropName="checked"
                 noStyle
               >
@@ -347,46 +333,14 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
               </Form.Item>
             </div>
           </Form.Item>
-          <Form.Item label="Course Settings to Clone">
-            <div className="ml-4 flex flex-col">
-              <Form.Item
-                name={['cloneCourseSettings', 'chatBotEnabled']}
-                valuePropName="checked"
-                noStyle
-              >
-                <Checkbox>ChatBot Enabled</Checkbox>
-              </Form.Item>
-              <Form.Item
-                name={['cloneCourseSettings', 'asyncQueueEnabled']}
-                valuePropName="checked"
-                noStyle
-              >
-                <Checkbox>Async Queue Enabled</Checkbox>
-              </Form.Item>
-              <Form.Item
-                name={['cloneCourseSettings', 'queueEnabled']}
-                valuePropName="checked"
-                noStyle
-              >
-                <Checkbox>Queues Enabled</Checkbox>
-              </Form.Item>
-              <Form.Item
-                name={['cloneCourseSettings', 'scheduleOnFrontPage']}
-                valuePropName="checked"
-                noStyle
-              >
-                <Checkbox>Schedule on Front Page</Checkbox>
-              </Form.Item>
-              <Form.Item
-                name={['cloneCourseSettings', 'asyncCentreAIAnswers']}
-                valuePropName="checked"
-                noStyle
-              >
-                <Checkbox>Async Centre AI Answers</Checkbox>
-              </Form.Item>
-            </div>
+          <Form.Item
+            valuePropName="checked"
+            layout="horizontal"
+            label="Course Features Configuration"
+            tooltip="Under Course Settings, you are able to disable or toggle certain features for your course. This is asking if you would like to copy-over what is currently configured for this course."
+          >
+            <Checkbox />
           </Form.Item>
-
           <Form.Item
             noStyle
             shouldUpdate={(prevValues, curValues) =>

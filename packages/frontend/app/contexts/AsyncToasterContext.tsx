@@ -15,28 +15,28 @@ type NotifyOptions = {
   appendApiError: boolean
 }
 
-interface AsyncActionsContextProps {
-  runAsync: (
+interface AsyncToasterContextProps {
+  runAsyncToast: (
     apiCall: () => Promise<any>,
     callback: AsyncCallback,
     notifyOptions?: NotifyOptions,
   ) => void
 }
 
-const AsyncActionsContext = createContext<AsyncActionsContextProps>({
-  runAsync: () => {
+const AsyncToasterContext = createContext<AsyncToasterContextProps>({
+  runAsyncToast: () => {
     throw new Error(
-      'runAsync() not implemented. Did you forget to wrap your component in AsyncActionsProvider?',
+      'runAsyncToast() not implemented. Did you forget to wrap your component in AsyncToasterProvider?',
     )
   },
 })
 
-export const useAsyncActions = () => useContext(AsyncActionsContext)
+export const useAsyncToaster = () => useContext(AsyncToasterContext)
 
-export const AsyncActionsProvider: React.FC<PropsWithChildren> = ({
+export const AsyncToasterProvider: React.FC<PropsWithChildren> = ({
   children,
 }) => {
-  const runAsync = (
+  const runAsyncToast = (
     apiCall: () => Promise<any>,
     callback: AsyncCallback,
     notifyOptions?: NotifyOptions,
@@ -46,6 +46,8 @@ export const AsyncActionsProvider: React.FC<PropsWithChildren> = ({
         if (notifyOptions) {
           toast.success(notifyOptions.successMsg, {
             className: 'bg-green-600 text-white',
+            duration: Infinity,
+            dismissible: true,
           })
         }
         callback(result)
@@ -64,11 +66,17 @@ export const AsyncActionsProvider: React.FC<PropsWithChildren> = ({
               <br />
               {getErrorMessage(error)}
             </div>,
-            { className: 'bg-red-600 text-white' },
+            {
+              className: 'bg-red-600 text-white',
+              duration: Infinity,
+              dismissible: true,
+            },
           )
         } else {
           toast.error(notifyOptions.errorMsg, {
             className: 'bg-red-600 text-white',
+            duration: Infinity,
+            dismissible: true,
           })
         }
         callback(null, error)
@@ -76,7 +84,7 @@ export const AsyncActionsProvider: React.FC<PropsWithChildren> = ({
   }
 
   return (
-    <AsyncActionsContext.Provider value={{ runAsync }}>
+    <AsyncToasterContext.Provider value={{ runAsyncToast }}>
       <Toaster
         position="bottom-right"
         toastOptions={{
@@ -85,6 +93,6 @@ export const AsyncActionsProvider: React.FC<PropsWithChildren> = ({
         }}
       />
       {children}
-    </AsyncActionsContext.Provider>
+    </AsyncToasterContext.Provider>
   )
 }

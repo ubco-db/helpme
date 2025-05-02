@@ -13,7 +13,7 @@ import StandardPageContainer from '../components/standardPageContainer'
 import Image from 'next/image'
 import ChatbotContextProvider from './course/[cid]/components/chatbot/ChatbotProvider'
 import FooterBar from './components/FooterBar'
-import { AsyncActionsProvider } from '../contexts/AsyncActionsContext'
+import { AsyncToasterProvider } from '../contexts/AsyncToasterContext'
 import { ReloadOutlined, LogoutOutlined } from '@ant-design/icons'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
@@ -93,7 +93,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </p>
     </main>
   ) : (
-    <AsyncActionsProvider>
+    <AsyncToasterProvider>
       <UserInfoProvider profile={profile}>
         <header className={`border-b border-b-zinc-200 bg-white`}>
           <StandardPageContainer className="!pl-0">
@@ -128,7 +128,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </main>
         <FooterBar />
       </UserInfoProvider>
-    </AsyncActionsProvider>
+    </AsyncToasterProvider>
   )
 }
 
