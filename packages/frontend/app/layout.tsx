@@ -4,7 +4,7 @@ import './globals.css'
 import { AntdRegistry } from '@ant-design/nextjs-registry'
 import { cn } from '@/app/utils/generalUtils'
 import { ConfigProvider } from 'antd'
-import '@ant-design/v5-patch-for-react-19'
+import AntdProvider from './components/AntdProvider'
 
 const interFontSans = Inter({
   subsets: ['latin'],
@@ -35,20 +35,7 @@ export default function RootLayout({
           interFontSans.variable,
         )}
       >
-        <AntdRegistry>
-          <ConfigProvider
-            theme={{
-              components: {
-                Button: {
-                  colorPrimary: '#3684c6',
-                  algorithm: true,
-                },
-              },
-            }}
-          >
-            {children}
-          </ConfigProvider>
-        </AntdRegistry>
+        <AntdProvider>{children}</AntdProvider>
       </body>
     </html>
   )
