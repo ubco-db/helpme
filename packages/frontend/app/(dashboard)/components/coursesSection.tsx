@@ -306,7 +306,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                 key={course.course.id}
                 className="m-2 w-full shadow md:w-[46%] lg:w-[30.5%] xl:w-[22.5%]"
                 cover={
-                  <div className="relative block h-32 w-full">
+                  <div className="relative block h-24 w-full md:h-32">
                     <div
                       className="absolute inset-0 rounded-t"
                       style={{
@@ -326,10 +326,10 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                   </div>
                 }
               >
-                <div className="flex flex-wrap items-start justify-between align-middle">
+                <div className="flex flex-wrap items-center justify-between">
                   <Meta
                     title={
-                      <span>
+                      <span className="text-lg md:text-base">
                         {course.course.name}
                         {course.course.sectionGroupName &&
                           isThereAnotherCourseWithSameNameAndSemester && (
