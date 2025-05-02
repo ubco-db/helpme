@@ -12,7 +12,7 @@ import {
 import React, { useMemo } from 'react'
 import Meta from 'antd/es/card/Meta'
 import Link from 'next/link'
-import stringToHexColor, { getErrorMessage } from '@/app/utils/generalUtils'
+import stringToHexColor, { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { ColumnsType } from 'antd/es/table'
 import { StarFilled, StarOutlined } from '@ant-design/icons'
 import { API } from '@/app/api'
@@ -52,6 +52,14 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
   // Updated toggleFavourite function to use API object
   const toggleFavourite = (course: UserCourse) => {
     const newStatus = !course.favourited
+    // immediately set local userInfo state so the UI is updated immediately
+    setUserInfo((prev) => ({
+      ...prev,
+      courses: prev.courses.map((c) =>
+        c.course.id === course.course.id ? { ...c, favourited: newStatus } : c,
+      ),
+    }))
+    // now update in the background
     API.course
       .toggleFavourited(course.course.id)
       .then(() => {
@@ -65,6 +73,15 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         }))
       })
       .catch((err) => {
+        // revert local userInfo state if API call fails
+        setUserInfo((prev) => ({
+          ...prev,
+          courses: prev.courses.map((c) =>
+            c.course.id === course.course.id
+              ? { ...c, favourited: !newStatus }
+              : c,
+          ),
+        }))
         message.error(getErrorMessage(err))
       })
   }
@@ -74,22 +91,27 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
       key: 'favourite',
       width: '5%',
       align: 'center',
+      className: 'p-0 md:p-1',
       render: (_, course) => (
         <Tooltip
-          title="Toggle favourited courses you wish to see on your dashboard"
+          title={
+            course.favourited
+              ? 'Unfavourite this course to remove it from your dashboard (Card View)'
+              : 'Favourite this course to add it to your dashboard (Card View)'
+          }
           mouseEnterDelay={0.5}
         >
-          {course.favourited ? (
-            <StarFilled
-              onClick={() => toggleFavourite(course)}
-              style={{ color: 'gold', cursor: 'pointer', fontSize: '1rem' }}
-            />
-          ) : (
-            <StarOutlined
-              onClick={() => toggleFavourite(course)}
-              style={{ color: 'grey', cursor: 'pointer', fontSize: '1rem' }}
-            />
-          )}
+          <button
+            className={cn(
+              `h-7 w-full`,
+              course.favourited
+                ? 'text-yellow-400 hover:text-yellow-500'
+                : 'text-gray-400 hover:text-gray-600',
+            )}
+            onClick={() => toggleFavourite(course)}
+          >
+            {course.favourited ? <StarFilled /> : <StarOutlined />}
+          </button>
         </Tooltip>
       ),
     },
@@ -136,14 +158,14 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
           <Link href={`/course/${course.course.id}`}>
             <Button
               type="primary"
-              className="rounded text-sm md:p-[1.1rem] md:font-medium"
+              className="text-sm md:p-[1.1rem] md:font-medium"
             >
               Course Page
             </Button>
           </Link>
           {course.role === Role.PROFESSOR && (
             <Link href={`/course/${course.course.id}/settings`}>
-              <Button className="rounded p-[1.1rem] text-sm md:font-medium">
+              <Button className="p-[1.1rem] text-sm md:font-medium">
                 Edit Course
               </Button>
             </Link>
@@ -187,7 +209,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
   }, [userInfo.courses, semesters])
 
   return (
-    <div className="mb-8 mt-5 w-full">
+    <div className="mb-8 w-full">
       {enabledTableView ? (
         <>
           {semesters
@@ -235,8 +257,8 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                       )}
                     rowKey={(course) => course.course.id}
                     pagination={
-                      semesterCourses.length > 5
-                        ? { pageSize: 5, showQuickJumper: true }
+                      semesterCourses.length > 12
+                        ? { pageSize: 12, showQuickJumper: true }
                         : false
                     }
                     showHeader={false}
@@ -248,7 +270,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
           {coursesWithoutSemester.length > 0 && (
             <div key={-1}>
               <Divider className="my-1 p-2 text-lg font-semibold">
-                <Tooltip title="Courses that are not assigned to a semester">
+                <Tooltip title="These courses are not assigned to a semester">
                   No Semester
                 </Tooltip>
               </Divider>
@@ -260,7 +282,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                 )}
                 rowKey={(course) => course.course.id}
                 pagination={
-                  coursesWithoutSemester.length > 10 ? { pageSize: 10 } : false
+                  coursesWithoutSemester.length > 12 ? { pageSize: 12 } : false
                 }
                 showHeader={false}
               />
@@ -268,7 +290,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
           )}
         </>
       ) : (
-        <div className="flex flex-wrap gap-3">
+        <div className="mt-5 flex flex-wrap gap-3">
           {sortedCoursesInCardView.map((course, index) => {
             // Generate course icon
             const iconSvg = jdenticon.toSvg(course.course.name, iconSize)
