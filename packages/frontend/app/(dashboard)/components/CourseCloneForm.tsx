@@ -45,9 +45,8 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   const [form] = Form.useForm<CourseCloneAttributes>()
   const { userInfo, setUserInfo } = useUserInfo()
   const { runAsyncToast } = useAsyncToaster()
-  const courseName = userInfo?.courses.find(
-    (uc) => uc.courseId === courseId,
-  )?.course.name
+  const courseName = userInfo?.courses.find((uc) => uc.course.id === courseId)
+    ?.course.name
 
   const openModal = () => {
     form.setFieldsValue(defaultCourseCloneAttributes)
@@ -87,8 +86,8 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           })
       },
       {
-        successMsg: `Course has been cloned successfully`,
-        errorMsg: 'Failed to clone course',
+        successMsg: `${courseName} has been cloned successfully`,
+        errorMsg: `Failed to clone ${courseName}`,
         appendApiError: true,
       },
     )
@@ -138,7 +137,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
         </Button>
       </div>
       <Modal
-        title="Clone Course Settings"
+        title={`Clone ${courseName}`}
         open={visible}
         onOk={handleClone}
         onCancel={handleCancelCloneModal}
