@@ -297,7 +297,7 @@ export default function LoginPage() {
                       )}
                       <div className="flex flex-col items-center justify-center">
                         <div className="font-semibold">
-                          Log in with {organization.name}
+                          Continue with {organization.name}
                         </div>
                         <div className="text-xs text-green-400">
                           (recommended)
@@ -320,7 +320,7 @@ export default function LoginPage() {
                       height={24}
                     />
                     <div className="flex flex-col items-center justify-center">
-                      <div className="font-semibold">Log in with Google</div>
+                      <div className="font-semibold">Continue with Google</div>
                       {!organization.ssoEnabled && (
                         <div className="text-xs text-green-400">
                           (recommended)
