@@ -15,9 +15,9 @@ import { useRouter } from 'next/navigation'
 import CourseInviteCode from './CourseInviteCode'
 import CourseFeaturesForm from './CourseFeaturesForm'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
-import CourseCloneForm from './CourseCloneForm'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { QuestionCircleOutlined } from '@ant-design/icons'
+import CourseCloneFormModal from './CourseCloneFormModal'
 
 type EditCourseProps = {
   courseId: number
@@ -136,7 +136,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
         )}
 
         <Card variant="outlined" title="Clone Course">
-          <CourseCloneForm
+          <CourseCloneFormModal
             organization={organization}
             courseId={courseData.course?.id ?? -1}
             courseSectionGroupName={courseData.course?.sectionGroupName ?? ''}

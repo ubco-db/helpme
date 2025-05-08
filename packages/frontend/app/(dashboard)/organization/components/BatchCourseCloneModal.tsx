@@ -122,7 +122,7 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
         return (
           <DefaultCourseSettingsSelection
             defaultValues={defaultCloneSettings}
-            organizationSemesters={organization.semesters}
+            organization={organization}
             form={defaultSettingsForm}
           />
         )
@@ -131,12 +131,11 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
           <>
             <CustomizeCloneSettings
               courses={courses}
-              professors={professors}
               selectedCourseIds={selectedCourseIds}
               defaultCloneSettings={defaultCloneSettings}
               customCloneSettings={customCloneSettings}
               setCustomCloneSettings={setCustomCloneSettings}
-              organizationSemesters={organization.semesters}
+              organization={organization}
             />
           </>
         )
