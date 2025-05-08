@@ -302,3 +302,19 @@ So in HelpMe there exists a feature under the "Edit Queue Details" modal where y
 The idea behind the feature is how in some labs there may be parts that require the TA to come "check-off" at some point before they leave the lab (e.g. chemistry/engineering/physics lab experiment). When a student is ready to have a part of the lab ready to be checked off they can create a "Demo", which is in the same queue as regular questions but can be differentiated and prioritized. Once you are helping them, you can select what parts they have finished, and that gets stored as "student assignment progress". You can think that each "task" may be a part of the lab that needs to be checked off, and any tasks that need to be looked at *before the student can continue working on the lab* are considered "Blocking Tasks" (by default, a task is not blocking, meaning that students can enter the queue with tasks 1, 2, and 3 all ready to be checked). This feature is totally optional.
 
 There is currently **no** integration made between the LMS (Canvas) integration assignments and these assignments. From synchronizing your LMS system (Canvas), your assignments descriptions will be automatically uploaded to the Course Chatbot, which can then be queried when the students ask the chatbot questions. But this LMS feature currently has nothing to do with student assignment progress and are completely separated systems.
+
+
+### What does LMS (Canvas) integration synchronize with?
+
+Right now, the only things integrated with LMSs (like Canvas) are:
+- **Course Roster**: Lets you compare what students are in your HelpMe course but not your Canvas course (or vise-versa). This is useful for knowing if there is someone in your HelpMe course that shouldn't be or how many people in your Canvas course never once joined your HelpMe course. It compares by checking if the user's name matches in both courses. This information does *not* get inserted to the chatbot or anywhere else in the system, it is purely used for comparing the Canvas course with the HelpMe course.
+- **Course Assignments**: Will automatically pull the assignment's **name**, **due date**, and **description** and insert it into the chatbot. Note that it will ***not*** insert attached documents, images, or rubrics of the assignment to the chatbot (but this is being looked into as a future feature).
+- **Course Announcements**: Will automatically pull announcements' **titles**, **date posted**, and **announcement message** and insert it into the chatbot. Note that it does *not* insert attached documents or images from the announcements into the chatbot (but this is being looked into as a future feature)
+
+It does NOT currently synchronize:
+- Modules (though this is currently being looked into being supported)
+- Quizzes
+- File Uploads
+- Anything else
+
+So right now, the LMS integration is currently somewhat rudimentary. Slide decks and assignment pdfs will still need to be manually uploaded by going to Course Settings -> Chatbot Settings -> Add Documents
