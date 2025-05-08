@@ -245,6 +245,11 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
                 label: prof.organizationUser.name,
                 value: prof.organizationUser.id,
               }))}
+              filterSort={(optionA, optionB) =>
+                (optionA?.label ?? '')
+                  .toLowerCase()
+                  .localeCompare((optionB?.label ?? '').toLowerCase())
+              }
               tagRender={(props) => {
                 const { label, value, closable, onClose } = props
                 const onPreventMouseDown = (

@@ -205,6 +205,11 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
                     label: prof.organizationUser.name,
                     value: prof.organizationUser.id,
                   }))}
+                  filterSort={(optionA, optionB) =>
+                    (optionA?.label ?? '')
+                      .toLowerCase()
+                      .localeCompare((optionB?.label ?? '').toLowerCase())
+                  }
                   notFoundContent="There seems to be no professors available. This is likely a server error."
                   value={form.getFieldValue('professorIds')}
                   onChange={(values: number[]) => {

@@ -276,6 +276,13 @@ export default function AddCoursePage(): ReactElement {
                           <Select
                             mode="multiple"
                             placeholder="Select professors"
+                            filterSort={(optionA, optionB) =>
+                              (optionA?.label ?? '')
+                                .toLowerCase()
+                                .localeCompare(
+                                  (optionB?.label ?? '').toLowerCase(),
+                                )
+                            }
                             showSearch
                             optionFilterProp="label"
                             options={professors.map((prof) => ({
