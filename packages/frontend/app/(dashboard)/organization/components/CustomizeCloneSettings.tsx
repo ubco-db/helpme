@@ -198,7 +198,10 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
                 <Select
                   mode="multiple"
                   placeholder="Select professors"
+                  showSearch
+                  optionFilterProp="label"
                   options={professors.map((prof: OrganizationProfessor) => ({
+                    key: prof.organizationUser.id,
                     label: prof.organizationUser.name,
                     value: prof.organizationUser.id,
                   }))}
