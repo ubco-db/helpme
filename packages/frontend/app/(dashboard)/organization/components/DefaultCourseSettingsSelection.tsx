@@ -46,21 +46,21 @@ const DefaultCourseSettingsSelection: React.FC<
       <Form.Item label="Course Attributes to Clone">
         <div className="ml-4 flex flex-col">
           <Form.Item
-            name={['cloneAttributes', 'coordinator_email']}
+            name={['toClone', 'coordinator_email']}
             valuePropName="checked"
             noStyle
           >
             <Checkbox>Coordinator Email</Checkbox>
           </Form.Item>
           <Form.Item
-            name={['cloneAttributes', 'zoomLink']}
+            name={['toClone', 'zoomLink']}
             valuePropName="checked"
             noStyle
           >
             <Checkbox>Zoom Link</Checkbox>
           </Form.Item>
           <Form.Item
-            name={['cloneAttributes', 'courseInviteCode']}
+            name={['toClone', 'courseInviteCode']}
             valuePropName="checked"
             noStyle
           >

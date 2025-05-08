@@ -182,52 +182,44 @@ export type CourseCloneAttributes = {
   useSection: boolean
   newSemesterId?: number
   newSection?: string
-  includeDocuments: boolean
-  includeInsertedQuestions?: boolean
-  cloneAttributes: {
+  associateWithOriginalCourse?: boolean
+  toClone: {
     coordinator_email?: boolean
     zoomLink?: boolean
     courseInviteCode?: boolean
-  }
-  cloneCourseSettings: {
-    chatBotEnabled?: boolean
-    asyncQueueEnabled?: boolean
-    queueEnabled?: boolean
-    scheduleOnFrontPage?: boolean
-    asyncCentreAIAnswers?: boolean
-  }
-  chatbotSettings: {
-    modelName: boolean
-    prompt: boolean
-    similarityThresholdDocuments: boolean
-    temperature: boolean
-    topK: boolean
+    courseFeatureConfig?: boolean
+    asyncCentreQuestionTypes?: boolean
+    queues?: boolean
+    queueInvites?: boolean
+    chatbot?: {
+      settings?: boolean
+      documents?: boolean
+      manuallyCreatedChunks?: boolean
+      insertedQuestions?: boolean
+      insertedLMSData?: boolean
+    }
   }
 }
 
 export const defaultCourseCloneAttributes: CourseCloneAttributes = {
   professorIds: [],
-  includeDocuments: false,
   useSection: false,
-  includeInsertedQuestions: false,
-  cloneAttributes: {
+  associateWithOriginalCourse: true,
+  toClone: {
     coordinator_email: true,
     zoomLink: false,
     courseInviteCode: false,
-  },
-  cloneCourseSettings: {
-    chatBotEnabled: true,
-    asyncQueueEnabled: true,
-    queueEnabled: true,
-    scheduleOnFrontPage: false,
-    asyncCentreAIAnswers: true,
-  },
-  chatbotSettings: {
-    modelName: true,
-    prompt: true,
-    similarityThresholdDocuments: true,
-    temperature: true,
-    topK: true,
+    courseFeatureConfig: true,
+    asyncCentreQuestionTypes: true,
+    queues: true,
+    queueInvites: true,
+    chatbot: {
+      settings: true,
+      documents: true,
+      manuallyCreatedChunks: true,
+      insertedQuestions: true,
+      insertedLMSData: false,
+    },
   },
 }
 

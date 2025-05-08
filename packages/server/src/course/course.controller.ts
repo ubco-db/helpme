@@ -390,41 +390,14 @@ export class CourseController {
     }
 
     try {
-      let createdQueue = null;
-      await this.dataSource.transaction(async (transactionalEntityManager) => {
-        try {
-          createdQueue = await transactionalEntityManager
-            .create(QueueModel, {
-              room,
-              courseId,
-              type: body.type,
-              staffList: [],
-              questions: [],
-              allowQuestions: true,
-              notes: body.notes,
-              isProfessorQueue: body.isProfessorQueue,
-              config: newConfig,
-            })
-            .save();
-
-          // now for each tag defined in the config, create a QuestionType
-          const questionTypes = newConfig.tags ?? {};
-          for (const [tagKey, tagValue] of Object.entries(questionTypes)) {
-            await transactionalEntityManager
-              .getRepository(QuestionTypeModel)
-              .insert({
-                cid: courseId,
-                name: tagValue.display_name,
-                color: tagValue.color_hex,
-                queueId: createdQueue.id,
-              });
-          }
-        } catch (err) {
-          throw err;
-        }
-      });
-
-      return createdQueue;
+      return this.courseService.createQueue(
+        courseId,
+        room,
+        body.type,
+        body.notes,
+        body.isProfessorQueue,
+        newConfig,
+      );
     } catch (err) {
       console.error(
         ERROR_MESSAGES.courseController.saveQueueError +

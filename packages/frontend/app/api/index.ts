@@ -457,15 +457,12 @@ class APIClient {
           notes,
         },
       ),
-    createClone: async (
-      courseId: number,
-      cloneAttributes: CourseCloneAttributes,
-    ) => {
+    createClone: async (courseId: number, toClone: CourseCloneAttributes) => {
       return this.req(
         'POST',
         `/api/v1/courses/${courseId}/clone_course`,
         undefined,
-        cloneAttributes,
+        toClone,
       )
     },
     toggleFavourited: async (courseId: number) => {

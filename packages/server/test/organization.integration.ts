@@ -3363,14 +3363,14 @@ describe('Organization Integration', () => {
         organization: organization,
       });
 
-      const cloneAttributes = {
+      const toClone = {
         [course1.id]: { name: 'Cloned Course 1', semesterId: semester1.id },
         [course2.id]: { name: 'Cloned Course 2', semesterId: semester2.id },
       };
 
       const response = await supertest({ userId: admin.id })
         .post(`/organization/${organization.id}/clone_courses`)
-        .send(cloneAttributes);
+        .send(toClone);
 
       expect(response.status).toBe(201);
       expect(response.text).toBe(

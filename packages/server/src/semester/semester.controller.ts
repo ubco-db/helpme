@@ -37,6 +37,9 @@ export class SemesterController {
 
     const semesters = await SemesterModel.find({
       where: { organizationId: organizationId },
+      order: {
+        endDate: 'DESC',
+      },
     });
 
     return semesters;

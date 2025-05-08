@@ -9,6 +9,9 @@ import {
   OrganizationFactory,
   OrganizationUserFactory,
   CourseSettingsFactory,
+  QueueFactory,
+  QueueInviteFactory,
+  QuestionTypeFactory,
 } from '../../test/util/factories';
 import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
 import { CourseService } from './course.service';
@@ -19,6 +22,8 @@ import {
   UserPartial,
   OrganizationRole,
   CourseCloneAttributes,
+  QueueTypes,
+  QueueConfig,
 } from '@koh/common';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
@@ -27,6 +32,11 @@ import { FactoryService } from 'factory/factory.service';
 import { HttpException } from '@nestjs/common';
 import { MailModule } from 'mail/mail.module';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
+import { QueueModel } from 'queue/queue.entity';
+import { QueueInviteModel } from 'queue/queue-invite.entity';
+import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
+import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { CourseSettingsModel } from './course_settings.entity';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -462,6 +472,195 @@ describe('CourseService', () => {
     let newSemester: any;
     let organization: any;
     let chatToken: string;
+    let queue1: QueueModel;
+    let queue2: QueueModel;
+    let queueInvite1: QueueInviteModel;
+    let queueInvite2: QueueInviteModel;
+    let courseSettings: CourseSettingsModel;
+    let asyncCentreQuestionType1: QuestionTypeModel;
+    let asyncCentreQuestionType2: QuestionTypeModel;
+    let chatbotDocPdf: ChatbotDocPdfModel;
+
+    async function ensureCloneWasSuccessful(
+      originalCourseId: number,
+      clonedCourseId: number,
+    ) {
+      // Get the original and cloned courses with their settings
+      const originalCourse = await CourseModel.findOne({
+        where: { id: originalCourseId },
+        relations: ['courseSettings'],
+      });
+
+      const clonedCourse = await CourseModel.findOne({
+        where: { id: clonedCourseId },
+        relations: ['courseSettings'],
+      });
+
+      expect(clonedCourse).toBeDefined();
+      expect(clonedCourse.id).not.toEqual(originalCourse.id);
+      expect(clonedCourse.name).toEqual(originalCourse.name);
+      expect(clonedCourse.timezone).toEqual(originalCourse.timezone);
+
+      // Check course settings
+      expect(clonedCourse.courseSettings).toBeDefined();
+      expect(clonedCourse.courseSettings.courseId).toEqual(clonedCourse.id);
+      expect(clonedCourse.courseSettings.chatBotEnabled).toEqual(
+        originalCourse.courseSettings.chatBotEnabled,
+      );
+      expect(clonedCourse.courseSettings.asyncQueueEnabled).toEqual(
+        originalCourse.courseSettings.asyncQueueEnabled,
+      );
+      expect(clonedCourse.courseSettings.queueEnabled).toEqual(
+        originalCourse.courseSettings.queueEnabled,
+      );
+      expect(clonedCourse.courseSettings.scheduleOnFrontPage).toEqual(
+        originalCourse.courseSettings.scheduleOnFrontPage,
+      );
+
+      // Check queues
+      const originalQueues = await QueueModel.find({
+        where: { courseId: originalCourseId },
+        relations: ['queueInvite'],
+        order: { id: 'ASC' },
+      });
+
+      const clonedQueues = await QueueModel.find({
+        where: { courseId: clonedCourseId },
+        relations: ['queueInvite'],
+        order: { id: 'ASC' },
+      });
+
+      expect(clonedQueues.length).toEqual(originalQueues.length);
+
+      for (let i = 0; i < clonedQueues.length; i++) {
+        expect(clonedQueues[i].id).not.toEqual(originalQueues[i].id);
+        expect(clonedQueues[i].courseId).toEqual(clonedCourseId);
+        expect(clonedQueues[i].room).toEqual(originalQueues[i].room);
+        expect(clonedQueues[i].type).toEqual(originalQueues[i].type);
+        expect(clonedQueues[i].notes).toEqual(originalQueues[i].notes);
+        expect(clonedQueues[i].isProfessorQueue).toEqual(
+          originalQueues[i].isProfessorQueue,
+        );
+        expect(JSON.stringify(clonedQueues[i].config)).toEqual(
+          JSON.stringify(originalQueues[i].config),
+        );
+
+        // Check queue invites
+        if (originalQueues[i].queueInvite) {
+          expect(clonedQueues[i].queueInvite).toBeDefined();
+          expect(clonedQueues[i].queueInvite.queueId).toEqual(
+            clonedQueues[i].id,
+          );
+          expect(clonedQueues[i].queueInvite.willInviteToCourse).toEqual(
+            originalQueues[i].queueInvite.willInviteToCourse,
+          );
+        }
+
+        // Check question types for the queue
+        const originalQueueQuestionTypes = await QuestionTypeModel.find({
+          where: {
+            cid: originalCourseId,
+            queueId: originalQueues[i].id,
+          },
+          order: { id: 'ASC' },
+        });
+
+        const clonedQueueQuestionTypes = await QuestionTypeModel.find({
+          where: {
+            cid: clonedCourseId,
+            queueId: clonedQueues[i].id,
+          },
+          order: { id: 'ASC' },
+        });
+
+        expect(clonedQueueQuestionTypes.length).toEqual(
+          originalQueueQuestionTypes.length,
+        );
+
+        for (let j = 0; j < clonedQueueQuestionTypes.length; j++) {
+          expect(clonedQueueQuestionTypes[j].id).not.toEqual(
+            originalQueueQuestionTypes[j].id,
+          );
+          expect(clonedQueueQuestionTypes[j].cid).toEqual(clonedCourseId);
+          expect(clonedQueueQuestionTypes[j].queueId).toEqual(
+            clonedQueues[i].id,
+          );
+          expect(clonedQueueQuestionTypes[j].name).toEqual(
+            originalQueueQuestionTypes[j].name,
+          );
+          expect(clonedQueueQuestionTypes[j].color).toEqual(
+            originalQueueQuestionTypes[j].color,
+          );
+        }
+      }
+
+      // Check async centre question types
+      const originalAsyncQuestionTypes = await QuestionTypeModel.find({
+        where: {
+          cid: originalCourseId,
+          queueId: null,
+        },
+        order: { id: 'ASC' },
+      });
+
+      const clonedAsyncQuestionTypes = await QuestionTypeModel.find({
+        where: {
+          cid: clonedCourseId,
+          queueId: null,
+        },
+        order: { id: 'ASC' },
+      });
+
+      expect(clonedAsyncQuestionTypes.length).toEqual(
+        originalAsyncQuestionTypes.length,
+      );
+
+      for (let i = 0; i < clonedAsyncQuestionTypes.length; i++) {
+        expect(clonedAsyncQuestionTypes[i].id).not.toEqual(
+          originalAsyncQuestionTypes[i].id,
+        );
+        expect(clonedAsyncQuestionTypes[i].cid).toEqual(clonedCourseId);
+        expect(clonedAsyncQuestionTypes[i].queueId).toBeNull();
+        expect(clonedAsyncQuestionTypes[i].name).toEqual(
+          originalAsyncQuestionTypes[i].name,
+        );
+        expect(clonedAsyncQuestionTypes[i].color).toEqual(
+          originalAsyncQuestionTypes[i].color,
+        );
+      }
+
+      // Check chatbot document PDFs
+      const originalChatbotDocs = await ChatbotDocPdfModel.find({
+        where: { courseId: originalCourseId },
+        order: { idHelpMeDB: 'ASC' },
+      });
+
+      const clonedChatbotDocs = await ChatbotDocPdfModel.find({
+        where: { courseId: clonedCourseId },
+        order: { idHelpMeDB: 'ASC' },
+      });
+
+      expect(clonedChatbotDocs.length).toEqual(originalChatbotDocs.length);
+
+      for (let i = 0; i < clonedChatbotDocs.length; i++) {
+        expect(clonedChatbotDocs[i].idHelpMeDB).not.toEqual(
+          originalChatbotDocs[i].idHelpMeDB,
+        );
+        expect(clonedChatbotDocs[i].courseId).toEqual(clonedCourseId);
+        expect(clonedChatbotDocs[i].docName).toEqual(
+          originalChatbotDocs[i].docName,
+        );
+        expect(clonedChatbotDocs[i].docIdChatbotDB).toEqual(
+          originalChatbotDocs[i].docIdChatbotDB,
+        );
+        expect(clonedChatbotDocs[i].docSizeBytes).toEqual(
+          originalChatbotDocs[i].docSizeBytes,
+        );
+        expect(clonedChatbotDocs[i].docData.toString()).toEqual(
+          originalChatbotDocs[i].docData.toString(),
+        );
+      }
+    }
 
     beforeEach(async () => {
       // Set up test data
@@ -487,10 +686,10 @@ describe('CourseService', () => {
         semester,
       });
 
-      await CourseSettingsFactory.create({
+      courseSettings = await CourseSettingsFactory.create({
         course,
         chatBotEnabled: true,
-        asyncQueueEnabled: true,
+        asyncQueueEnabled: false,
         queueEnabled: true,
         scheduleOnFrontPage: false,
       });
@@ -501,6 +700,88 @@ describe('CourseService', () => {
         role: Role.PROFESSOR,
       });
 
+      const tempQueueConfig: QueueConfig = {
+        fifo_queue_view_enabled: true,
+        tag_groups_queue_view_enabled: true,
+        default_view: 'fifo',
+        minimum_tags: 1,
+        tags: {
+          tag1: {
+            display_name: 'Tag 1',
+            color_hex: '#000000',
+          },
+          tag2: {
+            display_name: 'Tag 2',
+            color_hex: '#FFFFFF',
+          },
+        },
+      };
+
+      // create queues
+      queue1 = await QueueFactory.create({
+        course,
+        room: 'Test Queue',
+        type: 'online',
+        notes: 'Test Notes',
+        isProfessorQueue: true,
+        config: tempQueueConfig,
+      });
+      queue2 = await QueueFactory.create({
+        course,
+        room: 'Test Queue 2',
+        type: 'hybrid',
+        notes: 'Test Notes 2',
+        isProfessorQueue: false,
+        config: tempQueueConfig,
+      });
+
+      // create question types for queues (4 total, should correspond to what's in queue config)
+      for (const tag of Object.keys(tempQueueConfig.tags)) {
+        await QuestionTypeFactory.create({
+          cid: course.id,
+          name: tag,
+          color: tempQueueConfig.tags[tag].color_hex,
+          queueId: queue1.id,
+        });
+        await QuestionTypeFactory.create({
+          cid: course.id,
+          name: tag,
+          color: tempQueueConfig.tags[tag].color_hex,
+          queueId: queue2.id,
+        });
+      }
+
+      // create queue invites
+      queueInvite1 = await QueueInviteFactory.create({
+        queue: queue1,
+      });
+      queueInvite2 = await QueueInviteFactory.create({
+        queue: queue2,
+        willInviteToCourse: true,
+      });
+
+      // create question types for async centre (null queueId)
+      asyncCentreQuestionType1 = await QuestionTypeFactory.create({
+        cid: course.id,
+        name: 'Question Type 1',
+        color: '#000000',
+        queueId: null,
+      });
+      asyncCentreQuestionType2 = await QuestionTypeFactory.create({
+        cid: course.id,
+        name: 'Question Type 2',
+        color: '#FFFFFF',
+        queueId: null,
+      });
+      // create chatbot document pdf
+      chatbotDocPdf = await ChatbotDocPdfModel.create({
+        course: course,
+        docName: 'Test Document',
+        docData: Buffer.from('Test Data'),
+        docSizeBytes: 100,
+        docIdChatbotDB: 'test-doc-id',
+      }).save();
+
       chatToken = 'test-chat-token';
     });
 
@@ -509,24 +790,20 @@ describe('CourseService', () => {
         professorIds: [professor.id],
         useSection: true,
         newSection: '002',
-        includeDocuments: false,
-        cloneAttributes: {
+        toClone: {
           coordinator_email: true,
-          zoomLink: false,
-          courseInviteCode: false,
-        },
-        cloneCourseSettings: {
-          chatBotEnabled: true,
-          asyncQueueEnabled: true,
-          queueEnabled: true,
-          scheduleOnFrontPage: false,
-        },
-        chatbotSettings: {
-          modelName: true,
-          prompt: true,
-          similarityThresholdDocuments: true,
-          temperature: true,
-          topK: true,
+          zoomLink: true,
+          courseInviteCode: true,
+          courseFeatureConfig: true,
+          asyncCentreQuestionTypes: true,
+          queues: true,
+          queueInvites: true,
+          chatbot: {
+            documents: true,
+            manuallyCreatedChunks: true,
+            insertedQuestions: true,
+            insertedLMSData: true,
+          },
         },
       };
 
@@ -541,6 +818,9 @@ describe('CourseService', () => {
       expect(result?.course.name).toBe('Test Course');
       expect(result?.course.sectionGroupName).toBe('002');
       expect(result?.role).toBe(Role.PROFESSOR);
+
+      // Verify all cloned data is correct
+      await ensureCloneWasSuccessful(course.id, result.course.id);
     });
 
     it('should successfully clone a course with a new semester', async () => {
@@ -548,26 +828,21 @@ describe('CourseService', () => {
         professorIds: [professor.id],
         useSection: false,
         newSemesterId: newSemester.id,
-        includeDocuments: true,
-        includeInsertedQuestions: true,
-        cloneAttributes: {
+        associateWithOriginalCourse: true,
+        toClone: {
           coordinator_email: true,
           zoomLink: true,
           courseInviteCode: true,
-        },
-        cloneCourseSettings: {
-          chatBotEnabled: true,
-          asyncQueueEnabled: true,
-          queueEnabled: true,
-          scheduleOnFrontPage: true,
-          asyncCentreAIAnswers: true,
-        },
-        chatbotSettings: {
-          modelName: true,
-          prompt: true,
-          similarityThresholdDocuments: true,
-          temperature: true,
-          topK: true,
+          courseFeatureConfig: true,
+          asyncCentreQuestionTypes: true,
+          queues: true,
+          queueInvites: true,
+          chatbot: {
+            documents: true,
+            manuallyCreatedChunks: true,
+            insertedQuestions: true,
+            insertedLMSData: true,
+          },
         },
       };
 
@@ -582,29 +857,30 @@ describe('CourseService', () => {
       expect(result?.course.name).toBe('Test Course');
       expect(result?.course.sectionGroupName).toBe('001');
       expect(result?.role).toBe(Role.PROFESSOR);
+
+      // Verify all cloned data is correct
+      await ensureCloneWasSuccessful(course.id, result.course.id);
     });
 
     it('should throw error when neither new section nor new semester is specified', async () => {
       const cloneData: CourseCloneAttributes = {
         professorIds: [professor.id],
         useSection: false,
-        includeDocuments: false,
-        cloneAttributes: {
+        associateWithOriginalCourse: true,
+        toClone: {
           coordinator_email: true,
-          zoomLink: false,
-          courseInviteCode: false,
-        },
-        cloneCourseSettings: {
-          chatBotEnabled: true,
-          asyncQueueEnabled: true,
-          queueEnabled: true,
-        },
-        chatbotSettings: {
-          modelName: true,
-          prompt: true,
-          similarityThresholdDocuments: true,
-          temperature: true,
-          topK: true,
+          zoomLink: true,
+          courseInviteCode: true,
+          courseFeatureConfig: true,
+          asyncCentreQuestionTypes: true,
+          queues: true,
+          queueInvites: true,
+          chatbot: {
+            documents: true,
+            manuallyCreatedChunks: true,
+            insertedQuestions: true,
+            insertedLMSData: true,
+          },
         },
       };
 

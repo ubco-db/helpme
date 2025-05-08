@@ -7,14 +7,14 @@ import {
   GetCourseUserInfoResponse,
   UserPartial,
   CourseCloneAttributes,
-  ChatbotSettings,
   OrganizationRole,
-  CoursePartial,
   UserCourse,
   BatchCourseCloneResponse,
   BatchCourseCloneAttributes,
   MailServiceType,
   ChatbotSettingsMetadata,
+  QueueConfig,
+  QueueTypes,
 } from '@koh/common';
 import {
   HttpException,
@@ -27,7 +27,7 @@ import {
 import { partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
-import { Between, DataSource, In } from 'typeorm';
+import { Between, DataSource, In, IsNull } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { CourseModel } from './course.entity';
@@ -42,6 +42,8 @@ import { SemesterModel } from 'semester/semester.entity';
 import { MailService } from 'mail/mail.service';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { InternalServerErrorException } from '@nestjs/common';
+import { QuestionTypeModel } from 'questionType/question-type.entity';
+import { QueueModel } from 'queue/queue.entity';
 @Injectable()
 export class CourseService {
   constructor(
@@ -523,13 +525,13 @@ export class CourseService {
       clonedCourse.name = originalCourse.name;
       clonedCourse.timezone = originalCourse.timezone;
 
-      if (cloneData.cloneAttributes?.coordinator_email) {
+      if (cloneData.toClone?.coordinator_email) {
         clonedCourse.coordinator_email = originalCourse.coordinator_email;
       }
-      if (cloneData.cloneAttributes?.zoomLink) {
+      if (cloneData.toClone?.zoomLink) {
         clonedCourse.zoomLink = originalCourse.zoomLink;
       }
-      if (cloneData.cloneAttributes?.courseInviteCode) {
+      if (cloneData.toClone?.courseInviteCode) {
         clonedCourse.courseInviteCode = originalCourse.courseInviteCode;
       }
 
@@ -553,19 +555,11 @@ export class CourseService {
         const origSettings = originalCourse.courseSettings;
         const clonedSettings = new CourseSettingsModel();
         clonedSettings.courseId = clonedCourse.id;
-        if (cloneData.cloneCourseSettings?.chatBotEnabled) {
+        if (cloneData.toClone.courseFeatureConfig) {
           clonedSettings.chatBotEnabled = origSettings.chatBotEnabled;
-        }
-        if (cloneData.cloneCourseSettings?.asyncQueueEnabled) {
           clonedSettings.asyncQueueEnabled = origSettings.asyncQueueEnabled;
-        }
-        if (cloneData.cloneCourseSettings?.queueEnabled) {
           clonedSettings.queueEnabled = origSettings.queueEnabled;
-        }
-        if (cloneData.cloneCourseSettings?.scheduleOnFrontPage) {
           clonedSettings.scheduleOnFrontPage = origSettings.scheduleOnFrontPage;
-        }
-        if (cloneData.cloneCourseSettings?.asyncCentreAIAnswers) {
           clonedSettings.asyncCentreAIAnswers =
             origSettings.asyncCentreAIAnswers;
         }
@@ -604,9 +598,59 @@ export class CourseService {
       organizationCourse.organizationId = organizationUser.organizationId;
       await manager.save(organizationCourse);
 
-      // -------------- For Chatbot Settings and Documents --------------
+      // -------------- For Queues --------------
+      if (cloneData.toClone.queues) {
+        const originalQueues = await manager.find(QueueModel, {
+          where: { courseId },
+          relations: {
+            queueInvite: true,
+          },
+        });
+        for (const queue of originalQueues) {
+          // all questiontypes will be based off of whatever the queue config is
+          const newQueue = await this.createQueue(
+            clonedCourse.id,
+            queue.room,
+            queue.type,
+            queue.notes,
+            queue.isProfessorQueue,
+            queue.config,
+          );
+          if (cloneData.toClone.queueInvites && queue.queueInvite) {
+            // create a new queue invite based off the old one but with the new queue id
+            await manager
+              .create(QueueInviteModel, {
+                ...queue.queueInvite,
+                queueId: newQueue.id,
+              })
+              .save();
+          }
+        }
+      }
 
-      if (cloneData.cloneCourseSettings.chatBotEnabled) {
+      // -------------- For Async Centre Question Types --------------
+      if (cloneData.toClone.asyncCentreQuestionTypes) {
+        const originalQuestionTypes = await manager.find(QuestionTypeModel, {
+          where: {
+            cid: courseId,
+            queueId: IsNull(), // null queueId means it's a question type for async centre
+          },
+        });
+        for (const questionType of originalQuestionTypes) {
+          await manager.getRepository(QuestionTypeModel).insert({
+            cid: clonedCourse.id,
+            name: questionType.name,
+            color: questionType.color,
+            queueId: null,
+          });
+        }
+      }
+
+      // -------------- For Chatbot Settings and Documents --------------
+      // note that we do not need to do anything special to create a course on the chatbot repo side
+      // since it will automatically create a chatbot service when you call an endpoint with a courseId that does not exist
+
+      if (cloneData.toClone.chatbot?.settings) {
         const oldChatbotSettings = await this.chatbotApiService
           .getChatbotSettings(courseId, chatToken)
           .catch((err) => {
@@ -619,31 +663,9 @@ export class CourseService {
             );
           });
 
-        // cloned course was initialized with default chatbot settings. now just need to create an object with the settings we want to copy
-        // over and then patch the settings for the cloned course
-        const clonedChatbotDataToPatch: Partial<ChatbotSettingsMetadata> = {};
-        if (cloneData.chatbotSettings.modelName) {
-          clonedChatbotDataToPatch.modelName =
-            oldChatbotSettings.metadata.modelName;
-        }
-        if (cloneData.chatbotSettings.prompt) {
-          clonedChatbotDataToPatch.prompt = oldChatbotSettings.metadata.prompt;
-        }
-        if (cloneData.chatbotSettings.similarityThresholdDocuments) {
-          clonedChatbotDataToPatch.similarityThresholdDocuments =
-            oldChatbotSettings.metadata.similarityThresholdDocuments;
-        }
-        if (cloneData.chatbotSettings.temperature) {
-          clonedChatbotDataToPatch.temperature =
-            oldChatbotSettings.metadata.temperature;
-        }
-        if (cloneData.chatbotSettings.topK) {
-          clonedChatbotDataToPatch.topK = oldChatbotSettings.metadata.topK;
-        }
-
         await this.chatbotApiService
           .updateChatbotSettings(
-            clonedChatbotDataToPatch,
+            oldChatbotSettings.metadata,
             clonedCourse.id,
             chatToken,
           )
@@ -656,26 +678,46 @@ export class CourseService {
               `Failed to set cloned chatbot data from chatbot service: ${err.message}`,
             );
           });
-
-        if (cloneData.includeDocuments) {
-          await this.chatbotApiService
-            .cloneCourseDocuments(
-              courseId,
-              chatToken,
-              clonedCourse.id,
-              cloneData.includeInsertedQuestions === true,
-            )
-            .catch((err) => {
-              console.error(
-                `Failed to clone chatbot documents from original course in chatbot service:`,
-                err,
-              );
-              throw new InternalServerErrorException(
-                `Failed to clone chatbot documents from original course in chatbot service: ${err.message}`,
-              );
-            });
-        }
       }
+      if (
+        cloneData.toClone.chatbot?.documents ||
+        cloneData.toClone.chatbot?.insertedQuestions ||
+        cloneData.toClone.chatbot?.insertedLMSData
+      ) {
+        await this.chatbotApiService
+          .cloneCourseDocuments(
+            courseId,
+            chatToken,
+            clonedCourse.id,
+            cloneData.toClone.chatbot?.documents === true,
+            cloneData.toClone.chatbot?.insertedQuestions === true,
+            cloneData.toClone.chatbot?.insertedLMSData === true,
+            cloneData.toClone.chatbot?.manuallyCreatedChunks === true,
+          )
+          .catch((err) => {
+            console.error(
+              `Failed to clone chatbot documents from original course in chatbot service:`,
+              err,
+            );
+            throw new InternalServerErrorException(
+              `Failed to clone chatbot documents from original course in chatbot service: ${err.message}`,
+            );
+          });
+      }
+      // clone over all chatbot document pdfs
+      if (cloneData.toClone.chatbot?.documents) {
+        await manager.query(
+          // this is pretty slick
+          `INSERT INTO chatbot_doc_pdf_model 
+           ("docName", "courseId", "docData", "docSizeBytes", "docIdChatbotDB") 
+           SELECT "docName", $1, "docData", "docSizeBytes", "docIdChatbotDB" 
+           FROM chatbot_doc_pdf_model 
+           WHERE "courseId" = $2`,
+          [clonedCourse.id, courseId],
+        );
+      }
+
+      // TODO: find associated super course, if one does not exist, create one and add the original and cloned course to it
 
       if (professorIds.includes(userId)) {
         return {
@@ -761,5 +803,46 @@ export class CourseService {
       subject: 'HelpMe - Course Clone Summary',
       content: bodyRender,
     });
+  }
+
+  async createQueue(
+    courseId: number,
+    room: string,
+    type: QueueTypes,
+    notes: string,
+    isProfessorQueue: boolean,
+    config: QueueConfig,
+  ): Promise<QueueModel> {
+    let createdQueue = null;
+    await this.dataSource.transaction(async (transactionalEntityManager) => {
+      createdQueue = await transactionalEntityManager
+        .create(QueueModel, {
+          room,
+          courseId,
+          type,
+          staffList: [],
+          questions: [],
+          allowQuestions: true,
+          notes,
+          isProfessorQueue,
+          config,
+        })
+        .save();
+
+      // now for each tag defined in the config, create a QuestionType
+      const questionTypes = config.tags ?? {};
+      for (const [tagKey, tagValue] of Object.entries(questionTypes)) {
+        await transactionalEntityManager
+          .getRepository(QuestionTypeModel)
+          .insert({
+            cid: courseId,
+            name: tagValue.display_name,
+            color: tagValue.color_hex,
+            queueId: createdQueue.id,
+          });
+      }
+    });
+
+    return createdQueue;
   }
 }

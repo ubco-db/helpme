@@ -292,7 +292,10 @@ export class ChatbotApiService {
     courseId: number,
     userToken: string,
     cloneCourseId: number,
+    includeDocuments: boolean,
     includeInsertedQuestions: boolean,
+    includeInsertedLMSChatbotData: boolean,
+    manuallyCreatedChunks: boolean,
   ) {
     return this.request(
       'POST',
@@ -301,7 +304,10 @@ export class ChatbotApiService {
       userToken,
       undefined,
       {
+        includeDocuments,
         includeInsertedQuestions,
+        includeInsertedLMSChatbotData,
+        manuallyCreatedChunks,
       },
     );
   }
