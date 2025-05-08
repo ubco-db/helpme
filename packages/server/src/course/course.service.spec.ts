@@ -1,5 +1,5 @@
 import { TestingModule, Test } from '@nestjs/testing';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import {
   UserFactory,
   UserCourseFactory,
@@ -37,6 +37,7 @@ import { QueueInviteModel } from 'queue/queue-invite.entity';
 import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { CourseSettingsModel } from './course_settings.entity';
+import { SuperCourseModel } from './super-course.entity';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -496,13 +497,13 @@ describe('CourseService', () => {
         relations: ['courseSettings'],
       });
 
-      expect(clonedCourse).toBeDefined();
+      expect(clonedCourse).toBeTruthy();
       expect(clonedCourse.id).not.toEqual(originalCourse.id);
       expect(clonedCourse.name).toEqual(originalCourse.name);
       expect(clonedCourse.timezone).toEqual(originalCourse.timezone);
 
       // Check course settings
-      expect(clonedCourse.courseSettings).toBeDefined();
+      expect(clonedCourse.courseSettings).toBeTruthy();
       expect(clonedCourse.courseSettings.courseId).toEqual(clonedCourse.id);
       expect(clonedCourse.courseSettings.chatBotEnabled).toEqual(
         originalCourse.courseSettings.chatBotEnabled,
@@ -547,7 +548,7 @@ describe('CourseService', () => {
 
         // Check queue invites
         if (originalQueues[i].queueInvite) {
-          expect(clonedQueues[i].queueInvite).toBeDefined();
+          expect(clonedQueues[i].queueInvite).toBeTruthy();
           expect(clonedQueues[i].queueInvite.queueId).toEqual(
             clonedQueues[i].id,
           );
@@ -660,6 +661,17 @@ describe('CourseService', () => {
           originalChatbotDocs[i].docData.toString(),
         );
       }
+
+      // Check to make sure super course is created
+      const superCourse = await SuperCourseModel.find();
+
+      expect(superCourse).toBeTruthy();
+      expect(superCourse.length).toEqual(1);
+      expect(superCourse[0].courses.length).toEqual(2);
+      expect(superCourse[0].courses.map((course) => course.id)).toEqual([
+        originalCourseId,
+        clonedCourseId,
+      ]);
     }
 
     beforeEach(async () => {
@@ -814,7 +826,7 @@ describe('CourseService', () => {
         chatToken,
       );
 
-      expect(result).toBeDefined();
+      expect(result).toBeTruthy();
       expect(result?.course.name).toBe('Test Course');
       expect(result?.course.sectionGroupName).toBe('002');
       expect(result?.role).toBe(Role.PROFESSOR);
@@ -853,7 +865,7 @@ describe('CourseService', () => {
         chatToken,
       );
 
-      expect(result).toBeDefined();
+      expect(result).toBeTruthy();
       expect(result?.course.name).toBe('Test Course');
       expect(result?.course.sectionGroupName).toBe('001');
       expect(result?.role).toBe(Role.PROFESSOR);
@@ -862,6 +874,57 @@ describe('CourseService', () => {
       await ensureCloneWasSuccessful(course.id, result.course.id);
     });
 
+    it('should clone a course and add it to an existing super course if the original course already had a super course', async () => {
+      const extraTempCourse = await CourseFactory.create({
+        name: 'Extra Temp Course',
+        sectionGroupName: '002',
+        semester: newSemester,
+      });
+      const superCourse = await SuperCourseModel.create({
+        name: course.name,
+        organization,
+      }).save();
+      extraTempCourse.superCourseId = superCourse.id;
+      await extraTempCourse.save();
+      course.superCourseId = superCourse.id;
+      await course.save();
+
+      const cloneData: CourseCloneAttributes = {
+        professorIds: [professor.id],
+        useSection: false,
+        newSemesterId: newSemester.id,
+        associateWithOriginalCourse: true,
+        toClone: {
+          coordinator_email: true,
+          zoomLink: true,
+        },
+      };
+
+      const result = await service.cloneCourse(
+        course.id,
+        professor.id,
+        cloneData,
+        chatToken,
+      );
+
+      expect(result).toBeTruthy();
+      expect(result?.course.name).toBe(course.name);
+      expect(result?.course.sectionGroupName).toBe('001');
+      expect(result?.role).toBe(Role.PROFESSOR);
+
+      // not verifying if cloned data is correct for this one. Just testing to see if the supercourse got a new course appended to it
+      const updatedSuperCourse = await SuperCourseModel.findOne({
+        where: { id: superCourse.id },
+        relations: ['courses'],
+      });
+      expect(updatedSuperCourse).toBeTruthy();
+      expect(updatedSuperCourse.courses.length).toEqual(3);
+      expect(updatedSuperCourse.courses.map((course) => course.id)).toEqual([
+        course.id,
+        result.course.id,
+        extraTempCourse.id,
+      ]);
+    });
     it('should throw error when neither new section nor new semester is specified', async () => {
       const cloneData: CourseCloneAttributes = {
         professorIds: [professor.id],

@@ -44,6 +44,7 @@ import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { InternalServerErrorException } from '@nestjs/common';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueModel } from 'queue/queue.entity';
+import { SuperCourseModel } from './super-course.entity';
 @Injectable()
 export class CourseService {
   constructor(
@@ -717,7 +718,34 @@ export class CourseService {
         );
       }
 
-      // TODO: find associated super course, if one does not exist, create one and add the original and cloned course to it
+      // find associated super course, if one does not exist, create one and add the original and cloned course to it
+      if (cloneData.associateWithOriginalCourse) {
+        const superCourse = await SuperCourseModel.findOne({
+          where: {
+            courses: {
+              id: In([courseId]),
+            },
+          },
+        });
+
+        if (!superCourse) {
+          const newSuperCourse = new SuperCourseModel();
+          newSuperCourse.name = originalCourse.name;
+          newSuperCourse.organizationId = organizationUser.organizationId;
+          newSuperCourse.courses = [originalCourse, clonedCourse];
+          await manager.save(newSuperCourse);
+          clonedCourse.superCourseId = newSuperCourse.id;
+          await manager.save(clonedCourse);
+          originalCourse.superCourseId = newSuperCourse.id;
+          await manager.save(originalCourse);
+        } else {
+          // if a super course already exists, add the cloned course to it
+          superCourse.courses.push(clonedCourse);
+          await manager.save(superCourse);
+          clonedCourse.superCourseId = superCourse.id;
+          await manager.save(clonedCourse); // i have no idea if this 2nd save is necessary but i have it here for fun
+        }
+      }
 
       if (professorIds.includes(userId)) {
         return {

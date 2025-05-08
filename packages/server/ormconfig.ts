@@ -43,7 +43,7 @@ import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entit
 import { UnreadAsyncQuestionModel } from './src/asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from './src/asyncQuestion/asyncQuestionComment.entity';
 import { ChatbotDocPdfModel } from './src/chatbot/chatbot-doc-pdf.entity';
-
+import { SuperCourseModel } from './src/course/super-course.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -113,6 +113,7 @@ const typeorm: DataSourceOptions = {
     UnreadAsyncQuestionModel,
     LMSAnnouncementModel,
     ChatbotDocPdfModel,
+    SuperCourseModel,
   ],
   logging:
     process.env.NODE_ENV !== 'production'

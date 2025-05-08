@@ -24,6 +24,7 @@ import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProg
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question.entity';
 import { ChatbotDocPdfModel } from '../chatbot/chatbot-doc-pdf.entity';
+import { SuperCourseModel } from './super-course.entity';
 @Entity('course_model')
 export class CourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -142,4 +143,11 @@ export class CourseModel extends BaseEntity {
   )
   @Exclude()
   chatbot_doc_pdfs: ChatbotDocPdfModel[];
+
+  @ManyToOne(() => SuperCourseModel, (course) => course.courses)
+  @JoinColumn({ name: 'superCourseId' })
+  superCourse: SuperCourseModel;
+
+  @Column({ nullable: true })
+  superCourseId: number;
 }
