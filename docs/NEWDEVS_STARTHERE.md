@@ -23,7 +23,9 @@
           - [Missing relations](#missing-relations)
           - [Querying with models and IsNull()](#querying-with-models-and-isnull)
           - [.find() returns null not undefined if not found](#find-returns-null-not-undefined-if-not-found)
+        - [.save()](#save)
         - [Transactions](#transactions)
+          - [Important edge case with transactions](#important-edge-case-with-transactions)
       - [Testing](#testing)
         - [What is mocking?](#what-is-mocking)
         - [To mock or not to mock?](#to-mock-or-not-to-mock)
@@ -273,6 +275,12 @@ This was a change relevant to typeorm going from v0.2.x to v0.3.x.
 
 This only really matters if you are checking if a particular entity exists in the database.
 
+##### .save()
+
+Doing `someEntityObject.save()` is kinda a magic method that will do both inserts and updates. It will also return the updated entity all serialized into the object you want.
+
+Doing `.update()` or `.insert()` will not serialize the data and will only return the raw data, but is generally faster. So use `.update()` and `.insert()` if you know you don't need the saved entity returned.
+
 ##### Transactions
 
 If your endpoint involves multiple database calls, it is recommended to use a transactionalEntityManager so that all the queries will run in a transaction. 
@@ -310,6 +318,41 @@ await this.dataSource.transaction(async (transactionalEntityManager) => {
 ```
 
 There are more examples inside asyncQuestion.controller.ts
+
+###### Important edge case with transactions
+
+When you do:
+```ts
+createdQueue = await transactionalEntityManager
+    .create(QueueModel, {
+      room,
+      courseId,
+      type,
+      staffList: [],
+      questions: [],
+      allowQuestions: true,
+      notes,
+      isProfessorQueue,
+      config,
+    })
+    .save();
+```
+typeorm will decide to put that into a transaction *inside* your other transaction (because frick you). Replace that code with the following:
+```ts
+createdQueue = await transactionalEntityManager
+      .getRepository(QueueModel)
+      .save({
+        room,
+        courseId,
+        type,
+        staffList: [],
+        questions: [],
+        allowQuestions: true,
+        notes,
+        isProfessorQueue,
+        config,
+      });
+```
 
 #### Testing
 
