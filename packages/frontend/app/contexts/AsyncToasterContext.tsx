@@ -1,5 +1,5 @@
 import React, { createContext, PropsWithChildren, useContext } from 'react'
-import { toast, Toaster } from 'sonner'
+import { ExternalToast, toast, Toaster } from 'sonner'
 import { getErrorMessage } from '../utils/generalUtils'
 
 /**
@@ -33,6 +33,13 @@ const AsyncToasterContext = createContext<AsyncToasterContextProps>({
 
 export const useAsyncToaster = () => useContext(AsyncToasterContext)
 
+const toastOptions: ExternalToast = {
+  richColors: true,
+  duration: Infinity,
+  dismissible: true,
+  closeButton: true,
+}
+
 export const AsyncToasterProvider: React.FC<PropsWithChildren> = ({
   children,
 }) => {
@@ -44,11 +51,7 @@ export const AsyncToasterProvider: React.FC<PropsWithChildren> = ({
     apiCall()
       .then((result) => {
         if (notifyOptions) {
-          toast.success(notifyOptions.successMsg, {
-            className: 'bg-green-600 text-white',
-            duration: Infinity,
-            dismissible: true,
-          })
+          toast.success(notifyOptions.successMsg, toastOptions)
         }
         callback(result)
       })
@@ -66,18 +69,10 @@ export const AsyncToasterProvider: React.FC<PropsWithChildren> = ({
               <br />
               {getErrorMessage(error)}
             </div>,
-            {
-              className: 'bg-red-600 text-white',
-              duration: Infinity,
-              dismissible: true,
-            },
+            toastOptions,
           )
         } else {
-          toast.error(notifyOptions.errorMsg, {
-            className: 'bg-red-600 text-white',
-            duration: Infinity,
-            dismissible: true,
-          })
+          toast.error(notifyOptions.errorMsg, toastOptions)
         }
         callback(null, error)
       })
