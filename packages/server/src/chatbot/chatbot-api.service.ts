@@ -302,7 +302,6 @@ export class ChatbotApiService {
       `cloneCourseDocuments/${cloneCourseId}`,
       courseId,
       userToken,
-      undefined,
       {
         includeDocuments,
         includeInsertedQuestions,

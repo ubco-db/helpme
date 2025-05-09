@@ -240,6 +240,16 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           <Checkbox />
         </Form.Item>
         <Form.Item
+          name={['toClone', 'asyncCentreQuestionTypes']}
+          valuePropName="checked"
+          layout="horizontal"
+          label="Anytime Question Hub Tags"
+          tooltip="Clone over all question tags for the anytime question hub."
+          className={`${formItemClassNames}`}
+        >
+          <Checkbox />
+        </Form.Item>
+        <Form.Item
           name={['toClone', 'queues']}
           valuePropName="checked"
           label="Queues"

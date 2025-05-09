@@ -27,7 +27,7 @@ import {
 import { partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
-import { Between, DataSource, In, IsNull } from 'typeorm';
+import { Between, DataSource, EntityManager, In, IsNull } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { CourseModel } from './course.entity';
@@ -602,7 +602,7 @@ export class CourseService {
       // -------------- For Queues --------------
       if (cloneData.toClone.queues) {
         const originalQueues = await manager.find(QueueModel, {
-          where: { courseId },
+          where: { courseId, isDisabled: false },
           relations: {
             queueInvite: true,
           },
@@ -616,15 +616,14 @@ export class CourseService {
             queue.notes,
             queue.isProfessorQueue,
             queue.config,
+            manager,
           );
           if (cloneData.toClone.queueInvites && queue.queueInvite) {
             // create a new queue invite based off the old one but with the new queue id
-            await manager
-              .create(QueueInviteModel, {
-                ...queue.queueInvite,
-                queueId: newQueue.id,
-              })
-              .save();
+            await manager.getRepository(QueueInviteModel).insert({
+              ...queue.queueInvite,
+              queueId: newQueue.id,
+            });
           }
         }
       }
@@ -647,10 +646,52 @@ export class CourseService {
         }
       }
 
-      // -------------- For Chatbot Settings and Documents --------------
-      // note that we do not need to do anything special to create a course on the chatbot repo side
-      // since it will automatically create a chatbot service when you call an endpoint with a courseId that does not exist
+      // -------------- For Super Courses --------------
 
+      // find associated super course, if one does not exist, create one and add the original and cloned course to it
+      if (cloneData.associateWithOriginalCourse) {
+        const superCourse = await SuperCourseModel.findOne({
+          where: {
+            courses: {
+              id: In([courseId]),
+            },
+          },
+        });
+
+        if (!superCourse) {
+          let newSuperCourse = new SuperCourseModel();
+          newSuperCourse.name = originalCourse.name;
+          newSuperCourse.organizationId = organizationUser.organizationId;
+          newSuperCourse = await manager.save(newSuperCourse);
+          clonedCourse.superCourseId = newSuperCourse.id;
+          await manager.save(clonedCourse);
+          originalCourse.superCourseId = newSuperCourse.id;
+          await manager.save(originalCourse);
+        } else {
+          // if a super course already exists, add the cloned course to it
+          clonedCourse.superCourseId = superCourse.id;
+          await manager.save(clonedCourse); // i have no idea if this 2nd save is necessary but i have it here for fun
+        }
+      }
+
+      // -------------- For Chatbot Settings and Documents --------------
+      // clone over all chatbot document pdfs in helpme db
+      if (cloneData.toClone.chatbot?.documents) {
+        await manager.query(
+          // this is pretty slick
+          `INSERT INTO chatbot_doc_pdf_model 
+           ("docName", "courseId", "docData", "docSizeBytes", "docIdChatbotDB") 
+           SELECT "docName", $1, "docData", "docSizeBytes", "docIdChatbotDB" 
+           FROM chatbot_doc_pdf_model 
+           WHERE "courseId" = $2`,
+          [clonedCourse.id, courseId],
+        );
+      }
+
+      // IMPORTANT: do chatbot api stuff last since if something after the api calls fails i can't
+      // go back and tell the chatbot service to revert what it already did.
+      // Also note that we do not need to do anything special to create a course on the chatbot repo side
+      // since it will automatically create a chatbot service when you call an endpoint with a courseId that does not exist
       if (cloneData.toClone.chatbot?.settings) {
         const oldChatbotSettings = await this.chatbotApiService
           .getChatbotSettings(courseId, chatToken)
@@ -704,47 +745,6 @@ export class CourseService {
               `Failed to clone chatbot documents from original course in chatbot service: ${err.message}`,
             );
           });
-      }
-      // clone over all chatbot document pdfs
-      if (cloneData.toClone.chatbot?.documents) {
-        await manager.query(
-          // this is pretty slick
-          `INSERT INTO chatbot_doc_pdf_model 
-           ("docName", "courseId", "docData", "docSizeBytes", "docIdChatbotDB") 
-           SELECT "docName", $1, "docData", "docSizeBytes", "docIdChatbotDB" 
-           FROM chatbot_doc_pdf_model 
-           WHERE "courseId" = $2`,
-          [clonedCourse.id, courseId],
-        );
-      }
-
-      // find associated super course, if one does not exist, create one and add the original and cloned course to it
-      if (cloneData.associateWithOriginalCourse) {
-        const superCourse = await SuperCourseModel.findOne({
-          where: {
-            courses: {
-              id: In([courseId]),
-            },
-          },
-        });
-
-        if (!superCourse) {
-          const newSuperCourse = new SuperCourseModel();
-          newSuperCourse.name = originalCourse.name;
-          newSuperCourse.organizationId = organizationUser.organizationId;
-          newSuperCourse.courses = [originalCourse, clonedCourse];
-          await manager.save(newSuperCourse);
-          clonedCourse.superCourseId = newSuperCourse.id;
-          await manager.save(clonedCourse);
-          originalCourse.superCourseId = newSuperCourse.id;
-          await manager.save(originalCourse);
-        } else {
-          // if a super course already exists, add the cloned course to it
-          superCourse.courses.push(clonedCourse);
-          await manager.save(superCourse);
-          clonedCourse.superCourseId = superCourse.id;
-          await manager.save(clonedCourse); // i have no idea if this 2nd save is necessary but i have it here for fun
-        }
       }
 
       if (professorIds.includes(userId)) {
@@ -840,11 +840,14 @@ export class CourseService {
     notes: string,
     isProfessorQueue: boolean,
     config: QueueConfig,
+    transactionalEntityManager?: EntityManager,
   ): Promise<QueueModel> {
     let createdQueue = null;
-    await this.dataSource.transaction(async (transactionalEntityManager) => {
+    // if passing in a transaction manager, use it. Otherwise, create one and use that
+    if (transactionalEntityManager) {
       createdQueue = await transactionalEntityManager
-        .create(QueueModel, {
+        .getRepository(QueueModel)
+        .save({
           room,
           courseId,
           type,
@@ -854,8 +857,7 @@ export class CourseService {
           notes,
           isProfessorQueue,
           config,
-        })
-        .save();
+        });
 
       // now for each tag defined in the config, create a QuestionType
       const questionTypes = config.tags ?? {};
@@ -869,7 +871,36 @@ export class CourseService {
             queueId: createdQueue.id,
           });
       }
-    });
+    } else {
+      await this.dataSource.transaction(async (transactionalEntityManager) => {
+        createdQueue = await transactionalEntityManager
+          .getRepository(QueueModel)
+          .save({
+            room,
+            courseId,
+            type,
+            staffList: [],
+            questions: [],
+            allowQuestions: true,
+            notes,
+            isProfessorQueue,
+            config,
+          });
+
+        // now for each tag defined in the config, create a QuestionType
+        const questionTypes = config.tags ?? {};
+        for (const [tagKey, tagValue] of Object.entries(questionTypes)) {
+          await transactionalEntityManager
+            .getRepository(QuestionTypeModel)
+            .insert({
+              cid: courseId,
+              name: tagValue.display_name,
+              color: tagValue.color_hex,
+              queueId: createdQueue.id,
+            });
+        }
+      });
+    }
 
     return createdQueue;
   }
