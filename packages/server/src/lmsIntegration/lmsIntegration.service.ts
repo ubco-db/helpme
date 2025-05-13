@@ -311,7 +311,7 @@ export class LMSIntegrationService {
       .select()
       .where('aModel.courseId = :courseId', { courseId });
 
-    if (platforms) {
+    if (platforms && platforms.length > 0) {
       qb.andWhere('aModel.lmsSource IN (:...platforms)', { platforms });
     } else {
       qb.andWhere('aModel.syncEnabled = true');
