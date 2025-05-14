@@ -146,7 +146,7 @@ export class ChatbotService {
     courseId: number,
   ): Promise<InteractionModel[]> {
     const course = await CourseModel.findOne({
-      // i hate how i have to do this
+      // i hate how i have to do this (for some reason I can't just query interactions with courseId because the join relation wasn't really set up correctly in the InteractionModel entity)
       where: {
         id: courseId,
       },
