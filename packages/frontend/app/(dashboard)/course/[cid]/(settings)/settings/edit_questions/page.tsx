@@ -95,10 +95,8 @@ const EditableCell: React.FC<React.PropsWithChildren<EditableCellProps>> = ({
  * Contains a table allowing staff to search, sort, and edit questions.
  * Combines multiple examples from antd's offical docs for Table, plus some custom logic.
  */
-const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props: {
-  params: Promise<{ cid: string }>
-}) => {
-  const params = use(props.params)
+const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
+  const params = props.params
   const cid = Number(params.cid)
   const [editingKey, setEditingKey] = useState(-1)
 

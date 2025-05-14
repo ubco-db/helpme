@@ -384,7 +384,7 @@ export default function CourseLMSIntegrationPage(props: {
     }
 
     const card = (
-      <Card title={'Learning Management System'}>
+      <Card title={'Learning Management System Integration'}>
         <div className={'flex flex-col gap-4'}>
           <div
             className={
@@ -476,7 +476,7 @@ export default function CourseLMSIntegrationPage(props: {
                           showZero={false}
                         >
                           <Tooltip
-                            title={`Force sychronization of data with ${integration.apiPlatform}. If visible, the red badge indicates how many documents are observed to be out-of-date and how many documents are unsynchronized.`}
+                            title={`Force synchronization of data with ${integration.apiPlatform}. If visible, the red badge indicates how many documents are observed to be out-of-date and how many documents are unsynchronized.`}
                           >
                             <Button
                               size={'large'}

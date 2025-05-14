@@ -57,7 +57,7 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
   const [isSensitiveInfoHidden, setIsSensitiveInfoHidden] = useState(
     hideSensitiveInformation,
   )
-  const { userInfo } = useUserInfo()
+  const { userInfo, setUserInfo } = useUserInfo()
 
   const handleInput = (event: any) => {
     event.preventDefault()
@@ -94,6 +94,20 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
       await API.course.updateUserRole(courseId, userId, newRole)
       message.success(`${userName} successfully updated to ${newRole} role`)
       onRoleChange()
+      if (userId === userInfo.id) {
+        setUserInfo({
+          ...userInfo,
+          courses: userInfo.courses.map((uc) => {
+            if (uc.course.id === courseId) {
+              return {
+                ...uc,
+                role: newRole,
+              }
+            }
+            return uc
+          }),
+        })
+      }
     } catch (error) {
       message.error(`Failed to update ${userName} to ${newRole}`)
     }
@@ -217,46 +231,54 @@ const RosterItem: React.FC<{
 
       <Row className="flex w-full items-center justify-around md:justify-end">
         <Dropdown
-          overlay={
-            <Menu
-              onClick={(e) => {
-                const confirmRoleChange = () => {
-                  handleRoleChange(item.id, e.key as Role, item.name ?? '')
-                }
+          menu={{
+            items: [
+              role !== Role.PROFESSOR
+                ? {
+                    key: Role.PROFESSOR,
+                    label: 'Professor',
+                  }
+                : null,
+              role !== Role.TA
+                ? {
+                    key: Role.TA,
+                    label: 'Teaching Assistant',
+                  }
+                : null,
+              role !== Role.STUDENT
+                ? {
+                    key: Role.STUDENT,
+                    label: 'Student',
+                  }
+                : null,
+            ].filter(Boolean),
+            onClick: (e) => {
+              const confirmRoleChange = () => {
+                handleRoleChange(item.id, e.key as Role, item.name ?? '')
+              }
 
-                Modal.confirm({
-                  title: <div className="font-bold">Warning</div>,
-                  content: (
-                    <div>
-                      You are about to change role of{' '}
-                      <span className="font-bold">{item.name}</span> to{' '}
-                      <span className="font-bold">{e.key.toUpperCase()}</span>
-                      .
-                      <br />
-                      <br />
-                      Are you sure you want to proceed?
-                    </div>
-                  ),
-                  okText: 'Yes',
-                  okType: 'danger',
-                  cancelText: 'No',
-                  onOk() {
-                    confirmRoleChange()
-                  },
-                })
-              }}
-            >
-              {role !== Role.PROFESSOR ? (
-                <Menu.Item key={Role.PROFESSOR}>Professor</Menu.Item>
-              ) : null}
-              {role !== Role.TA ? (
-                <Menu.Item key={Role.TA}>Teaching Assistant</Menu.Item>
-              ) : null}
-              {role !== Role.STUDENT ? (
-                <Menu.Item key={Role.STUDENT}>Student</Menu.Item>
-              ) : null}
-            </Menu>
-          }
+              Modal.confirm({
+                title: <div className="font-bold">Warning</div>,
+                content: (
+                  <div>
+                    You are about to change role of{' '}
+                    <span className="font-bold">{item.name}</span> to{' '}
+                    <span className="font-bold">{e.key.toUpperCase()}</span>
+                    .
+                    <br />
+                    <br />
+                    Are you sure you want to proceed?
+                  </div>
+                ),
+                okText: 'Yes',
+                okType: 'danger',
+                cancelText: 'No',
+                onOk() {
+                  confirmRoleChange()
+                },
+              })
+            },
+          }}
           className="flex-grow-0"
         >
           <a className="ant-dropdown-link" onClick={(e) => e.preventDefault()}>

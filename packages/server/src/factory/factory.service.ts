@@ -127,7 +127,7 @@ export class FactoryService {
         'icalURL',
         'https://calendar.google.com/calendar/ical/t6lu2pic7u9otrbpkuk26sl34g%40group.calendar.google.com/public/basic.ics',
       )
-      .attr('sectionGroupName', 'CS 304')
+      .attr('sectionGroupName', '001')
       .attr('enabled', true)
       .attr('courseInviteCode', 'invite-code')
       .assocOne('semester', this.SemesterFactory);

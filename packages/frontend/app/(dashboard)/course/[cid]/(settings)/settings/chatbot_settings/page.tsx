@@ -218,7 +218,7 @@ export default function ChatbotSettings(
             icon={<FileAddOutlined />}
             type="primary"
           >
-            Add Document
+            Add Documents
           </Button>
         </div>
       </div>

@@ -61,8 +61,10 @@ describe('Profile Integration', () => {
             id: 1,
             name: 'CS 2500',
             enabled: true,
+            sectionGroupName: '001',
             semesterId: 1,
           },
+          favourited: true,
           role: 'student',
         },
       ]);

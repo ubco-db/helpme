@@ -58,7 +58,7 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({
   }, [configTasks, value])
 
   const printDependents = useCallback(
-    (taskID: string, accumulatedTasks: JSX.Element[] = []) => {
+    (taskID: string, accumulatedTasks: React.ReactNode[] = []) => {
       const task: Task = taskTree[taskID]
 
       if (!task) {

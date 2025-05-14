@@ -34,7 +34,7 @@ export class MailService {
 
   async sendPasswordResetEmail(receiver: string, url: string): Promise<void> {
     const from = `"${this.APPLICATION_NAME}" <no-reply@coursehelp.ubc.ca>`;
-    const subject = 'Pasword Reset Request';
+    const subject = 'Password Reset Request';
     const text = `You are receiving this email because you (or someone else) has requested the reset of the password for your account.\n\nPlease click on the following link, or paste this into your browser to complete the process:\n\n
     ${url}\n\n`;
     if (!isProd()) {

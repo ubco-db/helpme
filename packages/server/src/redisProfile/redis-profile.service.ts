@@ -11,7 +11,7 @@ export class RedisProfileService {
    */
   private readonly redis: Redis;
 
-  private readonly EXPIRATION_TIME = 30 * 60; // 30 min in seconds
+  private readonly EXPIRATION_TIME = 10 * 60; // 10 min in seconds
 
   /**
    * Constructor for the RedisProfileService

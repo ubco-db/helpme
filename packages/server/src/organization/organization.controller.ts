@@ -14,7 +14,7 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  ForbiddenException,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
@@ -35,6 +35,7 @@ import {
   UpdateProfileParams,
   UserRole,
   GetOrganizationResponse,
+  BatchCourseCloneAttributes,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -61,7 +62,6 @@ import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import * as sharp from 'sharp';
-import { UserId } from '../decorators/user.decorator';
 import { User } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
@@ -69,6 +69,7 @@ import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { CourseRoles } from 'decorators/course-roles.decorator';
+import { CourseService } from 'course/course.service';
 
 // TODO: put the error messages in ERROR_MESSAGES object
 
@@ -77,6 +78,7 @@ export class OrganizationController {
   constructor(
     private organizationService: OrganizationService,
     private redisProfileService: RedisProfileService,
+    private courseService: CourseService,
     private schedulerRegistry: SchedulerRegistry,
     private dataSource: DataSource,
   ) {}
@@ -1456,7 +1458,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async getCourses(
     @Param('oid', ParseIntPipe) oid: number,
-    @Param('page', ParseIntPipe) page: number,
+    @Param('page', new DefaultValuePipe(-1), ParseIntPipe) page: number,
     @Query('search') search: string,
   ): Promise<CourseResponse[]> {
     const pageSize = 50;
@@ -1575,6 +1577,26 @@ export class OrganizationController {
       .catch((err) => {
         res.status(500).send({ message: err });
       });
+  }
+
+  @Post(':oid/clone_courses')
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
+  @Roles(OrganizationRole.ADMIN)
+  async batchCloneCourses(
+    @Param('oid', ParseIntPipe) oid: number, // unused for now, only for the guard
+    @User({ chat_token: true }) user: UserModel,
+    @Body() body: BatchCourseCloneAttributes,
+  ): Promise<string> {
+    if (!user || !user.chat_token) {
+      console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
+      throw new HttpException(
+        ERROR_MESSAGES.profileController.accountNotAvailable,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    this.courseService.performBatchClone(user, body);
+    return 'Batch Cloning Operation Successfully Queued!';
   }
 
   private isValidUrl = (url: string): boolean => {

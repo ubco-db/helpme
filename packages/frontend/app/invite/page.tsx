@@ -22,7 +22,7 @@ export default function CourseInvitePage(): ReactElement {
   const [profile, setProfile] = useState<User>()
   useEffect(() => {
     const fetchUserDetails = async () => {
-      const userDetails = await userApi
+      await userApi
         .getUser()
         .then((userDetails) => {
           setProfile(userDetails)
@@ -40,12 +40,12 @@ export default function CourseInvitePage(): ReactElement {
       await API.course
         .getLimitedCourseResponse(cid, code)
         .then((res) => {
-          setCourse(res)
           // if the user is not found, redirect to login
           // These needs to be done after getLimitedCourseResponse does its thing since that is the endpoint that sets the cookies for redirect
           if (errorGettingUser) {
             router.push('/login')
           }
+          setCourse(res)
         })
         .catch(() => {
           setErrorGettingCourse(true)
