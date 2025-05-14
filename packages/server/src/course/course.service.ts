@@ -292,20 +292,20 @@ export class CourseService {
     if (search) {
       const searchString = search.replace(' ', '').toUpperCase();
       searchCondition = `
-        AND CONCAT(UPPER(user_model."firstName"), UPPER(user_model."lastName"))
+        AND UPPER(user_model.name)
           LIKE '%' || ${roleCondition ? '$5' : '$4'} || '%'
       `;
       params.push(searchString);
     }
 
     const query = `
-      SELECT user_model.id, user_model."firstName" || ' ' || user_model."lastName" AS name, user_model."photoURL", user_model.email, user_model.sid, user_course_model."TANotes", COUNT(*) OVER () AS total
+      SELECT user_model.id, user_model.name, user_model."photoURL", user_model.email, user_model.sid, user_course_model."TANotes", COUNT(*) OVER () AS total
       FROM user_course_model
       INNER JOIN user_model ON user_model.id = user_course_model."userId"
       WHERE user_course_model."courseId" = $1
         ${roleCondition}
         ${searchCondition}
-      ORDER BY user_model."firstName", user_model."lastName"
+      ORDER BY user_model.name
       LIMIT $2
       OFFSET $3
     `;

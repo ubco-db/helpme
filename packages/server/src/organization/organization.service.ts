@@ -181,12 +181,9 @@ export class OrganizationService {
       const likeSearch = `%${search.replace(' ', '')}%`.toUpperCase();
       organizationUsers.andWhere(
         new Brackets((q) => {
-          q.where(
-            'CONCAT(UPPER("UserModel"."firstName"), UPPER("UserModel"."lastName")) like :searchString',
-            {
-              searchString: likeSearch,
-            },
-          );
+          q.where('UPPER("UserModel".name) like :searchString', {
+            searchString: likeSearch,
+          });
         }),
       );
     }
