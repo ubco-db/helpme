@@ -8,6 +8,8 @@ type InviteCardProps = {
   buttonAction: () => void
   description?: { title?: string; text?: string }
   cover?: ReactElement
+  secondaryButtonLabel?: string
+  secondaryButtonAction?: () => void
 }
 
 const InviteCard: React.FC<InviteCardProps> = ({
@@ -16,6 +18,8 @@ const InviteCard: React.FC<InviteCardProps> = ({
   buttonLabel,
   buttonAction,
   cover = undefined,
+  secondaryButtonLabel,
+  secondaryButtonAction,
 }) => {
   return (
     <Card style={{ maxWidth: '38rem', textAlign: 'center' }} cover={cover}>
@@ -32,6 +36,14 @@ const InviteCard: React.FC<InviteCardProps> = ({
         >
           {buttonLabel}
         </Button>
+        {secondaryButtonLabel && secondaryButtonAction && (
+          <Button
+            style={{ width: '100%', height: 50, borderRadius: '5px' }}
+            onClick={secondaryButtonAction}
+          >
+            {secondaryButtonLabel}
+          </Button>
+        )}
       </Space>
     </Card>
   )
