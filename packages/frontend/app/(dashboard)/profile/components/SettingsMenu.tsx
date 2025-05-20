@@ -9,11 +9,14 @@ import CoursePreference from './CoursePreference'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 import EmailNotifications from './EmailNotifications'
 interface SettingsMenuProps {
-  currentSettings: SettingsOptions;
+  currentSettings: SettingsOptions
   setCurrentSettings: (settings: SettingsOptions) => void
 }
 
-const SettingsMenu: React.FC<SettingsMenuProps> = ({ currentSettings, setCurrentSettings }) => {
+const SettingsMenu: React.FC<SettingsMenuProps> = ({
+  currentSettings,
+  setCurrentSettings,
+}) => {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   return isMobile ? (
@@ -42,6 +45,11 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ currentSettings, setCurrent
           label: 'Course Preferences',
           children: <CoursePreference />,
         },
+        {
+          key: SettingsOptions.CHATBOT_HISTORY,
+          label: 'History',
+          children: <CoursePreference />,
+        },
       ]}
     />
   ) : (
@@ -63,6 +71,11 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ currentSettings, setCurrent
         {
           key: SettingsOptions.PREFERENCES,
           label: 'Course Preferences',
+          icon: <BookOutlined />,
+        },
+        {
+          key: SettingsOptions.CHATBOT_HISTORY,
+          label: 'Chabot History',
           icon: <BookOutlined />,
         },
       ]}
