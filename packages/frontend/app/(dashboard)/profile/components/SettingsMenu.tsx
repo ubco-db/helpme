@@ -2,12 +2,19 @@
 
 import { Collapse, Menu } from 'antd'
 import EditProfile from './EditProfile'
-import { BellOutlined, BookOutlined, UserOutlined } from '@ant-design/icons'
+import {
+  BellOutlined,
+  BookOutlined,
+  SettingFilled,
+  UserOutlined,
+} from '@ant-design/icons'
 import { SettingsOptions } from '@/app/typings/enum'
 import NotificationsSettings from './NotificationsSettings'
 import CoursePreference from './CoursePreference'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 import EmailNotifications from './EmailNotifications'
+import UserChatbotHistory from './UserChatbotHistory'
+import { API } from '@/app/api'
 interface SettingsMenuProps {
   currentSettings: SettingsOptions
   setCurrentSettings: (settings: SettingsOptions) => void
@@ -47,8 +54,8 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
         },
         {
           key: SettingsOptions.CHATBOT_HISTORY,
-          label: 'History',
-          children: <CoursePreference />,
+          label: 'Chatbot History',
+          children: <UserChatbotHistory />,
         },
       ]}
     />
@@ -75,7 +82,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
         },
         {
           key: SettingsOptions.CHATBOT_HISTORY,
-          label: 'Chabot History',
+          label: 'Chatbot History',
           icon: <BookOutlined />,
         },
       ]}

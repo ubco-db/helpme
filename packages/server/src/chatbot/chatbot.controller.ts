@@ -35,6 +35,7 @@ import {
   AddDocumentChunkParams,
   ChatbotQuestionResponseChatbotDB,
   UpdateChatbotQuestionParams,
+  GetChatbotHistoryResponse,
 } from '@koh/common';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { Roles } from 'decorators/roles.decorator';
@@ -167,6 +168,19 @@ export class ChatbotController {
       questionId,
       userScore,
     );
+  }
+
+  @Get('history/:userId')
+  @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
+  async getChatbotHistory(
+    @Param('userId', ParseIntPipe) userId: number,
+    @User({ chat_token: true }) user: UserModel,
+  ): Promise<GetChatbotHistoryResponse> {
+    handleChatbotTokenCheck(user);
+    const history = await this.chatbotService.getAllInteractionsForUser(userId);
+    return {
+      history: history as unknown as InteractionResponse[],
+    };
   }
 
   //

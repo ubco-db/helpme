@@ -90,6 +90,7 @@ import {
   UpdateChatbotQuestionParams,
   QueueChatPartial,
   GetQueueChatsResponse,
+  GetChatbotHistoryResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -195,6 +196,10 @@ class APIClient {
           undefined,
           { userScore },
         ),
+      getChatHistory: async (
+        userId: number,
+      ): Promise<GetChatbotHistoryResponse> =>
+        this.req('GET', `/api/v1/chatbot/history/${userId}`),
     },
     staffOnly: {
       // these endpoints are more for management of chatbot questions
