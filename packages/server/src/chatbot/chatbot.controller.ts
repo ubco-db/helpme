@@ -171,7 +171,6 @@ export class ChatbotController {
   }
 
   @Get('history/:userId')
-  @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async getChatbotHistory(
     @Param('userId', ParseIntPipe) userId: number,
     @UserId() user: number,
