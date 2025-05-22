@@ -444,7 +444,7 @@ During the 2024 Summer, a massive undertaking was done to refactor and re-write 
 
 [2025-04] Finally updated the typeorm version from 0.2.x to 0.3.x. You can now rely on typeorm documentation and it will be accurate (doing this also fixes a 9.7 critical vulnerability and allows us to start running migrations on prod)
 
-[2025-05] (not here yet) Upgraded from Next.js v14 to v15. The most notable advantage of this is it now uses the React 19 compiler, making useCallback and useMemo not really necessary, plus other free performance gains. Also started using turbopack for dev for faster compile times (making it easier to manually test). Though production build still uses webpack since sentry does not support it yet.
+[2025-05] Upgraded from Next.js v14 to v15. The most notable advantage of this is it now uses the React 19 compiler, making useCallback and useMemo not really necessary, plus other free performance gains. Also started using turbopack for dev for faster compile times (making it easier to manually test). Though production build still uses webpack since sentry does not support it yet.
 
 # TODO
 
