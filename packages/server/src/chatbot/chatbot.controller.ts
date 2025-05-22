@@ -120,7 +120,7 @@ export class ChatbotController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body()
     { question, responseText, vectorStoreId }: ChatbotAskSuggestedParams,
-    @UserId() userId: number, // this is the only chatbot endpoint that doesn't need the chat token since it doesn't require contacting the chatbot repo
+    @UserId() userId: number,
   ): Promise<ChatbotQuestionResponseHelpMeDB> {
     const interaction = await this.chatbotService.createInteraction(
       courseId,
@@ -174,9 +174,7 @@ export class ChatbotController {
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async getChatbotHistory(
     @Param('userId', ParseIntPipe) userId: number,
-    @User({ chat_token: true }) user: UserModel,
   ): Promise<GetChatbotHistoryResponse> {
-    handleChatbotTokenCheck(user);
     const history = await this.chatbotService.getAllInteractionsForUser(userId);
     return {
       history: history as unknown as InteractionResponse[],
