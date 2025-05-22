@@ -14,10 +14,13 @@
     - [Backend](#backend)
       - [Nest.js files](#nestjs-files)
       - [Redis](#redis)
-      - [Guards and `@Roles`](#guards-and-roles)
-      - [`@User` and `@UserId` decorators](#user-and-userid-decorators)
-      - [Why some endpoints have `@Res` and some don't](#why-some-endpoints-have-res-and-some-dont)
-        - [Ways to return errors/http status codes + messages](#ways-to-return-errorshttp-status-codes--messages)
+      - [Endpoints](#endpoints)
+        - [Guards and `@Roles`](#guards-and-roles)
+        - [`@User` and `@UserId` decorators](#user-and-userid-decorators)
+        - [Gotchas while naming your endpoint - Routing mismatches](#gotchas-while-naming-your-endpoint---routing-mismatches)
+        - [Endpoints that change their behavior based on role](#endpoints-that-change-their-behavior-based-on-role)
+        - [Why some endpoints have `@Res` and some don't](#why-some-endpoints-have-res-and-some-dont)
+          - [Ways to return errors/http status codes + messages](#ways-to-return-errorshttp-status-codes--messages)
       - [TypeORM](#typeorm)
         - [Examples of typeorm runtime errors](#examples-of-typeorm-runtime-errors)
           - [Missing relations](#missing-relations)
@@ -163,7 +166,9 @@ Want to conditionally render something like an `elseif` statement? Do: `{conditi
 2. Run `redis-cli` to open the redis command line
 3. Run `flushall` to flush the cache
 
-#### Guards and `@Roles`
+#### Endpoints
+
+##### Guards and `@Roles`
 
 Guards are a thing from Nest.js. They are basically pretty functions that you can "decorate" at the top of your function rather than in the function body. 
 
@@ -173,13 +178,55 @@ One special one to note is CourseRolesGuard (only users in the course with the s
 This guard (as well as others) will interact with the `@Roles` decorator, which specifies which roles CourseRolesGuard will take.
 - Note that without a decorator to consume the roles (CourseRolesGuard, AsyncQuestionRolesGuard, OrganizationRolesGuard, etc.), `@Roles` *will not do anything* (think of `@Roles` like an argument to a function)
 
-#### `@User` and `@UserId` decorators
+##### `@User` and `@UserId` decorators
 
 Want the user details of the user that called the endpoint? Add a `@User` as one of the parameters to the controller function.
 
 If you only need the userId of the user that called the endpoint, use the `@UserId` parameter instead as it won't perform a database query.
 
-#### Why some endpoints have `@Res` and some don't
+##### Gotchas while naming your endpoint - Routing mismatches
+
+`questions/:userId` and `question/:courseId` may look like different endpoints, but when called with `GET question/1` the Express routing system won't know which one to call, and might just pick the endpoint that appears first in the file (with no error otherwise).
+
+To fix this, you could name your endpoints something like `questions/user/:userId` and `question/course/:courseId` so that it's obvious which endpoint gets called with `GET question/user/1`.
+
+Though, I have also experienced a time where a route subpath was inserted as an id, for example if I have two endpoints:
+- `queue/:id`
+- `queue/allqueues`
+
+and then try to call `GET queue/allqueues`, sometimes the routing will decide that you wanted to call `queue/:id` with "allqueues" as the :id parameter. I forget the fix for this, other than maybe try moving the endpoint to a different spot in the file (there's probably a better solution here lol please feel free to edit this).
+
+##### Endpoints that change their behavior based on role
+
+Lets say you have an endpoint that returns different data or does different actions based on the *role* of who is calling it.
+
+For example, you're making an endpoint gets all queue questions for a user as a nice history. 
+
+`@Get('questions/history/:userId')`
+
+It may be tempting to make it so this endpoint will only allow non-admins to get the question history for themselves and allow admins to get any any data they want, though I want to warn you that this can quickly cause your endpoints to become bloated and hard to follow (there were and still are plently of endpoints in this backend that behave differently based on the user's role, and they are some of the largest endpoints/service functions and are almost always hard to follow).
+
+Instead, I would suggest having two endpoints, one for admins and one for everyone else:
+
+```ts
+@Get('questions/history')
+async getMyQuestionHistory(
+  @UserId() userId: number, // the userId of the currently logged-in user that's calling this endpoint
+)
+// ...
+
+@Get('questions/history/:oid/:userId') // :oid (org id) is needed here for the OrganizationRolesGuard to work (since it needs to check if the user is an admin in this organization)
+@UseGuards(OrganizationRolesGuard) // this guard with this role will make it so only admins can call this endpoint
+@Roles(OrganizationRole.ADMIN)
+async getUsersQuestionHistory(
+  @Param('userId', ParseIntPipe) userId: number, // the userId that the user provides themselves when they call this endpoint
+)
+// ...
+```
+
+Though then again, if the endpoint is like 90% of the exact same logic/code, then it's going to be a lot of duplicate code which isn't good. So in general split the endpoints based on role rather than having one mega-endpoint unless the difference in code is very small.
+
+##### Why some endpoints have `@Res` and some don't
 
 So the first thing to understand is Nest.js is built off of express.js (or at least our version is).
 
@@ -194,7 +241,7 @@ However, Nest.js adds some other ways of doing things so you don't need to use `
   - e.g. `return updatedQuestion`
     - This will automatically be a 200 status response
 
-##### Ways to return errors/http status codes + messages
+###### Ways to return errors/http status codes + messages
 
 There are multiple ways to make your endpoints give different errors/status codes. There's no real difference. Nest.js will catch any uncaught errors and return the corresponding error code and given message.
 - `throw new xyzException("Some message")` - recommended (simple)
