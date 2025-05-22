@@ -154,7 +154,7 @@ describe('ChatbotController Integration', () => {
       );
     });
 
-    it('should not return the chatbot history for another user if the user is not a TA or Professor', async () => {
+    it('should not return the chatbot history for another user', async () => {
       const user = await UserFactory.create();
       const course = await CourseFactory.create();
       await UserCourseFactory.create({
