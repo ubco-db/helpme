@@ -521,13 +521,19 @@ describe('CourseService', () => {
       // Check queues
       const originalQueues = await QueueModel.find({
         where: { courseId: originalCourseId },
-        relations: ['queueInvite'],
+        relations: {
+          queueInvite: true,
+          questionTypes: true,
+        },
         order: { id: 'ASC' },
       });
 
       const clonedQueues = await QueueModel.find({
         where: { courseId: clonedCourseId },
-        relations: ['queueInvite'],
+        relations: {
+          queueInvite: true,
+          questionTypes: true,
+        },
         order: { id: 'ASC' },
       });
 
@@ -920,9 +926,9 @@ describe('CourseService', () => {
       expect(updatedSuperCourse).toBeTruthy();
       expect(updatedSuperCourse.courses.length).toEqual(3);
       expect(updatedSuperCourse.courses.map((course) => course.id)).toEqual([
-        course.id,
         result.course.id,
         extraTempCourse.id,
+        course.id,
       ]);
     });
     it('should throw error when neither new section nor new semester is specified', async () => {

@@ -10,6 +10,14 @@ exports[`OrganizationService getCourses should return organization courses 1`] =
     "isEnabled": true,
     "sectionGroupName": "001",
     "semesterId": 1,
+    "semester": {
+      "color": "blue",
+      "description": "Test Semester Description",
+      "endDate": 2022-12-31T00:00:00.000Z,
+      "id": 1,
+      "name": "Test Semester",
+      "startDate": 2020-09-01T00:00:00.000Z,
+    },
   },
 ]
 `;
@@ -53,6 +61,7 @@ exports[`OrganizationService getOrganizationCourse should return organization co
     "sectionGroupName": "001",
     "selfEnroll": false,
     "semester": SemesterModel {
+      "color": "blue",
       "description": "Test Semester Description",
       "endDate": "2022-12-31",
       "id": 1,
@@ -61,6 +70,7 @@ exports[`OrganizationService getOrganizationCourse should return organization co
       "startDate": "2020-09-01",
     },
     "semesterId": 1,
+    "superCourseId": null,
     "timezone": null,
     "zoomLink": null,
   },
