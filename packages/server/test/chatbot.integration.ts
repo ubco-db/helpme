@@ -153,5 +153,36 @@ describe('ChatbotController Integration', () => {
         questionData.vectorStoreId,
       );
     });
+
+    it('should not return the chatbot history for another user if the user is not a TA or Professor', async () => {
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user: user,
+        course: course,
+        role: Role.STUDENT,
+      });
+
+      const anotherUser = await UserFactory.create();
+      const interaction = await InteractionFactory.create({
+        user: anotherUser,
+        course,
+      });
+
+      const questionData = {
+        vectorStoreId: '123',
+        questionText: 'What is AI?',
+        responseText: 'AI stands for Artificial Intelligence.',
+        verified: true,
+        suggested: false,
+        sourceDocuments: [],
+        interaction: interaction,
+      };
+      await ChatbotQuestionModel.create(questionData).save();
+
+      await supertest({ userId: user.id })
+        .get(`/chatbot/history/${anotherUser.id}`)
+        .expect(403);
+    });
   });
 });
