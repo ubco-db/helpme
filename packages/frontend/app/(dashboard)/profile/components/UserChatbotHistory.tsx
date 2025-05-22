@@ -57,7 +57,7 @@ const UserChatbotHistory: React.FC = () => {
                       key={q.id}
                       size="small"
                       style={{ marginBottom: 12 }}
-                      bodyStyle={{ padding: 12 }}
+                      styles={{ body: { padding: 12 } }}
                     >
                       <Text strong>Q:</Text>{' '}
                       <Paragraph style={{ display: 'inline' }}>
