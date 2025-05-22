@@ -13,6 +13,8 @@ import {
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { Tooltip } from 'antd'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 dayjs.extend(relativeTime)
 
@@ -38,7 +40,7 @@ const UserChatbotHistory: React.FC = () => {
         if (err?.response?.status === 403) {
           setError("You are not allowed to access this user's history.")
         } else {
-          setError('An error occurred while fetching your chatbot history.')
+          setError(getErrorMessage(err))
         }
       })
       .finally(() => setLoading(false))
@@ -48,7 +50,7 @@ const UserChatbotHistory: React.FC = () => {
     <div className="mx-auto max-w-3xl">
       <h2 className="mb-4 text-2xl font-bold">Your Chatbot Conversations</h2>
       {loading ? (
-        <div className="py-8 text-gray-500">Loading...</div>
+        <CenteredSpinner tip="Loading..." />
       ) : error ? (
         <div className="py-8 text-red-500">{error}</div>
       ) : (
