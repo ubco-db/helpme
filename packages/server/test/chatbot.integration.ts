@@ -103,7 +103,7 @@ describe('ChatbotController Integration', () => {
       expect(response.body.interactionId).toBeDefined();
     });
   });
-  describe('GET /chatbot/history/:userId', () => {
+  describe('GET /chatbot/history', () => {
     it('should return the chatbot history for a user', async () => {
       const user = await UserFactory.create();
       const course = await CourseFactory.create();
@@ -127,7 +127,7 @@ describe('ChatbotController Integration', () => {
       await ChatbotQuestionModel.create(questionData).save();
 
       const response = await supertest({ userId: user.id })
-        .get(`/chatbot/history/${user.id}`)
+        .get(`/chatbot/history`)
         .expect(200);
 
       expect(Array.isArray(response.body.history)).toBe(true);
@@ -152,37 +152,6 @@ describe('ChatbotController Integration', () => {
         'vectorStoreId',
         questionData.vectorStoreId,
       );
-    });
-
-    it('should not return the chatbot history for another user', async () => {
-      const user = await UserFactory.create();
-      const course = await CourseFactory.create();
-      await UserCourseFactory.create({
-        user: user,
-        course: course,
-        role: Role.STUDENT,
-      });
-
-      const anotherUser = await UserFactory.create();
-      const interaction = await InteractionFactory.create({
-        user: anotherUser,
-        course,
-      });
-
-      const questionData = {
-        vectorStoreId: '123',
-        questionText: 'What is AI?',
-        responseText: 'AI stands for Artificial Intelligence.',
-        verified: true,
-        suggested: false,
-        sourceDocuments: [],
-        interaction: interaction,
-      };
-      await ChatbotQuestionModel.create(questionData).save();
-
-      await supertest({ userId: user.id })
-        .get(`/chatbot/history/${anotherUser.id}`)
-        .expect(403);
     });
   });
 });

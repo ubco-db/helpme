@@ -196,10 +196,8 @@ class APIClient {
           undefined,
           { userScore },
         ),
-      getChatHistory: async (
-        userId: number,
-      ): Promise<GetChatbotHistoryResponse> =>
-        this.req('GET', `/api/v1/chatbot/history/${userId}`),
+      getChatHistory: async (): Promise<GetChatbotHistoryResponse> =>
+        this.req('GET', `/api/v1/chatbot/history`),
     },
     staffOnly: {
       // these endpoints are more for management of chatbot questions

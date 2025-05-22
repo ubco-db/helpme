@@ -32,7 +32,7 @@ const UserChatbotHistory: React.FC = () => {
     setLoading(true)
     setError(null)
     API.chatbot.studentsOrStaff
-      .getChatHistory(userInfo.id)
+      .getChatHistory()
       .then((res: GetChatbotHistoryResponse) => {
         setHistory(res.history)
       })

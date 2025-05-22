@@ -170,18 +170,10 @@ export class ChatbotController {
     );
   }
 
-  @Get('history/:userId')
+  @Get('history')
   async getChatbotHistory(
-    @Param('userId', ParseIntPipe) userId: number,
-    @UserId() user: number,
+    @UserId() userId: number,
   ): Promise<GetChatbotHistoryResponse> {
-    if (user !== userId) {
-      // Only allow the user to access their own history
-      throw new HttpException(
-        "You are not allowed to access this user's history",
-        HttpStatus.FORBIDDEN,
-      );
-    }
     const history = await this.chatbotService.getAllInteractionsForUser(userId);
     return {
       history: history as unknown as InteractionResponse[],
