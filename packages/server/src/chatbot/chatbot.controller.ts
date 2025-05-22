@@ -174,9 +174,9 @@ export class ChatbotController {
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async getChatbotHistory(
     @Param('userId', ParseIntPipe) userId: number,
-    @User() user: UserModel,
+    @UserId() user: number,
   ): Promise<GetChatbotHistoryResponse> {
-    if (user.id !== userId) {
+    if (user !== userId) {
       // Only allow the user to access their own history
       throw new HttpException(
         "You are not allowed to access this user's history",
