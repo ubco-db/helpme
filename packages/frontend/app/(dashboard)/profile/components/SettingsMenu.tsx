@@ -7,6 +7,7 @@ import {
   BookOutlined,
   SettingFilled,
   UserOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons'
 import { SettingsOptions } from '@/app/typings/enum'
 import NotificationsSettings from './NotificationsSettings'
@@ -83,7 +84,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
         {
           key: SettingsOptions.CHATBOT_HISTORY,
           label: 'Chatbot History',
-          icon: <BookOutlined />,
+          icon: <HistoryOutlined />,
         },
       ]}
     />

@@ -10,6 +10,11 @@ import {
   InteractionResponse,
   ChatbotQuestionResponseHelpMeDB,
 } from '@koh/common'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import { Tooltip } from 'antd'
+
+dayjs.extend(relativeTime)
 
 const { Panel } = Collapse
 const { Text, Paragraph } = Typography
@@ -18,23 +23,34 @@ const UserChatbotHistory: React.FC = () => {
   const { userInfo } = useUserInfo()
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState<InteractionResponse[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!userInfo?.id) return
     setLoading(true)
+    setError(null)
     API.chatbot.studentsOrStaff
       .getChatHistory(userInfo.id)
       .then((res: GetChatbotHistoryResponse) => {
         setHistory(res.history)
       })
+      .catch((err) => {
+        if (err?.response?.status === 403) {
+          setError("You are not allowed to access this user's history.")
+        } else {
+          setError('An error occurred while fetching your chatbot history.')
+        }
+      })
       .finally(() => setLoading(false))
   }, [userInfo?.id])
 
   return (
-    <div className="mx-auto mt-8 max-w-3xl">
+    <div className="mx-auto max-w-3xl">
       <h2 className="mb-4 text-2xl font-bold">Your Chatbot Conversations</h2>
       {loading ? (
-        <div className="py-8 text-center text-gray-500">Loading...</div>
+        <div className="py-8 text-gray-500">Loading...</div>
+      ) : error ? (
+        <div className="py-8 text-red-500">{error}</div>
       ) : (
         <Collapse accordion>
           {history.length === 0 && (
@@ -43,10 +59,16 @@ const UserChatbotHistory: React.FC = () => {
           {history.map((interaction) => (
             <Panel
               header={
-                <span>
-                  Conversation started:{' '}
-                  {formatDateAndTimeForExcel(new Date(interaction.timestamp))}
-                </span>
+                <Tooltip
+                  title={formatDateAndTimeForExcel(
+                    new Date(interaction.timestamp),
+                  )}
+                >
+                  <span>
+                    Conversation started:{' '}
+                    {dayjs(interaction.timestamp).fromNow()}
+                  </span>
+                </Tooltip>
               }
               key={interaction.id}
             >
@@ -71,7 +93,13 @@ const UserChatbotHistory: React.FC = () => {
                       <br />
                       <Text type="secondary" style={{ fontSize: 12 }}>
                         Asked at:{' '}
-                        {formatDateAndTimeForExcel(new Date(q.timestamp))}
+                        <Tooltip
+                          title={formatDateAndTimeForExcel(
+                            new Date(q.timestamp),
+                          )}
+                        >
+                          {dayjs(q.timestamp).fromNow()}
+                        </Tooltip>
                       </Text>
                     </Card>
                   ),

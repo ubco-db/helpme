@@ -29,6 +29,7 @@
     "class-transformer": "^0.5.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "dayjs": "^1.11.13",
     "fullcalendar": "^6.1.15",
     "jdenticon": "^3.3.0",
     "json-to-csv-export": "^2.1.1",
