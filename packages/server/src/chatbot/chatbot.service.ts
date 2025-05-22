@@ -161,6 +161,17 @@ export class ChatbotService {
     return interactions;
   }
 
+  async getAllInteractionsForUser(userId: number): Promise<InteractionModel[]> {
+    const interactions = await InteractionModel.find({
+      where: { user: { id: userId } },
+      relations: {
+        questions: true,
+      },
+    });
+
+    return interactions;
+  }
+
   async updateQuestionUserScore(questionId: number, userScore: number) {
     const question = await ChatbotQuestionModel.findOne({
       where: {

@@ -103,4 +103,55 @@ describe('ChatbotController Integration', () => {
       expect(response.body.interactionId).toBeDefined();
     });
   });
+  describe('GET /chatbot/history', () => {
+    it('should return the chatbot history for a user', async () => {
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user: user,
+        course: course,
+        role: Role.STUDENT,
+      });
+
+      const interaction = await InteractionFactory.create({ user, course });
+
+      const questionData = {
+        vectorStoreId: '123',
+        questionText: 'What is AI?',
+        responseText: 'AI stands for Artificial Intelligence.',
+        verified: true,
+        suggested: false,
+        sourceDocuments: [],
+        interaction: interaction,
+      };
+      await ChatbotQuestionModel.create(questionData).save();
+
+      const response = await supertest({ userId: user.id })
+        .get(`/chatbot/history`)
+        .expect(200);
+
+      expect(Array.isArray(response.body.history)).toBe(true);
+      expect(response.body.history.length).toBeGreaterThan(0);
+
+      const firstInteraction = response.body.history[0];
+      expect(firstInteraction).toHaveProperty('id');
+      expect(Array.isArray(firstInteraction.questions)).toBe(true);
+      expect(firstInteraction.questions.length).toBeGreaterThan(0);
+
+      const firstQuestion = firstInteraction.questions[0];
+      expect(firstQuestion).toHaveProperty('id');
+      expect(firstQuestion).toHaveProperty(
+        'questionText',
+        questionData.questionText,
+      );
+      expect(firstQuestion).toHaveProperty(
+        'responseText',
+        questionData.responseText,
+      );
+      expect(firstQuestion).toHaveProperty(
+        'vectorStoreId',
+        questionData.vectorStoreId,
+      );
+    });
+  });
 });
