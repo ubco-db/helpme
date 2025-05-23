@@ -296,7 +296,11 @@ export class ChatbotApiService {
     includeInsertedQuestions: boolean,
     includeInsertedLMSChatbotData: boolean,
     manuallyCreatedChunks: boolean,
-  ) {
+    docIdMap?: Record<string, string>,
+  ): Promise<{
+    message: string;
+    newAggregateHelpmePDFIdMap: Record<string, string>;
+  }> {
     return this.request(
       'POST',
       `cloneCourseDocuments/${cloneCourseId}`,
@@ -307,6 +311,7 @@ export class ChatbotApiService {
         includeInsertedQuestions,
         includeInsertedLMSChatbotData,
         manuallyCreatedChunks,
+        docIdMap,
       },
     );
   }

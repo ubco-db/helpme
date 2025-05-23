@@ -45,6 +45,7 @@ import { InternalServerErrorException } from '@nestjs/common';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueModel } from 'queue/queue.entity';
 import { SuperCourseModel } from './super-course.entity';
+import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
 @Injectable()
 export class CourseService {
   constructor(
@@ -675,6 +676,7 @@ export class CourseService {
       }
 
       // -------------- For Chatbot Settings and Documents --------------
+      const docIdMap = {};
       // clone over all chatbot document pdfs in helpme db
       if (cloneData.toClone.chatbot?.documents) {
         await manager.query(
@@ -686,6 +688,19 @@ export class CourseService {
            WHERE "courseId" = $2`,
           [clonedCourse.id, courseId],
         );
+        // get all the idHelpMeDB and docIdChatbotDB values from the cloned course
+        const clonedCourseDocPdfs = await manager.find(ChatbotDocPdfModel, {
+          select: {
+            // only need these 2 fields. Don't want the whole documents
+            idHelpMeDB: true,
+            docIdChatbotDB: true, // these are the old ids, we need to update them once the new document aggregates are cloned in the chatbot repo
+          },
+          where: { courseId: clonedCourse.id },
+        });
+        for (const doc of clonedCourseDocPdfs) {
+          // map each old docIdChatbotDB to the new idHelpMeDB
+          docIdMap[doc.docIdChatbotDB] = doc.idHelpMeDB.toString();
+        }
       }
 
       // IMPORTANT: do chatbot api stuff last since if something after the api calls fails i can't
@@ -726,7 +741,7 @@ export class CourseService {
         cloneData.toClone.chatbot?.insertedQuestions ||
         cloneData.toClone.chatbot?.insertedLMSData
       ) {
-        await this.chatbotApiService
+        const result = await this.chatbotApiService
           .cloneCourseDocuments(
             courseId,
             chatToken,
@@ -735,6 +750,7 @@ export class CourseService {
             cloneData.toClone.chatbot?.insertedQuestions === true,
             cloneData.toClone.chatbot?.insertedLMSData === true,
             cloneData.toClone.chatbot?.manuallyCreatedChunks === true,
+            docIdMap,
           )
           .catch((err) => {
             console.error(
@@ -745,6 +761,19 @@ export class CourseService {
               `Failed to clone chatbot documents from original course in chatbot service: ${err.message}`,
             );
           });
+
+        // so much work just to sync the urls in the chatbot repo and sync the docIdChatbotDB here
+        if (cloneData.toClone.chatbot?.documents) {
+          for (const [newHelpmeDocId, newAggregateDocId] of Object.entries(
+            result.newAggregateHelpmePDFIdMap,
+          )) {
+            await manager.update(
+              ChatbotDocPdfModel,
+              { idHelpMeDB: newHelpmeDocId },
+              { docIdChatbotDB: newAggregateDocId },
+            );
+          }
+        }
       }
 
       if (professorIds.includes(userId)) {
