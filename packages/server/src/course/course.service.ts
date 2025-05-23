@@ -764,13 +764,66 @@ export class CourseService {
 
         // so much work just to sync the urls in the chatbot repo and sync the docIdChatbotDB here
         if (cloneData.toClone.chatbot?.documents) {
-          for (const [newHelpmeDocId, newAggregateDocId] of Object.entries(
-            result.newAggregateHelpmePDFIdMap,
-          )) {
-            await manager.update(
-              ChatbotDocPdfModel,
-              { idHelpMeDB: newHelpmeDocId },
-              { docIdChatbotDB: newAggregateDocId },
+          if (
+            result.newAggregateHelpmePDFIdMap &&
+            Object.keys(result.newAggregateHelpmePDFIdMap).length > 0
+          ) {
+            for (const [newHelpmeDocId, newAggregateDocId] of Object.entries(
+              result.newAggregateHelpmePDFIdMap,
+            )) {
+              await manager.update(
+                ChatbotDocPdfModel,
+                { idHelpMeDB: newHelpmeDocId },
+                { docIdChatbotDB: newAggregateDocId },
+              );
+            }
+          }
+
+          // some extra error checks. No sense in showing an error since things cannot be reverted from this point onwards
+          // without somehow making the transaction on the chatbot repo side rollback.
+          if (
+            Object.keys(docIdMap).length > 0 &&
+            result.newAggregateHelpmePDFIdMap &&
+            Object.keys(result.newAggregateHelpmePDFIdMap).length > 0 &&
+            Object.keys(result.newAggregateHelpmePDFIdMap).length <
+              Object.keys(docIdMap).length
+          ) {
+            console.error(`Error during end of course clone for clone course Id ${clonedCourse.id} (original course Id: ${courseId}). 
+              Partial document mapping detected. Despite the helpme repo having ${Object.keys(docIdMap).length} document pdfs to clone, 
+              the chatbot repo only returned ${Object.keys(result.newAggregateHelpmePDFIdMap).length} new document ids.
+              This could mean some documents were not cloned properly, or perhaps a desync where the helpme repo has more chatbot documents
+              than the equivalent on the chatbot repo.
+              ${Object.keys(docIdMap).length - Object.keys(result.newAggregateHelpmePDFIdMap).length} documents were not cloned.
+              HelpMe docIdMap: ${JSON.stringify(docIdMap)}
+              Chatbot repo newAggregateHelpmePDFIdMap: ${JSON.stringify(result.newAggregateHelpmePDFIdMap)}
+              `);
+          } else if (
+            Object.keys(docIdMap).length > 0 &&
+            !result.newAggregateHelpmePDFIdMap
+          ) {
+            console.error(`Error during end of course clone for clone course Id ${clonedCourse.id} (original course Id: ${courseId}). 
+              No new document ids were returned from the chatbot repo.
+              Meaning either something may have gone horribly wrong or there is a desync between the helpme repo and the chatbot repo (probably the former).
+              HelpMe docIdMap: ${JSON.stringify(docIdMap)}
+              `);
+          } else if (
+            Object.keys(docIdMap).length === 0 &&
+            result.newAggregateHelpmePDFIdMap &&
+            Object.keys(result.newAggregateHelpmePDFIdMap).length > 0
+          ) {
+            console.error(`Error during end of course clone for clone course Id ${clonedCourse.id} (original course Id: ${courseId}). 
+              Somehow the helpme repo has no document pdfs to clone, but the chatbot repo returned ${Object.keys(result.newAggregateHelpmePDFIdMap).length} new document ids.
+              I have no idea how this could happen.
+              HelpMe docIdMap: ${JSON.stringify(docIdMap)}
+              Chatbot repo newAggregateHelpmePDFIdMap: ${JSON.stringify(result.newAggregateHelpmePDFIdMap)}
+              `);
+          } else if (
+            Object.keys(docIdMap).length === 0 &&
+            (!result.newAggregateHelpmePDFIdMap ||
+              Object.keys(result.newAggregateHelpmePDFIdMap).length === 0)
+          ) {
+            console.log(
+              `No document pdfs were cloned for clone course Id ${clonedCourse.id} (original course Id: ${courseId}). `,
             );
           }
         }

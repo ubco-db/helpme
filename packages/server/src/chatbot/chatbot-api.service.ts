@@ -299,7 +299,7 @@ export class ChatbotApiService {
     docIdMap?: Record<string, string>,
   ): Promise<{
     message: string;
-    newAggregateHelpmePDFIdMap: Record<string, string>;
+    newAggregateHelpmePDFIdMap?: Record<string, string>;
   }> {
     return this.request(
       'POST',
