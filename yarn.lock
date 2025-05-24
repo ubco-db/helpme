@@ -15545,6 +15545,11 @@ socks@^2.3.3:
     ip-address "^9.0.5"
     smart-buffer "^4.2.0"
 
+sonner@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/sonner/-/sonner-2.0.2.tgz#d31316f5b93ecfbfa6c32c0ef4b856a651f5b167"
+  integrity sha512-xOeXErZ4blqQd11ZnlDmoRmg+ctUJBkTU8H+HVh9rnWi9Ke28xiL39r4iCTeDX31ODTe/s1MaiaY333dUzLCtA==
+
 source-list-map@^2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/source-list-map/-/source-list-map-2.0.1.tgz#3993bd873bfc48479cca9ea3a547835c7c154b34"

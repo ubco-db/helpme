@@ -16,10 +16,15 @@ const columns: ColumnsType<UserCourse> = [
   {
     dataIndex: ['course', 'name'],
     key: 'name',
-    width: '60%',
+    width: '70%',
     align: 'left',
-    render: (text, course) => (
-      <span className="text-lg font-semibold">{text}</span>
+    render: (text: string, course: UserCourse) => (
+      <span className="flex items-center text-lg font-semibold">
+        {text}
+        {course.course.sectionGroupName && (
+          <span className="ml-1 text-sm text-gray-600">{`[${course.course.sectionGroupName}]`}</span>
+        )}
+      </span>
     ),
   },
   {
@@ -105,7 +110,7 @@ const ArchivedCoursesSection: React.FC<ArchivedCoursesProps> = ({
   semesters,
 }) => {
   return (
-    <Collapse className="mt-20">
+    <Collapse className="mb-10 mt-16">
       <Panel header="Archived Courses" key="archived">
         <Table
           columns={columns}

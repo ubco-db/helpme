@@ -75,6 +75,8 @@ import {
   AsyncQuestionCommentParams,
   UnreadAsyncQuestionResponse,
   GetInteractionsAndQuestionsResponse,
+  CourseCloneAttributes,
+  BatchCourseCloneAttributes,
   SourceDocument,
   ChatbotSettings,
   ChatbotSettingsMetadata,
@@ -91,6 +93,7 @@ import {
   QueueChatPartial,
   GetQueueChatsResponse,
   GetChatbotHistoryResponse,
+  ChatbotSettingsUpdateParams,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -303,7 +306,7 @@ class APIClient {
         this.req('GET', `/api/v1/chatbot/settings/${courseId}`),
       updateSettings: async (
         courseId: number,
-        settings: ChatbotSettingsMetadata,
+        settings: ChatbotSettingsUpdateParams,
       ): Promise<{ success: boolean }> =>
         this.req(
           'PATCH',
@@ -457,6 +460,17 @@ class APIClient {
           notes,
         },
       ),
+    createClone: async (courseId: number, toClone: CourseCloneAttributes) => {
+      return this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/clone_course`,
+        undefined,
+        toClone,
+      )
+    },
+    toggleFavourited: async (courseId: number) => {
+      return this.req('PATCH', `/api/v1/courses/${courseId}/toggle_favourited`)
+    },
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>
@@ -790,8 +804,11 @@ class APIClient {
   semesters = {
     get: async (oid: number): Promise<SemesterPartial[]> =>
       this.req('GET', `/api/v1/semesters/${oid}`),
-    create: async (oid: number, body: SemesterPartial): Promise<void> =>
-      this.req('POST', `/api/v1/semesters/${oid}`, undefined, body),
+    create: async (
+      oid: number,
+      body: SemesterPartial,
+    ): Promise<SemesterPartial> =>
+      this.req('POST', `/api/v1/semesters/${oid}`, SemesterPartial, body),
     edit: async (
       oid: number,
       semesterId: number,
@@ -997,12 +1014,12 @@ class APIClient {
       ),
     getCourses: async (
       organizationId: number,
-      page: number,
+      page?: number,
       search?: string,
     ): Promise<CourseResponse[]> =>
       this.req(
         'GET',
-        `/api/v1/organization/${organizationId}/get_courses/${page}${
+        `/api/v1/organization/${organizationId}/get_courses/${page ?? -1}${
           search ? `?search=${search}` : ''
         }`,
       ),
@@ -1016,6 +1033,16 @@ class APIClient {
       ),
     getCronJobs: async (organizationId: number): Promise<CronJob[]> =>
       this.req('GET', `/api/v1/organization/${organizationId}/cronjobs`),
+    batchCloneCourses: async (
+      organiationId: number,
+      body: BatchCourseCloneAttributes,
+    ): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/organization/${organiationId}/clone_courses`,
+        undefined,
+        body,
+      ),
   }
 
   lmsIntegration = {

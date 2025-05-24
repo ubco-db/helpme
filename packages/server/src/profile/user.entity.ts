@@ -164,5 +164,5 @@ export class UserModel extends BaseEntity {
 
   @OneToMany((type) => AsyncQuestionCommentModel, (aqc) => aqc.creator)
   @Exclude()
-  asyncQuestionComments: CalendarStaffModel[];
+  asyncQuestionComments: AsyncQuestionCommentModel[];
 }

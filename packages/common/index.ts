@@ -168,8 +168,67 @@ export type UserTiny = {
 export type CoursePartial = {
   id: number
   name: string
+  sectionGroupName: string
   semesterId?: number
   enabled?: boolean
+  favourited?: boolean
+}
+
+/**
+ * Represents a partial course data used for cloning a course.
+ */
+export type CourseCloneAttributes = {
+  professorIds: number[]
+  useSection: boolean
+  newSemesterId?: number
+  newSection?: string
+  associateWithOriginalCourse?: boolean
+  toClone: {
+    coordinator_email?: boolean
+    zoomLink?: boolean
+    courseInviteCode?: boolean
+    courseFeatureConfig?: boolean
+    asyncCentreQuestionTypes?: boolean
+    queues?: boolean
+    queueInvites?: boolean
+    chatbot?: {
+      settings?: boolean
+      documents?: boolean
+      manuallyCreatedChunks?: boolean
+      insertedQuestions?: boolean
+      insertedLMSData?: boolean
+    }
+  }
+}
+
+export const defaultCourseCloneAttributes: CourseCloneAttributes = {
+  professorIds: [],
+  useSection: false,
+  associateWithOriginalCourse: true,
+  toClone: {
+    coordinator_email: true,
+    zoomLink: false,
+    courseInviteCode: false,
+    courseFeatureConfig: true,
+    asyncCentreQuestionTypes: true,
+    queues: true,
+    queueInvites: true,
+    chatbot: {
+      settings: true,
+      documents: true,
+      manuallyCreatedChunks: true,
+      insertedQuestions: true,
+      insertedLMSData: false,
+    },
+  },
+}
+
+// The key to the records is the course ids
+export type BatchCourseCloneAttributes = Record<number, CourseCloneAttributes>
+
+export type BatchCourseCloneResponse = {
+  success: boolean
+  message: string
 }
 
 export class RegistrationTokenDetails {
@@ -204,6 +263,7 @@ export class PasswordRequestResetWithTokenBody {
 export type UserCourse = {
   course: CoursePartial
   role: Role
+  favourited: boolean
   unreadCount?: number
 }
 
@@ -229,6 +289,7 @@ export enum MailServiceType {
   ASYNC_QUESTION_UPVOTED = 'async_question_upvoted',
   ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST = 'async_question_new_comment_on_my_post',
   ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
+  COURSE_CLONE_SUMMARY = 'course_clone_summary',
 }
 /**
  * Represents one of three possible user roles in a course.
@@ -421,6 +482,13 @@ export interface ChatbotSettingsMetadata {
   similarityThresholdDocuments: number
   temperature: number
   topK: number
+}
+export interface ChatbotSettingsUpdateParams {
+  modelName?: string
+  prompt?: string
+  similarityThresholdDocuments?: number
+  temperature?: number
+  topK?: number
 }
 
 export interface InteractionResponse {
@@ -1280,6 +1348,9 @@ export interface CourseResponse {
   courseId: number
   courseName: string
   isEnabled: boolean
+  sectionGroupName: string
+  semesterId: number
+  semester: SemesterPartial
 }
 
 export class GetCourseResponse {
@@ -1793,6 +1864,38 @@ export class EditCourseInfoParams {
   courseInviteCode?: string | null
 }
 
+export enum antdTagColor {
+  blue = 'blue',
+  gold = 'gold',
+  green = 'green',
+  purple = 'purple',
+  red = 'red',
+  orange = 'orange',
+  yellow = 'yellow',
+  lime = 'lime',
+  cyan = 'cyan',
+  geekblue = 'geekblue',
+  magenta = 'magenta',
+  volcano = 'volcano',
+  blueInverse = 'blue-inverse',
+  goldInverse = 'gold-inverse',
+  greenInverse = 'green-inverse',
+  purpleInverse = 'purple-inverse',
+  redInverse = 'red-inverse',
+  orangeInverse = 'orange-inverse',
+  yellowInverse = 'yellow-inverse',
+  limeInverse = 'lime-inverse',
+  cyanInverse = 'cyan-inverse',
+  geekblueInverse = 'geekblue-inverse',
+  magentaInverse = 'magenta-inverse',
+  volcanoInverse = 'volcano-inverse',
+  success = 'success',
+  processing = 'processing',
+  error = 'error',
+  default = 'default',
+  warning = 'warning',
+}
+
 export class SemesterPartial {
   @IsOptional()
   @IsInt()
@@ -1815,6 +1918,9 @@ export class SemesterPartial {
   @IsOptional()
   @IsString()
   description?: string
+
+  @IsEnum(antdTagColor)
+  color!: antdTagColor
 }
 
 export class SSEQueueResponse {
@@ -2799,6 +2905,12 @@ export const ERROR_MESSAGES = {
     organizationNotFound: 'Course has no related organization',
     orgIntegrationNotFound: 'Course organization has no LMS integrations',
     lmsIntegrationNotFound: 'Course has no related LMS integrations',
+    newSectionOrSemesterMissing:
+      'One of semester or section fields must be set',
+    sectionSame:
+      'The section you set for the clone is the same as the original course. Clone process aborted.',
+    semesterSame:
+      'The semester you set for the clone is the same as the original course. Clone process aborted.',
   },
   asyncQuestionController: {
     comments: {
@@ -2902,7 +3014,7 @@ export const ERROR_MESSAGES = {
   },
   roleGuard: {
     notLoggedIn: 'Must be logged in',
-    noCourseIdFound: 'No courseid found',
+    noCourseIdFound: 'No courseId found',
     notInCourse: 'Not In This Course',
     notAuthorized: "You don't have permissions to perform this action",
     userNotInOrganization: 'User not in organization',
@@ -2929,7 +3041,8 @@ export const ERROR_MESSAGES = {
     emailAlreadyInDb: 'Email already in database',
     sidAlreadyInDb: 'Student ID already in database',
     cannotUpdateEmail: 'Email cannot be updated',
-    accountNotAvailable: 'The user account is undefined',
+    accountNotAvailable:
+      'The user either does not exist or does not have a chat token',
     userResponseNotFound: 'The user response was not found',
     accountDeactivated: 'The user account is deactivated',
     firstNameTooShort: 'First name must be at least 1 characters',

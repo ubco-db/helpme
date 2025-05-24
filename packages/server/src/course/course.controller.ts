@@ -1,4 +1,5 @@
 import {
+  CourseCloneAttributes,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
   EditCourseInfoParams,
@@ -7,6 +8,7 @@ import {
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
   Heatmap,
+  OrganizationRole,
   QuestionStatusKeys,
   QueueConfig,
   QueueInvite,
@@ -16,6 +18,7 @@ import {
   TACheckinTimesResponse,
   TACheckoutResponse,
   UBCOuserParam,
+  UserCourse,
   UserTiny,
   validateQueueConfigInput,
 } from '@koh/common';
@@ -66,6 +69,9 @@ import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { CourseRole } from 'decorators/course-role.decorator';
 import { DataSource } from 'typeorm';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
+import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
+import { CourseRoles } from 'decorators/course-roles.decorator';
+import { OrgRoles } from 'decorators/org-roles.decorator';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -281,6 +287,37 @@ export class CourseController {
       });
   }
 
+  @Patch(':courseId/toggle_favourited')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  async toggleFavourited(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @UserId() userId: number,
+  ): Promise<string> {
+    try {
+      const userCourse = await UserCourseModel.findOneOrFail({
+        where: {
+          courseId,
+          userId,
+        },
+      });
+
+      if (!userCourse)
+        throw new NotFoundException('Your course enrollment is not found');
+
+      userCourse.favourited = !userCourse.favourited;
+      userCourse.save();
+
+      await this.redisProfileService.deleteProfile(`u:${userId}`);
+
+      return 'Course favourited status updated successfully';
+    } catch (err) {
+      console.error(err);
+      throw new BadRequestException(
+        'Failed to toggle the favourite attribute if your course.',
+      );
+    }
+  }
+
   @Post(':id/create_queue/:room')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
@@ -353,41 +390,14 @@ export class CourseController {
     }
 
     try {
-      let createdQueue = null;
-      await this.dataSource.transaction(async (transactionalEntityManager) => {
-        try {
-          createdQueue = await transactionalEntityManager
-            .create(QueueModel, {
-              room,
-              courseId,
-              type: body.type,
-              staffList: [],
-              questions: [],
-              allowQuestions: true,
-              notes: body.notes,
-              isProfessorQueue: body.isProfessorQueue,
-              config: newConfig,
-            })
-            .save();
-
-          // now for each tag defined in the config, create a QuestionType
-          const questionTypes = newConfig.tags ?? {};
-          for (const [tagKey, tagValue] of Object.entries(questionTypes)) {
-            await transactionalEntityManager
-              .getRepository(QuestionTypeModel)
-              .insert({
-                cid: courseId,
-                name: tagValue.display_name,
-                color: tagValue.color_hex,
-                queueId: createdQueue.id,
-              });
-          }
-        } catch (err) {
-          throw err;
-        }
-      });
-
-      return createdQueue;
+      return this.courseService.createQueue(
+        courseId,
+        room,
+        body.type,
+        body.notes,
+        body.isProfessorQueue,
+        newConfig,
+      );
     } catch (err) {
       console.error(
         ERROR_MESSAGES.courseController.saveQueueError +
@@ -979,7 +989,7 @@ export class CourseController {
 
     // have to do a manual query 'cause the current version of typeORM we're using is crunked and creates syntax errors in postgres queries
     const query = `
-    SELECT COALESCE("user_model"."firstName", '') || ' ' || COALESCE("user_model"."lastName", '') AS name, "user_model".id AS id
+    SELECT "user_model".name, "user_model".id AS id
     FROM "user_course_model"
     LEFT JOIN "user_model" ON ("user_course_model"."userId" = "user_model".id AND "user_course_model".role = $1)
     WHERE "user_course_model"."courseId" = $2 
@@ -1063,5 +1073,32 @@ export class CourseController {
     }
     userCourse.TANotes = body.notes;
     await userCourse.save();
+  }
+
+  @Post(':courseId/clone_course')
+  @UseGuards(JwtAuthGuard, OrgOrCourseRolesGuard, EmailVerifiedGuard)
+  @CourseRoles(Role.PROFESSOR)
+  @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  async cloneCourse(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @User({ chat_token: true }) user: UserModel,
+    @Body() body: CourseCloneAttributes,
+  ): Promise<UserCourse | null> {
+    if (!user || !user.chat_token) {
+      console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
+      throw new HttpException(
+        ERROR_MESSAGES.profileController.accountNotAvailable,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const newUserCourse = await this.courseService.cloneCourse(
+      courseId,
+      user.id,
+      body,
+      user.chat_token.token,
+    );
+
+    return newUserCourse;
   }
 }

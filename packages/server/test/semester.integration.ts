@@ -67,14 +67,13 @@ describe('SemesterController Integration', () => {
         startDate: new Date().toISOString(),
         endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString(),
         description: 'A test semester',
+        color: 'blue',
       };
 
       const res = await supertest({ userId: orgUser.organizationUser.id })
         .post(`/semesters/${orgUser.organization.id}`)
         .send(semesterDetails)
         .expect(201);
-
-      expect(res.text).toEqual('Semester created successfully');
 
       const createdSemester = await SemesterModel.findOne({
         where: {
@@ -83,6 +82,10 @@ describe('SemesterController Integration', () => {
         },
       });
       expect(createdSemester).toBeDefined();
+      expect(createdSemester.color).toEqual(semesterDetails.color);
+      expect(createdSemester.description).toEqual(semesterDetails.description);
+      expect(createdSemester.organizationId).toEqual(orgUser.organization.id);
+      expect(createdSemester.name).toEqual(semesterDetails.name);
     });
 
     it('should return 401 if organization is not found', async () => {
@@ -114,6 +117,7 @@ describe('SemesterController Integration', () => {
         startDate: new Date().toISOString(),
         endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 120).toISOString(),
         description: 'Updated semester description',
+        color: 'blue',
       };
 
       const res = await supertest({ userId: orgUser.organizationUser.id })
@@ -127,6 +131,8 @@ describe('SemesterController Integration', () => {
         where: { id: semester1.id },
       });
       expect(updatedSemester.name).toEqual(updatedDetails.name);
+      expect(updatedSemester.color).toEqual(updatedDetails.color);
+      expect(updatedSemester.description).toEqual(updatedDetails.description);
     });
 
     it('should return 400 if semester is not found', async () => {

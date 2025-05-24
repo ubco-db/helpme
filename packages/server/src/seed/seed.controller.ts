@@ -272,6 +272,7 @@ export class SeedController {
         name: 'CS 310',
         timezone: 'America/Los_Angeles',
         semester: semester2,
+        sectionGroupName: '001',
       });
     }
 
@@ -463,6 +464,18 @@ export class SeedController {
         user: user5,
         role: Role.PROFESSOR,
         course: course1,
+      });
+
+      await this.factoryService.UserCourseFactory.create({
+        user: user5,
+        role: Role.PROFESSOR,
+        course: course2,
+      });
+
+      await this.factoryService.UserCourseFactory.create({
+        user: user5,
+        role: Role.PROFESSOR,
+        course: course2,
       });
 
       await this.factoryService.userSubscriptionFactory.create({

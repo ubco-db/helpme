@@ -36,6 +36,7 @@ import {
   ChatbotQuestionResponseChatbotDB,
   UpdateChatbotQuestionParams,
   GetChatbotHistoryResponse,
+  ChatbotSettingsUpdateParams,
 } from '@koh/common';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { Roles } from 'decorators/roles.decorator';
@@ -204,7 +205,7 @@ export class ChatbotController {
   @Roles(Role.PROFESSOR, Role.TA)
   async updateChatbotSettings(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() settings: ChatbotSettingsMetadata,
+    @Body() settings: ChatbotSettingsUpdateParams,
     @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);

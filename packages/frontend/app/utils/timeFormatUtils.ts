@@ -3,6 +3,7 @@ import {
   OpenQuestionStatus,
   Question,
   QueuePartial,
+  SemesterPartial,
   waitingStatuses,
 } from '@koh/common'
 
@@ -146,4 +147,40 @@ export function formatDateAndTimeForExcel(date: Date | undefined): string {
   const [datePart, timePart] = localDate.toISOString().split('T')
   const timeString = timePart.split('.')[0] // Remove milliseconds
   return `${datePart} ${timeString}` // Format: YYYY-MM-DD HH:MM:SS
+}
+
+/**
+ * Formats the semester date to show the start and end months, adjusting for the day of the month
+ * @param semester - The semester to format
+ * @returns The formatted semester date
+ */
+export function formatSemesterDate(semester: SemesterPartial): string {
+  const startDate = new Date(semester.startDate)
+  const endDate = new Date(semester.endDate)
+
+  // Adjust start month if day is > 25 (show as next month)
+  const adjustedStartDate = new Date(startDate)
+  if (startDate.getDate() > 25) {
+    adjustedStartDate.setMonth(adjustedStartDate.getMonth() + 1)
+  }
+
+  // Adjust end month if day is < 5 (show as previous month)
+  const adjustedEndDate = new Date(endDate)
+  if (endDate.getDate() < 5) {
+    adjustedEndDate.setMonth(adjustedEndDate.getMonth() - 1)
+  }
+
+  const startMonth = adjustedStartDate.toLocaleString('default', {
+    month: 'short',
+  })
+  const endMonth = adjustedEndDate.toLocaleString('default', { month: 'short' })
+  const startYear = adjustedStartDate.getFullYear()
+  const endYear = adjustedEndDate.getFullYear()
+
+  if (startYear === endYear) {
+    // if years are the same, only show year once
+    return `(${startMonth} - ${endMonth} ${endYear})`
+  } else {
+    return `(${startMonth} ${startYear} - ${endMonth} ${endYear})`
+  }
 }

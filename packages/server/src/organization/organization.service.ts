@@ -12,6 +12,7 @@ import {
   UserRole,
 } from '@koh/common';
 import { UserCourseModel } from 'profile/user-course.entity';
+import { SemesterModel } from 'semester/semester.entity';
 
 export interface FlattenedOrganizationResponse {
   id: number;
@@ -90,6 +91,11 @@ export class OrganizationService {
         'CourseModel',
         'CourseModel.id = OrganizationCourseModel.courseId',
       )
+      .leftJoin(
+        SemesterModel,
+        'SemesterModel',
+        'SemesterModel.id = CourseModel.semesterId',
+      )
       .where('OrganizationCourseModel.organizationId = :organizationId', {
         organizationId,
       });
@@ -105,24 +111,50 @@ export class OrganizationService {
       );
     }
 
-    const courses = organizationCourses.select([
-      'CourseModel.id as courseId',
-      'CourseModel.name as courseName',
-      'CourseModel.enabled as isEnabled',
-    ]);
+    const courses = organizationCourses
+      .select([
+        'CourseModel.id as courseId',
+        'CourseModel.name as courseName',
+        'CourseModel.enabled as isEnabled',
+        'CourseModel.sectionGroupName as sectionGroupName',
+        'CourseModel.semesterId as semesterId',
+        'SemesterModel.name as semesterName',
+        'SemesterModel.color as semesterColor',
+        'SemesterModel.startDate as semesterStartDate',
+        'SemesterModel.endDate as semesterEndDate',
+        'SemesterModel.description as semesterDescription',
+      ])
+      // first order by semester end date, then by course name
+      .orderBy('SemesterModel.endDate', 'DESC')
+      .addOrderBy('CourseModel.name', 'ASC');
 
-    const coursesSubset = await courses
-      .orderBy('CourseModel.name')
-      .skip((page - 1) * pageSize)
-      .take(pageSize)
-      // .getMany() wouldn't work here because relations are not working well with getMany()
-      .getRawMany();
+    let coursesSubset: any;
 
-    const coursesResponse = coursesSubset.map((course) => {
+    if (page !== -1) {
+      coursesSubset = await courses
+        .skip((page - 1) * pageSize)
+        .take(pageSize)
+        // .getMany() wouldn't work here because relations are not working well with getMany()
+        .getRawMany();
+    } else {
+      coursesSubset = await courses.getRawMany();
+    }
+
+    const coursesResponse: CourseResponse[] = coursesSubset.map((course) => {
       return {
         courseId: course.courseid,
         courseName: course.coursename,
         isEnabled: course.isenabled,
+        sectionGroupName: course.sectiongroupname,
+        semesterId: course.semesterid,
+        semester: {
+          id: course.semesterid,
+          name: course.semestername,
+          color: course.semestercolor,
+          startDate: course.semesterstartdate,
+          endDate: course.semesterenddate,
+          description: course.semesterdescription,
+        },
       };
     });
 
@@ -149,12 +181,9 @@ export class OrganizationService {
       const likeSearch = `%${search.replace(' ', '')}%`.toUpperCase();
       organizationUsers.andWhere(
         new Brackets((q) => {
-          q.where(
-            'CONCAT(UPPER("UserModel"."firstName"), UPPER("UserModel"."lastName")) like :searchString',
-            {
-              searchString: likeSearch,
-            },
-          );
+          q.where('UPPER("UserModel".name) like :searchString', {
+            searchString: likeSearch,
+          });
         }),
       );
     }

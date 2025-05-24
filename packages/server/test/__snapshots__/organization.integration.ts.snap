@@ -51,6 +51,16 @@ exports[`Organization Integration GET /organization/:oid/get_courses/:page? shou
     "courseId": 1,
     "courseName": "CS 304",
     "isEnabled": true,
+    "sectionGroupName": "001",
+    "semester": {
+      "color": "blue",
+      "description": "Test Semester Description",
+      "endDate": "2022-12-31T00:00:00.000Z",
+      "id": 1,
+      "name": "Test Semester",
+      "startDate": "2020-09-01T00:00:00.000Z",
+    },
+    "semesterId": 1,
   },
 ]
 `;

@@ -12,7 +12,8 @@ import { QueueCleanService } from '../queue/queue-clean/queue-clean.service';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { ApplicationConfigModule } from '../config/application_config.module';
 import { RedisQueueModule } from '../redisQueue/redis-queue.module';
-
+import { MailModule } from 'mail/mail.module';
+import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 @Module({
   controllers: [CourseController],
   imports: [
@@ -20,6 +21,7 @@ import { RedisQueueModule } from '../redisQueue/redis-queue.module';
     LoginModule,
     CacheModule.register(),
     OrganizationModule,
+    MailModule,
     RedisQueueModule,
     ApplicationConfigModule,
   ],
@@ -30,6 +32,8 @@ import { RedisQueueModule } from '../redisQueue/redis-queue.module';
     RedisProfileService,
     QueueCleanService,
     ApplicationConfigService,
+    ChatbotApiService,
   ],
+  exports: [CourseService, ChatbotApiService],
 })
 export class CourseModule {}

@@ -18,7 +18,14 @@ export default function CoursesPage(): ReactElement {
   const searchParams = useSearchParams()
   const error = searchParams.get('err')
 
-  const [enabledTableView, setEnabledTableView] = useState(false)
+  // Initialize enabledTableView from localStorage
+  const [enabledTableView, setEnabledTableView] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const storedValue = localStorage.getItem('enabledTableView')
+      return storedValue === 'true'
+    }
+    return false
+  })
   const [semesters, setSemesters] = useState<SemesterPartial[]>([])
 
   useEffect(() => {
@@ -31,7 +38,7 @@ export default function CoursesPage(): ReactElement {
         console.error(error)
         message.error(
           'Failed to fetch semesters for organization with id: ' +
-            userInfo.organization?.id,
+            userInfo.organization?.orgId,
         )
       })
   }, [])
@@ -77,7 +84,7 @@ export default function CoursesPage(): ReactElement {
       )}
       <div className="mt-5 flex items-center justify-between align-middle">
         <h1 className="mt-0">My Courses</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-col items-end justify-between gap-2 md:flex-row md:items-center">
           {(userInfo?.organization?.organizationRole ===
             OrganizationRole.PROFESSOR ||
             userInfo?.organization?.organizationRole ===
@@ -88,11 +95,15 @@ export default function CoursesPage(): ReactElement {
           )}
           <Segmented
             options={[
-              { value: false, icon: <AppstoreOutlined /> },
-              { value: true, icon: <BarsOutlined /> },
+              { value: false, icon: <AppstoreOutlined />, title: 'Card View' },
+              { value: true, icon: <BarsOutlined />, title: 'Table View' },
             ]}
+            defaultValue={enabledTableView}
             onChange={(value) => {
               setEnabledTableView(value)
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('enabledTableView', value.toString())
+              }
             }}
           />
         </div>
@@ -106,9 +117,6 @@ export default function CoursesPage(): ReactElement {
           />
         ) : (
           <CoursesSection
-            courses={userInfo.courses.filter(
-              (userCourse) => userCourse.course.enabled,
-            )}
             semesters={semesters}
             enabledTableView={enabledTableView}
           />

@@ -96,6 +96,7 @@
     "res": "^0.4.0",
     "rxjs": "^7.1.0",
     "sharp": "^0.33.5",
+    "sonner": "^2.0.2",
     "source-map-support": "^0.5.19",
     "superagent": "^8.1.2",
     "tsx": "^4.19.2",
