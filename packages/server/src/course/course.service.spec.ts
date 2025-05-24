@@ -1,5 +1,5 @@
 import { TestingModule, Test } from '@nestjs/testing';
-import { DataSource, In } from 'typeorm';
+import { DataSource, In, IsNull } from 'typeorm';
 import {
   UserFactory,
   UserCourseFactory,
@@ -88,7 +88,12 @@ describe('CourseService', () => {
               }),
             ),
             updateChatbotSettings: jest.fn().mockResolvedValue({ ok: true }),
-            cloneCourseDocuments: jest.fn().mockResolvedValue({ ok: true }),
+            cloneCourseDocuments: jest.fn().mockResolvedValue({
+              newAggregateHelpmePDFIdMap: {
+                '1': 'test-doc-id',
+                '3': 'test-doc-id',
+              },
+            }),
           },
         },
       ],
@@ -606,7 +611,7 @@ describe('CourseService', () => {
       const originalAsyncQuestionTypes = await QuestionTypeModel.find({
         where: {
           cid: originalCourseId,
-          queueId: null,
+          queueId: IsNull(),
         },
         order: { id: 'ASC' },
       });
@@ -614,7 +619,7 @@ describe('CourseService', () => {
       const clonedAsyncQuestionTypes = await QuestionTypeModel.find({
         where: {
           cid: clonedCourseId,
-          queueId: null,
+          queueId: IsNull(),
         },
         order: { id: 'ASC' },
       });
@@ -670,7 +675,9 @@ describe('CourseService', () => {
       }
 
       // Check to make sure super course is created
-      const superCourse = await SuperCourseModel.find();
+      const superCourse = await SuperCourseModel.find({
+        relations: { courses: true },
+      });
 
       expect(superCourse).toBeTruthy();
       expect(superCourse.length).toEqual(1);
@@ -757,12 +764,14 @@ describe('CourseService', () => {
       // create question types for queues (4 total, should correspond to what's in queue config)
       for (const [tagKey, tagValue] of Object.entries(tempQueueConfig.tags)) {
         await QuestionTypeFactory.create({
+          queue: queue1,
           cid: course.id,
           name: tagValue.display_name,
           color: tagValue.color_hex,
           queueId: queue1.id,
         });
         await QuestionTypeFactory.create({
+          queue: queue2,
           cid: course.id,
           name: tagValue.display_name,
           color: tagValue.color_hex,
@@ -809,6 +818,7 @@ describe('CourseService', () => {
         professorIds: [professor.id],
         useSection: true,
         newSection: '002',
+        associateWithOriginalCourse: true,
         toClone: {
           coordinator_email: true,
           zoomLink: true,
