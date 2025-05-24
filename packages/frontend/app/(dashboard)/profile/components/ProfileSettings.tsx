@@ -9,23 +9,24 @@ import EditProfile from './EditProfile'
 import NotificationsSettings from './NotificationsSettings'
 import CoursePreference from './CoursePreference'
 import EmailNotifications from './EmailNotifications'
-import { useSearchParams } from 'next/navigation';
+import UserChatbotHistory from './UserChatbotHistory'
+import { useSearchParams } from 'next/navigation'
 
 const ProfileSettings: React.FC = () => {
   const params = useSearchParams()
 
-  const [currentSettings, setCurrentSettings] = useState(
-    () => {
-      switch(params.get("page")) {
-        case "notifications":
-          return SettingsOptions.NOTIFICATIONS
-        case "preferences":
-          return SettingsOptions.PREFERENCES
-        default:
-          return SettingsOptions.PROFILE
-      }
+  const [currentSettings, setCurrentSettings] = useState(() => {
+    switch (params.get('page')) {
+      case 'notifications':
+        return SettingsOptions.NOTIFICATIONS
+      case 'preferences':
+        return SettingsOptions.PREFERENCES
+      case 'chatbot_history':
+        return SettingsOptions.CHATBOT_HISTORY
+      default:
+        return SettingsOptions.PROFILE
     }
-  )
+  })
 
   return (
     <Row className="flex-grow flex-col md:flex-row md:flex-nowrap">
@@ -34,7 +35,10 @@ const ProfileSettings: React.FC = () => {
         className="mx-auto mt-2 h-fit w-full max-w-max text-center md:mx-0 md:mt-0"
       >
         <AvatarSettings />
-        <SettingsMenu currentSettings={currentSettings} setCurrentSettings={setCurrentSettings} />
+        <SettingsMenu
+          currentSettings={currentSettings}
+          setCurrentSettings={setCurrentSettings}
+        />
       </Col>
       <div className="mr-8 hidden border-r border-gray-300 md:mr-8 md:block md:border-r md:border-gray-300" />
       <Space
@@ -52,6 +56,9 @@ const ProfileSettings: React.FC = () => {
           )}
           {currentSettings === SettingsOptions.PREFERENCES && (
             <CoursePreference />
+          )}
+          {currentSettings === SettingsOptions.CHATBOT_HISTORY && (
+            <UserChatbotHistory />
           )}
         </Col>
       </Space>

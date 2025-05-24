@@ -5,10 +5,11 @@ import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { GetOrganizationResponse, User } from '@koh/common'
 
 type CourseEditPageProps = {
-  params: { courseId: string }
+  params: Promise<{ courseId: string }>
 }
 
-export default async function CourseEditPage({ params }: CourseEditPageProps) {
+export default async function CourseEditPage(props: CourseEditPageProps) {
+  const params = await props.params
   const currentUser = await userApi.getUser()
   const organization: GetOrganizationResponse =
     await organizationApi.getOrganization(currentUser.organization?.orgId ?? -1)

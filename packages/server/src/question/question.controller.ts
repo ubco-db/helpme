@@ -78,7 +78,7 @@ export class QuestionController {
     if (questions === undefined) {
       throw new NotFoundException();
     }
-    const questionRes = questions.map((q) => {
+    return questions.map((q) => {
       const temp = pick(q, [
         'id',
         'queueId',
@@ -100,7 +100,6 @@ export class QuestionController {
       });
       return temp;
     });
-    return questionRes;
   }
 
   @Post('TAcreate/:userId')
@@ -120,7 +119,9 @@ export class QuestionController {
 
     const queue = await QueueModel.findOne({
       where: { id: queueId },
-      relations: ['staffList'],
+      relations: {
+        staffList: true,
+      },
     });
 
     if (!queue) {
@@ -134,7 +135,7 @@ export class QuestionController {
         ERROR_MESSAGES.questionController.createQuestion.noNewQuestions,
       );
     }
-    if (!(await queue.checkIsOpen())) {
+    if (queue.staffList.length === 0 || queue.isDisabled) {
       throw new BadRequestException(
         ERROR_MESSAGES.questionController.createQuestion.closedQueue,
       );
@@ -227,7 +228,9 @@ export class QuestionController {
 
     const queue = await QueueModel.findOne({
       where: { id: queueId },
-      relations: ['staffList'],
+      relations: {
+        staffList: true,
+      },
     });
 
     if (!queue) {
@@ -241,7 +244,7 @@ export class QuestionController {
         ERROR_MESSAGES.questionController.createQuestion.noNewQuestions,
       );
     }
-    if (!(await queue.checkIsOpen())) {
+    if (queue.staffList.length === 0 || queue.isDisabled) {
       throw new BadRequestException(
         ERROR_MESSAGES.questionController.createQuestion.closedQueue,
       );
@@ -249,7 +252,9 @@ export class QuestionController {
 
     // don't allow more than 1 demo and 1 question per user per course
     const previousUserQuestions = await QuestionModel.find({
-      relations: ['queue'],
+      relations: {
+        queue: true,
+      },
       where: {
         creatorId: user.id,
         status: In(Object.values(OpenQuestionStatus)),
@@ -346,7 +351,11 @@ export class QuestionController {
   ): Promise<UpdateQuestionResponse> {
     let question = await QuestionModel.findOne({
       where: { id: questionId },
-      relations: ['creator', 'queue', 'taHelped'],
+      relations: {
+        creator: true,
+        queue: true,
+        taHelped: true,
+      },
     });
 
     if (question === undefined) {
@@ -363,10 +372,8 @@ export class QuestionController {
       if (body.questionTypes) {
         question.questionTypes = await Promise.all(
           body.questionTypes.map(async (type) => {
-            const questionType = await QuestionTypeModel.findOne({
-              where: {
-                id: type.id,
-              },
+            const questionType = await QuestionTypeModel.findOneBy({
+              id: type.id,
             });
             if (!questionType) {
               throw new BadRequestException(
@@ -387,7 +394,11 @@ export class QuestionController {
       ) {
         let queue: QueueModel;
         try {
-          queue = await QueueModel.findOneOrFail(question.queueId);
+          queue = await QueueModel.findOneOrFail({
+            where: {
+              id: question.queueId,
+            },
+          });
         } catch (err) {
           throw new NotFoundException(
             ERROR_MESSAGES.questionController.studentTaskProgress.queueDoesNotExist,
@@ -465,7 +476,11 @@ export class QuestionController {
       ) {
         let queue: QueueModel;
         try {
-          queue = await QueueModel.findOneOrFail(question.queueId);
+          queue = await QueueModel.findOneOrFail({
+            where: {
+              id: question.queueId,
+            },
+          });
         } catch (err) {
           throw new NotFoundException(
             ERROR_MESSAGES.questionController.studentTaskProgress.queueDoesNotExist,
@@ -556,8 +571,8 @@ export class QuestionController {
   async notify(
     @Param('questionId', ParseIntPipe) questionId: number,
   ): Promise<void> {
-    const question = await QuestionModel.findOne(questionId, {
-      relations: ['queue'],
+    const question = await QuestionModel.findOneBy({
+      id: questionId,
     });
 
     if (question === undefined || question === null) {

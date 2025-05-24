@@ -1,5 +1,5 @@
 import React, { createContext, PropsWithChildren, useContext } from 'react'
-import { toast, Toaster } from 'sonner'
+import { ExternalToast, toast, Toaster } from 'sonner'
 import { getErrorMessage } from '../utils/generalUtils'
 
 /**
@@ -15,28 +15,35 @@ type NotifyOptions = {
   appendApiError: boolean
 }
 
-interface AsyncActionsContextProps {
-  runAsync: (
+interface AsyncToasterContextProps {
+  runAsyncToast: (
     apiCall: () => Promise<any>,
     callback: AsyncCallback,
     notifyOptions?: NotifyOptions,
   ) => void
 }
 
-const AsyncActionsContext = createContext<AsyncActionsContextProps>({
-  runAsync: () => {
+const AsyncToasterContext = createContext<AsyncToasterContextProps>({
+  runAsyncToast: () => {
     throw new Error(
-      'runAsync() not implemented. Did you forget to wrap your component in AsyncActionsProvider?',
+      'runAsyncToast() not implemented. Did you forget to wrap your component in AsyncToasterProvider?',
     )
   },
 })
 
-export const useAsyncActions = () => useContext(AsyncActionsContext)
+export const useAsyncToaster = () => useContext(AsyncToasterContext)
 
-export const AsyncActionsProvider: React.FC<PropsWithChildren> = ({
+const toastOptions: ExternalToast = {
+  richColors: true,
+  duration: Infinity,
+  dismissible: true,
+  closeButton: true,
+}
+
+export const AsyncToasterProvider: React.FC<PropsWithChildren> = ({
   children,
 }) => {
-  const runAsync = (
+  const runAsyncToast = (
     apiCall: () => Promise<any>,
     callback: AsyncCallback,
     notifyOptions?: NotifyOptions,
@@ -44,9 +51,7 @@ export const AsyncActionsProvider: React.FC<PropsWithChildren> = ({
     apiCall()
       .then((result) => {
         if (notifyOptions) {
-          toast.success(notifyOptions.successMsg, {
-            className: 'bg-green-600 text-white',
-          })
+          toast.success(notifyOptions.successMsg, toastOptions)
         }
         callback(result)
       })
@@ -64,19 +69,17 @@ export const AsyncActionsProvider: React.FC<PropsWithChildren> = ({
               <br />
               {getErrorMessage(error)}
             </div>,
-            { className: 'bg-red-600 text-white' },
+            toastOptions,
           )
         } else {
-          toast.error(notifyOptions.errorMsg, {
-            className: 'bg-red-600 text-white',
-          })
+          toast.error(notifyOptions.errorMsg, toastOptions)
         }
         callback(null, error)
       })
   }
 
   return (
-    <AsyncActionsContext.Provider value={{ runAsync }}>
+    <AsyncToasterContext.Provider value={{ runAsyncToast }}>
       <Toaster
         position="bottom-right"
         toastOptions={{
@@ -85,6 +88,6 @@ export const AsyncActionsProvider: React.FC<PropsWithChildren> = ({
         }}
       />
       {children}
-    </AsyncActionsContext.Provider>
+    </AsyncToasterContext.Provider>
   )
 }

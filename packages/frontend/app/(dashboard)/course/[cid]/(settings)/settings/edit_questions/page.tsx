@@ -14,7 +14,7 @@ import {
   TableColumnType,
   Typography,
 } from 'antd'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, use } from 'react'
 import type { FilterConfirmProps } from 'antd/es/table/interface'
 import { questions, QuestionType, UpdateQuestionParams } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -95,11 +95,8 @@ const EditableCell: React.FC<React.PropsWithChildren<EditableCellProps>> = ({
  * Contains a table allowing staff to search, sort, and edit questions.
  * Combines multiple examples from antd's offical docs for Table, plus some custom logic.
  */
-const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
-  params,
-}: {
-  params: { cid: string }
-}) => {
+const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
+  const params = props.params
   const cid = Number(params.cid)
   const [editingKey, setEditingKey] = useState(-1)
 
@@ -299,10 +296,12 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = ({
       if (!record[dataIndex]) {
         return false
       }
-      return record[dataIndex]
-        .toString()
-        .toLowerCase()
-        .includes((value as string).toLowerCase())
+      return (
+        record[dataIndex]
+          ?.toString()
+          .toLowerCase()
+          .includes((value as string).toLowerCase()) ?? false
+      )
     },
     onFilterDropdownOpenChange: (visible) => {
       if (visible) {

@@ -14,6 +14,7 @@ import {
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import {
+  ERROR_MESSAGES,
   MailServiceType,
   OrganizationRole,
   Role,
@@ -44,7 +45,6 @@ describe('Organization Integration', () => {
     const testModule = getTestModule();
     courseService = testModule.get<CourseService>(CourseService);
   });
-
   describe('POST /organization/:oid/populate_chat_token_table', () => {
     it('should return 401 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();
@@ -1285,10 +1285,20 @@ describe('Organization Integration', () => {
 
       // Verify that the chat tokens were reset
       const updatedProfessorToken = await ChatTokenModel.findOne({
-        where: { user: professor.id },
+        relations: { user: true },
+        where: {
+          user: {
+            id: professor.id,
+          },
+        },
       });
       const updatedMemberToken = await ChatTokenModel.findOne({
-        where: { user: member.id },
+        relations: { user: true },
+        where: {
+          user: {
+            id: member.id,
+          },
+        },
       });
 
       expect(updatedProfessorToken.used).toBe(0);
@@ -3317,11 +3327,18 @@ describe('Organization Integration', () => {
         role: OrganizationRole.ADMIN,
       }).save();
 
+      // capture console.error
+      const consoleError = jest.spyOn(console, 'error').mockImplementation();
+
       const response = await supertest({ userId: admin.id }).post(
         `/organization/${organization.id}/clone_courses`,
       );
 
       expect(response.status).toBe(404);
+      expect(consoleError).toHaveBeenCalledWith(
+        ERROR_MESSAGES.profileController.accountNotAvailable,
+      );
+      consoleError.mockRestore();
     });
 
     it('should queue batch cloning operation successfully', async () => {
@@ -3354,14 +3371,14 @@ describe('Organization Integration', () => {
         organization: organization,
       });
 
-      const cloneAttributes = {
+      const toClone = {
         [course1.id]: { name: 'Cloned Course 1', semesterId: semester1.id },
         [course2.id]: { name: 'Cloned Course 2', semesterId: semester2.id },
       };
 
       const response = await supertest({ userId: admin.id })
         .post(`/organization/${organization.id}/clone_courses`)
-        .send(cloneAttributes);
+        .send(toClone);
 
       expect(response.status).toBe(201);
       expect(response.text).toBe(

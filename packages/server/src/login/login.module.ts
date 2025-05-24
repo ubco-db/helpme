@@ -7,6 +7,7 @@ import { CourseService } from 'course/course.service';
 import { RedisProfileModule } from 'redisProfile/redis-profile.module';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
 import { MailModule } from 'mail/mail.module';
+import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 
 @Module({
   imports: [
@@ -20,6 +21,11 @@ import { MailModule } from 'mail/mail.module';
     MailModule,
   ],
   controllers: [LoginController],
-  providers: [JwtStrategy, CourseService, RedisProfileService],
+  providers: [
+    JwtStrategy,
+    CourseService,
+    RedisProfileService,
+    ChatbotApiService,
+  ],
 })
 export class LoginModule {}

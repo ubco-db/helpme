@@ -23,9 +23,8 @@ import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question.entity';
-import { SuperCourseModel } from './super-course.entity';
 import { ChatbotDocPdfModel } from '../chatbot/chatbot-doc-pdf.entity';
-
+import { SuperCourseModel } from './super-course.entity';
 @Entity('course_model')
 export class CourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -76,9 +75,6 @@ export class CourseModel extends BaseEntity {
 
   @Column('boolean', { nullable: true })
   enabled: boolean; // Set to true if the given the course is using our app
-
-  // The heatmap is false when there havent been any questions asked yet or there havent been any office hours
-  heatmap: Heatmap | false;
 
   // The IANA string representing the timezone the course is centered around. This is important for any time based events for a course
   @Column('text', { nullable: true })

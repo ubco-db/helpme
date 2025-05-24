@@ -59,7 +59,7 @@ export abstract class RolesGuard implements CanActivate {
       return Number(course.courseId) === Number(courseId);
     });
 
-    if (!userCourse) {
+    if (!userCourse || !userCourse.role) {
       throw new NotFoundException(ERROR_MESSAGES.roleGuard.notInCourse);
     }
 

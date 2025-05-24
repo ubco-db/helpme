@@ -65,7 +65,6 @@ describe('Notif Integration', () => {
         p256dh: '',
         endpoint: 'abc',
       }).save();
-      await dn.reload();
       expect(await DesktopNotifModel.count()).toEqual(1);
 
       await supertest({ userId: user.id })
@@ -84,7 +83,6 @@ describe('Notif Integration', () => {
         p256dh: '',
         endpoint: 'abc',
       }).save();
-      await dn.reload();
       expect(await DesktopNotifModel.count()).toEqual(1);
 
       const hackerman = await UserFactory.create();

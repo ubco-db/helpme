@@ -1,39 +1,45 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { RedisService } from 'nestjs-redis';
 import { QueueChatService } from './queue-chats.service';
 import { QueueChatsModel } from './queue-chats.entity';
-import { Connection } from 'typeorm';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { ApplicationTestingConfigModule } from '../config/application_config.module';
-import { QuestionFactory, UserFactory } from '../../test/util/factories';
+import {
+  initFactoriesFromService,
+  QuestionFactory,
+  UserFactory,
+} from '../../test/util/factories';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { QueueSSEService } from 'queue/queue-sse.service';
 import { QueueService } from 'queue/queue.service';
 import { SSEService } from 'sse/sse.service';
+import { DataSource } from 'typeorm';
+import { RedisService } from '@liaoliaots/nestjs-redis';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
-jest.mock('nestjs-redis');
+jest.mock('@liaoliaots/nestjs-redis');
+
+const mockRedisClient = () => ({
+  get: jest.fn().mockResolvedValue('mocked_value'), // Simulates redis.get() returning a value
+  set: jest.fn().mockResolvedValue('OK'), // Simulates redis.set() returning 'OK'
+  del: jest.fn().mockResolvedValue(1), // Simulates redis.del() indicating 1 key deleted
+  lpush: jest.fn().mockResolvedValue(1), // Simulates redis.lpush() returning new list length
+  lrange: jest.fn().mockResolvedValue(['item1', 'item2']), // Simulates redis.lrange() returning list items
+  expire: jest.fn().mockResolvedValue(1), // Simulates redis.expire() returning 1 (success)
+  exists: jest.fn().mockResolvedValue(1), // Simulates redis.exists() returning 1 (key exists)
+  llen: jest.fn().mockResolvedValue(2), // Simulates redis.llen() returning 2 (list length)
+  keys: jest.fn().mockResolvedValue(['key1', 'key2']), // Simulates redis.keys() returning an array of keys
+  pipeline: jest.fn().mockReturnValue({
+    del: jest.fn().mockReturnThis(),
+    unlink: jest.fn().mockReturnThis(),
+    exec: jest.fn().mockResolvedValue([]),
+  }),
+});
 
 describe('QueueChatService', () => {
   let service: QueueChatService;
   let redisMock: { [key: string]: jest.Mock };
-  let conn: Connection;
-
-  const mockRedisClient = () => ({
-    get: jest.fn().mockResolvedValue('mocked_value'), // Simulates redis.get() returning a value
-    set: jest.fn().mockResolvedValue('OK'), // Simulates redis.set() returning 'OK'
-    del: jest.fn().mockResolvedValue(1), // Simulates redis.del() indicating 1 key deleted
-    lpush: jest.fn().mockResolvedValue(1), // Simulates redis.lpush() returning new list length
-    lrange: jest.fn().mockResolvedValue(['item1', 'item2']), // Simulates redis.lrange() returning list items
-    expire: jest.fn().mockResolvedValue(1), // Simulates redis.expire() returning 1 (success)
-    exists: jest.fn().mockResolvedValue(1), // Simulates redis.exists() returning 1 (key exists)
-    llen: jest.fn().mockResolvedValue(2), // Simulates redis.llen() returning 2 (list length)
-    keys: jest.fn().mockResolvedValue(['key1', 'key2']), // Simulates redis.keys() returning an array of keys
-    pipeline: jest.fn().mockReturnValue({
-      del: jest.fn().mockReturnThis(),
-      unlink: jest.fn().mockReturnThis(),
-      exec: jest.fn().mockResolvedValue([]),
-    }),
-  });
+  let dataSource: DataSource;
 
   const staticDate = new Date('2023-01-01T00:00:00Z');
 
@@ -46,6 +52,7 @@ describe('QueueChatService', () => {
         TestConfigModule,
         ApplicationTestingConfigModule,
         TypeOrmModule.forFeature([QueueChatsModel]),
+        FactoryModule,
       ],
       providers: [
         {
@@ -75,15 +82,20 @@ describe('QueueChatService', () => {
       ],
     }).compile();
     service = module.get<QueueChatService>(QueueChatService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   afterEach(() => {

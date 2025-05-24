@@ -8,7 +8,6 @@ export class AdminCommand {
   @Command({
     command: 'create:admin <username>',
     describe: 'create an admin user',
-    autoExit: true,
   })
   async create(
     @Positional({

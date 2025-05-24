@@ -5,7 +5,6 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
-import { RedisService } from 'nestjs-redis';
 import { Redis } from 'ioredis';
 import { QueueChatsModel } from './queue-chats.entity';
 import { UserModel } from 'profile/user.entity';
@@ -21,6 +20,8 @@ import {
 import { QuestionModel } from 'question/question.entity';
 import { In } from 'typeorm';
 import { QueueSSEService } from 'queue/queue-sse.service';
+import { RedisService } from '@liaoliaots/nestjs-redis';
+
 const ChatMessageRedisKey = 'queue_chat_messages';
 const ChatMetadataRedisKey = 'queue_chat_metadata';
 
@@ -370,11 +371,11 @@ export class QueueChatService {
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
-    }
 
-    console.log(
-      `Deleted ${keysToDelete.length} queue chats for question id ${questionId}`,
-    );
+      console.log(
+        `Deleted ${keysToDelete.length} queue chats for question id ${questionId}`,
+      );
+    }
 
     // now notify everyone in the queue to re-fetch their chats
     await this.queueSSEService.updateQueueChats(queueId);

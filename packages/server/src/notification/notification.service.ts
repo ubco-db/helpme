@@ -4,7 +4,8 @@ import { DeepPartial } from 'typeorm';
 import * as webPush from 'web-push';
 import { UserModel } from '../profile/user.entity';
 import { DesktopNotifModel } from './desktop-notif.entity';
-
+import * as fs from 'fs';
+import { isProd } from '@koh/common';
 export const NotifMsgs = {
   queue: {
     ALERT_BUTTON:
@@ -45,7 +46,6 @@ export class NotificationService {
     });
     if (!dn) {
       dn = await DesktopNotifModel.create(info).save();
-      await dn.reload();
     }
     return dn;
   }
@@ -56,7 +56,9 @@ export class NotificationService {
       where: {
         id: userId,
       },
-      relations: ['desktopNotifs'],
+      relations: {
+        desktopNotifs: true,
+      },
     });
 
     // run the promises concurrently
@@ -72,6 +74,10 @@ export class NotificationService {
   // notifies a user via desktop notification
   async notifyDesktop(nm: DesktopNotifModel, message: string): Promise<void> {
     try {
+      if (!isProd()) {
+        await this.writeDesktopNotificationToFile(nm, message);
+        return;
+      }
       await webPush.sendNotification(
         {
           endpoint: nm.endpoint,
@@ -83,7 +89,29 @@ export class NotificationService {
         message,
       );
     } catch (error) {
+      console.error('Error sending desktop notification:', error);
       await DesktopNotifModel.remove(nm);
     }
+  }
+
+  /* Used for testing purposes. Allows you to write a desktop notification to a file instead of sending a real notification */
+  async writeDesktopNotificationToFile(
+    nm: DesktopNotifModel,
+    message: string,
+  ): Promise<void> {
+    const logFile = './src/notification/desktop_notifications.log';
+    const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+    logStream.write(`
+      New desktop notification. Sent at ${new Date().toISOString()}
+      message: ${message}
+      endpoint: ${nm.endpoint}
+      p256dh: ${nm.p256dh}
+      auth: ${nm.auth}
+      \n\n`);
+    logStream.end();
+    console.log(
+      `Desktop notification written to desktop_notifications.log inside /server/src/notification/desktop_notifications.log`,
+      message,
+    );
   }
 }

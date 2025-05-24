@@ -35,6 +35,8 @@ import {
   AddDocumentChunkParams,
   ChatbotQuestionResponseChatbotDB,
   UpdateChatbotQuestionParams,
+  GetChatbotHistoryResponse,
+  ChatbotSettingsUpdateParams,
 } from '@koh/common';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { Roles } from 'decorators/roles.decorator';
@@ -68,7 +70,7 @@ export class ChatbotController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body()
     { question, history, interactionId, onlySaveInChatbotDB }: ChatbotAskParams,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ): Promise<ChatbotAskResponse> {
     handleChatbotTokenCheck(user);
 
@@ -119,7 +121,7 @@ export class ChatbotController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body()
     { question, responseText, vectorStoreId }: ChatbotAskSuggestedParams,
-    @UserId() userId: number, // this is the only chatbot endpoint that doesn't need the chat token since it doesn't require contacting the chatbot repo
+    @UserId() userId: number,
   ): Promise<ChatbotQuestionResponseHelpMeDB> {
     const interaction = await this.chatbotService.createInteraction(
       courseId,
@@ -146,7 +148,7 @@ export class ChatbotController {
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async getSuggestedQuestions(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     return await this.chatbotApiService.getSuggestedQuestions(
@@ -169,6 +171,16 @@ export class ChatbotController {
     );
   }
 
+  @Get('history')
+  async getChatbotHistory(
+    @UserId() userId: number,
+  ): Promise<GetChatbotHistoryResponse> {
+    const history = await this.chatbotService.getAllInteractionsForUser(userId);
+    return {
+      history: history as unknown as InteractionResponse[],
+    };
+  }
+
   //
   // Endpoints for Staff-only
   //
@@ -179,7 +191,7 @@ export class ChatbotController {
   @Roles(Role.PROFESSOR, Role.TA)
   async getChatbotSettings(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ): Promise<ChatbotSettings> {
     handleChatbotTokenCheck(user);
     return await this.chatbotApiService.getChatbotSettings(
@@ -193,8 +205,8 @@ export class ChatbotController {
   @Roles(Role.PROFESSOR, Role.TA)
   async updateChatbotSettings(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() settings: ChatbotSettingsMetadata,
-    @User(['chat_token']) user: UserModel,
+    @Body() settings: ChatbotSettingsUpdateParams,
+    @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     return await this.chatbotApiService.updateChatbotSettings(
@@ -209,7 +221,7 @@ export class ChatbotController {
   @Roles(Role.PROFESSOR, Role.TA)
   async resetChatbotSettings(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     return await this.chatbotApiService.resetChatbotSettings(
@@ -224,7 +236,7 @@ export class ChatbotController {
   @Roles(Role.PROFESSOR, Role.TA)
   async getInteractionsAndQuestions(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ): Promise<GetInteractionsAndQuestionsResponse> {
     handleChatbotTokenCheck(user);
     // Fire off both requests simultaneously.
@@ -244,7 +256,7 @@ export class ChatbotController {
   async addChatbotQuestion(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() questionData: AddChatbotQuestionParams,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     // NOTE that this endpoint does NOT add the question to the helpme database
@@ -262,7 +274,7 @@ export class ChatbotController {
   async updateChatbotQuestion(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() questionData: UpdateChatbotQuestionParams,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ): Promise<ChatbotQuestionResponseChatbotDB> {
     handleChatbotTokenCheck(user);
     return await this.chatbotApiService.updateQuestion(
@@ -278,7 +290,7 @@ export class ChatbotController {
   async deleteChatbotQuestion(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId') questionId: string,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     return await this.chatbotApiService.deleteQuestion(
@@ -318,7 +330,7 @@ export class ChatbotController {
   @Roles(Role.PROFESSOR, Role.TA)
   async getAllAggregateDocuments(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     // this gets the full chatbot documents (rather than just the chunks)
@@ -333,7 +345,7 @@ export class ChatbotController {
   @Roles(Role.PROFESSOR, Role.TA)
   async getAllDocumentChunks(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     return await this.chatbotApiService.getAllDocumentChunks(
@@ -348,7 +360,7 @@ export class ChatbotController {
   async addDocumentChunk(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() body: AddDocumentChunkParams,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     return await this.chatbotApiService.addDocumentChunk(
@@ -365,7 +377,7 @@ export class ChatbotController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('docId') docId: string,
     @Body() body: UpdateDocumentChunkParams,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     return await this.chatbotApiService.updateDocumentChunk(
@@ -382,7 +394,7 @@ export class ChatbotController {
   async deleteDocumentChunk(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('docId') docId: string,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     return await this.chatbotApiService.deleteDocumentChunk(
@@ -398,7 +410,7 @@ export class ChatbotController {
   async deleteDocument(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('docId') docId: string,
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     const chatbotDeleteResponse = await this.chatbotApiService.deleteDocument(
@@ -546,7 +558,7 @@ export class ChatbotController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @UploadedFile() file: Express.Multer.File,
     @Body() { parseAsPng }: { parseAsPng: boolean | string },
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     if (!file) {
@@ -724,7 +736,7 @@ export class ChatbotController {
   async addDocumentFromGithub(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() { url }: { url: string },
-    @User(['chat_token']) user: UserModel,
+    @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
     return await this.chatbotApiService.addDocumentFromGithub(

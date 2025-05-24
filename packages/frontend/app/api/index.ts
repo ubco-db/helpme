@@ -92,6 +92,8 @@ import {
   UpdateChatbotQuestionParams,
   QueueChatPartial,
   GetQueueChatsResponse,
+  GetChatbotHistoryResponse,
+  ChatbotSettingsUpdateParams,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -197,6 +199,8 @@ class APIClient {
           undefined,
           { userScore },
         ),
+      getChatHistory: async (): Promise<GetChatbotHistoryResponse> =>
+        this.req('GET', `/api/v1/chatbot/history`),
     },
     staffOnly: {
       // these endpoints are more for management of chatbot questions
@@ -302,7 +306,7 @@ class APIClient {
         this.req('GET', `/api/v1/chatbot/settings/${courseId}`),
       updateSettings: async (
         courseId: number,
-        settings: ChatbotSettingsMetadata,
+        settings: ChatbotSettingsUpdateParams,
       ): Promise<{ success: boolean }> =>
         this.req(
           'PATCH',
@@ -456,15 +460,12 @@ class APIClient {
           notes,
         },
       ),
-    createClone: async (
-      courseId: number,
-      cloneAttributes: CourseCloneAttributes,
-    ) => {
+    createClone: async (courseId: number, toClone: CourseCloneAttributes) => {
       return this.req(
         'POST',
         `/api/v1/courses/${courseId}/clone_course`,
         undefined,
-        cloneAttributes,
+        toClone,
       )
     },
     toggleFavourited: async (courseId: number) => {
@@ -803,8 +804,11 @@ class APIClient {
   semesters = {
     get: async (oid: number): Promise<SemesterPartial[]> =>
       this.req('GET', `/api/v1/semesters/${oid}`),
-    create: async (oid: number, body: SemesterPartial): Promise<void> =>
-      this.req('POST', `/api/v1/semesters/${oid}`, undefined, body),
+    create: async (
+      oid: number,
+      body: SemesterPartial,
+    ): Promise<SemesterPartial> =>
+      this.req('POST', `/api/v1/semesters/${oid}`, SemesterPartial, body),
     edit: async (
       oid: number,
       semesterId: number,

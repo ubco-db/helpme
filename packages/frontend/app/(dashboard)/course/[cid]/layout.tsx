@@ -1,16 +1,18 @@
 'use client'
+import { use } from 'react'
 
 import AlertsContainer from '@/app/components/AlertsContainer'
-import { LayoutProps } from '@/app/typings/types'
 
-type CoursePageProps = {
-  params: { cid: string }
-}
+type Params = Promise<{ cid: string }>
 
-const Layout: React.FC<LayoutProps & CoursePageProps> = ({
-  children,
-  params,
-}) => {
+export default function Layout(props: {
+  children: React.ReactNode
+  params: Params
+}) {
+  const params = use(props.params)
+
+  const { children } = props
+
   const { cid } = params
 
   return (
@@ -20,5 +22,3 @@ const Layout: React.FC<LayoutProps & CoursePageProps> = ({
     </>
   )
 }
-
-export default Layout

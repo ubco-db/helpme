@@ -13,8 +13,16 @@ export class ChatbotService {
     courseId: number,
     userId: number,
   ): Promise<InteractionModel> {
-    const course = await CourseModel.findOne(courseId);
-    const user = await UserModel.findOne(userId);
+    const course = await CourseModel.findOne({
+      where: {
+        id: courseId,
+      },
+    });
+    const user = await UserModel.findOne({
+      where: {
+        id: userId,
+      },
+    });
 
     if (!course) {
       throw new HttpException(
@@ -58,7 +66,11 @@ export class ChatbotService {
       );
     }
 
-    const interaction = await InteractionModel.findOne(data.interactionId);
+    const interaction = await InteractionModel.findOne({
+      where: {
+        id: data.interactionId,
+      },
+    });
     if (!interaction) {
       throw new HttpException(
         'Interaction not found based on the provided ID.',
@@ -83,7 +95,11 @@ export class ChatbotService {
 
   // Unused, but going to leave here since it's not unlikely it will be used again in the future
   async editQuestion(data: any): Promise<ChatbotQuestionModel> {
-    const question = await ChatbotQuestionModel.findOne(data.id);
+    const question = await ChatbotQuestionModel.findOne({
+      where: {
+        id: data.id,
+      },
+    });
     if (!question) {
       throw new HttpException(
         'Question not found based on the provided ID.',
@@ -92,9 +108,11 @@ export class ChatbotService {
     }
     Object.assign(question, data);
     if (data.interactionId) {
-      const tempInteraction = await InteractionModel.findOne(
-        data.interactionId,
-      );
+      const tempInteraction = await InteractionModel.findOne({
+        where: {
+          id: data.interactionId,
+        },
+      });
       if (!tempInteraction) {
         throw new HttpException(
           'Interaction not found based on the provided ID.',
@@ -108,7 +126,11 @@ export class ChatbotService {
   }
 
   async deleteQuestion(questionId: number) {
-    const chatQuestion = await ChatbotQuestionModel.findOne(questionId);
+    const chatQuestion = await ChatbotQuestionModel.findOne({
+      where: {
+        id: questionId,
+      },
+    });
 
     if (!chatQuestion) {
       throw new HttpException(
@@ -123,16 +145,39 @@ export class ChatbotService {
   async getInteractionsAndQuestions(
     courseId: number,
   ): Promise<InteractionModel[]> {
+    const course = await CourseModel.findOne({
+      // i hate how i have to do this (for some reason I can't just query interactions with courseId because the join relation wasn't really set up correctly in the InteractionModel entity)
+      where: {
+        id: courseId,
+      },
+    });
     const interactions = await InteractionModel.find({
-      where: { course: courseId },
-      relations: ['questions'],
+      where: { course: course },
+      relations: {
+        questions: true,
+      },
+    });
+
+    return interactions;
+  }
+
+  async getAllInteractionsForUser(userId: number): Promise<InteractionModel[]> {
+    const interactions = await InteractionModel.find({
+      where: { user: { id: userId } },
+      relations: {
+        questions: true,
+      },
     });
 
     return interactions;
   }
 
   async updateQuestionUserScore(questionId: number, userScore: number) {
-    const question = await ChatbotQuestionModel.findOne(questionId);
+    const question = await ChatbotQuestionModel.findOne({
+      where: {
+        id: questionId,
+      },
+    });
     if (!question) {
       throw new HttpException(
         'Question not found based on the provided ID.',

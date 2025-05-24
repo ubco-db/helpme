@@ -24,7 +24,7 @@ import * as fs from 'fs';
 import { memoryStorage } from 'multer';
 import * as path from 'path';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { User } from '../decorators/user.decorator';
+import { User, UserId } from '../decorators/user.decorator';
 import { UserModel } from './user.entity';
 import { ProfileService } from './profile.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
@@ -42,17 +42,8 @@ export class ProfileController {
   @SkipThrottle()
   @Get()
   @UseGuards(JwtAuthGuard)
-  async get(
-    @User([
-      'courses',
-      'courses.course',
-      'courses.course.semester',
-      'desktopNotifs',
-      'chat_token',
-    ])
-    user: UserModel,
-  ): Promise<GetProfileResponse> {
-    if (user === null || user === undefined) {
+  async get(@UserId() userId: number): Promise<GetProfileResponse> {
+    if (userId === null || userId === undefined) {
       console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
       throw new HttpException(
         ERROR_MESSAGES.profileController.accountNotAvailable,
@@ -60,17 +51,28 @@ export class ProfileController {
       );
     }
 
-    if (user.accountDeactivated) {
-      throw new HttpException(
-        ERROR_MESSAGES.profileController.accountDeactivated,
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
     // Check redis for record
-    const redisRecord = await this.redisProfileService.getKey(`u:${user.id}`);
+    const redisRecord = await this.redisProfileService.getKey(`u:${userId}`);
 
     if (!redisRecord) {
+      const user = await UserModel.findOne({
+        where: { id: userId },
+        relations: {
+          courses: {
+            course: {
+              semester: true,
+            },
+          },
+          desktopNotifs: true,
+          chat_token: true,
+        },
+      });
+      if (!user || user.accountDeactivated) {
+        throw new HttpException(
+          ERROR_MESSAGES.profileController.accountDeactivated,
+          HttpStatus.FORBIDDEN,
+        );
+      }
       const profile = await this.profileService.getProfile(user);
       console.log('Fetching profile from database');
       // Update redis

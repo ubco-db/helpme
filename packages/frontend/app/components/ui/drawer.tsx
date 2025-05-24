@@ -49,6 +49,7 @@ const DrawerContent = React.forwardRef<
       <DrawerOverlay />
       <DrawerPrimitive.Content
         ref={ref}
+        title="Drawer Menu"
         className={cn(
           'fixed z-50 flex h-auto flex-col border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950',
           (!direction || direction === 'bottom') &&

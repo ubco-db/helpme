@@ -12,7 +12,7 @@ import {
   Tabs,
   Tooltip,
 } from 'antd'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, use } from 'react'
 import {
   LMSAnnouncement,
   LMSApiResponseStatus,
@@ -29,11 +29,10 @@ import LMSDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/
 import { DeleteOutlined, EditOutlined, SyncOutlined } from '@ant-design/icons'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 
-export default function CourseLMSIntegrationPage({
-  params,
-}: {
-  params: { cid: string }
+export default function CourseLMSIntegrationPage(props: {
+  params: Promise<{ cid: string }>
 }) {
+  const params = use(props.params)
   const courseId = useMemo(() => Number(params.cid) ?? -1, [params.cid])
 
   const [updateFlag, setUpdateFlag] = useState<boolean>(false)
@@ -385,7 +384,7 @@ export default function CourseLMSIntegrationPage({
     }
 
     const card = (
-      <Card title={'Learning Management System'}>
+      <Card title={'Learning Management System Integration'}>
         <div className={'flex flex-col gap-4'}>
           <div
             className={
@@ -477,7 +476,7 @@ export default function CourseLMSIntegrationPage({
                           showZero={false}
                         >
                           <Tooltip
-                            title={`Force sychronization of data with ${integration.apiPlatform}. If visible, the red badge indicates how many documents are observed to be out-of-date and how many documents are unsynchronized.`}
+                            title={`Force synchronization of data with ${integration.apiPlatform}. If visible, the red badge indicates how many documents are observed to be out-of-date and how many documents are unsynchronized.`}
                           >
                             <Button
                               size={'large'}

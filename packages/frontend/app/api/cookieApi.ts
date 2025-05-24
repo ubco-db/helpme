@@ -19,7 +19,7 @@ import { cookies } from 'next/headers'
  */
 export async function fetchAuthToken(): Promise<string> {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const auth_token = cookieStore.get('auth_token')
 
     const result = `auth_token=${auth_token?.value || ''}`
@@ -38,7 +38,7 @@ export async function setQueueInviteCookie(
   courseInviteCode?: string,
 ): Promise<void> {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     cookieStore.set(
       'queueInviteInfo',
       `${courseId},${queueId},${orgId},${courseInviteCode ? Buffer.from(courseInviteCode).toString('base64') : ''}`,

@@ -6,12 +6,11 @@ export class ApplicationConfigService {
   private config: Record<string, number>;
 
   async loadConfig(): Promise<void> {
-    const configFromDb = await this.fetchConfigFromDatabase();
-    this.config = configFromDb;
+    this.config = await this.fetchConfigFromDatabase();
   }
 
   private async fetchConfigFromDatabase(): Promise<Record<string, number>> {
-    let applicationConfig = await ApplicationConfigModel.findOne();
+    let applicationConfig = (await ApplicationConfigModel.find())?.pop();
 
     if (!applicationConfig) {
       applicationConfig = await ApplicationConfigModel.create().save();

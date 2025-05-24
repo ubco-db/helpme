@@ -10,7 +10,7 @@ export default async function Layout({
   let invitedQueueId: number | null = null
   let invitedCourseId: number | null = null
   let invitedCourseInviteCode: string | null = null
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const queueInviteCookieString = cookieStore.get('queueInviteInfo')
   if (queueInviteCookieString) {
     const decodedCookie = decodeURIComponent(queueInviteCookieString.value)

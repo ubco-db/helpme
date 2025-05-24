@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { OrganizationUserModel } from './organization-user.entity';
 import { UserModel } from 'profile/user.entity';
-import { Brackets, getRepository } from 'typeorm';
+import { Brackets } from 'typeorm';
 import { OrganizationCourseModel } from './organization-course.entity';
 import { CourseModel } from 'course/course.entity';
 import {
@@ -12,6 +12,7 @@ import {
   UserRole,
 } from '@koh/common';
 import { UserCourseModel } from 'profile/user-course.entity';
+import { SemesterModel } from 'semester/semester.entity';
 
 export interface FlattenedOrganizationResponse {
   id: number;
@@ -84,12 +85,16 @@ export class OrganizationService {
     pageSize: number,
     search?: string,
   ): Promise<CourseResponse[]> {
-    const organizationCourses = await getRepository(OrganizationCourseModel)
-      .createQueryBuilder()
+    const organizationCourses = OrganizationCourseModel.createQueryBuilder()
       .leftJoin(
         CourseModel,
         'CourseModel',
         'CourseModel.id = OrganizationCourseModel.courseId',
+      )
+      .leftJoin(
+        SemesterModel,
+        'SemesterModel',
+        'SemesterModel.id = CourseModel.semesterId',
       )
       .where('OrganizationCourseModel.organizationId = :organizationId', {
         organizationId,
@@ -113,8 +118,15 @@ export class OrganizationService {
         'CourseModel.enabled as isEnabled',
         'CourseModel.sectionGroupName as sectionGroupName',
         'CourseModel.semesterId as semesterId',
+        'SemesterModel.name as semesterName',
+        'SemesterModel.color as semesterColor',
+        'SemesterModel.startDate as semesterStartDate',
+        'SemesterModel.endDate as semesterEndDate',
+        'SemesterModel.description as semesterDescription',
       ])
-      .orderBy('CourseModel.name');
+      // first order by semester end date, then by course name
+      .orderBy('SemesterModel.endDate', 'DESC')
+      .addOrderBy('CourseModel.name', 'ASC');
 
     let coursesSubset: any;
 
@@ -128,13 +140,21 @@ export class OrganizationService {
       coursesSubset = await courses.getRawMany();
     }
 
-    const coursesResponse = coursesSubset.map((course) => {
+    const coursesResponse: CourseResponse[] = coursesSubset.map((course) => {
       return {
         courseId: course.courseid,
         courseName: course.coursename,
         isEnabled: course.isenabled,
         sectionGroupName: course.sectiongroupname,
         semesterId: course.semesterid,
+        semester: {
+          id: course.semesterid,
+          name: course.semestername,
+          color: course.semestercolor,
+          startDate: course.semesterstartdate,
+          endDate: course.semesterenddate,
+          description: course.semesterdescription,
+        },
       };
     });
 
@@ -147,8 +167,7 @@ export class OrganizationService {
     pageSize: number,
     search?: string,
   ): Promise<OrgUser[]> {
-    const organizationUsers = await getRepository(OrganizationUserModel)
-      .createQueryBuilder()
+    const organizationUsers = OrganizationUserModel.createQueryBuilder()
       .leftJoin(
         UserModel,
         'UserModel',
@@ -162,12 +181,9 @@ export class OrganizationService {
       const likeSearch = `%${search.replace(' ', '')}%`.toUpperCase();
       organizationUsers.andWhere(
         new Brackets((q) => {
-          q.where(
-            'CONCAT(UPPER("UserModel"."firstName"), UPPER("UserModel"."lastName")) like :searchString',
-            {
-              searchString: likeSearch,
-            },
-          );
+          q.where('UPPER("UserModel".name) like :searchString', {
+            searchString: likeSearch,
+          });
         }),
       );
     }

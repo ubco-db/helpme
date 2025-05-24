@@ -6,7 +6,7 @@ import {
 } from '@koh/common';
 import { TestingModule, Test } from '@nestjs/testing';
 import { NotificationService } from 'notification/notification.service';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   QueueFactory,
   QuestionGroupFactory,
@@ -15,6 +15,7 @@ import {
   TACourseFactory,
   UserCourseFactory,
   CourseFactory,
+  initFactoriesFromService,
 } from '../../test/util/factories';
 import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
 import { QuestionGroupModel } from './question-group.entity';
@@ -26,31 +27,47 @@ import { QueueService } from 'queue/queue.service';
 import { AlertsService } from 'alerts/alerts.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
-import { RedisModule, RedisService } from 'nestjs-redis';
-import { RedisMemoryServer } from 'redis-memory-server';
-import { SSEService } from 'sse/sse.service';
 import { QueueSSEService } from 'queue/queue-sse.service';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('QuestionService', () => {
   let service: QuestionService;
-
-  let conn: Connection;
-
-  const redisMock = new RedisMemoryServer();
+  let dataSource: DataSource;
+  // TODO: fix this test so that it uses RedisMemoryServer instead of our redis container.
+  // let redisMock: RedisMemoryServer;
+  let module: TestingModule;
 
   beforeAll(async () => {
-    const redisHost = await redisMock.getHost();
-    const redisPort = await redisMock.getPort();
+    // redisMock = new RedisMemoryServer();
+    // const redisHost = await redisMock.getHost();
+    // const redisPort = await redisMock.getPort();
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
-        RedisModule.register([
-          { name: 'pub', host: redisHost, port: redisPort },
-          { name: 'sub', host: redisHost, port: redisPort },
-          { name: 'db', host: redisHost, port: redisPort },
-        ]),
+        FactoryModule,
+        RedisModule.forRoot({
+          readyLog: false,
+          errorLog: true,
+          commonOptions: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: 6379,
+          },
+          config: [
+            {
+              namespace: 'db',
+            },
+            {
+              namespace: 'sub',
+            },
+            {
+              namespace: 'pub',
+            },
+          ],
+        }),
       ],
       providers: [
         {
@@ -98,18 +115,39 @@ describe('QuestionService', () => {
     }).compile();
 
     service = module.get<QuestionService>(QuestionService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {
-    await conn.close();
-    if (redisMock) {
-      await redisMock.stop();
+    try {
+      // Gracefully close module first to close Redis connections
+      if (module) {
+        await module.close();
+      }
+
+      // Then safely destroy dataSource if it's initialized
+      if (dataSource && dataSource.isInitialized) {
+        await dataSource.destroy();
+      }
+    } catch (err) {
+      console.error('Error cleaning up:', err);
+    } finally {
+      // Always stop Redis in finally block
+      // if (redisMock) {
+      //   await redisMock.stop();
+      // }
     }
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    if (dataSource.isInitialized) {
+      await dataSource.synchronize(true);
+    }
   });
 
   describe('changeStatus', () => {
@@ -187,8 +225,16 @@ describe('QuestionService', () => {
 
       await service.resolveQuestions(queue.id, ta.id);
 
-      const resolvedQuestion1 = await QuestionModel.findOne(question1.id);
-      const resolvedQuestion2 = await QuestionModel.findOne(question2.id);
+      const resolvedQuestion1 = await QuestionModel.findOne({
+        where: {
+          id: question1.id,
+        },
+      });
+      const resolvedQuestion2 = await QuestionModel.findOne({
+        where: {
+          id: question2.id,
+        },
+      });
 
       expect(resolvedQuestion1.status).toEqual(ClosedQuestionStatus.Resolved);
       expect(resolvedQuestion2.status).toEqual(ClosedQuestionStatus.Resolved);
@@ -248,9 +294,17 @@ describe('QuestionService', () => {
         .mockResolvedValue([taskQuestion] as any);
       await service.resolveQuestions(queue.id, ta.id);
 
-      const updatedQuestion = await QuestionModel.findOne(taskQuestion.id);
+      const updatedQuestion = await QuestionModel.findOne({
+        where: {
+          id: taskQuestion.id,
+        },
+      });
       expect(updatedQuestion.status).toBe(ClosedQuestionStatus.Resolved);
-      const realQueue = await QueueModel.findOne(queue.id);
+      const realQueue = await QueueModel.findOne({
+        where: {
+          id: queue.id,
+        },
+      });
 
       expect(service.checkIfValidTaskQuestion).toHaveBeenCalledWith(
         updatedQuestion,

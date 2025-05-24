@@ -84,7 +84,7 @@ export default function CoursesPage(): ReactElement {
       )}
       <div className="mt-5 flex items-center justify-between align-middle">
         <h1 className="mt-0">My Courses</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-col items-end justify-between gap-2 md:flex-row md:items-center">
           {(userInfo?.organization?.organizationRole ===
             OrganizationRole.PROFESSOR ||
             userInfo?.organization?.organizationRole ===
@@ -95,8 +95,8 @@ export default function CoursesPage(): ReactElement {
           )}
           <Segmented
             options={[
-              { value: false, icon: <AppstoreOutlined /> },
-              { value: true, icon: <BarsOutlined /> },
+              { value: false, icon: <AppstoreOutlined />, title: 'Card View' },
+              { value: true, icon: <BarsOutlined />, title: 'Table View' },
             ]}
             defaultValue={enabledTableView}
             onChange={(value) => {

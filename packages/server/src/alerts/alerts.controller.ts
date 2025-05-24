@@ -17,12 +17,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
-import { User } from 'decorators/user.decorator';
-import { UserModel } from 'profile/user.entity';
+import { UserId } from 'decorators/user.decorator';
 import { Roles } from '../decorators/roles.decorator';
 import { AlertModel } from './alerts.entity';
 import { AlertsService } from './alerts.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { IsNull } from 'typeorm';
 
 @Controller('alerts')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -32,13 +32,13 @@ export class AlertsController {
   @Get(':courseId')
   async getAlerts(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User() user: UserModel,
+    @UserId() userId: number,
   ): Promise<GetAlertsResponse> {
     const alerts = await AlertModel.find({
       where: {
         courseId,
-        user,
-        resolved: null,
+        userId,
+        resolved: IsNull(),
       },
     });
     return { alerts: await this.alertsService.removeStaleAlerts(alerts) };
@@ -61,7 +61,7 @@ export class AlertsController {
       where: {
         alertType,
         userId: targetUserId,
-        resolved: null,
+        resolved: IsNull(),
       },
     });
 

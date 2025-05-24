@@ -2,6 +2,7 @@
 
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 import {
   COURSE_TIMEZONES,
   GetOrganizationResponse,
@@ -218,7 +219,9 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
             {organization.semesters.map((semester) => (
               <Select.Option key={semester.id} value={semester.id}>
                 <span>{`${semester.name}`}</span>{' '}
-                {`(${new Date(semester.startDate).toLocaleDateString()} - ${new Date(semester.endDate).toLocaleDateString()})`}
+                <span className="font-normal">
+                  {formatSemesterDate(semester)}
+                </span>
               </Select.Option>
             ))}
           </Select>
@@ -237,10 +240,18 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
             <Select
               mode="multiple"
               placeholder="Select professors"
+              showSearch
+              optionFilterProp="label"
               options={professors.map((prof: OrganizationProfessor) => ({
+                key: prof.organizationUser.id,
                 label: prof.organizationUser.name,
                 value: prof.organizationUser.id,
               }))}
+              filterSort={(optionA, optionB) =>
+                (optionA?.label ?? '')
+                  .toLowerCase()
+                  .localeCompare((optionB?.label ?? '').toLowerCase())
+              }
               tagRender={(props) => {
                 const { label, value, closable, onClose } = props
                 const onPreventMouseDown = (

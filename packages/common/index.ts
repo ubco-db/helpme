@@ -70,7 +70,6 @@ export class User {
   desktopNotifsEnabled!: boolean
   @Type(() => DesktopNotifPartial)
   desktopNotifs!: DesktopNotifPartial[]
-  insights!: string[]
   userRole!: string
   organization?: OrganizationUserPartial
   chat_token!: ChatTokenPartial
@@ -183,54 +182,44 @@ export type CourseCloneAttributes = {
   useSection: boolean
   newSemesterId?: number
   newSection?: string
-  includeDocuments: boolean
-  includeInsertedQuestions?: boolean
-  cloneAttributes: {
+  associateWithOriginalCourse?: boolean
+  toClone: {
     coordinator_email?: boolean
     zoomLink?: boolean
     courseInviteCode?: boolean
-  }
-  cloneCourseSettings: {
-    chatBotEnabled?: boolean
-    asyncQueueEnabled?: boolean
-    queueEnabled?: boolean
-    scheduleOnFrontPage?: boolean
-    asyncCentreAIAnswers?: boolean
-  }
-  chatbotSettings: {
-    modelName: boolean
-    prompt: boolean
-    similarityThresholdDocuments: boolean
-    similarityThresholdQuestions: boolean
-    temperature: boolean
-    topK: boolean
+    courseFeatureConfig?: boolean
+    asyncCentreQuestionTypes?: boolean
+    queues?: boolean
+    queueInvites?: boolean
+    chatbot?: {
+      settings?: boolean
+      documents?: boolean
+      manuallyCreatedChunks?: boolean
+      insertedQuestions?: boolean
+      insertedLMSData?: boolean
+    }
   }
 }
 
 export const defaultCourseCloneAttributes: CourseCloneAttributes = {
   professorIds: [],
-  includeDocuments: false,
   useSection: false,
-  includeInsertedQuestions: false,
-  cloneAttributes: {
+  associateWithOriginalCourse: true,
+  toClone: {
     coordinator_email: true,
     zoomLink: false,
     courseInviteCode: false,
-  },
-  cloneCourseSettings: {
-    chatBotEnabled: true,
-    asyncQueueEnabled: true,
-    queueEnabled: true,
-    scheduleOnFrontPage: false,
-    asyncCentreAIAnswers: true,
-  },
-  chatbotSettings: {
-    modelName: true,
-    prompt: true,
-    similarityThresholdDocuments: true,
-    similarityThresholdQuestions: true,
-    temperature: true,
-    topK: true,
+    courseFeatureConfig: true,
+    asyncCentreQuestionTypes: true,
+    queues: true,
+    queueInvites: true,
+    chatbot: {
+      settings: true,
+      documents: true,
+      manuallyCreatedChunks: true,
+      insertedQuestions: true,
+      insertedLMSData: false,
+    },
   },
 }
 
@@ -240,28 +229,6 @@ export type BatchCourseCloneAttributes = Record<number, CourseCloneAttributes>
 export type BatchCourseCloneResponse = {
   success: boolean
   message: string
-}
-
-export type CloneChatbotSettings = {
-  modelName: string
-  prompt: string
-  similarityThresholdDocuments: number
-  similarityThresholdQuestions: number
-  temperature: number
-  topK: number
-}
-
-export const defaultChatbotSetting = {
-  prompt: `RULES: 
-    1) If you don't know the answer just say that you "I don't know", do not try to make up an answer.
-    2) If you unsure of the answer, you shall PREFACE your answer with "I'm not sure, but this is what I think."
-    3) Provide an answer in ONLY 5 sentences or less. Try to be as concise as possible.
-    4) Do not use any other resources apart from the context provided to you.`,
-  modelName: 'gpt-3.5-turbo-0125',
-  temperature: 0.7,
-  topK: 5,
-  similarityThresholdDocuments: 0.6,
-  similarityThresholdQuestions: 0.9,
 }
 
 export class RegistrationTokenDetails {
@@ -516,6 +483,13 @@ export interface ChatbotSettingsMetadata {
   temperature: number
   topK: number
 }
+export interface ChatbotSettingsUpdateParams {
+  modelName?: string
+  prompt?: string
+  similarityThresholdDocuments?: number
+  temperature?: number
+  topK?: number
+}
 
 export interface InteractionResponse {
   id: number
@@ -533,6 +507,10 @@ export class ChatbotDocument {
 export type GetInteractionsAndQuestionsResponse = {
   helpmeDB: InteractionResponse[]
   chatbotDB: ChatbotQuestionResponseChatbotDB[]
+}
+
+export type GetChatbotHistoryResponse = {
+  history: InteractionResponse[]
 }
 /**
  * Represents one of two possible roles for the global account
@@ -558,8 +536,6 @@ export enum OrganizationRole {
  * @param room - The full name of the building + room # that the current office hours queue is in.
  * @param staffList - The list of TA user's that are currently helping at office hours.
  * @param questions - The list of the students questions associated with the queue.
- * @param startTime - The scheduled start time of this queue based on the parsed ical.
- * @param endTime - The scheduled end time of this queue.
  */
 // note: this is apparently not used anywhere
 export interface Queue {
@@ -568,8 +544,6 @@ export interface Queue {
   room: string
   staffList: UserPartial[]
   questions: Question[]
-  startTime?: Date
-  endTime?: Date
   allowQuestions: boolean
 }
 
@@ -594,9 +568,6 @@ export interface StaffMember {
  * @param id - The unique id number for a Queue.
  * @param room - The full name of the building + room # that the current office hours queue is in.
  * @param staffList - The list of TA user's that are currently helping at office hours.
- * @param startTime - The scheduled start time of this queue based on the parsed ical.
- * @param endTime - The scheduled end time of this queue.
- * @param isOpen - A queue is open if it has staff and is not disabled.
  * @param config - A JSON object that contains the configuration for the queue. Contains stuff like tags, tasks, etc.
  */
 export class QueuePartial {
@@ -608,15 +579,8 @@ export class QueuePartial {
 
   queueSize!: number
   notes?: string
-  isOpen!: boolean
 
   isDisabled!: boolean
-
-  @Type(() => Date)
-  startTime?: Date
-
-  @Type(() => Date)
-  endTime?: Date
 
   allowQuestions!: boolean
 
@@ -627,6 +591,8 @@ export class QueuePartial {
   config?: QueueConfig
 
   zoomLink?: string
+
+  courseId!: number
 }
 
 /**
@@ -1384,6 +1350,7 @@ export interface CourseResponse {
   isEnabled: boolean
   sectionGroupName: string
   semesterId: number
+  semester: SemesterPartial
 }
 
 export class GetCourseResponse {
@@ -1393,7 +1360,9 @@ export class GetCourseResponse {
   @Type(() => QueuePartial)
   queues?: QueuePartial[]
 
+  // The heatmap is false when there havent been any questions asked yet or there havent been any office hours
   heatmap!: Heatmap | false
+
   coordinator_email!: string
 
   @Type(() => Number)
@@ -1895,6 +1864,38 @@ export class EditCourseInfoParams {
   courseInviteCode?: string | null
 }
 
+export enum antdTagColor {
+  blue = 'blue',
+  gold = 'gold',
+  green = 'green',
+  purple = 'purple',
+  red = 'red',
+  orange = 'orange',
+  yellow = 'yellow',
+  lime = 'lime',
+  cyan = 'cyan',
+  geekblue = 'geekblue',
+  magenta = 'magenta',
+  volcano = 'volcano',
+  blueInverse = 'blue-inverse',
+  goldInverse = 'gold-inverse',
+  greenInverse = 'green-inverse',
+  purpleInverse = 'purple-inverse',
+  redInverse = 'red-inverse',
+  orangeInverse = 'orange-inverse',
+  yellowInverse = 'yellow-inverse',
+  limeInverse = 'lime-inverse',
+  cyanInverse = 'cyan-inverse',
+  geekblueInverse = 'geekblue-inverse',
+  magentaInverse = 'magenta-inverse',
+  volcanoInverse = 'volcano-inverse',
+  success = 'success',
+  processing = 'processing',
+  error = 'error',
+  default = 'default',
+  warning = 'warning',
+}
+
 export class SemesterPartial {
   @IsOptional()
   @IsInt()
@@ -1917,6 +1918,9 @@ export class SemesterPartial {
   @IsOptional()
   @IsString()
   description?: string
+
+  @IsEnum(antdTagColor)
+  color!: antdTagColor
 }
 
 export class SSEQueueResponse {
@@ -2877,7 +2881,7 @@ export const ERROR_MESSAGES = {
     courseOfficeHourError: "Unable to find a course's office hours",
     courseHeatMapError: "Unable to get course's cached heatmap",
     courseCrnsError: "Unable to get course's crn numbers",
-    courseModelError: 'Course Model not found',
+    courseModelError: 'User not in course',
     noUserFound: 'No user found with given email',
     noSemesterFound: 'No semester exists for the submitted course',
     updatedQueueError: 'Error updating a course queue',
@@ -3039,7 +3043,8 @@ export const ERROR_MESSAGES = {
     emailAlreadyInDb: 'Email already in database',
     sidAlreadyInDb: 'Student ID already in database',
     cannotUpdateEmail: 'Email cannot be updated',
-    accountNotAvailable: 'The user account is undefined',
+    accountNotAvailable:
+      'The user either does not exist or does not have a chat token',
     userResponseNotFound: 'The user response was not found',
     accountDeactivated: 'The user account is deactivated',
     firstNameTooShort: 'First name must be at least 1 characters',
@@ -3050,7 +3055,7 @@ export const ERROR_MESSAGES = {
     noCoursesToDelete: "User doesn't have any courses to delete",
     emailInUse: 'Email is already in use',
     noDiskSpace:
-      'There is no disk space left to store an image. Please immediately contact your course staff and let them know. They will contact the Khoury Office Hours team as soon as possible.',
+      'There is no disk space left to store an image. Please immediately contact your course staff and let them know. They will contact the HelpMe team as soon as possible.',
   },
   alertController: {
     duplicateAlert: 'This alert has already been sent',

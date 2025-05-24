@@ -2,8 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { UserModel } from 'profile/user.entity';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
+  initFactoriesFromService,
   OrganizationFactory,
   OrganizationUserFactory,
 } from '../../test/util/factories';
@@ -11,6 +12,8 @@ import { AccountType } from '@koh/common';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { MailService } from 'mail/mail.service';
 import { MailModule } from 'mail/mail.module';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 // Extend the OAuth2Client mock with additional methods
 jest.mock('google-auth-library', () => {
@@ -71,12 +74,12 @@ class MockMailService {
 
 describe('AuthService', () => {
   let service: AuthService;
-  let conn: Connection;
+  let dataSource: DataSource;
   let mailService: MailService;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule, MailModule],
+      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule, MailModule],
       providers: [
         AuthService,
         { provide: MailService, useClass: MockMailService },
@@ -85,15 +88,20 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     mailService = module.get<MailService>(MailService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
   });
 
   afterAll(async () => {
-    await conn.close();
+    await dataSource.destroy();
   });
 
   beforeEach(async () => {
-    await conn.synchronize(true);
+    await dataSource.synchronize(true);
   });
 
   describe('loginWithShibboleth', () => {
@@ -157,7 +165,11 @@ describe('AuthService', () => {
         'Doe',
         organization.id,
       );
-      const user = await UserModel.findOne(userId);
+      const user = await UserModel.findOne({
+        where: {
+          id: userId,
+        },
+      });
       expect(user).toMatchSnapshot();
     });
   });
@@ -230,7 +242,11 @@ describe('AuthService', () => {
         'valid_code',
         organization.id,
       );
-      const user = await UserModel.findOne(userId);
+      const user = await UserModel.findOne({
+        where: {
+          id: userId,
+        },
+      });
       expect(user).toMatchSnapshot();
     });
   });
@@ -309,7 +325,11 @@ describe('AuthService', () => {
         organization.id,
       );
 
-      const user = await UserModel.findOne(userId);
+      const user = await UserModel.findOne({
+        where: {
+          id: userId,
+        },
+      });
       expect(userId == user.id).toBe(true);
     });
 
@@ -325,7 +345,11 @@ describe('AuthService', () => {
         organization.id,
       );
 
-      const user = await UserModel.findOne(userId);
+      const user = await UserModel.findOne({
+        where: {
+          id: userId,
+        },
+      });
 
       expect(userId == user.id).toBe(true);
       expect(user.sid).toBe(123456);

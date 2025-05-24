@@ -2,7 +2,7 @@
 import { Typography, Result, Spin, Button } from 'antd'
 import { CloseCircleOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 import StandardPageContainer from '@/app/components/standardPageContainer'
 
 const { Paragraph, Text } = Typography
@@ -13,7 +13,8 @@ const FAILED_CODES: { [key: number]: string } = {
   40002: "Organization doesn't support SSO",
 }
 
-const AuthFailed = ({ params }: { params: { code: string } }) => {
+const AuthFailed = (props: { params: Promise<{ code: string }> }) => {
+  const params = use(props.params)
   const [code, setCode] = useState<string>()
   const router = useRouter()
 

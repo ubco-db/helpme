@@ -1,7 +1,14 @@
 'use client'
 
 import { Button, Divider, Input, message, Table, Tooltip } from 'antd'
-import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  use,
+} from 'react'
 import ExpandableText from '@/app/components/ExpandableText'
 import { getErrorMessage, parseThinkBlock } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -37,12 +44,13 @@ export interface ChatbotQuestionFrontend {
 }
 
 type ChatbotQuestionsProps = {
-  params: { cid: string }
+  params: Promise<{ cid: string }>
 }
 
-export default function ChatbotQuestions({
-  params,
-}: ChatbotQuestionsProps): ReactElement {
+export default function ChatbotQuestions(
+  props: ChatbotQuestionsProps,
+): ReactElement {
+  const params = use(props.params)
   const courseId = Number(params.cid)
   const [addModelOpen, setAddModelOpen] = useState(false)
   const { userInfo } = useUserInfo()

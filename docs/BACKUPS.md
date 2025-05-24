@@ -24,8 +24,13 @@ NOTE: my database container name is `helpme-postgresql-1`, you may need to chang
 To restore a backup, you must first delete all the data in the database. You can do this by running the following command (make sure to change it to the database you want to drop):
 `docker exec -i helpme-postgresql-1 psql -U postgres -c "DROP DATABASE IF EXISTS dev/prod/chatbot/etc.;"`
 
+(or, if you're not using the default postgres username):
+`docker exec -i helpme-postgresql-1 psql -U my_admin -d postgres -c "DROP DATABASE IF EXISTS dev/prod/chatbot/etc.;"`
+
 To restore a backup, you can navigate to backups/[daily/semi-hourly/monthly] and use the following command (change the backup file name to the one you want to restore):
-`gunzip -c backup-2024-09-30.sql.gz | docker exec -i helpme-postgresql-1 psql -U postgres`
+```sh
+gunzip -c backup-2025-04-20-19.sql | docker exec -i helpme-postgresql-1 psql -U postgres
+```
 This will restore any deleted databases. Any non-deleted database will just tell you some warnings that data already exists etc. and won't actually do anything.
 
 Don't forget to enter the redis container ("Exec" tab), run `redis-cli` and run `flushall` so that redis doesn't have the old data!
@@ -37,3 +42,13 @@ Prod's postgres docker container is called `helpme_2024_03_18-postgresql-1`
 ## Restoring an Uploads Backup
 
 To avoid filename conflicts, delete all files in the uploads folder before beginning the data restoration process. You can do this through an available GUI (decompress the backup) or through the command: `tar -xzf ../../backups/uploads-daily/uploads_backup-YYYY-MM-DD.tar.gz -C ./uploads/`. Bear in mind that this should be run from the ```./packages/server``` directory.
+
+## Adam's commands
+
+I'm lazy so I'm putting some commands here to make my life easier
+
+```
+docker exec -i helpme-postgresql-1 psql -U postgresa -d postgres -c "DROP DATABASE IF EXISTS dev;"
+
+docker exec -i helpme-postgresql-1 psql -U postgresa -d postgres -c "DROP DATABASE IF EXISTS chatbot;"
+```

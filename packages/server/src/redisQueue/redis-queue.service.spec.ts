@@ -1,16 +1,16 @@
-import { RedisModule } from 'nestjs-redis';
 import { RedisQueueService } from './redis-queue.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { asyncQuestionStatus } from '@koh/common';
 import Redis from 'ioredis';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 
 describe('RedisQueueService', () => {
   let service: RedisQueueService;
   let redis: Redis;
-  let conn: Connection;
+  let dataSource: DataSource;
 
   beforeAll(async () => {
     redis = new Redis();
@@ -22,26 +22,43 @@ describe('RedisQueueService', () => {
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
-        RedisModule.register([
-          { name: 'pub', host: process.env.REDIS_HOST || 'localhost' },
-          { name: 'sub', host: process.env.REDIS_HOST || 'localhost' },
-          { name: 'db', host: process.env.REDIS_HOST || 'localhost' },
-        ]),
-        RedisQueueService,
+        RedisModule.forRoot({
+          readyLog: false,
+          errorLog: true,
+          commonOptions: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: 6379,
+          },
+          config: [
+            {
+              namespace: 'db',
+            },
+            {
+              namespace: 'sub',
+            },
+            {
+              namespace: 'pub',
+            },
+          ],
+        }),
       ],
     }).compile();
 
     service = module.get<RedisQueueService>(RedisQueueService);
-    conn = module.get<Connection>(Connection);
+    dataSource = module.get<DataSource>(DataSource);
+  });
+
+  afterAll(async () => {
+    await dataSource.destroy();
+  });
+
+  beforeEach(async () => {
+    await redis.flushall();
+    await dataSource.synchronize(true);
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
-  });
-
-  afterEach(async () => {
-    await redis.flushall();
-    await conn.synchronize(true);
   });
 
   describe('setAsyncQuestions', () => {

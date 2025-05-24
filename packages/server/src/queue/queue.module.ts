@@ -14,30 +14,32 @@ import { QueueChatsModule } from 'queueChats/queue-chats.module';
 import { QueueCleanService } from './queue-clean/queue-clean.service';
 import { QuestionModule } from '../question/question.module';
 import { QuestionService } from '../question/question.service';
+import { ApplicationConfigModule } from '../config/application_config.module';
+import { RedisQueueModule } from '../redisQueue/redis-queue.module';
 
 @Module({
   controllers: [QueueController, QueueInviteController],
   providers: [
     QueueService,
     ApplicationConfigService,
+    RedisQueueService,
     QueueSSEService,
     QueueSubscriber,
     AlertsService,
-    RedisQueueService,
     QueueCleanService,
     QuestionService,
   ],
   exports: [
     QueueSSEService,
     QueueCleanService,
-    ApplicationConfigService,
     AlertsService,
     QuestionService,
     QueueService,
     RedisQueueService,
   ],
   imports: [
-    ApplicationConfigService,
+    ApplicationConfigModule,
+    RedisQueueModule,
     SSEModule,
     AlertsModule,
     forwardRef(() => QueueChatsModule),

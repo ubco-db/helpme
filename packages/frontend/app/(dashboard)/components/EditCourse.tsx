@@ -6,7 +6,6 @@ import {
   OrganizationCourseResponse,
   Role,
   User,
-  UserCourse,
 } from '@koh/common'
 import { Card, message, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
@@ -16,9 +15,9 @@ import { useRouter } from 'next/navigation'
 import CourseInviteCode from './CourseInviteCode'
 import CourseFeaturesForm from './CourseFeaturesForm'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
-import CourseCloneForm from './CourseCloneForm'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { QuestionCircleOutlined } from '@ant-design/icons'
+import CourseCloneFormModal from './CourseCloneFormModal'
 
 type EditCourseProps = {
   courseId: number
@@ -66,7 +65,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
                 enabled: response.course!.enabled,
                 sectionGroupName: response.course!.sectionGroupName!,
               },
-              role: 'professor' as Role,
+              role: Role.PROFESSOR,
               favourited: uc.favourited,
             }
           : uc,
@@ -98,7 +97,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
     <>
       <title>{`HelpMe | Editing ${courseData.course?.name}`}</title>
       <div className="mb-5 space-y-5">
-        <Card bordered={true} title="Edit Course">
+        <Card variant="outlined" title="Edit Course">
           <EditCourseForm
             courseData={courseData}
             organization={organization}
@@ -109,12 +108,12 @@ const EditCourse: React.FC<EditCourseProps> = ({
 
         {featuresEnabled && (
           <>
-            <Card bordered={true} title="Course Features">
+            <Card variant="outlined" title="Course Features">
               <CourseFeaturesForm courseData={courseData} />
             </Card>
 
             <Card
-              bordered={true}
+              variant="outlined"
               title={
                 <div className="flex items-center justify-start gap-3">
                   <div>Course Invite Link</div>
@@ -136,8 +135,8 @@ const EditCourse: React.FC<EditCourseProps> = ({
           </>
         )}
 
-        <Card bordered={true} title="Clone Course">
-          <CourseCloneForm
+        <Card variant="outlined" title="Clone Course">
+          <CourseCloneFormModal
             organization={organization}
             courseId={courseData.course?.id ?? -1}
             courseSectionGroupName={courseData.course?.sectionGroupName ?? ''}
@@ -146,7 +145,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
         </Card>
 
         <Card
-          bordered={true}
+          variant="outlined"
           title="Danger Zone"
           className="border-2 border-rose-500/[.35]"
         >

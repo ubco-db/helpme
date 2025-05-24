@@ -58,7 +58,7 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({
   }, [configTasks, value])
 
   const printDependents = useCallback(
-    (taskID: string, accumulatedTasks: JSX.Element[] = []) => {
+    (taskID: string, accumulatedTasks: React.ReactNode[] = []) => {
       const task: Task = taskTree[taskID]
 
       if (!task) {
@@ -82,7 +82,7 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({
       for (const tempTask in taskTree) {
         if (
           taskTree[tempTask].precondition &&
-          taskTree[tempTask].precondition.taskId === taskID
+          taskTree[tempTask].precondition?.taskId === taskID
         ) {
           printDependents(tempTask, accumulatedTasks)
         }
