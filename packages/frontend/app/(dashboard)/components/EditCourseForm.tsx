@@ -30,6 +30,8 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
   const [formGeneral] = Form.useForm()
   const [professors, setProfessors] = useState<OrganizationProfessor[]>()
 
+  // PAT TODO: add a popconfirm that tells the user that changing the name will detach the course from courses of the same name
+
   const isAdmin =
     user && user.organization?.organizationRole === OrganizationRole.ADMIN
 

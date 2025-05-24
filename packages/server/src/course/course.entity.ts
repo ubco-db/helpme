@@ -137,17 +137,17 @@ export class CourseModel extends BaseEntity {
   @Exclude()
   unreadAsyncQuestions: UnreadAsyncQuestionModel[];
 
-  @OneToMany(
-    (type) => ChatbotDocPdfModel,
-    (chatbotDocPdf) => chatbotDocPdf.course,
-  )
-  @Exclude()
-  chatbot_doc_pdfs: ChatbotDocPdfModel[];
-
   @ManyToOne(() => SuperCourseModel, (course) => course.courses)
   @JoinColumn({ name: 'superCourseId' })
   superCourse: SuperCourseModel;
 
   @Column({ nullable: true })
   superCourseId: number;
+
+  @OneToMany(
+    (type) => ChatbotDocPdfModel,
+    (chatbotDocPdf) => chatbotDocPdf.course,
+  )
+  @Exclude()
+  chatbot_doc_pdfs: ChatbotDocPdfModel[];
 }

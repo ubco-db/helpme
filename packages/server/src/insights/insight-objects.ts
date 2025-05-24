@@ -1,11 +1,13 @@
 import {
   ChartOutputType,
   GanttChartOutputType,
+  InsightCategories,
   InsightFilterOption,
   InsightObject,
   InsightType,
   MultipleGanttChartOutputType,
   numToWeekday,
+  PossibleOutputTypes,
   Role,
   StringMap,
   TableOutputType,
@@ -1273,6 +1275,44 @@ export const StaffQuestionTimesByDay: InsightObject = {
       });
     }
     return outputs;
+  },
+};
+
+//------------------- Insights Across Semesters (and of different sections with the same semester) -------------------//
+// TODO: utilize the new supercourse entity to identify the same course across different semesters and sections and
+// generate relevant summary statistics to show trends in system usage and adoption over time
+
+export const TotalQuestionsAcrossSemesters: InsightObject = {
+  displayName: 'Total Questions Asked Acress Semesters',
+  description: '',
+  roles: [],
+  insightType: InsightType.Chart,
+  insightCategory: 'Other_Semesters',
+  compute: function ({
+    insightFilters,
+    cacheManager,
+  }: {
+    insightFilters: any;
+    cacheManager: Cache;
+  }): Promise<PossibleOutputTypes> {
+    throw new Error('Function not implemented.');
+  },
+};
+
+export const TotalQuestionsAcrossSections: InsightObject = {
+  displayName: 'Total Questions Asked Across Sections',
+  description: '',
+  roles: [],
+  insightType: InsightType.Chart,
+  insightCategory: 'Other_Sections',
+  compute: function ({
+    insightFilters,
+    cacheManager,
+  }: {
+    insightFilters: any;
+    cacheManager: Cache;
+  }): Promise<PossibleOutputTypes> {
+    throw new Error('Function not implemented.');
   },
 };
 

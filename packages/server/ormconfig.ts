@@ -42,8 +42,8 @@ import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';
 import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entity';
 import { UnreadAsyncQuestionModel } from './src/asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from './src/asyncQuestion/asyncQuestionComment.entity';
-import { ChatbotDocPdfModel } from './src/chatbot/chatbot-doc-pdf.entity';
 import { SuperCourseModel } from './src/course/super-course.entity';
+import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -106,6 +106,7 @@ const typeorm: DataSourceOptions = {
     ApplicationConfigModel,
     QueueInviteModel,
     QueueChatsModel,
+    SuperCourseModel,
     InsightDashboardModel,
     LMSOrganizationIntegrationModel,
     LMSCourseIntegrationModel,

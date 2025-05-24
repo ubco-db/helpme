@@ -6,7 +6,6 @@ import { INSIGHTS_MAP } from './insight-objects';
 
 /**
  * Initial Product: Create a system to aggregate certain data within a certain time period for one course
- * or accross all courses
  *
  * Support courseIds and time intervals (no longer than a semester)
  */
