@@ -3041,7 +3041,8 @@ export const ERROR_MESSAGES = {
     emailAlreadyInDb: 'Email already in database',
     sidAlreadyInDb: 'Student ID already in database',
     cannotUpdateEmail: 'Email cannot be updated',
-    accountNotAvailable: 'The user account is undefined',
+    accountNotAvailable:
+      'The user either does not exist or does not have a chat token',
     userResponseNotFound: 'The user response was not found',
     accountDeactivated: 'The user account is deactivated',
     firstNameTooShort: 'First name must be at least 1 characters',

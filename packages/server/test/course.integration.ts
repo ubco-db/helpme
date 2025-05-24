@@ -2305,6 +2305,9 @@ describe('Course Integration', () => {
         course,
       });
 
+      // capture console.error
+      const consoleError = jest.spyOn(console, 'error').mockImplementation();
+
       await supertest({ userId: professor.id })
         .post(`/courses/${course.id}/clone_course`)
         .send({
@@ -2312,6 +2315,11 @@ describe('Course Integration', () => {
           semesterId: 1,
         })
         .expect(404);
+
+      expect(consoleError).toHaveBeenCalledWith(
+        ERROR_MESSAGES.profileController.accountNotAvailable,
+      );
+      consoleError.mockRestore();
     });
 
     it('should return 403 if user is not a professor of the course', async () => {

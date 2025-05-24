@@ -14,6 +14,7 @@ import {
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import {
+  ERROR_MESSAGES,
   MailServiceType,
   OrganizationRole,
   Role,
@@ -3326,11 +3327,18 @@ describe('Organization Integration', () => {
         role: OrganizationRole.ADMIN,
       }).save();
 
+      // capture console.error
+      const consoleError = jest.spyOn(console, 'error').mockImplementation();
+
       const response = await supertest({ userId: admin.id }).post(
         `/organization/${organization.id}/clone_courses`,
       );
 
       expect(response.status).toBe(404);
+      expect(consoleError).toHaveBeenCalledWith(
+        ERROR_MESSAGES.profileController.accountNotAvailable,
+      );
+      consoleError.mockRestore();
     });
 
     it('should queue batch cloning operation successfully', async () => {
