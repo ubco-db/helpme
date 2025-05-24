@@ -291,7 +291,7 @@ export class CourseService {
     // check if searching for specific name
     let searchCondition = '';
     if (search) {
-      const searchString = search.replace(' ', '').toUpperCase();
+      const searchString = search.toUpperCase();
       searchCondition = `
         AND UPPER(user_model.name)
           LIKE '%' || ${roleCondition ? '$5' : '$4'} || '%'

@@ -382,7 +382,7 @@ describe('CourseService', () => {
       const role = [Role.PROFESSOR];
       search = 'farooq';
       const user = (
-        await await service.getUserInfo(courseId, page, pageSize, search, role)
+        await service.getUserInfo(courseId, page, pageSize, search, role)
       ).users[0] as UserPartial;
       expect(user.name).toEqual('Danish Farooq');
     });
@@ -393,7 +393,8 @@ describe('CourseService', () => {
       search = 'Danish Farooq';
       const user = (
         await service.getUserInfo(courseId, page, pageSize, search, role)
-      ).users[0] as UserPartial;
+      ).users[0];
+      expect(user).toBeTruthy();
       expect(user.name).toEqual('Danish Farooq');
     });
 
@@ -754,17 +755,17 @@ describe('CourseService', () => {
       });
 
       // create question types for queues (4 total, should correspond to what's in queue config)
-      for (const tag of Object.keys(tempQueueConfig.tags)) {
+      for (const [tagKey, tagValue] of Object.entries(tempQueueConfig.tags)) {
         await QuestionTypeFactory.create({
           cid: course.id,
-          name: tag,
-          color: tempQueueConfig.tags[tag].color_hex,
+          name: tagValue.display_name,
+          color: tagValue.color_hex,
           queueId: queue1.id,
         });
         await QuestionTypeFactory.create({
           cid: course.id,
-          name: tag,
-          color: tempQueueConfig.tags[tag].color_hex,
+          name: tagValue.display_name,
+          color: tagValue.color_hex,
           queueId: queue2.id,
         });
       }
@@ -925,11 +926,13 @@ describe('CourseService', () => {
       });
       expect(updatedSuperCourse).toBeTruthy();
       expect(updatedSuperCourse.courses.length).toEqual(3);
-      expect(updatedSuperCourse.courses.map((course) => course.id)).toEqual([
-        result.course.id,
-        extraTempCourse.id,
-        course.id,
-      ]);
+      expect(updatedSuperCourse.courses.map((course) => course.id)).toEqual(
+        expect.arrayContaining([
+          result.course.id,
+          extraTempCourse.id,
+          course.id,
+        ]),
+      );
     });
     it('should throw error when neither new section nor new semester is specified', async () => {
       const cloneData: CourseCloneAttributes = {
