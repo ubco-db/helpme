@@ -35,6 +35,7 @@ import {
   AddDocumentChunkParams,
   ChatbotQuestionResponseChatbotDB,
   UpdateChatbotQuestionParams,
+  GetChatbotHistoryResponse,
   ChatbotSettingsUpdateParams,
 } from '@koh/common';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
@@ -120,7 +121,7 @@ export class ChatbotController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body()
     { question, responseText, vectorStoreId }: ChatbotAskSuggestedParams,
-    @UserId() userId: number, // this is the only chatbot endpoint that doesn't need the chat token since it doesn't require contacting the chatbot repo
+    @UserId() userId: number,
   ): Promise<ChatbotQuestionResponseHelpMeDB> {
     const interaction = await this.chatbotService.createInteraction(
       courseId,
@@ -168,6 +169,16 @@ export class ChatbotController {
       questionId,
       userScore,
     );
+  }
+
+  @Get('history')
+  async getChatbotHistory(
+    @UserId() userId: number,
+  ): Promise<GetChatbotHistoryResponse> {
+    const history = await this.chatbotService.getAllInteractionsForUser(userId);
+    return {
+      history: history as unknown as InteractionResponse[],
+    };
   }
 
   //

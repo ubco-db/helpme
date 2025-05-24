@@ -508,6 +508,10 @@ export type GetInteractionsAndQuestionsResponse = {
   helpmeDB: InteractionResponse[]
   chatbotDB: ChatbotQuestionResponseChatbotDB[]
 }
+
+export type GetChatbotHistoryResponse = {
+  history: InteractionResponse[]
+}
 /**
  * Represents one of two possible roles for the global account
  */

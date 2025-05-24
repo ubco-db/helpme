@@ -150,6 +150,10 @@ export default function CourseInvitePage(): ReactElement {
                 }
                 await addStudent(userData)
               }}
+              secondaryButtonLabel="Decline Invitation"
+              secondaryButtonAction={() => {
+                router.push('/courses')
+              }}
               cover={
                 <Image
                   alt="generic course image"
