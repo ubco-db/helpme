@@ -1053,7 +1053,22 @@ export class OrganizationController {
 
             await organizationUser
               .save()
-              .then((_) => {
+              .then(async (_) => {
+                const maxUses = [
+                  OrganizationRole.ADMIN,
+                  OrganizationRole.PROFESSOR,
+                ].includes(organizationUser.role)
+                  ? 300
+                  : 30;
+
+                await this.dataSource.query(
+                  `
+                UPDATE chat_token_model
+                SET max_uses = $1
+                WHERE "user" = $2
+                `,
+                  [maxUses, organizationUser.userId],
+                );
                 res.status(HttpStatus.OK).send({
                   message: 'Organization user role updated',
                 });
