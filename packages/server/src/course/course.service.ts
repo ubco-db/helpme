@@ -39,6 +39,7 @@ import { CourseSettingsModel } from './course_settings.entity';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
+import { SuperCourseModel } from './super-course.entity';
 import { MailService } from 'mail/mail.service';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { InternalServerErrorException } from '@nestjs/common';
@@ -551,6 +552,22 @@ export class CourseService {
           'Either a new semester or new section must be provided for your course clone.',
         );
       }
+
+      // SuperCourses are used to group courses together for insights that span multiple semesters
+      // They are generated here based solely on the course's name for now
+      const standardizedCourseName = clonedCourse.name.trim().toLowerCase();
+      const superCourse = await manager.findOne(SuperCourseModel, {
+        where: { name: standardizedCourseName },
+      });
+      if (!superCourse) {
+        const newSuperCourse = manager.create(SuperCourseModel, {
+          name: standardizedCourseName,
+          organizationId: organizationUser.organizationId,
+        });
+        await manager.save(newSuperCourse);
+      }
+      clonedCourse.superCourse = superCourse;
+
       await manager.save(clonedCourse);
 
       if (originalCourse.courseSettings) {
@@ -594,10 +611,10 @@ export class CourseService {
         await this.redisProfileService.deleteProfile(`u:${userId}`);
       }
 
-      const organizationCourse = new OrganizationCourseModel();
-
-      organizationCourse.courseId = clonedCourse.id;
-      organizationCourse.organizationId = organizationUser.organizationId;
+      const organizationCourse = await manager.create(OrganizationCourseModel, {
+        courseId: clonedCourse.id,
+        organizationId: organizationUser.organizationId,
+      });
       await manager.save(organizationCourse);
 
       // -------------- For Queues --------------

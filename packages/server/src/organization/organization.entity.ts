@@ -53,7 +53,7 @@ export class OrganizationModel extends BaseEntity {
   @Exclude()
   @JoinColumn({ name: 'organizationId' })
   @OneToMany(
-    (type) => OrganizationUserModel,
+    () => OrganizationUserModel,
     (organizationUser) => organizationUser.organization,
   )
   organizationUsers: OrganizationUserModel[];
@@ -61,7 +61,7 @@ export class OrganizationModel extends BaseEntity {
   @Exclude()
   @JoinColumn({ name: 'organizationId' })
   @OneToMany(
-    (type) => OrganizationCourseModel,
+    () => OrganizationCourseModel,
     (organizationCourse) => organizationCourse.organization,
   )
   organizationCourses: OrganizationCourseModel[];
@@ -69,7 +69,7 @@ export class OrganizationModel extends BaseEntity {
   @Exclude()
   @JoinColumn({ name: 'organizationId' })
   @OneToMany(
-    (type) => LMSOrganizationIntegrationModel,
+    () => LMSOrganizationIntegrationModel,
     (integration) => integration.organization,
   )
   organizationIntegrations: LMSOrganizationIntegrationModel[];
