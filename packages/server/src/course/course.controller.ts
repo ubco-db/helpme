@@ -714,13 +714,13 @@ export class CourseController {
     }
   }
 
-  @Get(':id/get_user_info/:page/:role?')
+  @Get(':id/get_user_info/:page')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR)
   async getUserInfo(
     @Param('id', ParseIntPipe) courseId: number,
     @Param('page', ParseIntPipe) page: number,
-    @Param('role') role?: Role | 'staff',
+    @Query('role') role?: Role | 'staff',
     @Query('search') search?: string,
   ): Promise<GetCourseUserInfoResponse> {
     const pageSize = role === 'staff' ? 100 : 50;
