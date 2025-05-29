@@ -45,7 +45,7 @@ exports[`Organization Integration GET /organization/:oid should return 200 and r
 }
 `;
 
-exports[`Organization Integration GET /organization/:oid/get_courses/:page? should return 200 when user is an admin 1`] = `
+exports[`Organization Integration GET /organization/:oid/get_courses should return 200 when user is an admin 1`] = `
 [
   {
     "courseId": 1,
@@ -84,7 +84,7 @@ exports[`Organization Integration GET /organization/:oid/get_user/:uid should re
 }
 `;
 
-exports[`Organization Integration GET /organization/:oid/get_users/:page? should return 200 when user is an admin 1`] = `
+exports[`Organization Integration GET /organization/:oid/get_users should return 200 when user is an admin 1`] = `
 [
   {
     "email": "user@ubc.ca",
