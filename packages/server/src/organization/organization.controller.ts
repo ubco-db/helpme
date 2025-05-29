@@ -1456,7 +1456,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async getUsers(
     @Param('oid', ParseIntPipe) oid: number,
-    @Query('page', ParseIntPipe) page: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('search') search: string,
   ): Promise<OrgUser[]> {
     const pageSize = 50;
