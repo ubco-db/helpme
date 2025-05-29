@@ -65,9 +65,9 @@ export async function bootstrap(hot: any): Promise<void> {
     .setVersion('1.0')
     .addTag('cats')
     .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, config);
   if (process.env.NODE_ENV === 'development') {
-    SwaggerModule.setup('api', app, documentFactory);
+    SwaggerModule.setup('api', app, document);
   }
   await app.listen(3002);
 
