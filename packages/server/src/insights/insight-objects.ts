@@ -1276,11 +1276,69 @@ export const StaffQuestionTimesByDay: InsightObject = {
   },
 };
 
+export const QuestionTypesOverTime: InsightObject = {
+  displayName: 'Question Types Over Time',
+  description: 'How often are different types of questions asked?',
+  roles: [Role.PROFESSOR],
+  insightType: InsightType.MultipleGanttChart,
+  insightCategory: 'Tool_Usage_Statistics',
+  allowedFilters: ['courseId', 'timeframe', 'queues'],
+  async compute({ insightFilters }): Promise<ChartOutputType> {
+    type questionTypeDated = {
+      totalQuestions: number;
+      date: number;
+      questionType: QuestionTypeModel;
+    };
+
+    const questions = await addFilters({
+      query: QuestionModel.createQueryBuilder()
+        .select('COUNT(DISTINCT(QuestionModel.id))', 'totalQuestions')
+        .withDeleted()
+        .leftJoinAndSelect('QuestionModel.questionTypes', 'questionType')
+        .addSelect('QuestionModel.createdAt::DATE', 'date')
+        .orderBy('QuestionModel.createdAt::DATE', 'ASC')
+        .groupBy('QuestionModel.createdAt::DATE')
+        .groupBy('questionType'),
+      modelName: QuestionModel.name,
+      allowedFilters: this.allowedFilters,
+      filters: insightFilters,
+    }).getRawMany<questionTypeDated>();
+
+    const distinctTypes = questions
+      .map((q) => q.questionType.name)
+      .filter((v, i, a) => a.indexOf(v) == i);
+    const distinctDays = questions
+      .map((q) => q.date)
+      .filter((v, i, a) => a.indexOf(v) == i);
+
+    const data: any[] = [];
+    for (const day of distinctDays) {
+      const element: { [key: string]: any } = { date: day };
+      const qs = questions.filter((q) => q.date == day);
+      for (const type of distinctTypes) {
+        element[type] =
+          qs.find((q) => q.questionType.name == type)?.totalQuestions ?? 0;
+      }
+      data.push(element);
+    }
+
+    return {
+      data: data,
+      xKey: 'date',
+      yKeys: distinctTypes,
+      label: 'Date',
+      xType: 'numeric',
+      yType: 'numeric',
+    } as ChartOutputType;
+  },
+};
+
 export const INSIGHTS_MAP = {
   TotalStudents,
   TotalQuestionsAsked,
   MedianWaitTime,
   QuestionTypeBreakdown,
+  QuestionTypesOverTime,
   MostActiveStudents,
   QuestionToStudentRatio,
   MedianHelpingTime,
