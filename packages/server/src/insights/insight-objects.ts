@@ -1281,7 +1281,7 @@ export const QuestionTypesOverTime: InsightObject = {
   description: 'How often are different types of questions asked?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
-  insightCategory: 'Tool_Usage_Statistics',
+  insightCategory: 'Questions',
   allowedFilters: ['courseId', 'timeframe', 'queues'],
   async compute({ insightFilters }): Promise<ChartOutputType> {
     type questionTypeDated = {
