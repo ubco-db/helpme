@@ -2046,6 +2046,7 @@ export type ChartOutputType = {
   label: string
   xType?: 'numeric' | 'category'
   yType?: 'numeric' | 'category'
+  yFills?: StringMap<string>
 }
 
 export type GanttChartOutputType = {

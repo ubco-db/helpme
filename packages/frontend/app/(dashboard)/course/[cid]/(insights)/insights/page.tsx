@@ -16,6 +16,8 @@ import {
 } from '@koh/common'
 import { API } from '@/app/api'
 
+export const dynamic = 'force-dynamic'
+
 export default function InsightsPage() {
   const { cid } = useParams<{ cid: string }>()
   const courseId = useMemo(() => parseInt(cid), [cid])
@@ -102,7 +104,7 @@ export default function InsightsPage() {
         .filter((v) => v.insight.insightType != InsightType.Value)
         .map((v, index) => (
           <InsightComponent
-            key={index}
+            key={'i-' + index}
             courseId={courseId}
             insightName={v.name}
           />
