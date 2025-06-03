@@ -128,6 +128,17 @@ exports[`Insights Integration GET /insights/list should return list of insights 
     "insightCategory": "Questions",
     "insightType": "Chart",
   },
+  "QuestionTypesOverTime": {
+    "allowedFilters": [
+      "courseId",
+      "timeframe",
+      "queues",
+    ],
+    "description": "How often are different types of questions asked?",
+    "displayName": "Question Types Over Time",
+    "insightCategory": "Tool_Usage_Statistics",
+    "insightType": "Chart",
+  },
   "StaffEfficiency": {
     "allowedFilters": [
       "courseId",

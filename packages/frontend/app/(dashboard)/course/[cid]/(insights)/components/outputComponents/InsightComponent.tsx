@@ -103,10 +103,16 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
         ...insightOutput.allowedFilters.map((filterName) => {
           switch (filterName) {
             case 'timeframe':
-              return <DateOptionFilter setRange={setDateRange} />
+              return (
+                <DateOptionFilter
+                  key={`DateOption-${insightName}`}
+                  setRange={setDateRange}
+                />
+              )
             case 'students':
               return (
                 <StudentFilter
+                  key={`Student-${insightName}`}
                   selectedStudents={students}
                   setSelectedStudents={setStudents}
                 />
@@ -114,6 +120,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
             case 'queues':
               return (
                 <QueueFilter
+                  key={`Queue-${insightName}`}
                   selectedQueues={queues}
                   setSelectedQueues={setQueues}
                 />
@@ -121,6 +128,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
             case 'staff':
               return (
                 <StaffFilter
+                  key={`Staff-${insightName}`}
                   selectedStaff={staff}
                   setSelectedStaff={setStaff}
                 />

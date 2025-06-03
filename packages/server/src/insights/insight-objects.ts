@@ -1280,55 +1280,59 @@ export const QuestionTypesOverTime: InsightObject = {
   displayName: 'Question Types Over Time',
   description: 'How often are different types of questions asked?',
   roles: [Role.PROFESSOR],
-  insightType: InsightType.MultipleGanttChart,
+  insightType: InsightType.Chart,
   insightCategory: 'Tool_Usage_Statistics',
   allowedFilters: ['courseId', 'timeframe', 'queues'],
   async compute({ insightFilters }): Promise<ChartOutputType> {
     type questionTypeDated = {
-      totalQuestions: number;
+      questionId: number;
       date: number;
-      questionType: QuestionTypeModel;
+      questionType_name: string;
+      questionType_color: string;
     };
 
-    const questions = await addFilters({
+    const questionsAll = await addFilters({
       query: QuestionModel.createQueryBuilder()
-        .select('COUNT(DISTINCT(QuestionModel.id))', 'totalQuestions')
+        .select('QuestionModel.id', 'questionId')
         .withDeleted()
         .leftJoinAndSelect('QuestionModel.questionTypes', 'questionType')
-        .addSelect('QuestionModel.createdAt::DATE', 'date')
-        .orderBy('QuestionModel.createdAt::DATE', 'ASC')
-        .groupBy('QuestionModel.createdAt::DATE')
-        .groupBy('questionType'),
+        .addSelect('"QuestionModel"."createdAt"::DATE', 'date')
+        .orderBy('"QuestionModel"."createdAt"::DATE', 'ASC'),
       modelName: QuestionModel.name,
       allowedFilters: this.allowedFilters,
       filters: insightFilters,
     }).getRawMany<questionTypeDated>();
 
-    const distinctTypes = questions
-      .map((q) => q.questionType.name)
-      .filter((v, i, a) => a.indexOf(v) == i);
-    const distinctDays = questions
-      .map((q) => q.date)
-      .filter((v, i, a) => a.indexOf(v) == i);
+    questionsAll.forEach((q) => (q.date = new Date(q.date).getTime()));
 
-    const data: any[] = [];
-    for (const day of distinctDays) {
-      const element: { [key: string]: any } = { date: day };
-      const qs = questions.filter((q) => q.date == day);
-      for (const type of distinctTypes) {
-        element[type] =
-          qs.find((q) => q.questionType.name == type)?.totalQuestions ?? 0;
-      }
-      data.push(element);
-    }
+    const types: StringMap<string> = {};
+    questionsAll
+      .map((q) => ({ name: q.questionType_name, fill: q.questionType_color }))
+      .filter((v, i, a) => a.indexOf(v) == i && v.name != null)
+      .forEach((v) => (types[v.name.replace(/\s/g, '_')] = v.fill));
+
+    const data: StringMap<any> = questionsAll
+      .map((q) => q.date)
+      .filter((v, i, a) => a.indexOf(v) == i)
+      .map((day) => {
+        const element: StringMap<any> = { date: day };
+        const questions = questionsAll.filter((q) => q.date == day);
+        Object.keys(types).forEach((type) => {
+          element[type] = questions.filter(
+            (q) => q.questionType_name == type,
+          ).length;
+        });
+        return element;
+      });
 
     return {
-      data: data,
+      data,
       xKey: 'date',
-      yKeys: distinctTypes,
-      label: 'Date',
+      yKeys: Object.keys(types),
+      label: 'date',
       xType: 'numeric',
       yType: 'numeric',
+      yFills: types,
     } as ChartOutputType;
   },
 };
