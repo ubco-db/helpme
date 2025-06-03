@@ -293,6 +293,39 @@ export const charts: {
       },
     },
   },
+  QuestionTypesOverTime: {
+    chartType: 'Line',
+    props: {
+      includeLegend: true,
+      includeTooltip: true,
+      size: '4xl',
+      aspectRatio: 3,
+      tickFormatter: (label) =>
+        new Date(label).toLocaleString('en-US', {
+          year: '2-digit',
+          month: 'short',
+          day: 'numeric',
+        }),
+      valueFormatter: (value: any, name: any) => {
+        if (value > 0) return `${name}: ${value}`
+        else return
+      },
+      labelFormatter: (label, payload) => {
+        if (payload != undefined) {
+          return new Date((payload as any[])[0].payload.key).toLocaleString(
+            'en-US',
+            {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            },
+          )
+        } else {
+          return label
+        }
+      },
+    },
+  },
 }
 
 export const gantt_charts: {

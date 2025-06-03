@@ -5,12 +5,15 @@ import {
   LinearChartProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
 import React, { useMemo } from 'react'
-import { ChartContainer } from '@/app/components/ui/chart'
-import { Area, AreaChart, CartesianGrid } from 'recharts'
 import {
-  getAxisComponents,
-  getLegendAndTooltipComponents,
-} from '@/app/(dashboard)/course/[cid]/(insights)/components/charts/ChartFunctions'
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/app/components/ui/chart'
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions'
 
 const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -66,32 +69,69 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     >
       <AreaChart data={chartData} accessibilityLayer>
         <CartesianGrid vertical={verticalAxis} />
-        {getAxisComponents(
-          chartData,
-          valueKeys,
-          tickMargin,
-          verticalAxis,
-          tickLine,
-          axisLine,
-          tickFormatter,
-          minTickGap,
-          angle,
-          xType,
-          yType,
+        {(xType == 'numeric' && (
+          <XAxis
+            type={'number'}
+            dataKey={'key'}
+            tickLine={tickLine}
+            tickMargin={tickMargin}
+            axisLine={axisLine}
+            tickFormatter={tickFormatter}
+            domain={generateAxisRange(chartData, ['key'])}
+          />
+        )) || (
+          <XAxis
+            dataKey="key"
+            tickLine={tickLine}
+            tickMargin={tickMargin}
+            axisLine={axisLine}
+            tickFormatter={tickFormatter}
+          />
         )}
-        {getLegendAndTooltipComponents(
-          includeLegend,
-          includeTooltip,
-          labelFormatter,
-          valueFormatter,
-          legendFormatter,
+        {(yType == 'category' && (
+          <YAxis
+            tickLine={tickLine}
+            tickMargin={tickMargin}
+            axisLine={axisLine}
+            hide={!verticalAxis}
+          />
+        )) || (
+          <YAxis
+            type="number"
+            domain={generateAxisRange(chartData, valueKeys)}
+            tickLine={tickLine}
+            tickMargin={tickMargin}
+            axisLine={axisLine}
+            hide={!verticalAxis}
+          />
+        )}
+        {includeTooltip && (
+          <ChartTooltip
+            formatter={valueFormatter}
+            labelFormatter={labelFormatter}
+            cursor={false}
+            content={<ChartTooltipContent />}
+          />
+        )}
+        {includeLegend && (
+          <ChartLegend
+            formatter={legendFormatter}
+            content={<ChartLegendContent />}
+          />
         )}
         <defs>
           {valueKeys &&
             valueFills &&
             valueKeys.map((key) => (
               <>
-                <linearGradient id={'fill' + key} x1="0" y1="0" x2="0" y2="1">
+                <linearGradient
+                  key={'fill-' + key}
+                  id={'fill' + key}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
                   <stop
                     offset={'5%'}
                     stopColor={valueFills[key]}
@@ -110,7 +150,7 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           valueFills &&
           valueKeys.map((key, index) => (
             <Area
-              key={index}
+              key={`area-${key}-${index}`}
               stroke={valueFills[key]}
               strokeWidth={2}
               fill={`url(#fill${key})`}
