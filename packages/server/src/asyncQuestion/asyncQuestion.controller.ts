@@ -44,6 +44,7 @@ import { Not } from 'typeorm';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { AsyncQuestionService } from './asyncQuestion.service';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
+import { CourseSettingsModel } from '../course/course_settings.entity';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -139,6 +140,10 @@ export class asyncQuestionController {
     @Res() res: Response,
   ): Promise<any> {
     try {
+      const courseSettings = await CourseSettingsModel.findOne({
+        where: { courseId: cid },
+      });
+
       const question = await AsyncQuestionModel.create({
         courseId: cid,
         creatorId: userId,
@@ -148,7 +153,13 @@ export class asyncQuestionController {
         aiAnswerText: body.aiAnswerText,
         questionTypes: body.questionTypes,
         status: body.status || asyncQuestionStatus.AIAnswered,
-        visible: false,
+        staffSetVisible: false,
+        authorSetVisible:
+          (courseSettings?.asyncCentreAllowPublic && body.authorSetVisible) ||
+          false,
+        isAnonymous:
+          body.isAnonymous ||
+          (courseSettings?.asyncCentreDefaultAnonymous ?? true),
         verified: false,
         createdAt: new Date(),
       }).save();
@@ -202,6 +213,10 @@ export class asyncQuestionController {
         'comments.creator.courses',
       ],
     });
+    const courseSettings = await CourseSettingsModel.findOne({
+      where: { courseId: question.courseId },
+    });
+
     // deep copy question since it changes
     const oldQuestion: AsyncQuestionModel = JSON.parse(
       JSON.stringify(question),
@@ -252,7 +267,9 @@ export class asyncQuestionController {
     }
     // if the question is visible and they rewrote their question and got a new answer text, mark it as unread for everyone
     if (
-      updatedQuestion.visible &&
+      updatedQuestion.staffSetVisible &&
+      (!(courseSettings?.asyncCentreAllowPublic ?? true) ||
+        updatedQuestion.authorSetVisible) &&
       body.aiAnswerText !== oldQuestion.aiAnswerText &&
       body.questionText !== oldQuestion.questionText
     ) {
@@ -298,6 +315,10 @@ export class asyncQuestionController {
         'comments.creator.courses',
       ],
     });
+    const courseSettings = await CourseSettingsModel.findOne({
+      where: { courseId: question.courseId },
+    });
+
     // deep copy question since it changes
     const oldQuestion: AsyncQuestionModel = JSON.parse(
       JSON.stringify(question),
@@ -349,7 +370,12 @@ export class asyncQuestionController {
     const updatedQuestion = await question.save();
 
     // Mark as new unread for all students if the question is marked as visible
-    if (body.visible && !oldQuestion.visible) {
+    if (
+      body.staffSetVisible &&
+      (!(courseSettings?.asyncCentreAllowPublic ?? true) ||
+        updatedQuestion.authorSetVisible) &&
+      !oldQuestion.staffSetVisible
+    ) {
       await this.asyncQuestionService.markUnreadForRoles(
         updatedQuestion,
         [Role.STUDENT],
@@ -401,6 +427,10 @@ export class asyncQuestionController {
     const { commentText } = body;
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
+    });
+
+    const courseSettings = await CourseSettingsModel.findOne({
+      where: { courseId: question.courseId },
     });
 
     if (!question) {
@@ -461,7 +491,11 @@ export class asyncQuestionController {
     );
 
     // new comment: if visible, mark question as unread for everyone (except the creator of the comment)
-    if (updatedQuestion.visible) {
+    if (
+      updatedQuestion.staffSetVisible &&
+      (!courseSettings?.asyncCentreAllowPublic ||
+        updatedQuestion.authorSetVisible)
+    ) {
       await this.asyncQuestionService.markUnreadForAll(
         updatedQuestion,
         user.id,
@@ -702,7 +736,9 @@ export class asyncQuestionController {
     } else {
       // Students see their own questions and questions that are visible
       questions = all.filter(
-        (question) => question.creatorId === userId || question.visible,
+        (question) =>
+          question.creatorId === userId ||
+          (question.staffSetVisible && question.authorSetVisible),
       );
     }
 
@@ -719,7 +755,8 @@ export class asyncQuestionController {
         'createdAt',
         'closedAt',
         'status',
-        'visible',
+        'staffSetVisible',
+        'authorSetVisible',
         'verified',
         'votes',
         'comments',

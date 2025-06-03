@@ -226,7 +226,7 @@ export class FactoryService {
       .attr('aiAnswerText', 'ai answer')
       .attr('answerText', 'answer')
       .attr('status', asyncQuestionStatus.AIAnswered)
-      .attr('visible', false)
+      .attr('staffSetVisible', false)
       .attr('verified', false)
       .attr('createdAt', new Date('2025-01-01T00:00:00.000Z'));
 

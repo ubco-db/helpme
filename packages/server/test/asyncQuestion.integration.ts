@@ -425,7 +425,7 @@ describe('AsyncQuestion Integration', () => {
           id: asyncQuestionFromResponse.id,
         },
       });
-      asyncQuestion.visible = true;
+      asyncQuestion.staffSetVisible = true;
       await asyncQuestion.save();
 
       // mark it as has been read by TA
@@ -800,7 +800,7 @@ describe('AsyncQuestion Integration', () => {
       asyncQuestion2 = await AsyncQuestionFactory.create({
         creator: studentUser,
         course: course,
-        visible: true,
+        staffSetVisible: true,
         aiAnswerText: 'q2',
       });
       asyncQuestion3 = await AsyncQuestionFactory.create({

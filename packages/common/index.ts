@@ -896,7 +896,15 @@ export class AsyncQuestionParams {
 
   @IsOptional()
   @IsBoolean()
-  visible?: boolean
+  staffSetVisible?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  authorSetVisible?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean
 
   @IsOptional()
   @IsBoolean()
@@ -2127,6 +2135,12 @@ export class CourseSettingsResponse {
 
   @IsBoolean()
   asyncCentreAIAnswers!: boolean
+
+  @IsBoolean()
+  asyncCentreDefaultAnonymous!: boolean
+
+  @IsBoolean()
+  asyncCentreAllowPublic!: boolean
 
   @IsOptional()
   @IsBoolean()

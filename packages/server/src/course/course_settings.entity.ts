@@ -37,4 +37,10 @@ export class CourseSettingsModel extends BaseEntity {
 
   @Column('boolean', { default: true })
   asyncCentreAIAnswers: boolean;
+
+  @Column('boolean', { default: true })
+  asyncCentreDefaultAnonymous: boolean;
+
+  @Column('boolean', { default: true })
+  asyncCentreAllowPublic: boolean;
 }

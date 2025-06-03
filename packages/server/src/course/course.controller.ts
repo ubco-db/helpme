@@ -971,6 +971,8 @@ export class CourseController {
       queueEnabled: courseSettings?.queueEnabled ?? true,
       scheduleOnFrontPage: courseSettings?.scheduleOnFrontPage ?? false,
       asyncCentreAIAnswers: courseSettings?.asyncCentreAIAnswers ?? true,
+      asyncCentreDefaultAnonymous:
+        courseSettings?.asyncCentreDefaultAnonymous ?? true,
       settingsFound: !!courseSettings, // !! converts truthy/falsy into true/false
     });
 

@@ -18,7 +18,7 @@ export async function deleteAsyncQuestion(
     await API.asyncQuestions
       .facultyUpdate(questionId, {
         status: asyncQuestionStatus.TADeleted,
-        visible: false,
+        staffSetVisible: false,
       })
       .then(() => {
         message.success('Removed Question')
@@ -32,7 +32,7 @@ export async function deleteAsyncQuestion(
     await API.asyncQuestions
       .studentUpdate(questionId, {
         status: asyncQuestionStatus.StudentDeleted,
-        visible: false,
+        authorSetVisible: false,
       })
       .then(() => {
         message.success('Question Successfully Deleted')

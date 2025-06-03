@@ -24,6 +24,8 @@ interface FormValues {
   questionText: string
   questionTypesInput: number[]
   refreshAIAnswer: boolean
+  setVisible: boolean
+  setAnonymous: boolean
 }
 
 interface CreateAsyncQuestionModalProps {
@@ -96,8 +98,9 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
               questionTypes: newQuestionTypeInput,
               questionText: values.questionText,
               questionAbstract: values.QuestionAbstract,
+              authorSetVisible: values.setVisible,
+              isAnonymous: values.setAnonymous,
               aiAnswerText: aiAnswer,
-              answerText: aiAnswer,
             })
             .then(() => {
               message.success('Question Updated')
@@ -116,6 +119,8 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
             questionTypes: newQuestionTypeInput,
             questionText: values.questionText,
             questionAbstract: values.QuestionAbstract,
+            isAnonymous: values.setAnonymous,
+            authorSetVisible: values.setVisible,
           })
           .then(() => {
             message.success('Question Updated')
@@ -149,6 +154,8 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
               status: courseFeatures?.asyncCentreAIAnswers
                 ? asyncQuestionStatus.AIAnswered
                 : asyncQuestionStatus.AIAnsweredNeedsAttention,
+              isAnonymous: values.setAnonymous,
+              authorSetVisible: values.setVisible,
             },
             courseId,
           )
@@ -231,6 +238,8 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
                     (questionType) => questionType.id,
                   )
                 : [],
+            setVisible: false,
+            setAnonymous: true,
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
@@ -277,6 +286,26 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           label="What categories does your question fall under?"
         >
           <QuestionTagSelector questionTags={questionTypes} />
+        </Form.Item>
+      )}
+      <Form.Item
+        name="setAnonymous"
+        label="Show name and avatar to other users as part of question?"
+        tooltip="If toggled, your name and avatar will be shown with the question. Otherwise, question will be presented with anonymous profile."
+        valuePropName="checked"
+      >
+        <Checkbox
+          defaultChecked={courseFeatures?.asyncCentreDefaultAnonymous ?? false}
+        />
+      </Form.Item>
+      {courseFeatures?.asyncCentreAllowPublic && (
+        <Form.Item
+          name="setVisible"
+          label="Should the anytime question/answer be visible to other users?"
+          tooltip="If toggled, your question will be visible to other users. Your profile will only be visible if you do not opt for anonymity."
+          valuePropName="checked"
+        >
+          <Checkbox disabled={!courseFeatures?.asyncCentreAllowPublic} />
         </Form.Item>
       )}
       {question && courseFeatures?.asyncCentreAIAnswers && (
