@@ -136,7 +136,7 @@ exports[`Insights Integration GET /insights/list should return list of insights 
     ],
     "description": "How often are different types of questions asked?",
     "displayName": "Question Types Over Time",
-    "insightCategory": "Tool_Usage_Statistics",
+    "insightCategory": "Questions",
     "insightType": "Chart",
   },
   "StaffEfficiency": {
