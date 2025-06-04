@@ -32,6 +32,7 @@
       - [Testing](#testing)
         - [What is mocking?](#what-is-mocking)
         - [To mock or not to mock?](#to-mock-or-not-to-mock)
+      - [Event Subscribers](#event-subscribers)
 - [History](#history)
 - [TODO](#todo)
   - [For the whole project](#for-the-whole-project)
@@ -412,6 +413,16 @@ In general, it is recommended to only mock if you absolutely have to. For exampl
 Another example where you might need to mock is if you are dealing with a technology/library that doesn't play nice with jest for whatever reason (e.g. maybe redis or cron).
 
 In general though, try not to mock (e.g. don't mock database calls/returns). This is because mocking eliminates one of the key benefits of testing: knowing what things break after a change (aka regression testing). If you mock someone else's function but then they change something about it (like its parameters), the tests may still pass even though they should have failed. Another example is when you update a package and they adjust their APIs or behaviour but since you mocked their functions the test still pass instead of failing.
+
+#### Event Subscribers
+
+Typeorm has `@EventSubscriber`, which allows you to define certain actions after/before an insert, update, or delete.
+
+Some examples of where this is used:
+- For busting (deleting) the redis profile cache whenever a relevant entity updates (e.g. when a new UserCourse entity is created from a student joining a course, we need to bust their profile cache so they can see the new course) 
+- For notifying and sending new queue question data to all users subscribed to queue Server Side Events (which happens automatically when you are viewing a queue page)
+
+See https://orkhan.gitbook.io/typeorm/docs/listeners-and-subscribers for more info
 
 # History
 

@@ -55,6 +55,8 @@ export class ProfileController {
     const redisRecord = await this.redisProfileService.getKey(`u:${userId}`);
 
     if (!redisRecord) {
+      // NOTE: If you are adding a new relation here, make sure to create a new EventSubscriber for inserts/updates/deletes on said relation to clear the profile cache when that relation updates.
+      // Otherwise, if that relation updates, the profile cache will not be invalidated and the old data will be served.
       const user = await UserModel.findOne({
         where: { id: userId },
         relations: {
@@ -188,9 +190,6 @@ export class ProfileController {
     try {
       user.readChangeLog = true;
       await user.save();
-
-      // Delete old cached record if changed
-      await this.redisProfileService.deleteProfile(`u:${user.id}`);
 
       return res
         .status(HttpStatus.OK)
