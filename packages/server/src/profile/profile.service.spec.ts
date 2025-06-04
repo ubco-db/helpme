@@ -99,6 +99,9 @@ describe('ProfileService', () => {
 
     it('should throw if disk space is insufficient', async () => {
       const user = await UserFactory.create();
+      // Mock console.error to suppress expected error log
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
       process.env.UPLOAD_LOCATION = '/uploads';
 
       mockCheckDiskSpace.mockResolvedValue({
@@ -109,6 +112,13 @@ describe('ProfileService', () => {
       await expect(
         service.uploadUserProfileImage(mockFile, user),
       ).rejects.toThrow(ServiceUnavailableException);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error processing image:',
+        expect.any(ServiceUnavailableException),
+      );
+
+      consoleErrorSpy.mockRestore();
     });
   });
 
