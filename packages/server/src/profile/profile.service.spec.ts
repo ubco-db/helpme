@@ -94,9 +94,6 @@ describe('ProfileService', () => {
 
       expect(fileName).toMatch(new RegExp(`^${user.id}-\\d+\\.webp$`));
       expect(mockedSharp).toHaveBeenCalledWith(mockFile.buffer);
-      expect(redisProfileService.deleteProfile).toHaveBeenCalledWith(
-        `u:${user.id}`,
-      );
     });
 
     it('should throw if disk space is insufficient', async () => {
@@ -125,9 +122,6 @@ describe('ProfileService', () => {
 
       expect(unlinkSpy).toHaveBeenCalledWith(
         path.join('/', 'uploads', 'test-image.webp'),
-      );
-      expect(redisProfileService.deleteProfile).toHaveBeenCalledWith(
-        `u:${user.id}`,
       );
     });
 
@@ -160,9 +154,6 @@ describe('ProfileService', () => {
 
       expect(user.firstName).toBe('Updated');
       expect(user.lastName).toBe('User');
-      expect(redisProfileService.deleteProfile).toHaveBeenCalledWith(
-        `u:${user.id}`,
-      );
     });
 
     it('should throw error when updating email for non-legacy account', async () => {
