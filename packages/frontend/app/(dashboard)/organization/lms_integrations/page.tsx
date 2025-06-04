@@ -7,10 +7,10 @@ import {
   Collapse,
   Form,
   Input,
+  message,
   Modal,
   Select,
   Table,
-  message,
 } from 'antd'
 import { PenBoxIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import {
@@ -164,7 +164,7 @@ export default function LMSIntegrationsPage(): ReactElement {
     >
       <div className={'flex flex-col items-center gap-2'}>
         <Table
-          variant="outlined"
+          bordered={true}
           dataSource={lmsIntegrations ?? []}
           pagination={false}
           className={'w-full'}

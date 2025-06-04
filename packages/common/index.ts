@@ -3,7 +3,6 @@ import {
   IsArray,
   IsBoolean,
   IsDate,
-  IsDefined,
   IsEnum,
   IsHexColor,
   IsIn,
@@ -2160,7 +2159,7 @@ export class CourseSettingsResponse {
   }
 }
 
-const validFeatures = [
+export const validFeatures = [
   'chatBotEnabled',
   'asyncQueueEnabled',
   'adsEnabled',

@@ -1,21 +1,21 @@
 import React, { useState } from 'react'
 import {
-  Modal,
-  Input,
-  Form,
-  message,
-  Checkbox,
-  Tooltip,
   Button,
+  Checkbox,
+  Form,
+  Input,
+  message,
+  Modal,
   Popconfirm,
   Switch,
+  Tooltip,
 } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../components/QuestionTagElement'
 import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
+import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
+import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common'
 import { DeleteOutlined } from '@ant-design/icons'
 import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
@@ -50,6 +50,10 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const courseFeatures = useCourseFeatures(courseId)
+
+  const userCourseRole = getRoleInCourse(userInfo, courseId)
+  const isStaff =
+    userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
 
   const getAiAnswer = async (question: string) => {
     if (!courseFeatures?.asyncCentreAIAnswers) {
@@ -240,13 +244,15 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
                   )
                 : [],
             setVisible:
-              courseFeatures?.asyncCentreAllowPublic ??
-              question?.authorSetVisible ??
-              false,
+              isStaff ||
+              (courseFeatures?.asyncCentreAllowPublic ??
+                question?.authorSetVisible ??
+                false),
             setAnonymous:
-              question?.isAnonymous ??
-              courseFeatures?.asyncCentreDefaultAnonymous ??
-              false,
+              isStaff ||
+              (question?.isAnonymous ??
+                courseFeatures?.asyncCentreDefaultAnonymous ??
+                false),
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
@@ -298,22 +304,28 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
       <Form.Item
         name="setAnonymous"
         label="Hide name and avatar from other users?"
-        tooltip="If toggled, your name and avatar will not be shown with the question. Otherwise, the question will be presented with a non-anonymous profile."
-        valuePropName="checked"
-      >
-        <Switch />
-      </Form.Item>
-      <Form.Item
-        name="setVisible"
-        label="Should the anytime question/answer be visible to other users?"
         tooltip={
-          courseFeatures?.asyncCentreAllowPublic
-            ? 'If toggled, your question will be visible to other users. Your profile will only be visible if you do not opt for anonymity.'
-            : 'You do not have permission to make this question public due to course settings.'
+          !isStaff
+            ? 'If toggled, your name and avatar will not be shown with the question. Otherwise, the question will be presented with a non-anonymous profile.'
+            : 'Staff members cannot post anonymous Anytime Questions.'
         }
         valuePropName="checked"
       >
-        <Switch disabled={!courseFeatures?.asyncCentreAllowPublic} />
+        <Switch disabled={isStaff} />
+      </Form.Item>
+      <Form.Item
+        name="setVisible"
+        label="Should the anytime question/answer be visible to other users once responded to?"
+        tooltip={
+          isStaff
+            ? 'Anytime Questions authored by staff members do not have optional visibility. To make it publicly visible, finish creating the question and then post a response to it.'
+            : courseFeatures?.asyncCentreAllowPublic
+              ? 'If toggled, your question will be visible to other users. Your profile will only be visible if you do not opt for anonymity.'
+              : 'This course does not require approval by question authors for questions to be public, only approval by course staff members.'
+        }
+        valuePropName="checked"
+      >
+        <Switch disabled={!courseFeatures?.asyncCentreAllowPublic || isStaff} />
       </Form.Item>
       {question && courseFeatures?.asyncCentreAIAnswers && (
         <Tooltip

@@ -144,6 +144,14 @@ export class asyncQuestionController {
         where: { courseId: cid },
       });
 
+      const myUserCourse = await UserCourseModel.findOne({
+        where: {
+          userId: userId,
+          courseId: cid,
+        },
+      });
+      const myRole = myUserCourse.role;
+
       const question = await AsyncQuestionModel.create({
         courseId: cid,
         creatorId: userId,
@@ -155,11 +163,16 @@ export class asyncQuestionController {
         status: body.status || asyncQuestionStatus.AIAnswered,
         staffSetVisible: false,
         authorSetVisible:
-          (courseSettings?.asyncCentreAllowPublic && body.authorSetVisible) ||
-          false,
+          myRole != Role.STUDENT
+            ? true
+            : (courseSettings?.asyncCentreAllowPublic &&
+                body.authorSetVisible) ||
+              false,
         isAnonymous:
-          body.isAnonymous ||
-          (courseSettings?.asyncCentreDefaultAnonymous ?? true),
+          myRole != Role.STUDENT
+            ? false
+            : body.isAnonymous ||
+              (courseSettings?.asyncCentreDefaultAnonymous ?? true),
         verified: false,
         createdAt: new Date(),
       }).save();
@@ -242,8 +255,22 @@ export class asyncQuestionController {
       await this.asyncQuestionService.sendNeedsAttentionEmail(question);
     }
 
+    const myUserCourse = await UserCourseModel.findOne({
+      where: {
+        userId: userId,
+        courseId: question.courseId,
+      },
+    });
+    const myRole = myUserCourse.role;
+
     // Update allowed fields
     Object.keys(body).forEach((key) => {
+      // Skip attempts by staff to set their question to be anonymous or invisible
+      if (
+        myRole != Role.STUDENT &&
+        ['isAnonymous', 'authorSetVisible'].includes(key)
+      )
+        return;
       if (body[key] !== undefined && body[key] !== null) {
         question[key] = body[key];
       }
@@ -435,10 +462,6 @@ export class asyncQuestionController {
       where: { id: qid },
     });
 
-    const courseSettings = await CourseSettingsModel.findOne({
-      where: { courseId: question.courseId },
-    });
-
     if (!question) {
       res
         .status(HttpStatus.NOT_FOUND)
@@ -446,16 +469,30 @@ export class asyncQuestionController {
       return;
     }
 
+    const courseSettings = await CourseSettingsModel.findOne({
+      where: { courseId: question.courseId },
+    });
+
+    const myUserCourse = await UserCourseModel.findOne({
+      where: {
+        userId: user.id,
+        courseId: question.courseId,
+      },
+    });
+    const myRole = myUserCourse.role;
+
     const comment = await AsyncQuestionCommentModel.create({
       commentText: body.commentText,
       creator: user, // do NOT change this to userId since by putting user here it will pass the full creator when sending back the comment
       question,
       isAnonymous:
-        user.id == question.creatorId
-          ? question.isAnonymous
-          : (body.isAnonymous ??
-            courseSettings?.asyncCentreDefaultAnonymous ??
-            true),
+        myRole != Role.STUDENT
+          ? false
+          : user.id == question.creatorId
+            ? question.isAnonymous
+            : (body.isAnonymous ??
+              courseSettings?.asyncCentreDefaultAnonymous ??
+              true),
       createdAt: new Date(),
     }).save();
 
@@ -475,14 +512,6 @@ export class asyncQuestionController {
       `c:${question.courseId}:aq`,
       updatedQuestion,
     );
-
-    const myUserCourse = await UserCourseModel.findOne({
-      where: {
-        userId: user.id,
-        courseId: question.courseId,
-      },
-    });
-    const myRole = myUserCourse.role;
 
     // don't send email if its a comment on your own post
     if (question.creatorId !== user.id) {
@@ -581,12 +610,22 @@ export class asyncQuestionController {
       return;
     }
 
+    const myUserCourse = await UserCourseModel.findOne({
+      where: {
+        userId: userId,
+        courseId: question.courseId,
+      },
+    });
+    const myRole = myUserCourse.role;
+
     comment.commentText = body.commentText;
     comment.isAnonymous =
-      userId == question.creatorId
-        ? question.isAnonymous
-        : body.isAnonymous ||
-          (courseSettings?.asyncCentreDefaultAnonymous ?? true);
+      myRole != Role.STUDENT
+        ? false
+        : userId == question.creatorId
+          ? question.isAnonymous
+          : body.isAnonymous ||
+            (courseSettings?.asyncCentreDefaultAnonymous ?? true);
 
     await comment.save();
 

@@ -137,7 +137,9 @@ export class FactoryService {
       .attr('chatBotEnabled', true)
       .attr('asyncQueueEnabled', true)
       .attr('adsEnabled', true)
-      .attr('queueEnabled', true);
+      .attr('queueEnabled', true)
+      .attr('asyncCentreAllowPublic', false)
+      .attr('asyncCentreDefaultAnonymous', true);
 
     this.CourseSectionFactory = new Factory(
       CourseSectionMappingModel,
@@ -227,6 +229,7 @@ export class FactoryService {
       .attr('answerText', 'answer')
       .attr('status', asyncQuestionStatus.AIAnswered)
       .attr('staffSetVisible', false)
+      .attr('authorSetVisible', false)
       .attr('verified', false)
       .attr('createdAt', new Date('2025-01-01T00:00:00.000Z'));
 
@@ -235,6 +238,7 @@ export class FactoryService {
       dataSource,
     )
       .attr('commentText', 'some comment')
+      .attr('isAnonymous', true)
       .attr('createdAt', new Date('2025-01-02T00:00:00.000Z'))
       .assocOne('question', this.AsyncQuestionFactory)
       .assocOne('creator', this.UserFactory);
