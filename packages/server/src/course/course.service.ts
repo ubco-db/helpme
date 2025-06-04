@@ -34,7 +34,6 @@ import { CourseModel } from './course.entity';
 import { UserModel } from 'profile/user.entity';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
-import { RedisProfileService } from 'redisProfile/redis-profile.service';
 import { CourseSettingsModel } from './course_settings.entity';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
@@ -49,7 +48,6 @@ import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
 @Injectable()
 export class CourseService {
   constructor(
-    private readonly redisProfileService: RedisProfileService,
     private readonly mailService: MailService,
     private readonly chatbotApiService: ChatbotApiService,
     private readonly dataSource: DataSource,
@@ -140,7 +138,6 @@ export class CourseService {
         userId: userCourse.userId,
         courseId: userCourse.courseId,
       });
-      await this.redisProfileService.deleteProfile(`u:${userCourse.userId}`);
     } catch (err) {
       console.error(err);
       throw new HttpException(
@@ -353,8 +350,6 @@ export class CourseService {
       updatedUserCourse.push(userCourse);
       user.courses = updatedUserCourse;
       await user.save();
-
-      await this.redisProfileService.deleteProfile(`u:${user.id}`);
 
       return true;
     } catch {
@@ -579,8 +574,6 @@ export class CourseService {
           profUserCourse.course = clonedCourse;
           profUserCourse.role = Role.PROFESSOR;
           await manager.save(profUserCourse);
-          // delete that professor's cache from redis
-          await this.redisProfileService.deleteProfile(`u:${professor.id}`);
         }
       } else {
         console.error(
@@ -591,7 +584,6 @@ export class CourseService {
         profUserCourse.courseId = clonedCourse.id;
         profUserCourse.role = Role.PROFESSOR;
         await manager.save(profUserCourse);
-        await this.redisProfileService.deleteProfile(`u:${userId}`);
       }
 
       const organizationCourse = new OrganizationCourseModel();

@@ -14,6 +14,7 @@ import { ApplicationConfigModule } from '../config/application_config.module';
 import { RedisQueueModule } from '../redisQueue/redis-queue.module';
 import { MailModule } from 'mail/mail.module';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
+import { CourseSubscriber } from './course.subscriber';
 @Module({
   controllers: [CourseController],
   imports: [
@@ -29,6 +30,7 @@ import { ChatbotApiService } from 'chatbot/chatbot-api.service';
     HeatmapService,
     CourseService,
     RedisQueueService,
+    CourseSubscriber,
     RedisProfileService,
     QueueCleanService,
     ApplicationConfigService,

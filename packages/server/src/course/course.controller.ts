@@ -68,7 +68,6 @@ import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { CourseRole } from 'decorators/course-role.decorator';
 import { DataSource } from 'typeorm';
-import { RedisProfileService } from 'redisProfile/redis-profile.service';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { OrgRoles } from 'decorators/org-roles.decorator';
@@ -82,7 +81,6 @@ export class CourseController {
     private heatmapService: HeatmapService,
     private courseService: CourseService,
     private queueCleanService: QueueCleanService,
-    private redisProfileService: RedisProfileService,
     private readonly appConfig: ApplicationConfigService,
     private dataSource: DataSource,
   ) {}
@@ -262,29 +260,7 @@ export class CourseController {
     @Param('id', ParseIntPipe) courseId: number,
     @Body() coursePatch: EditCourseInfoParams,
   ): Promise<void> {
-    await this.courseService
-      .editCourse(courseId, coursePatch)
-      .then(async () => {
-        const course = await CourseModel.findOne({
-          where: {
-            id: courseId,
-          },
-          relations: {
-            userCourses: true,
-          },
-        });
-
-        // Won't be a costly operation since courses are not modified often
-        if (course) {
-          await Promise.all(
-            course.userCourses.map(async (userCourse) => {
-              await this.redisProfileService.deleteProfile(
-                `u:${userCourse.userId}`,
-              );
-            }),
-          );
-        }
-      });
+    await this.courseService.editCourse(courseId, coursePatch);
   }
 
   @Patch(':courseId/toggle_favourited')
@@ -306,8 +282,6 @@ export class CourseController {
 
       userCourse.favourited = !userCourse.favourited;
       userCourse.save();
-
-      await this.redisProfileService.deleteProfile(`u:${userId}`);
 
       return 'Course favourited status updated successfully';
     } catch (err) {
@@ -688,7 +662,6 @@ export class CourseController {
       where: { courseId, userId },
     });
     await this.courseService.removeUserFromCourse(userCourse);
-    await this.redisProfileService.deleteProfile(`u:${userId}`);
   }
 
   @Get(':id/ta_check_in_times')
@@ -795,8 +768,6 @@ export class CourseController {
         res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
       });
 
-    // Delete old cached record if changed
-    await this.redisProfileService.deleteProfile(`u:${user.id}`);
     return;
   }
 
@@ -891,11 +862,7 @@ export class CourseController {
     }
 
     try {
-      await UserCourseModel.update({ courseId, userId }, { role }).then(
-        async () => {
-          await this.redisProfileService.deleteProfile(`u:${userId}`);
-        },
-      );
+      await UserCourseModel.update({ courseId, userId }, { role });
     } catch (err) {
       res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
       return;
