@@ -18,10 +18,10 @@ import {
 import { UserModel } from './user.entity';
 import { pick } from 'lodash';
 import { OrganizationService } from '../organization/organization.service';
-import checkDiskSpace from 'check-disk-space';
+import * as checkDiskSpace from 'check-disk-space';
 import * as path from 'path';
 import * as fs from 'fs';
-import sharp from 'sharp';
+import * as sharp from 'sharp';
 
 @Injectable()
 export class ProfileService {
