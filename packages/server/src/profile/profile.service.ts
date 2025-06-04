@@ -16,7 +16,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { UserModel } from './user.entity';
-import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { pick } from 'lodash';
 import { OrganizationService } from '../organization/organization.service';
 import checkDiskSpace from 'check-disk-space';
@@ -26,10 +25,7 @@ import sharp from 'sharp';
 
 @Injectable()
 export class ProfileService {
-  constructor(
-    private redisProfileService: RedisProfileService,
-    private organizationService: OrganizationService,
-  ) {}
+  constructor(private organizationService: OrganizationService) {}
 
   async getProfile(user: UserModel): Promise<User> {
     const courses = user.courses
@@ -144,9 +140,6 @@ export class ProfileService {
       user.photoURL = fileName;
       await user.save();
 
-      // Delete old cached record if changed
-      await this.redisProfileService.deleteProfile(`u:${user.id}`);
-
       return fileName;
     } catch (error) {
       console.error('Error processing image:', error);
@@ -203,9 +196,6 @@ export class ProfileService {
     // Update user with new data
     Object.assign(user, userPatch);
 
-    // Delete old cached profile if changed
-    await this.redisProfileService.deleteProfile(`u:${user.id}`);
-
     // Save updated user
     await user.save();
 
@@ -229,9 +219,6 @@ export class ProfileService {
       await fs.promises.unlink(filePath);
       user.photoURL = null;
       await user.save();
-
-      // Delete old cached profile record
-      await this.redisProfileService.deleteProfile(`u:${user.id}`);
     } catch (err) {
       console.error(`Error deleting profile picture at: ${filePath}`, err);
       throw new BadRequestException(

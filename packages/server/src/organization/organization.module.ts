@@ -6,10 +6,16 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CourseService } from 'course/course.service';
 import { MailModule } from 'mail/mail.module';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
+import { OrganizationUserSubscriber } from './organization-user.subscriber';
 @Module({
   imports: [RedisProfileModule, ScheduleModule.forRoot(), MailModule],
   controllers: [OrganizationController],
-  providers: [OrganizationService, CourseService, ChatbotApiService],
+  providers: [
+    OrganizationService,
+    CourseService,
+    ChatbotApiService,
+    OrganizationUserSubscriber,
+  ],
   exports: [OrganizationService],
 })
 export class OrganizationModule {}
