@@ -18,10 +18,14 @@ import {
 import { UserModel } from './user.entity';
 import { pick } from 'lodash';
 import { OrganizationService } from '../organization/organization.service';
-import * as checkDiskSpace from 'check-disk-space';
+import * as checkDiskSpaceModule from 'check-disk-space';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as sharp from 'sharp';
+import * as sharpModule from 'sharp';
+
+const checkDiskSpace =
+  (checkDiskSpaceModule as any).default || checkDiskSpaceModule;
+const sharp = (sharpModule as any).default || sharpModule;
 
 @Injectable()
 export class ProfileService {

@@ -11,8 +11,6 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import checkDiskSpace from 'check-disk-space';
-import sharp from 'sharp';
 import * as fs from 'fs';
 import { AccountType } from '@koh/common';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
@@ -20,27 +18,30 @@ import * as path from 'path';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
 
-jest.mock('check-disk-space', () => ({ __esModule: true, default: jest.fn() }));
-const mockedCheckDiskSpace = checkDiskSpace as jest.MockedFunction<
-  typeof checkDiskSpace
->;
+jest.mock('check-disk-space', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
 
-jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-jest.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
-
-jest.mock('sharp', () => {
-  const mockSharpInstance = {
+jest.mock('sharp', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
     resize: jest.fn().mockReturnThis(),
     webp: jest.fn().mockReturnThis(),
     toFile: jest.fn().mockResolvedValue(undefined),
-  };
+  })),
+}));
 
-  return {
-    __esModule: true,
-    default: jest.fn(() => mockSharpInstance),
-  };
-});
-const mockedSharp = sharp as jest.MockedFunction<typeof sharp>;
+import checkDiskSpace from 'check-disk-space';
+import sharp from 'sharp';
+
+const mockCheckDiskSpace = checkDiskSpace as jest.MockedFunction<
+  typeof checkDiskSpace
+>;
+const mockSharp = sharp as jest.MockedFunction<typeof sharp>;
+
+jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+jest.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
 
 describe('ProfileService', () => {
   let service: ProfileService;
@@ -85,7 +86,7 @@ describe('ProfileService', () => {
       const user = await UserFactory.create();
       process.env.UPLOAD_LOCATION = '/uploads';
 
-      mockedCheckDiskSpace.mockResolvedValue({
+      mockCheckDiskSpace.mockResolvedValue({
         size: 5_000_000_000,
         free: 2_000_000_000,
       });
@@ -93,16 +94,18 @@ describe('ProfileService', () => {
       const fileName = await service.uploadUserProfileImage(mockFile, user);
 
       expect(fileName).toMatch(new RegExp(`^${user.id}-\\d+\\.webp$`));
-      expect(mockedSharp).toHaveBeenCalledWith(mockFile.buffer);
+      expect(mockSharp).toHaveBeenCalledWith(mockFile.buffer);
     });
 
     it('should throw if disk space is insufficient', async () => {
-      mockedCheckDiskSpace.mockResolvedValue({
+      const user = await UserFactory.create();
+      process.env.UPLOAD_LOCATION = '/uploads';
+
+      mockCheckDiskSpace.mockResolvedValue({
         size: 5_000_000_000,
         free: 500_000,
       });
 
-      const user = await UserFactory.create();
       await expect(
         service.uploadUserProfileImage(mockFile, user),
       ).rejects.toThrow(ServiceUnavailableException);
