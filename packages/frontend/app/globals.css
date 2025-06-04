@@ -208,6 +208,10 @@ h1, h2, h3, h4, h5, h6 {
   cursor: pointer
 }
 
+/* Fix for Ant Design Avatar component's hardcoded 14px font size on .ant-avatar-string */
+.ant-avatar .ant-avatar-string {
+  font-size: inherit !important;
+}
 
 .queueCard, .asyncCentreCard {
   /* Tailwind shadows don't look great in this scenario so went with custom */
