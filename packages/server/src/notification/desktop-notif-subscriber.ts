@@ -35,10 +35,10 @@ export class DesktopNotifSubscriber
       event.entity,
       "You've successfully signed up for desktop notifications!",
     );
-    await this.redisProfileService.deleteProfile(`u:${event.entity.user.id}`);
+    await this.redisProfileService.deleteProfile(`u:${event.entity.userId}`);
   }
 
   async afterRemove(event: RemoveEvent<DesktopNotifModel>): Promise<void> {
-    await this.redisProfileService.deleteProfile(`u:${event.entity.user.id}`);
+    await this.redisProfileService.deleteProfile(`u:${event.entity.userId}`);
   }
 }
