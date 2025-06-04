@@ -44,7 +44,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import async from 'async';
 import { Request, Response } from 'express';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -305,7 +304,7 @@ export class CourseController {
         throw new NotFoundException('Your course enrollment is not found');
 
       userCourse.favourited = !userCourse.favourited;
-      userCourse.save();
+      await userCourse.save();
 
       await this.redisProfileService.deleteProfile(`u:${userId}`);
 
@@ -973,6 +972,7 @@ export class CourseController {
       asyncCentreAIAnswers: courseSettings?.asyncCentreAIAnswers ?? true,
       asyncCentreDefaultAnonymous:
         courseSettings?.asyncCentreDefaultAnonymous ?? true,
+      asyncCentreAllowPublic: courseSettings?.asyncCentreAllowPublic ?? true,
       settingsFound: !!courseSettings, // !! converts truthy/falsy into true/false
     });
 

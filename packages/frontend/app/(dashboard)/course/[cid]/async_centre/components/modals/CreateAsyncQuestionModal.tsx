@@ -8,6 +8,7 @@ import {
   Tooltip,
   Button,
   Popconfirm,
+  Switch,
 } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
@@ -238,8 +239,14 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
                     (questionType) => questionType.id,
                   )
                 : [],
-            setVisible: false,
-            setAnonymous: true,
+            setVisible:
+              courseFeatures?.asyncCentreAllowPublic ??
+              question?.authorSetVisible ??
+              false,
+            setAnonymous:
+              question?.isAnonymous ??
+              courseFeatures?.asyncCentreDefaultAnonymous ??
+              false,
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
@@ -290,24 +297,24 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
       )}
       <Form.Item
         name="setAnonymous"
-        label="Show name and avatar to other users as part of question?"
-        tooltip="If toggled, your name and avatar will be shown with the question. Otherwise, question will be presented with anonymous profile."
+        label="Hide name and avatar from other users?"
+        tooltip="If toggled, your name and avatar will not be shown with the question. Otherwise, the question will be presented with a non-anonymous profile."
         valuePropName="checked"
       >
-        <Checkbox
-          defaultChecked={courseFeatures?.asyncCentreDefaultAnonymous ?? false}
-        />
+        <Switch />
       </Form.Item>
-      {courseFeatures?.asyncCentreAllowPublic && (
-        <Form.Item
-          name="setVisible"
-          label="Should the anytime question/answer be visible to other users?"
-          tooltip="If toggled, your question will be visible to other users. Your profile will only be visible if you do not opt for anonymity."
-          valuePropName="checked"
-        >
-          <Checkbox disabled={!courseFeatures?.asyncCentreAllowPublic} />
-        </Form.Item>
-      )}
+      <Form.Item
+        name="setVisible"
+        label="Should the anytime question/answer be visible to other users?"
+        tooltip={
+          courseFeatures?.asyncCentreAllowPublic
+            ? 'If toggled, your question will be visible to other users. Your profile will only be visible if you do not opt for anonymity.'
+            : 'You do not have permission to make this question public due to course settings.'
+        }
+        valuePropName="checked"
+      >
+        <Switch disabled={!courseFeatures?.asyncCentreAllowPublic} />
+      </Form.Item>
       {question && courseFeatures?.asyncCentreAIAnswers && (
         <Tooltip
           placement="topLeft"

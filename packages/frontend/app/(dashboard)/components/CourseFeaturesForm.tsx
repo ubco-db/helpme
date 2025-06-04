@@ -89,8 +89,8 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
         <CourseFeatureSwitch
           featureName="asyncCentreAllowPublic"
           defaultChecked={courseFeatures.asyncCentreAllowPublic}
-          title="Allow Students to make their Anytime Questions Public"
-          description="By default, students are not able to make their Anytime Questions visible to other students. Toggling this will allow students to specify whether they want their Anytime Questions to be visible to other students in the forum. If not toggled, only verified Anytime Questions are visible to all students in the asynchronous centre."
+          title="Require Author Permission to make Anytime Questions Public"
+          description="When toggled, requires both the author of an Anytime Question and a staff member to toggle the question's visibility. If not toggled, only a staff member's permission is required to make an Anytime Question visible to all members of the course."
           courseId={courseId}
         />
       </Form>

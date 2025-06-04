@@ -67,7 +67,7 @@ describe('RedisQueueService', () => {
         questionAbstract: 'questionAbstract',
         status: asyncQuestionStatus.AIAnswered,
         verified: false,
-        visible: false,
+        staffSetVisible: false,
         createdAt: new Date(),
       }).save();
 
@@ -76,7 +76,7 @@ describe('RedisQueueService', () => {
         createdAt: new Date(),
         status: asyncQuestionStatus.AIAnswered,
         verified: false,
-        visible: false,
+        staffSetVisible: false,
       }).save();
 
       const key = 'test:c:1:aq';
@@ -94,7 +94,7 @@ describe('RedisQueueService', () => {
         questionAbstract: 'questionAbstract',
         status: asyncQuestionStatus.AIAnswered,
         verified: false,
-        visible: false,
+        staffSetVisible: false,
         createdAt: new Date(),
       }).save();
 
@@ -111,7 +111,7 @@ describe('RedisQueueService', () => {
         questionAbstract: 'questionAbstract',
         status: asyncQuestionStatus.AIAnswered,
         verified: false,
-        visible: false,
+        staffSetVisible: false,
         createdAt: new Date(),
       }).save();
 
@@ -131,7 +131,7 @@ describe('RedisQueueService', () => {
         questionAbstract: 'questionAbstract',
         status: asyncQuestionStatus.AIAnswered,
         verified: false,
-        visible: false,
+        staffSetVisible: false,
         createdAt: new Date(),
       }).save();
 
@@ -140,7 +140,7 @@ describe('RedisQueueService', () => {
         createdAt: new Date(),
         status: asyncQuestionStatus.AIAnswered,
         verified: false,
-        visible: false,
+        staffSetVisible: false,
       }).save();
 
       const key = 'test:c:1:aq';
@@ -158,7 +158,7 @@ describe('RedisQueueService', () => {
         questionAbstract: 'questionAbstract',
         status: asyncQuestionStatus.AIAnswered,
         verified: false,
-        visible: false,
+        staffSetVisible: false,
         createdAt: new Date(),
       }).save();
 
@@ -175,7 +175,7 @@ describe('RedisQueueService', () => {
         questionAbstract: 'questionAbstract',
         status: asyncQuestionStatus.AIAnswered,
         verified: false,
-        visible: false,
+        staffSetVisible: false,
         createdAt: new Date('2024-01-01T00:00:00.000Z'),
       }).save();
 
@@ -190,7 +190,8 @@ describe('RedisQueueService', () => {
           questionAbstract: 'questionAbstract',
           status: 'AIAnswered',
           verified: false,
-          visible: false,
+          staffSetVisible: false,
+          authorSetVisible: true,
           createdAt: '2024-01-01T00:00:00.000Z',
           aiAnswerText: null,
           answerText: null,

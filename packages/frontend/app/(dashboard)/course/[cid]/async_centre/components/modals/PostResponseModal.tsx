@@ -18,7 +18,7 @@ import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
 
 interface FormValues {
   answerText: string
-  visible: boolean
+  staffSetVisible: boolean
   verified: boolean
 }
 
@@ -56,7 +56,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
     await API.asyncQuestions
       .facultyUpdate(question.id, {
         answerText: values.answerText,
-        visible: values.visible,
+        staffSetVisible: values.staffSetVisible,
         status: newStatus,
         verified: values.verified,
       })
@@ -120,7 +120,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
           name="form_in_modal"
           initialValues={{
             answerText: question.answerText,
-            visible: question.visible,
+            staffSetVisible: question.staffSetVisible,
             verified: question.verified,
           }}
           clearOnDestroy
@@ -142,11 +142,11 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
         />
       </Form.Item>
       <Form.Item
-        name="visible"
+        name="staffSetVisible"
         label={
           <div className="flex flex-row items-center gap-1">
             Set question visible to all students
-            <Tooltip title="Questions can normally only be seen by staff and the student who asked it. This will make it visible to all students (the student themselves will appear anonymous to other students)">
+            <Tooltip title="Questions can normally only be seen by staff and the student who asked it. This will make it visible to all students as long as the author also sets it to be visible.">
               <QuestionCircleOutlined style={{ color: 'gray' }} />
             </Tooltip>
           </div>

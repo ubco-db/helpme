@@ -841,6 +841,9 @@ export type AsyncQuestion = {
   aiAnswerText?: string
   closedAt?: Date
   visible?: boolean
+  isAnonymous?: boolean
+  staffSetVisible?: boolean
+  authorSetVisible?: boolean
   verified: boolean
   votes?: AsyncQuestionVotes[]
   comments: AsyncQuestionComment[]
@@ -940,6 +943,8 @@ export class AsyncQuestionComment {
 
   commentText!: string
 
+  isAnonymous!: boolean
+
   @Type(() => Date)
   createdAt!: Date
 }
@@ -947,6 +952,10 @@ export class AsyncQuestionComment {
 export class AsyncQuestionCommentParams {
   @IsString()
   commentText!: string
+
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean
 }
 
 export class QueueChatPartial {
@@ -2158,6 +2167,8 @@ const validFeatures = [
   'queueEnabled',
   'scheduleOnFrontPage',
   'asyncCentreAIAnswers',
+  'asyncCentreDefaultAnonymous',
+  'asyncCentreAllowPublic',
 ]
 
 export class CourseSettingsRequestBody {

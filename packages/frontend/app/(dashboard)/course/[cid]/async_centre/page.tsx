@@ -54,7 +54,7 @@ export default function AsyncCentrePage(
   const router = useRouter()
   const pathname = usePathname()
   const courseId = Number(params.cid)
-  const { userInfo, setUserInfo } = useUserInfo()
+  const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
   const [asyncQuestions, mutateAsyncQuestions] = useAsnycQuestions(courseId)
@@ -153,11 +153,11 @@ export default function AsyncCentrePage(
     // Apply visibility filter
     if (visibleFilter === 'visible') {
       displayedQuestions = displayedQuestions.filter(
-        (question) => question.visible,
+        (question) => question.authorSetVisible && question.staffSetVisible,
       )
     } else if (visibleFilter === 'hidden') {
       displayedQuestions = displayedQuestions.filter(
-        (question) => !question.visible,
+        (question) => !question.authorSetVisible || !question.staffSetVisible,
       )
     }
 

@@ -5,6 +5,7 @@ import {
   CheckCircleOutlined,
   DownOutlined,
   EyeInvisibleOutlined,
+  EyeOutlined,
   UpOutlined,
 } from '@ant-design/icons'
 import { API } from '@/app/api'
@@ -24,6 +25,7 @@ import {
   AsyncQuestionCardUIReducer,
   initialUIState,
 } from './AsyncQuestionCardUIReducer'
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 
 const statusDisplayMap = {
   // if the question has no answer text, it will say "awaiting answer"
@@ -66,6 +68,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   const shouldFlash =
     question.status === asyncQuestionStatus.AIAnswered &&
     userId === question.creatorId
+  const courseFeatures = useCourseFeatures(courseId)
 
   // make the card expanded if it is flashing (so they immediately see their answer)
   useEffect(() => {
@@ -78,10 +81,12 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
 
   // note: it is assumed that only students are creating questions. Staff creating questions will appear as anonymous (but their comments are not)
-  const [isUserShown, setIsUserShown] = useState(isStaff && showStudents)
+  const [isUserShown, setIsUserShown] = useState(
+    (isStaff && showStudents) || !question.isAnonymous,
+  )
   useEffect(() => {
-    setIsUserShown(isStaff && showStudents)
-  }, [isStaff, showStudents])
+    setIsUserShown((isStaff && showStudents) || !question.isAnonymous)
+  }, [isStaff, question.isAnonymous, showStudents])
 
   const anonId = question.creator.anonId
   const anonAnimal = getAnonAnimal(anonId)
@@ -152,6 +157,11 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     userId === question.creatorId ? 'you' : Role.STUDENT,
   )
 
+  const questionIsPublic =
+    (question.staffSetVisible && !courseFeatures?.asyncCentreAllowPublic) ||
+    (question.staffSetVisible &&
+      courseFeatures?.asyncCentreAllowPublic &&
+      question.authorSetVisible)
   const { thinkText, cleanAnswer } = parseThinkBlock(question.answerText ?? '')
 
   return (
@@ -267,39 +277,54 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                       {isUserShown ? (
                         question.creator.name
                       ) : (
-                        <>
-                          Anonymous {getAnonAnimal(anonId)}
-                          <span className="font-normal not-italic text-green-500">
-                            {userId === question.creatorId ? ' (You)' : ''}{' '}
-                          </span>
-                        </>
+                        <>Anonymous {getAnonAnimal(anonId)}</>
                       )}
+                      <span className="font-normal not-italic text-green-500">
+                        {userId === question.creatorId ? ' (You)' : ''}{' '}
+                      </span>
                     </span>
                     <span>{getAsyncWaitTime(question.createdAt)} ago</span>
                   </div>
                   <div>
                     {/* If it's the students' question, show a tag to indicate whether it is publicly visible or not */}
                     {(userId === question.creatorId || isStaff) && (
-                      <Tooltip
-                        title={
-                          isStaff
-                            ? question.visible
-                              ? 'This question was marked public by a staff member and can be seen by all students (they still appear anonymous)'
-                              : 'Only you and the question creator can see this question'
-                            : question.visible
-                              ? "A Staff member liked your question and decided to make it publicly visible. Don't worry! Your name and picture are hidden and you appear as an anonymous student."
-                              : 'Only you and staff can see this question.'
-                        }
-                      >
-                        <Tag
-                          color={question.visible ? 'blue' : 'default'}
-                          icon={
-                            question.visible ? null : <EyeInvisibleOutlined />
+                      <>
+                        <Tooltip
+                          title={
+                            isStaff
+                              ? questionIsPublic
+                                ? 'This question is visible to all members of the course, both author and staff members have toggled its visibility.'
+                                : `This question is only visible to staff members and the author.${!question.staffSetVisible ? ' Staff members have not toggled its visibility.' : ''}${courseFeatures?.asyncCentreAllowPublic && !question.authorSetVisible ? ' The author has not toggled its visiblity.' : ''}`
+                              : questionIsPublic
+                                ? 'Your question is visible to all members of the course. A staff member allowed your question to be public, and you opted for it to be public as well.'
+                                : `This question is only visible to yourself and staff members.${!question.staffSetVisible ? ' No staff members have made it public.' : ''}${courseFeatures?.asyncCentreAllowPublic && !question.authorSetVisible ? ' You have not opted to make it public.' : ''}`
                           }
                         >
-                          {question.visible ? 'Public' : 'Private'}
-                        </Tag>
-                      </Tooltip>
+                          <Tag
+                            color={questionIsPublic ? 'blue' : 'default'}
+                            icon={
+                              questionIsPublic ? (
+                                <EyeOutlined />
+                              ) : (
+                                <EyeInvisibleOutlined />
+                              )
+                            }
+                          >
+                            {questionIsPublic ? 'Public' : 'Private'}
+                          </Tag>
+                        </Tooltip>
+                        {question?.isAnonymous && (
+                          <Tooltip
+                            title={
+                              isStaff
+                                ? 'The author of this question will appear anonymous to non-staff.'
+                                : 'You will appear anonymous to other students who see this question.'
+                            }
+                          >
+                            <Tag color={'default'}>Anonymous</Tag>
+                          </Tooltip>
+                        )}
+                      </>
                     )}
                     <Tag
                       icon={
@@ -394,11 +419,15 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                     ? styles.expandedComments
                     : '',
                 )}
+                userId={userId}
                 userCourseRole={userCourseRole}
                 question={question}
                 dispatchUIStateChange={dispatch}
                 isPostingComment={uiState.isPostingComment}
                 showStudents={showStudents}
+                defaultAnonymousSetting={
+                  courseFeatures?.asyncCentreDefaultAnonymous ?? true
+                }
               />
             </div>
             <div className="flex flex-wrap">
