@@ -164,7 +164,7 @@ export default function LMSIntegrationsPage(): ReactElement {
     >
       <div className={'flex flex-col items-center gap-2'}>
         <Table
-          bordered={true}
+          bordered
           dataSource={lmsIntegrations ?? []}
           pagination={false}
           className={'w-full'}

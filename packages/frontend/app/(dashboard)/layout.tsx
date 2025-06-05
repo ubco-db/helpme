@@ -15,6 +15,7 @@ import ChatbotContextProvider from './course/[cid]/components/chatbot/ChatbotPro
 import FooterBar from './components/FooterBar'
 import { AsyncToasterProvider } from '../contexts/AsyncToasterContext'
 import { ReloadOutlined, LogoutOutlined } from '@ant-design/icons'
+import { getErrorMessage } from '../utils/generalUtils'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [profile, setProfile] = useState<User>()
@@ -36,7 +37,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           if (error.status === 401) {
             router.push('/api/v1/logout')
           } else {
-            setErrorGettingUser(error.toString())
+            setErrorGettingUser(getErrorMessage(error))
           }
         })
     }

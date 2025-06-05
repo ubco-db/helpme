@@ -10,6 +10,9 @@ import { OrganizationModule } from '../organization/organization.module';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { RedisProfileModule } from '../redisProfile/redis-profile.module';
 import { ProfileService } from './profile.service';
+import { ProfileSubscriber } from './profile.subscriber';
+import { UserCourseSubscriber } from './user-course.subscriber';
+import { UserTokenSubscriber } from './user-token.subscriber';
 
 @Module({
   imports: [
@@ -27,7 +30,14 @@ import { ProfileService } from './profile.service';
     OrganizationModule,
   ],
   controllers: [ProfileController],
-  providers: [JwtStrategy, ProfileService, RedisProfileService],
+  providers: [
+    JwtStrategy,
+    ProfileService,
+    RedisProfileService,
+    ProfileSubscriber,
+    UserCourseSubscriber,
+    UserTokenSubscriber,
+  ],
   exports: [ProfileService, RedisProfileService],
 })
 export class ProfileModule {}
