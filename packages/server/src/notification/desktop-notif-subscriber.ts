@@ -39,6 +39,8 @@ export class DesktopNotifSubscriber
   }
 
   async afterRemove(event: RemoveEvent<DesktopNotifModel>): Promise<void> {
-    await this.redisProfileService.deleteProfile(`u:${event.entity.userId}`);
+    if (event.entity && event.entity.userId) {
+      await this.redisProfileService.deleteProfile(`u:${event.entity.userId}`);
+    }
   }
 }
