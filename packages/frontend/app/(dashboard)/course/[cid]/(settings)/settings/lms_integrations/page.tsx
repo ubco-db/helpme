@@ -375,7 +375,7 @@ export default function CourseLMSIntegrationPage(props: {
         key: 'announcements',
         label: (
           <Tooltip title="Also includes discussion posts written by instructors and TA's.">
-            Course Announcements / Discussion Posts
+            Course Announcements / Instructor Discussion Posts
           </Tooltip>
         ),
         children: (
