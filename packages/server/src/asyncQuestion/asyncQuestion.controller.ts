@@ -45,6 +45,7 @@ import { ApplicationConfigService } from '../config/application_config.service';
 import { AsyncQuestionService } from './asyncQuestion.service';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
+import { CourseRole } from '../decorators/course-role.decorator';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -137,20 +138,13 @@ export class asyncQuestionController {
     @Body() body: CreateAsyncQuestions,
     @Param('cid', ParseIntPipe) cid: number,
     @UserId() userId: number,
+    @CourseRole() courseRole: Role,
     @Res() res: Response,
   ): Promise<any> {
     try {
       const courseSettings = await CourseSettingsModel.findOne({
         where: { courseId: cid },
       });
-
-      const myUserCourse = await UserCourseModel.findOne({
-        where: {
-          userId: userId,
-          courseId: cid,
-        },
-      });
-      const myRole = myUserCourse.role;
 
       const question = await AsyncQuestionModel.create({
         courseId: cid,
@@ -163,13 +157,13 @@ export class asyncQuestionController {
         status: body.status || asyncQuestionStatus.AIAnswered,
         staffSetVisible: false,
         authorSetVisible:
-          myRole != Role.STUDENT
+          courseRole != Role.STUDENT
             ? true
             : (courseSettings?.asyncCentreAllowPublic &&
                 body.authorSetVisible) ||
               false,
         isAnonymous:
-          myRole != Role.STUDENT
+          courseRole != Role.STUDENT
             ? false
             : body.isAnonymous ||
               (courseSettings?.asyncCentreDefaultAnonymous ?? true),
@@ -215,6 +209,7 @@ export class asyncQuestionController {
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
     @UserId() userId: number,
+    @CourseRole() courseRole: Role,
   ): Promise<AsyncQuestionParams> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
@@ -255,19 +250,11 @@ export class asyncQuestionController {
       await this.asyncQuestionService.sendNeedsAttentionEmail(question);
     }
 
-    const myUserCourse = await UserCourseModel.findOne({
-      where: {
-        userId: userId,
-        courseId: question.courseId,
-      },
-    });
-    const myRole = myUserCourse.role;
-
     // Update allowed fields
     Object.keys(body).forEach((key) => {
       // Skip attempts by staff to set their question to be anonymous or invisible
       if (
-        myRole != Role.STUDENT &&
+        courseRole != Role.STUDENT &&
         ['isAnonymous', 'authorSetVisible'].includes(key)
       )
         return;
@@ -456,6 +443,7 @@ export class asyncQuestionController {
     @Param('qid', ParseIntPipe) qid: number,
     @Body() body: AsyncQuestionCommentParams,
     @User() user: UserModel,
+    @CourseRole() courseRole: Role,
     @Res() res: Response,
   ): Promise<Response> {
     const question = await AsyncQuestionModel.findOne({
@@ -473,20 +461,12 @@ export class asyncQuestionController {
       where: { courseId: question.courseId },
     });
 
-    const myUserCourse = await UserCourseModel.findOne({
-      where: {
-        userId: user.id,
-        courseId: question.courseId,
-      },
-    });
-    const myRole = myUserCourse.role;
-
     const comment = await AsyncQuestionCommentModel.create({
       commentText: body.commentText,
       creator: user, // do NOT change this to userId since by putting user here it will pass the full creator when sending back the comment
       question,
       isAnonymous:
-        myRole != Role.STUDENT
+        courseRole != Role.STUDENT
           ? false
           : user.id == question.creatorId
             ? question.isAnonymous
@@ -517,7 +497,7 @@ export class asyncQuestionController {
     if (question.creatorId !== user.id) {
       await this.asyncQuestionService.sendNewCommentOnMyQuestionEmail(
         user,
-        myRole,
+        courseRole,
         updatedQuestion,
         comment,
       );
@@ -525,7 +505,7 @@ export class asyncQuestionController {
     // send emails out to all users that have posted a comment on this question (it also performs checks)
     await this.asyncQuestionService.sendNewCommentOnOtherQuestionEmail(
       user,
-      myRole,
+      courseRole,
       question.creatorId,
       updatedQuestion,
       comment,
@@ -541,10 +521,10 @@ export class asyncQuestionController {
         updatedQuestion,
         user.id,
       );
-    } else if (myRole === Role.TA || myRole === Role.PROFESSOR) {
+    } else if (courseRole === Role.TA || courseRole === Role.PROFESSOR) {
       // if the question is not visible, and poster is staff, mark it as unread for the creator
       await this.asyncQuestionService.markUnreadForCreator(updatedQuestion);
-    } else if (myRole === Role.STUDENT) {
+    } else if (courseRole === Role.STUDENT) {
       // if the question is not visible, and poster is student, mark it as unread for staff
       await this.asyncQuestionService.markUnreadForRoles(
         updatedQuestion,
@@ -573,6 +553,7 @@ export class asyncQuestionController {
     @Param('commentId', ParseIntPipe) commentId: number,
     @Body() body: AsyncQuestionCommentParams,
     @UserId() userId: number,
+    @CourseRole() courseRole: Role,
     @Res() res: Response,
   ): Promise<Response> {
     const question = await AsyncQuestionModel.findOne({
@@ -610,17 +591,9 @@ export class asyncQuestionController {
       return;
     }
 
-    const myUserCourse = await UserCourseModel.findOne({
-      where: {
-        userId: userId,
-        courseId: question.courseId,
-      },
-    });
-    const myRole = myUserCourse.role;
-
     comment.commentText = body.commentText;
     comment.isAnonymous =
-      myRole != Role.STUDENT
+      courseRole != Role.STUDENT
         ? false
         : userId == question.creatorId
           ? question.isAnonymous

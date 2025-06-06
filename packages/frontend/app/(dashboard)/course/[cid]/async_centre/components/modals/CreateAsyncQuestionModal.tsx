@@ -7,7 +7,6 @@ import {
   message,
   Modal,
   Popconfirm,
-  Switch,
   Tooltip,
 } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -245,9 +244,9 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
                 : [],
             setVisible:
               isStaff ||
-              (courseFeatures?.asyncCentreAllowPublic ??
-                question?.authorSetVisible ??
-                false),
+              (courseFeatures?.asyncCentreAllowPublic
+                ? (question?.authorSetVisible ?? false)
+                : false),
             setAnonymous:
               isStaff ||
               (question?.isAnonymous ??
@@ -302,30 +301,38 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
         </Form.Item>
       )}
       <Form.Item
-        name="setAnonymous"
-        label="Hide name and avatar from other users?"
-        tooltip={
-          !isStaff
-            ? 'If toggled, your name and avatar will not be shown with the question. Otherwise, the question will be presented with a non-anonymous profile.'
-            : 'Staff members cannot post anonymous Anytime Questions.'
-        }
-        valuePropName="checked"
-      >
-        <Switch disabled={isStaff} />
-      </Form.Item>
-      <Form.Item
         name="setVisible"
-        label="Should the anytime question/answer be visible to other users once responded to?"
+        label="Post Publicly?"
         tooltip={
           isStaff
-            ? 'Anytime Questions authored by staff members do not have optional visibility. To make it publicly visible, finish creating the question and then post a response to it.'
+            ? `${
+                courseFeatures?.asyncCentreAllowPublic
+                  ? "As a staff member, you can\'t set the author visibility setting."
+                  : "This course doesn't require author visibility permission."
+              } Post a response after its completed to make it visible.`
             : courseFeatures?.asyncCentreAllowPublic
-              ? 'If toggled, your question will be visible to other users. Your profile will only be visible if you do not opt for anonymity.'
-              : 'This course does not require approval by question authors for questions to be public, only approval by course staff members.'
+              ? 'Allow other students to see your question. You will appear anonymous unless otherwise specified.'
+              : 'In this course, only staff members can allow other students to see your question. You will appear anonymous unless otherwise specified.'
         }
         valuePropName="checked"
+        layout="horizontal"
       >
-        <Switch disabled={!courseFeatures?.asyncCentreAllowPublic || isStaff} />
+        <Checkbox
+          disabled={!courseFeatures?.asyncCentreAllowPublic || isStaff}
+        />
+      </Form.Item>
+      <Form.Item
+        name="setAnonymous"
+        label="Appear Anonymous?"
+        tooltip={
+          !isStaff
+            ? 'If toggled, your name and avatar will not be shown with the question. Staff members will still see who you are.'
+            : 'Staff members cannot post anonymous Anytime Questions.'
+        }
+        layout="horizontal"
+        valuePropName="checked"
+      >
+        <Checkbox disabled={isStaff} />
       </Form.Item>
       {question && courseFeatures?.asyncCentreAIAnswers && (
         <Tooltip
@@ -347,11 +354,6 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           </Form.Item>
         </Tooltip>
       )}
-      <div className="text-gray-500">
-        Only you and faculty will be able to see your question unless a faculty
-        member chooses to mark it public, in which case it will appear fully
-        anonymous to other students.
-      </div>
     </Modal>
   )
 }

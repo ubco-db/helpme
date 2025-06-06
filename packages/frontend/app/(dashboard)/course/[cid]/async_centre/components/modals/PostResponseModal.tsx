@@ -1,19 +1,25 @@
 import { useState } from 'react'
 import Modal from 'antd/lib/modal/Modal'
 import {
-  Input,
-  Form,
-  message,
-  Switch,
-  Checkbox,
+  Alert,
   Button,
+  Checkbox,
+  Form,
+  Input,
+  message,
   Popconfirm,
+  Switch,
   Tooltip,
 } from 'antd'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
-import { DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons'
+import {
+  CheckCircleOutlined,
+  DeleteOutlined,
+  QuestionCircleOutlined,
+  WarningOutlined,
+} from '@ant-design/icons'
 import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
 
 interface FormValues {
@@ -27,6 +33,7 @@ interface PostResponseModalProps {
   onCancel: () => void
   onPostResponse: () => void
   question: AsyncQuestion
+  asyncCentreAllowPublic: boolean
 }
 
 const PostResponseModal: React.FC<PostResponseModalProps> = ({
@@ -34,6 +41,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
   question,
   onCancel,
   onPostResponse,
+  asyncCentreAllowPublic,
 }) => {
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
@@ -141,6 +149,24 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
           allowClear
         />
       </Form.Item>
+      {asyncCentreAllowPublic && (
+        <Alert
+          icon={
+            question.authorSetVisible ? (
+              <CheckCircleOutlined />
+            ) : (
+              <WarningOutlined />
+            )
+          }
+          type={question.authorSetVisible ? 'success' : 'warning'}
+          message={'Visibility Setting'}
+          description={
+            question.authorSetVisible
+              ? 'The student who created this question opted for it to be visible to other students.'
+              : 'The student who created this question did not opt for it to be visible to other students.'
+          }
+        />
+      )}
       <Form.Item
         name="staffSetVisible"
         label={
@@ -151,6 +177,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
             </Tooltip>
           </div>
         }
+        layout="horizontal"
         valuePropName="checked"
       >
         <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />

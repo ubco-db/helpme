@@ -313,17 +313,6 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                             {questionIsPublic ? 'Public' : 'Private'}
                           </Tag>
                         </Tooltip>
-                        {question?.isAnonymous && (
-                          <Tooltip
-                            title={
-                              isStaff
-                                ? 'The author of this question will appear anonymous to non-staff.'
-                                : 'You will appear anonymous to other students who see this question.'
-                            }
-                          >
-                            <Tag color={'default'}>Anonymous</Tag>
-                          </Tooltip>
-                        )}
                       </>
                     )}
                     <Tag
@@ -358,6 +347,9 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   <TAAsyncQuestionCardButtons
                     question={question}
                     onAsyncQuestionUpdate={mutateAsyncQuestions}
+                    asyncCentreAllowPublic={
+                      courseFeatures?.asyncCentreAllowPublic ?? true
+                    }
                   />
                 ) : userId === question.creatorId ? (
                   <StudentAsyncQuestionCardButtons

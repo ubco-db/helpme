@@ -839,7 +839,6 @@ export type AsyncQuestion = {
   answerText?: string
   aiAnswerText?: string
   closedAt?: Date
-  visible?: boolean
   isAnonymous?: boolean
   staffSetVisible?: boolean
   authorSetVisible?: boolean

@@ -1,22 +1,22 @@
 import { DeleteOutlined, FormOutlined } from '@ant-design/icons'
-import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
-import { message, Popconfirm, Tooltip } from 'antd'
+import { AsyncQuestion } from '@koh/common'
+import { Popconfirm, Tooltip } from 'antd'
 import { useState } from 'react'
 import CircleButton from '../../queue/[qid]/components/CircleButton'
 import PostResponseModal from './modals/PostResponseModal'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 import { deleteAsyncQuestion } from '../utils/commonAsyncFunctions'
 
 type TAAsyncQuestionCardButtonsProps = {
   question: AsyncQuestion
   onAsyncQuestionUpdate: () => void
+  asyncCentreAllowPublic: boolean
 }
 
 const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
   question,
   onAsyncQuestionUpdate,
+  asyncCentreAllowPublic,
 }) => {
   const [postResponseModalOpen, setPostResponseModalOpen] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -59,6 +59,7 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
           onAsyncQuestionUpdate()
           setPostResponseModalOpen(false)
         }}
+        asyncCentreAllowPublic={asyncCentreAllowPublic}
       />
     </>
   )

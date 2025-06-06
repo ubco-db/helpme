@@ -1,5 +1,13 @@
 import { useMemo, useState } from 'react'
-import { List, Button, Tooltip, message, Input, Popconfirm, Switch } from 'antd'
+import {
+  Button,
+  Checkbox,
+  Input,
+  List,
+  message,
+  Popconfirm,
+  Tooltip,
+} from 'antd'
 import Comment from './Comment'
 import moment from 'moment'
 import { API } from '@/app/api'
@@ -206,13 +214,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               Post
             </Button>
             {!isStaff && question.creatorId != userId && (
-              <Switch
+              <Checkbox
                 className={'mx-2'}
                 checked={commentAnonymous}
-                checkedChildren={'Anonymous'}
-                unCheckedChildren={'Non-Anonymous'}
                 onChange={() => setCommentAnonymous(!commentAnonymous)}
-              />
+              >
+                Post Anonymously?
+              </Checkbox>
             )}
           </>
         )}

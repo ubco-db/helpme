@@ -6,11 +6,11 @@ import { CommentProps } from '../utils/types'
 import { DeleteOutlined, EditOutlined, MoreOutlined } from '@ant-design/icons'
 import {
   Button,
+  Checkbox,
   Dropdown,
   Input,
   message,
   Popconfirm,
-  Switch,
   Tooltip,
 } from 'antd'
 import { useEffect, useState } from 'react'
@@ -297,7 +297,7 @@ const Comment: React.FC<CommentProps> = ({
             className="ml-2 px-6"
             type="primary"
             loading={editLoading}
-            disabled={newContent === content}
+            disabled={newContent === content && newAnonymous === isAnonymous}
             onClick={async (e) => {
               e.stopPropagation()
               setEditLoading(true)
@@ -330,13 +330,13 @@ const Comment: React.FC<CommentProps> = ({
             Save
           </Button>
           {!IAmStaff && !(author.isAuthor && isSelf) && (
-            <Switch
+            <Checkbox
               className={'mx-2'}
               checked={newAnonymous}
-              checkedChildren={'Anonymous'}
-              unCheckedChildren={'Non-Anonymous'}
               onChange={() => setNewAnonymous(!newAnonymous)}
-            />
+            >
+              Post Anonymously?
+            </Checkbox>
           )}
         </div>
       )}
