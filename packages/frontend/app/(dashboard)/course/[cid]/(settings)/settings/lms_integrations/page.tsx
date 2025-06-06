@@ -336,7 +336,11 @@ export default function CourseLMSIntegrationPage(props: {
       </div>
     )
   } else {
-    const tabItems = [
+    const tabItems: Array<{
+      key: string
+      label: string | React.ReactNode
+      children: React.ReactNode
+    }> = [
       {
         key: 'roster',
         label: 'Course Roster',
@@ -369,7 +373,11 @@ export default function CourseLMSIntegrationPage(props: {
     if (announcements.length > 0) {
       tabItems.push({
         key: 'announcements',
-        label: 'Course Announcements',
+        label: (
+          <Tooltip title="Also includes discussion posts written by instructors and TA's.">
+            Course Announcements / Discussion Posts
+          </Tooltip>
+        ),
         children: (
           <LMSDocumentList<LMSAnnouncement>
             courseId={courseId}
