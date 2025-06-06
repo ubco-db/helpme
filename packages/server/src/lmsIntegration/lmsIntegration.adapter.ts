@@ -198,12 +198,38 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     status: LMSApiResponseStatus;
     announcements: LMSAnnouncement[];
   }> {
-    const { status, data } = await this.GetPaginated(
-      `courses/${this.integration.apiCourseId}/discussion_topics?only_announcements=true`,
+    const { status: instructorStatus, instructorIds } =
+      await this.getInstructorIds();
+
+    // Get announcements using only_announcements=true
+    const { status: announcementStatus, data: announcementData } =
+      await this.GetPaginated(
+        `courses/${this.integration.apiCourseId}/discussion_topics?only_announcements=true`,
+      );
+
+    // Get all discussion topics for instructor posts
+    const { status: discussionStatus, data: discussionData } =
+      await this.GetPaginated(
+        `courses/${this.integration.apiCourseId}/discussion_topics`,
+      );
+
+    if (
+      announcementStatus != LMSApiResponseStatus.Success &&
+      discussionStatus != LMSApiResponseStatus.Success
+    ) {
+      return { status: announcementStatus, announcements: [] };
+    }
+
+    // Filter instructor discussion posts (exclude announcements to avoid duplicates)
+    const instructorPosts = discussionData.filter(
+      (d: any) =>
+        d.posted_at != undefined &&
+        !d.is_announcement &&
+        d.author &&
+        instructorIds.has(d.author.id),
     );
 
-    if (status != LMSApiResponseStatus.Success)
-      return { status, announcements: [] };
+    const data = [...announcementData, ...instructorPosts];
 
     const announcements: LMSAnnouncement[] = data
       .filter((d: any) => d.posted_at != undefined)
@@ -228,6 +254,23 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     return {
       status: LMSApiResponseStatus.Success,
       announcements,
+    };
+  }
+
+  private async getInstructorIds(): Promise<{
+    status: LMSApiResponseStatus;
+    instructorIds: Set<number>;
+  }> {
+    const { status, data } = await this.GetPaginated(
+      `courses/${this.integration.apiCourseId}/users?sort=username&enrollment_type[]=teacher&enrollment_type[]=ta`,
+    );
+
+    if (status != LMSApiResponseStatus.Success)
+      return { status, instructorIds: new Set() };
+
+    return {
+      status: LMSApiResponseStatus.Success,
+      instructorIds: new Set(data.map((user: any) => user.id)),
     };
   }
 
