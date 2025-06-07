@@ -34,6 +34,6 @@ Provide instructions so we can reproduce.
 - [ ] I have made corresponding changes to the documentation
 - [ ] My changes generate no new warnings
 - [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
+- [ ] I have checked that new and existing tests pass *locally* with my changes
 - [ ] Any work that this PR is dependent on has been merged into the main branch
 - [ ] Any UI changes have been checked to work on desktop, tablet, and mobile

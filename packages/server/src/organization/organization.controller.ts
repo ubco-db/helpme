@@ -664,8 +664,6 @@ export class OrganizationController {
             },
           });
 
-          organization.bannerUrl = null;
-          await organization.save();
           return res.status(HttpStatus.NOT_FOUND).send({
             message: `Banner image for ${organization.name} not found`,
           });
@@ -700,8 +698,6 @@ export class OrganizationController {
               message: `Organization not found`,
             });
           }
-          organization.logoUrl = null;
-          await organization.save();
           return res.status(HttpStatus.NOT_FOUND).send({
             message: `Logo image for ${organization.name} not found`,
           });
@@ -869,6 +865,7 @@ export class OrganizationController {
     await organization
       .save()
       .then(() => {
+        console.log(organization);
         return res.status(HttpStatus.OK).send({
           message: 'Logo uploaded',
           fileName: fileName,
