@@ -7,10 +7,10 @@ import {
   Collapse,
   Form,
   Input,
+  message,
   Modal,
   Select,
   Table,
-  message,
 } from 'antd'
 import { PenBoxIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import {

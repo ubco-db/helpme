@@ -5,29 +5,29 @@ import {
   Role,
   TACheckinTimesResponse,
   UserCourse,
+  validFeatures,
 } from '@koh/common';
-import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { CourseModule } from '../src/course/course.module';
 import { QueueModel } from '../src/queue/queue.entity';
 import {
+  ChatTokenFactory,
   CourseFactory,
   CourseSectionFactory,
+  CourseSettingsFactory,
   EventFactory,
   OrganizationCourseFactory,
   OrganizationFactory,
   OrganizationUserFactory,
+  QuestionFactory,
   QueueFactory,
+  QueueInviteFactory,
   SemesterFactory,
   StudentCourseFactory,
   TACourseFactory,
   UserCourseFactory,
   UserFactory,
-  CourseSettingsFactory,
-  QuestionFactory,
-  QueueInviteFactory,
-  ChatTokenFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -1622,7 +1622,7 @@ describe('Course Integration', () => {
         .send({ value: true, feature: 'invalidFeature' });
 
       expect(resp.body.message).toEqual([
-        'feature must be one of the following values: chatBotEnabled, asyncQueueEnabled, adsEnabled, queueEnabled, scheduleOnFrontPage, asyncCentreAIAnswers',
+        `feature must be one of the following values: ${validFeatures.join(', ')}`,
       ]);
       expect(resp.status).toBe(400);
     });
@@ -1798,6 +1798,8 @@ describe('Course Integration', () => {
         adsEnabled: true,
         queueEnabled: true,
         asyncCentreAIAnswers: true,
+        asyncCentreAllowPublic: true,
+        asyncCentreDefaultAnonymous: true,
         scheduleOnFrontPage: false,
         settingsFound: false,
       });
@@ -1816,6 +1818,8 @@ describe('Course Integration', () => {
         adsEnabled: false,
         queueEnabled: false,
         asyncCentreAIAnswers: false,
+        asyncCentreAllowPublic: false,
+        asyncCentreDefaultAnonymous: false,
         scheduleOnFrontPage: true,
       });
       const resp = await supertest({ userId: student.id }).get(
@@ -1830,6 +1834,8 @@ describe('Course Integration', () => {
         adsEnabled: false,
         queueEnabled: false,
         asyncCentreAIAnswers: false,
+        asyncCentreAllowPublic: false,
+        asyncCentreDefaultAnonymous: false,
         scheduleOnFrontPage: true,
         settingsFound: true,
       });

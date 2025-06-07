@@ -1,24 +1,30 @@
 import { useState } from 'react'
 import Modal from 'antd/lib/modal/Modal'
 import {
-  Input,
-  Form,
-  message,
-  Switch,
-  Checkbox,
+  Alert,
   Button,
+  Checkbox,
+  Form,
+  Input,
+  message,
   Popconfirm,
+  Switch,
   Tooltip,
 } from 'antd'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
-import { DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons'
+import {
+  CheckCircleOutlined,
+  DeleteOutlined,
+  QuestionCircleOutlined,
+  WarningOutlined,
+} from '@ant-design/icons'
 import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
 
 interface FormValues {
   answerText: string
-  visible: boolean
+  staffSetVisible: boolean
   verified: boolean
 }
 
@@ -27,6 +33,7 @@ interface PostResponseModalProps {
   onCancel: () => void
   onPostResponse: () => void
   question: AsyncQuestion
+  asyncCentreAllowPublic: boolean
 }
 
 const PostResponseModal: React.FC<PostResponseModalProps> = ({
@@ -34,6 +41,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
   question,
   onCancel,
   onPostResponse,
+  asyncCentreAllowPublic,
 }) => {
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
@@ -56,7 +64,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
     await API.asyncQuestions
       .facultyUpdate(question.id, {
         answerText: values.answerText,
-        visible: values.visible,
+        staffSetVisible: values.staffSetVisible,
         status: newStatus,
         verified: values.verified,
       })
@@ -120,7 +128,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
           name="form_in_modal"
           initialValues={{
             answerText: question.answerText,
-            visible: question.visible,
+            staffSetVisible: question.staffSetVisible,
             verified: question.verified,
           }}
           clearOnDestroy
@@ -141,16 +149,35 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
           allowClear
         />
       </Form.Item>
+      {asyncCentreAllowPublic && (
+        <Alert
+          icon={
+            question.authorSetVisible ? (
+              <CheckCircleOutlined />
+            ) : (
+              <WarningOutlined />
+            )
+          }
+          type={question.authorSetVisible ? 'success' : 'warning'}
+          message={'Visibility Setting'}
+          description={
+            question.authorSetVisible
+              ? 'The student who created this question opted for it to be visible to other students.'
+              : 'The student who created this question did not opt for it to be visible to other students.'
+          }
+        />
+      )}
       <Form.Item
-        name="visible"
+        name="staffSetVisible"
         label={
           <div className="flex flex-row items-center gap-1">
             Set question visible to all students
-            <Tooltip title="Questions can normally only be seen by staff and the student who asked it. This will make it visible to all students (the student themselves will appear anonymous to other students)">
+            <Tooltip title="Questions can normally only be seen by staff and the student who asked it. This will make it visible to all students as long as the author also sets it to be visible.">
               <QuestionCircleOutlined style={{ color: 'gray' }} />
             </Tooltip>
           </div>
         }
+        layout="horizontal"
         valuePropName="checked"
       >
         <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />

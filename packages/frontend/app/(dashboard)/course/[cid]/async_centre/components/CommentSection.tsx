@@ -1,5 +1,13 @@
 import { useMemo, useState } from 'react'
-import { List, Button, Tooltip, message, Input, Popconfirm } from 'antd'
+import {
+  Button,
+  Checkbox,
+  Input,
+  List,
+  message,
+  Popconfirm,
+  Tooltip,
+} from 'antd'
 import Comment from './Comment'
 import moment from 'moment'
 import { API } from '@/app/api'
@@ -12,23 +20,30 @@ import { Action } from './AsyncQuestionCardUIReducer'
 const { TextArea } = Input
 
 interface CommentSectionProps {
+  userId: number
   userCourseRole: Role
   question: AsyncQuestion
   dispatchUIStateChange: (action: Action) => void
   isPostingComment: boolean
   showStudents: boolean
   className?: string
+  defaultAnonymousSetting: boolean
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({
+  userId,
   userCourseRole,
   question,
   dispatchUIStateChange,
   isPostingComment,
   showStudents,
   className,
+  defaultAnonymousSetting,
 }) => {
   const [commentInputValue, setCommentInputValue] = useState('')
+  const [commentAnonymous, setCommentAnonymous] = useState<boolean>(
+    defaultAnonymousSetting,
+  )
   const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
   const [postCommentCancelPopoverOpen, setPostCommentCancelPopoverOpen] =
     useState(false)
@@ -39,6 +54,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   const comments = useMemo(() => {
     return generateCommentProps(
       question.id,
+      question.isAnonymous ?? defaultAnonymousSetting,
       question.comments,
       isStaff,
       showStudents,
@@ -49,6 +65,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   }, [
     question.id,
     question.comments,
+    question.isAnonymous,
     isStaff,
     showStudents,
     dispatchUIStateChange,
@@ -58,10 +75,18 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   const handleCommentOnPost = async (
     questionId: number,
     commentText: string,
+    isAnonymous: boolean,
   ) => {
     setIsPostCommentLoading(true)
     await API.asyncQuestions
-      .comment(questionId, { commentText })
+      .comment(questionId, {
+        commentText,
+        isAnonymous: isStaff
+          ? false
+          : question.creatorId == userId
+            ? question.isAnonymous
+            : isAnonymous,
+      })
       .then((newComment) => {
         dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
         message.success('Comment posted successfully')
@@ -172,7 +197,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               onClick={async (e) => {
                 e.stopPropagation()
                 if (commentInputValue) {
-                  await handleCommentOnPost(question.id, commentInputValue)
+                  await handleCommentOnPost(
+                    question.id,
+                    commentInputValue,
+                    commentAnonymous,
+                  )
                   dispatchUIStateChange({
                     type: 'SET_IS_POSTING_COMMENT',
                     isPostingComment: false,
@@ -184,6 +213,15 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             >
               Post
             </Button>
+            {!isStaff && question.creatorId != userId && (
+              <Checkbox
+                className={'mx-2'}
+                checked={commentAnonymous}
+                onChange={() => setCommentAnonymous(!commentAnonymous)}
+              >
+                Post Anonymously?
+              </Checkbox>
+            )}
           </>
         )}
       </div>
@@ -193,6 +231,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
 function generateCommentProps(
   questionId: number,
+  questionIsAnonymous: boolean,
   comments: AsyncQuestionComment[],
   IAmStaff: boolean,
   showStudents: boolean,
@@ -210,15 +249,18 @@ function generateCommentProps(
       questionId,
       author: comment.creator,
       content: comment.commentText,
+      isAnonymous: comment.isAnonymous,
+      questionIsAnonymous,
       onDeleteSuccess: () => {
         // remove the comment from the question object
         const commentIndex = comments.findIndex((c) => c.id === comment.id)
         comments.splice(commentIndex, 1)
         regenerateComments(!regenerateCommentsFlag)
       },
-      onEditSuccess: (newCommentText) => {
+      onEditSuccess: (newCommentText, newCommentAnonymous) => {
         // update the comment content
         comment.commentText = newCommentText
+        comment.isAnonymous = newCommentAnonymous
         regenerateComments(!regenerateCommentsFlag)
       },
       datetime: (
