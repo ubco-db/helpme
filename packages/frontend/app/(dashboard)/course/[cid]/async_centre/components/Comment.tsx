@@ -55,9 +55,10 @@ const Comment: React.FC<CommentProps> = ({
   const { userInfo } = useUserInfo()
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  // Form state that stores the edited comment content
   const [newContent, setNewContent] = useState(content)
   const [editLoading, setEditLoading] = useState(false)
-
+  // Form state that allows the user to specify whether or not they would like their comment to be anonymous
   const [newAnonymous, setNewAnonymous] = useState<boolean>(isAnonymous)
   useEffect(() => setNewAnonymous(isAnonymous), [isAnonymous])
 

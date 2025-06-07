@@ -1,17 +1,13 @@
 'use client'
 
-import {
-  AsyncQuestion,
-  QuestionType,
-  Role,
-  asyncQuestionStatus,
-} from '@koh/common'
+import { asyncQuestionStatus, QuestionType, Role } from '@koh/common'
 import React, {
   ReactElement,
+  use,
   useCallback,
   useEffect,
+  useMemo,
   useState,
-  use,
 } from 'react'
 import { Button, Checkbox, Popover, Segmented, Select, Tooltip } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -96,100 +92,101 @@ export default function AsyncCentrePage(
   const [selectedQuestionTags, setSelectedQuestionTags] = useState<
     QuestionType[]
   >([])
-  const [displayedQuestions, setDisplayedQuestions] = useState<AsyncQuestion[]>(
-    [],
-  )
+
   const [sortBy, setSortBy] = useState<
     'newest' | 'oldest' | 'most-votes' | 'least-votes'
   >('newest')
 
-  const applySort = useCallback(
-    (displayedQuestions: AsyncQuestion[]) => {
-      return displayedQuestions.sort((a, b) => {
-        switch (sortBy) {
-          case 'newest':
+  const applyStatusFilter = useMemo(() => {
+    return (
+      asyncQuestions?.filter((question) => {
+        switch (statusFilter) {
+          case 'verified':
             return (
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              question.status === asyncQuestionStatus.HumanAnswered ||
+              question.verified
             )
-          case 'oldest':
+          case 'unverified':
             return (
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              question.status === asyncQuestionStatus.AIAnswered ||
+              question.status ===
+                asyncQuestionStatus.AIAnsweredNeedsAttention ||
+              !question.answerText
             )
-          case 'most-votes':
-            return b.votesSum - a.votesSum
-          case 'least-votes':
-            return a.votesSum - b.votesSum
           default:
-            return 0
+            return true
         }
-      })
-    },
-    [sortBy],
+      }) ?? []
+    )
+  }, [statusFilter, asyncQuestions])
+
+  const applyVisibilityFilter = useMemo(
+    () =>
+      applyStatusFilter.filter((question) => {
+        switch (visibleFilter) {
+          case 'visible':
+            return question.authorSetVisible && question.staffSetVisible
+          case 'hidden':
+            return !question.authorSetVisible || !question.staffSetVisible
+          default:
+            return true
+        }
+      }),
+    [visibleFilter, applyStatusFilter],
   )
 
-  // This endpoint will be called to update unread count back to 0 when this page is entered
-  // May seem more inefficient but this is the only way to ensure that the unread count is accurate given that userInfo no longer tracks it
-  useEffect(() => {
-    API.asyncQuestions.updateUnreadAsyncCount(courseId)
-  }, [])
-
-  useEffect(() => {
-    let displayedQuestions = asyncQuestions || []
-    // Apply status filter
-    if (statusFilter === 'verified') {
-      displayedQuestions = displayedQuestions.filter(
-        (question) =>
-          question.status === asyncQuestionStatus.HumanAnswered ||
-          question.verified,
-      )
-    } else if (statusFilter === 'unverified') {
-      displayedQuestions = displayedQuestions.filter(
-        (question) =>
-          question.status === asyncQuestionStatus.AIAnswered ||
-          question.status === asyncQuestionStatus.AIAnsweredNeedsAttention ||
-          !question.answerText,
-      )
-    }
-    // Apply visibility filter
-    if (visibleFilter === 'visible') {
-      displayedQuestions = displayedQuestions.filter(
-        (question) => question.authorSetVisible && question.staffSetVisible,
-      )
-    } else if (visibleFilter === 'hidden') {
-      displayedQuestions = displayedQuestions.filter(
-        (question) => !question.authorSetVisible || !question.staffSetVisible,
-      )
-    }
-
-    // Apply question type filter
+  const applyQuestionTags = useMemo(() => {
     if (selectedQuestionTags.length > 0) {
-      displayedQuestions = displayedQuestions.filter((question) => {
+      return applyVisibilityFilter.filter((question) => {
         const questionTypeIds = question.questionTypes.map((type) => type.id)
         return selectedQuestionTags.every((type) =>
           questionTypeIds.includes(type.id),
         )
       })
-    }
+    } else return applyVisibilityFilter
+  }, [selectedQuestionTags, applyVisibilityFilter])
 
-    if (creatorFilter === 'mine') {
-      displayedQuestions = displayedQuestions.filter(
-        (question) => question.creatorId === userInfo.id,
-      )
-    }
+  const applyCreatorFilter = useMemo(
+    () =>
+      applyQuestionTags.filter((question) => {
+        switch (creatorFilter) {
+          case 'mine':
+            return question.creatorId === userInfo.id
+          default:
+            return true
+        }
+      }),
+    [creatorFilter, applyQuestionTags, userInfo.id],
+  )
 
-    displayedQuestions = applySort(displayedQuestions)
-    setDisplayedQuestions(displayedQuestions)
-  }, [
-    visibleFilter,
-    statusFilter,
-    asyncQuestions,
-    selectedQuestionTags,
-    isStaff,
-    creatorFilter,
-    userInfo.id,
-    sortBy,
-    applySort,
-  ])
+  const applySort = useMemo(() => {
+    return applyCreatorFilter.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          )
+        case 'oldest':
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          )
+        case 'most-votes':
+          return b.votesSum - a.votesSum
+        case 'least-votes':
+          return a.votesSum - b.votesSum
+        default:
+          return 0
+      }
+    })
+  }, [sortBy, applyCreatorFilter])
+
+  const displayedQuestions = useMemo(() => applySort, [applySort])
+
+  // This endpoint will be called to update unread count back to 0 when this page is entered
+  // May seem more inefficient but this is the only way to ensure that the unread count is accurate given that userInfo no longer tracks it
+  useEffect(() => {
+    API.asyncQuestions.updateUnreadAsyncCount(courseId)
+  }, [courseId])
 
   const RenderQuestionTypeFilter = useCallback(() => {
     if (!questionTypes) {
