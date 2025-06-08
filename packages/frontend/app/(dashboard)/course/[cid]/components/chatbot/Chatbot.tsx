@@ -1,21 +1,21 @@
 'use client'
-import { useEffect, useState, useRef, ReactElement, Fragment } from 'react'
+import { Fragment, ReactElement, useEffect, useRef, useState } from 'react'
 import {
-  Input,
+  Avatar,
   Button,
   Card,
-  Avatar,
+  Input,
+  Popconfirm,
+  Segmented,
+  Space,
   Spin,
   Tooltip,
-  Space,
-  Segmented,
-  Popconfirm,
 } from 'antd'
 import {
   CheckCircleOutlined,
-  UserOutlined,
-  RobotOutlined,
   CloseOutlined,
+  RobotOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -27,15 +27,15 @@ import {
 } from '@/app/utils/generalUtils'
 import { Feedback } from './Feedback'
 import {
-  chatbotStartingMessageSystem,
-  chatbotStartingMessageCourse,
   ChatbotQuestionType,
+  chatbotStartingMessageCourse,
+  chatbotStartingMessageSystem,
 } from '@/app/typings/chatbot'
 import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { PreDeterminedQuestion, Role, Message } from '@koh/common'
+import { Message, PreDeterminedQuestion, Role } from '@koh/common'
 import { Bot } from 'lucide-react'
 
 const { TextArea } = Input
@@ -452,7 +452,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                             {item.sourceDocuments &&
                             chatbotQuestionType === 'System' ? (
                               <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
-                                <p className="px-2 py-1">User Guide</p>
+                                <p className="truncate px-2 py-1">User Guide</p>
                                 <SourceLinkButton
                                   docName="User Guide"
                                   sourceLink="https://github.com/ubco-db/helpme/blob/main/packages/frontend/public/userguide.md"
@@ -473,7 +473,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                     key={idx}
                                   >
                                     <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
-                                      <p className="px-2 py-1">
+                                      <p className="truncate px-2 py-1">
                                         {sourceDocument.docName}
                                       </p>
                                       {sourceDocument.type ==
