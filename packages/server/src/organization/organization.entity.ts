@@ -5,6 +5,7 @@ import {
   Entity,
   JoinColumn,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -12,6 +13,7 @@ import { OrganizationCourseModel } from './organization-course.entity';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 import { SemesterModel } from '../semester/semester.entity';
 import { SuperCourseModel } from 'course/super-course.entity';
+import { OrganizationSettingsModel } from './organization_settings.entity';
 
 @Entity('organization_model')
 export class OrganizationModel extends BaseEntity {
@@ -44,6 +46,14 @@ export class OrganizationModel extends BaseEntity {
 
   @Column('text', { nullable: true })
   ssoUrl: string;
+
+  @Exclude()
+  @JoinColumn({ name: 'organizationId' })
+  @OneToOne(
+    (type) => OrganizationSettingsModel,
+    (organizationSettings) => organizationSettings.organization,
+  )
+  organizationSettings: OrganizationSettingsModel[];
 
   @Exclude()
   @JoinColumn({ name: 'organizationId' })

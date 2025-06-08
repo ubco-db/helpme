@@ -3,7 +3,6 @@ import {
   IsArray,
   IsBoolean,
   IsDate,
-  IsDefined,
   IsEnum,
   IsHexColor,
   IsIn,
@@ -2156,6 +2155,109 @@ export class CourseSettingsRequestBody {
   static isValidFeature(feature: string): boolean {
     return validFeatures.includes(feature)
   }
+}
+
+export class OrganizationSettingsResponse {
+  @IsInt()
+  organizationId!: number
+
+  @IsBoolean()
+  autoPromoteCourseProfs!: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  settingsFound?: boolean
+
+  constructor(init?: Partial<OrganizationSettingsResponse>) {
+    Object.assign(this, init)
+  }
+}
+
+export const validOrganizationSettings = ['autoPromoteCourseProfs']
+
+export const OrganizationSettingsDefaults = {
+  autoPromoteCourseProfs: false,
+}
+
+export class OrganizationSettingsRequestBody {
+  @IsBoolean()
+  value!: boolean
+
+  @IsIn(validOrganizationSettings)
+  setting!: string
+
+  static isValidSetting(setting: string): boolean {
+    return validOrganizationSettings.includes(setting)
+  }
+}
+
+export enum OrgRoleChangeReason {
+  courseProfPromotion = 'courseProfPromotion',
+  manualModification = 'manualModification',
+  joinedOrganizationMember = 'joinedOrganizationMember',
+  joinedOrganizationProfessor = 'joinedOrganizationProfessor',
+  unknown = 'unknown',
+}
+
+export enum OrgRoleChangeReasonMap {
+  courseProfPromotion = 'Promoted automatically when the user became a course professor.',
+  manualModification = 'Role was manually modified by an organization member with sufficient permissions.',
+  joinedOrganizationMember = 'User joined the organization and gained the member role.',
+  joinedOrganizationProfessor = 'User joined the organization and gained the professor role.',
+  unknown = '',
+}
+
+export class OrgRoleHistory {
+  @IsNumber()
+  id!: number
+
+  @IsDate()
+  timestamp!: Date
+
+  @IsEnum(OrganizationRole)
+  fromRole!: OrganizationRole
+
+  @IsEnum(OrganizationRole)
+  toRole!: OrganizationRole
+
+  @IsObject()
+  byUser!: OrgUser
+
+  @IsObject()
+  toUser!: OrgUser
+
+  changeReason!: string
+}
+
+export class OrganizationRoleHistoryFilter {
+  @IsString()
+  @IsOptional()
+  search?: string
+
+  @IsEnum(OrganizationRole)
+  @IsOptional()
+  fromRole?: OrganizationRole
+
+  @IsEnum(OrganizationRole)
+  @IsOptional()
+  toRole?: OrganizationRole
+
+  @IsDate()
+  @IsOptional()
+  minDate?: Date
+
+  @IsDate()
+  @IsOptional()
+  maxDate?: Date
+
+  constructor(init?: Partial<OrganizationRoleHistoryFilter>) {
+    Object.assign(this, init)
+  }
+}
+
+export type OrganizationRoleHistoryResponse = {
+  totalHistory: number
+  history: OrgRoleHistory[]
 }
 
 /**

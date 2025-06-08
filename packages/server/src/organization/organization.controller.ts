@@ -1,10 +1,13 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   HttpException,
   HttpStatus,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Patch,
@@ -14,19 +17,25 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  DefaultValuePipe,
 } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
 import {
+  BatchCourseCloneAttributes,
   COURSE_TIMEZONES,
   CourseResponse,
   CourseSettingsRequestBody,
   ERROR_MESSAGES,
+  GetOrganizationResponse,
   GetOrganizationUserResponse,
   OrganizationProfessor,
   OrganizationResponse,
   OrganizationRole,
+  OrganizationRoleHistoryFilter,
+  OrganizationRoleHistoryResponse,
+  OrganizationSettingsDefaults,
+  OrganizationSettingsRequestBody,
+  OrganizationSettingsResponse,
   OrgUser,
   Role,
   UpdateOrganizationCourseDetailsParams,
@@ -34,8 +43,7 @@ import {
   UpdateOrganizationUserRole,
   UpdateProfileParams,
   UserRole,
-  GetOrganizationResponse,
-  BatchCourseCloneAttributes,
+  validOrganizationSettings,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -55,7 +63,7 @@ import * as path from 'path';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SemesterModel } from '../semester/semester.entity';
-import { DataSource, DeepPartial, In } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
@@ -69,6 +77,8 @@ import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { CourseService } from 'course/course.service';
+import { OrganizationSettingsModel } from './organization_settings.entity';
+import { ParseDatePipe } from '@nestjs/common/pipes/parse-date.pipe';
 
 // TODO: put the error messages in ERROR_MESSAGES object
 
@@ -976,6 +986,7 @@ export class OrganizationController {
   async updateUserOrganizationRole(
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
+    @User({ organizationUser: true }) user: UserModel,
     @Body() organizationUserRolePatch: UpdateOrganizationUserRole,
   ): Promise<void> {
     await OrganizationModel.findOne({
@@ -1014,6 +1025,7 @@ export class OrganizationController {
               });
             }
 
+            const prevRole = organizationUser.role;
             organizationUser.role = organizationUserRolePatch.organizationRole;
 
             await organizationUser
@@ -1034,6 +1046,16 @@ export class OrganizationController {
                 `,
                   [maxUses, organizationUser.userId],
                 );
+
+                // add role change entry
+                await this.organizationService.addRoleHistory(
+                  oid,
+                  prevRole,
+                  organizationUser.role,
+                  user.organizationUser.id,
+                  organizationUser.id,
+                );
+
                 res.status(HttpStatus.OK).send({
                   message: 'Organization user role updated',
                 });
@@ -1534,7 +1556,20 @@ export class OrganizationController {
             organizationUserModel
               .save()
               .then((_) => {
-                res.status(200).send({ message: 'User added to organization' });
+                // add role change entry
+                this.organizationService
+                  .addRoleHistory(
+                    oid,
+                    null,
+                    OrganizationRole.MEMBER,
+                    user.organizationUser.id,
+                    organizationUser.id,
+                  )
+                  .then(() =>
+                    res
+                      .status(200)
+                      .send({ message: 'User added to organization' }),
+                  );
               })
               .catch((err) => {
                 res.status(500).send({ message: err });
@@ -1567,6 +1602,107 @@ export class OrganizationController {
 
     this.courseService.performBatchClone(user, body);
     return 'Batch Cloning Operation Successfully Queued!';
+  }
+
+  @Get(':oid/settings')
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard)
+  @OrgRoles(
+    OrganizationRole.ADMIN,
+    OrganizationRole.PROFESSOR,
+    OrganizationRole.MEMBER,
+  )
+  async getSettings(
+    @Param('oid', ParseIntPipe) organizationId: number,
+  ): Promise<OrganizationSettingsResponse> {
+    const organizationSettings = await OrganizationSettingsModel.findOne({
+      where: { organizationId },
+    });
+
+    const settingsResponse: Partial<OrganizationSettingsResponse> = {
+      organizationId,
+      settingsFound: !!organizationSettings, // !! converts truthy/falsy into true/false
+    };
+
+    for (const key of validOrganizationSettings) {
+      settingsResponse[key] = organizationSettings
+        ? organizationSettings[key]
+        : OrganizationSettingsDefaults[key];
+    }
+
+    return new OrganizationSettingsResponse(settingsResponse);
+  }
+
+  @Patch(':oid/settings')
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
+  @OrgRoles(OrganizationRole.ADMIN)
+  async enableDisableSetting(
+    @Param('oid', ParseIntPipe) organizationId: number,
+    @Body() body: OrganizationSettingsRequestBody,
+  ): Promise<void> {
+    // fetch existing organization settings
+    let organizationSettings = await OrganizationSettingsModel.findOne({
+      where: { organizationId },
+    });
+
+    // if no organization settings exist yet, create new course settings for the course
+    if (!organizationSettings) {
+      const organization = await OrganizationModel.findOne({
+        where: { id: organizationId },
+      });
+      if (!organization) {
+        throw new NotFoundException(
+          'Error while creating organization settings: Organization not found',
+        );
+      }
+      organizationSettings = new OrganizationSettingsModel(); // all features are enabled by default, adjust in CourseSettingsModel as needed
+      organizationSettings.organizationId = organizationId;
+    }
+
+    // then, toggle the requested feature
+    try {
+      organizationSettings[body.setting] = body.value;
+    } catch (err) {
+      throw new BadRequestException('Invalid feature');
+    }
+
+    try {
+      await organizationSettings.save();
+    } catch (err) {
+      throw new HttpException(
+        'Error while saving course settings',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get(':oid/role_history/:page?')
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
+  @Roles(OrganizationRole.ADMIN)
+  async getRoleHistory(
+    @Param('oid', ParseIntPipe) oid: number,
+    @Param('page', ParseIntPipe) page: number,
+    @Query('search') search?: string,
+    @Query('fromRole') fromRole?: OrganizationRole,
+    @Query('toRole') toRole?: OrganizationRole,
+    @Query('minDate', new ParseDatePipe({ optional: true })) minDate?: Date,
+    @Query('maxDate', new ParseDatePipe({ optional: true })) maxDate?: Date,
+  ): Promise<OrganizationRoleHistoryResponse> {
+    const pageSize = 50;
+
+    const searchFilters = new OrganizationRoleHistoryFilter({
+      search: search ?? '',
+      fromRole,
+      toRole,
+      minDate,
+      maxDate,
+    });
+
+    return await this.organizationService.getRoleHistory(
+      oid,
+      page,
+      pageSize,
+      searchFilters,
+    );
   }
 
   private isValidUrl = (url: string): boolean => {
