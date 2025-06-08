@@ -7,12 +7,18 @@ import { CourseModel } from 'course/course.entity';
 import {
   CourseResponse,
   GetOrganizationUserResponse,
+  OrganizationRole,
+  OrganizationRoleHistoryFilter,
+  OrganizationRoleHistoryResponse,
+  OrgRoleChangeReasonMap,
+  OrgRoleHistory,
   OrgUser,
   Role,
   UserRole,
 } from '@koh/common';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
+import { OrganizationRoleHistory } from './organization_role_history.entity';
 
 export interface FlattenedOrganizationResponse {
   id: number;
@@ -335,5 +341,146 @@ export class OrganizationService {
     };
 
     return flattenedOrganization;
+  }
+
+  public async getRoleHistory(
+    organizationId: number,
+    page: number,
+    pageSize: number,
+    filters: OrganizationRoleHistoryFilter,
+  ): Promise<OrganizationRoleHistoryResponse> {
+    const { search, fromRole, toRole, minDate, maxDate } = filters;
+
+    const organizationRoleHistory = OrganizationRoleHistory.createQueryBuilder()
+      .select()
+      .leftJoin(
+        OrganizationUserModel,
+        'ByOrganizationUser',
+        'ByOrganizationUser.id = OrganizationRoleHistory.byOrgUserId',
+      )
+      .leftJoin(
+        OrganizationUserModel,
+        'ToOrganizationUser',
+        'ToOrganizationUser.id = OrganizationRoleHistory.toOrgUserId',
+      )
+      .leftJoin(UserModel, 'ByUser', 'ByUser.id = ByOrganizationUser.userId')
+      .leftJoin(UserModel, 'ToUser', 'ToUser.id = ToOrganizationUser.userId')
+      .where('OrganizationRoleHistory.organizationId = :organizationId', {
+        organizationId,
+      });
+
+    if (fromRole) {
+      organizationRoleHistory.andWhere(
+        'OrganizationRoleHistory.fromRole = :fromRole',
+        { fromRole },
+      );
+    }
+
+    if (toRole) {
+      organizationRoleHistory.andWhere(
+        'OrganizationRoleHistory.toRole = :toRole',
+        { toRole },
+      );
+    }
+
+    if (minDate) {
+      organizationRoleHistory.andWhere(
+        'OrganizationRoleHistory.timestamp > :minDate',
+        { minDate },
+      );
+    }
+
+    if (maxDate) {
+      organizationRoleHistory.andWhere(
+        'OrganizationRoleHistory.timestamp < :maxDate',
+        { maxDate },
+      );
+    }
+
+    if (search) {
+      const likeSearch = `%${search.replace(' ', '')}%`.toUpperCase();
+      organizationRoleHistory.andWhere(
+        new Brackets((q) => {
+          q.where('UPPER("ToUser".name) like :searchString', {
+            searchString: likeSearch,
+          });
+        }),
+      );
+    }
+
+    organizationRoleHistory.addSelect([
+      'ToUser.id as toUserId',
+      'ToUser.email as toUserEmail',
+      'ToUser.firstName as toUserFirstName',
+      'ToUser.lastName as toUserLastName',
+      'ToUser.photoURL as toUserPhotoUrl',
+      'ToUser.userRole as toUserRole',
+      'ByUser.id as byUserId',
+      'ByUser.email as byUserEmail',
+      'ByUser.firstName as byUserFirstName',
+      'ByUser.lastName as byUserLastName',
+      'ByUser.photoURL as byUserPhotoUrl',
+      'ByUser.userRole as byUserRole',
+      'ByOrganizationUser.role as byUserCurrentRole',
+      'ToOrganizationUser.role as toUserCurrentRole',
+    ]);
+
+    const historySubset = await organizationRoleHistory
+      .orderBy('OrganizationRoleHistory.timestamp')
+      .addOrderBy('OrganizationRoleHistory.id')
+      .offset((page - 1) * pageSize)
+      .limit(pageSize)
+      .getRawMany();
+
+    return {
+      totalHistory: await organizationRoleHistory.getCount(),
+      history: historySubset.map((history) => {
+        return {
+          id: history.OrganizationRoleHistory_id,
+          timestamp: history.OrganizationRoleHistory_timestamp,
+          fromRole: history.OrganizationRoleHistory_fromRole,
+          toRole: history.OrganizationRoleHistory_toRole,
+          changeReason:
+            OrgRoleChangeReasonMap[
+              history.OrganizationRoleHistory_changeReason
+            ],
+          toUser: {
+            userId: history.touserid,
+            firstName: history.touserfirstname,
+            lastName: history.touserlastname,
+            email: history.touseremail,
+            photoUrl: history.touserphotourl,
+            userRole: history.touserrole,
+            organizationRole: history.tousercurrentrole,
+          },
+          byUser: {
+            userId: history.byuserid,
+            firstName: history.byuserfirstname,
+            lastName: history.byuserlastname,
+            email: history.byuseremail,
+            photoUrl: history.byuserphotoURL,
+            userRole: history.byuserrole,
+            organizationRole: history.byusercurrentrole,
+          },
+        } satisfies OrgRoleHistory;
+      }),
+    };
+  }
+
+  public async addRoleHistory(
+    organizationId: number,
+    fromRole: OrganizationRole,
+    toRole: OrganizationRole,
+    byOrgUserId?: number,
+    toOrgUserId?: number,
+  ) {
+    await OrganizationRoleHistory.create({
+      organizationId,
+      // If someone appears to be changing their own role, it's the system changing their role (e.g., joining an organization)
+      toOrgUserId: toOrgUserId == byOrgUserId ? null : toOrgUserId,
+      byOrgUserId,
+      fromRole,
+      toRole,
+    }).save();
   }
 }

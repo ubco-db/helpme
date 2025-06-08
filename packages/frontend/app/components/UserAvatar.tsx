@@ -91,7 +91,10 @@ export default function UserAvatar({
     </Avatar>
   ) : (
     <Avatar
-      className={cn('bg-[#1abc9c]', className)}
+      style={{
+        backgroundColor: colour ?? '#1abc9c',
+      }}
+      className={className}
       {...props}
       icon={<UserOutlined />}
     />
