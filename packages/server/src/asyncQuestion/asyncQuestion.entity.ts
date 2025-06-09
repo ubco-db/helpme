@@ -79,8 +79,14 @@ export class AsyncQuestionModel extends BaseEntity {
   @Column('text')
   status: asyncQuestionStatus;
 
-  @Column('boolean', { nullable: true })
-  visible: boolean;
+  @Column('boolean', { default: false })
+  authorSetVisible: boolean;
+
+  @Column('boolean', { default: false })
+  staffSetVisible: boolean;
+
+  @Column('boolean', { default: true })
+  isAnonymous: boolean;
 
   @Column('boolean')
   verified: boolean;
