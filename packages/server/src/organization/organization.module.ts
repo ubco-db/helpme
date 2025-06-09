@@ -7,6 +7,8 @@ import { CourseService } from 'course/course.service';
 import { MailModule } from 'mail/mail.module';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { OrganizationUserSubscriber } from './organization-user.subscriber';
+import { OrganizationSubscriber } from './organization.subscriber';
+
 @Module({
   imports: [RedisProfileModule, ScheduleModule.forRoot(), MailModule],
   controllers: [OrganizationController],
@@ -15,6 +17,7 @@ import { OrganizationUserSubscriber } from './organization-user.subscriber';
     CourseService,
     ChatbotApiService,
     OrganizationUserSubscriber,
+    OrganizationSubscriber,
   ],
   exports: [OrganizationService],
 })

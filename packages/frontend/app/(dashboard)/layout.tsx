@@ -52,7 +52,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         type="primary"
         icon={<ReloadOutlined />}
         onClick={() => {
-          router.refresh()
+          window.location.reload()
         }}
       >
         Try again

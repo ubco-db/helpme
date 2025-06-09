@@ -1,6 +1,6 @@
 'use client'
 
-import { Modal, Upload, message } from 'antd'
+import { Button, Modal, Upload, message } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
 import React, { useCallback, useState } from 'react'
 import Cropper from 'react-easy-crop'
@@ -152,10 +152,10 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
         maxCount={1}
         accept=".jpg,.jpeg,.png,.webp,.avif,.gif,.svg,.tiff"
       >
-        <button className="min-w-[85vw] rounded-lg border-2 bg-white p-2 lg:min-w-[30vw]">
+        <Button className="min-w-[85vw] py-5 lg:min-w-[30vw]">
           <UploadOutlined />
           <span className="ml-2">{`Upload ${imgName}`}</span>
-        </button>
+        </Button>
       </Upload>
       <div className="relative mt-2 min-h-80 w-full">
         <Cropper
