@@ -12,6 +12,8 @@ import {
   Tabs,
   Tooltip,
   Checkbox,
+  Row,
+  Col,
 } from 'antd'
 import type { CheckboxOptionType, GetProp } from 'antd'
 import { useCallback, useEffect, useMemo, useState, use } from 'react'
@@ -582,23 +584,59 @@ export default function CourseLMSIntegrationPage(props: {
                           label: 'Resource Selector',
                           key: '2',
                           children: (
-                            <Checkbox.Group
-                              options={[
-                                'Assignments',
-                                'Announcements',
-                                'Files',
-                                'Pages',
-                                'Syllabus',
-                              ]}
-                              defaultValue={[
-                                'Assignments',
-                                'Announcements',
-                                'Files',
-                                'Pages',
-                                'Syllabus',
-                              ]}
-                              onChange={onChange}
-                            />
+                            <div className={'flex flex-col items-center gap-2'}>
+                              <Checkbox.Group
+                                style={{ width: '100%' }}
+                                onChange={onChange}
+                              >
+                                <Row gutter={[0, 20]}>
+                                  <Col span={10}>
+                                    <Checkbox value="Assignments">
+                                      Assignments
+                                    </Checkbox>
+                                  </Col>
+                                  <Col span={10}>
+                                    <Checkbox value="Announcements">
+                                      Announcements
+                                    </Checkbox>
+                                  </Col>
+                                  <Col span={10}>
+                                    <Checkbox value="Files">Files</Checkbox>
+                                  </Col>
+                                  <Col span={10}>
+                                    <Checkbox value="Pages">Pages</Checkbox>
+                                  </Col>
+                                  <Col span={10}>
+                                    <Checkbox value="Syllabus">
+                                      Syllabus
+                                    </Checkbox>
+                                  </Col>
+                                </Row>
+                              </Checkbox.Group>
+
+                              <Button
+                                size={'large'}
+                                shape={'round'}
+                                variant={'outlined'}
+                                color={'blue'}
+                                icon={<SyncOutlined />}
+                                style={{ marginTop: '30px' }}
+                              >
+                                Save and Re-Sync Documents
+                              </Button>
+                              {/* <Button
+                              size={'large'}
+                              shape={'round'}
+                              variant={integration.lmsSynchronize ? 'outlined' : 'dashed'}
+                              color={integration.lmsSynchronize ? 'blue' : 'default'}
+                              icon={<SyncOutlined />}
+                              disabled={!integration.lmsSynchronize}
+                              onClick={forceSync}
+                              loading={syncing && integration.lmsSynchronize}
+                            >
+                              Force Synchronization
+                            </Button> */}
+                            </div>
                           ),
                         },
                       ]}
