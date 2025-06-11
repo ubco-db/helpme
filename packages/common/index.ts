@@ -1344,6 +1344,11 @@ export enum LMSApiResponseStatus {
   Success = 'Successfully contacted LMS API.',
 }
 
+export enum LMSResourceType {
+  ASSIGNMENTS = 'assignments',
+  ANNOUNCEMENTS = 'announcements',
+}
+
 export interface CourseResponse {
   courseId: number
   courseName: string

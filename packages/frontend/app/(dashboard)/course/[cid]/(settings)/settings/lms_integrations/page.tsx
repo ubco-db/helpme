@@ -621,6 +621,7 @@ export default function CourseLMSIntegrationPage(props: {
                                 color={'blue'}
                                 icon={<SyncOutlined />}
                                 style={{ marginTop: '30px' }}
+                                onClick={forceSync}
                               >
                                 Save and Re-Sync Documents
                               </Button>
