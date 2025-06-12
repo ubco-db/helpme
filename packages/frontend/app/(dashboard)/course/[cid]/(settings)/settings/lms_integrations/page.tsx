@@ -192,6 +192,28 @@ export default function CourseLMSIntegrationPage(props: {
       .finally(() => setSyncing(false))
   }
 
+  const handleSaveAndResync = async () => {
+    const resourceTypeMap: Record<string, string> = {
+      Assignments: 'assignments',
+      Announcements: 'announcements',
+      // for later:
+      // Files: 'files',
+      // Pages: 'pages',
+      // Syllabus: 'syllabus',
+    }
+    const selected = (selectedResources as string[]).map(
+      (val) => resourceTypeMap[val] || val,
+    )
+
+    try {
+      await API.lmsIntegration.updateSelectedResourceTypes(courseId, selected)
+      message.success('Resource types updated!')
+      await forceSync()
+    } catch (err) {
+      message.error(getErrorMessage(err))
+    }
+  }
+
   const clearDocuments = async () => {
     if (integration == undefined) {
       message.error('No integration was specified')
@@ -617,26 +639,24 @@ export default function CourseLMSIntegrationPage(props: {
                               <Button
                                 size={'large'}
                                 shape={'round'}
-                                variant={'outlined'}
-                                color={'blue'}
+                                variant={
+                                  integration.lmsSynchronize
+                                    ? 'outlined'
+                                    : 'dashed'
+                                }
+                                color={
+                                  integration.lmsSynchronize
+                                    ? 'blue'
+                                    : 'default'
+                                }
                                 icon={<SyncOutlined />}
+                                disabled={!integration.lmsSynchronize}
                                 style={{ marginTop: '30px' }}
-                                onClick={forceSync}
+                                onClick={handleSaveAndResync}
+                                loading={syncing && integration.lmsSynchronize}
                               >
                                 Save and Re-Sync Documents
                               </Button>
-                              {/* <Button
-                              size={'large'}
-                              shape={'round'}
-                              variant={integration.lmsSynchronize ? 'outlined' : 'dashed'}
-                              color={integration.lmsSynchronize ? 'blue' : 'default'}
-                              icon={<SyncOutlined />}
-                              disabled={!integration.lmsSynchronize}
-                              onClick={forceSync}
-                              loading={syncing && integration.lmsSynchronize}
-                            >
-                              Force Synchronization
-                            </Button> */}
                             </div>
                           ),
                         },

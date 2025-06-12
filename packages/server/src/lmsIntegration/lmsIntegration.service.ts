@@ -335,11 +335,15 @@ export class LMSIntegrationService {
       where: { courseId: courseId },
     });
 
-    // Use the selected resource types from the database, fallback to all if not found
-    const selectedResources: LMSResourceType[] = [
-      LMSResourceType.ASSIGNMENTS,
-      LMSResourceType.ANNOUNCEMENTS,
-    ];
+    // maybe add this later to fallback to all resources if db fetch does not work
+
+    //   const selectedResources: LMSResourceType[] =
+    // courseIntegration?.selectedResourceTypes?.length
+    //   ? courseIntegration.selectedResourceTypes
+    //   : [LMSResourceType.ASSIGNMENTS, LMSResourceType.ANNOUNCEMENTS];
+
+    const selectedResources: LMSResourceType[] =
+      courseIntegration.selectedResourceTypes;
 
     const adapter = await this.getAdapter(courseId);
     if (!adapter.isImplemented()) {

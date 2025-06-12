@@ -35,7 +35,7 @@ export class LMSCourseIntegrationModel extends BaseEntity {
     type: 'enum',
     enum: LMSResourceType,
     array: true,
-    default: [LMSResourceType.ASSIGNMENTS],
+    default: [LMSResourceType.ASSIGNMENTS, LMSResourceType.ANNOUNCEMENTS],
   })
   selectedResourceTypes: LMSResourceType[];
 
