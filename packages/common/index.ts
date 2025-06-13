@@ -1300,6 +1300,7 @@ export class LMSCourseIntegrationPartial {
   apiKeyExpiry!: Date
   lmsSynchronize!: boolean
   isExpired!: boolean
+  selectedResourceTypes?: LMSResourceType[]
 }
 
 export type LMSCourseAPIResponse = {

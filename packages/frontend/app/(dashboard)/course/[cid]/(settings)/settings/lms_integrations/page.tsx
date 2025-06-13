@@ -63,6 +63,12 @@ export default function CourseLMSIntegrationPage(props: {
   const [isTesting, setIsTesting] = useState<boolean>(false)
   const [selectedResources, setSelectedResources] = useState<unknown[]>([])
 
+  useEffect(() => {
+    if (integration?.selectedResourceTypes) {
+      setSelectedResources(integration.selectedResourceTypes)
+    }
+  }, [integration?.selectedResourceTypes])
+
   const onChange: GetProp<typeof Checkbox.Group, 'onChange'> = (
     checkedValues,
   ) => {
@@ -193,20 +199,11 @@ export default function CourseLMSIntegrationPage(props: {
   }
 
   const handleSaveAndResync = async () => {
-    const resourceTypeMap: Record<string, string> = {
-      Assignments: 'assignments',
-      Announcements: 'announcements',
-      // for later:
-      // Files: 'files',
-      // Pages: 'pages',
-      // Syllabus: 'syllabus',
-    }
-    const selected = (selectedResources as string[]).map(
-      (val) => resourceTypeMap[val] || val,
-    )
-
     try {
-      await API.lmsIntegration.updateSelectedResourceTypes(courseId, selected)
+      await API.lmsIntegration.updateSelectedResourceTypes(
+        courseId,
+        selectedResources as string[],
+      )
       message.success('Resource types updated!')
       await forceSync()
     } catch (err) {
@@ -610,23 +607,24 @@ export default function CourseLMSIntegrationPage(props: {
                               <Checkbox.Group
                                 style={{ width: '100%' }}
                                 onChange={onChange}
+                                value={selectedResources}
                               >
                                 <Row gutter={[0, 20]}>
                                   <Col span={10}>
-                                    <Checkbox value="Assignments">
+                                    <Checkbox value="assignments">
                                       Assignments
                                     </Checkbox>
                                   </Col>
                                   <Col span={10}>
-                                    <Checkbox value="Announcements">
+                                    <Checkbox value="announcements">
                                       Announcements
                                     </Checkbox>
                                   </Col>
                                   <Col span={10}>
-                                    <Checkbox value="Files">Files</Checkbox>
+                                    <Checkbox value="files">Files</Checkbox>
                                   </Col>
                                   <Col span={10}>
-                                    <Checkbox value="Pages">Pages</Checkbox>
+                                    <Checkbox value="pages">Pages</Checkbox>
                                   </Col>
                                   <Col span={10}>
                                     <Checkbox value="Syllabus">

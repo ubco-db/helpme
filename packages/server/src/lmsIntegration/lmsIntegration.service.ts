@@ -861,6 +861,7 @@ export class LMSIntegrationService {
       isExpired:
         lmsIntegration.apiKeyExpiry != undefined &&
         new Date(lmsIntegration.apiKeyExpiry).getTime() < new Date().getTime(),
+      selectedResourceTypes: lmsIntegration.selectedResourceTypes,
     } satisfies LMSCourseIntegrationPartial;
   }
 }
