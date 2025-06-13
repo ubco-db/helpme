@@ -570,7 +570,6 @@ export class LMSIntegrationController {
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async updateSelectedResourceTypes(
-    @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() body: { selectedResourceTypes: string[] },
   ): Promise<string> {
