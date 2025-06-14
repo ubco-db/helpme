@@ -649,24 +649,24 @@ export default function CourseLMSIntegrationPage(props: {
                                 onChange={onSelectedResourcesChange}
                                 value={selectedResources}
                               >
-                                <Row gutter={[0, 20]}>
-                                  <Col span={10}>
+                                <Row gutter={[16, 16]}>
+                                  <Col xs={24} sm={12} md={8}>
                                     <Checkbox value="assignments">
                                       Assignments
                                     </Checkbox>
                                   </Col>
-                                  <Col span={10}>
+                                  <Col xs={24} sm={12} md={8}>
                                     <Checkbox value="announcements">
                                       Announcements
                                     </Checkbox>
                                   </Col>
-                                  <Col span={10}>
+                                  <Col xs={24} sm={12} md={8}>
                                     <Checkbox value="files">Files</Checkbox>
                                   </Col>
-                                  <Col span={10}>
+                                  <Col xs={24} sm={12} md={8}>
                                     <Checkbox value="pages">Pages</Checkbox>
                                   </Col>
-                                  <Col span={10}>
+                                  <Col xs={24} sm={12} md={8}>
                                     <Checkbox value="Syllabus">
                                       Syllabus
                                     </Checkbox>
@@ -694,8 +694,12 @@ export default function CourseLMSIntegrationPage(props: {
                                 style={{ marginTop: '30px' }}
                                 onClick={handleSaveAndResync}
                                 loading={syncing && integration.lmsSynchronize}
+                                className="w-full sm:w-auto"
                               >
-                                Save and Re-Sync Documents
+                                <span className="hidden sm:inline">
+                                  Save and Re-Sync Documents
+                                </span>
+                                <span className="sm:hidden">Save & Sync</span>
                               </Button>
                             </div>
                           ),
