@@ -141,7 +141,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                     {' '}
                     <InfoCircleOutlined />{' '}
                   </Tooltip>
-                  Chat GPT-4o Mini
+                  ChatGPT-4o Mini
                 </span>
               ),
               value: model,
@@ -162,7 +162,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                     {' '}
                     <InfoCircleOutlined />{' '}
                   </Tooltip>
-                  Chat GPT-4o
+                  ChatGPT-4o
                 </span>
               ),
               value: model,
