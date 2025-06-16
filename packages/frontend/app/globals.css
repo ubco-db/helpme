@@ -46,8 +46,9 @@ body {
   background: #f8f9fb;
 }
 
-a {
-  text-decoration: none;
+/* For some reason tailwind reset css is resetting the default link color from antd to inherit so this overrides that back */
+a { 
+  color: #1677ff;
 }
 
 h1 {
