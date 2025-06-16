@@ -1,7 +1,7 @@
 'use client'
 
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
-import { Col, message, Popconfirm, Row, Skeleton } from 'antd'
+import { Button, Col, message, Popconfirm, Row, Skeleton } from 'antd'
 import ImageCropperModal from '../../components/ImageCropperModal'
 import { useEffect, useState } from 'react'
 import { API } from '@/app/api'
@@ -68,13 +68,13 @@ const AvatarSettings: React.FC = () => {
               setUploading={setUploading}
               onCancel={() => setIsUploadModalOpen(false)}
             />
-            <button
+            <Button
               onClick={() => setIsUploadModalOpen(true)}
-              className="mt-4 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2"
+              className="mt-4 min-w-[180px] py-5"
             >
               <EditOutlined />
               <span>Edit Avatar</span>
-            </button>
+            </Button>
             {userInfo?.photoURL && (
               <Popconfirm
                 title="Are you sure you want to delete your profile avatar?"
@@ -101,10 +101,10 @@ const AvatarSettings: React.FC = () => {
                 okText="Yes"
                 cancelText="No"
               >
-                <button className="mt-2 min-w-[180px] flex-wrap space-x-2 rounded-lg border-2 bg-white p-2">
+                <Button className="mt-2 min-w-[180px] py-5">
                   <DeleteOutlined />
                   <span>Delete Avatar</span>
-                </button>
+                </Button>
               </Popconfirm>
             )}
           </Col>

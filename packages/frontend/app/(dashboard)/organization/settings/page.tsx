@@ -163,7 +163,11 @@ export default function SettingsPage(): ReactElement {
                     name="organizationName"
                     tooltip="Name of your organization"
                   >
-                    <Input allowClear={true} defaultValue={organizationName} />
+                    <Input
+                      allowClear={true}
+                      defaultValue={organizationName}
+                      placeholder="UBC"
+                    />
                   </Form.Item>
                 </Col>
 
@@ -175,6 +179,7 @@ export default function SettingsPage(): ReactElement {
                   >
                     <Input
                       allowClear={true}
+                      placeholder="https://www.ubc.ca/"
                       defaultValue={organizationWebsiteUrl}
                     />
                   </Form.Item>
@@ -184,7 +189,7 @@ export default function SettingsPage(): ReactElement {
               <Form.Item
                 label="Organization Description"
                 name="organizationDescription"
-                tooltip="Description of your organization"
+                tooltip="Description of your organization. Please keep short otherwise it takes a lot of room on mobile on /courses page"
               >
                 <TextArea
                   defaultValue={organizationDescription}

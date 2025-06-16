@@ -13,7 +13,6 @@ import Link from 'next/link'
 import { cn } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { OrganizationRole } from '@koh/common'
-import { Tooltip } from 'antd'
 
 const items = [
   {
@@ -54,38 +53,12 @@ const SidebarNavigation: React.FC = () => {
 
   if (
     userInfo.organization &&
-    (userInfo.organization.organizationRole === OrganizationRole.ADMIN ||
-      userInfo.organization.organizationRole === OrganizationRole.PROFESSOR)
+    userInfo.organization.organizationRole === OrganizationRole.ADMIN
   ) {
     return (
-      <nav className="rounded bg-white shadow-md">
-        {items.map((item) => {
-          // For professors, only allow "settings" to be clickable.
-          const isSettings = item.key === 'settings'
-          const isDisabled =
-            userInfo.organization?.organizationRole ===
-              OrganizationRole.PROFESSOR && !isSettings
-
-          if (isDisabled) {
-            return (
-              <Tooltip
-                key={item.key}
-                title="You need to be an administrator to access this page."
-              >
-                <div
-                  className={cn(
-                    'flex cursor-not-allowed items-center justify-between rounded bg-gray-100 p-4 text-gray-500',
-                    pathname === item.url ? 'bg-[#e6f7ff] text-[#1890ff]' : '',
-                  )}
-                >
-                  <div className="flex items-center">
-                    {item.icon}
-                    <span className="ml-4">{item.label}</span>
-                  </div>
-                </div>
-              </Tooltip>
-            )
-          } else {
+      <div className="md:col-span-2">
+        <nav className="rounded bg-white shadow-md">
+          {items.map((item) => {
             return (
               <Link href={item.url} key={item.key}>
                 <div
@@ -101,12 +74,13 @@ const SidebarNavigation: React.FC = () => {
                 </div>
               </Link>
             )
-          }
-        })}
-      </nav>
+          })}
+        </nav>
+      </div>
     )
   } else {
-    return null
+    // This is just to create a gap to center the content
+    return <div className="md:col-span-1"></div>
   }
 }
 

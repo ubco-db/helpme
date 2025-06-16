@@ -108,7 +108,7 @@ export default function CoursesPage(): ReactElement {
           />
         </div>
       </div>
-      <div className="flex min-h-96 items-center justify-center">
+      <div className="flex min-h-96 items-start justify-center">
         {userInfo?.courses?.filter((userCourse) => userCourse.course.enabled)
           .length === 0 ? (
           <Empty
