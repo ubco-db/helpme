@@ -1,12 +1,13 @@
 import { Card, Button, message, Tag } from 'antd'
 import { useState } from 'react'
 import { Form } from 'antd'
-import { SemesterPartial } from '@koh/common'
+import { OrganizationRole, SemesterPartial } from '@koh/common'
 import { API } from '@/app/api'
 import { SemesterModal } from './SemesterModal'
 import DeleteConfirmationModal from './DeleteConfirmationModal'
 import dayjs from 'dayjs'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 interface SemesterManagementProps {
   orgId: number
@@ -19,6 +20,7 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
   organizationSemesters,
   setOrganizationSemesters,
 }) => {
+  const { userInfo } = useUserInfo()
   const [currentSemesterId, setCurrentSemesterId] = useState<number>(-1) // -1 represents nothing being selected
   const [deletionSemesterName, setDeletionSemesterName] = useState<string>('')
   const [isSemesterCreationModalOpen, setIsSemesterCreationModalOpen] =
@@ -103,8 +105,6 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
       setIsSemesterEditModalOpen(true)
     }
   }
-
-  console.log(currentSemesterId)
 
   const handleEditSemester = async () => {
     const formValues = await semesterForm.validateFields([
@@ -234,17 +234,21 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
                   {semester.color}
                 </Tag>
               </p>
-              <Button
-                danger
-                type="primary"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleConfirmSemesterDelete(semester.id!, semester.name)
-                }}
-                className="mt-2"
-              >
-                Delete
-              </Button>
+              {/* Don't allow profs to delete semesters */}
+              {userInfo?.organization?.organizationRole ===
+                OrganizationRole.ADMIN && (
+                <Button
+                  danger
+                  type="primary"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleConfirmSemesterDelete(semester.id!, semester.name)
+                  }}
+                  className="mt-2"
+                >
+                  Delete
+                </Button>
+              )}
             </Card.Grid>
           ))
       ) : (
