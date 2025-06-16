@@ -90,7 +90,7 @@ export class SemesterController {
     OrganizationGuard,
     EmailVerifiedGuard,
   )
-  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  @Roles(OrganizationRole.ADMIN)
   async updateSemester(
     @Param('oid', ParseIntPipe) organizationId: number,
     @Param('sid', ParseIntPipe) semesterId: number,

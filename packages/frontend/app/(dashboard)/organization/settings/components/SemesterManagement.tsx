@@ -198,16 +198,21 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
           .map((semester) => (
             <Card.Grid
               key={semester.id}
-              className="flex w-[50%] flex-col justify-between gap-2 text-center hover:cursor-pointer"
-              onClick={() => {
-                if (semester.id) {
-                  handleOpenEditSemesterModal(semester.id)
-                } else {
-                  message.error(
-                    'Semester id not set for this semester. Please refresh the page.',
-                  )
-                }
-              }}
+              className={`flex w-[50%] flex-col justify-between gap-2 text-center ${userInfo?.organization?.organizationRole === OrganizationRole.ADMIN ? 'hover:cursor-pointer' : ''}`}
+              onClick={
+                userInfo?.organization?.organizationRole ===
+                OrganizationRole.ADMIN
+                  ? () => {
+                      if (semester.id) {
+                        handleOpenEditSemesterModal(semester.id)
+                      } else {
+                        message.error(
+                          'Semester id not set for this semester. Please refresh the page.',
+                        )
+                      }
+                    }
+                  : undefined
+              }
             >
               <h3 className="text-lg font-semibold">{semester.name}</h3>
               <p>
