@@ -319,9 +319,12 @@ export default function ChatbotDocuments(
         onChange={handleSearch}
         onPressEnter={fetchDocuments}
       />
-      <div className="flex justify-between">
-        <Table columns={columns} dataSource={filteredDocuments} size="small" />
-      </div>
+      <Table
+        columns={columns}
+        dataSource={filteredDocuments}
+        size="small"
+        className="w-full"
+      />
       {editingRecord && (
         <EditDocumentChunkModal
           open={editRecordModalOpen}
