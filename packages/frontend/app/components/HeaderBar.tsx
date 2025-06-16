@@ -338,7 +338,10 @@ const NavBar = ({
                     href="/organization/settings"
                     onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
                   >
-                    Organization Settings
+                    {userInfo?.organization?.organizationRole ===
+                    OrganizationRole.PROFESSOR
+                      ? 'Semester Management'
+                      : 'Organization Settings'}
                   </Link>
                 </NavigationMenuItem>
               )}
