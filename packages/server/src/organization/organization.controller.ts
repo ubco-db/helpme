@@ -1201,22 +1201,6 @@ export class OrganizationController {
       }
     }
 
-    const userInfo = await OrganizationUserModel.findOne({
-      where: {
-        userId: uid,
-      },
-      relations: ['organizationUser'],
-    });
-
-    if (
-      userInfo.role === OrganizationRole.ADMIN ||
-      userInfo.organizationUser.userRole === UserRole.ADMIN
-    ) {
-      return res.status(HttpStatus.FORBIDDEN).send({
-        message: ERROR_MESSAGES.roleGuard.notAuthorized,
-      });
-    }
-
     await this.organizationService
       .deleteUserCourses(uid, userCourses)
       .then(() => {
