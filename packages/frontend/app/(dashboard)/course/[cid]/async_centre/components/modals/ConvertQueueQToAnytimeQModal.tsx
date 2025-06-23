@@ -1,4 +1,13 @@
-import { Button, Checkbox, Form, Input, Modal, message, Tooltip } from 'antd'
+import {
+  Button,
+  Checkbox,
+  Form,
+  Input,
+  Modal,
+  message,
+  Tooltip,
+  Tag,
+} from 'antd'
 import { useEffect, useState } from 'react'
 import { API } from '@/app/api'
 import { getBrightness, getErrorMessage } from '@/app/utils/generalUtils'
@@ -7,11 +16,18 @@ import {
   QuestionTypeParams,
   asyncQuestionStatus,
   nameToRGB,
+  IQuestion,
+  IQueue,
+  QuestionType,
+  IAsyncQuestion,
+  showRemove,
 } from '@koh/common'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../components/QuestionTagElement'
 import tinycolor from 'tinycolor2'
 import { QuestionCircleOutlined } from '@ant-design/icons'
+import { CustomTagSelector } from '../../../components/CustomTagSelector'
+import { useCourse } from '@/app/hooks/useCourse'
 
 type ConvertQueueQToAnytimeQModalProps = {
   isOpen: boolean
@@ -26,6 +42,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const [questionTypes] = useQuestionTypes(cid, qid)
+  const { color } = useCourse()
 
   const tagRender = (props: {
     label: React.ReactNode
@@ -46,23 +63,9 @@ const ConvertQueueQToAnytimeQModal: React.FC<
     const textColor = getBrightness(tagColor) < 128 ? 'white' : 'black'
 
     return (
-      <span
-        className="ant-tag ant-tag-has-color"
-        style={{
-          backgroundColor: tagColor,
-          color: textColor,
-          borderColor: tinycolor(tagColor).darken(10).toString(),
-        }}
-      >
+      <Tag color={color.hex} style={{ marginRight: 3 }}>
         {label}
-        <span
-          className="ant-tag-close-icon"
-          onMouseDown={onPreventMouseDown}
-          onClick={onClose}
-        >
-          ×
-        </span>
-      </span>
+      </Tag>
     )
   }
 
@@ -88,35 +91,27 @@ const ConvertQueueQToAnytimeQModal: React.FC<
     }
   }, [isOpen, qid, form])
 
-  const onFinish = async (values: {
-    abstract: string
-    body: string
-    questionTypesInput: number[]
-    getAIAnswer: boolean
-  }) => {
+  const onFinish = async (values: any) => {
     setIsLoading(true)
+    const { abstract, body, questionTypesInput, customTags } = values
 
-    const selectedQuestionTypes = (questionTypes || []).filter((qt) =>
-      (values.questionTypesInput || []).includes(qt.id),
-    )
+    let finalQuestionText = body || ''
+    if (customTags && customTags.length > 0) {
+      const tagString = customTags.map((t: string) => `#${t}`).join(' ')
+      finalQuestionText = `${finalQuestionText}\n\n[Custom Tags]: ${tagString}`
+    }
 
-    const questionTypePayload: QuestionTypeParams[] = selectedQuestionTypes.map(
-      (qt) => ({
-        id: qt.id,
-        name: qt.name,
-        color: qt.color,
-      }),
-    )
+    const questionTypePayload: QuestionTypeParams[] = (questionTypes || [])
+      .filter((qt) => questionTypesInput.includes(qt.id))
+      .map((qt) => ({ id: qt.id, name: qt.name, color: qt.color }))
 
     try {
       await API.asyncQuestions.create(
         {
-          questionAbstract: values.abstract,
-          questionText: values.body,
+          questionAbstract: abstract,
+          questionText: finalQuestionText,
           questionTypes: questionTypePayload,
-          status: values.getAIAnswer
-            ? asyncQuestionStatus.AIAnswered
-            : asyncQuestionStatus.AIAnsweredNeedsAttention,
+          status: asyncQuestionStatus.AIAnswered,
         },
         cid,
       )
@@ -215,11 +210,11 @@ const ConvertQueueQToAnytimeQModal: React.FC<
           allowClear
         />
       </Form.Item>
-      <Form.Item
-        name="questionTypesInput"
-        label="What categories does your question fall under?"
-      >
+      <Form.Item name="questionTypesInput" label="Tags" initialValue={[]}>
         <QuestionTagSelector questionTags={questionTypes || []} />
+      </Form.Item>
+      <Form.Item name="customTags" label="Custom Tags" initialValue={[]}>
+        <CustomTagSelector />
       </Form.Item>
       <Tooltip title="An AI answer is automatically requested when converting a queue question.">
         <Form.Item
