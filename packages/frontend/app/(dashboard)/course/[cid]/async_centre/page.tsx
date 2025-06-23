@@ -16,7 +16,7 @@ import React, {
 import { Button, Checkbox, Popover, Segmented, Select, Tooltip } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getRoleInCourse } from '@/app/utils/generalUtils'
-import { useAsnycQuestions } from '@/app/hooks/useAsyncQuestions'
+import { useAsnycQuestions as useAsyncQuestions } from '@/app/hooks/useAsyncQuestions'
 import AsyncCentreInfoColumn from './components/AsyncCentreInfoColumn'
 import {
   EditQueueButton,
@@ -41,6 +41,7 @@ import { useChatbotContext } from '../components/chatbot/ChatbotProvider'
 import { API } from '@/app/api'
 import ConvertChatbotQToAnytimeQModal from './components/modals/ConvertChatbotQToAnytimeQModal'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import ConvertQueueQToAnytimeQModal from './components/modals/ConvertQueueQToAnytimeQModal'
 
 type AsyncCentrePageProps = {
   params: Promise<{ cid: string }>
@@ -57,7 +58,7 @@ export default function AsyncCentrePage(
   const { userInfo, setUserInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
-  const [asyncQuestions, mutateAsyncQuestions] = useAsnycQuestions(courseId)
+  const [asyncQuestions, mutateAsyncQuestions] = useAsyncQuestions(courseId)
   const [createAsyncQuestionModalOpen, setCreateAsyncQuestionModalOpen] =
     useState(false)
   const [editAsyncCentreModalOpen, setEditAsyncCentreModalOpen] =
@@ -75,15 +76,23 @@ export default function AsyncCentrePage(
     return () => setRenderSmallChatbot(false) // make the chatbot inactive when the user leaves the page
   }, [setRenderSmallChatbot])
 
-  const [convertChatbotQModalOpen, setConvertChatbotQModalOpen] =
+  const [isConvertChatbotQModalOpen, setIsConvertChatbotQModalOpen] =
     useState(false)
-  const convertChatbotQSearchParam = searchParams.get('convertChatbotQ')
+  const [isConvertQueueQModalOpen, setIsConvertQueueQModalOpen] =
+    useState(false)
+  const convertChatbotQ = searchParams.get('convertChatbotQ')
+  const convertQueueQ = searchParams.get('convertQueueQ')
+  const qid = Number(searchParams.get('qid'))
+  const chatbotId = Number(searchParams.get('chatbotId'))
+
   useEffect(() => {
-    if (convertChatbotQSearchParam && messages.length > 1) {
-      setConvertChatbotQModalOpen(true)
+    if (convertChatbotQ) {
+      setIsConvertChatbotQModalOpen(true)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [convertChatbotQSearchParam])
+    if (convertQueueQ) {
+      setIsConvertQueueQModalOpen(true)
+    }
+  }, [convertChatbotQ, convertQueueQ])
 
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'verified' | 'unverified'
@@ -415,20 +424,61 @@ export default function AsyncCentrePage(
             />
           ))}
         </div>
-        <ConvertChatbotQToAnytimeQModal
-          courseId={courseId}
-          open={convertChatbotQModalOpen}
-          onCancel={() => {
-            router.replace(pathname)
-            setConvertChatbotQModalOpen(false)
-          }}
-          onCreateOrUpdateQuestion={() => {
-            mutateAsyncQuestions()
-            router.replace(pathname)
-            setConvertChatbotQModalOpen(false)
-          }}
-          chatbotQ={{ messages: messages }}
-        />
+        <div className="flex w-full flex-wrap items-center justify-between gap-2 md:w-auto md:flex-nowrap">
+          <RenderQuestionTypeFilter />
+          <div className="flex w-full items-center justify-between gap-2 md:w-auto md:justify-normal">
+            <Button
+              type="primary"
+              onClick={() => setCreateAsyncQuestionModalOpen(true)}
+            >
+              Ask a question
+            </Button>
+            {isStaff && (
+              <EditQueueButton
+                onClick={() => setEditAsyncCentreModalOpen(true)}
+              />
+            )}
+          </div>
+          <ConvertChatbotQToAnytimeQModal
+            courseId={courseId}
+            open={isConvertChatbotQModalOpen}
+            onCancel={() => {
+              router.replace(pathname)
+              setIsConvertChatbotQModalOpen(false)
+            }}
+            onCreateOrUpdateQuestion={() => {
+              mutateAsyncQuestions()
+              router.replace(pathname)
+              setIsConvertChatbotQModalOpen(false)
+            }}
+            chatbotQ={{ messages: messages }}
+          />
+          <ConvertQueueQToAnytimeQModal
+            isOpen={isConvertQueueQModalOpen}
+            handleClose={() => {
+              mutateAsyncQuestions()
+              setIsConvertQueueQModalOpen(false)
+            }}
+            cid={courseId}
+            qid={qid}
+          />
+          {isStaff && (
+            <Checkbox
+              className="ml-auto"
+              checked={showStudents}
+              onChange={(e) => setShowStudents(e.target.checked)}
+            >
+              Show Students (Staff Only)
+              <Tooltip
+                title={
+                  "All students posts and comments are anonymized to other students (They get a different anonymous animal on each question). Staff can click this checkbox to see who posted what, just be careful not to mention the students' names in the answer or comments!"
+                }
+              >
+                <QuestionCircleOutlined className="ml-2 text-gray-500" />
+              </Tooltip>
+            </Checkbox>
+          )}
+        </div>
         {isStaff && (
           <>
             {/* Note: these are not all of the modals. TAAsyncQuestionCardButtons contains PostResponseModal and StudentAsyncQuestionButtons contains a second CreateAsyncQuestionModal */}

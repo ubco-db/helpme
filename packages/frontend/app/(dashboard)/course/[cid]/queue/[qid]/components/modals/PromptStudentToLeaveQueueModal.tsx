@@ -5,14 +5,16 @@ import { DoorOpen, PersonStanding } from 'lucide-react'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { ClosedQuestionStatus } from '@koh/common'
+import Link from 'next/link'
 
 type PromptStudentToLeaveQueueModalProps = {
   qid: number
+  cid: number
   handleClose: () => Promise<void>
 }
 const PromptStudentToLeaveQueueModal: React.FC<
   PromptStudentToLeaveQueueModalProps
-> = ({ qid, handleClose }) => {
+> = ({ qid, cid, handleClose }) => {
   const [isStayLoading, setIsStayLoading] = useState(false)
   const [isLeaveLoading, setIsLeaveLoading] = useState(false)
   const [modalJustOpened, setModalJustOpened] = useState(true)
@@ -79,6 +81,16 @@ const PromptStudentToLeaveQueueModal: React.FC<
         >
           I&apos;ll Stay, Thanks
         </Button>,
+        <Link
+          key="convert"
+          className="btn btn-outline mx-2"
+          href={{
+            pathname: `/course/${cid}/async_centre`,
+            query: { convertQueueQ: true, qid },
+          }}
+        >
+          Convert&nbsp;to&nbsp;anytime&nbsp;question
+        </Link>,
       ]}
       closable={false}
       destroyOnClose
