@@ -1,14 +1,13 @@
 import {
   AddChatbotQuestionParams,
-  ChatbotSettingsMetadata,
-  UpdateDocumentChunkParams,
   AddDocumentChunkParams,
   ChatbotQuestionResponseChatbotDB,
-  UpdateChatbotQuestionParams,
   ChatbotSettings,
   ChatbotSettingsUpdateParams,
+  UpdateChatbotQuestionParams,
+  UpdateDocumentChunkParams,
 } from '@koh/common';
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -42,13 +41,13 @@ export class ChatbotApiService {
   private async request(
     method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     endpoint: string,
-    courseId: number,
     userToken: string,
     data?: any,
     params?: any,
   ) {
     try {
-      const url = new URL(`${this.chatbotApiUrl}/${courseId}/${endpoint}`);
+      const url = new URL(`${this.chatbotApiUrl}/${endpoint}`);
+
       if (params) {
         Object.entries(params).forEach(([key, value]) => {
           url.searchParams.append(key, String(value));
@@ -87,33 +86,36 @@ export class ChatbotApiService {
     }
   }
 
-  // Question endpoints
+  // Chatbot endpoints
   async askQuestion(
     question: string,
     history: any,
     userToken: string,
     courseId: number,
   ) {
-    return this.request('POST', 'ask', courseId, userToken, {
+    return this.request('POST', `chatbot/${courseId}/ask`, userToken, {
       question,
       history,
     });
   }
 
-  async getAllQuestions(courseId: number, userToken: string) {
-    return this.request('GET', 'allQuestions', courseId, userToken);
+  async getModels(userToken: string) {
+    return this.request('GET', `chatbot/models`, userToken);
   }
 
-  async getSuggestedQuestions(courseId: number, userToken: string) {
-    return this.request('GET', 'allSuggestedQuestions', courseId, userToken);
-  }
+  // Question endpoints
 
   async addQuestion(
     questionData: AddChatbotQuestionParams,
     courseId: number,
     userToken: string,
   ) {
-    return this.request('POST', 'question', courseId, userToken, questionData);
+    return this.request(
+      'POST',
+      `question/${courseId}`,
+      userToken,
+      questionData,
+    );
   }
 
   async updateQuestion(
@@ -121,16 +123,29 @@ export class ChatbotApiService {
     courseId: number,
     userToken: string,
   ): Promise<ChatbotQuestionResponseChatbotDB> {
-    return this.request('PATCH', `question`, courseId, userToken, questionData);
+    return this.request(
+      'PATCH',
+      `question/${courseId}/${questionData.id}`,
+      userToken,
+      questionData,
+    );
   }
 
   async deleteQuestion(id: string, courseId: number, userToken: string) {
-    return this.request('DELETE', `question/${id}`, courseId, userToken);
+    return this.request('DELETE', `question/${courseId}/${id}`, userToken);
+  }
+
+  async getSuggestedQuestions(courseId: number, userToken: string) {
+    return this.request('GET', `question/${courseId}/suggested`, userToken);
+  }
+
+  async getAllQuestions(courseId: number, userToken: string) {
+    return this.request('GET', `question/${courseId}/all`, userToken);
   }
 
   async deleteAllQuestions(courseId: number, userToken: string) {
     // Unused
-    return this.request('DELETE', 'deleteAllQuestions', courseId, userToken);
+    return this.request('DELETE', `question/${courseId}/all`, userToken);
   }
 
   // Chatbot settings endpoints
@@ -138,7 +153,7 @@ export class ChatbotApiService {
     courseId: number,
     userToken: string,
   ): Promise<ChatbotSettings> {
-    return this.request('GET', 'oneChatbotSetting', courseId, userToken);
+    return this.request('GET', `course-setting/${courseId}`, userToken);
   }
 
   async updateChatbotSettings(
@@ -148,29 +163,24 @@ export class ChatbotApiService {
   ) {
     return this.request(
       'PATCH',
-      'updateChatbotSetting',
-      courseId,
+      `course-setting/${courseId}`,
       userToken,
       settings,
     );
   }
 
   async resetChatbotSettings(courseId: number, userToken: string) {
-    return this.request('PATCH', 'resetChatbotSetting', courseId, userToken);
-  }
-
-  async resetCourse(courseId: number, userToken: string) {
-    // apparently resets all chatbot data for the course. Unused right now
-    return this.request('GET', 'resetCourse', courseId, userToken);
+    return this.request('PATCH', `course-setting/${courseId}/reset`, userToken);
   }
 
   // Document endpoints
-  async getAllAggregateDocuments(courseId: number, userToken: string) {
-    return this.request('GET', 'aggregateDocuments', courseId, userToken);
-  }
 
   async getAllDocumentChunks(courseId: number, userToken: string) {
-    return this.request('GET', 'allDocumentChunks', courseId, userToken);
+    return this.request('GET', `document/${courseId}`, userToken);
+  }
+
+  async getAllAggregateDocuments(courseId: number, userToken: string) {
+    return this.request('GET', `document/${courseId}/aggregate`, userToken);
   }
 
   async addDocumentChunk(
@@ -178,7 +188,7 @@ export class ChatbotApiService {
     courseId: number,
     userToken: string,
   ) {
-    return this.request('POST', 'documentChunk', courseId, userToken, body);
+    return this.request('POST', `document/${courseId}`, userToken, body);
   }
 
   async updateDocumentChunk(
@@ -189,8 +199,7 @@ export class ChatbotApiService {
   ) {
     return this.request(
       'PATCH',
-      `${docId}/documentChunk`,
-      courseId,
+      `document/${courseId}/${docId}`,
       userToken,
       body,
     );
@@ -201,16 +210,15 @@ export class ChatbotApiService {
     courseId: number,
     userToken: string,
   ) {
-    return this.request(
-      'DELETE',
-      `documentChunk/${docId}`,
-      courseId,
-      userToken,
-    );
+    return this.request('DELETE', `document/${courseId}/${docId}`, userToken);
   }
 
   async deleteDocument(docId: string, courseId: number, userToken: string) {
-    return this.request('DELETE', `${docId}/document`, courseId, userToken);
+    return this.request(
+      'DELETE',
+      `document/${courseId}/${docId}/aggregate`,
+      userToken,
+    );
   }
 
   async uploadDocument(
@@ -231,20 +239,12 @@ export class ChatbotApiService {
         file.originalname.replace(/\.[^/.]+$/, '.pdf'), // Replace original extension with .pdf
       );
 
-      // Create JSON data for source and parseAsPng
-      const jsonData = JSON.stringify({
-        source: source,
-        parseAsPng: parseAsPng,
-      });
-
-      // Add the JSON data as a separate file with fieldname "source" (will be saved as "blob")
-      formData.append(
-        'source',
-        new Blob([jsonData], { type: 'application/json' }),
-      );
+      // Add the JSON data as a separate file with fieldname "source"
+      formData.append('source', source);
+      formData.append('parseAsPng', String(parseAsPng));
 
       // Make sure the request method handles FormData correctly
-      const url = new URL(`${this.chatbotApiUrl}/${courseId}/document`);
+      const url = new URL(`${this.chatbotApiUrl}/document/${courseId}/file`);
 
       const headers: Record<string, string> = {
         'HMS-API-KEY': this.chatbotApiKey,
@@ -278,12 +278,8 @@ export class ChatbotApiService {
     }
   }
 
-  async addDocumentFromGithub(
-    url: string,
-    courseId: number,
-    userToken: string,
-  ) {
-    return this.request('POST', 'document/url/github', courseId, userToken, {
+  async uploadURLDocument(url: string, courseId: number, userToken: string) {
+    return this.request('POST', `document/${courseId}/url`, userToken, {
       url,
     });
   }
@@ -303,8 +299,7 @@ export class ChatbotApiService {
   }> {
     return this.request(
       'POST',
-      `cloneCourseDocuments/${cloneCourseId}`,
-      courseId,
+      `document/${courseId}/clone/${cloneCourseId}`,
       userToken,
       {
         includeDocuments,
@@ -314,5 +309,10 @@ export class ChatbotApiService {
         docIdMap,
       },
     );
+  }
+
+  async resetCourse(courseId: number, userToken: string) {
+    // apparently resets all chatbot data for the course. Unused right now
+    return this.request('PATCH', `document/${courseId}/reset`, userToken);
   }
 }

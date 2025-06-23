@@ -6,13 +6,13 @@ import {
 import {
   CoursePartial,
   ERROR_MESSAGES,
+  LMSAnnouncement,
   LMSApiResponseStatus,
+  LMSAssignment,
   LMSCourseIntegrationPartial,
   LMSFileUploadResponse,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
-  LMSAssignment,
-  LMSAnnouncement,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
@@ -24,6 +24,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 } from 'uuid';
 import * as Sentry from '@sentry/browser';
 import { ConfigService } from '@nestjs/config';
+import { convert } from 'html-to-text';
+import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 
 export enum LMSGet {
   Course,
@@ -39,16 +41,14 @@ export enum LMSUpload {
 
 @Injectable()
 export class LMSIntegrationService {
-  private readonly chatbotApiKey;
-
   constructor(
     @Inject(LMSIntegrationAdapter)
     private integrationAdapter: LMSIntegrationAdapter,
     @Inject(ConfigService)
     private configService: ConfigService,
-  ) {
-    this.chatbotApiKey = this.configService.get<string>('CHATBOT_API_KEY');
-  }
+    @Inject(ChatbotApiService)
+    private chatbotApiService: ChatbotApiService,
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async resynchronizeCourseIntegrations() {
@@ -431,10 +431,9 @@ export class LMSIntegrationService {
 
       const entities = toSave
         .map((i) => {
-          const chatbotDocumentId =
-            'chatbotDocumentId' in i && i.chatbotDocumentId != undefined
-              ? i.chatbotDocumentId
-              : statuses.find((u) => u.id == i.id)?.documentId;
+          const chatbotDocumentIds = statuses.find(
+            (u) => u.id == i.id,
+          )?.documentIds;
 
           switch (type) {
             case LMSUpload.Announcements:
@@ -444,7 +443,7 @@ export class LMSIntegrationService {
                 title: ann.title,
                 message: ann.message,
                 posted: ann.posted,
-                chatbotDocumentId: chatbotDocumentId,
+                chatbotDocumentIds: chatbotDocumentIds,
                 uploaded: new Date(),
                 modified:
                   ann.modified != undefined
@@ -460,7 +459,7 @@ export class LMSIntegrationService {
                 name: asg.name,
                 description: asg.description ?? '',
                 due: asg.due,
-                chatbotDocumentId: chatbotDocumentId,
+                chatbotDocumentIds: chatbotDocumentIds,
                 uploaded: new Date(),
                 courseId: courseId,
                 modified:
@@ -529,7 +528,7 @@ export class LMSIntegrationService {
 
     const statuses: LMSFileUploadResponse[] = [];
     for (const item of items) {
-      statuses.push(await this.deleteDocument(courseId, item, token));
+      statuses.push(...(await this.deleteDocument(courseId, item, token)));
     }
 
     await ChatTokenModel.remove(token);
@@ -586,7 +585,7 @@ export class LMSIntegrationService {
     );
 
     if (status.success) {
-      item.chatbotDocumentId = item.chatbotDocumentId ?? status.documentId;
+      item.chatbotDocumentIds = status.documentIds;
       item.uploaded = new Date();
       item.syncEnabled = true;
       await (model as any).upsert(item, ['id', 'courseId']);
@@ -614,19 +613,23 @@ export class LMSIntegrationService {
       max_uses: 1,
     }).save();
 
-    const status = await this.deleteDocument(courseId, item, token);
-
-    if (status.success) {
-      item.chatbotDocumentId = null;
+    const statuses = await this.deleteDocument(courseId, item, token);
+    let ids = [...item.chatbotDocumentIds];
+    ids = ids.filter((id) => {
+      const match = statuses.find((s) => s.documentIds[0] == id);
+      return !match.success;
+    });
+    item.chatbotDocumentIds = ids;
+    if (ids.length == 0) {
       item.uploaded = null;
       item.syncEnabled = false;
-      await (model as any).upsert(item, ['id', 'courseId']);
     }
+    await (model as any).upsert(item, ['id', 'courseId']);
 
     await ChatTokenModel.remove(token);
     await UserModel.remove(tempUser);
 
-    return status.success;
+    return statuses.reduce((prev, curr) => prev && curr.success, true);
   }
 
   private async uploadDocument(
@@ -640,16 +643,19 @@ export class LMSIntegrationService {
     type: LMSUpload,
     adapter: AbstractLMSAdapter,
   ): Promise<LMSFileUploadResponse> {
-    let documentText: string | undefined = undefined;
+    let documentText = '';
+    let prefix = '';
     switch (type) {
       case LMSUpload.Announcements: {
         const a = item as LMSAnnouncement;
-        documentText = `(Course Announcement)\n Title: ${a.title}\nContent: ${a.message}\nPosted: ${new Date(a.posted).getTime()}${!isNaN(new Date(a.modified).valueOf()) ? `\nModified: ${new Date(a.modified).getTime()}` : ''}`;
+        prefix = `(Course Announcement)\nTitle: ${a.title}${!isNaN(new Date(a.posted).valueOf()) ? `\nPosted: ${new Date(a.posted).toLocaleDateString()}` : ''}${!isNaN(new Date(a.modified).valueOf()) ? `\nModified: ${new Date(a.modified).toLocaleDateString()}` : ''}`;
+        documentText = `\nContent:\n${convert(a.message)}`;
         break;
       }
       case LMSUpload.Assignments: {
         const a = item as any as LMSAssignment;
-        documentText = `(Course Assignment)\n Name: ${a.name}\n${!isNaN(new Date(a.due).valueOf()) ? `Due Date: ${new Date(a.due).toLocaleDateString()}\n` : 'Due Date: No due date\n'}${a.description && `Description: ${a.description}`}`;
+        prefix = `(Course Assignment)\n Name: ${a.name}\n${!isNaN(new Date(a.due).valueOf()) ? `Due Date: ${new Date(a.due).toLocaleDateString()}\n` : 'Due Date: No due date\n'}`;
+        documentText = `${a.description && `Description: ${convert(a.description)}`}`;
         break;
       }
       default:
@@ -657,6 +663,11 @@ export class LMSIntegrationService {
           id: item.id,
           success: false,
         } as LMSFileUploadResponse;
+    }
+
+    if (!documentText && prefix) {
+      documentText = prefix;
+      prefix = '';
     }
 
     if (!documentText) {
@@ -668,12 +679,12 @@ export class LMSIntegrationService {
 
     const computedDocLink = adapter.getDocumentLink(item.id, type);
     if (computedDocLink) {
-      documentText = documentText.concat(`\nPage Link: ${computedDocLink}`);
+      prefix = `${prefix ? `${prefix}\n` : ''}Page Link: ${computedDocLink}`;
     }
 
     if (
-      'chatbotDocumentId' in item &&
-      item.chatbotDocumentId != undefined &&
+      'chatbotDocumentIds' in item &&
+      item.chatbotDocumentIds != undefined &&
       item.uploaded != undefined &&
       item.modified != undefined &&
       new Date(item.modified).getTime() < new Date(item.uploaded).getTime()
@@ -681,69 +692,61 @@ export class LMSIntegrationService {
       return {
         id: item.id,
         success: true,
-        documentId: item.chatbotDocumentId,
+        documentIds: item.chatbotDocumentIds,
+      };
+    }
+
+    /*
+     Need to remove update/upsert behaviour as the new API has to have
+     the ability to create more than 1 document chunk per item, which is
+     complicated for LMS documents
+     */
+    const deleteResults: LMSFileUploadResponse[] = [];
+    if ('chatbotDocumentIds' in item && item.chatbotDocumentIds != undefined) {
+      deleteResults.push(...(await this.deleteDocument(courseId, item, token)));
+    }
+
+    const proceed = deleteResults.reduce(
+      (prev, curr) => prev && curr.success,
+      true,
+    );
+    if (!proceed) {
+      return {
+        id: item.id,
+        success: false,
       };
     }
 
     const metadata: any = {
       name: `LMS Resource`,
       type: 'inserted_lms_document',
+      apiDocId: item.id,
     };
 
-    const reqOptions = {
-      method:
-        'chatbotDocumentId' in item && item.chatbotDocumentId != undefined
-          ? 'PATCH'
-          : 'POST',
-      body: JSON.stringify({
-        documentText: documentText,
-        metadata: metadata,
-      }),
-      headers: {
-        'Content-Type': 'application/json',
-        'HMS-API-KEY': this.chatbotApiKey,
-        HMS_API_TOKEN: token.token,
-      },
-    };
-
-    const thenFx = (response: Response) => {
-      if (response.ok) {
-        if (reqOptions.method == 'PATCH') {
-          return {
-            id: item.id,
-            success: true,
-            documentId: (item as LMSAssignmentModel | LMSAnnouncementModel)
-              .chatbotDocumentId,
-          } as LMSFileUploadResponse;
-        } else {
-          return response.json();
-        }
-      } else {
-        throw new HttpException(response.statusText, response.status);
-      }
-    };
-
-    return await fetch(
-      'chatbotDocumentId' in item && item.chatbotDocumentId != undefined
-        ? `http://localhost:3003/chat/${courseId}/${item.chatbotDocumentId}/documentChunk`
-        : `http://localhost:3003/chat/${courseId}/documentChunk`,
-      reqOptions,
-    )
-      .then(thenFx)
+    return await this.chatbotApiService
+      .addDocumentChunk(
+        {
+          documentText,
+          metadata,
+          prefix,
+        },
+        courseId,
+        token.token,
+      )
       .then((response): LMSFileUploadResponse => {
-        if (reqOptions.method == 'PATCH') return response;
-        const persistedDoc = response as {
+        const persistedDocs = response as {
           id: string;
           pageContent: string;
           metadata: any;
-        };
+        }[];
         return {
           id: item.id,
           success: true,
-          documentId: persistedDoc.id,
+          documentIds: persistedDocs.map((d) => d.id),
         };
       })
-      .catch((_error) => {
+      .catch((error) => {
+        console.error(error);
         return {
           id: item.id,
           success: false,
@@ -756,38 +759,37 @@ export class LMSIntegrationService {
     item: LMSAnnouncementModel | LMSAssignmentModel,
     token: ChatTokenModel,
   ) {
-    const reqOptions = {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'HMS-API-KEY': this.chatbotApiKey,
-        HMS_API_TOKEN: token.token,
-      },
-    };
-
-    const thenFx = (response: Response): LMSFileUploadResponse => {
-      if (response.ok || response.status == 404) {
-        // 404 means it's already been deleted
-        return {
-          id: item.id,
-          success: true,
-        };
-      } else {
-        throw new Error();
-      }
-    };
-
-    return await fetch(
-      `http://localhost:3003/chat/${courseId}/documentChunk/${item.chatbotDocumentId}`,
-      reqOptions,
-    )
-      .then(thenFx)
-      .catch((_error): LMSFileUploadResponse => {
-        return {
-          id: item.id,
-          success: false,
-        };
-      });
+    const results: LMSFileUploadResponse[] = [];
+    for (const id of item.chatbotDocumentIds) {
+      results.push(
+        await this.chatbotApiService
+          .deleteDocumentChunk(id, courseId, token.token)
+          .then(
+            (): LMSFileUploadResponse => ({
+              id: item.id,
+              documentIds: [id],
+              success: true,
+            }),
+          )
+          .catch((error): LMSFileUploadResponse => {
+            console.error(error);
+            // 404 = Already deleted/didn't exist
+            if (error.getStatus() == 404) {
+              return {
+                id: item.id,
+                documentIds: [id],
+                success: true,
+              } as LMSFileUploadResponse;
+            }
+            return {
+              id: item.id,
+              success: false,
+              documentIds: [id],
+            };
+          }),
+      );
+    }
+    return results;
   }
 
   getPartialOrgLmsIntegration(lmsIntegration: LMSOrganizationIntegrationModel) {

@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  Modal,
-  Form,
-  Input,
   Button,
   Checkbox,
-  message,
-  Tooltip,
   Collapse,
+  Form,
+  Input,
+  message,
+  Modal,
+  Tooltip,
 } from 'antd'
 import {
   AddDocumentChunkParams,
@@ -80,7 +80,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
     }
     await API.chatbot.staffOnly
       .addDocumentChunk(cid, newChunk)
-      .then(async () => {
+      .then(async (docChunks: SourceDocument[]) => {
         const updatedQuestion: UpdateChatbotQuestionParams = {
           id: editingRecord.vectorStoreId,
           inserted: true,
@@ -89,9 +89,14 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
           .updateQuestion(cid, updatedQuestion)
           .then(() => {
             message.success(
-              'Document inserted successfully. You can now cancel or save the changes you made to the Q&A',
+              `Document${docChunks.length > 1 ? 's' : ''} inserted successfully. You can now cancel or save the changes you made to the Q&A`,
               6,
             )
+            if (docChunks.length > 1)
+              message.warning(
+                `Question text was too large! Inserted document was split into ${docChunks.length} document chunks.`,
+                6,
+              )
             setSuccessfulQAInsert(true)
           })
       })

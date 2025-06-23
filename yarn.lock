@@ -3837,6 +3837,11 @@
   dependencies:
     "@types/unist" "*"
 
+"@types/html-to-text@^9.0.4":
+  version "9.0.4"
+  resolved "https://registry.yarnpkg.com/@types/html-to-text/-/html-to-text-9.0.4.tgz#4a83dd8ae8bfa91457d0b1ffc26f4d0537eff58c"
+  integrity sha512-pUY3cKH/Nm2yYrEmDlPR1mR7yszjGx4DrwPjQ702C4/D5CwHuZTgZdIdwPkRbcuhs7BAh2L5rg3CL5cbRiGTCQ==
+
 "@types/http-errors@*":
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/@types/http-errors/-/http-errors-2.0.4.tgz#7eb47726c391b7345a6ec35ad7f4de469cf5ba4f"
@@ -9085,7 +9090,7 @@ html-minifier@^4.0.0:
     relateurl "^0.2.7"
     uglify-js "^3.5.1"
 
-html-to-text@9.0.5:
+html-to-text@9.0.5, html-to-text@^9.0.5:
   version "9.0.5"
   resolved "https://registry.yarnpkg.com/html-to-text/-/html-to-text-9.0.5.tgz#6149a0f618ae7a0db8085dca9bbf96d32bb8368d"
   integrity sha512-qY60FjREgVZL03vJU6IfMV4GDjGBIoOyvuFdpBDIX9yTlDw0TjxVBQp+P8NvpdIXNJvfWBTNul7fsAQJq2FNpg==

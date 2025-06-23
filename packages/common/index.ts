@@ -3,7 +3,6 @@ import {
   IsArray,
   IsBoolean,
   IsDate,
-  IsDefined,
   IsEnum,
   IsHexColor,
   IsIn,
@@ -426,6 +425,7 @@ export interface AddDocumentChunkParams {
     id?: string
     courseId?: number
   }
+  prefix?: string
 }
 
 export interface UpdateChatbotQuestionParams {
@@ -1328,10 +1328,15 @@ export type LMSAnnouncement = {
   uploaded?: Date
 }
 
+export type LMSErrorType = {
+  deleteError: "Couldn't remove pre-existing documents"
+}
+
 export type LMSFileUploadResponse = {
   id: number
   success: boolean
-  documentId?: string
+  documentIds?: string[]
+  reason?: LMSErrorType
 }
 
 export enum LMSApiResponseStatus {

@@ -38,6 +38,9 @@ export class LMSAnnouncementModel extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   chatbotDocumentId: string;
 
+  @Column({ type: 'text', array: true, default: [] })
+  chatbotDocumentIds: string[];
+
   @Column({ type: 'timestamp', nullable: true })
   uploaded: Date;
 

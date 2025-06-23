@@ -508,7 +508,9 @@ export class LMSIntegrationController {
 
     const model = await this.integrationService.getDocumentModel(uploadType);
     let item = await (model as any).findOne({
-      id: itemId,
+      where: {
+        id: itemId,
+      },
     });
     let didNotExist = false;
 
@@ -554,6 +556,7 @@ export class LMSIntegrationController {
         throw new Error();
       }
     } catch (err) {
+      console.error(err);
       throw new HttpException(
         newState
           ? ERROR_MESSAGES.lmsController.failedToSyncOne
