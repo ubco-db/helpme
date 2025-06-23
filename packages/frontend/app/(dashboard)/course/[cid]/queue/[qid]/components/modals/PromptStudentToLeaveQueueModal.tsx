@@ -1,7 +1,7 @@
 import { Button, message } from 'antd'
 import Modal from 'antd/lib/modal/Modal'
 import { useState } from 'react'
-import { DoorOpen, PersonStanding } from 'lucide-react'
+import { ArrowRightLeft, DoorOpen, PersonStanding } from 'lucide-react'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { ClosedQuestionStatus } from '@koh/common'
@@ -44,8 +44,9 @@ const PromptStudentToLeaveQueueModal: React.FC<
   return (
     <Modal
       open={true}
+      width={650}
       classNames={{
-        footer: 'flex justify-center',
+        footer: 'flex justify-center gap-2',
       }}
       footer={[
         <Button
@@ -83,13 +84,19 @@ const PromptStudentToLeaveQueueModal: React.FC<
         </Button>,
         <Link
           key="convert"
-          className="btn btn-outline mx-2"
           href={{
             pathname: `/course/${cid}/async_centre`,
             query: { convertQueueQ: true, qid },
           }}
         >
-          Convert&nbsp;to&nbsp;anytime&nbsp;question
+          <Button
+            type="default"
+            disabled={isLeaveLoading || isStayLoading || modalJustOpened}
+            icon={<ArrowRightLeft />}
+            size="large"
+          >
+            Convert to anytime question
+          </Button>
         </Link>,
       ]}
       closable={false}
