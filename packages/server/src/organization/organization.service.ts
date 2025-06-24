@@ -6,6 +6,7 @@ import { OrganizationCourseModel } from './organization-course.entity';
 import { CourseModel } from 'course/course.entity';
 import {
   CourseResponse,
+  ERROR_MESSAGES,
   GetOrganizationUserResponse,
   OrganizationRole,
   OrganizationRoleHistoryFilter,
@@ -500,7 +501,7 @@ export class OrganizationService {
       });
       if (!organization) {
         throw new NotFoundException(
-          'Organization settings could not be created; organization not found.',
+          ERROR_MESSAGES.organizationService.cannotCreateOrgNotFound,
         );
       }
 

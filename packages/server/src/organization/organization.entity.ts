@@ -14,6 +14,7 @@ import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegra
 import { SemesterModel } from '../semester/semester.entity';
 import { SuperCourseModel } from 'course/super-course.entity';
 import { OrganizationSettingsModel } from './organization_settings.entity';
+import { OrganizationRoleHistory } from './organization_role_history.entity';
 
 @Entity('organization_model')
 export class OrganizationModel extends BaseEntity {
@@ -48,12 +49,18 @@ export class OrganizationModel extends BaseEntity {
   ssoUrl: string;
 
   @Exclude()
-  @JoinColumn({ name: 'organizationId' })
   @OneToOne(
     (type) => OrganizationSettingsModel,
     (organizationSettings) => organizationSettings.organization,
   )
   organizationSettings: OrganizationSettingsModel[];
+
+  @Exclude()
+  @OneToOne(
+    (type) => OrganizationRoleHistory,
+    (roleHistory) => roleHistory.organization,
+  )
+  organizationRoleHistory: OrganizationRoleHistory[];
 
   @Exclude()
   @JoinColumn({ name: 'organizationId' })

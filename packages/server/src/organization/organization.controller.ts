@@ -299,12 +299,6 @@ export class OrganizationController {
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
     @Res() res: Response,
   ): Promise<Response<void>> {
-    if (!courseDetails.name || courseDetails.name.trim().length < 1) {
-      return res.status(HttpStatus.BAD_REQUEST).send({
-        message: ERROR_MESSAGES.courseController.courseNameTooShort,
-      });
-    }
-
     const orgSettings =
       await this.organizationService.getOrganizationSettings(oid);
     if (
@@ -314,6 +308,12 @@ export class OrganizationController {
       throw new UnauthorizedException(
         ERROR_MESSAGES.organizationController.notAllowedToCreateCourse(orgRole),
       );
+    }
+
+    if (!courseDetails.name || courseDetails.name.trim().length < 1) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.courseController.courseNameTooShort,
+      });
     }
 
     if (
@@ -1535,6 +1535,7 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async addUserToOrganization(
     @Res() res: Response,
+    @User({ organizationUser: true }) caller: UserModel,
     @Param('oid', ParseIntPipe) oid: number,
     @Param('uid', ParseIntPipe) uid: number,
   ): Promise<void> {
@@ -1574,8 +1575,8 @@ export class OrganizationController {
                     oid,
                     null,
                     OrganizationRole.MEMBER,
-                    user.organizationUser.id,
-                    organizationUser.id,
+                    caller.organizationUser?.id ?? null,
+                    organizationUserModel.id,
                     OrgRoleChangeReason.joinedOrganizationMember,
                   )
                   .then(() =>
@@ -1585,14 +1586,17 @@ export class OrganizationController {
                   );
               })
               .catch((err) => {
+                console.log(err);
                 res.status(500).send({ message: err });
               });
           })
           .catch((err) => {
+            console.log(err);
             res.status(500).send({ message: err });
           });
       })
       .catch((err) => {
+        console.log(err);
         res.status(500).send({ message: err });
       });
   }

@@ -40,7 +40,11 @@ export class OrganizationRoleHistory extends BaseEntity {
   @Column({ nullable: true })
   byOrgUserId: number;
 
-  @ManyToOne((type) => OrganizationUserModel, { nullable: true })
+  @ManyToOne((type) => OrganizationUserModel, {
+    nullable: true,
+    onUpdate: 'CASCADE',
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'byOrgUserId' })
   byUser: OrganizationUserModel;
 
@@ -55,7 +59,11 @@ export class OrganizationRoleHistory extends BaseEntity {
   })
   roleChangeReason: OrgRoleChangeReason;
 
-  @ManyToOne((type) => OrganizationUserModel, { nullable: true })
+  @ManyToOne((type) => OrganizationUserModel, {
+    nullable: true,
+    onUpdate: 'CASCADE',
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'toOrgUserId' })
   toOrgUser: OrganizationUserModel;
 
@@ -63,7 +71,11 @@ export class OrganizationRoleHistory extends BaseEntity {
   organizationId: number;
 
   @Exclude()
-  @ManyToOne((type) => OrganizationModel, { nullable: true })
+  @ManyToOne(
+    (type) => OrganizationModel,
+    (organization) => organization.organizationRoleHistory,
+    { nullable: true, onUpdate: 'CASCADE', onDelete: 'CASCADE' },
+  )
   @JoinColumn({ name: 'organizationId' })
   organization: OrganizationModel;
 }

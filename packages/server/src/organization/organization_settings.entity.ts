@@ -17,9 +17,7 @@ export class OrganizationSettingsModel extends BaseEntity {
   @OneToOne(
     (type) => OrganizationModel,
     (organization) => organization.organizationSettings,
-    {
-      onDelete: 'CASCADE',
-    },
+    { onUpdate: 'CASCADE', onDelete: 'CASCADE' },
   )
   @JoinColumn({ name: 'organizationId' })
   organization: OrganizationModel;

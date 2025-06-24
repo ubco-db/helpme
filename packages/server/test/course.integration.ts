@@ -6,28 +6,28 @@ import {
   TACheckinTimesResponse,
   UserCourse,
 } from '@koh/common';
-import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { CourseModule } from '../src/course/course.module';
 import { QueueModel } from '../src/queue/queue.entity';
 import {
+  ChatTokenFactory,
   CourseFactory,
   CourseSectionFactory,
+  CourseSettingsFactory,
   EventFactory,
   OrganizationCourseFactory,
   OrganizationFactory,
+  OrganizationSettingsFactory,
   OrganizationUserFactory,
+  QuestionFactory,
   QueueFactory,
+  QueueInviteFactory,
   SemesterFactory,
   StudentCourseFactory,
   TACourseFactory,
   UserCourseFactory,
   UserFactory,
-  CourseSettingsFactory,
-  QuestionFactory,
-  QueueInviteFactory,
-  ChatTokenFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -2282,6 +2282,42 @@ describe('Course Integration', () => {
 
     it('should return 401 if user is not authenticated', async () => {
       await supertest().post('/courses/1/clone_course').expect(401);
+    });
+
+    it('should return 401 if user is professor and professors disallowed from creating courses', async () => {
+      const professor = await UserFactory.create({ chat_token: null });
+      const course = await CourseFactory.create();
+      const organization = await OrganizationFactory.create();
+      await OrganizationSettingsFactory.create({
+        organizationId: organization.id,
+        organization,
+        allowProfCourseCreate: false,
+      });
+
+      await OrganizationUserFactory.create({
+        organizationUser: professor,
+        organization: organization,
+        role: OrganizationRole.PROFESSOR,
+      });
+
+      await OrganizationCourseFactory.create({
+        course: course,
+        organization: organization,
+      });
+
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course,
+      });
+
+      await supertest({ userId: professor.id })
+        .post(`/courses/${course.id}/clone_course`)
+        .send({
+          name: 'Cloned Course',
+          semesterId: 1,
+        })
+        .expect(401);
     });
 
     it('should return 404 if user has no chat token', async () => {

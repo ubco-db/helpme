@@ -2960,6 +2960,10 @@ export const ERROR_MESSAGES = {
     notAllowedToCreateCourse: (role: OrganizationRole) =>
       `Members with role ${role} are not allowed to create courses`,
   },
+  organizationService: {
+    cannotCreateOrgNotFound:
+      'Organization settings could not be created; organization not found.',
+  },
   courseController: {
     checkIn: {
       cannotCheckIntoMultipleQueues:
@@ -3212,5 +3216,13 @@ export const ERROR_MESSAGES = {
     lmsDocumentNotFound: 'Document was not found.',
     cannotSyncDocumentWhenSyncDisabled:
       'Cannot synchronize a document when synchronization is disabled.',
+  },
+  semesterController: {
+    notAllowedToCreateSemester: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to create semesters`,
+    notAllowedToUpdateSemester: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to alter semesters`,
+    notAllowedToDeleteSemester: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to delete semesters`,
   },
 }

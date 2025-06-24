@@ -1052,14 +1052,6 @@ export class CourseController {
     @User({ chat_token: true, organizationUser: true }) user: UserModel,
     @Body() body: CourseCloneAttributes,
   ): Promise<UserCourse | null> {
-    if (!user || !user.chat_token) {
-      console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
-      throw new HttpException(
-        ERROR_MESSAGES.profileController.accountNotAvailable,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
     const orgSettings = await this.organizationService.getOrganizationSettings(
       user.organizationUser?.organizationId,
     );
@@ -1071,6 +1063,14 @@ export class CourseController {
         ERROR_MESSAGES.organizationController.notAllowedToCreateCourse(
           user.organizationUser?.role,
         ),
+      );
+    }
+
+    if (!user || !user.chat_token) {
+      console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
+      throw new HttpException(
+        ERROR_MESSAGES.profileController.accountNotAvailable,
+        HttpStatus.NOT_FOUND,
       );
     }
 

@@ -99,7 +99,7 @@ export class AuthService {
 
       const userId = newUser.id;
 
-      await OrganizationUserModel.create({
+      const orgUser = await OrganizationUserModel.create({
         organizationId,
         userId: userId,
         role: OrganizationRole.MEMBER,
@@ -115,7 +115,7 @@ export class AuthService {
         null,
         OrganizationRole.MEMBER,
         null,
-        userId,
+        orgUser.id,
         OrgRoleChangeReason.joinedOrganizationMember,
       );
 
@@ -177,7 +177,7 @@ export class AuthService {
 
       const userId = newUser.id;
 
-      await OrganizationUserModel.create({
+      const orgUser = await OrganizationUserModel.create({
         organizationId,
         userId: userId,
       }).save();
@@ -187,7 +187,7 @@ export class AuthService {
         null,
         OrganizationRole.MEMBER,
         null,
-        userId,
+        orgUser.id,
         OrgRoleChangeReason.joinedOrganizationMember,
       );
 
@@ -260,7 +260,7 @@ export class AuthService {
 
       const userId = newUser.id;
 
-      await OrganizationUserModel.create({
+      const orgUser = await OrganizationUserModel.create({
         organizationId,
         userId,
         role: OrganizationRole.MEMBER,
@@ -271,7 +271,7 @@ export class AuthService {
         null,
         OrganizationRole.MEMBER,
         null,
-        userId,
+        orgUser.id,
         OrgRoleChangeReason.joinedOrganizationMember,
       );
 
