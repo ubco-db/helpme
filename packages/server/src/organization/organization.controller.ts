@@ -7,13 +7,13 @@ import {
   Get,
   HttpException,
   HttpStatus,
-  NotFoundException,
   Param,
   ParseIntPipe,
   Patch,
   Post,
   Query,
   Res,
+  UnauthorizedException,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -33,9 +33,9 @@ import {
   OrganizationRole,
   OrganizationRoleHistoryFilter,
   OrganizationRoleHistoryResponse,
-  OrganizationSettingsDefaults,
   OrganizationSettingsRequestBody,
   OrganizationSettingsResponse,
+  OrgRoleChangeReason,
   OrgUser,
   Role,
   UpdateOrganizationCourseDetailsParams,
@@ -43,7 +43,6 @@ import {
   UpdateOrganizationUserRole,
   UpdateProfileParams,
   UserRole,
-  validOrganizationSettings,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -77,8 +76,8 @@ import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { CourseService } from 'course/course.service';
-import { OrganizationSettingsModel } from './organization_settings.entity';
 import { ParseDatePipe } from '@nestjs/common/pipes/parse-date.pipe';
+import { OrgRole } from '../decorators/org-role.decorator';
 
 // TODO: put the error messages in ERROR_MESSAGES object
 
@@ -296,6 +295,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async createCourse(
     @Param('oid', ParseIntPipe) oid: number,
+    @OrgRole() orgRole: OrganizationRole,
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
     @Res() res: Response,
   ): Promise<Response<void>> {
@@ -303,6 +303,17 @@ export class OrganizationController {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: ERROR_MESSAGES.courseController.courseNameTooShort,
       });
+    }
+
+    const orgSettings =
+      await this.organizationService.getOrganizationSettings(oid);
+    if (
+      !orgSettings.allowProfCourseCreate &&
+      orgRole == OrganizationRole.PROFESSOR
+    ) {
+      throw new UnauthorizedException(
+        ERROR_MESSAGES.organizationController.notAllowedToCreateCourse(orgRole),
+      );
     }
 
     if (
@@ -1054,6 +1065,7 @@ export class OrganizationController {
                   organizationUser.role,
                   user.organizationUser.id,
                   organizationUser.id,
+                  OrgRoleChangeReason.manualModification,
                 );
 
                 res.status(HttpStatus.OK).send({
@@ -1564,6 +1576,7 @@ export class OrganizationController {
                     OrganizationRole.MEMBER,
                     user.organizationUser.id,
                     organizationUser.id,
+                    OrgRoleChangeReason.joinedOrganizationMember,
                   )
                   .then(() =>
                     res
@@ -1614,20 +1627,13 @@ export class OrganizationController {
   async getSettings(
     @Param('oid', ParseIntPipe) organizationId: number,
   ): Promise<OrganizationSettingsResponse> {
-    const organizationSettings = await OrganizationSettingsModel.findOne({
-      where: { organizationId },
-    });
+    const organizationSettings =
+      await this.organizationService.getOrganizationSettings(organizationId);
 
     const settingsResponse: Partial<OrganizationSettingsResponse> = {
       organizationId,
       settingsFound: !!organizationSettings, // !! converts truthy/falsy into true/false
     };
-
-    for (const key of validOrganizationSettings) {
-      settingsResponse[key] = organizationSettings
-        ? organizationSettings[key]
-        : OrganizationSettingsDefaults[key];
-    }
 
     return new OrganizationSettingsResponse(settingsResponse);
   }
@@ -1640,23 +1646,8 @@ export class OrganizationController {
     @Body() body: OrganizationSettingsRequestBody,
   ): Promise<void> {
     // fetch existing organization settings
-    let organizationSettings = await OrganizationSettingsModel.findOne({
-      where: { organizationId },
-    });
-
-    // if no organization settings exist yet, create new course settings for the course
-    if (!organizationSettings) {
-      const organization = await OrganizationModel.findOne({
-        where: { id: organizationId },
-      });
-      if (!organization) {
-        throw new NotFoundException(
-          'Error while creating organization settings: Organization not found',
-        );
-      }
-      organizationSettings = new OrganizationSettingsModel(); // all features are enabled by default, adjust in CourseSettingsModel as needed
-      organizationSettings.organizationId = organizationId;
-    }
+    const organizationSettings =
+      await this.organizationService.getOrganizationSettings(organizationId);
 
     // then, toggle the requested feature
     try {

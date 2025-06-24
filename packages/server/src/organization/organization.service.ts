@@ -10,6 +10,7 @@ import {
   OrganizationRole,
   OrganizationRoleHistoryFilter,
   OrganizationRoleHistoryResponse,
+  OrgRoleChangeReason,
   OrgRoleChangeReasonMap,
   OrgRoleHistory,
   OrgUser,
@@ -19,6 +20,8 @@ import {
 import { UserCourseModel } from 'profile/user-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
 import { OrganizationRoleHistory } from './organization_role_history.entity';
+import { OrganizationSettingsModel } from './organization_settings.entity';
+import { OrganizationModel } from './organization.entity';
 
 export interface FlattenedOrganizationResponse {
   id: number;
@@ -473,6 +476,7 @@ export class OrganizationService {
     toRole: OrganizationRole,
     byOrgUserId?: number,
     toOrgUserId?: number,
+    roleChangeReason: OrgRoleChangeReason = OrgRoleChangeReason.unknown,
   ) {
     await OrganizationRoleHistory.create({
       organizationId,
@@ -481,6 +485,31 @@ export class OrganizationService {
       byOrgUserId,
       fromRole,
       toRole,
+      roleChangeReason,
     }).save();
+  }
+
+  public async getOrganizationSettings(organizationId: number) {
+    let organizationSettings = await OrganizationSettingsModel.findOne({
+      where: { organizationId },
+    });
+    // if no organization settings exist yet, create new course settings for the course
+    if (!organizationSettings) {
+      const organization = await OrganizationModel.findOne({
+        where: { id: organizationId },
+      });
+      if (!organization) {
+        throw new NotFoundException(
+          'Organization settings could not be created; organization not found.',
+        );
+      }
+
+      organizationSettings =
+        await OrganizationSettingsModel.create<OrganizationSettingsModel>({
+          organizationId,
+        } as Partial<OrganizationSettingsModel>).save();
+    }
+
+    return organizationSettings;
   }
 }

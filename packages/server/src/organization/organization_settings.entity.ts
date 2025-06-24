@@ -24,6 +24,6 @@ export class OrganizationSettingsModel extends BaseEntity {
   @JoinColumn({ name: 'organizationId' })
   organization: OrganizationModel;
 
-  @Column('boolean', { default: false })
-  autoPromoteCourseProfs: boolean;
+  @Column('boolean', { default: true })
+  allowProfCourseCreate: boolean;
 }

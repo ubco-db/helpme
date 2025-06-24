@@ -14,6 +14,8 @@ import { MailService } from 'mail/mail.service';
 import { MailModule } from 'mail/mail.module';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
+import { OrganizationModule } from '../organization/organization.module';
+import { OrganizationService } from '../organization/organization.service';
 
 // Extend the OAuth2Client mock with additional methods
 jest.mock('google-auth-library', () => {
@@ -79,9 +81,16 @@ describe('AuthService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule, MailModule],
+      imports: [
+        TestTypeOrmModule,
+        TestConfigModule,
+        FactoryModule,
+        MailModule,
+        OrganizationModule,
+      ],
       providers: [
         AuthService,
+        OrganizationService,
         { provide: MailService, useClass: MockMailService },
       ],
     }).compile();

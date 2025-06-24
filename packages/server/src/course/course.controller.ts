@@ -44,7 +44,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import async from 'async';
 import { Request, Response } from 'express';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -71,6 +70,7 @@ import { DataSource } from 'typeorm';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { OrgRoles } from 'decorators/org-roles.decorator';
+import { OrganizationService } from '../organization/organization.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -81,6 +81,7 @@ export class CourseController {
     private heatmapService: HeatmapService,
     private courseService: CourseService,
     private queueCleanService: QueueCleanService,
+    private organizationService: OrganizationService,
     private readonly appConfig: ApplicationConfigService,
     private dataSource: DataSource,
   ) {}
@@ -1048,7 +1049,7 @@ export class CourseController {
   @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async cloneCourse(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User({ chat_token: true }) user: UserModel,
+    @User({ chat_token: true, organizationUser: true }) user: UserModel,
     @Body() body: CourseCloneAttributes,
   ): Promise<UserCourse | null> {
     if (!user || !user.chat_token) {
@@ -1056,6 +1057,20 @@ export class CourseController {
       throw new HttpException(
         ERROR_MESSAGES.profileController.accountNotAvailable,
         HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const orgSettings = await this.organizationService.getOrganizationSettings(
+      user.organizationUser?.organizationId,
+    );
+    if (
+      !orgSettings.allowProfCourseCreate &&
+      user.organizationUser?.role == OrganizationRole.PROFESSOR
+    ) {
+      throw new UnauthorizedException(
+        ERROR_MESSAGES.organizationController.notAllowedToCreateCourse(
+          user.organizationUser?.role,
+        ),
       );
     }
 

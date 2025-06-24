@@ -222,14 +222,14 @@ export default function SettingsPage(): ReactElement {
                 <div className={'flex w-full flex-col'}>
                   <OrganizationSettingSwitch
                     defaultChecked={
-                      organizationSettings?.autoPromoteCourseProfs ??
-                      OrganizationSettingsDefaults.autoPromoteCourseProfs
+                      organizationSettings?.allowProfCreateCourse ??
+                      OrganizationSettingsDefaults.allowProfCreateCourse
                     }
-                    settingName={'autoPromoteCourseProfs'}
+                    settingName={'allowProfCreateCourse'}
                     description={
-                      'Automatically promote course professors to organization professors. Only applies when course professors are promoted by an organization administrator.'
+                      'Enables whether organization professors can create courses. Course professors without the organization professor role can never create courses.'
                     }
-                    title={'Auto-Promote Course Professors'}
+                    title={'Professors Can Create Courses'}
                     organizationId={organizationId}
                   />
                 </div>
@@ -388,11 +388,16 @@ export default function SettingsPage(): ReactElement {
         </>
       )}
 
-      <SemesterManagement
-        orgId={organization?.id ?? -1}
-        organizationSemesters={organizationSemesters}
-        setOrganizationSemesters={setOrganizationSemesters}
-      />
+      {(userInfo.organization?.organizationRole === OrganizationRole.ADMIN ||
+        (userInfo.organization?.organizationRole ===
+          OrganizationRole.PROFESSOR &&
+          organizationSettings?.allowProfCreateCourse)) && (
+        <SemesterManagement
+          orgId={organization?.id ?? -1}
+          organizationSemesters={organizationSemesters}
+          setOrganizationSemesters={setOrganizationSemesters}
+        />
+      )}
     </div>
   ) : (
     <Spin />

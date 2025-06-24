@@ -2162,7 +2162,7 @@ export class OrganizationSettingsResponse {
   organizationId!: number
 
   @IsBoolean()
-  autoPromoteCourseProfs!: boolean
+  allowProfCreateCourse!: boolean
 
   @IsOptional()
   @IsBoolean()
@@ -2173,10 +2173,10 @@ export class OrganizationSettingsResponse {
   }
 }
 
-export const validOrganizationSettings = ['autoPromoteCourseProfs']
+export const validOrganizationSettings = ['allowProfCreateCourse']
 
 export const OrganizationSettingsDefaults = {
-  autoPromoteCourseProfs: false,
+  allowProfCreateCourse: true,
 }
 
 export class OrganizationSettingsRequestBody {
@@ -2192,7 +2192,6 @@ export class OrganizationSettingsRequestBody {
 }
 
 export enum OrgRoleChangeReason {
-  courseProfPromotion = 'courseProfPromotion',
   manualModification = 'manualModification',
   joinedOrganizationMember = 'joinedOrganizationMember',
   joinedOrganizationProfessor = 'joinedOrganizationProfessor',
@@ -2200,7 +2199,6 @@ export enum OrgRoleChangeReason {
 }
 
 export enum OrgRoleChangeReasonMap {
-  courseProfPromotion = 'Promoted automatically when the user became a course professor.',
   manualModification = 'Role was manually modified by an organization member with sufficient permissions.',
   joinedOrganizationMember = 'User joined the organization and gained the member role.',
   joinedOrganizationProfessor = 'User joined the organization and gained the professor role.',
@@ -2959,6 +2957,8 @@ export const ERROR_MESSAGES = {
     userNotFoundInOrganization: 'User not found in organization',
     cannotRemoveAdminRole: 'Cannot remove admin role from user',
     cannotGetAdminUser: 'Information about this user account is restricted',
+    notAllowedToCreateCourse: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to create courses`,
   },
   courseController: {
     checkIn: {
