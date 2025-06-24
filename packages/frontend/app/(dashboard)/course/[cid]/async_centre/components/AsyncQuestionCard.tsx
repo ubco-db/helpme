@@ -24,8 +24,6 @@ import {
   AsyncQuestionCardUIReducer,
   initialUIState,
 } from './AsyncQuestionCardUIReducer'
-import { CustomTagElement } from '../../components/CustomTagElement'
-import { useParsedQuestion } from './useParsedQuestion'
 
 const statusDisplayMap = {
   // if the question has no answer text, it will say "awaiting answer"
@@ -155,8 +153,6 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   )
 
   const { thinkText, cleanAnswer } = parseThinkBlock(question.answerText ?? '')
-
-  const [mainText, customTags] = useParsedQuestion(question.questionText)
 
   return (
     <div
@@ -362,16 +358,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   uiState.truncateText ? 'line-clamp-1' : '',
                 )}
               >
-                <MarkdownCustom>{mainText}</MarkdownCustom>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {customTags.map((tag) => (
-                    <CustomTagElement
-                      key={tag}
-                      tagName={tag}
-                      showRemove={false}
-                    />
-                  ))}
-                </div>
+                {<MarkdownCustom>{question.questionText ?? ''}</MarkdownCustom>}
                 {question.answerText && (
                   <>
                     <br />

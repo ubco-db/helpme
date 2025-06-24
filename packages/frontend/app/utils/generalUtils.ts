@@ -269,21 +269,3 @@ export function parseThinkBlock(answer: string) {
 
   return { thinkText, cleanAnswer }
 }
-
-/**
- * Generates a color from a string.
- * @param str The string to generate a color from.
- * @returns A hex color string.
- */
-export const stringToColor = (str: string) => {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  let color = '#'
-  for (let i = 0; i < 3; i++) {
-    const value = (hash >> (i * 8)) & 0xff
-    color += ('00' + value.toString(16)).slice(-2)
-  }
-  return color
-}
