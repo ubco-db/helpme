@@ -2,28 +2,28 @@
 
 import {
   ReactElement,
+  use,
   useCallback,
-  useState,
   useEffect,
   useRef,
-  use,
+  useState,
 } from 'react'
 import {
-  QuestionTypeParams,
   ClosedQuestionStatus,
+  ConfigTasksWithAssignmentProgress,
   ERROR_MESSAGES,
+  LimboQuestionStatus,
   OpenQuestionStatus,
   Question,
-  Role,
-  QuestionStatus,
-  ConfigTasksWithAssignmentProgress,
-  transformIntoTaskTree,
-  TaskTree,
-  QuestionType,
-  LimboQuestionStatus,
   QuestionLocations,
+  QuestionStatus,
+  QuestionType,
+  QuestionTypeParams,
+  Role,
+  TaskTree,
+  transformIntoTaskTree,
 } from '@koh/common'
-import { Tooltip, message, notification, Button, Divider } from 'antd'
+import { Button, Divider, message, notification, Tooltip } from 'antd'
 import { mutate } from 'swr'
 import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
 import { CheckCheck, ListChecks, ListTodoIcon } from 'lucide-react'
@@ -503,6 +503,8 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
   const handleFirstQuestionNotification = useCallback(
     (cid: number) => {
       if (isFirstQuestion) {
+        // If they've asked a question, don't show this notification again
+        setIsFirstQuestion(false)
         notification.warning({
           message: 'Enable Notifications',
           description: (
@@ -514,7 +516,6 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
               <Button
                 onClick={() => {
                   notification.destroy()
-                  setIsFirstQuestion(false)
                   router.push(`/profile?page=notifications`)
                 }}
                 className="ml-2"
