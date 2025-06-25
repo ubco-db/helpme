@@ -662,23 +662,29 @@ export default function CourseLMSIntegrationPage(props: {
                                   </Col>
                                   <Col xs={24} sm={12} md={8}>
                                     <Checkbox value="files">
-                                      <span className="text-gray-400 line-through">
-                                        Files
-                                      </span>
+                                      <Tooltip title="Coming Soon!">
+                                        <span className="text-gray-400 line-through">
+                                          Files
+                                        </span>
+                                      </Tooltip>
                                     </Checkbox>
                                   </Col>
                                   <Col xs={24} sm={12} md={8}>
                                     <Checkbox value="pages">
-                                      <span className="text-gray-400 line-through">
-                                        Pages
-                                      </span>
+                                      <Tooltip title="Coming Soon!">
+                                        <span className="text-gray-400 line-through">
+                                          Pages
+                                        </span>
+                                      </Tooltip>
                                     </Checkbox>
                                   </Col>
                                   <Col xs={24} sm={12} md={8}>
                                     <Checkbox value="Syllabus">
-                                      <span className="text-gray-400 line-through">
-                                        Syllabus
-                                      </span>
+                                      <Tooltip title="Coming Soon!">
+                                        <span className="text-gray-400 line-through">
+                                          Syllabus
+                                        </span>
+                                      </Tooltip>
                                     </Checkbox>
                                   </Col>
                                 </Row>
