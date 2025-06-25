@@ -10,6 +10,7 @@ import * as expressSession from 'express-session';
 import { ApplicationConfigService } from './config/application_config.service';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Chromiumly } from 'chromiumly';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export async function bootstrap(hot: any): Promise<void> {
@@ -58,6 +59,16 @@ export async function bootstrap(hot: any): Promise<void> {
   Chromiumly.configure({ endpoint: 'http://localhost:3004' });
 
   app.set('trust proxy', 'loopback'); // Trust requests from the loopback address
+  const config = new DocumentBuilder()
+    .setTitle('HelpMe API')
+    .setDescription('HelpMe API doc')
+    .setVersion('1.0')
+    .addTag('cats')
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  if (process.env.NODE_ENV === 'development') {
+    SwaggerModule.setup('api', app, document);
+  }
   await app.listen(3002);
 
   if (hot) {
