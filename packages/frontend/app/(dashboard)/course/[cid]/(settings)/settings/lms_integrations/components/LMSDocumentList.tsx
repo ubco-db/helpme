@@ -20,6 +20,9 @@ import { useMemo, useState } from 'react'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
 
+// TODO: Refactor getNameCell, getSyncCell and renderDocumentList functions outside the component for better performance
+// This will prevent function recreation on every render and reduce unnecessary rerenders
+
 type LMSDocumentListProps<T> = {
   courseId: number
   type: 'Assignment' | 'Announcement'
