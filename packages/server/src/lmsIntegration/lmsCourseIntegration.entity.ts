@@ -12,6 +12,7 @@ import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
 import { CourseModel } from '../course/course.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
+import { LMSPageModel } from './lmsPage.entity';
 
 @Entity('lms_course_integration_model')
 export class LMSCourseIntegrationModel extends BaseEntity {
@@ -49,4 +50,7 @@ export class LMSCourseIntegrationModel extends BaseEntity {
     (announcement) => announcement.course,
   )
   announcements: LMSAnnouncementModel[];
+
+  @OneToMany((type) => LMSPageModel, (page) => page.course)
+  pages: LMSPageModel[];
 }

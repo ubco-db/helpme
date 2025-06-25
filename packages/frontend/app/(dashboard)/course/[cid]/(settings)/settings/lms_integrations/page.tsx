@@ -19,6 +19,7 @@ import {
   LMSAssignment,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
+  LMSPage,
 } from '@koh/common'
 import { API } from '@/app/api'
 import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal'
@@ -42,6 +43,7 @@ export default function CourseLMSIntegrationPage(props: {
     assignments,
     announcements,
     students,
+    pages,
     isLoading,
   } = useCourseLmsIntegration(courseId, updateFlag)
 
@@ -363,6 +365,22 @@ export default function CourseLMSIntegrationPage(props: {
             courseId={courseId}
             type={'Assignment'}
             documents={assignments}
+            loadingLMSData={isLoading}
+            lmsSynchronize={integration.lmsSynchronize}
+            onUpdateCallback={() => setUpdateFlag(!updateFlag)}
+          />
+        ),
+      })
+    }
+    if (pages.length > 0) {
+      tabItems.push({
+        key: 'pages',
+        label: 'Course Pages',
+        children: (
+          <LMSDocumentList<LMSPage>
+            courseId={courseId}
+            type={'Page'}
+            documents={pages}
             loadingLMSData={isLoading}
             lmsSynchronize={integration.lmsSynchronize}
             onUpdateCallback={() => setUpdateFlag(!updateFlag)}
