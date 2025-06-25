@@ -265,7 +265,10 @@ export default function LMSDocumentList<
               (d as LMSAnnouncement).message
                 .toLowerCase()
                 .includes(search.toLowerCase()) ||
-              (d as LMSAnnouncement).posted
+              (typeof (d as LMSAnnouncement).posted === 'string'
+                ? new Date((d as LMSAnnouncement).posted)
+                : (d as LMSAnnouncement).posted
+              )
                 .toLocaleDateString()
                 .toLowerCase()
                 .includes(search.toLowerCase())
@@ -422,7 +425,7 @@ export default function LMSDocumentList<
           }
         >
           <Input
-            placeholder={'Search for assignments and press enter'}
+            placeholder={`Search for ${type.toLowerCase()} and press enter`}
             prefix={<SearchOutlined />}
             value={input}
             onChange={(e) => setInput(e.target.value)}

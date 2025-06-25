@@ -661,14 +661,24 @@ export default function CourseLMSIntegrationPage(props: {
                                     </Checkbox>
                                   </Col>
                                   <Col xs={24} sm={12} md={8}>
-                                    <Checkbox value="files">Files</Checkbox>
+                                    <Checkbox value="files">
+                                      <span className="text-gray-400 line-through">
+                                        Files
+                                      </span>
+                                    </Checkbox>
                                   </Col>
                                   <Col xs={24} sm={12} md={8}>
-                                    <Checkbox value="pages">Pages</Checkbox>
+                                    <Checkbox value="pages">
+                                      <span className="text-gray-400 line-through">
+                                        Pages
+                                      </span>
+                                    </Checkbox>
                                   </Col>
                                   <Col xs={24} sm={12} md={8}>
                                     <Checkbox value="Syllabus">
-                                      Syllabus
+                                      <span className="text-gray-400 line-through">
+                                        Syllabus
+                                      </span>
                                     </Checkbox>
                                   </Col>
                                 </Row>
