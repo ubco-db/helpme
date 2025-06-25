@@ -13,11 +13,13 @@ import {
   LMSOrganizationIntegrationPartial,
   LMSAssignment,
   LMSAnnouncement,
+  LMSPage,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
+import { LMSPageModel } from './lmsPage.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { UserModel } from '../profile/user.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -30,11 +32,13 @@ export enum LMSGet {
   Students,
   Assignments,
   Announcements,
+  Pages,
 }
 
 export enum LMSUpload {
   Assignments,
   Announcements,
+  Pages,
 }
 
 @Injectable()
@@ -267,6 +271,33 @@ export class LMSIntegrationService {
         retrievalStatus = status;
         break;
       }
+      case LMSGet.Pages: {
+        const { status, pages } = await adapter.getPages();
+        const { items } = await this.getDocumentModelAndItems(
+          courseId,
+          LMSUpload.Pages,
+        );
+        for (let idx = 0; idx < pages.length; idx++) {
+          const found = items.find(
+            (i) => i.id == pages[idx].id,
+          ) as unknown as LMSPageModel;
+          if (found) {
+            pages[idx] = {
+              id: found.id,
+              title: found.title,
+              body: found.body,
+              url: found.url,
+              frontPage: found.frontPage,
+              modified: pages[idx].modified ?? found.modified,
+              uploaded: found.uploaded,
+              syncEnabled: found.syncEnabled,
+            };
+          }
+        }
+        retrieved = pages;
+        retrievalStatus = status;
+        break;
+      }
     }
 
     if (retrievalStatus != LMSApiResponseStatus.Success) {
@@ -286,6 +317,8 @@ export class LMSIntegrationService {
           return LMSAnnouncementModel;
         case LMSUpload.Assignments:
           return LMSAssignmentModel;
+        case LMSUpload.Pages:
+          return LMSPageModel;
       }
     })();
 
@@ -339,6 +372,7 @@ export class LMSIntegrationService {
         status: LMSApiResponseStatus;
         assignments?: LMSAssignment[];
         announcements?: LMSAnnouncement[];
+        pages?: LMSPage[];
       };
 
       const modelAndPersisted = await this.getDocumentModelAndItems(
@@ -358,6 +392,9 @@ export class LMSIntegrationService {
         case LMSUpload.Announcements:
           result = await adapter.getAnnouncements();
           break;
+        case LMSUpload.Pages:
+          result = await adapter.getPages();
+          break;
         default:
           result = { status: LMSApiResponseStatus.Error };
           break;
@@ -375,6 +412,8 @@ export class LMSIntegrationService {
         | LMSAnnouncementModel
         | LMSAssignment
         | LMSAssignmentModel
+        | LMSPage
+        | LMSPageModel
       )[];
       switch (type) {
         case LMSUpload.Assignments:
@@ -383,13 +422,22 @@ export class LMSIntegrationService {
         case LMSUpload.Announcements:
           items = result.announcements;
           break;
+        case LMSUpload.Pages:
+          items = result.pages;
+          break;
       }
 
-      let persistedItems: (LMSAnnouncementModel | LMSAssignmentModel)[] =
-        modelAndPersisted.items;
+      let persistedItems: (
+        | LMSAnnouncementModel
+        | LMSAssignmentModel
+        | LMSPageModel
+      )[] = modelAndPersisted.items;
 
-      const toRemove: (LMSAnnouncementModel | LMSAssignmentModel)[] =
-        persistedItems.filter((i0) => !items.find((i1) => i1.id == i0.id));
+      const toRemove: (
+        | LMSAnnouncementModel
+        | LMSAssignmentModel
+        | LMSPageModel
+      )[] = persistedItems.filter((i0) => !items.find((i1) => i1.id == i0.id));
       if (toRemove.length > 0) {
         const toRemoveIds = toRemove.map((i) => i.id);
         persistedItems = persistedItems.filter((i) =>
@@ -469,13 +517,31 @@ export class LMSIntegrationService {
                     : new Date(),
                 lmsSource: adapter.getPlatform(),
               }) as LMSAssignmentModel;
+            case LMSUpload.Pages:
+              const page = i as LMSPage;
+              return (model as typeof LMSPageModel).create({
+                id: page.id,
+                title: page.title,
+                body: page.body,
+                url: page.url,
+                frontPage: page.frontPage,
+                chatbotDocumentId: chatbotDocumentId,
+                uploaded: new Date(),
+                courseId: courseId,
+                modified:
+                  page.modified != undefined
+                    ? new Date(page.modified)
+                    : new Date(),
+                lmsSource: adapter.getPlatform(),
+              }) as LMSPageModel;
             default:
               return undefined;
           }
         })
         .filter((e) => e != undefined) as
         | LMSAssignmentModel[]
-        | LMSAnnouncementModel[];
+        | LMSAnnouncementModel[]
+        | LMSPageModel[];
 
       switch (type) {
         case LMSUpload.Announcements:
@@ -487,6 +553,9 @@ export class LMSIntegrationService {
           await (model as typeof LMSAssignmentModel).save(
             entities as LMSAssignmentModel[],
           );
+          break;
+        case LMSUpload.Pages:
+          await (model as typeof LMSPageModel).save(entities as LMSPageModel[]);
           break;
       }
     }
@@ -515,8 +584,11 @@ export class LMSIntegrationService {
 
   async clearSpecificDocuments(
     courseId: number,
-    items: (LMSAssignmentModel | LMSAnnouncementModel)[],
-    model: typeof LMSAssignmentModel | typeof LMSAnnouncementModel,
+    items: (LMSAssignmentModel | LMSAnnouncementModel | LMSPageModel)[],
+    model:
+      | typeof LMSAssignmentModel
+      | typeof LMSAnnouncementModel
+      | typeof LMSPageModel,
   ) {
     const tempUser = await UserModel.create({
       email: 'tempemail@example.com',
@@ -635,7 +707,9 @@ export class LMSIntegrationService {
       | LMSAnnouncement
       | LMSAssignment
       | LMSAssignmentModel
-      | LMSAnnouncementModel,
+      | LMSAnnouncementModel
+      | LMSPage
+      | LMSPageModel,
     token: ChatTokenModel,
     type: LMSUpload,
     adapter: AbstractLMSAdapter,
@@ -650,6 +724,11 @@ export class LMSIntegrationService {
       case LMSUpload.Assignments: {
         const a = item as any as LMSAssignment;
         documentText = `(Course Assignment)\n Name: ${a.name}\n${!isNaN(new Date(a.due).valueOf()) ? `Due Date: ${new Date(a.due).toLocaleDateString()}\n` : 'Due Date: No due date\n'}${a.description && `Description: ${a.description}`}`;
+        break;
+      }
+      case LMSUpload.Pages: {
+        const p = item as LMSPage;
+        documentText = `(Course Page)\n Title: ${p.title}\nContent: ${p.body}\n${p.frontPage ? 'Front Page: Yes' : 'Front Page: No'}\n${!isNaN(new Date(p.modified).valueOf()) ? `Modified: ${new Date(p.modified).getTime()}` : ''}`;
         break;
       }
       default:
@@ -753,7 +832,7 @@ export class LMSIntegrationService {
 
   private async deleteDocument(
     courseId: number,
-    item: LMSAnnouncementModel | LMSAssignmentModel,
+    item: LMSAnnouncementModel | LMSAssignmentModel | LMSPageModel,
     token: ChatTokenModel,
   ) {
     const reqOptions = {

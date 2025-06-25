@@ -94,6 +94,7 @@ import {
   GetQueueChatsResponse,
   GetChatbotHistoryResponse,
   ChatbotSettingsUpdateParams,
+  LMSPage,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -1100,6 +1101,8 @@ class APIClient {
       this.req('GET', `/api/v1/lms/${courseId}/assignments`),
     getAnnouncements: async (courseId: number): Promise<LMSAnnouncement[]> =>
       this.req('GET', `/api/v1/lms/${courseId}/announcements`),
+    getPages: async (courseId: number): Promise<LMSPage[]> =>
+      this.req('GET', `/api/v1/lms/${courseId}/pages`),
     toggleSync: async (courseId: number): Promise<string> =>
       this.req('POST', `/api/v1/lms/${courseId}/sync`),
     forceSync: async (courseId: number): Promise<string> =>
