@@ -114,7 +114,7 @@ export default function LMSDocumentList<
     }
 
     if (ineligible) {
-      return <span className="italic text-gray-500">Not eligible</span>
+      return null
     }
 
     if (lmsSynchronize && !item.syncEnabled) {
@@ -191,7 +191,7 @@ export default function LMSDocumentList<
           },
           {
             dataIndex: 'sync',
-            header: 'Sync?',
+            header: 'Actions',
             cellFormat: (item: T) => getSyncCell(item),
             colSpan: 1,
           },
@@ -232,7 +232,7 @@ export default function LMSDocumentList<
           },
           {
             dataIndex: 'sync',
-            header: 'Sync?',
+            header: 'Actions',
             cellFormat: (item: T) => getSyncCell(item),
             colSpan: 1,
           },
