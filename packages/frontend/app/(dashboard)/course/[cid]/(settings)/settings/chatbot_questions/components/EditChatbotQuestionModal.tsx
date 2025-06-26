@@ -93,7 +93,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
               6,
             )
             if (docChunks.length > 1)
-              message.warning(
+              message.info(
                 `Question text was too large! Inserted document was split into ${docChunks.length} document chunks.`,
                 6,
               )

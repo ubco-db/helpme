@@ -366,6 +366,8 @@ export interface SourceDocument {
     type?: string
     source?: string
     courseId?: string
+    fromLMS?: boolean
+    apiDocId?: number
   }
   type?: string
   // TODO: is it content or pageContent? since this file uses both. EDIT: It seems to be both/either. Gross.
@@ -425,6 +427,20 @@ export interface AddDocumentChunkParams {
     id?: string
     courseId?: number
   }
+  prefix?: string
+}
+
+export interface AddDocumentAggregateParams {
+  name: string
+  source: string
+  documentText: string
+  metadata?: any
+  prefix?: string
+}
+
+export interface UpdateDocumentAggregateParams {
+  documentText: string
+  metadata?: any
   prefix?: string
 }
 
@@ -1335,7 +1351,7 @@ export type LMSErrorType = {
 export type LMSFileUploadResponse = {
   id: number
   success: boolean
-  documentIds?: string[]
+  documentId?: string
   reason?: LMSErrorType
 }
 

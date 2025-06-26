@@ -57,7 +57,7 @@ export default function ChatbotDocuments(
           `Document${addedDocs.length > 1 ? 's' : ''} added successfully.`,
         )
         if (addedDocs.length > 1) {
-          message.warning(
+          message.info(
             `Document was too large to fit into one chunk. It was split into ${addedDocs.length} document chunks.`,
           )
         }
@@ -323,7 +323,7 @@ export default function ChatbotDocuments(
           }}
           onSuccessfulUpdate={async (updatedDocs) => {
             if (updatedDocs.length > 1) {
-              message.warning(
+              message.info(
                 `The text content was too large and it was split into ${updatedDocs.length} new document chunks.`,
                 6,
               )

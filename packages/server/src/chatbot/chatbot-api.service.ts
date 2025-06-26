@@ -1,10 +1,12 @@
 import {
   AddChatbotQuestionParams,
+  AddDocumentAggregateParams,
   AddDocumentChunkParams,
   ChatbotQuestionResponseChatbotDB,
   ChatbotSettings,
   ChatbotSettingsUpdateParams,
   UpdateChatbotQuestionParams,
+  UpdateDocumentAggregateParams,
   UpdateDocumentChunkParams,
 } from '@koh/common';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -180,7 +182,7 @@ export class ChatbotApiService {
   }
 
   async getAllAggregateDocuments(courseId: number, userToken: string) {
-    return this.request('GET', `document/${courseId}/aggregate`, userToken);
+    return this.request('GET', `document/aggregate/${courseId}`, userToken);
   }
 
   async addDocumentChunk(
@@ -216,8 +218,38 @@ export class ChatbotApiService {
   async deleteDocument(docId: string, courseId: number, userToken: string) {
     return this.request(
       'DELETE',
-      `document/${courseId}/${docId}/aggregate`,
+      `document/aggregate/${courseId}/${docId}`,
       userToken,
+    );
+  }
+
+  // Creates a document aggregate from raw text - generally only used for LMS documents
+  async addDocument(
+    courseId: number,
+    userToken: string,
+    body: AddDocumentAggregateParams,
+  ): Promise<{ id: string }> {
+    return this.request(
+      'POST',
+      `document/aggregate/${courseId}`,
+      userToken,
+      body,
+    );
+  }
+
+  // Updates a document aggregate with raw text - generally only used for LMS documents
+  // Only changes the chunks for the aggregate, no changes to the aggregate itself are made aside from metadata
+  async updateDocument(
+    docId: string,
+    courseId: number,
+    userToken: string,
+    body: UpdateDocumentAggregateParams,
+  ): Promise<{ message: string }> {
+    return this.request(
+      'PATCH',
+      `document/aggregate/${courseId}/${docId}`,
+      userToken,
+      body,
     );
   }
 

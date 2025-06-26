@@ -431,9 +431,10 @@ export class LMSIntegrationService {
 
       const entities = toSave
         .map((i) => {
-          const chatbotDocumentIds = statuses.find(
-            (u) => u.id == i.id,
-          )?.documentIds;
+          const chatbotDocumentId =
+            'chatbotDocumentId' in i && i.chatbotDocumentId != undefined
+              ? i.chatbotDocumentId
+              : statuses.find((u) => u.id == i.id)?.documentId;
 
           switch (type) {
             case LMSUpload.Announcements:
@@ -443,7 +444,7 @@ export class LMSIntegrationService {
                 title: ann.title,
                 message: ann.message,
                 posted: ann.posted,
-                chatbotDocumentIds: chatbotDocumentIds,
+                chatbotDocumentId,
                 uploaded: new Date(),
                 modified:
                   ann.modified != undefined
@@ -459,7 +460,7 @@ export class LMSIntegrationService {
                 name: asg.name,
                 description: asg.description ?? '',
                 due: asg.due,
-                chatbotDocumentIds: chatbotDocumentIds,
+                chatbotDocumentId,
                 uploaded: new Date(),
                 courseId: courseId,
                 modified:
@@ -528,7 +529,7 @@ export class LMSIntegrationService {
 
     const statuses: LMSFileUploadResponse[] = [];
     for (const item of items) {
-      statuses.push(...(await this.deleteDocument(courseId, item, token)));
+      statuses.push(await this.deleteDocument(courseId, item, token));
     }
 
     await ChatTokenModel.remove(token);
@@ -585,7 +586,7 @@ export class LMSIntegrationService {
     );
 
     if (status.success) {
-      item.chatbotDocumentIds = status.documentIds;
+      item.chatbotDocumentId = item.chatbotDocumentId ?? status.documentId;
       item.uploaded = new Date();
       item.syncEnabled = true;
       await (model as any).upsert(item, ['id', 'courseId']);
@@ -613,23 +614,30 @@ export class LMSIntegrationService {
       max_uses: 1,
     }).save();
 
-    const statuses = await this.deleteDocument(courseId, item, token);
-    let ids = [...item.chatbotDocumentIds];
-    ids = ids.filter((id) => {
-      const match = statuses.find((s) => s.documentIds[0] == id);
-      return !match.success;
-    });
-    item.chatbotDocumentIds = ids;
-    if (ids.length == 0) {
+    const status = await this.deleteDocument(courseId, item, token);
+
+    if (status.success) {
+      item.chatbotDocumentId = null;
       item.uploaded = null;
       item.syncEnabled = false;
+      await (model as any).upsert(item, ['id', 'courseId']);
     }
-    await (model as any).upsert(item, ['id', 'courseId']);
 
     await ChatTokenModel.remove(token);
     await UserModel.remove(tempUser);
 
-    return statuses.reduce((prev, curr) => prev && curr.success, true);
+    return status.success;
+  }
+
+  private getTypeName(type: LMSUpload) {
+    switch (type) {
+      case LMSUpload.Announcements:
+        return 'Announcement';
+      case LMSUpload.Assignments:
+        return 'Assignment';
+      default:
+        return 'Resource';
+    }
   }
 
   private async uploadDocument(
@@ -643,19 +651,36 @@ export class LMSIntegrationService {
     type: LMSUpload,
     adapter: AbstractLMSAdapter,
   ): Promise<LMSFileUploadResponse> {
+    if (
+      'chatbotDocumentId' in item &&
+      item.chatbotDocumentId != undefined &&
+      item.uploaded != undefined &&
+      item.modified != undefined &&
+      new Date(item.modified).getTime() <= new Date(item.uploaded).getTime()
+    ) {
+      return {
+        id: item.id,
+        success: true,
+        documentId: item.chatbotDocumentId,
+      };
+    }
+
     let documentText = '';
     let prefix = '';
+    let name = '';
     switch (type) {
       case LMSUpload.Announcements: {
         const a = item as LMSAnnouncement;
         prefix = `(Course Announcement)\nTitle: ${a.title}${!isNaN(new Date(a.posted).valueOf()) ? `\nPosted: ${new Date(a.posted).toLocaleDateString()}` : ''}${!isNaN(new Date(a.modified).valueOf()) ? `\nModified: ${new Date(a.modified).toLocaleDateString()}` : ''}`;
+        name = `${a.title}`;
         documentText = `\nContent:\n${convert(a.message)}`;
         break;
       }
       case LMSUpload.Assignments: {
         const a = item as any as LMSAssignment;
-        prefix = `(Course Assignment)\n Name: ${a.name}\n${!isNaN(new Date(a.due).valueOf()) ? `Due Date: ${new Date(a.due).toLocaleDateString()}\n` : 'Due Date: No due date\n'}`;
-        documentText = `${a.description && `Description: ${convert(a.description)}`}`;
+        prefix = `(Course Assignment)\nName: ${a.name}${!isNaN(new Date(a.due).valueOf()) ? `\nDue Date: ${new Date(a.due).toLocaleDateString()}` : '\nDue Date: No due date'}`;
+        name = `${a.name}`;
+        documentText = `${a.description && `\nDescription: ${convert(a.description)}`}`;
         break;
       }
       default:
@@ -665,9 +690,11 @@ export class LMSIntegrationService {
         } as LMSFileUploadResponse;
     }
 
+    let textIsPrefix = false;
     if (!documentText && prefix) {
       documentText = prefix;
       prefix = '';
+      textIsPrefix = true;
     }
 
     if (!documentText) {
@@ -679,79 +706,67 @@ export class LMSIntegrationService {
 
     const computedDocLink = adapter.getDocumentLink(item.id, type);
     if (computedDocLink) {
-      prefix = `${prefix ? `${prefix}\n` : ''}Page Link: ${computedDocLink}`;
+      if (textIsPrefix) {
+        documentText = `${documentText}\nPage Link: ${computedDocLink}`;
+      } else {
+        prefix = `${prefix ? `${prefix}\n` : ''}Page Link: ${computedDocLink}`;
+      }
     }
 
-    if (
-      'chatbotDocumentIds' in item &&
-      item.chatbotDocumentIds != undefined &&
-      item.uploaded != undefined &&
-      item.modified != undefined &&
-      new Date(item.modified).getTime() < new Date(item.uploaded).getTime()
-    ) {
-      return {
-        id: item.id,
-        success: true,
-        documentIds: item.chatbotDocumentIds,
-      };
-    }
-
-    /*
-     Need to remove update/upsert behaviour as the new API has to have
-     the ability to create more than 1 document chunk per item, which is
-     complicated for LMS documents
-     */
-    const deleteResults: LMSFileUploadResponse[] = [];
-    if ('chatbotDocumentIds' in item && item.chatbotDocumentIds != undefined) {
-      deleteResults.push(...(await this.deleteDocument(courseId, item, token)));
-    }
-
-    const proceed = deleteResults.reduce(
-      (prev, curr) => prev && curr.success,
-      true,
-    );
-    if (!proceed) {
-      return {
-        id: item.id,
-        success: false,
-      };
-    }
-
+    const docName = `${adapter.getPlatform()} ${this.getTypeName(type)}${name ? `: ${name}` : ''}`;
     const metadata: any = {
-      name: `LMS Resource`,
       type: 'inserted_lms_document',
       apiDocId: item.id,
     };
 
-    return await this.chatbotApiService
-      .addDocumentChunk(
-        {
+    const isUpdate =
+      'chatbotDocumentId' in item && item.chatbotDocumentId != undefined;
+
+    if (isUpdate) {
+      return await this.chatbotApiService
+        .updateDocument(item.chatbotDocumentId, courseId, token.token, {
           documentText,
           metadata,
           prefix,
-        },
-        courseId,
-        token.token,
-      )
-      .then((response): LMSFileUploadResponse => {
-        const persistedDocs = response as {
-          id: string;
-          pageContent: string;
-          metadata: any;
-        }[];
-        return {
-          id: item.id,
-          success: true,
-          documentIds: persistedDocs.map((d) => d.id),
-        };
-      })
-      .catch((error) => {
-        console.error(error);
-        return {
-          id: item.id,
-          success: false,
-        } as LMSFileUploadResponse;
-      });
+        })
+        .then((): LMSFileUploadResponse => {
+          return {
+            id: item.id,
+            success: true,
+            documentId: item.chatbotDocumentId,
+          };
+        })
+        .catch((error): LMSFileUploadResponse => {
+          console.error(error);
+          return {
+            id: item.id,
+            success: false,
+          } as LMSFileUploadResponse;
+        });
+    } else {
+      return await this.chatbotApiService
+        .addDocument(courseId, token.token, {
+          documentText,
+          metadata,
+          name: docName,
+          prefix,
+          source: computedDocLink,
+        })
+        .then((body): LMSFileUploadResponse => {
+          return {
+            id: item.id,
+            success: true,
+            documentId: body.id,
+          };
+        })
+        .catch((error): LMSFileUploadResponse => {
+          console.error(error);
+          return {
+            id: item.id,
+            success: false,
+          } as LMSFileUploadResponse;
+        });
+    }
   }
 
   private async deleteDocument(
@@ -759,37 +774,28 @@ export class LMSIntegrationService {
     item: LMSAnnouncementModel | LMSAssignmentModel,
     token: ChatTokenModel,
   ) {
-    const results: LMSFileUploadResponse[] = [];
-    for (const id of item.chatbotDocumentIds) {
-      results.push(
-        await this.chatbotApiService
-          .deleteDocumentChunk(id, courseId, token.token)
-          .then(
-            (): LMSFileUploadResponse => ({
-              id: item.id,
-              documentIds: [id],
-              success: true,
-            }),
-          )
-          .catch((error): LMSFileUploadResponse => {
-            console.error(error);
-            // 404 = Already deleted/didn't exist
-            if (error.getStatus() == 404) {
-              return {
-                id: item.id,
-                documentIds: [id],
-                success: true,
-              } as LMSFileUploadResponse;
-            }
-            return {
-              id: item.id,
-              success: false,
-              documentIds: [id],
-            };
-          }),
-      );
-    }
-    return results;
+    return await this.chatbotApiService
+      .deleteDocument(item.chatbotDocumentId, courseId, token.token)
+      .then(
+        (): LMSFileUploadResponse => ({
+          id: item.id,
+          success: true,
+        }),
+      )
+      .catch((error): LMSFileUploadResponse => {
+        console.error(error);
+        // 404 = Already deleted/didn't exist
+        if (error.getStatus() == 404) {
+          return {
+            id: item.id,
+            success: true,
+          } as LMSFileUploadResponse;
+        }
+        return {
+          id: item.id,
+          success: false,
+        };
+      });
   }
 
   getPartialOrgLmsIntegration(lmsIntegration: LMSOrganizationIntegrationModel) {
