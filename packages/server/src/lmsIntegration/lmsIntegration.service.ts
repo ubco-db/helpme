@@ -6,13 +6,13 @@ import {
 import {
   CoursePartial,
   ERROR_MESSAGES,
+  LMSAnnouncement,
   LMSApiResponseStatus,
+  LMSAssignment,
   LMSCourseIntegrationPartial,
   LMSFileUploadResponse,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
-  LMSAssignment,
-  LMSAnnouncement,
   LMSResourceType,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
@@ -25,7 +25,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 } from 'uuid';
 import * as Sentry from '@sentry/browser';
 import { ConfigService } from '@nestjs/config';
-import TORM from 'nestjs-admin/dist/src/utils/typeormProxy';
 import { convert } from 'html-to-text';
 import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 

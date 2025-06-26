@@ -3137,5 +3137,7 @@ export const ERROR_MESSAGES = {
     lmsDocumentNotFound: 'Document was not found.',
     cannotSyncDocumentWhenSyncDisabled:
       'Cannot synchronize a document when synchronization is disabled.',
+    resourceDisabled:
+      "The resource type of the document you're trying to operate on is disabled.",
   },
 }
