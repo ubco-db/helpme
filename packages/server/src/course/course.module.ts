@@ -15,6 +15,8 @@ import { RedisQueueModule } from '../redisQueue/redis-queue.module';
 import { MailModule } from 'mail/mail.module';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { CourseSubscriber } from './course.subscriber';
+import { OrganizationService } from '../organization/organization.service';
+
 @Module({
   controllers: [CourseController],
   imports: [
@@ -35,6 +37,7 @@ import { CourseSubscriber } from './course.subscriber';
     QueueCleanService,
     ApplicationConfigService,
     ChatbotApiService,
+    OrganizationService,
   ],
   exports: [CourseService, ChatbotApiService],
 })

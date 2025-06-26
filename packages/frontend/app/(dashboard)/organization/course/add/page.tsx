@@ -7,11 +7,11 @@ import {
   Col,
   Form,
   Input,
+  message,
   Row,
   Select,
-  message,
 } from 'antd'
-import { ReactElement, useState, useEffect } from 'react'
+import { ReactElement, useEffect, useState } from 'react'
 import {
   COURSE_TIMEZONES,
   GetOrganizationResponse,
@@ -27,6 +27,7 @@ import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { userApi } from '@/app/api/userApi'
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 
 interface FormValues {
   courseName: string
@@ -53,6 +54,10 @@ export default function AddCoursePage(): ReactElement {
   const [isAuthorized, setIsAuthorized] = useState<boolean | undefined>(
     undefined,
   )
+  const organizationSettings = useOrganizationSettings(
+    userInfo.organization?.orgId ?? -1,
+  )
+
   const isAdmin =
     userInfo &&
     userInfo.organization?.organizationRole === OrganizationRole.ADMIN
@@ -83,9 +88,11 @@ export default function AddCoursePage(): ReactElement {
     if (userInfo && organization) {
       const isProfessor =
         userInfo.organization?.organizationRole === OrganizationRole.PROFESSOR
-      setIsAuthorized(isAdmin || isProfessor)
+      setIsAuthorized(
+        isAdmin || (organizationSettings?.allowProfCreateCourse && isProfessor),
+      )
     }
-  }, [userInfo, organization, isAdmin])
+  }, [userInfo, organization, organizationSettings, isAdmin])
 
   useEffect(() => {
     const fetchProfessors = async () => {

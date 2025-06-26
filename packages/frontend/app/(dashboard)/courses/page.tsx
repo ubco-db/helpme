@@ -12,11 +12,15 @@ import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons'
 import ArchivedCoursesSection from '../components/ArchivedCoursesSection'
 import { API } from '@/app/api'
 import { SemesterPartial } from '@koh/common'
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 
 export default function CoursesPage(): ReactElement {
   const { userInfo } = useUserInfo()
   const searchParams = useSearchParams()
   const error = searchParams.get('err')
+  const organizationSettings = useOrganizationSettings(
+    userInfo?.organization?.orgId ?? -1,
+  )
 
   // Initialize enabledTableView from localStorage
   const [enabledTableView, setEnabledTableView] = useState(() => {
@@ -85,8 +89,9 @@ export default function CoursesPage(): ReactElement {
       <div className="mt-5 flex items-center justify-between align-middle">
         <h1 className="mt-0">My Courses</h1>
         <div className="flex flex-col items-end justify-between gap-2 md:flex-row md:items-center">
-          {(userInfo?.organization?.organizationRole ===
-            OrganizationRole.PROFESSOR ||
+          {((organizationSettings?.allowProfCreateCourse &&
+            userInfo?.organization?.organizationRole ===
+              OrganizationRole.PROFESSOR) ||
             userInfo?.organization?.organizationRole ===
               OrganizationRole.ADMIN) && (
             <Button type="primary" href={`organization/course/add`}>

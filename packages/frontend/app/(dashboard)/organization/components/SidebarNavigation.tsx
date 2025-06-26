@@ -2,11 +2,12 @@
 
 import React from 'react'
 import {
-  TeamOutlined,
-  ExperimentOutlined,
-  SettingOutlined,
   CodeOutlined,
+  ExperimentOutlined,
   InteractionOutlined,
+  SettingOutlined,
+  TeamOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -39,6 +40,12 @@ const items = [
     label: 'LMS Integrations',
     icon: <InteractionOutlined />,
     url: '/organization/lms_integrations',
+  },
+  {
+    key: 'role_history',
+    label: 'Role Change History',
+    icon: <UserOutlined />,
+    url: '/organization/role_history',
   },
   {
     key: 'dev',

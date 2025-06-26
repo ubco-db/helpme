@@ -7,13 +7,16 @@ import {
   CourseFactory,
   initFactoriesFromService,
   OrganizationFactory,
+  OrganizationSettingsFactory,
   UserFactory,
 } from '../../test/util/factories';
-import { UserRole } from '@koh/common';
+import { ERROR_MESSAGES, UserRole } from '@koh/common';
 import { OrganizationCourseModel } from './organization-course.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
+import { NotFoundException } from '@nestjs/common';
+import { OrganizationSettingsModel } from './organization_settings.entity';
 
 describe('OrganizationService', () => {
   let service: OrganizationService;
@@ -314,6 +317,58 @@ describe('OrganizationService', () => {
         course.id,
       );
       expect(organizationCourse).toMatchSnapshot();
+    });
+  });
+
+  describe('getOrganizationSettings', () => {
+    it('should fail with not found if organization not found', async () => {
+      await expect(service.getOrganizationSettings(-1)).rejects.toThrow(
+        new NotFoundException(
+          ERROR_MESSAGES.organizationService.cannotCreateOrgNotFound,
+        ),
+      );
+    });
+
+    it("should create a new organization settings with defaults if it doesn't exist", async () => {
+      const organization = await OrganizationFactory.create();
+      const createSpy = jest.spyOn(OrganizationSettingsModel, 'create');
+      const saveSpy = jest.spyOn(OrganizationSettingsModel.prototype, 'save');
+
+      const settings = await service.getOrganizationSettings(organization.id);
+      expect(createSpy).toHaveBeenCalledTimes(1);
+      expect(createSpy).toHaveBeenCalledWith({
+        organizationId: organization.id,
+      });
+      expect(saveSpy).toHaveBeenCalledTimes(1);
+
+      expect(settings).toHaveProperty('organizationId', organization.id);
+      expect(settings).toHaveProperty('allowProfCourseCreate', true);
+
+      createSpy.mockRestore();
+      saveSpy.mockRestore();
+    });
+
+    it('should return existing organization settings if found', async () => {
+      const organization = await OrganizationFactory.create();
+      const organizationSettings = await OrganizationSettingsFactory.create({
+        organizationId: organization.id,
+        organization,
+        allowProfCourseCreate: false,
+      });
+      const createSpy = jest.spyOn(OrganizationSettingsModel, 'create');
+      const saveSpy = jest.spyOn(OrganizationSettingsModel.prototype, 'save');
+
+      const settings = await service.getOrganizationSettings(organization.id);
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(saveSpy).not.toHaveBeenCalled();
+      expect(settings).toHaveProperty('organizationId', organization.id);
+      expect(settings).toHaveProperty(
+        'allowProfCourseCreate',
+        organizationSettings.allowProfCourseCreate,
+      );
+
+      createSpy.mockRestore();
+      saveSpy.mockRestore();
     });
   });
 });

@@ -36,6 +36,7 @@ import { sortQueues } from '../(dashboard)/course/[cid]/utils/commonCourseFuncti
 import { useCourseFeatures } from '../hooks/useCourseFeatures'
 import CenteredSpinner from './CenteredSpinner'
 import Image from 'next/image'
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -132,6 +133,9 @@ const NavBar = ({
   isProfilePage?: boolean
   orientation?: 'horizontal' | 'vertical'
 }) => {
+  const organizationSettings = useOrganizationSettings(
+    userInfo?.organization?.id ?? -1,
+  )
   const { course } = useCourse(courseId)
   const router = useRouter()
   const courseFeatures = useCourseFeatures(courseId)
@@ -328,10 +332,11 @@ const NavBar = ({
                   My Courses
                 </Link>
               </NavigationMenuItem>
-              {(userInfo?.organization?.organizationRole ===
+              {(userInfo?.organization?.organizationRole ==
                 OrganizationRole.ADMIN ||
-                userInfo?.organization?.organizationRole ===
-                  OrganizationRole.PROFESSOR) && (
+                (userInfo?.organization?.organizationRole ==
+                  OrganizationRole.PROFESSOR &&
+                  organizationSettings?.allowProfCreateCourse)) && (
                 <NavigationMenuItem>
                   <Link
                     className="md:pl-8"

@@ -6,6 +6,7 @@ import {
   mailServiceFactory,
   OrganizationCourseFactory,
   OrganizationFactory,
+  OrganizationSettingsFactory,
   OrganizationUserFactory,
   SemesterFactory,
   UserCourseFactory,
@@ -97,11 +98,18 @@ describe('Organization Integration', () => {
     });
 
     it("should return 200 when user doesn't exist in organization", async () => {
-      const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
+      const user = await UserFactory.create();
+      const newUser = await UserFactory.create();
+      await OrganizationUserFactory.create({
+        userId: user.id,
+        organizationUser: user,
+        organizationId: organization.id,
+        organization,
+      });
 
       const res = await supertest({ userId: user.id }).post(
-        `/organization/${organization.id}/add_member/${user.id}`,
+        `/organization/${organization.id}/add_member/${newUser.id}`,
       );
 
       expect(res.status).toBe(200);
@@ -2864,7 +2872,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin', async () => {
+    it('should return 401 when user is not an admin or professor', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
@@ -2877,6 +2885,28 @@ describe('Organization Integration', () => {
       await OrganizationCourseModel.create({
         courseId: course.id,
         organizationId: organization.id,
+      }).save();
+
+      const res = await supertest({ userId: user.id }).post(
+        `/organization/${organization.id}/create_course`,
+      );
+
+      expect(res.status).toBe(401);
+    });
+
+    it('should return 401 when user is a professor and org settings has professors disallowed from creating courses', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      await OrganizationSettingsFactory.create({
+        organizationId: organization.id,
+        organization,
+        allowProfCourseCreate: false,
+      });
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+        role: OrganizationRole.PROFESSOR,
       }).save();
 
       const res = await supertest({ userId: user.id }).post(

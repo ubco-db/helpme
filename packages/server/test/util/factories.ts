@@ -36,7 +36,7 @@ export let lmsOrgIntFactory: FactoryService['lmsOrgIntFactory'];
 export let lmsCourseIntFactory: FactoryService['lmsCourseIntFactory'];
 export let lmsAssignmentFactory: FactoryService['lmsAssignmentFactory'];
 export let queueChatsFactory: FactoryService['queueChatsFactory'];
-
+export let OrganizationSettingsFactory: FactoryService['OrganizationSettingsFactory'];
 // We keep a helper so that in the test setup, once we have the real service,
 // we can “wire up” these variables.
 export function initFactoriesFromService(service: FactoryService) {
@@ -74,4 +74,5 @@ export function initFactoriesFromService(service: FactoryService) {
   lmsCourseIntFactory = service.lmsCourseIntFactory;
   lmsAssignmentFactory = service.lmsAssignmentFactory;
   queueChatsFactory = service.queueChatsFactory;
+  OrganizationSettingsFactory = service.OrganizationSettingsFactory;
 }

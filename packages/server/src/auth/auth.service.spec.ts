@@ -8,12 +8,20 @@ import {
   OrganizationFactory,
   OrganizationUserFactory,
 } from '../../test/util/factories';
-import { AccountType } from '@koh/common';
+import {
+  AccountType,
+  OrganizationRole,
+  OrgRoleChangeReason,
+} from '@koh/common';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { MailService } from 'mail/mail.service';
 import { MailModule } from 'mail/mail.module';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
+import { OrganizationModule } from '../organization/organization.module';
+import { OrganizationService } from '../organization/organization.service';
+import { RedisProfileModule } from '../redisProfile/redis-profile.module';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 
 // Extend the OAuth2Client mock with additional methods
 jest.mock('google-auth-library', () => {
@@ -76,12 +84,41 @@ describe('AuthService', () => {
   let service: AuthService;
   let dataSource: DataSource;
   let mailService: MailService;
+  let roleChangeSpy: jest.SpyInstance;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule, MailModule],
+      imports: [
+        TestTypeOrmModule,
+        TestConfigModule,
+        FactoryModule,
+        MailModule,
+        OrganizationModule,
+        RedisProfileModule,
+        RedisModule.forRoot({
+          readyLog: true,
+          errorLog: true,
+          commonOptions: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: 6379,
+          },
+          config: [
+            {
+              namespace: 'db',
+            },
+            {
+              namespace: 'sub',
+            },
+            {
+              namespace: 'pub',
+            },
+          ],
+        }),
+      ],
       providers: [
         AuthService,
+        OrganizationService,
+        RedisProfileModule,
         { provide: MailService, useClass: MockMailService },
       ],
     }).compile();
@@ -102,9 +139,18 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     await dataSource.synchronize(true);
+    roleChangeSpy = jest.spyOn(OrganizationService.prototype, 'addRoleHistory');
+  });
+
+  afterEach(() => {
+    roleChangeSpy?.mockRestore();
   });
 
   describe('loginWithShibboleth', () => {
+    afterEach(() => {
+      roleChangeSpy?.mockClear();
+    });
+
     it('should throw an error when user already exists with password', async () => {
       await UserModel.create({
         email: 'mocked_email@example.com',
@@ -121,6 +167,7 @@ describe('AuthService', () => {
       ).rejects.toThrowError(
         'A non-SSO account already exists with this email. Please login with your email and password instead.',
       );
+      expect(roleChangeSpy).not.toHaveBeenCalled();
     });
 
     it('should throw an error when user already exists with other account type', async () => {
@@ -139,6 +186,7 @@ describe('AuthService', () => {
       ).rejects.toThrowError(
         'A non-SSO account already exists with this email. Please login with your email and password instead.',
       );
+      expect(roleChangeSpy).not.toHaveBeenCalled();
     });
 
     it('should return user id when user already exists without password', async () => {
@@ -154,6 +202,7 @@ describe('AuthService', () => {
         1,
       );
       expect(userId).toEqual(user.id);
+      expect(roleChangeSpy).not.toHaveBeenCalled();
     });
 
     it('should create a new user when user does not exist', async () => {
@@ -169,16 +218,33 @@ describe('AuthService', () => {
         where: {
           id: userId,
         },
+        relations: {
+          organizationUser: true,
+        },
       });
       expect(user).toMatchSnapshot();
+      expect(roleChangeSpy).toHaveBeenCalledTimes(1);
+      expect(roleChangeSpy).toHaveBeenCalledWith(
+        organization.id,
+        null,
+        OrganizationRole.MEMBER,
+        null,
+        user.organizationUser.id,
+        OrgRoleChangeReason.joinedOrganizationMember,
+      );
     });
   });
 
   describe('loginWithGoogle', () => {
+    afterEach(() => {
+      roleChangeSpy?.mockClear();
+    });
+
     it('should throw an error when email is not verified', async () => {
       await expect(service.loginWithGoogle('invalid_token', 1)).rejects.toThrow(
         'Email not verified',
       );
+      expect(roleChangeSpy).not.toHaveBeenCalled();
     });
 
     it('should throw an error when user already exists with password', async () => {
@@ -197,6 +263,7 @@ describe('AuthService', () => {
       ).rejects.toThrowError(
         'A non-SSO account already exists with this email. Please login with your email and password instead.',
       );
+      expect(roleChangeSpy).not.toHaveBeenCalled();
     });
 
     it('should throw an error when user already exists with other account type', async () => {
@@ -215,6 +282,7 @@ describe('AuthService', () => {
       ).rejects.toThrowError(
         'A non-google account already exists with this email on HelpMe. Please try logging in with your email and password instead (or another SSO provider)',
       );
+      expect(roleChangeSpy).not.toHaveBeenCalled();
     });
 
     it('should return user id when user already exists without password', async () => {
@@ -233,6 +301,7 @@ describe('AuthService', () => {
         organization.id,
       );
       expect(userId).toEqual(user.id);
+      expect(roleChangeSpy).not.toHaveBeenCalled();
     });
 
     it('should create a new user when user does not exist', async () => {
@@ -246,8 +315,20 @@ describe('AuthService', () => {
         where: {
           id: userId,
         },
+        relations: {
+          organizationUser: true,
+        },
       });
       expect(user).toMatchSnapshot();
+      expect(roleChangeSpy).toHaveBeenCalledTimes(1);
+      expect(roleChangeSpy).toHaveBeenCalledWith(
+        organization.id,
+        null,
+        OrganizationRole.MEMBER,
+        null,
+        user.organizationUser.id,
+        OrgRoleChangeReason.joinedOrganizationMember,
+      );
     });
   });
 
@@ -296,6 +377,10 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
+    afterEach(() => {
+      roleChangeSpy?.mockClear();
+    });
+
     it('should throw an error when email already exists', async () => {
       await UserModel.create({
         email: 'existingEmail@mail.com',
@@ -311,6 +396,7 @@ describe('AuthService', () => {
           1,
         ),
       ).rejects.toThrowError('Email already exists');
+      expect(roleChangeSpy).not.toHaveBeenCalled();
     });
 
     it('should create a new user when email does not exist with empty sid', async () => {
@@ -329,8 +415,20 @@ describe('AuthService', () => {
         where: {
           id: userId,
         },
+        relations: {
+          organizationUser: true,
+        },
       });
       expect(userId == user.id).toBe(true);
+      expect(roleChangeSpy).toHaveBeenCalledTimes(1);
+      expect(roleChangeSpy).toHaveBeenCalledWith(
+        organization.id,
+        null,
+        OrganizationRole.MEMBER,
+        null,
+        user.organizationUser.id,
+        OrgRoleChangeReason.joinedOrganizationMember,
+      );
     });
 
     it('should create a new user when email does not exist with sid', async () => {
@@ -349,16 +447,27 @@ describe('AuthService', () => {
         where: {
           id: userId,
         },
+        relations: {
+          organizationUser: true,
+        },
       });
-
       expect(userId == user.id).toBe(true);
       expect(user.sid).toBe(123456);
+      expect(roleChangeSpy).toHaveBeenCalledTimes(1);
+      expect(roleChangeSpy).toHaveBeenCalledWith(
+        organization.id,
+        null,
+        OrganizationRole.MEMBER,
+        null,
+        user.organizationUser.id,
+        OrgRoleChangeReason.joinedOrganizationMember,
+      );
     });
 
     it('should throw an error when unexpected error occurs', async () => {
       await expect(
         service.register('John', 'Doe', 'email@mail.com', 'password', -1, 1),
-      ).rejects.toThrowError;
+      ).rejects.toThrow();
     });
   });
 });
