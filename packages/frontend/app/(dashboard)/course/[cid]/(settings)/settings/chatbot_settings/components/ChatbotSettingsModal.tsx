@@ -235,8 +235,8 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         <Form.Item
           name="modelName"
           label={
-            <Tooltip title="Select the base large language model you want.">
-              Model Name <InfoCircleOutlined />
+            <Tooltip title="Select the base large language model you want to use for the chatbot.">
+              Model <InfoCircleOutlined />
             </Tooltip>
           }
           rules={[{ required: true, message: 'Please select a model' }]}
@@ -274,8 +274,9 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         <Form.Item
           name="topK"
           label={
-            <Tooltip title="This number influences the max number of information blocks the chatbot would retrieve per question. Turn this up if you think the questions would need data from a lot of different documents.">
-              Top K <InfoCircleOutlined />
+            <Tooltip title="This number influences the max number of text chunks the chatbot would retrieve and cite per question. Consider turning this up if the questions for your course generally require more chunks of context to answer properly.">
+              Top K Chunks
+              <InfoCircleOutlined />
             </Tooltip>
           }
           rules={[{ required: true, message: 'Please input the top K!' }]}
@@ -287,7 +288,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
           name="similarityThresholdDocuments"
           label={
             <Tooltip title="Set the minimum similarity threshold when retrieving relevant information blocks. Turn this up if you notice that the chatbot is grabbing irrelevant documents.">
-              Similarity Threshold Documents <InfoCircleOutlined />
+              Similarity Threshold for Chunks <InfoCircleOutlined />
             </Tooltip>
           }
           rules={[
@@ -301,12 +302,12 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         </Form.Item>
 
         <Form.Item>
-          <Space>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              Update settings
-            </Button>
+          <Space className="flex justify-end">
             <Button onClick={handleReset} loading={loading}>
               Reset to default settings
+            </Button>
+            <Button type="primary" htmlType="submit" loading={loading}>
+              Update settings
             </Button>
           </Space>
         </Form.Item>

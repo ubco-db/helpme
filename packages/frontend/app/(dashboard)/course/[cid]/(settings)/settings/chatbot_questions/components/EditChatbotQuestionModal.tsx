@@ -295,7 +295,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         <Checkbox />
       </Form.Item>
       <Form.Item
-        label="Insert Q&A as new Chatbot Document"
+        label="Insert Q&A into Chatbot Knowledge Base"
         layout="horizontal"
         tooltip={
           <div className="flex flex-col gap-y-2">
