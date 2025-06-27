@@ -211,7 +211,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
           </div>
         </div>
       )}
-      destroyOnClose
+      destroyOnHidden
       modalRender={(dom) => (
         <Form
           layout="vertical"

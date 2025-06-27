@@ -133,7 +133,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       onOk={handleCropComplete}
       onCancel={() => onCancel()}
       okButtonProps={{ disabled: !imageSrc }}
-      destroyOnClose={true}
+      destroyOnHidden={true}
       width={{
         xs: '90%',
         sm: '85%',

@@ -112,7 +112,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
       open={open}
       onCancel={() => !loading && onClose()}
       closable={!loading}
-      destroyOnClose
+      destroyOnHidden
       okButtonProps={{
         autoFocus: true,
         htmlType: 'submit',

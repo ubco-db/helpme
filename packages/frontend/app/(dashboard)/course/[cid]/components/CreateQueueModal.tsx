@@ -115,7 +115,7 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
       }}
       width={800}
       onCancel={onCancel}
-      destroyOnClose
+      destroyOnHidden
       modalRender={(dom) => (
         <Form
           layout="vertical"

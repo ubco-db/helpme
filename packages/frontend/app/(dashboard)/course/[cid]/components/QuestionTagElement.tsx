@@ -505,6 +505,7 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
             </div>
           }
           trigger="click"
+          getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
         >
           <CheckableQuestionTag
             key={tag.id}
