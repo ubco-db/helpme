@@ -80,6 +80,7 @@ const CheckableQuestionTag: React.FC<CheckableQuestionTagProps> = ({
   onFocus,
   onClick,
   checkStyle = 'default',
+  ...props
 }) => {
   // if checkStyle is delete, text color is dark or light red when checked and normal when unchecked.
   // If checkStyle is default, the text color is normal when checked and gray when unchecked.
@@ -164,6 +165,7 @@ const CheckableQuestionTag: React.FC<CheckableQuestionTagProps> = ({
       tabIndex={0}
       role="checkbox"
       aria-checked={checked}
+      {...props}
     >
       <div style={{ fontSize: 'smaller', color: textColor }}>
         {checkStyle === 'delete' && checked ? (
@@ -299,10 +301,11 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
         <Popover
           key={'Popover' + tag.id}
           content={
-            <div className="flex flex-col gap-y-0">
+            <div className="fix-antd-form-label flex flex-col gap-y-0">
               {/* Mini popup for editing the question tag */}
               <Form.Item
                 label="Name"
+                layout="horizontal"
                 rules={[
                   { required: true, message: 'Please input a tag name' },
                   {

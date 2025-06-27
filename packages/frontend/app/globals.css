@@ -243,6 +243,16 @@ Here's the issue on antd's github: https://github.com/ant-design/ant-design/issu
   padding: 0 !important;
 }
 
+/* Fixes an issue with question tag element editor popover not having vertical form item styles rather than horizontal (which started happening in a random antd update).
+  Not a super pretty fix, probably should be looked at in the future if there's a nicer way to get around this.
+*/
+.fix-antd-form-label .ant-form-item-horizontal > .ant-form-item-row {
+  flex-direction: row !important;
+}
+.fix-antd-form-label .ant-form-item-horizontal .ant-form-item-label {
+  padding: 0.25rem 0 0 0 !important;
+}
+
 /*
 These childrenMarkdownFormatted styles are to format all children of this component in a particular way.
 It is used for displaying markdown nicely inside any <Markdown> components
