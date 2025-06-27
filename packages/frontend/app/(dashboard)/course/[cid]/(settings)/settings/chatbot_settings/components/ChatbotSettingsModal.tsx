@@ -275,8 +275,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
           name="topK"
           label={
             <Tooltip title="This number influences the max number of text chunks the chatbot would retrieve and cite per question. Consider turning this up if the questions for your course generally require more chunks of context to answer properly.">
-              Top K Chunks
-              <InfoCircleOutlined />
+              Top K Chunks <InfoCircleOutlined />
             </Tooltip>
           }
           rules={[{ required: true, message: 'Please input the top K!' }]}
@@ -301,16 +300,14 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
           <InputNumber min={0} max={1} step={0.1} />
         </Form.Item>
 
-        <Form.Item>
-          <Space className="flex justify-end">
-            <Button onClick={handleReset} loading={loading}>
-              Reset to default settings
-            </Button>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              Update settings
-            </Button>
-          </Space>
-        </Form.Item>
+        <Space className="flex justify-end">
+          <Button onClick={handleReset} loading={loading}>
+            Reset to default settings
+          </Button>
+          <Button type="primary" htmlType="submit" loading={loading}>
+            Update settings
+          </Button>
+        </Space>
       </Form>
     </Modal>
   )
