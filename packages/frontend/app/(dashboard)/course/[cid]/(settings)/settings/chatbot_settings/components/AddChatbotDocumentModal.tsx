@@ -112,7 +112,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
       open={open}
       onCancel={() => !loading && onClose()}
       closable={!loading}
-      destroyOnClose
+      destroyOnHidden
       okButtonProps={{
         autoFocus: true,
         htmlType: 'submit',
@@ -261,7 +261,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
               <Form.Item
                 name="isSlideDeck"
                 label="Parse document as slides"
-                tooltip="By default images/graphics embedded in your uploaded files will not be detected by the chatbot. Ticking this will transform pages of the document into images and automatically generate AI summaries of said images (using OpenAI's ChatGPT). This is useful for any document that isn't just text. Warning that it will take a lot longer to process."
+                tooltip="By default images/graphics embedded in your uploaded files will not be detected by the chatbot. Ticking this will transform pages of the document into images and automatically generate AI summaries of said images. This is useful for any document that isn't just text. Warning that it will take a lot longer to process."
               >
                 <Switch
                   defaultChecked={isSlideDeck}

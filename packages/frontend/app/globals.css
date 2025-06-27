@@ -46,8 +46,9 @@ body {
   background: #f8f9fb;
 }
 
-a {
-  text-decoration: none;
+/* For some reason tailwind reset css is resetting the default link color from antd to inherit so this overrides that back */
+a { 
+  color: #1677ff;
 }
 
 h1 {
@@ -208,6 +209,10 @@ h1, h2, h3, h4, h5, h6 {
   cursor: pointer
 }
 
+/* Fix for Ant Design Avatar component's hardcoded 14px font size on .ant-avatar-string */
+.ant-avatar .ant-avatar-string {
+  font-size: inherit !important;
+}
 
 .queueCard, .asyncCentreCard {
   /* Tailwind shadows don't look great in this scenario so went with custom */
@@ -236,6 +241,16 @@ Here's the issue on antd's github: https://github.com/ant-design/ant-design/issu
 */
 .ant-dropdown-menu-item.this-dropdown-has-popconfirm {
   padding: 0 !important;
+}
+
+/* Fixes an issue with question tag element editor popover not having vertical form item styles rather than horizontal (which started happening in a random antd update).
+  Not a super pretty fix, probably should be looked at in the future if there's a nicer way to get around this.
+*/
+.fix-antd-form-label .ant-form-item-horizontal > .ant-form-item-row {
+  flex-direction: row !important;
+}
+.fix-antd-form-label .ant-form-item-horizontal .ant-form-item-label {
+  padding: 0.25rem 0 0 0 !important;
 }
 
 /*

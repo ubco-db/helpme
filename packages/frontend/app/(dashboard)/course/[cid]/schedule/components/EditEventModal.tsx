@@ -183,7 +183,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         autoFocus: true,
         htmlType: 'submit',
       }}
-      destroyOnClose
+      destroyOnHidden
       footer={(_, { OkBtn, CancelBtn }) => (
         <div className="flex justify-between">
           <Popconfirm

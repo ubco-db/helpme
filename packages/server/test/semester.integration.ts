@@ -1,7 +1,11 @@
 import { OrganizationRole, SemesterPartial } from '@koh/common';
 import { setupIntegrationTest } from './util/testUtils';
 import { SemesterModule } from '../src/semester/semester.module';
-import { OrganizationUserFactory, SemesterFactory } from './util/factories';
+import {
+  OrganizationFactory,
+  OrganizationUserFactory,
+  SemesterFactory,
+} from './util/factories';
 import { SemesterModel } from '../src/semester/semester.entity';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { UserModel } from '../src/profile/user.entity';
@@ -45,14 +49,32 @@ describe('SemesterController Integration', () => {
       expect(names).toContain(semester2.name);
     });
 
-    it('should return 400 if organization is not found', async () => {
+    it('should return 401 if organization is not found', async () => {
       orgUser = await OrganizationUserFactory.create({
         role: OrganizationRole.ADMIN,
       });
 
       await supertest({ userId: orgUser.organizationUser.id })
         .get(`/semesters/99999`)
-        .expect(400);
+        .expect(401);
+    });
+
+    it('should not allow users outside the organization to get semesters', async () => {
+      orgUser = await OrganizationUserFactory.create({
+        role: OrganizationRole.ADMIN,
+      });
+      const otherOrgUser = await OrganizationUserFactory.create({
+        role: OrganizationRole.MEMBER,
+      });
+
+      await supertest({ userId: otherOrgUser.organizationUser.id })
+        .get(`/semesters/${orgUser.organization.id}`)
+        .expect(401);
+    });
+
+    it('should return 401 for if user is not logged in', async () => {
+      const org = await OrganizationFactory.create();
+      await supertest().get(`/semesters/${org.id}`).expect(401);
     });
   });
 

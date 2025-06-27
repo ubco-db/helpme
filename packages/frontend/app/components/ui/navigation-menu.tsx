@@ -74,6 +74,7 @@ const navigationMenuTriggerStyle = cva([
   'rounded-md md:rounded-none', // Border radius (none on desktop)
   'disabled:pointer-events-none', // Disabled state pointer events
   'disabled:opacity-50', // Disabled state opacity
+  'text-black',
   'bg-white', // Background color
   'pl-4 pr-8', // Horizontal padding
   'py-7', // Vertical padding
@@ -113,6 +114,7 @@ const navigationMenuTriggerStyle = cva([
 const navigationMenuTriggerStyleForSubMenu = cva([
   'hover:bg-zinc-200/70',
   'hover:text-zinc-900', // Hover state
+  'text-black',
   'transition-colors', // Transition for color changes
   'disabled:pointer-events-none',
   'disabled:opacity-50', // Disabled state

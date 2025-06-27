@@ -68,7 +68,7 @@ const StudentRemovedFromQueueModal: React.FC<
         </Button>,
       ]}
       closable={false}
-      destroyOnClose
+      destroyOnHidden
     >
       <div className="flex flex-col items-center">
         <p className="text-lg">

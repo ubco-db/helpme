@@ -2253,7 +2253,7 @@ describe('Organization Integration', () => {
 
       expect(res.status).toBe(404);
     });
-    it('should return 403 when user to update is organization admin', async () => {
+    it('should return 200 when admin drops another admin from a course', async () => {
       const user = await UserFactory.create();
       const userTwo = await UserFactory.create();
       const organization = await OrganizationFactory.create();
@@ -2287,14 +2287,14 @@ describe('Organization Integration', () => {
         )
         .send([course.id]);
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(200);
       // check to make sure the user is still in the course
       const userCourses = await UserCourseModel.find({
         where: { userId: userTwo.id },
       });
       expect(userCourses.length).toBe(1);
     });
-    it('should return 403 when user to update is global admin', async () => {
+    it('should return 200 when user to update is global admin (lets admins and course profs remove this user from their own course)', async () => {
       const user = await UserFactory.create();
       const userTwo = await UserFactory.create({
         userRole: UserRole.ADMIN,

@@ -92,7 +92,7 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
         },
       }}
       onCancel={onCancel}
-      destroyOnClose
+      destroyOnHidden
       loading={!question}
       modalRender={(dom) => {
         if (!question) {

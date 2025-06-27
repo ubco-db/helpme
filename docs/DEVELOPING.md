@@ -34,10 +34,15 @@
   - There is also a .env for the frontend (`dev.env`). Do just as you did and create a `.env` in `packages/frontend` and copy-paste all the variables from `dev.env` over.
   - For more details, see [ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md)
 6. Start the app in development with `yarn dev`
-7. Visit the app at http://localhost:3000/dev and seed the database. 
+7. Visit the app at http://localhost:3000/dev and click the "seed" button to seed the database with dummy data. 
   - You may need to first create a `dev`, `test`, and `chatbot` database in your local postgres database (using psql or Beekeeper Studio). 
   - You can do this by running `CREATE DATABASE dev;`, `CREATE DATABASE test;`, and `CREATE DATABASE chatbot;` in psql.
 8. Visit the app at http://localhost:3000
+9. On the login page, you have access to the following dummy users (assuming the database is properly seeded):
+   1.  Ramon@ubc.ca
+   2.  StudentOne@ubc.ca
+   3.  StudentTwo@ubc.ca
+   4.  They all have the password of `seed`
 
 If you have any questions, feel free to reach out to a member of the team. If you think this document can be improved, make a PR!
 

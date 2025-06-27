@@ -275,7 +275,7 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
               xxl: '50%',
             }
       }
-      destroyOnClose={true}
+      destroyOnHidden={true}
       maskClosable={false}
       styles={{
         content: {

@@ -180,7 +180,7 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
         danger: studentsState && studentsState.length > 0,
       }}
       onCancel={onCancel}
-      destroyOnClose
+      destroyOnHidden
       modalRender={(dom) => (
         <Form
           layout="vertical"

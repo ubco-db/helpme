@@ -154,7 +154,7 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
           </div>
         </div>
       )}
-      destroyOnClose
+      destroyOnHidden
       modalRender={(dom) => (
         <Form
           layout="vertical"

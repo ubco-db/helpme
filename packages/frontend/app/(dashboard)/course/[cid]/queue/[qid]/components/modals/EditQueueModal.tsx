@@ -415,7 +415,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
       width={800}
       onCancel={onCancel}
       loading={!queue || !course}
-      destroyOnClose
+      destroyOnHidden
       modalRender={(dom) => (
         <Form
           layout="vertical"

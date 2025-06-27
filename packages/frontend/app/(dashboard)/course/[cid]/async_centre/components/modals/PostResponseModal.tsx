@@ -112,7 +112,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
           </div>
         </div>
       )}
-      destroyOnClose
+      destroyOnHidden
       modalRender={(dom) => (
         <Form
           layout="vertical"
