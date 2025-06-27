@@ -865,7 +865,6 @@ export class OrganizationController {
     await organization
       .save()
       .then(() => {
-        console.log(organization);
         return res.status(HttpStatus.OK).send({
           message: 'Logo uploaded',
           fileName: fileName,
