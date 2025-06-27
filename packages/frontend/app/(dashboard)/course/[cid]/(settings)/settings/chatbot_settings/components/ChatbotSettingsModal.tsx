@@ -286,7 +286,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         <Form.Item
           name="similarityThresholdDocuments"
           label={
-            <Tooltip title="Set the minimum similarity threshold when retrieving relevant information blocks. Turn this up if you notice that the chatbot is grabbing irrelevant documents.">
+            <Tooltip title="Set the minimum similarity threshold when retrieving relevant information blocks. You can turn this up if you notice that the chatbot is grabbing irrelevant documents, or turn it down if it's not grabbing the chunks that it should have (generally, it's better to have this lower/default since it's better the AI have too much information than too little).">
               Similarity Threshold for Chunks <InfoCircleOutlined />
             </Tooltip>
           }
