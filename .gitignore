@@ -19,6 +19,7 @@ dist/
 # misc
 .DS_Store
 *.code-workspace
+devUtils
 
 # debug
 npm-debug.log*
