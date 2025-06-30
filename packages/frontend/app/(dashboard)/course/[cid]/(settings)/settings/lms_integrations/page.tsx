@@ -1,22 +1,22 @@
 'use client'
 
+import type { GetProp } from 'antd'
 import {
   Badge,
   Button,
   Card,
+  Checkbox,
+  Col,
   Divider,
   List,
   message,
   Modal,
+  Row,
   Statistic,
   Tabs,
   Tooltip,
-  Checkbox,
-  Row,
-  Col,
 } from 'antd'
-import type { CheckboxOptionType, GetProp } from 'antd'
-import { useCallback, useEffect, useMemo, useState, use } from 'react'
+import { use, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   LMSAnnouncement,
   LMSApiResponseStatus,
@@ -405,6 +405,7 @@ export default function CourseLMSIntegrationPage(props: {
             loadingLMSData={isLoading}
             lmsSynchronize={integration.lmsSynchronize}
             onUpdateCallback={() => setUpdateFlag(!updateFlag)}
+            selectedResourceTypes={integration.selectedResourceTypes}
           />
         ),
       })
@@ -425,6 +426,7 @@ export default function CourseLMSIntegrationPage(props: {
             loadingLMSData={isLoading}
             lmsSynchronize={integration.lmsSynchronize}
             onUpdateCallback={() => setUpdateFlag(!updateFlag)}
+            selectedResourceTypes={integration.selectedResourceTypes}
           />
         ),
       })

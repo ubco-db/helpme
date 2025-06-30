@@ -1,22 +1,22 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
-  Modal,
+  Button,
   Form,
   Input,
   InputNumber,
-  Button,
   message,
-  Select,
-  Tooltip,
-  Space,
+  Modal,
   Progress,
   ProgressProps,
+  Select,
+  Space,
+  Tooltip,
 } from 'antd'
 import {
-  InfoCircleOutlined,
   ExclamationCircleOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -42,16 +42,32 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
 }) => {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
-  const [availableModels, setAvailableModels] = useState<string[] | null>(null)
+  const [loadingModels, setLoadingModels] = useState(false)
+  const [availableModels, setAvailableModels] = useState<Record<
+    string,
+    string
+  > | null>(null)
+
+  const fetchAvailableModels = useCallback(async () => {
+    setLoadingModels(true)
+    API.chatbot.staffOnly
+      .getModels(courseId)
+      .then((availableModels) => {
+        setAvailableModels(availableModels)
+      })
+      .catch((error) => {
+        message.error(
+          'Failed to load available models: ' + getErrorMessage(error),
+        )
+      })
+      .finally(() => setLoadingModels(false))
+  }, [courseId])
 
   const fetchChatbotSettings = useCallback(async () => {
     setLoading(true)
     await API.chatbot.staffOnly
       .getSettings(courseId)
       .then((currentChatbotSettings) => {
-        setAvailableModels(
-          Object.values(currentChatbotSettings.AvailableModelTypes),
-        )
         form.setFieldsValue({
           ...currentChatbotSettings.metadata,
         })
@@ -68,9 +84,10 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
 
   useEffect(() => {
     if (open && courseId) {
-      fetchChatbotSettings()
+      fetchAvailableModels().then()
+      fetchChatbotSettings().then()
     }
-  }, [open, courseId, fetchChatbotSettings])
+  }, [open, courseId, fetchChatbotSettings, fetchAvailableModels])
 
   const handleUpdate = async (values: ChatbotSettingsMetadata) => {
     const updateData = {
@@ -123,7 +140,8 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
   // Build the options only from availableModels provided by chatbot server
   const selectOptions = !availableModels
     ? []
-    : availableModels.map((model) => {
+    : Object.keys(availableModels).map((modelKey) => {
+        const model = availableModels[modelKey]
         switch (model) {
           case AvailableModelTypes.GPT4o_mini:
             return {
@@ -302,10 +320,14 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
 
         <Form.Item>
           <Space>
-            <Button type="primary" htmlType="submit" loading={loading}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading || loadingModels}
+            >
               Update settings
             </Button>
-            <Button onClick={handleReset} loading={loading}>
+            <Button onClick={handleReset} loading={loading || loadingModels}>
               Reset to default settings
             </Button>
           </Space>
