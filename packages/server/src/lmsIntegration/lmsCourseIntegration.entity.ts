@@ -13,6 +13,7 @@ import { CourseModel } from '../course/course.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { LMSPageModel } from './lmsPage.entity';
+import { LMSResourceType } from '@koh/common';
 
 @Entity('lms_course_integration_model')
 export class LMSCourseIntegrationModel extends BaseEntity {
@@ -30,6 +31,14 @@ export class LMSCourseIntegrationModel extends BaseEntity {
 
   @Column({ type: 'boolean', default: false })
   lmsSynchronize: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: LMSResourceType,
+    array: true,
+    default: [LMSResourceType.ASSIGNMENTS, LMSResourceType.ANNOUNCEMENTS],
+  })
+  selectedResourceTypes: LMSResourceType[];
 
   @ManyToOne(
     (type) => LMSOrganizationIntegrationModel,

@@ -1131,6 +1131,13 @@ class APIClient {
         undefined,
         announcement,
       ),
+    updateSelectedResourceTypes: async (
+      courseId: number,
+      selectedResourceTypes: string[],
+    ): Promise<string> =>
+      this.req('POST', `/api/v1/lms/course/${courseId}/resources`, undefined, {
+        selectedResourceTypes,
+      }),
     testIntegration: async (
       courseId: number,
       props: TestLMSIntegrationParams,

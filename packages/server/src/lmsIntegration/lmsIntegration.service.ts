@@ -14,6 +14,7 @@ import {
   LMSAssignment,
   LMSAnnouncement,
   LMSPage,
+  LMSResourceType,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
@@ -26,6 +27,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 } from 'uuid';
 import * as Sentry from '@sentry/browser';
 import { ConfigService } from '@nestjs/config';
+import TORM from 'nestjs-admin/dist/src/utils/typeormProxy';
 
 export enum LMSGet {
   Course,
@@ -86,6 +88,11 @@ export class LMSIntegrationService {
         return HttpStatus.BAD_REQUEST;
     }
   }
+
+  LMSUploadToResourceType: Record<LMSUpload, LMSResourceType> = {
+    [LMSUpload.Assignments]: LMSResourceType.ASSIGNMENTS,
+    [LMSUpload.Announcements]: LMSResourceType.ANNOUNCEMENTS,
+  };
 
   public async upsertOrganizationLMSIntegration(
     organizationId: number,
@@ -357,6 +364,20 @@ export class LMSIntegrationService {
   }
 
   async syncDocuments(courseId: number) {
+    const courseIntegration = await LMSCourseIntegrationModel.findOne({
+      where: { courseId: courseId },
+    });
+
+    // maybe add this later to fallback to all resources if db fetch does not work
+
+    //   const selectedResources: LMSResourceType[] =
+    // courseIntegration?.selectedResourceTypes?.length
+    //   ? courseIntegration.selectedResourceTypes
+    //   : [LMSResourceType.ASSIGNMENTS, LMSResourceType.ANNOUNCEMENTS];
+
+    const selectedResources: LMSResourceType[] =
+      courseIntegration.selectedResourceTypes;
+
     const adapter = await this.getAdapter(courseId);
     if (!adapter.isImplemented()) {
       throw new HttpException(
@@ -368,6 +389,20 @@ export class LMSIntegrationService {
     for (const type of Object.keys(LMSUpload)
       .filter((k: any) => !isNaN(k))
       .map((k) => parseInt(k))) {
+      const resourceType = this.LMSUploadToResourceType[type as LMSUpload];
+
+      // Check if this resource type is selected for sync
+      if (!selectedResources.includes(resourceType)) {
+        const { model, items } = await this.getDocumentModelAndItems(
+          courseId,
+          type,
+        );
+        if (items.length > 0) {
+          await this.clearSpecificDocuments(courseId, items, model);
+        }
+        continue;
+      }
+
       let result: {
         status: LMSApiResponseStatus;
         assignments?: LMSAssignment[];
@@ -443,6 +478,7 @@ export class LMSIntegrationService {
         persistedItems = persistedItems.filter((i) =>
           toRemoveIds.includes(i.id),
         );
+
         await this.clearSpecificDocuments(courseId, toRemove, model);
       }
 
@@ -904,6 +940,7 @@ export class LMSIntegrationService {
       isExpired:
         lmsIntegration.apiKeyExpiry != undefined &&
         new Date(lmsIntegration.apiKeyExpiry).getTime() < new Date().getTime(),
+      selectedResourceTypes: lmsIntegration.selectedResourceTypes,
     } satisfies LMSCourseIntegrationPartial;
   }
 }

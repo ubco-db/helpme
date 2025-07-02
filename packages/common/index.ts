@@ -1300,6 +1300,7 @@ export class LMSCourseIntegrationPartial {
   apiKeyExpiry!: Date
   lmsSynchronize!: boolean
   isExpired!: boolean
+  selectedResourceTypes?: LMSResourceType[]
 }
 
 export type LMSCourseAPIResponse = {
@@ -1353,6 +1354,11 @@ export enum LMSApiResponseStatus {
   InvalidConfiguration = 'The specified LMS configuration was not valid.',
   Error = 'An error occurred, operation with or connection to the LMS API failed.',
   Success = 'Successfully contacted LMS API.',
+}
+
+export enum LMSResourceType {
+  ASSIGNMENTS = 'assignments',
+  ANNOUNCEMENTS = 'announcements',
 }
 
 export interface CourseResponse {

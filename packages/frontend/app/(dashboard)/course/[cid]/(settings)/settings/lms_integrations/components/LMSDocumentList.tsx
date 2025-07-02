@@ -20,6 +20,9 @@ import { useMemo, useState } from 'react'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
 
+// TODO: Refactor getNameCell, getSyncCell and renderDocumentList functions outside the component for better performance
+// This will prevent function recreation on every render and reduce unnecessary rerenders
+
 type LMSDocumentListProps<T> = {
   courseId: number
   type: 'Assignment' | 'Announcement' | 'Page'
@@ -51,7 +54,11 @@ export default function LMSDocumentList<
   const [page, setPage] = useState(1)
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
-  const [performingSyncOp, setPerformingSyncOp] = useState<boolean>(false)
+  const [syncingItems, setSyncingItems] = useState<Record<string, boolean>>({})
+
+  const isItemSyncing = (itemId: string) => {
+    return syncingItems[itemId] || false
+  }
 
   const getNameCell = (item: T) => {
     const isOutOfDate =
@@ -95,43 +102,62 @@ export default function LMSDocumentList<
           )}
         </div>
         {isOutOfDate && <Badge count={'Out of Date'} />}
-        {!ineligible && (
-          <Popover
-            content={
-              (lmsSynchronize && !item.syncEnabled && (
-                <Button
-                  onClick={() => toggleSyncDocument(item, type)}
-                  icon={<SyncOutlined />}
-                  color={'blue'}
-                  variant={'outlined'}
-                  loading={performingSyncOp}
-                >
-                  {item.uploaded != undefined
-                    ? 'Enable synchronization'
-                    : 'Force synchronization'}
-                </Button>
-              )) ||
-              (item.syncEnabled && (
-                <Button
-                  onClick={() => toggleSyncDocument(item, type)}
-                  icon={<DeleteOutlined />}
-                  color={'danger'}
-                  variant={'outlined'}
-                  loading={performingSyncOp}
-                >
-                  {!lmsSynchronize
-                    ? 'Delete document'
-                    : 'Disable synchronization'}
-                </Button>
-              ))
-            }
-            trigger={'click'}
-          >
-            <Button type={'text'} icon={<MoreOutlined />} />
-          </Popover>
-        )}
       </div>
     )
+  }
+
+  const getSyncCell = (item: T) => {
+    let ineligible = false
+    if (type == 'Assignment') {
+      const asAssignment = item as LMSAssignment
+      ineligible =
+        (asAssignment.description == undefined ||
+          asAssignment.description == '') &&
+        asAssignment.due == undefined
+    }
+
+    if (ineligible) {
+      return null
+    }
+
+    if (lmsSynchronize && !item.syncEnabled) {
+      const tooltipText =
+        item.uploaded != undefined ? 'Enable sync' : 'Force sync'
+      return (
+        <Button
+          onClick={() => toggleSyncDocument(item, type)}
+          icon={<SyncOutlined />}
+          color={'blue'}
+          variant={'outlined'}
+          loading={isItemSyncing(item.id.toString())}
+          size="middle"
+          className="h-8 w-full"
+          title={tooltipText}
+        >
+          <span className="hidden md:inline">{tooltipText}</span>
+        </Button>
+      )
+    }
+
+    if (item.syncEnabled) {
+      const tooltipText = !lmsSynchronize ? 'Delete' : 'Disable sync'
+      return (
+        <Button
+          onClick={() => toggleSyncDocument(item, type)}
+          icon={<DeleteOutlined />}
+          color={'danger'}
+          variant={'outlined'}
+          loading={isItemSyncing(item.id.toString())}
+          size="middle"
+          className="h-8 w-full"
+          title={tooltipText}
+        >
+          <span className="hidden md:inline">{tooltipText}</span>
+        </Button>
+      )
+    }
+
+    return null
   }
 
   const columns = useMemo(() => {
@@ -165,6 +191,12 @@ export default function LMSDocumentList<
                 ></div>
               )) || <i>No message</i>,
             colSpan: 3,
+          },
+          {
+            dataIndex: 'sync',
+            header: 'Actions',
+            cellFormat: (item: T) => getSyncCell(item),
+            colSpan: 1,
           },
         ] as LMSDocumentListColumn[]
       case 'Assignment':
@@ -200,6 +232,12 @@ export default function LMSDocumentList<
                 </Collapse>
               )) || <i>No description</i>,
             colSpan: 4,
+          },
+          {
+            dataIndex: 'sync',
+            header: 'Actions',
+            cellFormat: (item: T) => getSyncCell(item),
+            colSpan: 1,
           },
         ] as LMSDocumentListColumn[]
       case 'Page':
@@ -240,7 +278,7 @@ export default function LMSDocumentList<
       default:
         return []
     }
-  }, [getNameCell, type])
+  }, [getNameCell, getSyncCell, type])
 
   const ncols = useMemo(
     () => columns.reduce((acc, column) => acc + column.colSpan, 0),
@@ -265,7 +303,10 @@ export default function LMSDocumentList<
               (d as LMSAnnouncement).message
                 .toLowerCase()
                 .includes(search.toLowerCase()) ||
-              (d as LMSAnnouncement).posted
+              (typeof (d as LMSAnnouncement).posted === 'string'
+                ? new Date((d as LMSAnnouncement).posted)
+                : (d as LMSAnnouncement).posted
+              )
                 .toLocaleDateString()
                 .toLowerCase()
                 .includes(search.toLowerCase())
@@ -302,6 +343,8 @@ export default function LMSDocumentList<
     doc: LMSAssignment | LMSAnnouncement | LMSPage,
     type: 'Assignment' | 'Announcement' | 'Page',
   ) => {
+    const docIdStr = doc.id.toString()
+
     const thenFx = (result?: string) => {
       if (result) {
         message.success(result)
@@ -316,10 +359,17 @@ export default function LMSDocumentList<
     }
 
     const finallyFx = () => {
-      setPerformingSyncOp(false)
+      setSyncingItems((prev) => ({
+        ...prev,
+        [docIdStr]: false,
+      }))
     }
 
-    setPerformingSyncOp(true)
+    setSyncingItems((prev) => ({
+      ...prev,
+      [docIdStr]: true,
+    }))
+
     switch (type) {
       case 'Announcement':
         return await API.lmsIntegration
@@ -388,7 +438,7 @@ export default function LMSDocumentList<
               <div
                 key={`column-${index}`}
                 className={cn(
-                  'border border-gray-100 p-2',
+                  'overflow-hidden border border-gray-100 p-2 py-3',
                   col.colSpan == 2 ? 'col-span-2' : '',
                   col.colSpan == 3 ? 'col-span-3' : '',
                   col.colSpan == 4 ? 'col-span-4' : '',
@@ -396,7 +446,9 @@ export default function LMSDocumentList<
               >
                 <div className={'flex w-full items-center justify-between'}>
                   {col.cellFormat(
-                    col.dataIndex == 'name' || col.dataIndex == 'title'
+                    col.dataIndex == 'name' ||
+                      col.dataIndex == 'title' ||
+                      col.dataIndex == 'sync'
                       ? item
                       : item[col.dataIndex],
                   )}
@@ -424,7 +476,7 @@ export default function LMSDocumentList<
           }
         >
           <Input
-            placeholder={'Search for assignments and press enter'}
+            placeholder={`Search for ${type.toLowerCase()} and press enter`}
             prefix={<SearchOutlined />}
             value={input}
             onChange={(e) => setInput(e.target.value)}
