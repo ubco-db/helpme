@@ -8,8 +8,6 @@ import { useUserInfo } from '@/app/contexts/userContext'
 import SemesterInfoPopover from './SemesterInfoPopover'
 import CoursesSectionTableView from './CoursesSectionTableView'
 
-// TODO: remove all code for unassigned semesters when all production courses have new semesters set
-
 interface CoursesSectionProps {
   semesters: SemesterPartial[]
   enabledTableView: boolean
@@ -49,6 +47,10 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         const semesterB = semesters?.find(
           (semester) => semester.id === b.course.semesterId,
         )
+        // Show courses with defined semesters first
+        if (semesterA && !semesterB) return -1
+        if (semesterB && !semesterA) return 1
+
         if (semesterA && semesterB) {
           const diff = semesterB.endDate.valueOf() - semesterA.endDate.valueOf()
           if (diff === 0) {

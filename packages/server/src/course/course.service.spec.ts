@@ -1,35 +1,33 @@
-import { TestingModule, Test } from '@nestjs/testing';
-import { DataSource, In, IsNull } from 'typeorm';
+import { Test, TestingModule } from '@nestjs/testing';
+import { DataSource, IsNull } from 'typeorm';
 import {
-  UserFactory,
-  UserCourseFactory,
   CourseFactory,
+  CourseSettingsFactory,
   initFactoriesFromService,
-  SemesterFactory,
   OrganizationFactory,
   OrganizationUserFactory,
-  CourseSettingsFactory,
+  QuestionTypeFactory,
   QueueFactory,
   QueueInviteFactory,
-  QuestionTypeFactory,
+  SemesterFactory,
+  UserCourseFactory,
+  UserFactory,
 } from '../../test/util/factories';
-import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
+import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { CourseService } from './course.service';
 import { UserModel } from 'profile/user.entity';
 import { CourseModel } from './course.entity';
 import {
+  CourseCloneAttributes,
+  OrganizationRole,
+  QueueConfig,
   Role,
   UserPartial,
-  OrganizationRole,
-  CourseCloneAttributes,
-  QueueTypes,
-  QueueConfig,
 } from '@koh/common';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
-import { HttpException } from '@nestjs/common';
 import { MailModule } from 'mail/mail.module';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { QueueModel } from 'queue/queue.entity';
@@ -816,7 +814,6 @@ describe('CourseService', () => {
     it('should successfully clone a course with a new section', async () => {
       const cloneData: CourseCloneAttributes = {
         professorIds: [professor.id],
-        useSection: true,
         newSection: '002',
         associateWithOriginalCourse: true,
         toClone: {
@@ -855,7 +852,6 @@ describe('CourseService', () => {
     it('should successfully clone a course with a new semester', async () => {
       const cloneData: CourseCloneAttributes = {
         professorIds: [professor.id],
-        useSection: false,
         newSemesterId: newSemester.id,
         associateWithOriginalCourse: true,
         toClone: {
@@ -908,7 +904,6 @@ describe('CourseService', () => {
 
       const cloneData: CourseCloneAttributes = {
         professorIds: [professor.id],
-        useSection: false,
         newSemesterId: newSemester.id,
         associateWithOriginalCourse: true,
         toClone: {
@@ -943,32 +938,6 @@ describe('CourseService', () => {
           course.id,
         ]),
       );
-    });
-    it('should throw error when neither new section nor new semester is specified', async () => {
-      const cloneData: CourseCloneAttributes = {
-        professorIds: [professor.id],
-        useSection: false,
-        associateWithOriginalCourse: true,
-        toClone: {
-          coordinator_email: true,
-          zoomLink: true,
-          courseInviteCode: true,
-          courseFeatureConfig: true,
-          asyncCentreQuestionTypes: true,
-          queues: true,
-          queueInvites: true,
-          chatbot: {
-            documents: true,
-            manuallyCreatedChunks: true,
-            insertedQuestions: true,
-            insertedLMSData: true,
-          },
-        },
-      };
-
-      await expect(
-        service.cloneCourse(course.id, professor.id, cloneData, chatToken),
-      ).rejects.toThrow(HttpException);
     });
   });
 });
