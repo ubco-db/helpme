@@ -688,13 +688,7 @@ export default function CourseLMSIntegrationPage(props: {
                                     </Checkbox>
                                   </Col>
                                   <Col xs={24} sm={12} md={8}>
-                                    <Checkbox value="pages" disabled={true}>
-                                      <Tooltip title="Coming Soon!">
-                                        <span className="text-gray-400 line-through">
-                                          Pages
-                                        </span>
-                                      </Tooltip>
-                                    </Checkbox>
+                                    <Checkbox value="pages">Pages</Checkbox>
                                   </Col>
                                   <Col xs={24} sm={12} md={8}>
                                     <Checkbox value="Syllabus" disabled={true}>

@@ -1131,6 +1131,17 @@ class APIClient {
         undefined,
         announcement,
       ),
+    toggleSyncPage: async (
+      courseId: number,
+      pageId: number,
+      page: LMSPage,
+    ): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/lms/${courseId}/sync/page/${pageId}/toggle`,
+        undefined,
+        page,
+      ),
     updateSelectedResourceTypes: async (
       courseId: number,
       selectedResourceTypes: string[],

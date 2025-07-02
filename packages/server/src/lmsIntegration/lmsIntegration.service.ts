@@ -92,6 +92,7 @@ export class LMSIntegrationService {
   LMSUploadToResourceType: Record<LMSUpload, LMSResourceType> = {
     [LMSUpload.Assignments]: LMSResourceType.ASSIGNMENTS,
     [LMSUpload.Announcements]: LMSResourceType.ANNOUNCEMENTS,
+    [LMSUpload.Pages]: LMSResourceType.PAGES,
   };
 
   public async upsertOrganizationLMSIntegration(

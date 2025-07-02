@@ -1359,6 +1359,7 @@ export enum LMSApiResponseStatus {
 export enum LMSResourceType {
   ASSIGNMENTS = 'assignments',
   ANNOUNCEMENTS = 'announcements',
+  PAGES = 'pages',
 }
 
 export interface CourseResponse {
