@@ -455,7 +455,6 @@ export class CourseService {
         clonedCourse.courseInviteCode = originalCourse.courseInviteCode;
       }
 
-      //console.log(originalCourse)
       clonedCourse.sectionGroupName =
         cloneData.newSection && cloneData.newSection.trim() !== ''
           ? cloneData.newSection
