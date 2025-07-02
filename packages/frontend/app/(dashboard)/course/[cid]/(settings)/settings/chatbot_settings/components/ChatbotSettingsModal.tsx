@@ -274,7 +274,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         <Form.Item
           name="topK"
           label={
-            <Tooltip title="This number influences the max number of text chunks the chatbot would retrieve and cite per question. Consider turning this up if the questions for your course generally require more chunks of context to answer properly.">
+            <Tooltip title="This number determines the maximum number of text chunks the chatbot can retrieve and cite per question. Consider increasing it if the questions for your course generally require more chunks of context to answer properly.">
               Top K Chunks <InfoCircleOutlined />
             </Tooltip>
           }
