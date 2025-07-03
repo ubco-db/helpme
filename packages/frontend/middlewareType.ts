@@ -86,7 +86,7 @@ export interface UserCourse {
 export interface CoursePartial {
   id: number
   name: string
-  sectionGroupName: string
+  sectionGroupName?: string
   semesterId?: number
   enabled?: boolean
   favourited?: boolean

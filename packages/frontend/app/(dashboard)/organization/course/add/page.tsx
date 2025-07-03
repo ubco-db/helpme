@@ -7,11 +7,11 @@ import {
   Col,
   Form,
   Input,
+  message,
   Row,
   Select,
-  message,
 } from 'antd'
-import { ReactElement, useState, useEffect } from 'react'
+import { ReactElement, useEffect, useState } from 'react'
 import {
   COURSE_TIMEZONES,
   GetOrganizationResponse,
@@ -34,7 +34,7 @@ interface FormValues {
   sectionGroupName?: string
   zoomLink?: string
   courseTimezone: string
-  semesterId: number
+  semesterId?: number
   professorsUserId: number[]
   chatBotEnabled: boolean
   queueEnabled: boolean
@@ -57,6 +57,10 @@ export default function AddCoursePage(): ReactElement {
     userInfo &&
     userInfo.organization?.organizationRole === OrganizationRole.ADMIN
   const [form] = Form.useForm()
+
+  useEffect(() => {
+    form.setFieldsValue({ semesterId: -1 })
+  }, [])
 
   useEffect(() => {
     const getOrganization = async () => {
@@ -240,9 +244,7 @@ export default function AddCoursePage(): ReactElement {
                       label="Semester"
                       name="semesterId"
                       className="flex-1"
-                      rules={[
-                        { required: true, message: 'Please select a semester' },
-                      ]}
+                      rules={[{ required: false }]}
                     >
                       <Select
                         placeholder="Select Semester"
@@ -260,6 +262,9 @@ export default function AddCoursePage(): ReactElement {
                               </span>
                             </Select.Option>
                           ))}
+                        <Select.Option key={'none'} value={-1}>
+                          <span>No semester</span>
+                        </Select.Option>
                       </Select>
                     </Form.Item>
                   </Col>

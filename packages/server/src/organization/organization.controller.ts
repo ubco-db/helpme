@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   HttpException,
@@ -14,15 +15,16 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  DefaultValuePipe,
 } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
 import {
+  BatchCourseCloneAttributes,
   COURSE_TIMEZONES,
   CourseResponse,
   CourseSettingsRequestBody,
   ERROR_MESSAGES,
+  GetOrganizationResponse,
   GetOrganizationUserResponse,
   OrganizationProfessor,
   OrganizationResponse,
@@ -34,8 +36,6 @@ import {
   UpdateOrganizationUserRole,
   UpdateProfileParams,
   UserRole,
-  GetOrganizationResponse,
-  BatchCourseCloneAttributes,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -55,7 +55,7 @@ import * as path from 'path';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SemesterModel } from '../semester/semester.entity';
-import { DataSource, DeepPartial, In } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
@@ -368,12 +368,7 @@ export class OrganizationController {
       await manager.save(orgCourse);
 
       // Check semester (-1 signifies that no semester was set)
-      if (courseDetails.semesterId && isNaN(courseDetails.semesterId)) {
-        throw new HttpException(
-          `Semester ID is invalid`,
-          HttpStatus.BAD_REQUEST,
-        );
-      } else if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
+      if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
         const semester = await manager.findOne(SemesterModel, {
           where: { id: courseDetails.semesterId },
           relations: ['courses'],
@@ -489,19 +484,7 @@ export class OrganizationController {
         );
       }
 
-      // Check semester (-1 signifies that no semester was set)
-      /*
-        semester should be required but to not break production, it will temporarily be optional
-        (hence the extra check to see if its already set and not allowing it to be null again)
-      */
-      if (courseDetails.semesterId && isNaN(courseDetails.semesterId)) {
-        throw new HttpException(
-          `Semester ID is invalid`,
-          HttpStatus.BAD_REQUEST,
-        );
-      } else if (courseDetails.semesterId && courseDetails.semesterId == -1) {
-        throw new HttpException(`Semester must be set`, HttpStatus.BAD_REQUEST);
-      } else if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
+      if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
         const semester = await manager.findOne(SemesterModel, {
           where: { id: courseDetails.semesterId },
           relations: ['courses'],
@@ -511,6 +494,8 @@ export class OrganizationController {
         }
 
         courseInfo.course.semester = semester;
+      } else if (courseDetails.semesterId && courseDetails.semesterId === -1) {
+        courseInfo.course.semester = null;
       }
 
       courseInfo.course.name = courseDetails.name;
