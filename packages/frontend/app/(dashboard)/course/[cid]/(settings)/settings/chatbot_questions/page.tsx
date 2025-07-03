@@ -172,7 +172,7 @@ export default function ChatbotQuestions(
       },
     },
     {
-      title: 'Source Documents',
+      title: 'Document Citations',
       dataIndex: 'sourceDocuments',
       key: 'sourceDocuments',
       render: (sourceDocuments: SourceDocument[]) => {

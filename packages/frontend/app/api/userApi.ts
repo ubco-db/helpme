@@ -53,6 +53,12 @@ export const userApi = {
     const authToken = await fetchAuthToken()
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
 
+    if (!baseUrl) {
+      throw new Error(
+        'NEXT_PUBLIC_API_BASE_URL is not set. Please properly create a .env in your frontend based on dev.env',
+      )
+    }
+
     const response = await fetch(`${baseUrl}/api/v1/profile`, {
       method: 'GET',
       headers: {
