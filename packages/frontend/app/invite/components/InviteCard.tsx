@@ -37,10 +37,7 @@ const InviteCard: React.FC<InviteCardProps> = ({
           {buttonLabel}
         </Button>
         {secondaryButtonLabel && secondaryButtonAction && (
-          <Button
-            style={{ width: '100%', height: 50, borderRadius: '5px' }}
-            onClick={secondaryButtonAction}
-          >
+          <Button type="link" onClick={secondaryButtonAction}>
             {secondaryButtonLabel}
           </Button>
         )}

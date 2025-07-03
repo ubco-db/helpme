@@ -67,7 +67,7 @@ const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
       }}
       onCancel={onCancel}
       width={800}
-      destroyOnClose
+      destroyOnHidden
       modalRender={(dom) => (
         <Form
           layout="vertical"

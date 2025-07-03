@@ -243,10 +243,10 @@ const QueueChat: React.FC<QueueChatProps> = ({
               <TextArea
                 ref={inputRef}
                 id={`queuechat-input-${staffId}-${questionId}`}
-                autoSize={{ minRows: 1.35, maxRows: 20 }}
+                autoSize={{ minRows: 1.18, maxRows: 20 }}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                className="rounded-r-none"
+                className="rounded-r-none text-sm"
                 placeholder={`Message ${isStaff ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}` : `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`}...`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {

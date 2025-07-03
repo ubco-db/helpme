@@ -24,7 +24,7 @@ const EditProfile: React.FC = () => {
 
     if (userInfo && userInfo.accountType === AccountType.LEGACY) {
       newProfile = { ...userInfo, ...updateProfile }
-      newProfile.sid = parseInt(`${newProfile.sid}`, 10)
+      newProfile.sid = parseInt(`${newProfile.sid}`, 10) || undefined
       if (userInfo.email === updateProfile.email) {
         await API.profile
           .patch(pick(newProfile, ['firstName', 'lastName', 'sid']))
@@ -51,7 +51,7 @@ const EditProfile: React.FC = () => {
           sid: updateProfile.sid,
         },
       }
-      newProfile.sid = parseInt(`${newProfile.sid}`, 10)
+      newProfile.sid = parseInt(`${newProfile.sid}`, 10) || undefined
       setUserInfo(newProfile)
       await API.profile
         .patch(pick(newProfile, ['firstName', 'lastName', 'sid']))

@@ -28,7 +28,12 @@ export class SemesterController {
   constructor(private organizationService: OrganizationService) {}
 
   @Get(':oid')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard) // safe for anyone to fetch (needed for semester filtering in courses page)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrganizationRolesGuard) // safe for anyone to fetch (needed for semester filtering in courses page)
+  @Roles(
+    OrganizationRole.MEMBER,
+    OrganizationRole.PROFESSOR,
+    OrganizationRole.ADMIN,
+  ) // only allow those in the org to access these
   async getSemesters(
     @Param('oid', ParseIntPipe) organizationId: number,
   ): Promise<SemesterPartial[]> {
@@ -102,7 +107,7 @@ export class SemesterController {
     OrganizationGuard,
     EmailVerifiedGuard,
   )
-  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  @Roles(OrganizationRole.ADMIN)
   async updateSemester(
     @Param('oid', ParseIntPipe) organizationId: number,
     @Param('sid', ParseIntPipe) semesterId: number,
@@ -145,6 +150,7 @@ export class SemesterController {
     OrganizationGuard,
     EmailVerifiedGuard,
   )
+  @Roles(OrganizationRole.ADMIN)
   async deleteSemester(
     @Param('oid', ParseIntPipe) organizationId: number,
     @Param('sid', ParseIntPipe) semesterId: number,

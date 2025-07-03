@@ -343,7 +343,10 @@ const NavBar = ({
                     href="/organization/settings"
                     onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
                   >
-                    Organization Settings
+                    {userInfo?.organization?.organizationRole ===
+                    OrganizationRole.PROFESSOR
+                      ? 'Semester Management'
+                      : 'Organization Settings'}
                   </Link>
                 </NavigationMenuItem>
               )}
@@ -361,7 +364,7 @@ const NavBar = ({
               {userInfo?.firstName}
             </NavigationMenuTrigger>
             <NavigationMenuContent className="hidden md:flex">
-              <ul className="grid w-[200px] grid-cols-1 gap-1 p-2">
+              <ul className="grid w-max min-w-[200px] grid-cols-1 gap-1 p-2">
                 <ListItem key="profile" title="Profile" href="/profile">
                   {userInfo?.email}
                 </ListItem>
