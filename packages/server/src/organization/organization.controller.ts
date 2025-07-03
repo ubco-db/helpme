@@ -649,8 +649,6 @@ export class OrganizationController {
             },
           });
 
-          organization.bannerUrl = null;
-          await organization.save();
           return res.status(HttpStatus.NOT_FOUND).send({
             message: `Banner image for ${organization.name} not found`,
           });
@@ -685,8 +683,6 @@ export class OrganizationController {
               message: `Organization not found`,
             });
           }
-          organization.logoUrl = null;
-          await organization.save();
           return res.status(HttpStatus.NOT_FOUND).send({
             message: `Logo image for ${organization.name} not found`,
           });
@@ -1187,22 +1183,6 @@ export class OrganizationController {
           message: ERROR_MESSAGES.roleGuard.notAuthorized,
         });
       }
-    }
-
-    const userInfo = await OrganizationUserModel.findOne({
-      where: {
-        userId: uid,
-      },
-      relations: ['organizationUser'],
-    });
-
-    if (
-      userInfo.role === OrganizationRole.ADMIN ||
-      userInfo.organizationUser.userRole === UserRole.ADMIN
-    ) {
-      return res.status(HttpStatus.FORBIDDEN).send({
-        message: ERROR_MESSAGES.roleGuard.notAuthorized,
-      });
     }
 
     await this.organizationService
