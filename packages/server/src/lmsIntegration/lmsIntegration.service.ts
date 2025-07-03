@@ -809,6 +809,13 @@ export class LMSIntegrationService {
     item: LMSAnnouncementModel | LMSAssignmentModel,
     token: ChatTokenModel,
   ) {
+    // Already deleted in this case
+    if (!item.chatbotDocumentId) {
+      return {
+        id: item.id,
+        success: true,
+      };
+    }
     return await this.chatbotApiService
       .deleteDocument(item.chatbotDocumentId, courseId, token.token)
       .then(
