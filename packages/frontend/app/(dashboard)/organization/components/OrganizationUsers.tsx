@@ -74,7 +74,6 @@ const OrganizationUsers: React.FC<UsersTableProps> = ({ organization }) => {
           title="Confirm Role Change"
           open={isRoleChangeModalVisible}
           onCancel={() => toggleRoleChangeModal}
-          onClose={() => toggleRoleChangeModal}
           onOk={updateRole}
         >
           {selectedUserData && (
