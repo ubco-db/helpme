@@ -79,7 +79,7 @@ exports[`OrganizationService getOrganizationCourse should return organization co
     },
     "semesterId": 1,
     "superCourseId": null,
-    "timezone": null,
+    "timezone": "America/Los Angeles",
     "zoomLink": null,
   },
   "courseId": 1,

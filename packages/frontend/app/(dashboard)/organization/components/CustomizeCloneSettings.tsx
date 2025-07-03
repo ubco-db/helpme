@@ -6,8 +6,9 @@ import {
 } from '@koh/common'
 import Table, { ColumnsType } from 'antd/es/table'
 import React, { useEffect, useMemo, useState } from 'react'
-import { Form, Button, message, notification } from 'antd'
+import { Button, Form, message, notification } from 'antd'
 import CourseCloneForm from '../../components/CourseCloneForm'
+
 interface CustomizeCloneSettingsProps {
   courses: CourseResponse[]
   selectedCourseIds: number[]
@@ -163,8 +164,8 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
               form={form}
               isAdmin={true}
               organization={organization}
-              courseSemesterId={-1}
-              courseSectionGroupName={' '}
+              courseSemesterId={defaultCloneSettings.newSemesterId}
+              courseSectionGroupName={defaultCloneSettings.newSection ?? ''}
             />
           </div>
         ) : (
