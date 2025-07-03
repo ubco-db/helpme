@@ -5,7 +5,6 @@ import { DataSourceOptions } from 'typeorm';
 import { AdminUserModel } from './src/admin/admin-user.entity';
 import { CourseModel } from './src/course/course.entity';
 import { SemesterModel } from './src/semester/semester.entity';
-import { CourseSectionMappingModel } from './src/login/course-section-mapping.entity';
 import { DesktopNotifModel } from './src/notification/desktop-notif.entity';
 import { EventModel } from './src/profile/event-model.entity';
 import { UserCourseModel } from './src/profile/user-course.entity';
@@ -14,7 +13,6 @@ import { QuestionModel } from './src/question/question.entity';
 import { QuestionGroupModel } from './src/question/question-group.entity';
 import { QueueModel } from './src/queue/queue.entity';
 import { AlertModel } from './src/alerts/alerts.entity';
-import { LastRegistrationModel } from './src/login/last-registration-model.entity';
 import { QuestionTypeModel } from './src/questionType/question-type.entity';
 import { AsyncQuestionModel } from './src/asyncQuestion/asyncQuestion.entity';
 import { ChatbotQuestionModel } from './src/chatbot/question.entity';
@@ -74,7 +72,6 @@ const typeorm: DataSourceOptions = {
   entities: [
     CourseModel,
     MailServiceModel,
-    CourseSectionMappingModel,
     SemesterModel,
     UserModel,
     UserSubscriptionModel,
@@ -92,7 +89,6 @@ const typeorm: DataSourceOptions = {
     AlertModel,
     CalendarModel,
     CalendarStaffModel,
-    LastRegistrationModel,
     QuestionDocumentModel,
     OrganizationUserModel,
     OrganizationModel,

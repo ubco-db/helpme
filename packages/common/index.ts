@@ -167,7 +167,7 @@ export type UserTiny = {
 export type CoursePartial = {
   id: number
   name: string
-  sectionGroupName: string
+  sectionGroupName?: string
   semesterId?: number
   enabled?: boolean
   favourited?: boolean
@@ -178,7 +178,6 @@ export type CoursePartial = {
  */
 export type CourseCloneAttributes = {
   professorIds: number[]
-  useSection: boolean
   newSemesterId?: number
   newSection?: string
   associateWithOriginalCourse?: boolean
@@ -202,8 +201,9 @@ export type CourseCloneAttributes = {
 
 export const defaultCourseCloneAttributes: CourseCloneAttributes = {
   professorIds: [],
-  useSection: false,
   associateWithOriginalCourse: true,
+  newSemesterId: -1,
+  newSection: '',
   toClone: {
     coordinator_email: true,
     zoomLink: false,
@@ -1375,8 +1375,8 @@ export interface CourseResponse {
   courseId: number
   courseName: string
   isEnabled: boolean
-  sectionGroupName: string
-  semesterId: number
+  sectionGroupName?: string
+  semesterId?: number
   semester: SemesterPartial
 }
 
@@ -1390,14 +1390,11 @@ export class GetCourseResponse {
   // The heatmap is false when there havent been any questions asked yet or there havent been any office hours
   heatmap!: Heatmap | false
 
-  coordinator_email!: string
-
-  @Type(() => Number)
-  crns!: number[]
+  coordinator_email?: string
 
   icalURL?: string
 
-  zoomLink!: string
+  zoomLink?: string
 
   selfEnroll!: boolean
 
@@ -1414,7 +1411,7 @@ export class GetCourseResponse {
   @Type(() => OrganizationPartial)
   organizationCourse?: OrganizationPartial
 
-  courseInviteCode!: string | null
+  courseInviteCode?: string
 }
 
 export class GetLimitedCourseResponse {
@@ -1880,11 +1877,6 @@ export class EditCourseInfoParams {
   @IsArray()
   @IsOptional()
   asyncQuestionDisplayTypes?: string[]
-
-  @IsArray()
-  @IsOptional()
-  @Type(() => Number)
-  crns?: number[]
 
   @IsString()
   @IsOptional()
@@ -2906,7 +2898,6 @@ export const ERROR_MESSAGES = {
     sectionGroupNotFound: 'One or more of the section groups was not found',
     courseOfficeHourError: "Unable to find a course's office hours",
     courseHeatMapError: "Unable to get course's cached heatmap",
-    courseCrnsError: "Unable to get course's crn numbers",
     courseModelError: 'User not in course',
     noUserFound: 'No user found with given email',
     noSemesterFound: 'No semester exists for the submitted course',

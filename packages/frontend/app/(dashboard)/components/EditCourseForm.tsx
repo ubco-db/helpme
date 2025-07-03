@@ -134,7 +134,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         sectionGroupName: courseData.course?.sectionGroupName,
         zoomLink: courseData.course?.zoomLink,
         courseTimezone: courseData.course?.timezone,
-        semesterId: courseData.course?.semester?.id,
+        semesterId: courseData.course?.semester?.id ?? -1,
         professorsUserId: courseData.profIds,
       }}
       onFinish={() => updateGeneral()}
@@ -208,7 +208,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
           label="Semester"
           name="semesterId"
           className="flex-1"
-          rules={[{ required: true, message: 'Please select a semester' }]}
+          rules={[{ required: false }]}
         >
           <Select
             placeholder="Select Semester"
@@ -222,6 +222,9 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
                 </span>
               </Select.Option>
             ))}
+            <Select.Option key={'none'} value={-1}>
+              <span>No semester</span>
+            </Select.Option>
           </Select>
         </Form.Item>
       </div>

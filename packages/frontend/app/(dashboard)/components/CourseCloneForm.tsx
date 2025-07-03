@@ -2,24 +2,24 @@
 
 import { useEffect, useState } from 'react'
 import {
-  Form,
   Checkbox,
-  Input,
-  Select,
-  Tooltip,
-  Tag,
-  message,
-  Switch,
+  Form,
   FormInstance,
+  Input,
+  message,
+  Select,
+  Tag,
+  Tooltip,
 } from 'antd'
 import { GetOrganizationResponse, OrganizationProfessor } from '@koh/common'
 import { API } from '@/app/api'
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
+
 type CourseCloneFormProps = {
   form: FormInstance
   isAdmin: boolean
   organization: GetOrganizationResponse
-  courseSemesterId: number
+  courseSemesterId?: number
   courseSectionGroupName: string
 }
 
@@ -33,6 +33,13 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   courseSectionGroupName,
 }) => {
   const [professors, setProfessors] = useState<OrganizationProfessor[]>()
+
+  useEffect(() => {
+    form.setFieldsValue({
+      newSemesterId: courseSemesterId,
+      newSection: courseSectionGroupName,
+    })
+  }, [])
 
   useEffect(() => {
     const fetchProfessors = async () => {
@@ -112,67 +119,34 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
         </Form.Item>
       )}
       <Form.Item
-        label="Clone by"
-        name="useSection"
-        valuePropName="checked"
-        initialValue={false}
-        tooltip="Choose whether to clone to a new section of the same semester or a new semester"
+        label="Section Group Name for Cloned Course"
+        name="newSection"
+        rules={[{ required: false }]}
       >
-        <Switch checkedChildren="Section" unCheckedChildren="Semester" />
+        <Input placeholder="Enter course section" />
       </Form.Item>
-
       <Form.Item
-        noStyle
-        shouldUpdate={(prevValues, curValues) =>
-          prevValues.useSection !== curValues.useSection
-        }
+        label="Semester for Cloned Course"
+        name="newSemesterId"
+        className="flex-1"
+        rules={[{ required: false }]}
       >
-        {({ getFieldValue }) => {
-          return getFieldValue('useSection') ? (
-            <Form.Item
-              label="Section Group Name for Cloned Course"
-              name="newSection"
-              rules={[
-                { required: true, message: 'Please enter a section' },
-                {
-                  validator: (_, value) => {
-                    if (value && value === courseSectionGroupName) {
-                      return Promise.reject(
-                        'Section cannot match the original section group name.',
-                      )
-                    }
-                    return Promise.resolve()
-                  },
-                },
-              ]}
-            >
-              <Input placeholder="Enter new section" />
-            </Form.Item>
-          ) : (
-            <Form.Item
-              label="New Semester for Cloned Course"
-              name="newSemesterId"
-              className="flex-1"
-              rules={[{ required: true, message: 'Please select a semester' }]}
-            >
-              <Select
-                placeholder="Select Semester"
-                notFoundContent="There seems to be no other semesters in this organization to clone to."
-              >
-                {organization.semesters
-                  .filter((semester) => semester.id !== courseSemesterId)
-                  .map((semester) => (
-                    <Select.Option key={semester.id} value={semester.id}>
-                      <span>{`${semester.name}`}</span>{' '}
-                      <span className="font-normal">
-                        {formatSemesterDate(semester)}
-                      </span>
-                    </Select.Option>
-                  ))}
-              </Select>
-            </Form.Item>
-          )
-        }}
+        <Select
+          placeholder="Select Semester"
+          notFoundContent="There are no available semesters in this organization to clone to."
+        >
+          {organization.semesters.map((semester) => (
+            <Select.Option key={semester.id} value={semester.id}>
+              <span>{`${semester.name}`}</span>{' '}
+              <span className="font-normal">
+                {formatSemesterDate(semester)}
+              </span>
+            </Select.Option>
+          ))}
+          <Select.Option key={'none'} value={-1}>
+            <span>No semester</span>
+          </Select.Option>
+        </Select>
       </Form.Item>
       <Form.Item
         label="Associate Clone with Original Course"

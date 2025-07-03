@@ -2,7 +2,6 @@ import { AdminEntity } from 'nestjs-admin';
 import { CourseModel } from '../course/course.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { UserModel } from '../profile/user.entity';
-import { CourseSectionMappingModel } from '../login/course-section-mapping.entity';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { SemesterModel } from '../semester/semester.entity';
 
@@ -42,11 +41,6 @@ export class UserAdmin extends AdminEntity {
 export class UserCourseAdmin extends AdminEntity {
   entity = UserCourseModel;
   listDisplay = ['id', 'userId', 'courseId'];
-}
-
-export class CourseSectionMappingAdmin extends AdminEntity {
-  entity = CourseSectionMappingModel;
-  listDisplay = ['id'];
 }
 
 export class SemesterAdmin extends AdminEntity {

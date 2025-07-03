@@ -44,7 +44,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import async from 'async';
 import { Request, Response } from 'express';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -58,7 +57,6 @@ import { CourseModel } from './course.entity';
 import { QueueSSEService } from '../queue/queue-sse.service';
 import { CourseService } from './course.service';
 import { HeatmapService } from './heatmap.service';
-import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
@@ -225,32 +223,11 @@ export class CourseController {
       );
     }
 
-    const course_response = {
+    return {
       ...course,
       heatmap,
-      crns: null,
       organizationCourse: course.organizationCourse?.organization ?? null,
     };
-    try {
-      course_response.crns = await CourseSectionMappingModel.find({
-        where: {
-          courseId: course.id,
-        },
-      });
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.courseOfficeHourError +
-          '\n' +
-          'Error message: ' +
-          err,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.courseCrnsError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    return course_response;
   }
 
   @Patch(':id/edit_course')

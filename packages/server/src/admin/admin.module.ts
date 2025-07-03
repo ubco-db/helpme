@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Module } from '@nestjs/common';
 import {
-  AdminCoreModuleFactory,
   AdminAuthModuleFactory,
+  AdminCoreModuleFactory,
   DefaultAdminSite,
 } from 'nestjs-admin';
 import { adminCredentialValidator } from './credentialValidator';
@@ -11,10 +11,9 @@ import { AdminUserModel } from './admin-user.entity';
 import {
   CourseAdmin,
   QueueAdmin,
+  SemesterAdmin,
   UserAdmin,
   UserCourseAdmin,
-  CourseSectionMappingAdmin,
-  SemesterAdmin,
 } from './admin-entities';
 import { AdminCommand } from './admin.command';
 import * as session from 'express-session';
@@ -58,7 +57,6 @@ export class AdminModule {
     adminSite.register('User', UserAdmin);
     adminSite.register('UserCourse', UserCourseAdmin);
     adminSite.register('Queue', QueueAdmin);
-    adminSite.register('CourseSectionMapping', CourseSectionMappingAdmin);
     adminSite.register('Semester', SemesterAdmin);
   }
 }
