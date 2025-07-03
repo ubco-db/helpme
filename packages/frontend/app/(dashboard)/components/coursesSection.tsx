@@ -1,4 +1,4 @@
-import { Role, SemesterPartial } from '@koh/common'
+import { OrganizationRole, Role, SemesterPartial } from '@koh/common'
 import { Button, Card, Tag, Tooltip } from 'antd'
 import React, { useMemo } from 'react'
 import Meta from 'antd/es/card/Meta'
@@ -34,6 +34,9 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
     },
   })
   const { userInfo } = useUserInfo()
+  const isStaff = useMemo(() => {
+    return userInfo?.organization?.organizationRole === OrganizationRole.ADMIN
+  }, [userInfo.organization])
 
   const sortedCoursesInCardView = useMemo(() => {
     return [...userInfo.courses]
@@ -157,7 +160,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                         {courseSemester.name}
                       </Tag>
                     </SemesterInfoPopover>
-                  ) : (
+                  ) : isStaff || course.role == Role.PROFESSOR ? (
                     <Tooltip title="This course is not assigned to a semester">
                       <Tag
                         color="blue"
@@ -167,7 +170,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                         No Semester
                       </Tag>
                     </Tooltip>
-                  )}
+                  ) : null}
                 </div>
 
                 <Link
