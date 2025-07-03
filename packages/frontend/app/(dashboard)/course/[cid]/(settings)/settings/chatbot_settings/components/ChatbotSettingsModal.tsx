@@ -274,7 +274,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         <Form.Item
           name="topK"
           label={
-            <Tooltip title="This number influences the max number of text chunks the chatbot would retrieve and cite per question. Consider turning this up if the questions for your course generally require more chunks of context to answer properly.">
+            <Tooltip title="This number determines the maximum number of text chunks the chatbot can retrieve and cite per question. Consider increasing it if the questions for your course generally require more chunks of context to answer properly.">
               Top K Chunks <InfoCircleOutlined />
             </Tooltip>
           }
@@ -286,7 +286,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         <Form.Item
           name="similarityThresholdDocuments"
           label={
-            <Tooltip title="Set the minimum similarity threshold when retrieving relevant information blocks. You can turn this up if you notice that the chatbot is grabbing irrelevant documents, or turn it down if it's not grabbing the chunks that it should have (generally, it's better to have this lower/default since it's better the AI have too much information than too little).">
+            <Tooltip title="Set the minimum similarity threshold when retrieving relevant information blocks. You can increase this if you notice that the chatbot is retrieving irrelevant documents, or decrease it if it's not grabbing the chunks that it should have. In general, this threshold should be left default or at a low value so the AI has more information to work with, rather than too little.">
               Similarity Threshold for Chunks <InfoCircleOutlined />
             </Tooltip>
           }
