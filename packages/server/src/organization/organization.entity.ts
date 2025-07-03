@@ -53,10 +53,10 @@ export class OrganizationModel extends BaseEntity {
     (type) => OrganizationSettingsModel,
     (organizationSettings) => organizationSettings.organization,
   )
-  organizationSettings: OrganizationSettingsModel[];
+  organizationSettings: OrganizationSettingsModel;
 
   @Exclude()
-  @OneToOne(
+  @OneToMany(
     (type) => OrganizationRoleHistory,
     (roleHistory) => roleHistory.organization,
   )

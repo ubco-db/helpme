@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { OrganizationUserModel } from '../organization/organization-user.entity';
 
-/* Gives the role of the user in the course */
+/* Gives the role of the user in the Organization */
 export const OrgRole = createParamDecorator(
   async (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
