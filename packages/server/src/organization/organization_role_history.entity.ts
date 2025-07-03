@@ -17,7 +17,7 @@ export class OrganizationRoleHistory extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   timestamp: Date;
 
   @Column({

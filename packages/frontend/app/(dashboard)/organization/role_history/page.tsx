@@ -6,7 +6,11 @@ import OrganizationRoleHistoryList from '@/app/(dashboard)/organization/role_his
 
 export default function LMSIntegrationsPage(): ReactElement {
   return (
-    <Card title={'Organization Role History'} variant="outlined">
+    <Card
+      className={'p-0 md:p-4'}
+      title={'Organization Role History'}
+      variant="outlined"
+    >
       <OrganizationRoleHistoryList />
     </Card>
   )

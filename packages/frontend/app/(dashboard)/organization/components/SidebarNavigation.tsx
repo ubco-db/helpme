@@ -43,7 +43,7 @@ const items = [
   },
   {
     key: 'role_history',
-    label: 'Role Change History',
+    label: 'Member Role History',
     icon: <UserOutlined />,
     url: '/organization/role_history',
   },

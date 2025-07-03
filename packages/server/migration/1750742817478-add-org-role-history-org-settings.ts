@@ -19,7 +19,7 @@ export class AddOrgRoleHistoryOrgSettings1750742817478
       `CREATE TYPE "public"."organization_role_history_model_rolechangereason_enum" AS ENUM('manualModification', 'joinedOrganizationMember', 'joinedOrganizationProfessor', 'unknown')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "organization_role_history_model" ("id" SERIAL NOT NULL, "timestamp" TIMESTAMP NOT NULL DEFAULT now(), "fromRole" "public"."organization_role_history_model_fromrole_enum" DEFAULT 'member', "toRole" "public"."organization_role_history_model_torole_enum" DEFAULT 'member', "byOrgUserId" integer, "toOrgUserId" integer, "roleChangeReason" "public"."organization_role_history_model_rolechangereason_enum" NOT NULL DEFAULT 'unknown', "organizationId" integer, CONSTRAINT "PK_f583f08f7807b8c797cb125d758" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "organization_role_history_model" ("id" SERIAL NOT NULL, "timestamp" TIMESTAMPTZ NOT NULL DEFAULT now(), "fromRole" "public"."organization_role_history_model_fromrole_enum" DEFAULT 'member', "toRole" "public"."organization_role_history_model_torole_enum" DEFAULT 'member', "byOrgUserId" integer, "toOrgUserId" integer, "roleChangeReason" "public"."organization_role_history_model_rolechangereason_enum" NOT NULL DEFAULT 'unknown', "organizationId" integer, CONSTRAINT "PK_f583f08f7807b8c797cb125d758" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `ALTER TABLE "organization_settings_model" ADD CONSTRAINT "FK_81487e44dc90c03a092b7ac7e04" FOREIGN KEY ("organizationId") REFERENCES "organization_model"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
