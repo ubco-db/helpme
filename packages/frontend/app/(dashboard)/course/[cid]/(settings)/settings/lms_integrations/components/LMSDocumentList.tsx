@@ -4,7 +4,7 @@ import {
   SearchOutlined,
   SyncOutlined,
 } from '@ant-design/icons'
-import { LMSAnnouncement, LMSAssignment } from '@koh/common'
+import { LMSAnnouncement, LMSAssignment, LMSPage } from '@koh/common'
 import {
   Badge,
   Button,
@@ -25,7 +25,7 @@ import { API } from '@/app/api'
 
 type LMSDocumentListProps<T> = {
   courseId: number
-  type: 'Assignment' | 'Announcement'
+  type: 'Assignment' | 'Announcement' | 'Page'
   documents: T[]
   loadingLMSData?: boolean
   lmsSynchronize?: boolean
@@ -42,7 +42,7 @@ type LMSDocumentListColumn = {
 }
 
 export default function LMSDocumentList<
-  T extends LMSAssignment | LMSAnnouncement,
+  T extends LMSAssignment | LMSAnnouncement | LMSPage,
 >({
   courseId,
   type,
@@ -240,6 +240,41 @@ export default function LMSDocumentList<
             colSpan: 1,
           },
         ] as LMSDocumentListColumn[]
+      case 'Page':
+        return [
+          {
+            dataIndex: 'title',
+            header: 'Title',
+            cellFormat: (item: T) => getNameCell(item),
+            colSpan: 2,
+          },
+          {
+            dataIndex: 'updated',
+            header: 'Last Updated',
+            cellFormat: (item: string | undefined) =>
+              item != undefined && item.trim() != ''
+                ? new Date(item).toLocaleDateString()
+                : '',
+            colSpan: 1,
+          },
+          {
+            dataIndex: 'body',
+            header: 'Content',
+            cellFormat: (item: string) =>
+              (item != undefined && item.length > 0 && (
+                <Collapse>
+                  <Collapse.Panel key={'def'} header={'Content'}>
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: item,
+                      }}
+                    ></div>
+                  </Collapse.Panel>
+                </Collapse>
+              )) || <i>No content</i>,
+            colSpan: 4,
+          },
+        ] as LMSDocumentListColumn[]
       default:
         return []
     }
@@ -285,6 +320,13 @@ export default function LMSDocumentList<
                 .toLowerCase()
                 .includes(search.toLowerCase())
             )
+          case 'Page':
+            return (
+              (d as LMSPage).title
+                .toLowerCase()
+                .includes(search.toLowerCase()) ||
+              (d as LMSPage).body.toLowerCase().includes(search.toLowerCase())
+            )
           default:
             return false
         }
@@ -298,8 +340,8 @@ export default function LMSDocumentList<
   )
 
   const toggleSyncDocument = async (
-    doc: LMSAssignment | LMSAnnouncement,
-    type: 'Assignment' | 'Announcement',
+    doc: LMSAssignment | LMSAnnouncement | LMSPage,
+    type: 'Assignment' | 'Announcement' | 'Page',
   ) => {
     const docIdStr = doc.id.toString()
 
@@ -338,6 +380,12 @@ export default function LMSDocumentList<
       case 'Assignment':
         return await API.lmsIntegration
           .toggleSyncAssignment(courseId, doc.id, doc as LMSAssignment)
+          .then(thenFx)
+          .catch(errFx)
+          .finally(finallyFx)
+      case 'Page':
+        return await API.lmsIntegration
+          .toggleSyncPage(courseId, doc.id, doc as LMSPage)
           .then(thenFx)
           .catch(errFx)
           .finally(finallyFx)

@@ -14,9 +14,11 @@ import {
   ERROR_MESSAGES,
   LMSApiResponseStatus,
   LMSAssignment,
+  LMSAnnouncement,
   LMSCourseIntegrationPartial,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
+  LMSPage,
   LMSResourceType,
   OrganizationRole,
   RemoveLMSOrganizationParams,
@@ -311,6 +313,13 @@ export class LMSIntegrationController {
       courseId,
       LMSGet.Announcements,
     );
+  }
+
+  @Get(':courseId/pages')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async getPages(@Param('courseId', ParseIntPipe) courseId: number) {
+    return await this.integrationService.getItems(courseId, LMSGet.Pages);
   }
 
   @Post(':courseId/test')

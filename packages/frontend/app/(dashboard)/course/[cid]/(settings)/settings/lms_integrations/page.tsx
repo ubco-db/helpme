@@ -23,6 +23,7 @@ import {
   LMSAssignment,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
+  LMSPage,
 } from '@koh/common'
 import { API } from '@/app/api'
 import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal'
@@ -46,6 +47,7 @@ export default function CourseLMSIntegrationPage(props: {
     assignments,
     announcements,
     students,
+    pages,
     isLoading,
   } = useCourseLmsIntegration(courseId, updateFlag)
 
@@ -409,6 +411,22 @@ export default function CourseLMSIntegrationPage(props: {
         ),
       })
     }
+    if (pages.length > 0) {
+      tabItems.push({
+        key: 'pages',
+        label: 'Course Pages',
+        children: (
+          <LMSDocumentList<LMSPage>
+            courseId={courseId}
+            type={'Page'}
+            documents={pages}
+            loadingLMSData={isLoading}
+            lmsSynchronize={integration.lmsSynchronize}
+            onUpdateCallback={() => setUpdateFlag(!updateFlag)}
+          />
+        ),
+      })
+    }
     if (announcements.length > 0) {
       tabItems.push({
         key: 'announcements',
@@ -670,13 +688,7 @@ export default function CourseLMSIntegrationPage(props: {
                                     </Checkbox>
                                   </Col>
                                   <Col xs={24} sm={12} md={8}>
-                                    <Checkbox value="pages" disabled={true}>
-                                      <Tooltip title="Coming Soon!">
-                                        <span className="text-gray-400 line-through">
-                                          Pages
-                                        </span>
-                                      </Tooltip>
-                                    </Checkbox>
+                                    <Checkbox value="pages">Pages</Checkbox>
                                   </Col>
                                   <Col xs={24} sm={12} md={8}>
                                     <Checkbox value="Syllabus" disabled={true}>

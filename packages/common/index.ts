@@ -1328,6 +1328,17 @@ export type LMSAnnouncement = {
   uploaded?: Date
 }
 
+export type LMSPage = {
+  id: number
+  title: string
+  body: string
+  url: string
+  frontPage: boolean
+  syncEnabled?: boolean
+  modified?: Date
+  uploaded?: Date
+}
+
 export type LMSFileUploadResponse = {
   id: number
   success: boolean
@@ -1347,6 +1358,7 @@ export enum LMSApiResponseStatus {
 export enum LMSResourceType {
   ASSIGNMENTS = 'assignments',
   ANNOUNCEMENTS = 'announcements',
+  PAGES = 'pages',
 }
 
 export interface CourseResponse {
