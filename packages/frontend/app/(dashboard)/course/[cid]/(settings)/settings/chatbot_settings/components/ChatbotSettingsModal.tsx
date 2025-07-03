@@ -159,7 +159,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                     {' '}
                     <InfoCircleOutlined />{' '}
                   </Tooltip>
-                  Chat GPT-4o Mini
+                  ChatGPT-4o Mini
                 </span>
               ),
               value: model,
@@ -180,7 +180,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                     {' '}
                     <InfoCircleOutlined />{' '}
                   </Tooltip>
-                  Chat GPT-4o
+                  ChatGPT-4o
                 </span>
               ),
               value: model,
@@ -253,8 +253,8 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         <Form.Item
           name="modelName"
           label={
-            <Tooltip title="Select the base large language model you want.">
-              Model Name <InfoCircleOutlined />
+            <Tooltip title="Select the base large language model you want to use for the chatbot.">
+              Model <InfoCircleOutlined />
             </Tooltip>
           }
           rules={[{ required: true, message: 'Please select a model' }]}
@@ -292,8 +292,8 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         <Form.Item
           name="topK"
           label={
-            <Tooltip title="This number influences the max number of information blocks the chatbot would retrieve per question. Turn this up if you think the questions would need data from a lot of different documents.">
-              Top K <InfoCircleOutlined />
+            <Tooltip title="This number determines the maximum number of text chunks the chatbot can retrieve and cite per question. Consider increasing it if the questions for your course generally require more chunks of context to answer properly.">
+              Top K Chunks <InfoCircleOutlined />
             </Tooltip>
           }
           rules={[{ required: true, message: 'Please input the top K!' }]}
@@ -304,8 +304,8 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         <Form.Item
           name="similarityThresholdDocuments"
           label={
-            <Tooltip title="Set the minimum similarity threshold when retrieving relevant information blocks. Turn this up if you notice that the chatbot is grabbing irrelevant documents.">
-              Similarity Threshold Documents <InfoCircleOutlined />
+            <Tooltip title="Set the minimum similarity threshold when retrieving relevant information blocks. You can increase this if you notice that the chatbot is retrieving irrelevant documents, or decrease it if it's not grabbing the chunks that it should have. In general, this threshold should be left default or at a low value so the AI has more information to work with, rather than too little.">
+              Similarity Threshold for Chunks <InfoCircleOutlined />
             </Tooltip>
           }
           rules={[
@@ -318,20 +318,18 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
           <InputNumber min={0} max={1} step={0.1} />
         </Form.Item>
 
-        <Form.Item>
-          <Space>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading || loadingModels}
-            >
-              Update settings
-            </Button>
-            <Button onClick={handleReset} loading={loading || loadingModels}>
-              Reset to default settings
-            </Button>
-          </Space>
-        </Form.Item>
+        <Space className="flex justify-end">
+          <Button onClick={handleReset} loading={loading || loadingModels}>
+            Reset to default settings
+          </Button>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading || loadingModels}
+          >
+            Update settings
+          </Button>
+        </Space>
       </Form>
     </Modal>
   )

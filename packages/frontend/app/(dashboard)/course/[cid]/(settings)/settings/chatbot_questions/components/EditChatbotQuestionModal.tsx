@@ -124,7 +124,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
             right now (i.e. you do not have to click &quot;Save Changes&quot;
             first).
           </p>
-          <p>The question&apos;s source documents are ignored.</p>
+          <p>The question&apos;s document citations are ignored.</p>
           <p>Once inserted, this action cannot be undone.</p>
         </div>
       ),
@@ -216,7 +216,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
           </div>
         </div>
       )}
-      destroyOnClose
+      destroyOnHidden
       modalRender={(dom) => (
         <Form
           layout="vertical"
@@ -300,7 +300,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         <Checkbox />
       </Form.Item>
       <Form.Item
-        label="Insert Q&A as new Chatbot Document"
+        label="Insert Q&A into Chatbot Knowledge Base"
         layout="horizontal"
         tooltip={
           <div className="flex flex-col gap-y-2">
@@ -315,7 +315,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         <Tooltip
           title={
             editingRecord.inserted || successfulQAInsert
-              ? 'This question and answer has already been inserted as a new source document'
+              ? 'This question and answer has already been inserted as a new document chunk'
               : ''
           }
         >
@@ -330,8 +330,8 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         </Tooltip>
       </Form.Item>
       <h3 className="mb-1 text-base font-semibold">
-        Source Documents
-        <Tooltip title="These source documents will be displayed underneath the chatbot answer. Note that modifying these fields does NOT update the original source document, and it only modifies how the source looks for students.">
+        Document Citations
+        <Tooltip title="These document citations will be displayed underneath the chatbot answer. Note that modifying these fields does NOT update the original chunks, and it only modifies how the source looks for students.">
           <QuestionCircleOutlined className="ml-1 text-gray-400" />
         </Tooltip>
       </h3>
@@ -444,7 +444,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
                   onClick={() => add()}
                   className="mt-2 w-1/3"
                 >
-                  Add Source Document
+                  Add Document Citation
                 </Button>
               </div>
             )}

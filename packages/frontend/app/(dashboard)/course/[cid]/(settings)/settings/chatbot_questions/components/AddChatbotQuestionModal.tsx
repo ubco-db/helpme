@@ -83,7 +83,7 @@ const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
         disabled: loading,
       }}
       onCancel={onCancel}
-      destroyOnClose
+      destroyOnHidden
       modalRender={(dom) => (
         <Form
           layout="vertical"

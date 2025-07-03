@@ -164,7 +164,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         autoFocus: true,
         htmlType: 'submit',
       }}
-      destroyOnClose
+      destroyOnHidden
       onCancel={onClose}
       modalRender={(dom) => (
         <Form

@@ -556,10 +556,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
               <Space.Compact block size="large">
                 <TextArea
                   id="chatbot-input"
-                  autoSize={{ minRows: 1.35, maxRows: 20 }}
+                  autoSize={{ minRows: 1.22, maxRows: 20 }}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  className="rounded-r-none"
+                  className="rounded-r-none text-sm"
                   placeholder="Ask something... (Shift+Enter for new line)"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
