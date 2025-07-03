@@ -4,7 +4,15 @@ import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { Role } from '@koh/common'
 import { CommentProps } from '../utils/types'
 import { DeleteOutlined, EditOutlined, MoreOutlined } from '@ant-design/icons'
-import { Button, Dropdown, Input, message, Popconfirm, Tooltip } from 'antd'
+import {
+  Button,
+  Checkbox,
+  Dropdown,
+  Input,
+  message,
+  Popconfirm,
+  Tooltip,
+} from 'antd'
 import { useEffect, useState } from 'react'
 import { API } from '@/app/api'
 import { getAnonAnimal, getAvatarTooltip } from '../utils/commonAsyncFunctions'
@@ -35,6 +43,8 @@ const Comment: React.FC<CommentProps> = ({
   questionId,
   author,
   content,
+  isAnonymous,
+  questionIsAnonymous,
   onDeleteSuccess,
   onEditSuccess,
   dispatchUIStateChange,
@@ -45,13 +55,20 @@ const Comment: React.FC<CommentProps> = ({
   const { userInfo } = useUserInfo()
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  // Form state that stores the edited comment content
   const [newContent, setNewContent] = useState(content)
   const [editLoading, setEditLoading] = useState(false)
+  // Form state that allows the user to specify whether or not they would like their comment to be anonymous
+  const [newAnonymous, setNewAnonymous] = useState<boolean>(isAnonymous)
+  useEffect(() => setNewAnonymous(isAnonymous), [isAnonymous])
+
   const [isUserShown, setIsUserShown] = useState(
     (IAmStaff && showStudents) ||
+      !isAnonymous ||
       author.courseRole === Role.PROFESSOR ||
       author.courseRole === Role.TA,
   )
+
   const isSelf = userInfo.id === author.id // comment.creator.id is only defined if they're staff or if its you (or if you are staff)
   const authorType = isSelf
     ? 'you'
@@ -62,10 +79,11 @@ const Comment: React.FC<CommentProps> = ({
   useEffect(() => {
     setIsUserShown(
       (IAmStaff && showStudents) ||
+        !isAnonymous ||
         author.courseRole === Role.PROFESSOR ||
         author.courseRole === Role.TA,
     )
-  }, [IAmStaff, author.courseRole, showStudents])
+  }, [IAmStaff, isAnonymous, author.courseRole, showStudents])
 
   const avatarTooltipTitle = getAvatarTooltip(
     IAmStaff,
@@ -267,6 +285,7 @@ const Comment: React.FC<CommentProps> = ({
             onClick={(e) => {
               e.stopPropagation()
               setNewContent(content)
+              setNewAnonymous(isAnonymous)
               setIsEditing(false)
               dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
             }}
@@ -279,17 +298,23 @@ const Comment: React.FC<CommentProps> = ({
             className="ml-2 px-6"
             type="primary"
             loading={editLoading}
-            disabled={newContent === content}
+            disabled={newContent === content && newAnonymous === isAnonymous}
             onClick={async (e) => {
               e.stopPropagation()
               setEditLoading(true)
+              const anonValue = IAmStaff
+                ? false
+                : author.isAuthor && isSelf
+                  ? questionIsAnonymous
+                  : newAnonymous
               await API.asyncQuestions
                 .updateComment(questionId, commentId, {
                   commentText: newContent,
+                  isAnonymous: anonValue,
                 })
                 .then(() => {
                   message.success('Comment Updated')
-                  onEditSuccess(newContent)
+                  onEditSuccess(newContent, anonValue)
                   setIsEditing(false)
                   dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
                 })
@@ -305,6 +330,15 @@ const Comment: React.FC<CommentProps> = ({
           >
             Save
           </Button>
+          {!IAmStaff && !(author.isAuthor && isSelf) && (
+            <Checkbox
+              className={'mx-2'}
+              checked={newAnonymous}
+              onChange={() => setNewAnonymous(!newAnonymous)}
+            >
+              Post Anonymously?
+            </Checkbox>
+          )}
         </div>
       )}
     </div>
