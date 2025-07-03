@@ -42,6 +42,7 @@ export class LoginController {
           message: 'Recaptcha token missing',
         });
       }
+
       const response = await request.post(
         `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.PRIVATE_RECAPTCHA_SITE_KEY}&response=${body.recaptchaToken}`,
       );
