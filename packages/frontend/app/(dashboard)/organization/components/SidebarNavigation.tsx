@@ -71,7 +71,9 @@ const SidebarNavigation: React.FC = () => {
                 <div
                   className={cn(
                     'flex cursor-pointer items-center justify-between rounded bg-white p-4 hover:bg-gray-200 focus:bg-gray-200',
-                    pathname === item.url ? 'bg-[#e6f7ff] text-[#1890ff]' : '',
+                    pathname === item.url
+                      ? 'bg-[#e6f7ff] text-[#1890ff]'
+                      : 'text-black',
                   )}
                 >
                   <div className="flex items-center">
