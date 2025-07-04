@@ -2160,7 +2160,7 @@ export class OrganizationSettingsResponse {
   organizationId!: number
 
   @IsBoolean()
-  allowProfCreateCourse!: boolean
+  allowProfCourseCreate!: boolean
 
   @IsOptional()
   @IsBoolean()
@@ -2171,10 +2171,10 @@ export class OrganizationSettingsResponse {
   }
 }
 
-export const validOrganizationSettings = ['allowProfCreateCourse']
+export const validOrganizationSettings = ['allowProfCourseCreate']
 
 export const OrganizationSettingsDefaults = {
-  allowProfCreateCourse: true,
+  allowProfCourseCreate: true,
 }
 
 export class OrganizationSettingsRequestBody {

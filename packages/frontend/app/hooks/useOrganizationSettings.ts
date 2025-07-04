@@ -1,13 +1,14 @@
 import useSWR from 'swr'
 import { API } from '../api'
+import { OrganizationSettingsResponse } from '@koh/common'
 
 export function useOrganizationSettings(
   organizationId: number | undefined | null,
-) {
+): OrganizationSettingsResponse | undefined {
   const key =
     organizationId === undefined || organizationId === null
       ? null
-      : `${organizationId}/features`
+      : `${organizationId}/settings`
 
   const { data: organizationSettings } = useSWR(
     key,

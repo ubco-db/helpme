@@ -3,11 +3,7 @@
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { SearchOutlined } from '@ant-design/icons'
-import {
-  CourseResponse,
-  GetOrganizationResponse,
-  OrganizationRole,
-} from '@koh/common'
+import { CourseResponse, GetOrganizationResponse } from '@koh/common'
 import { Button, Col, Input, List, Pagination, Row, Tag } from 'antd'
 import { useEffect, useState } from 'react'
 import useSWR, { mutate } from 'swr'
@@ -15,7 +11,6 @@ import BatchCourseCloneModal from './BatchCourseCloneModal'
 import { organizationApi } from '@/app/api/organizationApi'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import SemesterInfoPopover from '../../components/SemesterInfoPopover'
-import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 
 const CoursesTable: React.FC = () => {
   const { userInfo } = useUserInfo()
@@ -24,9 +19,6 @@ const CoursesTable: React.FC = () => {
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
   const [organization, setOrganization] = useState<GetOrganizationResponse>()
-  const organizationSettings = useOrganizationSettings(
-    userInfo.organization?.orgId ?? -1,
-  )
 
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false)
 
@@ -96,18 +88,9 @@ const CoursesTable: React.FC = () => {
               <Button type="primary" href={`/organization/course/add`}>
                 Add New Course
               </Button>
-              {(userInfo?.organization?.organizationRole ==
-                OrganizationRole.ADMIN ||
-                (userInfo?.organization?.organizationRole ==
-                  OrganizationRole.PROFESSOR &&
-                  organizationSettings?.allowProfCreateCourse)) && (
-                <Button
-                  type="primary"
-                  onClick={() => setIsCloneModalOpen(true)}
-                >
-                  Batch Clone Courses
-                </Button>
-              )}
+              <Button type="primary" onClick={() => setIsCloneModalOpen(true)}>
+                Batch Clone Courses
+              </Button>
             </Col>
           </Row>
 
@@ -169,16 +152,11 @@ const CoursesTable: React.FC = () => {
             showSizeChanger={false}
           />
         )}
-        {(userInfo?.organization?.organizationRole == OrganizationRole.ADMIN ||
-          (userInfo?.organization?.organizationRole ==
-            OrganizationRole.PROFESSOR &&
-            organizationSettings?.allowProfCreateCourse)) && (
-          <BatchCourseCloneModal
-            open={isCloneModalOpen}
-            onClose={() => setIsCloneModalOpen(false)}
-            organization={organization}
-          />
-        )}
+        <BatchCourseCloneModal
+          open={isCloneModalOpen}
+          onClose={() => setIsCloneModalOpen(false)}
+          organization={organization}
+        />
       </>
     )
   )

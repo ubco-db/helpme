@@ -17,7 +17,11 @@ import NextLink from 'next/link'
 import { OrganizationRole } from '../typings/user'
 import { SelfAvatar } from './UserAvatar'
 import { useCourse } from '../hooks/useCourse'
-import { cn, getRoleInCourse } from '../utils/generalUtils'
+import {
+  checkCourseCreatePermissions,
+  cn,
+  getRoleInCourse,
+} from '../utils/generalUtils'
 import { Role, User } from '@koh/common'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { Drawer, DrawerContent, DrawerTrigger } from './ui/drawer'
@@ -134,7 +138,7 @@ const NavBar = ({
   orientation?: 'horizontal' | 'vertical'
 }) => {
   const organizationSettings = useOrganizationSettings(
-    userInfo?.organization?.id ?? -1,
+    userInfo?.organization?.orgId ?? -1,
   )
   const { course } = useCourse(courseId)
   const router = useRouter()
@@ -332,11 +336,7 @@ const NavBar = ({
                   My Courses
                 </Link>
               </NavigationMenuItem>
-              {(userInfo?.organization?.organizationRole ==
-                OrganizationRole.ADMIN ||
-                (userInfo?.organization?.organizationRole ==
-                  OrganizationRole.PROFESSOR &&
-                  organizationSettings?.allowProfCreateCourse)) && (
+              {checkCourseCreatePermissions(userInfo, organizationSettings) && (
                 <NavigationMenuItem>
                   <Link
                     className="md:pl-8"

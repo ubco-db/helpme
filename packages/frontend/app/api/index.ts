@@ -131,6 +131,7 @@ class APIClient {
    * @param url URL to send req to
    * @param responseClass Class with class-transformer decorators to serialize response to
    * @param body body to send with req
+   * @param params any query parameters to include in req URL
    */
   private async req<T>(
     method: Method,
@@ -1050,7 +1051,7 @@ class APIClient {
     ): Promise<OrganizationSettingsResponse> =>
       this.req(
         'GET',
-        `api/v1/organization/${organizationId}/settings`,
+        `/api/v1/organization/${organizationId}/settings`,
         undefined,
         undefined,
       ),

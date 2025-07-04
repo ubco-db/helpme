@@ -27,6 +27,7 @@ import {
 import { SemesterManagement } from './components/SemesterManagement'
 import OrganizationSettingSwitch from '@/app/(dashboard)/organization/settings/components/OrganizationSettingSwitch'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
+import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
 
 export default function SettingsPage(): ReactElement {
   const [formGeneral] = Form.useForm()
@@ -157,7 +158,7 @@ export default function SettingsPage(): ReactElement {
       {userInfo.organization?.organizationRole === OrganizationRole.ADMIN && (
         <>
           <Row className="flex w-full flex-col gap-2 md:flex-row">
-            <Col span={15}>
+            <div className={'min-w-2/3 max-w-full flex-auto'}>
               <Card title="General" variant="outlined" className="w-full">
                 <Form
                   form={formGeneral}
@@ -218,16 +219,16 @@ export default function SettingsPage(): ReactElement {
                   </Form.Item>
                 </Form>
               </Card>
-            </Col>
-            <Col>
+            </div>
+            <div className={'flex-auto'}>
               <Card title="Organization Settings" className={'h-full w-full'}>
                 <div className={'flex w-full flex-col'}>
                   <OrganizationSettingSwitch
                     defaultChecked={
-                      organizationSettings?.allowProfCreateCourse ??
-                      OrganizationSettingsDefaults.allowProfCreateCourse
+                      organizationSettings?.allowProfCourseCreate ??
+                      OrganizationSettingsDefaults.allowProfCourseCreate
                     }
-                    settingName={'allowProfCreateCourse'}
+                    settingName={'allowProfCourseCreate'}
                     description={
                       'Enables whether organization professors can create courses. Course professors without the organization professor role can never create courses.'
                     }
@@ -236,7 +237,7 @@ export default function SettingsPage(): ReactElement {
                   />
                 </div>
               </Card>
-            </Col>
+            </div>
           </Row>
 
           <Card title="Logo & Banner" variant="outlined" className="w-full">
@@ -390,10 +391,7 @@ export default function SettingsPage(): ReactElement {
         </>
       )}
 
-      {(userInfo.organization?.organizationRole === OrganizationRole.ADMIN ||
-        (userInfo.organization?.organizationRole ===
-          OrganizationRole.PROFESSOR &&
-          organizationSettings?.allowProfCreateCourse)) && (
+      {checkCourseCreatePermissions(userInfo, organizationSettings) && (
         <SemesterManagement
           orgId={organization?.id ?? -1}
           organizationSemesters={organizationSemesters}

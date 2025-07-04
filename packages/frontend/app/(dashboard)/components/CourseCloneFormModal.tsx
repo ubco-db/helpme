@@ -50,18 +50,12 @@ const CourseCloneFormModal: React.FC<CourseCloneFormModalProps> = ({
   const handleClone = async () => {
     const cloneData = form.getFieldsValue()
 
-    if (cloneData.professorIds.length === 0) {
-      if (isAdmin) {
-        message.error('Please select a professor')
-        return
-      }
+    if (isAdmin && (cloneData.professorIds ?? []).length === 0) {
+      message.error('Please select a professor')
+      return
+    } else {
       cloneData.professorIds = [userInfo.id]
     }
-
-    // if (!cloneData.newSemesterId && !cloneData.newSection) {
-    //   message.error('Please select a semester or enter a section')
-    //   return
-    // }
 
     runAsyncToast(
       () => API.course.createClone(courseId, cloneData),

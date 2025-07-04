@@ -1601,6 +1601,7 @@ export class OrganizationController {
 
     const settingsResponse: Partial<OrganizationSettingsResponse> = {
       organizationId,
+      ...(organizationSettings ?? {}),
       settingsFound: !!organizationSettings, // !! converts truthy/falsy into true/false
     };
 

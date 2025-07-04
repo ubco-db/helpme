@@ -4,7 +4,6 @@ import { API } from '@/app/api'
 import {
   GetOrganizationResponse,
   OrganizationCourseResponse,
-  OrganizationRole,
   Role,
   User,
 } from '@koh/common'
@@ -20,6 +19,7 @@ import { useUserInfo } from '@/app/contexts/userContext'
 import { QuestionCircleOutlined } from '@ant-design/icons'
 import CourseCloneFormModal from './CourseCloneFormModal'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
+import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
 
 type EditCourseProps = {
   courseId: number
@@ -138,10 +138,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
           </>
         )}
 
-        {(userInfo?.organization?.organizationRole == OrganizationRole.ADMIN ||
-          (userInfo?.organization?.organizationRole ==
-            OrganizationRole.PROFESSOR &&
-            organizationSettings?.allowProfCreateCourse)) && (
+        {checkCourseCreatePermissions(userInfo, organizationSettings) && (
           <Card variant="outlined" title="Clone Course">
             <CourseCloneFormModal
               organization={organization}

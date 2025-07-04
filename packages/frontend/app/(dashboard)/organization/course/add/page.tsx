@@ -24,7 +24,10 @@ import { API } from '@/app/api'
 import { useRouter } from 'next/navigation'
 import { organizationApi } from '@/app/api/organizationApi'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import {
+  checkCourseCreatePermissions,
+  getErrorMessage,
+} from '@/app/utils/generalUtils'
 import { userApi } from '@/app/api/userApi'
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
@@ -83,20 +86,18 @@ export default function AddCoursePage(): ReactElement {
       .then((semesters) => {
         setOrganizationSemesters(semesters)
       })
-      .catch((error) => {
+      .catch((_) => {
         message.error('Failed to fetch semesters for organization')
       })
   }, [])
 
   useEffect(() => {
-    if (userInfo && organization) {
-      const isProfessor =
-        userInfo.organization?.organizationRole === OrganizationRole.PROFESSOR
+    if (userInfo && organizationSettings) {
       setIsAuthorized(
-        isAdmin || (organizationSettings?.allowProfCreateCourse && isProfessor),
+        checkCourseCreatePermissions(userInfo, organizationSettings),
       )
     }
-  }, [userInfo, organization, organizationSettings, isAdmin])
+  }, [userInfo, organizationSettings])
 
   useEffect(() => {
     const fetchProfessors = async () => {
@@ -277,34 +278,32 @@ export default function AddCoursePage(): ReactElement {
                   </Col>
 
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                    {userInfo.organization?.organizationRole ===
-                      OrganizationRole.ADMIN &&
-                      professors && (
-                        <Form.Item
-                          label="Professors"
-                          name="professorsUserId"
-                          tooltip="Professors teaching the course"
-                        >
-                          <Select
-                            mode="multiple"
-                            placeholder="Select professors"
-                            filterSort={(optionA, optionB) =>
-                              (optionA?.label ?? '')
-                                .toLowerCase()
-                                .localeCompare(
-                                  (optionB?.label ?? '').toLowerCase(),
-                                )
-                            }
-                            showSearch
-                            optionFilterProp="label"
-                            options={professors.map((prof) => ({
-                              key: prof.organizationUser.id,
-                              label: prof.organizationUser.name,
-                              value: prof.organizationUser.id,
-                            }))}
-                          />
-                        </Form.Item>
-                      )}
+                    {isAdmin && professors && (
+                      <Form.Item
+                        label="Professors"
+                        name="professorsUserId"
+                        tooltip="Professors teaching the course"
+                      >
+                        <Select
+                          mode="multiple"
+                          placeholder="Select professors"
+                          filterSort={(optionA, optionB) =>
+                            (optionA?.label ?? '')
+                              .toLowerCase()
+                              .localeCompare(
+                                (optionB?.label ?? '').toLowerCase(),
+                              )
+                          }
+                          showSearch
+                          optionFilterProp="label"
+                          options={professors.map((prof) => ({
+                            key: prof.organizationUser.id,
+                            label: prof.organizationUser.name,
+                            value: prof.organizationUser.id,
+                          }))}
+                        />
+                      </Form.Item>
+                    )}
                   </Col>
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                     <div className="flex flex-wrap gap-x-4 md:gap-x-8">
