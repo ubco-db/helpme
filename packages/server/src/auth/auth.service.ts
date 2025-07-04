@@ -1,10 +1,13 @@
-import { AccountType, OrganizationRole } from '@koh/common';
+import {
+  AccountType,
+  OrganizationRole,
+  OrgRoleChangeReason,
+} from '@koh/common';
 import {
   BadRequestException,
   HttpException,
   HttpStatus,
   Injectable,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -16,12 +19,16 @@ import { MailServiceModel } from 'mail/mail-services.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
+import { OrganizationService } from '../organization/organization.service';
 
 @Injectable()
 export class AuthService {
   client: OAuth2Client;
 
-  constructor(private mailerService: MailService) {
+  constructor(
+    private mailerService: MailService,
+    private organizationService: OrganizationService,
+  ) {
     this.client = new OAuth2Client(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -92,7 +99,7 @@ export class AuthService {
 
       const userId = newUser.id;
 
-      await OrganizationUserModel.create({
+      const orgUser = await OrganizationUserModel.create({
         organizationId,
         userId: userId,
         role: OrganizationRole.MEMBER,
@@ -102,6 +109,15 @@ export class AuthService {
         user: newUser,
         token: v4(),
       }).save();
+
+      await this.organizationService.addRoleHistory(
+        organizationId,
+        null,
+        OrganizationRole.MEMBER,
+        null,
+        orgUser.id,
+        OrgRoleChangeReason.joinedOrganizationMember,
+      );
 
       await this.createStudentSubscriptions(userId);
       return userId;
@@ -161,10 +177,19 @@ export class AuthService {
 
       const userId = newUser.id;
 
-      await OrganizationUserModel.create({
+      const orgUser = await OrganizationUserModel.create({
         organizationId,
         userId: userId,
       }).save();
+
+      await this.organizationService.addRoleHistory(
+        organizationId,
+        null,
+        OrganizationRole.MEMBER,
+        null,
+        orgUser.id,
+        OrgRoleChangeReason.joinedOrganizationMember,
+      );
 
       await ChatTokenModel.create({
         user: newUser,
@@ -235,11 +260,20 @@ export class AuthService {
 
       const userId = newUser.id;
 
-      await OrganizationUserModel.create({
+      const orgUser = await OrganizationUserModel.create({
         organizationId,
         userId,
         role: OrganizationRole.MEMBER,
       }).save();
+
+      await this.organizationService.addRoleHistory(
+        organizationId,
+        null,
+        OrganizationRole.MEMBER,
+        null,
+        orgUser.id,
+        OrgRoleChangeReason.joinedOrganizationMember,
+      );
 
       await ChatTokenModel.create({
         user: newUser,

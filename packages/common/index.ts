@@ -2155,6 +2155,107 @@ export class CourseSettingsRequestBody {
   }
 }
 
+export class OrganizationSettingsResponse {
+  @IsInt()
+  organizationId!: number
+
+  @IsBoolean()
+  allowProfCourseCreate!: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  settingsFound?: boolean
+
+  constructor(init?: Partial<OrganizationSettingsResponse>) {
+    Object.assign(this, init)
+  }
+}
+
+export const validOrganizationSettings = ['allowProfCourseCreate']
+
+export const OrganizationSettingsDefaults = {
+  allowProfCourseCreate: true,
+}
+
+export class OrganizationSettingsRequestBody {
+  @IsBoolean()
+  value!: boolean
+
+  @IsIn(validOrganizationSettings)
+  setting!: string
+
+  static isValidSetting(setting: string): boolean {
+    return validOrganizationSettings.includes(setting)
+  }
+}
+
+export enum OrgRoleChangeReason {
+  manualModification = 'manualModification',
+  joinedOrganizationMember = 'joinedOrganizationMember',
+  joinedOrganizationProfessor = 'joinedOrganizationProfessor',
+  unknown = 'unknown',
+}
+
+export enum OrgRoleChangeReasonMap {
+  manualModification = 'Role was manually modified by an organization member with sufficient permissions.',
+  joinedOrganizationMember = 'User joined the organization and gained the member role.',
+  joinedOrganizationProfessor = 'User joined the organization and gained the professor role.',
+  unknown = '',
+}
+
+export class OrgRoleHistory {
+  @IsNumber()
+  id!: number
+
+  @IsDate()
+  timestamp!: Date
+
+  @IsEnum(OrganizationRole)
+  fromRole!: OrganizationRole
+
+  @IsEnum(OrganizationRole)
+  toRole!: OrganizationRole
+
+  @IsObject()
+  byUser!: OrgUser
+
+  @IsObject()
+  toUser!: OrgUser
+
+  changeReason!: string
+}
+
+export class OrganizationRoleHistoryFilter {
+  @IsString()
+  @IsOptional()
+  search?: string
+
+  @IsEnum(OrganizationRole)
+  @IsOptional()
+  fromRole?: OrganizationRole
+
+  @IsEnum(OrganizationRole)
+  @IsOptional()
+  toRole?: OrganizationRole
+
+  @IsDate()
+  @IsOptional()
+  minDate?: Date
+
+  @IsDate()
+  @IsOptional()
+  maxDate?: Date
+
+  constructor(init?: Partial<OrganizationRoleHistoryFilter>) {
+    Object.assign(this, init)
+  }
+}
+
+export type OrganizationRoleHistoryResponse = {
+  totalHistory: number
+  history: OrgRoleHistory[]
+}
+
 /**
  * used to display what question types were created/deleted/updated from editing the queue
  */
@@ -2854,6 +2955,12 @@ export const ERROR_MESSAGES = {
     userNotFoundInOrganization: 'User not found in organization',
     cannotRemoveAdminRole: 'Cannot remove admin role from user',
     cannotGetAdminUser: 'Information about this user account is restricted',
+    notAllowedToCreateCourse: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to create courses`,
+  },
+  organizationService: {
+    cannotCreateOrgNotFound:
+      'Organization settings could not be created; organization not found.',
   },
   courseController: {
     checkIn: {
@@ -3106,5 +3213,13 @@ export const ERROR_MESSAGES = {
     lmsDocumentNotFound: 'Document was not found.',
     cannotSyncDocumentWhenSyncDisabled:
       'Cannot synchronize a document when synchronization is disabled.',
+  },
+  semesterController: {
+    notAllowedToCreateSemester: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to create semesters`,
+    notAllowedToUpdateSemester: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to alter semesters`,
+    notAllowedToDeleteSemester: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to delete semesters`,
   },
 }

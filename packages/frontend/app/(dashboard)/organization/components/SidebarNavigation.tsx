@@ -2,11 +2,12 @@
 
 import React from 'react'
 import {
-  TeamOutlined,
-  ExperimentOutlined,
-  SettingOutlined,
   CodeOutlined,
+  ExperimentOutlined,
   InteractionOutlined,
+  SettingOutlined,
+  TeamOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -40,6 +41,12 @@ const items = [
     url: '/organization/lms_integrations',
   },
   {
+    key: 'role_history',
+    label: 'Member Role History',
+    icon: <UserOutlined />,
+    url: '/organization/role_history',
+  },
+  {
     key: 'dev',
     label: 'Development Tools',
     icon: <CodeOutlined />,
@@ -64,7 +71,9 @@ const SidebarNavigation: React.FC = () => {
                 <div
                   className={cn(
                     'flex cursor-pointer items-center justify-between rounded bg-white p-4 hover:bg-gray-200 focus:bg-gray-200',
-                    pathname === item.url ? 'bg-[#e6f7ff] text-[#1890ff]' : '',
+                    pathname === item.url
+                      ? 'bg-[#e6f7ff] text-[#1890ff]'
+                      : 'text-black',
                   )}
                 >
                   <div className="flex items-center">

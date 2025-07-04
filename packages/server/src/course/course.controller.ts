@@ -69,6 +69,7 @@ import { DataSource } from 'typeorm';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { OrgRoles } from 'decorators/org-roles.decorator';
+import { OrganizationService } from '../organization/organization.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -79,6 +80,7 @@ export class CourseController {
     private heatmapService: HeatmapService,
     private courseService: CourseService,
     private queueCleanService: QueueCleanService,
+    private organizationService: OrganizationService,
     private readonly appConfig: ApplicationConfigService,
     private dataSource: DataSource,
   ) {}
@@ -1025,9 +1027,23 @@ export class CourseController {
   @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async cloneCourse(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User({ chat_token: true }) user: UserModel,
+    @User({ chat_token: true, organizationUser: true }) user: UserModel,
     @Body() body: CourseCloneAttributes,
   ): Promise<UserCourse | null> {
+    const orgSettings = await this.organizationService.getOrganizationSettings(
+      user.organizationUser?.organizationId,
+    );
+    if (
+      !orgSettings.allowProfCourseCreate &&
+      user.organizationUser?.role == OrganizationRole.PROFESSOR
+    ) {
+      throw new UnauthorizedException(
+        ERROR_MESSAGES.organizationController.notAllowedToCreateCourse(
+          user.organizationUser?.role,
+        ),
+      );
+    }
+
     if (!user || !user.chat_token) {
       console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
       throw new HttpException(

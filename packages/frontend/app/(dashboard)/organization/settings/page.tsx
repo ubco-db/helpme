@@ -13,14 +13,21 @@ import {
   Switch,
 } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
-import { ReactElement, useEffect, useState } from 'react'
+import { ReactElement, useEffect, useMemo, useState } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { Organization } from '@/app/typings/organization'
 import { API } from '@/app/api'
 import Image from 'next/image'
 import ImageCropperModal from '@/app/(dashboard)/components/ImageCropperModal'
-import { OrganizationRole, SemesterPartial } from '@koh/common'
+import {
+  OrganizationRole,
+  OrganizationSettingsDefaults,
+  SemesterPartial,
+} from '@koh/common'
 import { SemesterManagement } from './components/SemesterManagement'
+import OrganizationSettingSwitch from '@/app/(dashboard)/organization/settings/components/OrganizationSettingSwitch'
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
+import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
 
 export default function SettingsPage(): ReactElement {
   const [formGeneral] = Form.useForm()
@@ -33,7 +40,13 @@ export default function SettingsPage(): ReactElement {
     logo: boolean
     banner: boolean
   }>({ logo: false, banner: false })
+
   const { userInfo } = useUserInfo()
+  const organizationId = useMemo(
+    () => Number(userInfo?.organization?.orgId) ?? -1,
+    [userInfo?.organization?.orgId],
+  )
+
   const [organization, setOrganization] = useState<Organization>()
   const [organizationName, setOrganizationName] = useState(organization?.name)
   const [organizationDescription, setOrganizationDescription] = useState(
@@ -45,12 +58,11 @@ export default function SettingsPage(): ReactElement {
   const [organizationSemesters, setOrganizationSemesters] = useState<
     SemesterPartial[]
   >([])
+  const organizationSettings = useOrganizationSettings(organizationId)
 
   useEffect(() => {
     const fetchDataAsync = async () => {
-      const response = await API.organizations.get(
-        Number(userInfo?.organization?.orgId) ?? -1,
-      )
+      const response = await API.organizations.get(organizationId)
 
       setOrganization(response)
       setOrganizationName(response.name)
@@ -71,7 +83,7 @@ export default function SettingsPage(): ReactElement {
     }
 
     fetchDataAsync()
-  }, [organization?.name, userInfo?.organization?.orgId])
+  }, [organization?.name, organizationId])
 
   const isValidUrl = (url: string): boolean => {
     try {
@@ -145,66 +157,88 @@ export default function SettingsPage(): ReactElement {
     <div className="flex flex-col items-center gap-3">
       {userInfo.organization?.organizationRole === OrganizationRole.ADMIN && (
         <>
-          <Card title="General" variant="outlined" className="w-full">
-            <Form
-              form={formGeneral}
-              onFinish={updateGeneral}
-              layout="vertical"
-              initialValues={{
-                organizationName: organizationName,
-                organizationDescription: organizationDescription,
-                organizationWebsiteUrl: organizationWebsiteUrl,
-              }}
-            >
-              <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
-                <Col xs={{ span: 24 }} sm={{ span: 12 }}>
+          <Row className="flex w-full flex-col gap-2 md:flex-row">
+            <div className={'min-w-2/3 max-w-full flex-auto'}>
+              <Card title="General" variant="outlined" className="w-full">
+                <Form
+                  form={formGeneral}
+                  onFinish={updateGeneral}
+                  layout="vertical"
+                  initialValues={{
+                    organizationName: organizationName,
+                    organizationDescription: organizationDescription,
+                    organizationWebsiteUrl: organizationWebsiteUrl,
+                  }}
+                >
+                  <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
+                    <Col xs={{ span: 24 }} sm={{ span: 12 }}>
+                      <Form.Item
+                        label="Organization Name"
+                        name="organizationName"
+                        tooltip="Name of your organization"
+                      >
+                        <Input
+                          allowClear={true}
+                          defaultValue={organizationName}
+                          placeholder="UBC"
+                        />
+                      </Form.Item>
+                    </Col>
+
+                    <Col xs={{ span: 24 }} sm={{ span: 12 }}>
+                      <Form.Item
+                        label="Organization Website URL"
+                        name="organizationWebsiteUrl"
+                        tooltip="Website URL of your organization"
+                      >
+                        <Input
+                          allowClear={true}
+                          placeholder="https://www.ubc.ca/"
+                          defaultValue={organizationWebsiteUrl}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
                   <Form.Item
-                    label="Organization Name"
-                    name="organizationName"
-                    tooltip="Name of your organization"
+                    label="Organization Description"
+                    name="organizationDescription"
+                    tooltip="Description of your organization. Please keep short otherwise it takes a lot of room on mobile on /courses page"
                   >
-                    <Input
-                      allowClear={true}
-                      defaultValue={organizationName}
-                      placeholder="UBC"
+                    <TextArea
+                      defaultValue={organizationDescription}
+                      rows={4}
+                      style={{ resize: 'none' }}
                     />
                   </Form.Item>
-                </Col>
 
-                <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <Form.Item
-                    label="Organization Website URL"
-                    name="organizationWebsiteUrl"
-                    tooltip="Website URL of your organization"
-                  >
-                    <Input
-                      allowClear={true}
-                      placeholder="https://www.ubc.ca/"
-                      defaultValue={organizationWebsiteUrl}
-                    />
+                  <Form.Item>
+                    <Button type="primary" htmlType="submit">
+                      Update
+                    </Button>
                   </Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item
-                label="Organization Description"
-                name="organizationDescription"
-                tooltip="Description of your organization. Please keep short otherwise it takes a lot of room on mobile on /courses page"
-              >
-                <TextArea
-                  defaultValue={organizationDescription}
-                  rows={4}
-                  style={{ resize: 'none' }}
-                />
-              </Form.Item>
-
-              <Form.Item>
-                <Button type="primary" htmlType="submit">
-                  Update
-                </Button>
-              </Form.Item>
-            </Form>
-          </Card>
+                </Form>
+              </Card>
+            </div>
+            <div className={'flex-auto'}>
+              <Card title="Organization Settings" className={'h-full w-full'}>
+                <div className={'flex w-full flex-col'}>
+                  <OrganizationSettingSwitch
+                    defaultChecked={
+                      organizationSettings?.allowProfCourseCreate ??
+                      OrganizationSettingsDefaults.allowProfCourseCreate
+                    }
+                    settingName={'allowProfCourseCreate'}
+                    description={
+                      'Enables whether organization professors can create courses. Course professors without the organization professor role can never create courses.'
+                    }
+                    title={'Professors Can Create Courses'}
+                    organizationId={organizationId}
+                  />
+                </div>
+              </Card>
+            </div>
+          </Row>
 
           <Card title="Logo & Banner" variant="outlined" className="w-full">
             <Form layout="vertical">
@@ -357,11 +391,13 @@ export default function SettingsPage(): ReactElement {
         </>
       )}
 
-      <SemesterManagement
-        orgId={organization?.id ?? -1}
-        organizationSemesters={organizationSemesters}
-        setOrganizationSemesters={setOrganizationSemesters}
-      />
+      {checkCourseCreatePermissions(userInfo, organizationSettings) && (
+        <SemesterManagement
+          orgId={organization?.id ?? -1}
+          organizationSemesters={organizationSemesters}
+          setOrganizationSemesters={setOrganizationSemesters}
+        />
+      )}
     </div>
   ) : (
     <Spin />
