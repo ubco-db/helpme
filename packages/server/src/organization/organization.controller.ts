@@ -1405,12 +1405,12 @@ export class OrganizationController {
     return res.status(HttpStatus.OK).send(userInfo);
   }
 
-  @Get(':oid/get_users/:page?')
+  @Get(':oid/get_users')
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getUsers(
     @Param('oid', ParseIntPipe) oid: number,
-    @Param('page', ParseIntPipe) page: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('search') search: string,
   ): Promise<OrgUser[]> {
     const pageSize = 50;
@@ -1422,12 +1422,12 @@ export class OrganizationController {
     return await this.organizationService.getUsers(oid, page, pageSize, search);
   }
 
-  @Get(':oid/get_courses/:page?')
+  @Get(':oid/get_courses')
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getCourses(
     @Param('oid', ParseIntPipe) oid: number,
-    @Param('page', new DefaultValuePipe(-1), ParseIntPipe) page: number,
+    @Query('page', new DefaultValuePipe(-1), ParseIntPipe) page: number,
     @Query('search') search: string,
   ): Promise<CourseResponse[]> {
     const pageSize = 50;

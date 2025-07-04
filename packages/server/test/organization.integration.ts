@@ -143,7 +143,7 @@ describe('Organization Integration', () => {
     });
   });
 
-  describe('GET /organization/:oid/get_users/:page?', () => {
+  describe('GET /organization/:oid/get_users', () => {
     it('should return 403 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();
       const response = await supertest().get(
@@ -188,7 +188,7 @@ describe('Organization Integration', () => {
     });
   });
 
-  describe('GET /organization/:oid/get_courses/:page?', () => {
+  describe('GET /organization/:oid/get_courses', () => {
     it('should return 403 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();
       const response = await supertest().get(
