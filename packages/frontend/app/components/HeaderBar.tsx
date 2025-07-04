@@ -17,7 +17,11 @@ import NextLink from 'next/link'
 import { OrganizationRole } from '../typings/user'
 import { SelfAvatar } from './UserAvatar'
 import { useCourse } from '../hooks/useCourse'
-import { cn, getRoleInCourse } from '../utils/generalUtils'
+import {
+  checkCourseCreatePermissions,
+  cn,
+  getRoleInCourse,
+} from '../utils/generalUtils'
 import { Role, User } from '@koh/common'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { Drawer, DrawerContent, DrawerTrigger } from './ui/drawer'
@@ -36,6 +40,7 @@ import { sortQueues } from '../(dashboard)/course/[cid]/utils/commonCourseFuncti
 import { useCourseFeatures } from '../hooks/useCourseFeatures'
 import CenteredSpinner from './CenteredSpinner'
 import Image from 'next/image'
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -132,6 +137,9 @@ const NavBar = ({
   isProfilePage?: boolean
   orientation?: 'horizontal' | 'vertical'
 }) => {
+  const organizationSettings = useOrganizationSettings(
+    userInfo?.organization?.orgId ?? -1,
+  )
   const { course } = useCourse(courseId)
   const router = useRouter()
   const courseFeatures = useCourseFeatures(courseId)
@@ -328,10 +336,7 @@ const NavBar = ({
                   My Courses
                 </Link>
               </NavigationMenuItem>
-              {(userInfo?.organization?.organizationRole ===
-                OrganizationRole.ADMIN ||
-                userInfo?.organization?.organizationRole ===
-                  OrganizationRole.PROFESSOR) && (
+              {checkCourseCreatePermissions(userInfo, organizationSettings) && (
                 <NavigationMenuItem>
                   <Link
                     className="md:pl-8"

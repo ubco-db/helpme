@@ -41,6 +41,7 @@ import { AsyncQuestionCommentModel } from '../asyncQuestion/asyncQuestionComment
 import { QueueChatsModel } from '../queueChats/queue-chats.entity';
 import { DataSource } from 'typeorm';
 import { Injectable } from '@nestjs/common';
+import { OrganizationSettingsModel } from '../organization/organization_settings.entity';
 
 /* Has all of our factories and initializes them with the db dataSource. 
   If you want to use one of these factories, import it from factories.ts instead.
@@ -85,6 +86,7 @@ export class FactoryService {
   public lmsCourseIntFactory: Factory<LMSCourseIntegrationModel>;
   public lmsAssignmentFactory: Factory<LMSAssignmentModel>;
   public queueChatsFactory: Factory<QueueChatsModel>;
+  public OrganizationSettingsFactory: Factory<OrganizationSettingsModel>;
 
   constructor(dataSource: DataSource) {
     this.UserFactory = new Factory(UserModel, dataSource)
@@ -321,5 +323,10 @@ export class FactoryService {
       .assocOne('queue', this.QueueFactory)
       .assocOne('staff', this.UserFactory)
       .assocOne('student', this.UserFactory);
+
+    this.OrganizationSettingsFactory = new Factory(
+      OrganizationSettingsModel,
+      dataSource,
+    ).assocOne('organization', this.OrganizationFactory);
   }
 }

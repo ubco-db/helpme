@@ -327,6 +327,18 @@ It is used for displaying markdown nicely inside any <Markdown> components
     }
 }
 
+#html .min-w-2\/3 {
+    min-width: 66.6777%;
+}
+
+#html .min-w-3\/4 {
+    min-width: 75%;
+}
+
+#html .min-w-4\/5 {
+    min-width: 80%;
+}
+
 .chart-xxs {
     max-width: 8rem;
 }

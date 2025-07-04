@@ -17,6 +17,7 @@ import {
   EventFactory,
   OrganizationCourseFactory,
   OrganizationFactory,
+  OrganizationSettingsFactory,
   OrganizationUserFactory,
   QuestionFactory,
   QueueFactory,
@@ -2231,6 +2232,42 @@ describe('Course Integration', () => {
 
     it('should return 401 if user is not authenticated', async () => {
       await supertest().post('/courses/1/clone_course').expect(401);
+    });
+
+    it('should return 401 if user is professor and professors disallowed from creating courses', async () => {
+      const professor = await UserFactory.create({ chat_token: null });
+      const course = await CourseFactory.create();
+      const organization = await OrganizationFactory.create();
+      await OrganizationSettingsFactory.create({
+        organizationId: organization.id,
+        organization,
+        allowProfCourseCreate: false,
+      });
+
+      await OrganizationUserFactory.create({
+        organizationUser: professor,
+        organization: organization,
+        role: OrganizationRole.PROFESSOR,
+      });
+
+      await OrganizationCourseFactory.create({
+        course: course,
+        organization: organization,
+      });
+
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course,
+      });
+
+      await supertest({ userId: professor.id })
+        .post(`/courses/${course.id}/clone_course`)
+        .send({
+          name: 'Cloned Course',
+          semesterId: 1,
+        })
+        .expect(401);
     });
 
     it('should return 404 if user has no chat token', async () => {

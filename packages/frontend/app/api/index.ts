@@ -54,6 +54,9 @@ import {
   OrganizationCourseResponse,
   OrganizationProfessor,
   OrganizationResponse,
+  OrganizationRoleHistoryFilter,
+  OrganizationRoleHistoryResponse,
+  OrganizationSettingsResponse,
   OrganizationStatsResponse,
   OrgUser,
   PreDeterminedQuestion,
@@ -128,6 +131,7 @@ class APIClient {
    * @param url URL to send req to
    * @param responseClass Class with class-transformer decorators to serialize response to
    * @param body body to send with req
+   * @param params any query parameters to include in req URL
    */
   private async req<T>(
     method: Method,
@@ -1035,14 +1039,49 @@ class APIClient {
     getCronJobs: async (organizationId: number): Promise<CronJob[]> =>
       this.req('GET', `/api/v1/organization/${organizationId}/cronjobs`),
     batchCloneCourses: async (
-      organiationId: number,
+      organizationId: number,
       body: BatchCourseCloneAttributes,
     ): Promise<string> =>
       this.req(
         'POST',
-        `/api/v1/organization/${organiationId}/clone_courses`,
+        `/api/v1/organization/${organizationId}/clone_courses`,
         undefined,
         body,
+      ),
+    getOrganizationSettings: async (
+      organizationId: number,
+    ): Promise<OrganizationSettingsResponse> =>
+      this.req(
+        'GET',
+        `/api/v1/organization/${organizationId}/settings`,
+        undefined,
+        undefined,
+      ),
+    setOrganizationSetting: async (
+      organizationId: number,
+      setting: string,
+      value: boolean,
+    ): Promise<OrganizationSettingsResponse> =>
+      this.req(
+        'PATCH',
+        `/api/v1/organization/${organizationId}/settings`,
+        undefined,
+        {
+          setting,
+          value,
+        },
+      ),
+    getOrganizationRoleHistory: async (
+      organizationId: number,
+      page: number,
+      searchFilters: OrganizationRoleHistoryFilter,
+    ): Promise<OrganizationRoleHistoryResponse> =>
+      this.req(
+        'GET',
+        `/api/v1/organization/${organizationId}/role_history/${page}`,
+        undefined,
+        undefined,
+        searchFilters,
       ),
   }
 
