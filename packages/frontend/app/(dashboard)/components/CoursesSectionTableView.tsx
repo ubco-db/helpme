@@ -165,7 +165,7 @@ const CoursesSectionTableView: React.FC<CoursesSectionTableViewProps> = ({
           }
 
           const popoverContent = (
-            <div className="p-2">
+            <div className="max-w-60 p-2">
               <p>
                 <strong>Start Date:</strong>{' '}
                 {new Date(semester.startDate).toLocaleDateString()}
