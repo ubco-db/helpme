@@ -61,8 +61,15 @@ export default function ChatbotDocuments(
     }
     await API.chatbot.staffOnly
       .addDocumentChunk(courseId, body)
-      .then(() => {
-        message.success('Document added successfully.')
+      .then((addedDocs) => {
+        message.success(
+          `Document${addedDocs.length > 1 ? 's' : ''} added successfully.`,
+        )
+        if (addedDocs.length > 1) {
+          message.info(
+            `Document was too large to fit into one chunk. It was split into ${addedDocs.length} document chunks.`,
+          )
+        }
         fetchDocuments()
       })
       .catch((e) => {
@@ -208,23 +215,6 @@ export default function ChatbotDocuments(
     setFilteredDocuments(filtered)
   }
 
-  const updateDocumentInState = (updatedDoc: SourceDocument) => {
-    const updatedDocuments = documents.map((doc) =>
-      doc.id === updatedDoc.id ? updatedDoc : doc,
-    )
-    setDocuments(updatedDocuments)
-
-    const searchTerm = search.toLowerCase()
-    const filtered = updatedDocuments.filter((doc) => {
-      const isNameMatch = doc.pageContent
-        ? doc.pageContent.toLowerCase().includes(searchTerm)
-        : false
-      return isNameMatch
-    })
-
-    setFilteredDocuments(filtered)
-  }
-
   return (
     <div className="m-auto my-5">
       <div className="flex w-full items-center justify-between">
@@ -357,8 +347,14 @@ export default function ChatbotDocuments(
             setEditingRecord(null)
             setEditRecordModalOpen(false)
           }}
-          onSuccessfulUpdate={(updatedDoc) => {
-            updateDocumentInState(updatedDoc)
+          onSuccessfulUpdate={async (updatedDocs) => {
+            if (updatedDocs.length > 1) {
+              message.info(
+                `The text content was too large and it was split into ${updatedDocs.length} new document chunks.`,
+                6,
+              )
+            }
+            await fetchDocuments()
             setEditingRecord(null)
             setEditRecordModalOpen(false)
           }}

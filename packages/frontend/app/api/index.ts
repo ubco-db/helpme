@@ -254,7 +254,7 @@ class APIClient {
       addDocumentChunk: async (
         courseId: number,
         body: AddDocumentChunkParams,
-      ): Promise<SourceDocument> =>
+      ): Promise<SourceDocument[]> =>
         this.req(
           'POST',
           `/api/v1/chatbot/documentChunks/${courseId}`,
@@ -265,7 +265,7 @@ class APIClient {
         courseId: number,
         docId: string,
         body: UpdateDocumentChunkParams,
-      ): Promise<SourceDocument> =>
+      ): Promise<SourceDocument[]> =>
         this.req(
           'PATCH',
           `/api/v1/chatbot/documentChunks/${courseId}/${docId}`,
@@ -305,6 +305,8 @@ class APIClient {
           undefined,
           { url },
         ),
+      getModels: async (courseId: number): Promise<Record<string, string>> =>
+        this.req('GET', `/api/v1/chatbot/models/${courseId}`),
       getSettings: async (courseId: number): Promise<ChatbotSettings> =>
         this.req('GET', `/api/v1/chatbot/settings/${courseId}`),
       updateSettings: async (

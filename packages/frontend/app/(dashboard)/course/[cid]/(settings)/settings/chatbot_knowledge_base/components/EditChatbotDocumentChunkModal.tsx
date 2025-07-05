@@ -1,7 +1,7 @@
 'use client'
 
 import { ReactElement } from 'react'
-import { Modal, Input, Form, message } from 'antd'
+import { Form, Input, message, Modal } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { SourceDocument } from '@koh/common'
@@ -18,7 +18,7 @@ interface EditDocumentChunkModalProps {
   editingRecord: SourceDocument
   open: boolean
   courseId: number
-  onSuccessfulUpdate: (value: SourceDocument) => void
+  onSuccessfulUpdate: (value: SourceDocument[]) => void
   onCancel: () => void
 }
 
@@ -40,9 +40,9 @@ const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
           source: values.source,
         },
       })
-      .then((updatedDoc) => {
-        onSuccessfulUpdate(updatedDoc)
+      .then((updatedDocs) => {
         message.success('Document updated successfully.')
+        onSuccessfulUpdate(updatedDocs)
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)

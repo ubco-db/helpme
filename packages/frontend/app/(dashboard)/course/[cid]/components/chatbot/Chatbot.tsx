@@ -243,13 +243,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setInput('')
   }
 
-  const extractLMSLink = (content?: string) => {
-    if (!content) return undefined
-    const idx = content.indexOf('Page Link:')
-    if (idx < 0) return undefined
-    return content.substring(idx + 'Page Link:'.length).trim()
-  }
-
   if (!cid || !courseFeatures?.chatBotEnabled) {
     return <></>
   } else {
@@ -478,15 +471,11 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                       </p>
                                       {sourceDocument.type ==
                                         'inserted_lms_document' &&
-                                        extractLMSLink(
-                                          sourceDocument.content,
-                                        ) && (
+                                        sourceDocument.sourceLink && (
                                           <SourceLinkButton
                                             docName={sourceDocument.docName}
                                             sourceLink={
-                                              extractLMSLink(
-                                                sourceDocument.content,
-                                              ) ?? ''
+                                              sourceDocument.sourceLink
                                             }
                                             part={0}
                                           />

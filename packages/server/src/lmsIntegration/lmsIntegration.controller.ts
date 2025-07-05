@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -501,15 +502,28 @@ export class LMSIntegrationController {
         uploadType = LMSUpload.Announcements;
         break;
       default:
-        throw new HttpException(
+        throw new BadRequestException(
           ERROR_MESSAGES.lmsController.invalidDocumentType,
-          HttpStatus.BAD_REQUEST,
         );
+    }
+
+    const selectedResources: LMSResourceType[] =
+      integration.selectedResourceTypes;
+    if (
+      !selectedResources.includes(
+        this.integrationService.LMSUploadToResourceType[uploadType],
+      )
+    ) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsController.resourceDisabled,
+      );
     }
 
     const model = await this.integrationService.getDocumentModel(uploadType);
     let item = await (model as any).findOne({
-      where: { id: itemId },
+      where: {
+        id: itemId,
+      },
     });
     let didNotExist = false;
 
@@ -555,6 +569,7 @@ export class LMSIntegrationController {
         throw new Error();
       }
     } catch (err) {
+      console.error(err);
       throw new HttpException(
         newState
           ? ERROR_MESSAGES.lmsController.failedToSyncOne

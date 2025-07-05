@@ -366,6 +366,8 @@ export interface SourceDocument {
     type?: string
     source?: string
     courseId?: string
+    fromLMS?: boolean
+    apiDocId?: number
   }
   type?: string
   // TODO: is it content or pageContent? since this file uses both. EDIT: It seems to be both/either. Gross.
@@ -425,6 +427,21 @@ export interface AddDocumentChunkParams {
     id?: string
     courseId?: number
   }
+  prefix?: string
+}
+
+export interface AddDocumentAggregateParams {
+  name: string
+  source: string
+  documentText: string
+  metadata?: any
+  prefix?: string
+}
+
+export interface UpdateDocumentAggregateParams {
+  documentText: string
+  metadata?: any
+  prefix?: string
 }
 
 export interface UpdateChatbotQuestionParams {
@@ -1328,10 +1345,15 @@ export type LMSAnnouncement = {
   uploaded?: Date
 }
 
+export type LMSErrorType = {
+  deleteError: "Couldn't remove pre-existing documents"
+}
+
 export type LMSFileUploadResponse = {
   id: number
   success: boolean
   documentId?: string
+  reason?: LMSErrorType
 }
 
 export enum LMSApiResponseStatus {
@@ -3213,6 +3235,8 @@ export const ERROR_MESSAGES = {
     lmsDocumentNotFound: 'Document was not found.',
     cannotSyncDocumentWhenSyncDisabled:
       'Cannot synchronize a document when synchronization is disabled.',
+    resourceDisabled:
+      "The resource type of the document you're trying to operate on is disabled.",
   },
   semesterController: {
     notAllowedToCreateSemester: (role: OrganizationRole) =>

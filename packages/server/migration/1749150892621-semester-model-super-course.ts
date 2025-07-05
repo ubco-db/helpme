@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class LmsAnnouncementModelFix1749150892621
+export class SemesterModelSuperCourse1749150892621
   implements MigrationInterface
 {
-  name = 'LmsAnnouncementModelFix1749150892621';
+  name = 'SemesterModelSuperCourse1749150892621';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
