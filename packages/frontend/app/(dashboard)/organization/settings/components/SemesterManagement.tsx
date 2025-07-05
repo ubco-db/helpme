@@ -217,11 +217,11 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
               <h3 className="text-lg font-semibold">{semester.name}</h3>
               <p>
                 <span className="font-semibold">Start Date:</span>{' '}
-                {semester.startDate.toDateString()}
+                {new Date(semester.startDate).toLocaleDateString()}
               </p>
               <p>
                 <span className="font-semibold">End Date:</span>{' '}
-                {semester.endDate.toDateString()}
+                {new Date(semester.endDate).toLocaleDateString()}
               </p>
               {semester.description && (
                 <p>

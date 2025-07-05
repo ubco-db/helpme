@@ -55,7 +55,9 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         if (semesterB && !semesterA) return 1
 
         if (semesterA && semesterB) {
-          const diff = semesterB.endDate.valueOf() - semesterA.endDate.valueOf()
+          const diff =
+            new Date(semesterB.endDate).getTime() -
+            new Date(semesterA.endDate).getTime()
           if (diff === 0) {
             return a.course.name.localeCompare(b.course.name)
           } else {
