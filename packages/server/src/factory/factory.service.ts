@@ -13,12 +13,10 @@ import { EventModel, EventType } from 'profile/event-model.entity';
 import { Factory } from 'typeorm-factory';
 import { CourseModel } from '../course/course.entity';
 import { SemesterModel } from '../semester/semester.entity';
-import { CourseSectionMappingModel } from '../login/course-section-mapping.entity';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { UserModel } from '../profile/user.entity';
 import { QuestionModel } from '../question/question.entity';
 import { QueueModel } from '../queue/queue.entity';
-import { LastRegistrationModel } from 'login/last-registration-model.entity';
 import { OrganizationModel } from '../organization/organization.entity';
 import { InteractionModel } from '../chatbot/interaction.entity';
 import { OrganizationCourseModel } from '../organization/organization-course.entity';
@@ -43,6 +41,7 @@ import { AsyncQuestionCommentModel } from '../asyncQuestion/asyncQuestionComment
 import { QueueChatsModel } from '../queueChats/queue-chats.entity';
 import { DataSource } from 'typeorm';
 import { Injectable } from '@nestjs/common';
+import { OrganizationSettingsModel } from '../organization/organization_settings.entity';
 
 /* Has all of our factories and initializes them with the db dataSource. 
   If you want to use one of these factories, import it from factories.ts instead.
@@ -61,7 +60,6 @@ export class FactoryService {
   public SemesterFactory: Factory<SemesterModel>;
   public CourseFactory: Factory<CourseModel>;
   public CourseSettingsFactory: Factory<CourseSettingsModel>;
-  public CourseSectionFactory: Factory<CourseSectionMappingModel>;
   public UserCourseFactory: Factory<UserCourseModel>;
   public QueueFactory: Factory<QueueModel>;
   public QueueInviteFactory: Factory<QueueInviteModel>;
@@ -69,7 +67,6 @@ export class FactoryService {
   public QuestionFactory: Factory<QuestionModel>;
   public QuestionGroupFactory: Factory<QuestionGroupModel>;
   public EventFactory: Factory<EventModel>;
-  public LastRegistrationFactory: Factory<LastRegistrationModel>;
   public AlertFactory: Factory<AlertModel>;
   public VotesFactory: Factory<AsyncQuestionVotesModel>;
   public AsyncQuestionFactory: Factory<AsyncQuestionModel>;
@@ -89,6 +86,7 @@ export class FactoryService {
   public lmsCourseIntFactory: Factory<LMSCourseIntegrationModel>;
   public lmsAssignmentFactory: Factory<LMSAssignmentModel>;
   public queueChatsFactory: Factory<QueueChatsModel>;
+  public OrganizationSettingsFactory: Factory<OrganizationSettingsModel>;
 
   constructor(dataSource: DataSource) {
     this.UserFactory = new Factory(UserModel, dataSource)
@@ -141,13 +139,6 @@ export class FactoryService {
       .attr('asyncCentreAllowPublic', false)
       .attr('asyncCentreDefaultAnonymous', true);
 
-    this.CourseSectionFactory = new Factory(
-      CourseSectionMappingModel,
-      dataSource,
-    )
-      .attr('crn', 12345)
-      .assocOne('course', this.CourseFactory);
-
     this.UserCourseFactory = new Factory(UserCourseModel, dataSource)
       .assocOne('user', this.UserFactory)
       .assocOne('course', this.CourseFactory)
@@ -199,13 +190,6 @@ export class FactoryService {
       .attr('eventType', EventType.TA_CHECKED_IN)
       .assocOne('user', this.UserFactory)
       .assocOne('course', this.CourseFactory);
-
-    this.LastRegistrationFactory = new Factory(
-      LastRegistrationModel,
-      dataSource,
-    )
-      .attr('lastRegisteredSemester', '202210') // Fall 2022
-      .assocOne('prof', this.UserFactory);
 
     this.AlertFactory = new Factory(AlertModel, dataSource)
       .attr('alertType', AlertType.REPHRASE_QUESTION)
@@ -343,5 +327,10 @@ export class FactoryService {
       .assocOne('queue', this.QueueFactory)
       .assocOne('staff', this.UserFactory)
       .assocOne('student', this.UserFactory);
+
+    this.OrganizationSettingsFactory = new Factory(
+      OrganizationSettingsModel,
+      dataSource,
+    ).assocOne('organization', this.OrganizationFactory);
   }
 }

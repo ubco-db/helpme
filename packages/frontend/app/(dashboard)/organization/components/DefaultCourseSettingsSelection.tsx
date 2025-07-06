@@ -14,6 +14,10 @@ const DefaultCourseSettingsSelection: React.FC<
 > = ({ defaultValues, organization, form }) => {
   useEffect(() => {
     form.resetFields()
+    form.setFieldsValue({
+      newSemesterId: -1,
+      newSection: '',
+    })
   }, [defaultValues, form])
 
   return (
@@ -22,7 +26,7 @@ const DefaultCourseSettingsSelection: React.FC<
       isAdmin={true}
       organization={organization}
       courseSemesterId={-1}
-      courseSectionGroupName={' '}
+      courseSectionGroupName={''}
     />
   )
 }

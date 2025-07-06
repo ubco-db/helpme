@@ -1,26 +1,26 @@
 import {
-  ERROR_MESSAGES,
-  TACheckinPair,
-  TACheckinTimesResponse,
-  Role,
-  EditCourseInfoParams,
-  GetCourseUserInfoResponse,
-  UserPartial,
-  CourseCloneAttributes,
-  OrganizationRole,
-  UserCourse,
-  BatchCourseCloneResponse,
   BatchCourseCloneAttributes,
+  BatchCourseCloneResponse,
+  CourseCloneAttributes,
+  EditCourseInfoParams,
+  ERROR_MESSAGES,
+  GetCourseUserInfoResponse,
   MailServiceType,
-  ChatbotSettingsMetadata,
+  OrganizationRole,
   QueueConfig,
   QueueTypes,
+  Role,
+  TACheckinPair,
+  TACheckinTimesResponse,
+  UserCourse,
+  UserPartial,
 } from '@koh/common';
 import {
+  BadRequestException,
   HttpException,
   HttpStatus,
   Injectable,
-  BadRequestException,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 
@@ -29,7 +29,6 @@ import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
 import { Between, DataSource, EntityManager, In, IsNull } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
-import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { CourseModel } from './course.entity';
 import { UserModel } from 'profile/user.entity';
 import { QueueInviteModel } from 'queue/queue-invite.entity';
@@ -40,11 +39,11 @@ import { OrganizationCourseModel } from 'organization/organization-course.entity
 import { SemesterModel } from 'semester/semester.entity';
 import { MailService } from 'mail/mail.service';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
-import { InternalServerErrorException } from '@nestjs/common';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueModel } from 'queue/queue.entity';
 import { SuperCourseModel } from './super-course.entity';
 import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
+
 @Injectable()
 export class CourseService {
   constructor(
@@ -172,52 +171,6 @@ export class CourseService {
       );
     }
 
-    for (const crn of new Set(coursePatch.crns)) {
-      const courseCrnMaps = await CourseSectionMappingModel.find({
-        where: {
-          crn: crn,
-        },
-      });
-
-      let courseCrnMapExists = false;
-
-      for (const courseCrnMap of courseCrnMaps) {
-        const conflictCourse = await CourseModel.findOne({
-          where: {
-            id: courseCrnMap.courseId,
-          },
-        });
-        if (conflictCourse && conflictCourse.semesterId === course.semesterId) {
-          if (courseCrnMap.courseId !== courseId) {
-            throw new BadRequestException(
-              ERROR_MESSAGES.courseController.crnAlreadyRegistered(
-                crn,
-                courseId,
-              ),
-            );
-          } else {
-            courseCrnMapExists = true;
-            break;
-          }
-        }
-      }
-
-      if (!courseCrnMapExists) {
-        try {
-          await CourseSectionMappingModel.create({
-            crn: crn,
-            courseId: course.id,
-          }).save();
-        } catch (err) {
-          console.error(err);
-          throw new HttpException(
-            ERROR_MESSAGES.courseController.createCourseMappings,
-            HttpStatus.INTERNAL_SERVER_ERROR,
-          );
-        }
-      }
-    }
-
     if (coursePatch.name) {
       course.name = coursePatch.name;
     }
@@ -252,6 +205,7 @@ export class CourseService {
     if (coursePatch.asyncQuestionDisplayTypes) {
       course.asyncQuestionDisplayTypes = coursePatch.asyncQuestionDisplayTypes;
     }
+
     try {
       await course.save();
     } catch (err) {
@@ -442,16 +396,6 @@ export class CourseService {
       );
     }
 
-    if (
-      (!cloneData.newSemesterId || cloneData.newSemesterId == -1) &&
-      (!cloneData.newSection || cloneData.newSection == '')
-    ) {
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.newSectionOrSemesterMissing,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
     return await this.dataSource.transaction(async (manager) => {
       const originalCourse = await manager.findOne(CourseModel, {
         where: { id: courseId },
@@ -475,27 +419,6 @@ export class CourseService {
       ) {
         cloneData.professorIds = originalProfessors.map(
           (userCourse) => userCourse.userId,
-        );
-      }
-
-      //  If they're cloning the course with same semester different section (useSection = true), then the sections must be different.
-      if (
-        cloneData.useSection &&
-        cloneData.newSection === originalCourse.sectionGroupName
-      ) {
-        throw new HttpException(
-          ERROR_MESSAGES.courseController.sectionSame,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      // Otherwise, if they're cloning the course with same section different semester (useSection = false), then the semesters must be different.
-      if (
-        !cloneData.useSection &&
-        cloneData.newSemesterId === originalCourse.semesterId
-      ) {
-        throw new HttpException(
-          ERROR_MESSAGES.courseController.semesterSame,
-          HttpStatus.BAD_REQUEST,
         );
       }
 
@@ -532,20 +455,24 @@ export class CourseService {
         clonedCourse.courseInviteCode = originalCourse.courseInviteCode;
       }
 
-      if (cloneData.useSection) {
-        clonedCourse.sectionGroupName = cloneData.newSection;
-        clonedCourse.semester = originalCourse.semester;
-      } else if (cloneData.useSection === false) {
-        const semester = await manager.findOneOrFail(SemesterModel, {
-          where: { id: cloneData.newSemesterId },
-        });
-        clonedCourse.semester = semester;
-        clonedCourse.sectionGroupName = originalCourse.sectionGroupName;
+      clonedCourse.sectionGroupName =
+        cloneData.newSection && cloneData.newSection.trim() !== ''
+          ? cloneData.newSection
+          : originalCourse.sectionGroupName;
+
+      if (cloneData.newSemesterId) {
+        if (cloneData.newSemesterId !== -1) {
+          const semester = await manager.findOne(SemesterModel, {
+            where: { id: cloneData.newSemesterId },
+          });
+          if (semester) {
+            clonedCourse.semester = semester;
+          }
+        }
       } else {
-        throw new BadRequestException(
-          'Either a new semester or new section must be provided for your course clone.',
-        );
+        clonedCourse.semester = originalCourse.semester;
       }
+
       await manager.save(clonedCourse);
 
       if (originalCourse.courseSettings) {

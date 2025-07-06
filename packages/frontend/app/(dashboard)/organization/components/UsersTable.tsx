@@ -19,12 +19,14 @@ interface UsersTableProps {
   organization: GetOrganizationResponse
   prepareAndShowConfirmationModal: (user: OrgUser) => (newRole: string) => void
   profile: User
+  updateFlag?: boolean
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({
   organization,
   prepareAndShowConfirmationModal,
   profile,
+  updateFlag = false,
 }) => {
   const [page, setPage] = useState(1)
   const [input, setInput] = useState('')
@@ -61,7 +63,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
 
   useEffect(() => {
     updateUsers()
-  }, [page, search])
+  }, [page, search, updateFlag])
 
   if (!users) {
     return (

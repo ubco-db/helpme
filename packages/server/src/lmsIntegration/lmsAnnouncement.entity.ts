@@ -46,7 +46,7 @@ export class LMSAnnouncementModel extends BaseEntity {
 
   @ManyToOne(
     (type) => LMSCourseIntegrationModel,
-    (integration) => integration.assignments,
+    (integration) => integration.announcements,
     { onDelete: 'CASCADE' },
   )
   @JoinColumn({ name: 'courseId', referencedColumnName: 'courseId' })

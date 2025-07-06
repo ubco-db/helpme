@@ -14,16 +14,15 @@ import { QueueModel } from '../src/queue/queue.entity';
 import {
   ChatTokenFactory,
   CourseFactory,
-  CourseSectionFactory,
   CourseSettingsFactory,
   EventFactory,
   OrganizationCourseFactory,
   OrganizationFactory,
+  OrganizationSettingsFactory,
   OrganizationUserFactory,
   QuestionFactory,
   QueueFactory,
   QueueInviteFactory,
-  SemesterFactory,
   StudentCourseFactory,
   TACourseFactory,
   UserCourseFactory,
@@ -1036,20 +1035,14 @@ describe('Course Integration', () => {
     //     role: Role.PROFESSOR,
     //   });
 
-    //   await CourseSectionFactory.create({
-    //     course: course,
-    //     crn: 30303,
-    //   });
-
     //   const editCourseTomato = {
     //     courseId: course.id,
     //     name: 'Tomato',
     //     icalURL: 'https://calendar.google.com/calendar/ical/tomato/basic.ics',
     //     coordinator_email: 'tomato@gmail.com',
-    //     crns: [30303, 67890],
     //   };
 
-    //   // update crns, coordinator email, name, icalURL
+    //   // update coordinator email, name, icalURL
     //   await supertest({ userId: professor.id })
     //     .patch(`/courses/${course.id}/edit_course`)
     //     .send(editCourseTomato)
@@ -1102,7 +1095,6 @@ describe('Course Integration', () => {
 
     //   const editCourseCrn = {
     //     courseId: potato.id,
-    //     crns: [CRN],
     //   };
 
     //   await supertest({ userId: professor.id })
@@ -1114,46 +1106,6 @@ describe('Course Integration', () => {
     //   });
     //   expect(crnCourseMap).toBeDefined();
     // });
-
-    it('test conflict crn', async () => {
-      const professor = await UserFactory.create();
-      const semester = await SemesterFactory.create();
-      const potato = await CourseFactory.create({
-        name: 'Potato',
-        semester: semester,
-      });
-      const tomato = await CourseFactory.create({
-        name: 'Tomato',
-        semester: semester,
-      });
-
-      await UserCourseFactory.create({
-        course: potato,
-        user: professor,
-        role: Role.PROFESSOR,
-      });
-
-      await UserCourseFactory.create({
-        course: tomato,
-        user: professor,
-        role: Role.PROFESSOR,
-      });
-
-      await CourseSectionFactory.create({
-        course: tomato,
-        crn: 12500,
-      });
-
-      const editCourseCrn = {
-        courseId: potato.id,
-        crns: [31000, 12500],
-      };
-
-      await supertest({ userId: professor.id })
-        .patch(`/courses/${potato.id}/edit_course`)
-        .send(editCourseCrn)
-        .expect(400);
-    });
 
     it('test null field', async () => {
       const professor = await UserFactory.create();
@@ -1169,7 +1121,6 @@ describe('Course Integration', () => {
         name: 'Tomato',
         icalURL: null,
         coordinator_email: 'tomato@gmail.com',
-        crns: [12345, 67890],
       };
 
       await supertest({ userId: professor.id })
@@ -2288,6 +2239,42 @@ describe('Course Integration', () => {
 
     it('should return 401 if user is not authenticated', async () => {
       await supertest().post('/courses/1/clone_course').expect(401);
+    });
+
+    it('should return 401 if user is professor and professors disallowed from creating courses', async () => {
+      const professor = await UserFactory.create({ chat_token: null });
+      const course = await CourseFactory.create();
+      const organization = await OrganizationFactory.create();
+      await OrganizationSettingsFactory.create({
+        organizationId: organization.id,
+        organization,
+        allowProfCourseCreate: false,
+      });
+
+      await OrganizationUserFactory.create({
+        organizationUser: professor,
+        organization: organization,
+        role: OrganizationRole.PROFESSOR,
+      });
+
+      await OrganizationCourseFactory.create({
+        course: course,
+        organization: organization,
+      });
+
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course,
+      });
+
+      await supertest({ userId: professor.id })
+        .post(`/courses/${course.id}/clone_course`)
+        .send({
+          name: 'Cloned Course',
+          semesterId: 1,
+        })
+        .expect(401);
     });
 
     it('should return 404 if user has no chat token', async () => {

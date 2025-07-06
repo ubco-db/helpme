@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Button, Modal, Form, message, Popconfirm } from 'antd'
+import { Button, Form, message, Modal, Popconfirm } from 'antd'
 import {
   CourseCloneAttributes,
   defaultCourseCloneAttributes,
@@ -14,10 +14,11 @@ import { useUserInfo } from '@/app/contexts/userContext'
 import { ExclamationCircleFilled } from '@ant-design/icons'
 import { useAsyncToaster } from '@/app/contexts/AsyncToasterContext'
 import CourseCloneForm from './CourseCloneForm'
+
 type CourseCloneFormModalProps = {
   organization: GetOrganizationResponse
   courseId: number
-  courseSemesterId: number
+  courseSemesterId?: number
   courseSectionGroupName: string
 }
 
@@ -49,17 +50,11 @@ const CourseCloneFormModal: React.FC<CourseCloneFormModalProps> = ({
   const handleClone = async () => {
     const cloneData = form.getFieldsValue()
 
-    if (cloneData.professorIds.length === 0) {
-      if (isAdmin) {
-        message.error('Please select a professor')
-        return
-      }
-      cloneData.professorIds = [userInfo.id]
-    }
-
-    if (!cloneData.newSemesterId && !cloneData.newSection) {
-      message.error('Please select a semester or enter a section')
+    if (isAdmin && (cloneData.professorIds ?? []).length === 0) {
+      message.error('Please select a professor')
       return
+    } else {
+      cloneData.professorIds = [userInfo.id]
     }
 
     runAsyncToast(

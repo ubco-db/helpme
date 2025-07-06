@@ -227,7 +227,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           </div>
         </div>
       )}
-      destroyOnClose
+      destroyOnHidden
       modalRender={(dom) => (
         <Form
           layout="vertical"

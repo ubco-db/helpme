@@ -1,13 +1,13 @@
-import { ERROR_MESSAGES, UBCOloginParam } from '@koh/common';
+import { ERROR_MESSAGES, isProd, UBCOloginParam } from '@koh/common';
 import {
   Body,
   Controller,
   Get,
-  Req,
   HttpException,
   HttpStatus,
   Post,
   Query,
+  Req,
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -36,12 +36,13 @@ export class LoginController {
     @Res() res: Response,
     @Body() body: UBCOloginParam,
   ): Promise<any> {
-    if (process.env.NODE_ENV !== 'development') {
+    if (isProd()) {
       if (!body.recaptchaToken) {
         return res.status(HttpStatus.BAD_REQUEST).send({
           message: 'Recaptcha token missing',
         });
       }
+
       const response = await request.post(
         `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.PRIVATE_RECAPTCHA_SITE_KEY}&response=${body.recaptchaToken}`,
       );

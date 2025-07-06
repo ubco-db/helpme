@@ -34,6 +34,8 @@ import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
+import { ChatbotModule } from '../chatbot/chatbot.module';
+import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 
 /*
 Note:
@@ -46,8 +48,17 @@ describe('LMSIntegrationService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule],
-      providers: [LMSIntegrationService, LMSIntegrationAdapter],
+      imports: [
+        TestTypeOrmModule,
+        TestConfigModule,
+        FactoryModule,
+        ChatbotModule,
+      ],
+      providers: [
+        LMSIntegrationService,
+        LMSIntegrationAdapter,
+        ChatbotApiService,
+      ],
     }).compile();
 
     service = module.get<LMSIntegrationService>(LMSIntegrationService);

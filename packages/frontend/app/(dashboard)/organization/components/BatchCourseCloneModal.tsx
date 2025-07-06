@@ -1,5 +1,4 @@
 import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
 import {
   BatchCourseCloneAttributes,
   CourseCloneAttributes,
@@ -12,7 +11,6 @@ import { Button, Form, message, Modal } from 'antd'
 import React, { useEffect, useState } from 'react'
 import SelectCourses from './SelectCourses'
 import DefaultCourseSettingsSelection from './DefaultCourseSettingsSelection'
-import { organizationApi } from '@/app/api/organizationApi'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import CustomizeCloneSettings from './CustomizeCloneSettings'
 
@@ -43,7 +41,6 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
     useState<CourseCloneAttributes>({
       ...defaultCourseCloneAttributes,
       professorIds: [-1],
-      useSection: false,
     })
   const [currentStep, setCurrentStep] = useState<CloneSteps>(
     CloneSteps.SelectCourses,
@@ -79,7 +76,6 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
         setDefaultCloneSettings({
           ...defaultCourseCloneAttributes,
           professorIds: [-1],
-          useSection: false,
         })
         setCustomCloneSettings({})
         onClose()
@@ -196,11 +192,6 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
               onClick={async () => {
                 const settings: CourseCloneAttributes =
                   defaultSettingsForm.getFieldsValue()
-                // Loose equality to check that value is null OR undefined
-                if (settings.newSemesterId == null) {
-                  message.warning('Please select a new semester to clone to')
-                  return
-                }
 
                 setDefaultCloneSettings((prev) => ({ ...prev, ...settings }))
                 setCurrentStep((prev: CloneSteps) => prev + 1)
@@ -275,7 +266,7 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
               xxl: '50%',
             }
       }
-      destroyOnClose={true}
+      destroyOnHidden={true}
       maskClosable={false}
       styles={{
         content: {

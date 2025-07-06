@@ -18,6 +18,8 @@ import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { QuestionCircleOutlined } from '@ant-design/icons'
 import CourseCloneFormModal from './CourseCloneFormModal'
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
+import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
 
 type EditCourseProps = {
   courseId: number
@@ -30,6 +32,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
   organization,
   user,
 }) => {
+  const organizationSettings = useOrganizationSettings(organization.id)
   const [courseData, setCourseData] = useState<OrganizationCourseResponse>()
   const [featuresEnabled, setFeaturesEnabled] = useState(false)
   const { userInfo, setUserInfo } = useUserInfo()
@@ -63,7 +66,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
                 name: response.course!.name,
                 semesterId: response.course!.semester?.id,
                 enabled: response.course!.enabled,
-                sectionGroupName: response.course!.sectionGroupName!,
+                sectionGroupName: response.course!.sectionGroupName,
               },
               role: Role.PROFESSOR,
               favourited: uc.favourited,
@@ -135,14 +138,16 @@ const EditCourse: React.FC<EditCourseProps> = ({
           </>
         )}
 
-        <Card variant="outlined" title="Clone Course">
-          <CourseCloneFormModal
-            organization={organization}
-            courseId={courseData.course?.id ?? -1}
-            courseSectionGroupName={courseData.course?.sectionGroupName ?? ''}
-            courseSemesterId={courseData.course?.semester?.id ?? -1}
-          />
-        </Card>
+        {checkCourseCreatePermissions(userInfo, organizationSettings) && (
+          <Card variant="outlined" title="Clone Course">
+            <CourseCloneFormModal
+              organization={organization}
+              courseId={courseData.course?.id ?? -1}
+              courseSectionGroupName={courseData.course?.sectionGroupName ?? ''}
+              courseSemesterId={courseData.course?.semester?.id ?? -1}
+            />
+          </Card>
+        )}
 
         <Card
           variant="outlined"

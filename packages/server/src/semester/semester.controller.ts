@@ -1,4 +1,4 @@
-import { OrganizationRole, SemesterPartial } from '@koh/common';
+import { ERROR_MESSAGES, OrganizationRole, SemesterPartial } from '@koh/common';
 import {
   BadRequestException,
   Body,
@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { SemesterModel } from './semester.entity';
@@ -19,11 +20,20 @@ import { OrganizationRolesGuard } from '../guards/organization-roles.guard';
 import { OrganizationGuard } from 'guards/organization.guard';
 import { OrganizationModel } from 'organization/organization.entity';
 import { Roles } from 'decorators/roles.decorator';
+import { OrgRole } from '../decorators/org-role.decorator';
+import { OrganizationService } from '../organization/organization.service';
 
 @Controller('semesters')
 export class SemesterController {
+  constructor(private organizationService: OrganizationService) {}
+
   @Get(':oid')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard) // safe for anyone to fetch (needed for semester filtering in courses page)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrganizationRolesGuard) // safe for anyone to fetch (needed for semester filtering in courses page)
+  @Roles(
+    OrganizationRole.MEMBER,
+    OrganizationRole.PROFESSOR,
+    OrganizationRole.ADMIN,
+  ) // only allow those in the org to access these
   async getSemesters(
     @Param('oid', ParseIntPipe) organizationId: number,
   ): Promise<SemesterPartial[]> {
@@ -55,6 +65,7 @@ export class SemesterController {
   @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async createSemester(
     @Param('oid', ParseIntPipe) organizationId: number,
+    @OrgRole() orgRole: OrganizationRole,
     @Body() semesterDetails: SemesterPartial,
   ): Promise<SemesterPartial> {
     try {
@@ -63,6 +74,17 @@ export class SemesterController {
       });
     } catch {
       throw new BadRequestException('Organization not found');
+    }
+
+    const orgSettings =
+      await this.organizationService.getOrganizationSettings(organizationId);
+    if (
+      !orgSettings.allowProfCourseCreate &&
+      orgRole == OrganizationRole.PROFESSOR
+    ) {
+      throw new UnauthorizedException(
+        ERROR_MESSAGES.semesterController.notAllowedToCreateSemester(orgRole),
+      );
     }
 
     try {
@@ -85,12 +107,24 @@ export class SemesterController {
     OrganizationGuard,
     EmailVerifiedGuard,
   )
-  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  @Roles(OrganizationRole.ADMIN)
   async updateSemester(
     @Param('oid', ParseIntPipe) organizationId: number,
     @Param('sid', ParseIntPipe) semesterId: number,
+    @OrgRole() orgRole: OrganizationRole,
     @Body() semesterDetails: SemesterPartial,
   ): Promise<string> {
+    const orgSettings =
+      await this.organizationService.getOrganizationSettings(organizationId);
+    if (
+      !orgSettings.allowProfCourseCreate &&
+      orgRole == OrganizationRole.PROFESSOR
+    ) {
+      throw new UnauthorizedException(
+        ERROR_MESSAGES.semesterController.notAllowedToUpdateSemester(orgRole),
+      );
+    }
+
     try {
       await SemesterModel.findOneOrFail({
         where: { id: semesterId, organizationId },
@@ -116,10 +150,23 @@ export class SemesterController {
     OrganizationGuard,
     EmailVerifiedGuard,
   )
+  @Roles(OrganizationRole.ADMIN)
   async deleteSemester(
     @Param('oid', ParseIntPipe) organizationId: number,
     @Param('sid', ParseIntPipe) semesterId: number,
+    @OrgRole() orgRole: OrganizationRole,
   ): Promise<string> {
+    const orgSettings =
+      await this.organizationService.getOrganizationSettings(organizationId);
+    if (
+      !orgSettings.allowProfCourseCreate &&
+      orgRole == OrganizationRole.PROFESSOR
+    ) {
+      throw new UnauthorizedException(
+        ERROR_MESSAGES.semesterController.notAllowedToDeleteSemester(orgRole),
+      );
+    }
+
     try {
       await SemesterModel.findOneOrFail({
         where: { id: semesterId, organizationId },

@@ -16,6 +16,7 @@ export type CourseLmsIntegration = {
   announcements: LMSAnnouncement[]
   students: string[]
   isLoading: boolean
+  isLoadingIntegration: boolean
 }
 
 export function useCourseLmsIntegration(
@@ -28,6 +29,8 @@ export function useCourseLmsIntegration(
   const [announcements, setAnnouncements] = useState<LMSAnnouncement[]>([])
   const [students, setStudents] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isLoadingIntegration, setIsLoadingIntegration] =
+    useState<boolean>(true)
 
   const errorFx = (error: any) => {
     message.error(getErrorMessage(error))
@@ -82,12 +85,13 @@ export function useCourseLmsIntegration(
     setAnnouncements([])
     setStudents([])
     setIsLoading(true)
+    setIsLoadingIntegration(true)
   }
 
   useEffect(() => {
     if (courseId != undefined) {
       if (integration == undefined) {
-        setIsLoading(true)
+        setIsLoadingIntegration(true)
       }
       API.lmsIntegration
         .getCourseIntegration(courseId)
@@ -96,8 +100,8 @@ export function useCourseLmsIntegration(
             setIntegration(response)
           } else {
             resetIntegration()
-            setIsLoading(false)
           }
+          setIsLoadingIntegration(false)
         })
         .catch(errorFx)
     } else {
@@ -112,5 +116,6 @@ export function useCourseLmsIntegration(
     announcements,
     students,
     isLoading,
+    isLoadingIntegration,
   }
 }

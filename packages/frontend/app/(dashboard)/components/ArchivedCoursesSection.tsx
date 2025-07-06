@@ -33,7 +33,7 @@ const columns: ColumnsType<UserCourse> = [
     width: '10%',
     align: 'center',
     render: (semester) => {
-      const popoverContent = (
+      const popoverContent = semester ? (
         <div className="p-2">
           <p>
             <strong>Start Date:</strong>{' '}
@@ -49,11 +49,11 @@ const columns: ColumnsType<UserCourse> = [
             </p>
           )}
         </div>
-      )
+      ) : null
       return (
-        <Popover content={popoverContent} title={semester.name}>
+        <Popover content={popoverContent} title={semester?.name}>
           <Tag color="blue" className="text-base">
-            {semester?.name ?? ''}
+            {semester?.name ?? 'No Semester'}
           </Tag>
         </Popover>
       )

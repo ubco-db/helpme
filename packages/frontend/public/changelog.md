@@ -1,4 +1,48 @@
-## Version 1.4.5 - April 12th, 2025
+## Version 1.5.0 - Semesters, Course Cloning, View Your Chatbot Conversations
+
+*July 5th, 2025*
+
+#### New Features
+
+- ***General***
+  - Users can now see their chatbot history for all previous conversations (under Profile page)
+  - Added a condensed version of the "My Courses" page that shows the courses in a table
+    - Users can also Favourite/Unfavourite courses on the table view to remove them from the standard card view, akin to Canvas  
+- ***Faculty-only***
+  - Added a new semester system
+    - Instead of typing a string, you choose from a list when creating/editing a course
+    - Courses on "My Courses" page are sorted by their semester's end date 
+    - If there is a semester that does not yet exist, professors can go to the "Semester Management" page to create a new one
+    - All previous courses have been moved to the new system
+  - Added course cloning
+    - With customization on what items you want to clone
+  - Added a Resource Selector for LMS integrations, allowing professors to choose what types of resources to synchronize with the chatbot
+  - Added a new Question Types over Time insight
+
+#### Improvements
+
+- Made sweeping changes to backend systems to improve security, performance, and maintainability
+  - Please let us know of any weird behavior or bugs you come across
+- Changed language from "Login with UBC/Google" to "Continue with", and added a (recommended) underneath UBC login (or under Google for organizations that lack SSO login)
+- Fixed an issue where the "Enable Notifications" popup in queues would keep appearing more than intended
+- Fixed an issue where professors were able to hit a cap for asking chatbot questions, and upon doing so, the system disallowing them from interacting with anything chatbot related
+- Renamed the "Chatbot Document Chunks" page to "Chatbot Knowledge Base" 
+- Fixed an issue where professors could not remove admins from their course
+- Added a way to "Decline" a course invite, which just takes you to the "My Courses" page
+- Improved and clarified tooltips in several areas (e.g. for course creation and around the chatbot)
+- Gave titles to updates in the changelog
+- Improved load times on LMS Integrations page
+- Added a warning for courses with long names
+- Fixed an issue where chatbot citations with long document names were not truncated
+- Added a way for admins to keep track of when new users join the system, when their role changes, and who changed their role
+- Organizations can now choose whether or not their professors can create/clone courses/semesters
+- Various small styling fixes and improvements
+
+***
+
+## Version 1.4.5 - Message TA/Student While In Queue
+
+*April 12th, 2025*
 
 #### New Features
 
@@ -17,7 +61,9 @@
 
 ***
 
-## Version 1.4.4 - April 5th, 2025
+## Version 1.4.4
+
+*April 5th, 2025*
 
 #### Improvements
 
@@ -27,7 +73,9 @@
 
 ***
 
-## Version 1.4.3 - Mar 30th, 2025
+## Version 1.4.3 - Preview Chatbot Documents
+
+*Mar 30th, 2025*
 
 #### New Features
 
@@ -36,7 +84,7 @@
     - Previously you would need to provide an external "Source URL" that students can click on to see a preview of the document (e.g. a link to the document on canvas)
     - Now, when you upload a document to the chatbot, the document is now stored in the system and will automatically generate a source link
     - When you now click on a link to the document, it will now show in your browser's built-in pdf viewer
-    - The links to these documents are protected (outside people cannot access them without being in your HelpMe course)
+    - **The links to these documents are protected** (outside people cannot access them without being in your HelpMe course)
 
 #### Improvements
 
@@ -48,7 +96,9 @@
 
 ***
 
-## Version 1.4.2 - Mar 9th, 2025
+## Version 1.4.2
+
+*Mar 9th, 2025*
 
 #### Improvements
 - Fixed the Chatbot Thoughts tooltip so that it can handle larger thoughts better
@@ -57,7 +107,9 @@
 
 ***
 
-## Version 1.4.1 - Mar 4th, 2025
+## Version 1.4.1 - New Local Models
+
+*Mar 4th, 2025*
 
 #### New Features
 
@@ -74,7 +126,9 @@
 
 ***
 
-## Version 1.4.0 - Mar 2nd, 2025
+## Version 1.4.0 - Anytime Question Comments, Better Calendar Events, Queue Chats While Helping, TA Notes, Overhauled Chatbot Questions Page
+
+*Mar 2nd, 2025*
 
 #### New Features
 
@@ -125,7 +179,9 @@
 
 ***
 
-## Version 1.3.0 - Feb 05, 2025
+## Version 1.3.0 - System Chatbot, LMS Synchronize Documents Into Chatbot
+
+*Feb 05, 2025*
 
 #### New Features
 
@@ -147,7 +203,9 @@
 
 ***
 
-## Version 1.2.3 - Feb 02, 2025
+## Version 1.2.3 - Unread Count for Anytime Questions
+
+*Feb 02, 2025*
 
 #### New Features
 
@@ -166,7 +224,9 @@
 
 ***
 
-## Version 1.2.2 - Jan 19, 2025
+## Version 1.2.2
+
+*Jan 19, 2025*
 
 #### Improvements
 
@@ -180,7 +240,9 @@
 
 ***
 
-## Version 1.2.1 - Jan 15, 2025
+## Version 1.2.1 - Chatbot Question -> Anytime Question Conversion
+
+*Jan 15, 2025*
 
 #### New Features
 
@@ -197,7 +259,9 @@
 
 ***
 
-## Version 1.2.0 - Jan 11, 2025
+## Version 1.2.0 - Queue Auto-Cleaning, Start of LMS Integrations
+
+*Jan 11, 2025*
 
 #### New Features
 
@@ -220,7 +284,9 @@
 
 ***
 
-## Version 1.1.1 - Jan 3, 2025
+## Version 1.1.1 - Added Changelog
+
+*Jan 3, 2025*
 
 #### New Features
 
@@ -235,7 +301,9 @@
 
 ***
 
-## Version 1.1.0 - Nov 23, 2024
+## Version 1.1.0 - Queue Locations, Pause Questions, Edit Question Tags, Queue Improvements
+
+*Nov 23, 2024*
 
 #### New Features
 
@@ -258,7 +326,9 @@
 
 ***
 
-## Version 1.0.0 - Oct 2024
+## Version 1.0.0 - Insights Page, Upload Chatbot Documents as Slides
+
+*Oct 2024*
 
 #### New Features
 
@@ -269,7 +339,7 @@
 - ***Faculty-only***
   - Added the **insights** page, allowing faculty to gain some insights to the wait times, help times, what types of questions are being asked, and more
   - Added UI for **task creation/edit/deletion**, making it easier to specify assignments and tasks in queues compared to modifying the queue config JSON
-  - Added a toggle to allow faculty to upload documents as slides to the course chatbot. This will generate descriptions for images in said slides
+  - Added a toggle to allow faculty to upload documents as slides to the course chatbot. This will convert each slide into an image and generate a description of said image
 
 #### Improvements
 
@@ -278,7 +348,9 @@
 
 ***
 
-## Version 0.9.0 - Sep 2024
+## Version 0.9.0
+
+*Sep 2024*
 
 - Initial release
 

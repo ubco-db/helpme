@@ -1,12 +1,13 @@
 import { Card, Button, message, Tag } from 'antd'
 import { useState } from 'react'
 import { Form } from 'antd'
-import { SemesterPartial } from '@koh/common'
+import { OrganizationRole, SemesterPartial } from '@koh/common'
 import { API } from '@/app/api'
 import { SemesterModal } from './SemesterModal'
 import DeleteConfirmationModal from './DeleteConfirmationModal'
 import dayjs from 'dayjs'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 interface SemesterManagementProps {
   orgId: number
@@ -19,6 +20,7 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
   organizationSemesters,
   setOrganizationSemesters,
 }) => {
+  const { userInfo } = useUserInfo()
   const [currentSemesterId, setCurrentSemesterId] = useState<number>(-1) // -1 represents nothing being selected
   const [deletionSemesterName, setDeletionSemesterName] = useState<string>('')
   const [isSemesterCreationModalOpen, setIsSemesterCreationModalOpen] =
@@ -103,8 +105,6 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
       setIsSemesterEditModalOpen(true)
     }
   }
-
-  console.log(currentSemesterId)
 
   const handleEditSemester = async () => {
     const formValues = await semesterForm.validateFields([
@@ -198,25 +198,30 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
           .map((semester) => (
             <Card.Grid
               key={semester.id}
-              className="flex w-[50%] flex-col justify-between gap-2 text-center hover:cursor-pointer"
-              onClick={() => {
-                if (semester.id) {
-                  handleOpenEditSemesterModal(semester.id)
-                } else {
-                  message.error(
-                    'Semester id not set for this semester. Please refresh the page.',
-                  )
-                }
-              }}
+              className={`flex w-[50%] flex-col justify-between gap-2 text-center ${userInfo?.organization?.organizationRole === OrganizationRole.ADMIN ? 'hover:cursor-pointer' : ''}`}
+              onClick={
+                userInfo?.organization?.organizationRole ===
+                OrganizationRole.ADMIN
+                  ? () => {
+                      if (semester.id) {
+                        handleOpenEditSemesterModal(semester.id)
+                      } else {
+                        message.error(
+                          'Semester id not set for this semester. Please refresh the page.',
+                        )
+                      }
+                    }
+                  : undefined
+              }
             >
               <h3 className="text-lg font-semibold">{semester.name}</h3>
               <p>
                 <span className="font-semibold">Start Date:</span>{' '}
-                {semester.startDate.toDateString()}
+                {new Date(semester.startDate).toLocaleDateString()}
               </p>
               <p>
                 <span className="font-semibold">End Date:</span>{' '}
-                {semester.endDate.toDateString()}
+                {new Date(semester.endDate).toLocaleDateString()}
               </p>
               {semester.description && (
                 <p>
@@ -234,17 +239,21 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
                   {semester.color}
                 </Tag>
               </p>
-              <Button
-                danger
-                type="primary"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleConfirmSemesterDelete(semester.id!, semester.name)
-                }}
-                className="mt-2"
-              >
-                Delete
-              </Button>
+              {/* Don't allow profs to delete semesters */}
+              {userInfo?.organization?.organizationRole ===
+                OrganizationRole.ADMIN && (
+                <Button
+                  danger
+                  type="primary"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleConfirmSemesterDelete(semester.id!, semester.name)
+                  }}
+                  className="mt-2"
+                >
+                  Delete
+                </Button>
+              )}
             </Card.Grid>
           ))
       ) : (

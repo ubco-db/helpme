@@ -39,7 +39,7 @@ export default function UserAvatar({
   ...props
 }: UserAvatarProps): ReactElement {
   const fontSize =
-    props.size && Number(props.size) > 80 ? Number(props.size) / 4 : 18
+    props.size && Number(props.size) > 80 ? Number(props.size) / 4 : 14
   const sizeNumber = Number(props.size) || 40
 
   return photoURL && username ? (
@@ -91,7 +91,10 @@ export default function UserAvatar({
     </Avatar>
   ) : (
     <Avatar
-      className={cn('bg-[#1abc9c]', className)}
+      style={{
+        backgroundColor: colour ?? '#1abc9c',
+      }}
+      className={className}
       {...props}
       icon={<UserOutlined />}
     />
