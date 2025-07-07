@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { API } from '@/app/api'
 import { getBrightness, getErrorMessage } from '@/app/utils/generalUtils'
 import {
+  AlertType,
   ClosedQuestionStatus,
   QuestionTypeParams,
   asyncQuestionStatus,
@@ -12,20 +13,23 @@ import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../components/QuestionTagElement'
 import tinycolor from 'tinycolor2'
 import { QuestionCircleOutlined } from '@ant-design/icons'
+import { useRouter } from 'next/navigation'
 
 type ConvertQueueQToAnytimeQModalProps = {
   isOpen: boolean
   handleClose: () => void
   cid: number
   qid: number
+  onCancel?: () => void
 }
 
 const ConvertQueueQToAnytimeQModal: React.FC<
   ConvertQueueQToAnytimeQModalProps
-> = ({ isOpen, handleClose, cid, qid }) => {
+> = ({ isOpen, handleClose, cid, qid, onCancel }) => {
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const [questionTypes] = useQuestionTypes(cid, qid)
+  const router = useRouter()
 
   const tagRender = (props: {
     label: React.ReactNode
@@ -129,8 +133,24 @@ const ConvertQueueQToAnytimeQModal: React.FC<
         })
       }
 
+      try {
+        const alerts = await API.alerts.get(cid)
+        const queueAlert = alerts.alerts?.find(
+          (alert) =>
+            alert.alertType === AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE &&
+            (alert.payload as any)?.queueId === qid,
+        )
+        if (queueAlert) {
+          await API.alerts.close(queueAlert.id)
+        }
+      } catch (alertError) {
+        console.warn('Failed to close alert:', alertError)
+      }
+
       message.success('Successfully converted your question!')
       handleClose()
+
+      router.push(`/course/${cid}/queue/${qid}`)
     } catch (e) {
       const errorMessage = getErrorMessage(e)
       message.error(errorMessage)
@@ -142,7 +162,12 @@ const ConvertQueueQToAnytimeQModal: React.FC<
   return (
     <Modal
       open={isOpen}
-      onCancel={handleClose}
+      onCancel={() => {
+        localStorage.removeItem(`convertLoading_${cid}_${qid}`)
+        onCancel?.()
+        handleClose()
+        router.push(`/course/${cid}/queue/${qid}`)
+      }}
       title={
         <span>
           Convert Queue Question to Anytime Question

@@ -425,20 +425,6 @@ export default function AsyncCentrePage(
           ))}
         </div>
         <div className="flex w-full flex-wrap items-center justify-between gap-2 md:w-auto md:flex-nowrap">
-          <RenderQuestionTypeFilter />
-          <div className="flex w-full items-center justify-between gap-2 md:w-auto md:justify-normal">
-            <Button
-              type="primary"
-              onClick={() => setCreateAsyncQuestionModalOpen(true)}
-            >
-              Ask a question
-            </Button>
-            {isStaff && (
-              <EditQueueButton
-                onClick={() => setEditAsyncCentreModalOpen(true)}
-              />
-            )}
-          </div>
           <ConvertChatbotQToAnytimeQModal
             courseId={courseId}
             open={isConvertChatbotQModalOpen}
@@ -462,22 +448,6 @@ export default function AsyncCentrePage(
             cid={courseId}
             qid={qid}
           />
-          {isStaff && (
-            <Checkbox
-              className="ml-auto"
-              checked={showStudents}
-              onChange={(e) => setShowStudents(e.target.checked)}
-            >
-              Show Students (Staff Only)
-              <Tooltip
-                title={
-                  "All students posts and comments are anonymized to other students (They get a different anonymous animal on each question). Staff can click this checkbox to see who posted what, just be careful not to mention the students' names in the answer or comments!"
-                }
-              >
-                <QuestionCircleOutlined className="ml-2 text-gray-500" />
-              </Tooltip>
-            </Checkbox>
-          )}
         </div>
         {isStaff && (
           <>
