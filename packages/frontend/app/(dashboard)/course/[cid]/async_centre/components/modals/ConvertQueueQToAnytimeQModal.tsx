@@ -112,10 +112,66 @@ const ConvertQueueQToAnytimeQModal: React.FC<
           const questions = await API.questions.index(qid)
           const myQuestion = questions.yourQuestions?.[0]
           if (myQuestion?.text) {
+            // Put the entire question text in the body
             form.setFieldsValue({
-              abstract: myQuestion.text.substring(0, 100),
-              body: myQuestion.text.length > 100 ? myQuestion.text : '',
+              body: myQuestion.text,
             })
+
+            // Generate abstract using chatbot service
+            try {
+              const data = {
+                question: `Create a concise title (max 100 chars) for this question. Return ONLY the title, no explanations: ${myQuestion.text}`,
+                history: [],
+                onlySaveInChatbotDB: true,
+              }
+              const response = await API.chatbot.studentsOrStaff.askQuestion(
+                cid,
+                data,
+              )
+              let generatedAbstract = response.chatbotRepoVersion.answer.trim()
+
+              // Clean up the response - remove quotes, extra text, etc.
+              generatedAbstract = generatedAbstract
+                .replace(/^["']|["']$/g, '') // Remove surrounding quotes
+                .replace(/^Title:?\s*/i, '') // Remove "Title:" prefix
+                .replace(/^Abstract:?\s*/i, '') // Remove "Abstract:" prefix
+                .replace(/^Question:?\s*/i, '') // Remove "Question:" prefix
+                .replace(/^Here's?\s*a\s*title:?\s*/i, '') // Remove "Here's a title:" prefix
+                .replace(/^The\s*title\s*is:?\s*/i, '') // Remove "The title is:" prefix
+                .replace(/^I\s*would\s*suggest:?\s*/i, '') // Remove "I would suggest:" prefix
+                .replace(/^A\s*concise\s*title\s*would\s*be:?\s*/i, '') // Remove explanatory text
+                .replace(/^This\s*question\s*is\s*about:?\s*/i, '') // Remove "This question is about:" prefix
+                .replace(/^Based\s*on\s*the\s*question:?\s*/i, '') // Remove "Based on the question:" prefix
+                .replace(/^For\s*this\s*question:?\s*/i, '') // Remove "For this question:" prefix
+                .trim()
+
+              // If the response is still too long or contains newlines, fallback
+              if (
+                generatedAbstract.length > 100 ||
+                generatedAbstract.includes('\n')
+              ) {
+                // Create a simple fallback title
+                const words = myQuestion.text.split(' ').slice(0, 8) // Take first 8 words
+                const fallbackTitle = words.join(' ')
+                generatedAbstract =
+                  fallbackTitle.length > 100
+                    ? fallbackTitle.substring(0, 97) + '...'
+                    : fallbackTitle
+              }
+
+              form.setFieldsValue({
+                abstract: generatedAbstract,
+              })
+            } catch (chatbotError) {
+              // Fallback to first 100 characters if chatbot fails
+              form.setFieldsValue({
+                abstract: myQuestion.text.substring(0, 100),
+              })
+              console.warn(
+                'Failed to generate abstract with chatbot:',
+                chatbotError,
+              )
+            }
           }
         } catch (e) {
           message.error('Failed to fetch queue question text.')
@@ -125,7 +181,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
     if (isOpen) {
       fetchQuestion()
     }
-  }, [isOpen, qid, form])
+  }, [isOpen, qid, form, cid])
 
   const onFinish = async (values: {
     abstract: string
@@ -244,8 +300,8 @@ const ConvertQueueQToAnytimeQModal: React.FC<
     >
       <Form.Item
         name="abstract"
-        label="Question Abstract"
-        tooltip="A short summary/description of the question (or the question itself)."
+        label="Question Abstract (AI-Generated)"
+        tooltip="An AI-generated short summary of your question. You can edit this if needed."
         required={true}
         rules={[
           { required: true, message: 'Please input a title!' },
@@ -256,7 +312,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
         ]}
       >
         <Input
-          placeholder="A short summary of your question"
+          placeholder="AI will generate a title based on your question"
           count={{
             show: true,
             max: 100,
@@ -265,12 +321,14 @@ const ConvertQueueQToAnytimeQModal: React.FC<
       </Form.Item>
       <Form.Item
         name="body"
-        label="Question Body (Optional)"
-        tooltip="Your full question text. The placeholder text is just an example."
+        label="Question Body"
+        tooltip="Full question text from the queue."
+        required={true}
+        rules={[{ required: true, message: 'Question body is required!' }]}
       >
         <Input.TextArea
           rows={4}
-          placeholder="Add more details here"
+          placeholder="Your question text will appear here"
           autoSize={{ minRows: 3, maxRows: 6 }}
           allowClear
         />
