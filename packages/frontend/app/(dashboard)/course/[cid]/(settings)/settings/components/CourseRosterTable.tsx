@@ -230,76 +230,66 @@ const RosterItem: React.FC<{
       </Row>
 
       <Row className="flex w-full items-center justify-around md:justify-end">
-        <Dropdown
-          menu={{
-            items: [
-              role !== Role.PROFESSOR
-                ? {
-                    key: Role.PROFESSOR,
-                    label: 'Professor',
-                  }
-                : null,
-              role !== Role.TA
-                ? {
-                    key: Role.TA,
-                    label: 'Teaching Assistant',
-                  }
-                : null,
-              role !== Role.STUDENT
-                ? {
-                    key: Role.STUDENT,
-                    label: 'Student',
-                  }
-                : null,
-            ].filter(Boolean),
-            onClick: (e) => {
-              const confirmRoleChange = () => {
-                handleRoleChange(item.id, e.key as Role, item.name ?? '')
-              }
+        {userInfo.id !== item.id && (
+          <Dropdown
+            menu={{
+              items: [
+                role !== Role.PROFESSOR
+                  ? {
+                      key: Role.PROFESSOR,
+                      label: 'Professor',
+                    }
+                  : null,
+                role !== Role.TA
+                  ? {
+                      key: Role.TA,
+                      label: 'Teaching Assistant',
+                    }
+                  : null,
+                role !== Role.STUDENT
+                  ? {
+                      key: Role.STUDENT,
+                      label: 'Student',
+                    }
+                  : null,
+              ].filter(Boolean),
+              onClick: (e) => {
+                const confirmRoleChange = () => {
+                  handleRoleChange(item.id, e.key as Role, item.name ?? '')
+                }
 
-              Modal.confirm({
-                title: <div className="font-bold">Warning</div>,
-                content: (
-                  <div>
-                    You are about to change role of{' '}
-                    <span className="font-bold">{item.name}</span> to{' '}
-                    <span className="font-bold">{e.key.toUpperCase()}</span>
-                    .
-                    <br />
-                    {userInfo.id === item.id && (
-                      <>
-                        <br />
-                        <span className="text-red-500">
-                          You are about to change your own role. This will lock
-                          you out of being able to modify your course.
-                        </span>
-                        <br />
-                        <span className="text-red-500">
-                          Only proceed if you were mistakenly given a professor
-                          role.
-                        </span>
-                        <br />
-                      </>
-                    )}
-                    <br />
-                    Are you sure you want to proceed?
-                  </div>
-                ),
-                okText: 'Yes',
-                okType: 'danger',
-                cancelText: 'No',
-                onOk() {
-                  confirmRoleChange()
-                },
-              })
-            },
-          }}
-          className="flex-grow-0"
-        >
-          <a className="ant-dropdown-link" onClick={(e) => e.preventDefault()}>
-            Change Role <DownOutlined />
-          </a>
-        </Dropdown>
+                Modal.confirm({
+                  title: <div className="font-bold">Warning</div>,
+                  content: (
+                    <div>
+                      You are about to change role of{' '}
+                      <span className="font-bold">{item.name}</span> to{' '}
+                      <span className="font-bold">{e.key.toUpperCase()}</span>
+                      .
+                      <br />
+                      <br />
+                      Are you sure you want to proceed?
+                    </div>
+                  ),
+                  okText: 'Yes',
+                  okType: 'danger',
+                  cancelText: 'No',
+                  onOk() {
+                    confirmRoleChange()
+                  },
+                })
+              },
+            }}
+            className="flex-grow-0"
+          >
+            <a
+              className="ant-dropdown-link"
+              onClick={(e) => e.preventDefault()}
+            >
+              Change Role <DownOutlined />
+            </a>
+          </Dropdown>
+        )}
 
         {(role === Role.TA || role === Role.PROFESSOR) && (
           // NOTE: if you modify this popover, you may also want to make changes to the popover in StaffList
@@ -380,7 +370,7 @@ const RosterItem: React.FC<{
                   <Notebook className="p-[0.075rem] transition-colors duration-200 ease-out hover:text-[#5ba1d4]" />
                 )
               }
-              className="mx-2"
+              className={cn(userInfo.id !== item.id && 'mx-2')}
             />
           </Popover>
         )}
