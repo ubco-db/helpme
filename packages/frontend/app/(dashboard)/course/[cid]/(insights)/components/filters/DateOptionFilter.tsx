@@ -1,6 +1,6 @@
 import { DateRangeType } from '@koh/common'
 import React, { useState } from 'react'
-import { Select, DatePicker } from 'antd'
+import { DatePicker, Select } from 'antd'
 import dayjs from 'dayjs'
 import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/FilterWrapper'
 
@@ -36,11 +36,22 @@ const DateSelectOptions: { [key in DateSelectType]: string } = {
 
 type DateOptionFilterProps = {
   setRange: (value: DateRangeType) => void
+  allowNone?: boolean
+  dontShowTitle?: boolean
+  customOnly?: boolean
+  dontIncludeDateSelectOptions?: boolean
 }
 
-const DateOptionFilter: React.FC<DateOptionFilterProps> = ({ setRange }) => {
-  const [selectedOption, setSelectedOption] =
-    useState<DateFilterOptionType>('All_Time')
+const DateOptionFilter: React.FC<DateOptionFilterProps> = ({
+  setRange,
+  allowNone,
+  dontShowTitle,
+  customOnly,
+  dontIncludeDateSelectOptions,
+}) => {
+  const [selectedOption, setSelectedOption] = useState<DateFilterOptionType>(
+    customOnly ? 'Custom' : 'All_Time',
+  )
   const [selectedType, setSelectedType] = useState<DateSelectType>('date')
 
   const getDateRange = (option: DateFilterOptionType) => {
@@ -86,35 +97,51 @@ const DateOptionFilter: React.FC<DateOptionFilterProps> = ({ setRange }) => {
     )
   }
 
-  return (
-    <FilterWrapper title={'Timeframe'}>
+  const filter = () => {
+    return (
       <div className="flex flex-row gap-4">
-        <Select
-          className="min-w-32 flex-grow"
-          value={selectedOption}
-          onChange={(value) => {
-            setSelectedOption(value)
-            const dateRange = getDateRange(value)
-            if (dateRange != undefined) {
-              setRange(dateRange)
-            }
-          }}
-        >
-          {Object.keys(DateFilterOptions).map((key, index) => (
-            <Option key={index} value={key}>
-              {DateFilterOptions[key as DateFilterOptionType]}
-            </Option>
-          ))}
-        </Select>
+        {!customOnly && (
+          <Select
+            className="min-w-32 flex-grow"
+            value={selectedOption}
+            onChange={(value) => {
+              setSelectedOption(value)
+              if ((value as string) == 'None') {
+                setRange({
+                  start: '',
+                  end: '',
+                })
+                return
+              }
+              const dateRange = getDateRange(value)
+              if (dateRange != undefined) {
+                setRange(dateRange)
+              }
+            }}
+          >
+            {allowNone && (
+              <Option key={'NoneOption'} value={'None'}>
+                None
+              </Option>
+            )}
+            {Object.keys(DateFilterOptions).map((key, index) => (
+              <Option key={index} value={key}>
+                {DateFilterOptions[key as DateFilterOptionType]}
+              </Option>
+            ))}
+          </Select>
+        )}
         {selectedOption == 'Custom' && (
           <div className="flex flex-row gap-4">
-            <Select value={selectedType} onChange={setSelectedType}>
-              {Object.keys(DateSelectOptions).map((key, index) => (
-                <Option key={index} value={key.toLowerCase()}>
-                  {DateSelectOptions[key as DateSelectType]}
-                </Option>
-              ))}
-            </Select>
+            {!dontIncludeDateSelectOptions && (
+              <Select value={selectedType} onChange={setSelectedType}>
+                {Object.keys(DateSelectOptions).map((key, index) => (
+                  <Option key={index} value={key.toLowerCase()}>
+                    {DateSelectOptions[key as DateSelectType]}
+                  </Option>
+                ))}
+              </Select>
+            )}
             <RangePicker
               picker={selectedType}
               maxDate={dayjs(new Date().toString())}
@@ -123,8 +150,14 @@ const DateOptionFilter: React.FC<DateOptionFilterProps> = ({ setRange }) => {
           </div>
         )}
       </div>
-    </FilterWrapper>
-  )
+    )
+  }
+
+  if (dontShowTitle) {
+    return filter()
+  }
+
+  return <FilterWrapper title={'Timeframe'}>{filter()}</FilterWrapper>
 }
 
 export default DateOptionFilter

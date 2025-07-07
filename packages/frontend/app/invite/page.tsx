@@ -11,7 +11,7 @@ import CenteredSpinner from '../components/CenteredSpinner'
 import InviteCard from './components/InviteCard'
 import Image from 'next/image'
 
-export default function CourseInvitePage(): ReactElement {
+function CourseInviteContent(): ReactElement {
   const searchParams = useSearchParams()
   const router = useRouter()
   const cid = Number(searchParams.get('cid'))
@@ -22,7 +22,7 @@ export default function CourseInvitePage(): ReactElement {
   const [profile, setProfile] = useState<User>()
   useEffect(() => {
     const fetchUserDetails = async () => {
-      const userDetails = await userApi
+      await userApi
         .getUser()
         .then((userDetails) => {
           setProfile(userDetails)
@@ -40,12 +40,12 @@ export default function CourseInvitePage(): ReactElement {
       await API.course
         .getLimitedCourseResponse(cid, code)
         .then((res) => {
-          setCourse(res)
           // if the user is not found, redirect to login
           // These needs to be done after getLimitedCourseResponse does its thing since that is the endpoint that sets the cookies for redirect
           if (errorGettingUser) {
             router.push('/login')
           }
+          setCourse(res)
         })
         .catch(() => {
           setErrorGettingCourse(true)
@@ -103,7 +103,7 @@ export default function CourseInvitePage(): ReactElement {
     return <CenteredSpinner tip="Loading Course..." />
   } else {
     return (
-      <Suspense fallback={<CenteredSpinner tip="Loading.." />}>
+      <>
         <title>{`HelpMe - Invitation to join '${course.name}'`}</title>
         <div className="mt-20 flex items-center justify-center">
           {!profile.organization ? (
@@ -165,7 +165,15 @@ export default function CourseInvitePage(): ReactElement {
             />
           )}
         </div>
-      </Suspense>
+      </>
     )
   }
+}
+
+export default function CourseInvitePage(): ReactElement {
+  return (
+    <Suspense fallback={<CenteredSpinner tip="Loading Invite..." />}>
+      <CourseInviteContent />
+    </Suspense>
+  )
 }

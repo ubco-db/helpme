@@ -3,10 +3,12 @@ import {
   EntitySubscriberInterface,
   EventSubscriber,
   InsertEvent,
+  RemoveEvent,
 } from 'typeorm';
 import { DesktopNotifModel } from './desktop-notif.entity';
 import { NotificationService } from './notification.service';
 import { InjectDataSource } from '@nestjs/typeorm';
+import { RedisProfileService } from 'redisProfile/redis-profile.service';
 
 @EventSubscriber()
 export class DesktopNotifSubscriber
@@ -17,6 +19,7 @@ export class DesktopNotifSubscriber
     @InjectDataSource()
     dataSource: DataSource,
     notifService: NotificationService,
+    private readonly redisProfileService: RedisProfileService,
   ) {
     this.notifService = notifService;
     dataSource.subscribers.push(this);
@@ -32,5 +35,12 @@ export class DesktopNotifSubscriber
       event.entity,
       "You've successfully signed up for desktop notifications!",
     );
+    await this.redisProfileService.deleteProfile(`u:${event.entity.userId}`);
+  }
+
+  async afterRemove(event: RemoveEvent<DesktopNotifModel>): Promise<void> {
+    if (event.entity && event.entity.userId) {
+      await this.redisProfileService.deleteProfile(`u:${event.entity.userId}`);
+    }
   }
 }

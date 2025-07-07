@@ -1,7 +1,8 @@
-import { Role, User } from '@koh/common'
+import { OrganizationSettingsResponse, Role, User } from '@koh/common'
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import * as Sentry from '@sentry/nextjs'
+import { OrganizationRole } from '@/app/typings/user'
 
 /**
  * A utility function to merge Tailwind CSS classes with clsx. "cn" stands for className.
@@ -268,4 +269,15 @@ export function parseThinkBlock(answer: string) {
   const cleanAnswer = answer.replace(thinkRegex, '').trim()
 
   return { thinkText, cleanAnswer }
+}
+
+export function checkCourseCreatePermissions(
+  userInfo?: User,
+  organizationSettings?: OrganizationSettingsResponse,
+) {
+  return !!(
+    userInfo?.organization?.organizationRole == OrganizationRole.ADMIN ||
+    (userInfo?.organization?.organizationRole == OrganizationRole.PROFESSOR &&
+      organizationSettings?.allowProfCourseCreate)
+  )
 }

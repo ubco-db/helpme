@@ -41,7 +41,7 @@ export class QueueModel extends BaseEntity {
   courseId: number;
 
   @Column('text')
-  room: string;
+  room: string; // queue name
 
   @OneToMany((type) => QuestionModel, (qm) => qm.queue)
   @Exclude()
@@ -71,7 +71,7 @@ export class QueueModel extends BaseEntity {
   isProfessorQueue: boolean;
 
   @Column({ default: false })
-  isDisabled: boolean;
+  isDisabled: boolean; // TODO: replace with @deletedAt column
 
   @OneToMany((type) => QuestionTypeModel, (qtm) => qtm.queue)
   questionTypes: QuestionTypeModel[];

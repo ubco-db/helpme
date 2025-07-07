@@ -6,8 +6,6 @@ import {
 } from '@koh/common';
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AlertModel } from 'alerts/alerts.entity';
-import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
-import { LastRegistrationModel } from 'login/last-registration-model.entity';
 import { DesktopNotifModel } from 'notification/desktop-notif.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -141,7 +139,6 @@ export class SeedController {
     await this.seedService.deleteAll(OrganizationCourseModel);
     await this.seedService.deleteAll(UserSubscriptionModel);
     await this.seedService.deleteAll(OrganizationUserModel);
-    await this.seedService.deleteAll(LastRegistrationModel);
     await this.seedService.deleteAll(QuestionModel);
     await this.seedService.deleteAll(AsyncQuestionModel);
     await this.seedService.deleteAll(QuestionGroupModel);
@@ -155,7 +152,6 @@ export class SeedController {
     await this.seedService.deleteAll(ChatTokenModel);
     await this.seedService.deleteAll(UserTokenModel);
     await this.seedService.deleteAll(UserModel);
-    await this.seedService.deleteAll(CourseSectionMappingModel);
     await this.seedService.deleteAll(CourseModel);
     await this.seedService.deleteAll(SemesterModel);
     await this.seedService.deleteAll(OrganizationModel);
@@ -272,6 +268,7 @@ export class SeedController {
         name: 'CS 310',
         timezone: 'America/Los_Angeles',
         semester: semester2,
+        sectionGroupName: '001',
       });
     }
 
@@ -463,6 +460,18 @@ export class SeedController {
         user: user5,
         role: Role.PROFESSOR,
         course: course1,
+      });
+
+      await this.factoryService.UserCourseFactory.create({
+        user: user5,
+        role: Role.PROFESSOR,
+        course: course2,
+      });
+
+      await this.factoryService.UserCourseFactory.create({
+        user: user5,
+        role: Role.PROFESSOR,
+        course: course2,
       });
 
       await this.factoryService.userSubscriptionFactory.create({

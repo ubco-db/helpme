@@ -5,12 +5,16 @@ import {
   Entity,
   JoinColumn,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { OrganizationUserModel } from './organization-user.entity';
 import { OrganizationCourseModel } from './organization-course.entity';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 import { SemesterModel } from '../semester/semester.entity';
+import { SuperCourseModel } from 'course/super-course.entity';
+import { OrganizationSettingsModel } from './organization_settings.entity';
+import { OrganizationRoleHistory } from './organization_role_history.entity';
 
 @Entity('organization_model')
 export class OrganizationModel extends BaseEntity {
@@ -45,6 +49,20 @@ export class OrganizationModel extends BaseEntity {
   ssoUrl: string;
 
   @Exclude()
+  @OneToOne(
+    (type) => OrganizationSettingsModel,
+    (organizationSettings) => organizationSettings.organization,
+  )
+  organizationSettings: OrganizationSettingsModel;
+
+  @Exclude()
+  @OneToMany(
+    (type) => OrganizationRoleHistory,
+    (roleHistory) => roleHistory.organization,
+  )
+  organizationRoleHistory: OrganizationRoleHistory[];
+
+  @Exclude()
   @JoinColumn({ name: 'organizationId' })
   @OneToMany((type) => SemesterModel, (semester) => semester.organization)
   semesters: SemesterModel[];
@@ -72,4 +90,9 @@ export class OrganizationModel extends BaseEntity {
     (integration) => integration.organization,
   )
   organizationIntegrations: LMSOrganizationIntegrationModel[];
+
+  @Exclude()
+  @JoinColumn({ name: 'organizationId' })
+  @OneToMany(() => SuperCourseModel, (superCourse) => superCourse.organization)
+  superCourses: SuperCourseModel[];
 }

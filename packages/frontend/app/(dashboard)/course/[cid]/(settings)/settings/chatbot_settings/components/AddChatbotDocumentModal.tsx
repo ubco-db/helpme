@@ -7,15 +7,15 @@ import {
   InboxOutlined,
 } from '@ant-design/icons'
 import {
-  Modal,
+  Alert,
   Form,
   Input,
-  Progress,
-  Switch,
   message,
+  Modal,
   Popconfirm,
-  Alert,
+  Progress,
   Segmented,
+  Switch,
 } from 'antd'
 import Dragger from 'antd/es/upload/Dragger'
 import { useState } from 'react'
@@ -46,6 +46,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
   const [confirmPopoverOpen, setConfirmPopoverOpen] = useState(false)
 
   const addDocument = async () => {
+    setConfirmPopoverOpen(false)
     setLoading(true)
     try {
       const formData = await form.validateFields()
@@ -112,7 +113,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
       open={open}
       onCancel={() => !loading && onClose()}
       closable={!loading}
-      destroyOnClose
+      destroyOnHidden
       okButtonProps={{
         autoFocus: true,
         htmlType: 'submit',
@@ -136,33 +137,35 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
       footer={(_, { OkBtn, CancelBtn }) => (
         <div className={`flex flex-wrap justify-end gap-2 md:gap-3`}>
           <CancelBtn />
-          <Popconfirm
-            title={
-              <div className="flex max-w-80 flex-col gap-y-2">
-                <p>
-                  <b className="font-semibold">
-                    This may take a few minutes to process
-                  </b>
-                  ; feel free to open a new tab and do something else during
-                  that time.
-                </p>
-                <p>
-                  Any errors that occur during processing will be shown here.
-                </p>
-                <p>Would you like to continue?</p>
-              </div>
-            }
-            onConfirm={addDocument}
-            okText="Yes"
-            icon={<ExclamationCircleFilled className="text-blue-500" />}
-            cancelText="No"
-            open={confirmPopoverOpen}
-            onOpenChange={(open) => setConfirmPopoverOpen(open)}
-            okButtonProps={{ className: 'px-4' }}
-            cancelButtonProps={{ className: 'px-4' }}
-          >
+          <div>
             <OkBtn />
-          </Popconfirm>
+            <Popconfirm
+              title={
+                <div className="flex max-w-80 flex-col gap-y-2">
+                  <p>
+                    <b className="font-semibold">
+                      This may take a few minutes to process
+                    </b>
+                    ; feel free to open a new tab and do something else during
+                    that time.
+                  </p>
+                  <p>
+                    Any errors that occur during processing will be shown here.
+                  </p>
+                  <p>Would you like to continue?</p>
+                </div>
+              }
+              onConfirm={addDocument}
+              okText="Yes"
+              icon={<ExclamationCircleFilled className="text-blue-500" />}
+              cancelText="No"
+              open={confirmPopoverOpen}
+              onCancel={() => setConfirmPopoverOpen(false)}
+              okButtonProps={{ className: 'px-4' }}
+              cancelButtonProps={{ className: 'px-4' }}
+              placement={'bottomRight'}
+            ></Popconfirm>
+          </div>
         </div>
       )}
     >
@@ -261,7 +264,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
               <Form.Item
                 name="isSlideDeck"
                 label="Parse document as slides"
-                tooltip="By default images/graphics embedded in your uploaded files will not be detected by the chatbot. Ticking this will transform pages of the document into images and automatically generate AI summaries of said images (using OpenAI's ChatGPT). This is useful for any document that isn't just text. Warning that it will take a lot longer to process."
+                tooltip="By default images/graphics embedded in your uploaded files will not be detected by the chatbot. Ticking this will transform pages of the document into images and automatically generate AI summaries of said images. This is useful for any document that isn't just text. Warning that it will take a lot longer to process."
               >
                 <Switch
                   defaultChecked={isSlideDeck}

@@ -1,5 +1,11 @@
-import { ChartContainer } from '@/app/components/ui/chart'
-import { Scatter, ScatterChart, CartesianGrid } from 'recharts'
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/app/components/ui/chart'
+import { Scatter, ScatterChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import React, { useMemo } from 'react'
 import {
   AxisChartClasses,
@@ -7,10 +13,7 @@ import {
   ChartComponentProps,
   PointChartProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
-import {
-  getAxisComponents,
-  getLegendAndTooltipComponents,
-} from '@/app/(dashboard)/course/[cid]/(insights)/components/charts/ChartFunctions'
+import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions'
 
 const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -64,25 +67,55 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     >
       <ScatterChart data={chartData}>
         <CartesianGrid vertical={verticalAxis} />
-        {getAxisComponents(
-          chartData,
-          valueKeys,
-          tickMargin,
-          verticalAxis,
-          tickLine,
-          axisLine,
-          tickFormatter,
-          minTickGap,
-          angle,
-          xType,
-          yType,
+        {(xType == 'numeric' && (
+          <XAxis
+            type={'number'}
+            dataKey={'key'}
+            tickLine={tickLine}
+            tickMargin={tickMargin}
+            axisLine={axisLine}
+            tickFormatter={tickFormatter}
+            domain={generateAxisRange(chartData, ['key'])}
+          />
+        )) || (
+          <XAxis
+            dataKey="key"
+            tickLine={tickLine}
+            tickMargin={tickMargin}
+            axisLine={axisLine}
+            tickFormatter={tickFormatter}
+          />
         )}
-        {getLegendAndTooltipComponents(
-          includeLegend,
-          includeTooltip,
-          labelFormatter,
-          valueFormatter,
-          legendFormatter,
+        {(yType == 'category' && (
+          <YAxis
+            tickLine={tickLine}
+            tickMargin={tickMargin}
+            axisLine={axisLine}
+            hide={!verticalAxis}
+          />
+        )) || (
+          <YAxis
+            type="number"
+            domain={generateAxisRange(chartData, valueKeys)}
+            tickLine={tickLine}
+            tickMargin={tickMargin}
+            axisLine={axisLine}
+            hide={!verticalAxis}
+          />
+        )}
+        {includeTooltip && (
+          <ChartTooltip
+            formatter={valueFormatter}
+            labelFormatter={labelFormatter}
+            cursor={false}
+            content={<ChartTooltipContent />}
+          />
+        )}
+        {includeLegend && (
+          <ChartLegend
+            formatter={legendFormatter}
+            content={<ChartLegendContent />}
+          />
         )}
         {valueKeys &&
           valueFills &&

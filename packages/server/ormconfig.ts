@@ -5,7 +5,6 @@ import { DataSourceOptions } from 'typeorm';
 import { AdminUserModel } from './src/admin/admin-user.entity';
 import { CourseModel } from './src/course/course.entity';
 import { SemesterModel } from './src/semester/semester.entity';
-import { CourseSectionMappingModel } from './src/login/course-section-mapping.entity';
 import { DesktopNotifModel } from './src/notification/desktop-notif.entity';
 import { EventModel } from './src/profile/event-model.entity';
 import { UserCourseModel } from './src/profile/user-course.entity';
@@ -14,7 +13,6 @@ import { QuestionModel } from './src/question/question.entity';
 import { QuestionGroupModel } from './src/question/question-group.entity';
 import { QueueModel } from './src/queue/queue.entity';
 import { AlertModel } from './src/alerts/alerts.entity';
-import { LastRegistrationModel } from './src/login/last-registration-model.entity';
 import { QuestionTypeModel } from './src/questionType/question-type.entity';
 import { AsyncQuestionModel } from './src/asyncQuestion/asyncQuestion.entity';
 import { ChatbotQuestionModel } from './src/chatbot/question.entity';
@@ -43,7 +41,9 @@ import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entit
 import { UnreadAsyncQuestionModel } from './src/asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from './src/asyncQuestion/asyncQuestionComment.entity';
 import { ChatbotDocPdfModel } from './src/chatbot/chatbot-doc-pdf.entity';
-
+import { SuperCourseModel } from './src/course/super-course.entity';
+import { OrganizationSettingsModel } from './src/organization/organization_settings.entity';
+import { OrganizationRoleHistory } from './src/organization/organization_role_history.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -74,10 +74,9 @@ const typeorm: DataSourceOptions = {
   entities: [
     CourseModel,
     MailServiceModel,
-    UserSubscriptionModel,
-    CourseSectionMappingModel,
     SemesterModel,
     UserModel,
+    UserSubscriptionModel,
     UserCourseModel,
     QuestionModel,
     ChatbotQuestionModel,
@@ -92,7 +91,6 @@ const typeorm: DataSourceOptions = {
     AlertModel,
     CalendarModel,
     CalendarStaffModel,
-    LastRegistrationModel,
     QuestionDocumentModel,
     OrganizationUserModel,
     OrganizationModel,
@@ -113,6 +111,9 @@ const typeorm: DataSourceOptions = {
     UnreadAsyncQuestionModel,
     LMSAnnouncementModel,
     ChatbotDocPdfModel,
+    SuperCourseModel,
+    OrganizationSettingsModel,
+    OrganizationRoleHistory,
   ],
   logging:
     process.env.NODE_ENV !== 'production'

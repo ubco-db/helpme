@@ -159,12 +159,12 @@ export default function LMSIntegrationsPage(): ReactElement {
   return (
     <Card
       title={'Learning Management Systems'}
-      bordered={true}
+      variant="outlined"
       style={{ marginTop: 10, marginBottom: 10 }}
     >
       <div className={'flex flex-col items-center gap-2'}>
         <Table
-          bordered={true}
+          bordered
           dataSource={lmsIntegrations ?? []}
           pagination={false}
           className={'w-full'}

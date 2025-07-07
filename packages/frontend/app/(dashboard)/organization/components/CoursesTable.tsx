@@ -3,10 +3,14 @@
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { SearchOutlined } from '@ant-design/icons'
-import { CourseResponse } from '@koh/common'
-import { Button, Col, Input, List, Pagination, Row, Space, Tag } from 'antd'
+import { CourseResponse, GetOrganizationResponse } from '@koh/common'
+import { Button, Col, Input, List, Pagination, Row, Tag } from 'antd'
 import { useEffect, useState } from 'react'
 import useSWR, { mutate } from 'swr'
+import BatchCourseCloneModal from './BatchCourseCloneModal'
+import { organizationApi } from '@/app/api/organizationApi'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
+import SemesterInfoPopover from '../../components/SemesterInfoPopover'
 
 const CoursesTable: React.FC = () => {
   const { userInfo } = useUserInfo()
@@ -14,6 +18,9 @@ const CoursesTable: React.FC = () => {
   const [page, setPage] = useState(1)
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
+  const [organization, setOrganization] = useState<GetOrganizationResponse>()
+
+  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false)
 
   const handleInput = (event: any) => {
     event.preventDefault()
@@ -25,6 +32,21 @@ const CoursesTable: React.FC = () => {
     setSearch(event.target.value)
     setPage(1)
   }
+
+  useEffect(() => {
+    const fetchOrganization = async () => {
+      if (!userInfo.organization?.orgId) {
+        return
+      }
+
+      await organizationApi
+        .getOrganization(userInfo.organization.orgId)
+        .then((res) => {
+          setOrganization(res)
+        })
+    }
+    fetchOrganization()
+  }, [userInfo.organization?.orgId])
 
   useEffect(() => {
     return () => {
@@ -43,13 +65,17 @@ const CoursesTable: React.FC = () => {
       ),
   )
 
+  if (!organization) {
+    return <CenteredSpinner tip="Fetching Organization Info..." />
+  }
+
   return (
     userInfo &&
     courses && (
       <>
         <div className="bg-white">
-          <Row>
-            <Col sm={{ span: 18 }}>
+          <Row justify="space-between" align="middle" wrap>
+            <Col flex="auto" className="mr-2">
               <Input
                 placeholder="Search Courses"
                 prefix={<SearchOutlined />}
@@ -58,12 +84,12 @@ const CoursesTable: React.FC = () => {
                 onPressEnter={handleSearch}
               />
             </Col>
-            <Col sm={{ span: 1 }}>
-              <Space></Space>
-            </Col>
-            <Col>
+            <Col className="flex gap-2" flex="none">
               <Button type="primary" href={`/organization/course/add`}>
                 Add New Course
+              </Button>
+              <Button type="primary" onClick={() => setIsCloneModalOpen(true)}>
+                Batch Clone Courses
               </Button>
             </Col>
           </Row>
@@ -86,7 +112,30 @@ const CoursesTable: React.FC = () => {
                     </Button>,
                   ]}
                 >
-                  <List.Item.Meta title={item.courseName} />
+                  <List.Item.Meta
+                    title={
+                      <span>
+                        {item.courseName}
+                        <span className="text-gray-500">
+                          {' '}
+                          {item.sectionGroupName}
+                        </span>
+                      </span>
+                    }
+                  />
+                  {item.semester && (
+                    <SemesterInfoPopover semester={item.semester}>
+                      <Tag
+                        color={item.semester.color}
+                        bordered={false}
+                        className="text-sm"
+                      >
+                        {item.semester.name === 'Legacy Semester'
+                          ? 'No Semester'
+                          : item.semester.name}
+                      </Tag>
+                    </SemesterInfoPopover>
+                  )}
                   {!item.isEnabled && <Tag color="red">Archived</Tag>}
                 </List.Item>
               </>
@@ -103,6 +152,11 @@ const CoursesTable: React.FC = () => {
             showSizeChanger={false}
           />
         )}
+        <BatchCourseCloneModal
+          open={isCloneModalOpen}
+          onClose={() => setIsCloneModalOpen(false)}
+          organization={organization}
+        />
       </>
     )
   )

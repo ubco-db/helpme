@@ -9,6 +9,12 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 import * as bcrypt from 'bcrypt';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
+import '@koh/common';
+
+jest.mock('@koh/common', () => ({
+  ...jest.requireActual('@koh/common'),
+  isProd: () => true,
+}));
 
 jest.mock('superagent', () => ({
   post: jest.fn().mockImplementation((url) => {

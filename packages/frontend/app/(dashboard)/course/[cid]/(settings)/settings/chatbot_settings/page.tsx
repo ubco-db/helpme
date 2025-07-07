@@ -1,13 +1,13 @@
 'use client'
 
-import { Button, Input, Pagination, Progress, Table, message } from 'antd'
+import { Button, Input, message, Pagination, Progress, Table } from 'antd'
 import {
   ReactElement,
+  use,
   useCallback,
   useEffect,
   useMemo,
   useState,
-  use,
 } from 'react'
 import Link from 'next/link'
 import { TableRowSelection } from 'antd/es/table/interface'
@@ -34,10 +34,11 @@ export default function ChatbotSettings(
   const [search, setSearch] = useState('')
   const [selectViewEnabled, setSelectViewEnabled] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
-  const [totalDocuments, setTotalDocuments] = useState(0)
   const [chatbotDocuments, setChatbotDocuments] = useState<SourceDocument[]>([])
   const [loading, setLoading] = useState(false)
   const [countProcessed, setCountProcessed] = useState(0)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const rowSelection: TableRowSelection<SourceDocument> = {
     type: 'checkbox',
@@ -167,14 +168,12 @@ export default function ChatbotSettings(
           pageNumbers: [],
         }))
         setChatbotDocuments(formattedDocuments)
-        setTotalDocuments(formattedDocuments.length)
       })
       .catch((e) => {
         console.error(e)
         setChatbotDocuments([])
-        setTotalDocuments(0)
       })
-  }, [courseId, setChatbotDocuments, setTotalDocuments])
+  }, [courseId, setChatbotDocuments])
 
   useEffect(() => {
     getDocuments()
@@ -185,6 +184,20 @@ export default function ChatbotSettings(
       doc.docName.toLowerCase().includes(search.toLowerCase()),
     )
   }, [search, chatbotDocuments])
+
+  const totalDocuments = useMemo(
+    () => filteredDocuments.length,
+    [filteredDocuments],
+  )
+
+  const paginatedDocuments = useMemo(
+    () =>
+      filteredDocuments.slice(
+        pageSize * (page - 1),
+        pageSize * (page - 1) + pageSize,
+      ),
+    [filteredDocuments, page, pageSize],
+  )
 
   return (
     <div className="m-auto my-5">
@@ -218,7 +231,7 @@ export default function ChatbotSettings(
             icon={<FileAddOutlined />}
             type="primary"
           >
-            Add Document
+            Add Documents
           </Button>
         </div>
       </div>
@@ -237,7 +250,7 @@ export default function ChatbotSettings(
       <Table
         columns={columns}
         rowSelection={selectViewEnabled ? rowSelection : undefined}
-        dataSource={filteredDocuments}
+        dataSource={paginatedDocuments}
         pagination={false}
       />
       <div className="my-1"></div>
@@ -246,6 +259,10 @@ export default function ChatbotSettings(
         total={totalDocuments}
         pageSizeOptions={[10, 20, 30, 50]}
         showSizeChanger
+        onChange={(page, pageSize) => {
+          setPage(page)
+          setPageSize(pageSize)
+        }}
       />
       {chatbotParameterModalOpen && (
         <ChatbotSettingsModal

@@ -1,5 +1,6 @@
 import { ChartConfig } from '@/app/components/ui/chart'
 import { ChartDataType } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
+import { StringMap } from '@koh/common'
 
 const hsvToHex = (h: number, s: number, v: number) => {
   const a = s * Math.min(v, 1 - v)
@@ -22,6 +23,7 @@ export const processChartData = (
   labelKey: string,
   valueKeys: string[],
   uniquePerLabel?: boolean,
+  yFills?: StringMap<string>,
 ): {
   data: ChartDataType[]
   keys: string[]
@@ -33,7 +35,10 @@ export const processChartData = (
 
   if (!uniquePerLabel) {
     keys.forEach((item, index) => {
-      fills[item] = generateUniqueColor(index, keys.length)
+      fills[item] =
+        yFills && yFills[item]
+          ? yFills[item]
+          : generateUniqueColor(index, keys.length)
     })
   }
 

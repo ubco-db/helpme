@@ -2,7 +2,6 @@
 
 import { ReactElement, useEffect, useState } from 'react'
 import { Alert, Button, Empty, message, Segmented } from 'antd'
-import { OrganizationRole } from '@/app/typings/user'
 import { useUserInfo } from '@/app/contexts/userContext'
 import CoursesSection from '../components/coursesSection'
 import OrganizationCard from '../components/organizationCard'
@@ -12,13 +11,25 @@ import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons'
 import ArchivedCoursesSection from '../components/ArchivedCoursesSection'
 import { API } from '@/app/api'
 import { SemesterPartial } from '@koh/common'
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
+import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
 
 export default function CoursesPage(): ReactElement {
   const { userInfo } = useUserInfo()
   const searchParams = useSearchParams()
   const error = searchParams.get('err')
+  const organizationSettings = useOrganizationSettings(
+    userInfo?.organization?.orgId ?? -1,
+  )
 
-  const [enabledTableView, setEnabledTableView] = useState(false)
+  // Initialize enabledTableView from localStorage
+  const [enabledTableView, setEnabledTableView] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const storedValue = localStorage.getItem('enabledTableView')
+      return storedValue === 'true'
+    }
+    return false
+  })
   const [semesters, setSemesters] = useState<SemesterPartial[]>([])
 
   useEffect(() => {
@@ -31,7 +42,7 @@ export default function CoursesPage(): ReactElement {
         console.error(error)
         message.error(
           'Failed to fetch semesters for organization with id: ' +
-            userInfo.organization?.id,
+            userInfo.organization?.orgId,
         )
       })
   }, [])
@@ -77,27 +88,28 @@ export default function CoursesPage(): ReactElement {
       )}
       <div className="mt-5 flex items-center justify-between align-middle">
         <h1 className="mt-0">My Courses</h1>
-        <div className="flex gap-2">
-          {(userInfo?.organization?.organizationRole ===
-            OrganizationRole.PROFESSOR ||
-            userInfo?.organization?.organizationRole ===
-              OrganizationRole.ADMIN) && (
+        <div className="flex flex-col items-end justify-between gap-2 md:flex-row md:items-center">
+          {checkCourseCreatePermissions(userInfo, organizationSettings) && (
             <Button type="primary" href={`organization/course/add`}>
               Add New Course
             </Button>
           )}
           <Segmented
             options={[
-              { value: false, icon: <AppstoreOutlined /> },
-              { value: true, icon: <BarsOutlined /> },
+              { value: false, icon: <AppstoreOutlined />, title: 'Card View' },
+              { value: true, icon: <BarsOutlined />, title: 'Table View' },
             ]}
+            defaultValue={enabledTableView}
             onChange={(value) => {
               setEnabledTableView(value)
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('enabledTableView', value.toString())
+              }
             }}
           />
         </div>
       </div>
-      <div className="flex min-h-96 items-center justify-center">
+      <div className="flex min-h-96 items-start justify-center">
         {userInfo?.courses?.filter((userCourse) => userCourse.course.enabled)
           .length === 0 ? (
           <Empty
@@ -106,9 +118,6 @@ export default function CoursesPage(): ReactElement {
           />
         ) : (
           <CoursesSection
-            courses={userInfo.courses.filter(
-              (userCourse) => userCourse.course.enabled,
-            )}
             semesters={semesters}
             enabledTableView={enabledTableView}
           />

@@ -6,12 +6,23 @@ import { OrganizationCourseModel } from './organization-course.entity';
 import { CourseModel } from 'course/course.entity';
 import {
   CourseResponse,
+  ERROR_MESSAGES,
   GetOrganizationUserResponse,
+  OrganizationRole,
+  OrganizationRoleHistoryFilter,
+  OrganizationRoleHistoryResponse,
+  OrgRoleChangeReason,
+  OrgRoleChangeReasonMap,
+  OrgRoleHistory,
   OrgUser,
   Role,
   UserRole,
 } from '@koh/common';
 import { UserCourseModel } from 'profile/user-course.entity';
+import { SemesterModel } from 'semester/semester.entity';
+import { OrganizationRoleHistory } from './organization_role_history.entity';
+import { OrganizationSettingsModel } from './organization_settings.entity';
+import { OrganizationModel } from './organization.entity';
 
 export interface FlattenedOrganizationResponse {
   id: number;
@@ -90,6 +101,11 @@ export class OrganizationService {
         'CourseModel',
         'CourseModel.id = OrganizationCourseModel.courseId',
       )
+      .leftJoin(
+        SemesterModel,
+        'SemesterModel',
+        'SemesterModel.id = CourseModel.semesterId',
+      )
       .where('OrganizationCourseModel.organizationId = :organizationId', {
         organizationId,
       });
@@ -105,24 +121,50 @@ export class OrganizationService {
       );
     }
 
-    const courses = organizationCourses.select([
-      'CourseModel.id as courseId',
-      'CourseModel.name as courseName',
-      'CourseModel.enabled as isEnabled',
-    ]);
+    const courses = organizationCourses
+      .select([
+        'CourseModel.id as courseId',
+        'CourseModel.name as courseName',
+        'CourseModel.enabled as isEnabled',
+        'CourseModel.sectionGroupName as sectionGroupName',
+        'CourseModel.semesterId as semesterId',
+        'SemesterModel.name as semesterName',
+        'SemesterModel.color as semesterColor',
+        'SemesterModel.startDate as semesterStartDate',
+        'SemesterModel.endDate as semesterEndDate',
+        'SemesterModel.description as semesterDescription',
+      ])
+      // first order by semester end date, then by course name
+      .orderBy('SemesterModel.endDate', 'DESC')
+      .addOrderBy('CourseModel.name', 'ASC');
 
-    const coursesSubset = await courses
-      .orderBy('CourseModel.name')
-      .skip((page - 1) * pageSize)
-      .take(pageSize)
-      // .getMany() wouldn't work here because relations are not working well with getMany()
-      .getRawMany();
+    let coursesSubset: any;
 
-    const coursesResponse = coursesSubset.map((course) => {
+    if (page !== -1) {
+      coursesSubset = await courses
+        .skip((page - 1) * pageSize)
+        .take(pageSize)
+        // .getMany() wouldn't work here because relations are not working well with getMany()
+        .getRawMany();
+    } else {
+      coursesSubset = await courses.getRawMany();
+    }
+
+    const coursesResponse: CourseResponse[] = coursesSubset.map((course) => {
       return {
         courseId: course.courseid,
         courseName: course.coursename,
         isEnabled: course.isenabled,
+        sectionGroupName: course.sectiongroupname,
+        semesterId: course.semesterid,
+        semester: {
+          id: course.semesterid,
+          name: course.semestername,
+          color: course.semestercolor,
+          startDate: course.semesterstartdate,
+          endDate: course.semesterenddate,
+          description: course.semesterdescription,
+        },
       };
     });
 
@@ -149,12 +191,9 @@ export class OrganizationService {
       const likeSearch = `%${search.replace(' ', '')}%`.toUpperCase();
       organizationUsers.andWhere(
         new Brackets((q) => {
-          q.where(
-            'CONCAT(UPPER("UserModel"."firstName"), UPPER("UserModel"."lastName")) like :searchString',
-            {
-              searchString: likeSearch,
-            },
-          );
+          q.where('UPPER("UserModel".name) like :searchString', {
+            searchString: likeSearch,
+          });
         }),
       );
     }
@@ -306,5 +345,172 @@ export class OrganizationService {
     };
 
     return flattenedOrganization;
+  }
+
+  public async getRoleHistory(
+    organizationId: number,
+    page: number,
+    pageSize: number,
+    filters: OrganizationRoleHistoryFilter,
+  ): Promise<OrganizationRoleHistoryResponse> {
+    const { search, fromRole, toRole, minDate, maxDate } = filters;
+
+    const organizationRoleHistory = OrganizationRoleHistory.createQueryBuilder()
+      .select()
+      .leftJoin(
+        OrganizationUserModel,
+        'ByOrganizationUser',
+        'ByOrganizationUser.id = OrganizationRoleHistory.byOrgUserId',
+      )
+      .leftJoin(
+        OrganizationUserModel,
+        'ToOrganizationUser',
+        'ToOrganizationUser.id = OrganizationRoleHistory.toOrgUserId',
+      )
+      .leftJoin(UserModel, 'ByUser', 'ByUser.id = ByOrganizationUser.userId')
+      .leftJoin(UserModel, 'ToUser', 'ToUser.id = ToOrganizationUser.userId')
+      .where('OrganizationRoleHistory.organizationId = :organizationId', {
+        organizationId,
+      });
+
+    if (fromRole) {
+      organizationRoleHistory.andWhere(
+        'OrganizationRoleHistory.fromRole = :fromRole',
+        { fromRole },
+      );
+    }
+
+    if (toRole) {
+      organizationRoleHistory.andWhere(
+        'OrganizationRoleHistory.toRole = :toRole',
+        { toRole },
+      );
+    }
+
+    if (minDate) {
+      organizationRoleHistory.andWhere(
+        'OrganizationRoleHistory.timestamp > :minDate',
+        { minDate },
+      );
+    }
+
+    if (maxDate) {
+      organizationRoleHistory.andWhere(
+        'OrganizationRoleHistory.timestamp < :maxDate',
+        { maxDate },
+      );
+    }
+
+    if (search) {
+      const likeSearch = `%${search.replace(' ', '')}%`.toUpperCase();
+      organizationRoleHistory.andWhere(
+        new Brackets((q) => {
+          q.where('UPPER("ToUser".name) like :searchString', {
+            searchString: likeSearch,
+          });
+        }),
+      );
+    }
+
+    organizationRoleHistory.addSelect([
+      'ToUser.id as toUserId',
+      'ToUser.email as toUserEmail',
+      'ToUser.firstName as toUserFirstName',
+      'ToUser.lastName as toUserLastName',
+      'ToUser.photoURL as toUserPhotoUrl',
+      'ToUser.userRole as toUserRole',
+      'ByUser.id as byUserId',
+      'ByUser.email as byUserEmail',
+      'ByUser.firstName as byUserFirstName',
+      'ByUser.lastName as byUserLastName',
+      'ByUser.photoURL as byUserPhotoUrl',
+      'ByUser.userRole as byUserRole',
+      'ByOrganizationUser.role as byUserCurrentRole',
+      'ToOrganizationUser.role as toUserCurrentRole',
+    ]);
+
+    const historySubset = await organizationRoleHistory
+      .orderBy('OrganizationRoleHistory.timestamp')
+      .addOrderBy('OrganizationRoleHistory.id')
+      .offset((page - 1) * pageSize)
+      .limit(pageSize)
+      .getRawMany();
+
+    return {
+      totalHistory: await organizationRoleHistory.getCount(),
+      history: historySubset.map((history) => {
+        return {
+          id: history.OrganizationRoleHistory_id,
+          timestamp: history.OrganizationRoleHistory_timestamp,
+          fromRole: history.OrganizationRoleHistory_fromRole,
+          toRole: history.OrganizationRoleHistory_toRole,
+          changeReason:
+            OrgRoleChangeReasonMap[
+              history.OrganizationRoleHistory_changeReason
+            ],
+          toUser: {
+            userId: history.touserid,
+            firstName: history.touserfirstname,
+            lastName: history.touserlastname,
+            email: history.touseremail,
+            photoUrl: history.touserphotourl,
+            userRole: history.touserrole,
+            organizationRole: history.tousercurrentrole,
+          },
+          byUser: {
+            userId: history.byuserid,
+            firstName: history.byuserfirstname,
+            lastName: history.byuserlastname,
+            email: history.byuseremail,
+            photoUrl: history.byuserphotoURL,
+            userRole: history.byuserrole,
+            organizationRole: history.byusercurrentrole,
+          },
+        } satisfies OrgRoleHistory;
+      }),
+    };
+  }
+
+  public async addRoleHistory(
+    organizationId: number,
+    fromRole: OrganizationRole,
+    toRole: OrganizationRole,
+    byOrgUserId?: number,
+    toOrgUserId?: number,
+    roleChangeReason: OrgRoleChangeReason = OrgRoleChangeReason.unknown,
+  ) {
+    await OrganizationRoleHistory.create({
+      organizationId,
+      // If someone appears to be changing their own role, it's the system changing their role (e.g., joining an organization)
+      toOrgUserId: toOrgUserId == byOrgUserId ? null : toOrgUserId,
+      byOrgUserId,
+      fromRole,
+      toRole,
+      roleChangeReason,
+    }).save();
+  }
+
+  public async getOrganizationSettings(organizationId: number) {
+    let organizationSettings = await OrganizationSettingsModel.findOne({
+      where: { organizationId },
+    });
+    // if no organization settings exist yet, create new course settings for the course
+    if (!organizationSettings) {
+      const organization = await OrganizationModel.findOne({
+        where: { id: organizationId },
+      });
+      if (!organization) {
+        throw new NotFoundException(
+          ERROR_MESSAGES.organizationService.cannotCreateOrgNotFound,
+        );
+      }
+
+      organizationSettings =
+        await OrganizationSettingsModel.create<OrganizationSettingsModel>({
+          organizationId,
+        } as Partial<OrganizationSettingsModel>).save();
+    }
+
+    return organizationSettings;
   }
 }

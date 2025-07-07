@@ -1,7 +1,12 @@
-import { OrganizationRole, SemesterPartial } from '@koh/common';
+import { antdTagColor, OrganizationRole, SemesterPartial } from '@koh/common';
 import { setupIntegrationTest } from './util/testUtils';
 import { SemesterModule } from '../src/semester/semester.module';
-import { OrganizationUserFactory, SemesterFactory } from './util/factories';
+import {
+  OrganizationFactory,
+  OrganizationSettingsFactory,
+  OrganizationUserFactory,
+  SemesterFactory,
+} from './util/factories';
 import { SemesterModel } from '../src/semester/semester.entity';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { UserModel } from '../src/profile/user.entity';
@@ -45,14 +50,32 @@ describe('SemesterController Integration', () => {
       expect(names).toContain(semester2.name);
     });
 
-    it('should return 400 if organization is not found', async () => {
+    it('should return 401 if organization is not found', async () => {
       orgUser = await OrganizationUserFactory.create({
         role: OrganizationRole.ADMIN,
       });
 
       await supertest({ userId: orgUser.organizationUser.id })
         .get(`/semesters/99999`)
-        .expect(400);
+        .expect(401);
+    });
+
+    it('should not allow users outside the organization to get semesters', async () => {
+      orgUser = await OrganizationUserFactory.create({
+        role: OrganizationRole.ADMIN,
+      });
+      const otherOrgUser = await OrganizationUserFactory.create({
+        role: OrganizationRole.MEMBER,
+      });
+
+      await supertest({ userId: otherOrgUser.organizationUser.id })
+        .get(`/semesters/${orgUser.organization.id}`)
+        .expect(401);
+    });
+
+    it('should return 401 for if user is not logged in', async () => {
+      const org = await OrganizationFactory.create();
+      await supertest().get(`/semesters/${org.id}`).expect(401);
     });
   });
 
@@ -67,14 +90,13 @@ describe('SemesterController Integration', () => {
         startDate: new Date().toISOString(),
         endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString(),
         description: 'A test semester',
+        color: 'blue',
       };
 
       const res = await supertest({ userId: orgUser.organizationUser.id })
         .post(`/semesters/${orgUser.organization.id}`)
         .send(semesterDetails)
         .expect(201);
-
-      expect(res.text).toEqual('Semester created successfully');
 
       const createdSemester = await SemesterModel.findOne({
         where: {
@@ -83,6 +105,10 @@ describe('SemesterController Integration', () => {
         },
       });
       expect(createdSemester).toBeDefined();
+      expect(createdSemester.color).toEqual(semesterDetails.color);
+      expect(createdSemester.description).toEqual(semesterDetails.description);
+      expect(createdSemester.organizationId).toEqual(orgUser.organization.id);
+      expect(createdSemester.name).toEqual(semesterDetails.name);
     });
 
     it('should return 401 if organization is not found', async () => {
@@ -95,6 +121,30 @@ describe('SemesterController Integration', () => {
       await supertest({ userId: 1 })
         .post(`/semesters/99999`)
         .send(semesterDetails)
+        .expect(401);
+    });
+
+    it("should return 401 if user is a professor and organization doesn't allow professors to create semesters", async () => {
+      const organization = await OrganizationFactory.create();
+      const orgUser = await OrganizationUserFactory.create({
+        organizationId: organization.id,
+        organization,
+        role: OrganizationRole.PROFESSOR,
+      });
+      await OrganizationSettingsFactory.create({
+        organizationId: organization.id,
+        organization,
+        allowProfCourseCreate: false,
+      });
+      await supertest({ userId: orgUser.userId })
+        .post(`/semesters/${organization.id}`)
+        .send({
+          name: 'n',
+          startDate: new Date().toISOString(),
+          endDate: new Date().toISOString(),
+          description: 'd',
+          color: antdTagColor.blue,
+        })
         .expect(401);
     });
   });
@@ -114,6 +164,7 @@ describe('SemesterController Integration', () => {
         startDate: new Date().toISOString(),
         endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 120).toISOString(),
         description: 'Updated semester description',
+        color: 'blue',
       };
 
       const res = await supertest({ userId: orgUser.organizationUser.id })
@@ -127,6 +178,8 @@ describe('SemesterController Integration', () => {
         where: { id: semester1.id },
       });
       expect(updatedSemester.name).toEqual(updatedDetails.name);
+      expect(updatedSemester.color).toEqual(updatedDetails.color);
+      expect(updatedSemester.description).toEqual(updatedDetails.description);
     });
 
     it('should return 400 if semester is not found', async () => {
@@ -145,6 +198,30 @@ describe('SemesterController Integration', () => {
         .patch(`/semesters/${orgUser.organization.id}/99999`)
         .send(updatedDetails)
         .expect(400);
+    });
+
+    it("should return 401 if user is a professor and organization doesn't allow professors to update semesters", async () => {
+      const organization = await OrganizationFactory.create();
+      const orgUser = await OrganizationUserFactory.create({
+        organizationId: organization.id,
+        organization,
+        role: OrganizationRole.PROFESSOR,
+      });
+      await OrganizationSettingsFactory.create({
+        organizationId: organization.id,
+        organization,
+        allowProfCourseCreate: false,
+      });
+      await supertest({ userId: orgUser.userId })
+        .patch(`/semesters/${organization.id}/1`)
+        .send({
+          name: 'n',
+          startDate: new Date().toISOString(),
+          endDate: new Date().toISOString(),
+          description: 'd',
+          color: antdTagColor.blue,
+        })
+        .expect(401);
     });
   });
 
@@ -176,6 +253,20 @@ describe('SemesterController Integration', () => {
       await supertest({ userId: 1 })
         .delete(`/semesters/${orgUser.organization.id}/99999`)
         .expect(400);
+    });
+
+    it("should return 401 if user is a professor and organization doesn't allow professors to delete semesters", async () => {
+      const orgUser = await OrganizationUserFactory.create({
+        role: OrganizationRole.PROFESSOR,
+      });
+      await OrganizationSettingsFactory.create({
+        organizationId: orgUser.organizationId,
+        organization: orgUser.organization,
+        allowProfCourseCreate: false,
+      });
+      await supertest({ userId: orgUser.userId })
+        .delete(`/semesters/${orgUser.organizationUser.id}/1`)
+        .expect(401);
     });
   });
 });

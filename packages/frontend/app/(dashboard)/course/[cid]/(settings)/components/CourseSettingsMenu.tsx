@@ -25,7 +25,7 @@ enum CourseAdminOptions {
   SETTINGS = 'SETTINGS',
   LMS_SETTINGS = 'LMS_SETTINGS',
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
-  CHATBOT_DOCUMENTS = 'CHATBOT_DOCUMENTS',
+  CHATBOT_KNOWLEDGE_BASE = 'CHATBOT_KNOWLEDGE_BASE',
   CHATBOT_QUESTIONS = 'CHATBOT_QUESTIONS',
 }
 
@@ -70,8 +70,8 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       case CourseAdminOptions.CHATBOT_SETTINGS:
         router.push(`${basePath}/chatbot_settings`)
         break
-      case CourseAdminOptions.CHATBOT_DOCUMENTS:
-        router.push(`${basePath}/chatbot_document_chunks`)
+      case CourseAdminOptions.CHATBOT_KNOWLEDGE_BASE:
+        router.push(`${basePath}/chatbot_knowledge_base`)
         break
       case CourseAdminOptions.CHATBOT_QUESTIONS:
         router.push(`${basePath}/chatbot_questions`)
@@ -112,9 +112,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       label: 'Chatbot Settings',
     },
     {
-      key: CourseAdminOptions.CHATBOT_DOCUMENTS,
+      key: CourseAdminOptions.CHATBOT_KNOWLEDGE_BASE,
       icon: <RobotOutlined />,
-      label: 'Chatbot Document Chunks',
+      label: 'Chatbot Knowledge Base',
     },
     {
       key: CourseAdminOptions.CHATBOT_QUESTIONS,

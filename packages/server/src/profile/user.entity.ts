@@ -56,10 +56,10 @@ export class UserModel extends BaseEntity {
   emailVerified: boolean;
 
   @Column('text', { nullable: true })
-  defaultMessage: string | null;
+  defaultMessage: string | null; //unused
 
   @Column({ type: 'boolean', default: true })
-  includeDefaultMessage: boolean;
+  includeDefaultMessage: boolean; //unused
 
   @Column({ type: 'text', enum: AccountType, default: AccountType.LEGACY })
   accountType: AccountType;
@@ -164,5 +164,5 @@ export class UserModel extends BaseEntity {
 
   @OneToMany((type) => AsyncQuestionCommentModel, (aqc) => aqc.creator)
   @Exclude()
-  asyncQuestionComments: CalendarStaffModel[];
+  asyncQuestionComments: AsyncQuestionCommentModel[];
 }

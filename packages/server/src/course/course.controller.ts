@@ -1,4 +1,5 @@
 import {
+  CourseCloneAttributes,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
   EditCourseInfoParams,
@@ -7,6 +8,7 @@ import {
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
   Heatmap,
+  OrganizationRole,
   QuestionStatusKeys,
   QueueConfig,
   QueueInvite,
@@ -16,6 +18,7 @@ import {
   TACheckinTimesResponse,
   TACheckoutResponse,
   UBCOuserParam,
+  UserCourse,
   UserTiny,
   validateQueueConfigInput,
 } from '@koh/common';
@@ -41,7 +44,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import async from 'async';
 import { Request, Response } from 'express';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -55,7 +57,6 @@ import { CourseModel } from './course.entity';
 import { QueueSSEService } from '../queue/queue-sse.service';
 import { CourseService } from './course.service';
 import { HeatmapService } from './heatmap.service';
-import { CourseSectionMappingModel } from 'login/course-section-mapping.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { CourseSettingsModel } from './course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
@@ -65,7 +66,10 @@ import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { CourseRole } from 'decorators/course-role.decorator';
 import { DataSource } from 'typeorm';
-import { RedisProfileService } from 'redisProfile/redis-profile.service';
+import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
+import { CourseRoles } from 'decorators/course-roles.decorator';
+import { OrgRoles } from 'decorators/org-roles.decorator';
+import { OrganizationService } from '../organization/organization.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -76,7 +80,7 @@ export class CourseController {
     private heatmapService: HeatmapService,
     private courseService: CourseService,
     private queueCleanService: QueueCleanService,
-    private redisProfileService: RedisProfileService,
+    private organizationService: OrganizationService,
     private readonly appConfig: ApplicationConfigService,
     private dataSource: DataSource,
   ) {}
@@ -221,32 +225,11 @@ export class CourseController {
       );
     }
 
-    const course_response = {
+    return {
       ...course,
       heatmap,
-      crns: null,
       organizationCourse: course.organizationCourse?.organization ?? null,
     };
-    try {
-      course_response.crns = await CourseSectionMappingModel.find({
-        where: {
-          courseId: course.id,
-        },
-      });
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.courseOfficeHourError +
-          '\n' +
-          'Error message: ' +
-          err,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.courseCrnsError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    return course_response;
   }
 
   @Patch(':id/edit_course')
@@ -256,29 +239,36 @@ export class CourseController {
     @Param('id', ParseIntPipe) courseId: number,
     @Body() coursePatch: EditCourseInfoParams,
   ): Promise<void> {
-    await this.courseService
-      .editCourse(courseId, coursePatch)
-      .then(async () => {
-        const course = await CourseModel.findOne({
-          where: {
-            id: courseId,
-          },
-          relations: {
-            userCourses: true,
-          },
-        });
+    await this.courseService.editCourse(courseId, coursePatch);
+  }
 
-        // Won't be a costly operation since courses are not modified often
-        if (course) {
-          await Promise.all(
-            course.userCourses.map(async (userCourse) => {
-              await this.redisProfileService.deleteProfile(
-                `u:${userCourse.userId}`,
-              );
-            }),
-          );
-        }
+  @Patch(':courseId/toggle_favourited')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  async toggleFavourited(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @UserId() userId: number,
+  ): Promise<string> {
+    try {
+      const userCourse = await UserCourseModel.findOneOrFail({
+        where: {
+          courseId,
+          userId,
+        },
       });
+
+      if (!userCourse)
+        throw new NotFoundException('Your course enrollment is not found');
+
+      userCourse.favourited = !userCourse.favourited;
+      userCourse.save();
+
+      return 'Course favourited status updated successfully';
+    } catch (err) {
+      console.error(err);
+      throw new BadRequestException(
+        'Failed to toggle the favourite attribute if your course.',
+      );
+    }
   }
 
   @Post(':id/create_queue/:room')
@@ -353,41 +343,14 @@ export class CourseController {
     }
 
     try {
-      let createdQueue = null;
-      await this.dataSource.transaction(async (transactionalEntityManager) => {
-        try {
-          createdQueue = await transactionalEntityManager
-            .create(QueueModel, {
-              room,
-              courseId,
-              type: body.type,
-              staffList: [],
-              questions: [],
-              allowQuestions: true,
-              notes: body.notes,
-              isProfessorQueue: body.isProfessorQueue,
-              config: newConfig,
-            })
-            .save();
-
-          // now for each tag defined in the config, create a QuestionType
-          const questionTypes = newConfig.tags ?? {};
-          for (const [tagKey, tagValue] of Object.entries(questionTypes)) {
-            await transactionalEntityManager
-              .getRepository(QuestionTypeModel)
-              .insert({
-                cid: courseId,
-                name: tagValue.display_name,
-                color: tagValue.color_hex,
-                queueId: createdQueue.id,
-              });
-          }
-        } catch (err) {
-          throw err;
-        }
-      });
-
-      return createdQueue;
+      return this.courseService.createQueue(
+        courseId,
+        room,
+        body.type,
+        body.notes,
+        body.isProfessorQueue,
+        newConfig,
+      );
     } catch (err) {
       console.error(
         ERROR_MESSAGES.courseController.saveQueueError +
@@ -678,7 +641,6 @@ export class CourseController {
       where: { courseId, userId },
     });
     await this.courseService.removeUserFromCourse(userCourse);
-    await this.redisProfileService.deleteProfile(`u:${userId}`);
   }
 
   @Get(':id/ta_check_in_times')
@@ -785,8 +747,6 @@ export class CourseController {
         res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
       });
 
-    // Delete old cached record if changed
-    await this.redisProfileService.deleteProfile(`u:${user.id}`);
     return;
   }
 
@@ -881,11 +841,7 @@ export class CourseController {
     }
 
     try {
-      await UserCourseModel.update({ courseId, userId }, { role }).then(
-        async () => {
-          await this.redisProfileService.deleteProfile(`u:${userId}`);
-        },
-      );
+      await UserCourseModel.update({ courseId, userId }, { role });
     } catch (err) {
       res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
       return;
@@ -979,7 +935,7 @@ export class CourseController {
 
     // have to do a manual query 'cause the current version of typeORM we're using is crunked and creates syntax errors in postgres queries
     const query = `
-    SELECT COALESCE("user_model"."firstName", '') || ' ' || COALESCE("user_model"."lastName", '') AS name, "user_model".id AS id
+    SELECT "user_model".name, "user_model".id AS id
     FROM "user_course_model"
     LEFT JOIN "user_model" ON ("user_course_model"."userId" = "user_model".id AND "user_course_model".role = $1)
     WHERE "user_course_model"."courseId" = $2 
@@ -1063,5 +1019,46 @@ export class CourseController {
     }
     userCourse.TANotes = body.notes;
     await userCourse.save();
+  }
+
+  @Post(':courseId/clone_course')
+  @UseGuards(JwtAuthGuard, OrgOrCourseRolesGuard, EmailVerifiedGuard)
+  @CourseRoles(Role.PROFESSOR)
+  @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
+  async cloneCourse(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @User({ chat_token: true, organizationUser: true }) user: UserModel,
+    @Body() body: CourseCloneAttributes,
+  ): Promise<UserCourse | null> {
+    const orgSettings = await this.organizationService.getOrganizationSettings(
+      user.organizationUser?.organizationId,
+    );
+    if (
+      !orgSettings.allowProfCourseCreate &&
+      user.organizationUser?.role == OrganizationRole.PROFESSOR
+    ) {
+      throw new UnauthorizedException(
+        ERROR_MESSAGES.organizationController.notAllowedToCreateCourse(
+          user.organizationUser?.role,
+        ),
+      );
+    }
+
+    if (!user || !user.chat_token) {
+      console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
+      throw new HttpException(
+        ERROR_MESSAGES.profileController.accountNotAvailable,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const newUserCourse = await this.courseService.cloneCourse(
+      courseId,
+      user.id,
+      body,
+      user.chat_token.token,
+    );
+
+    return newUserCourse;
   }
 }

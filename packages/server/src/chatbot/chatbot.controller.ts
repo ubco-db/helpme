@@ -1,41 +1,41 @@
 import {
-  Controller,
-  Post,
+  BadRequestException,
   Body,
-  UseGuards,
-  Patch,
+  Controller,
   Delete,
   Get,
-  Param,
-  ParseIntPipe,
-  UploadedFile,
-  UseInterceptors,
-  BadRequestException,
   HttpException,
   HttpStatus,
   InternalServerErrorException,
-  Res,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
   Req,
+  Res,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ChatbotService } from './chatbot.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import {
+  AddChatbotQuestionParams,
+  AddDocumentChunkParams,
+  ChatbotAskParams,
   ChatbotAskResponse,
+  ChatbotAskSuggestedParams,
+  ChatbotQuestionResponseChatbotDB,
   ChatbotQuestionResponseHelpMeDB,
   ChatbotSettings,
-  ChatbotSettingsMetadata,
-  GetInteractionsAndQuestionsResponse,
-  Role,
-  AddChatbotQuestionParams,
-  ChatbotAskParams,
-  ChatbotAskSuggestedParams,
-  UpdateDocumentChunkParams,
-  InteractionResponse,
-  AddDocumentChunkParams,
-  ChatbotQuestionResponseChatbotDB,
-  UpdateChatbotQuestionParams,
+  ChatbotSettingsUpdateParams,
   GetChatbotHistoryResponse,
+  GetInteractionsAndQuestionsResponse,
+  InteractionResponse,
+  Role,
+  UpdateChatbotQuestionParams,
+  UpdateDocumentChunkParams,
 } from '@koh/common';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { Roles } from 'decorators/roles.decorator';
@@ -49,7 +49,7 @@ import { LibreOffice, MarkdownConverter } from 'chromiumly';
 import { CourseModel } from 'course/course.entity';
 import { generateHTMLForMarkdownToPDF } from './markdown-to-pdf-styles';
 import { ChatbotDocPdfModel } from './chatbot-doc-pdf.entity';
-import { Response, Request } from 'express';
+import { Request, Response } from 'express';
 
 @Controller('chatbot')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -204,7 +204,7 @@ export class ChatbotController {
   @Roles(Role.PROFESSOR, Role.TA)
   async updateChatbotSettings(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() settings: ChatbotSettingsMetadata,
+    @Body() settings: ChatbotSettingsUpdateParams,
     @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
@@ -297,6 +297,17 @@ export class ChatbotController {
       courseId,
       user.chat_token.token,
     );
+  }
+
+  @Get('models/:courseId')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async getModels(
+    @Param('courseId', ParseIntPipe) _courseId: number,
+    @User({ chat_token: true }) user: UserModel,
+  ): Promise<ChatbotSettings> {
+    handleChatbotTokenCheck(user);
+    return await this.chatbotApiService.getModels(user.chat_token.token);
   }
 
   // Unused
@@ -738,7 +749,7 @@ export class ChatbotController {
     @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
-    return await this.chatbotApiService.addDocumentFromGithub(
+    return await this.chatbotApiService.uploadURLDocument(
       url,
       courseId,
       user.chat_token.token,

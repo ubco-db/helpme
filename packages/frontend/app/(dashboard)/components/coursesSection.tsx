@@ -1,30 +1,19 @@
-import { Role, SemesterPartial, UserCourse } from '@koh/common'
-import {
-  Button,
-  Card,
-  Divider,
-  message,
-  Popover,
-  Table,
-  Tag,
-  Tooltip,
-} from 'antd'
+import { OrganizationRole, Role, SemesterPartial } from '@koh/common'
+import { Button, Card, Tag, Tooltip } from 'antd'
 import React, { useMemo } from 'react'
 import Meta from 'antd/es/card/Meta'
 import Link from 'next/link'
 import stringToHexColor from '@/app/utils/generalUtils'
-import { ColumnsType } from 'antd/es/table'
-
-// TODO: remove all code for unassigned semesters when all production courses have new semesters set
+import { useUserInfo } from '@/app/contexts/userContext'
+import SemesterInfoPopover from './SemesterInfoPopover'
+import CoursesSectionTableView from './CoursesSectionTableView'
 
 interface CoursesSectionProps {
-  courses: UserCourse[]
   semesters: SemesterPartial[]
   enabledTableView: boolean
 }
 
 const CoursesSection: React.FC<CoursesSectionProps> = ({
-  courses,
   semesters,
   enabledTableView,
 }) => {
@@ -44,170 +33,47 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
       grayscale: 0.0,
     },
   })
-
-  const columns: ColumnsType<UserCourse> = [
-    {
-      dataIndex: ['course', 'name'],
-      key: 'name',
-      width: '70%',
-      align: 'left',
-      render: (text, course) => (
-        <span className="text-lg font-semibold">{text}</span>
-      ),
-    },
-    {
-      dataIndex: 'role',
-      key: 'role',
-      width: '10%',
-      align: 'center',
-      render: (role) => (
-        <Tag
-          color={
-            role === Role.STUDENT
-              ? 'success'
-              : role === Role.TA
-                ? 'gold'
-                : 'volcano'
-          }
-          className="text-base capitalize"
-        >
-          {role}
-        </Tag>
-      ),
-    },
-    {
-      key: 'actions',
-      width: '20%',
-      align: 'center',
-      render: (_, course) => (
-        <div className="flex w-full flex-col items-end justify-center gap-2 md:flex-row md:items-center md:justify-end">
-          <Link href={`/course/${course.course.id}`}>
-            <Button
-              type="primary"
-              className="rounded text-sm md:p-[1.1rem] md:font-medium"
-            >
-              Course Page
-            </Button>
-          </Link>
-          {course.role === Role.PROFESSOR && (
-            <Link href={`/course/${course.course.id}/settings`}>
-              <Button className="rounded p-[1.1rem] text-sm md:font-medium">
-                Edit Course
-              </Button>
-            </Link>
-          )}
-        </div>
-      ),
-    },
-  ]
-
-  const coursesWithoutSemester = useMemo(() => {
-    return courses.filter((userCourse) => {
-      return !semesters?.some(
-        (semester) => semester.id === userCourse.course.semesterId,
-      )
-    })
-  }, [courses, semesters])
+  const { userInfo } = useUserInfo()
+  const isStaff = useMemo(() => {
+    return userInfo?.organization?.organizationRole === OrganizationRole.ADMIN
+  }, [userInfo.organization])
 
   const sortedCoursesInCardView = useMemo(() => {
-    return [...courses].sort((a, b) => {
-      const semesterA = semesters?.find(
-        (semester) => semester.id === a.course.semesterId,
+    return [...userInfo.courses]
+      .filter(
+        (userCourse) => userCourse.favourited && userCourse.course.enabled,
       )
-      const semesterB = semesters?.find(
-        (semester) => semester.id === b.course.semesterId,
-      )
-      if (semesterA && semesterB) {
-        const diff = semesterB.endDate.valueOf() - semesterA.endDate.valueOf()
-        if (diff === 0) {
-          return a.course.name.localeCompare(b.course.name)
-        } else {
-          return diff
+      .sort((a, b) => {
+        const semesterA = semesters?.find(
+          (semester) => semester.id === a.course.semesterId,
+        )
+        const semesterB = semesters?.find(
+          (semester) => semester.id === b.course.semesterId,
+        )
+        // Show courses with defined semesters first
+        if (semesterA && !semesterB) return -1
+        if (semesterB && !semesterA) return 1
+
+        if (semesterA && semesterB) {
+          const diff =
+            new Date(semesterB.endDate).getTime() -
+            new Date(semesterA.endDate).getTime()
+          if (diff === 0) {
+            return a.course.name.localeCompare(b.course.name)
+          } else {
+            return diff
+          }
         }
-      }
-      return 0
-    })
-  }, [courses, semesters])
+        return 0
+      })
+  }, [userInfo.courses, semesters])
 
   return (
-    <div className="mb-8 mt-5 w-full">
+    <div className="mb-8 w-full">
       {enabledTableView ? (
-        <>
-          {semesters
-            ?.sort((a, b) => b.endDate.valueOf() - a.endDate.valueOf())
-            .map((semester) => {
-              const semesterCourses = courses.filter(
-                (userCourse) => userCourse.course.semesterId === semester.id,
-              )
-              if (semesterCourses.length === 0) {
-                return null
-              }
-
-              const popoverContent = (
-                <div className="p-2">
-                  <p>
-                    <strong>Start Date:</strong>{' '}
-                    {new Date(semester.startDate).toLocaleDateString()}
-                  </p>
-                  <p>
-                    <strong>End Date:</strong>{' '}
-                    {new Date(semester.endDate).toLocaleDateString()}
-                  </p>
-                  {semester.description && (
-                    <p>
-                      <strong>Description:</strong> {semester.description}
-                    </p>
-                  )}
-                </div>
-              )
-
-              return (
-                <div key={semester.id}>
-                  <Popover content={popoverContent} title={semester.name}>
-                    <Divider className="my-1 p-2 text-lg font-semibold">
-                      {semester.name}
-                    </Divider>
-                  </Popover>
-                  <Table
-                    columns={columns}
-                    size="small"
-                    dataSource={semesterCourses.sort((a, b) =>
-                      a.course.name.localeCompare(b.course.name),
-                    )}
-                    rowKey={(course) => course.course.id}
-                    pagination={
-                      semesterCourses.length > 5 ? { pageSize: 5 } : false
-                    }
-                    showHeader={false}
-                  />
-                </div>
-              )
-            })}
-
-          {coursesWithoutSemester.length > 0 && (
-            <div key={-1}>
-              <Divider className="my-1 p-2 text-lg font-semibold">
-                <Tooltip title="Courses that are not assigned to a semester">
-                  Not Assigned
-                </Tooltip>
-              </Divider>
-              <Table
-                columns={columns}
-                size="small"
-                dataSource={coursesWithoutSemester.sort((a, b) =>
-                  a.course.name.localeCompare(b.course.name),
-                )}
-                rowKey={(course) => course.course.id}
-                pagination={
-                  coursesWithoutSemester.length > 5 ? { pageSize: 5 } : false
-                }
-                showHeader={false}
-              />
-            </div>
-          )}
-        </>
+        <CoursesSectionTableView semesters={semesters} />
       ) : (
-        <div className="flex flex-wrap gap-3">
+        <div className="mt-5 flex flex-wrap gap-3">
           {sortedCoursesInCardView.map((course, index) => {
             // Generate course icon
             const iconSvg = jdenticon.toSvg(course.course.name, iconSize)
@@ -217,30 +83,20 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
               (s) => s.id === course.course.semesterId,
             )
 
-            const popoverContent = courseSemester ? (
-              <div className="p-2">
-                <p>
-                  <strong>Start Date:</strong>{' '}
-                  {new Date(courseSemester.startDate).toLocaleDateString()}
-                </p>
-                <p>
-                  <strong>End Date:</strong>{' '}
-                  {new Date(courseSemester.endDate).toLocaleDateString()}
-                </p>
-                {courseSemester.description && (
-                  <p>
-                    <strong>Description:</strong> {courseSemester.description}
-                  </p>
-                )}
-              </div>
-            ) : null
+            const isThereAnotherCourseWithSameNameAndSemester =
+              userInfo.courses.some(
+                (c) =>
+                  c.course.id !== course.course.id &&
+                  c.course.name === course.course.name &&
+                  c.course.semesterId === course.course.semesterId,
+              )
 
             return (
               <Card
                 key={course.course.id}
                 className="m-2 w-full shadow md:w-[46%] lg:w-[30.5%] xl:w-[22.5%]"
                 cover={
-                  <div className="relative block h-32 w-full">
+                  <div className="relative block h-24 w-full md:h-32">
                     <div
                       className="absolute inset-0 rounded-t"
                       style={{
@@ -260,15 +116,34 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                   </div>
                 }
               >
-                <div className="flex flex-wrap items-center justify-between align-middle">
-                  <Meta title={course.course.name} />
+                <div className="flex flex-wrap items-center justify-between">
+                  <Meta
+                    title={
+                      <span className="text-lg md:text-base">
+                        {course.course.name}
+                        {course.course.sectionGroupName &&
+                          isThereAnotherCourseWithSameNameAndSemester && (
+                            <Tooltip
+                              title={
+                                course.course.sectionGroupName +
+                                ' is the section for this course'
+                              }
+                            >
+                              <span className="text-gray-500">
+                                {' ' + course.course.sectionGroupName}
+                              </span>
+                            </Tooltip>
+                          )}
+                      </span>
+                    }
+                  />
                   <Tag
                     color={
                       course.role === Role.STUDENT
                         ? 'success'
                         : course.role === Role.TA
                           ? 'gold'
-                          : 'volcano'
+                          : 'blue'
                     }
                     className="text-base capitalize"
                   >
@@ -278,21 +153,26 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
 
                 <div className="absolute right-2 top-2 flex flex-wrap items-center justify-between align-middle">
                   {courseSemester ? (
-                    <Popover
-                      content={popoverContent}
-                      title={courseSemester.name}
-                    >
-                      <Tag color="blue" className="text-base">
+                    <SemesterInfoPopover semester={courseSemester}>
+                      <Tag
+                        color={courseSemester.color}
+                        bordered={false}
+                        className="text-sm opacity-80 hover:opacity-100"
+                      >
                         {courseSemester.name}
                       </Tag>
-                    </Popover>
-                  ) : (
-                    <Tooltip title="Courses that are not assigned to a semester">
-                      <Tag color="blue" className="text-base">
-                        Not Assigned
+                    </SemesterInfoPopover>
+                  ) : isStaff || course.role == Role.PROFESSOR ? (
+                    <Tooltip title="This course is not assigned to a semester">
+                      <Tag
+                        color="blue"
+                        bordered={false}
+                        className="text-sm opacity-80 hover:opacity-100"
+                      >
+                        No Semester
                       </Tag>
                     </Tooltip>
-                  )}
+                  ) : null}
                 </div>
 
                 <Link

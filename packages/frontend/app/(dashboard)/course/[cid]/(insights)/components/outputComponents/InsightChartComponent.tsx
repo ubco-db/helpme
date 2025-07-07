@@ -41,6 +41,7 @@ const InsightChartComponent: React.FC<
           ? (selectedDataSets ?? chartOutput.yKeys)
           : chartOutput.yKeys,
         matchingChart.categoryKeys,
+        chartOutput.yFills,
       )
 
       const chartConfig = !matchingChart.categoryKeys

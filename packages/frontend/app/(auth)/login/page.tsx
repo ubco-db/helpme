@@ -295,9 +295,14 @@ export default function LoginPage() {
                           height={24}
                         />
                       )}
-                      <span className="font-semibold">
-                        Log in with Institution
-                      </span>
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="font-semibold">
+                          Continue with {organization.name}
+                        </div>
+                        <div className="text-xs text-green-400">
+                          (recommended)
+                        </div>
+                      </div>
                     </Button>
                   </Link>
                 )}
@@ -314,7 +319,14 @@ export default function LoginPage() {
                       width={24}
                       height={24}
                     />
-                    <span className="font-semibold">Log in with Google</span>
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="font-semibold">Continue with Google</div>
+                      {!organization.ssoEnabled && (
+                        <div className="text-xs text-green-400">
+                          (recommended)
+                        </div>
+                      )}
+                    </div>
                   </Button>
                 )}
 
@@ -401,8 +413,12 @@ export default function LoginPage() {
                     </Form.Item>
 
                     <div className="d-flex flex-row space-x-8 text-center">
-                      <Link href="/password">Forgot password</Link>
-                      <Link href="/register">Create account</Link>
+                      <Link href="/password">
+                        <Button type="link">Forgot password</Button>
+                      </Link>
+                      <Link href="/register">
+                        <Button type="link">Create account</Button>
+                      </Link>
                     </div>
                   </Form>
                 )}

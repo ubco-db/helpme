@@ -1,96 +1,101 @@
 import {
+  AddChatbotQuestionParams,
+  AddDocumentChunkParams,
+  AllStudentAssignmentProgress,
+  AsyncQuestion,
+  AsyncQuestionComment,
+  AsyncQuestionCommentParams,
+  AsyncQuestionParams,
+  BatchCourseCloneAttributes,
+  Calendar,
+  ChatbotAskParams,
+  ChatbotAskResponse,
+  ChatbotAskSuggestedParams,
+  ChatbotQuestionResponseChatbotDB,
+  ChatbotQuestionResponseHelpMeDB,
+  ChatbotSettings,
+  ChatbotSettingsUpdateParams,
+  CourseCloneAttributes,
+  CourseResponse,
+  CourseSettingsResponse,
   CreateAlertParams,
   CreateAlertResponse,
+  CreateAsyncQuestions,
   CreateQuestionParams,
   CreateQuestionResponse,
-  InsightParamsType,
+  CronJob,
   DesktopNotifBody,
   DesktopNotifPartial,
+  EditCourseInfoParams,
   GetAlertsResponse,
+  GetChatbotHistoryResponse,
   GetCourseResponse,
+  GetCourseUserInfoResponse,
   GetInsightOutputResponse,
+  GetInteractionsAndQuestionsResponse,
+  GetLimitedCourseResponse,
+  GetOrganizationUserResponse,
   GetProfileResponse,
+  GetQueueChatResponse,
+  GetQueueChatsResponse,
   GetQueueResponse,
+  InsightDashboardPartial,
+  InsightDetail,
+  InsightParamsType,
   ListInsightsResponse,
   ListQuestionsResponse,
-  EditCourseInfoParams,
+  LMSAnnouncement,
+  LMSApiResponseStatus,
+  LMSAssignment,
+  LMSCourseAPIResponse,
+  LMSCourseIntegrationPartial,
+  LMSOrganizationIntegrationPartial,
+  MailServiceWithSubscription,
+  OrganizationCourseResponse,
+  OrganizationProfessor,
+  OrganizationResponse,
+  OrganizationRoleHistoryFilter,
+  OrganizationRoleHistoryResponse,
+  OrganizationSettingsResponse,
+  OrganizationStatsResponse,
+  OrgUser,
+  PreDeterminedQuestion,
+  PublicQueueInvite,
+  questions,
+  QuestionType,
+  QuestionTypeParams,
+  QueueChatPartial,
+  QueueConfig,
+  QueueInvite,
+  QueueInviteParams,
+  QueuePartial,
+  QueueTypes,
+  RemoveLMSOrganizationParams,
+  Role,
   SemesterPartial,
+  setQueueConfigResponse,
+  SourceDocument,
+  StudentAssignmentProgress,
+  StudentTaskProgressWithUser,
   TACheckinTimesResponse,
   TACheckoutResponse,
   TAUpdateStatusResponse,
+  TestLMSIntegrationParams,
+  UBCOuserParam,
+  UnreadAsyncQuestionResponse,
+  UpdateAsyncQuestions,
+  UpdateChatbotQuestionParams,
+  UpdateDocumentChunkParams,
+  UpdateOrganizationCourseDetailsParams,
+  UpdateOrganizationDetailsParams,
+  UpdateOrganizationUserRole,
   UpdateProfileParams,
   UpdateQuestionParams,
   UpdateQuestionResponse,
   UpdateQueueParams,
-  QueueTypes,
-  QueuePartial,
-  Role,
-  GetCourseUserInfoResponse,
-  questions,
-  CreateAsyncQuestions,
-  UpdateAsyncQuestions,
-  AsyncQuestionParams,
-  Calendar,
-  UpdateOrganizationDetailsParams,
-  UpdateOrganizationUserRole,
-  UpdateOrganizationCourseDetailsParams,
-  OrganizationResponse,
-  GetLimitedCourseResponse,
-  GetOrganizationUserResponse,
-  OrganizationCourseResponse,
-  OrganizationStatsResponse,
-  QuestionTypeParams,
-  UBCOuserParam,
-  CourseSettingsResponse,
-  StudentAssignmentProgress,
-  QueueConfig,
-  AllStudentAssignmentProgress,
-  setQueueConfigResponse,
-  StudentTaskProgressWithUser,
-  AsyncQuestion,
-  QuestionType,
-  OrganizationProfessor,
-  MailServiceWithSubscription,
-  UserMailSubscription,
-  CourseResponse,
-  QueueInviteParams,
-  PublicQueueInvite,
-  QueueInvite,
-  GetQueueChatResponse,
-  InsightDashboardPartial,
-  InsightDetail,
-  LMSCourseIntegrationPartial,
-  LMSAssignment,
-  LMSApiResponseStatus,
-  LMSCourseAPIResponse,
-  CronJob,
-  OrgUser,
-  LMSAnnouncement,
-  LMSOrganizationIntegrationPartial,
   UpsertLMSCourseParams,
-  RemoveLMSOrganizationParams,
   UpsertLMSOrganizationParams,
-  TestLMSIntegrationParams,
-  AsyncQuestionComment,
-  AsyncQuestionCommentParams,
-  UnreadAsyncQuestionResponse,
-  GetInteractionsAndQuestionsResponse,
-  SourceDocument,
-  ChatbotSettings,
-  ChatbotSettingsMetadata,
-  PreDeterminedQuestion,
-  ChatbotAskResponse,
-  ChatbotQuestionResponseHelpMeDB,
-  UpdateDocumentChunkParams,
-  ChatbotAskParams,
-  ChatbotAskSuggestedParams,
-  AddChatbotQuestionParams,
-  ChatbotQuestionResponseChatbotDB,
-  AddDocumentChunkParams,
-  UpdateChatbotQuestionParams,
-  QueueChatPartial,
-  GetQueueChatsResponse,
-  GetChatbotHistoryResponse,
+  UserMailSubscription,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -126,6 +131,7 @@ class APIClient {
    * @param url URL to send req to
    * @param responseClass Class with class-transformer decorators to serialize response to
    * @param body body to send with req
+   * @param params any query parameters to include in req URL
    */
   private async req<T>(
     method: Method,
@@ -248,7 +254,7 @@ class APIClient {
       addDocumentChunk: async (
         courseId: number,
         body: AddDocumentChunkParams,
-      ): Promise<SourceDocument> =>
+      ): Promise<SourceDocument[]> =>
         this.req(
           'POST',
           `/api/v1/chatbot/documentChunks/${courseId}`,
@@ -259,7 +265,7 @@ class APIClient {
         courseId: number,
         docId: string,
         body: UpdateDocumentChunkParams,
-      ): Promise<SourceDocument> =>
+      ): Promise<SourceDocument[]> =>
         this.req(
           'PATCH',
           `/api/v1/chatbot/documentChunks/${courseId}/${docId}`,
@@ -299,11 +305,13 @@ class APIClient {
           undefined,
           { url },
         ),
+      getModels: async (courseId: number): Promise<Record<string, string>> =>
+        this.req('GET', `/api/v1/chatbot/models/${courseId}`),
       getSettings: async (courseId: number): Promise<ChatbotSettings> =>
         this.req('GET', `/api/v1/chatbot/settings/${courseId}`),
       updateSettings: async (
         courseId: number,
-        settings: ChatbotSettingsMetadata,
+        settings: ChatbotSettingsUpdateParams,
       ): Promise<{ success: boolean }> =>
         this.req(
           'PATCH',
@@ -457,6 +465,17 @@ class APIClient {
           notes,
         },
       ),
+    createClone: async (courseId: number, toClone: CourseCloneAttributes) => {
+      return this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/clone_course`,
+        undefined,
+        toClone,
+      )
+    },
+    toggleFavourited: async (courseId: number) => {
+      return this.req('PATCH', `/api/v1/courses/${courseId}/toggle_favourited`)
+    },
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>
@@ -790,8 +809,11 @@ class APIClient {
   semesters = {
     get: async (oid: number): Promise<SemesterPartial[]> =>
       this.req('GET', `/api/v1/semesters/${oid}`),
-    create: async (oid: number, body: SemesterPartial): Promise<void> =>
-      this.req('POST', `/api/v1/semesters/${oid}`, undefined, body),
+    create: async (
+      oid: number,
+      body: SemesterPartial,
+    ): Promise<SemesterPartial> =>
+      this.req('POST', `/api/v1/semesters/${oid}`, SemesterPartial, body),
     edit: async (
       oid: number,
       semesterId: number,
@@ -997,12 +1019,12 @@ class APIClient {
       ),
     getCourses: async (
       organizationId: number,
-      page: number,
+      page?: number,
       search?: string,
     ): Promise<CourseResponse[]> =>
       this.req(
         'GET',
-        `/api/v1/organization/${organizationId}/get_courses/${page}${
+        `/api/v1/organization/${organizationId}/get_courses/${page ?? -1}${
           search ? `?search=${search}` : ''
         }`,
       ),
@@ -1016,6 +1038,51 @@ class APIClient {
       ),
     getCronJobs: async (organizationId: number): Promise<CronJob[]> =>
       this.req('GET', `/api/v1/organization/${organizationId}/cronjobs`),
+    batchCloneCourses: async (
+      organizationId: number,
+      body: BatchCourseCloneAttributes,
+    ): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/organization/${organizationId}/clone_courses`,
+        undefined,
+        body,
+      ),
+    getOrganizationSettings: async (
+      organizationId: number,
+    ): Promise<OrganizationSettingsResponse> =>
+      this.req(
+        'GET',
+        `/api/v1/organization/${organizationId}/settings`,
+        undefined,
+        undefined,
+      ),
+    setOrganizationSetting: async (
+      organizationId: number,
+      setting: string,
+      value: boolean,
+    ): Promise<OrganizationSettingsResponse> =>
+      this.req(
+        'PATCH',
+        `/api/v1/organization/${organizationId}/settings`,
+        undefined,
+        {
+          setting,
+          value,
+        },
+      ),
+    getOrganizationRoleHistory: async (
+      organizationId: number,
+      page: number,
+      searchFilters: OrganizationRoleHistoryFilter,
+    ): Promise<OrganizationRoleHistoryResponse> =>
+      this.req(
+        'GET',
+        `/api/v1/organization/${organizationId}/role_history/${page}`,
+        undefined,
+        undefined,
+        searchFilters,
+      ),
   }
 
   lmsIntegration = {
@@ -1101,6 +1168,13 @@ class APIClient {
         undefined,
         announcement,
       ),
+    updateSelectedResourceTypes: async (
+      courseId: number,
+      selectedResourceTypes: string[],
+    ): Promise<string> =>
+      this.req('POST', `/api/v1/lms/course/${courseId}/resources`, undefined, {
+        selectedResourceTypes,
+      }),
     testIntegration: async (
       courseId: number,
       props: TestLMSIntegrationParams,

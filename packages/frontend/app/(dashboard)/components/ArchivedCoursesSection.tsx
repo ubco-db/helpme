@@ -16,10 +16,15 @@ const columns: ColumnsType<UserCourse> = [
   {
     dataIndex: ['course', 'name'],
     key: 'name',
-    width: '60%',
+    width: '70%',
     align: 'left',
-    render: (text, course) => (
-      <span className="text-lg font-semibold">{text}</span>
+    render: (text: string, course: UserCourse) => (
+      <span className="flex items-center text-lg font-semibold">
+        {text}
+        {course.course.sectionGroupName && (
+          <span className="ml-1 text-sm text-gray-600">{`[${course.course.sectionGroupName}]`}</span>
+        )}
+      </span>
     ),
   },
   {
@@ -28,7 +33,7 @@ const columns: ColumnsType<UserCourse> = [
     width: '10%',
     align: 'center',
     render: (semester) => {
-      const popoverContent = (
+      const popoverContent = semester ? (
         <div className="p-2">
           <p>
             <strong>Start Date:</strong>{' '}
@@ -44,11 +49,11 @@ const columns: ColumnsType<UserCourse> = [
             </p>
           )}
         </div>
-      )
+      ) : null
       return (
-        <Popover content={popoverContent} title={semester.name}>
+        <Popover content={popoverContent} title={semester?.name}>
           <Tag color="blue" className="text-base">
-            {semester?.name ?? ''}
+            {semester?.name ?? 'No Semester'}
           </Tag>
         </Popover>
       )
@@ -105,7 +110,7 @@ const ArchivedCoursesSection: React.FC<ArchivedCoursesProps> = ({
   semesters,
 }) => {
   return (
-    <Collapse className="mt-20">
+    <Collapse className="mb-10 mt-16">
       <Panel header="Archived Courses" key="archived">
         <Table
           columns={columns}

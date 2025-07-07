@@ -3,13 +3,13 @@ import { use } from 'react'
 import { App } from 'antd'
 
 import AlertsContainer from '@/app/components/AlertsContainer'
-import { LayoutProps } from '@/app/typings/types'
 
-type CoursePageProps = {
-  params: { cid: string }
-}
+type Params = Promise<{ cid: string }>
 
-const Layout: React.FC<LayoutProps & CoursePageProps> = (props) => {
+export default function Layout(props: {
+  children: React.ReactNode
+  params: Params
+}) {
   const params = use(props.params)
 
   const { children } = props
@@ -23,5 +23,3 @@ const Layout: React.FC<LayoutProps & CoursePageProps> = (props) => {
     </App>
   )
 }
-
-export default Layout

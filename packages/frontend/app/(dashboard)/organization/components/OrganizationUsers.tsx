@@ -18,6 +18,7 @@ const OrganizationUsers: React.FC<UsersTableProps> = ({ organization }) => {
   const [updatedRole, setUpdatedRole] = useState<OrganizationRole>(
     OrganizationRole.MEMBER,
   )
+  const [updateFlag, setUpdateFlag] = useState<boolean>(false)
 
   const toggleRoleChangeModal = (userData: OrgUser) => {
     setSelectedUserData(userData)
@@ -27,7 +28,6 @@ const OrganizationUsers: React.FC<UsersTableProps> = ({ organization }) => {
   const prepareAndShowConfirmationModal =
     (user: OrgUser) => async (newRole: string) => {
       setUpdatedRole(newRole as OrganizationRole)
-
       toggleRoleChangeModal(user)
     }
 
@@ -40,12 +40,9 @@ const OrganizationUsers: React.FC<UsersTableProps> = ({ organization }) => {
         organizationRole: updatedRole,
       })
       .then(() => {
-        message.success({
-          content: 'Successfully updated user role.',
-          onClose: () => {
-            toggleRoleChangeModal(selectedUserData as OrgUser)
-          },
-        })
+        setUpdateFlag((prev) => !prev)
+        toggleRoleChangeModal(selectedUserData as OrgUser)
+        message.success('Successfully updated user role.')
       })
       .catch((error) => {
         const errorMessage = error.response.data.message
@@ -68,6 +65,7 @@ const OrganizationUsers: React.FC<UsersTableProps> = ({ organization }) => {
           organization={organization}
           prepareAndShowConfirmationModal={prepareAndShowConfirmationModal}
           profile={userInfo}
+          updateFlag={updateFlag}
         />
       </Card>
 

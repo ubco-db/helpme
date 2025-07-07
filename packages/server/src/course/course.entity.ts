@@ -1,4 +1,3 @@
-import { Heatmap } from '@koh/common';
 import { Exclude } from 'class-transformer';
 import {
   BaseEntity,
@@ -24,6 +23,8 @@ import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProg
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question.entity';
 import { ChatbotDocPdfModel } from '../chatbot/chatbot-doc-pdf.entity';
+import { SuperCourseModel } from './super-course.entity';
+
 @Entity('course_model')
 export class CourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -35,22 +36,22 @@ export class CourseModel extends BaseEntity {
   @Column('text')
   name: string; // display name entered by Prof
 
-  @Column('text')
-  sectionGroupName: string; // from admin
+  @Column('text', { nullable: true })
+  sectionGroupName?: string; // from admin
 
   @Column('text', { nullable: true })
-  coordinator_email: string;
+  coordinator_email?: string; // Legacy but in the course settings page
 
   @Column('text', { nullable: true })
   @Exclude()
-  icalURL: string;
+  icalURL?: string; // Legacy
 
   @Column('text', { nullable: true })
-  zoomLink: string;
+  zoomLink?: string;
 
   @Column('integer', { nullable: true })
   @Exclude()
-  questionTimer: number;
+  questionTimer?: number; // Legacy
 
   @OneToMany((type) => UserCourseModel, (ucm) => ucm.course)
   @Exclude()
@@ -62,21 +63,21 @@ export class CourseModel extends BaseEntity {
 
   @ManyToOne(() => SemesterModel, (semester) => semester.courses, {
     onDelete: 'SET NULL',
+    nullable: true,
   })
   @JoinColumn({ name: 'semesterId' })
   @Exclude()
-  semester: SemesterModel;
+  semester?: SemesterModel;
 
   @Column({ nullable: true })
   @Exclude()
-  // TODO: can we make these not nullable and work with TypeORM
   semesterId?: number;
 
   @Column('boolean', { nullable: true })
-  enabled: boolean; // Set to true if the given the course is using our app
+  enabled?: boolean; // Set to true if the given the course is using our app
 
   // The IANA string representing the timezone the course is centered around. This is important for any time based events for a course
-  @Column('text', { nullable: true })
+  @Column('text', { default: 'America/Los Angeles' })
   timezone: string;
 
   @OneToMany((type) => EventModel, (event) => event.course)
@@ -89,11 +90,11 @@ export class CourseModel extends BaseEntity {
 
   // Whether or not students are allowed to self-enroll in the class
   // WARNING: THIS SHOULD ONLY BE USED AS A TEMPORARY MEASURE WHEN THINGS LIKE BANNER ARE DOWN
-  @Column('boolean', { nullable: true, default: false })
-  selfEnroll: boolean;
+  @Column('boolean', { default: false })
+  selfEnroll: boolean; // Legacy
 
-  @Column('text', { array: true, nullable: true, default: [] })
-  asyncQuestionDisplayTypes: string[];
+  @Column('text', { array: true, default: [] })
+  asyncQuestionDisplayTypes: string[]; // Legacy
 
   @DeleteDateColumn()
   deletedAt?: Date;
@@ -105,7 +106,7 @@ export class CourseModel extends BaseEntity {
   organizationCourse: OrganizationCourseModel;
 
   @Column('text', { nullable: true })
-  courseInviteCode: string;
+  courseInviteCode?: string;
 
   @OneToOne(
     (type) => CourseSettingsModel,
@@ -142,4 +143,13 @@ export class CourseModel extends BaseEntity {
   )
   @Exclude()
   chatbot_doc_pdfs: ChatbotDocPdfModel[];
+
+  @ManyToOne(() => SuperCourseModel, (course) => course.courses, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'superCourseId' })
+  superCourse?: SuperCourseModel;
+
+  @Column({ nullable: true })
+  superCourseId?: number;
 }

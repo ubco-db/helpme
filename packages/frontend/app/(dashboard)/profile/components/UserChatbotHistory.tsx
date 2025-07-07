@@ -1,7 +1,7 @@
 'use client'
 
-import { Collapse, Typography, Card, Space } from 'antd'
-import { useEffect, useState } from 'react'
+import { Collapse, Typography, Card, Space, CollapseProps } from 'antd'
+import { useEffect, useMemo, useState } from 'react'
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
@@ -46,6 +46,67 @@ const UserChatbotHistory: React.FC = () => {
       .finally(() => setLoading(false))
   }, [userInfo?.id])
 
+  const sortedHistory = useMemo(() => {
+    return history.sort((a, b) => {
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    })
+  }, [history])
+
+  const collapseItems: CollapseProps['items'] = sortedHistory.map(
+    (interaction) => {
+      const firstQuestionText = interaction.questions?.[0]?.questionText
+      return {
+        key: interaction.id,
+        label: (
+          <Tooltip
+            title={formatDateAndTimeForExcel(new Date(interaction.timestamp))}
+          >
+            <span>
+              Conversation
+              {firstQuestionText
+                ? ` on ${firstQuestionText.slice(0, 20) + `${firstQuestionText.length > 20 ? '...' : ''}`}`
+                : ''}
+              : {dayjs(interaction.timestamp).fromNow()}
+            </span>
+          </Tooltip>
+        ),
+        children: (
+          <Space direction="vertical" style={{ width: '100%' }}>
+            {(interaction.questions ?? []).map(
+              (q: ChatbotQuestionResponseHelpMeDB) => (
+                <Card
+                  key={q.id}
+                  size="small"
+                  style={{ marginBottom: 12 }}
+                  styles={{ body: { padding: 12 } }}
+                >
+                  <Text strong>Q:</Text>{' '}
+                  <Paragraph style={{ display: 'inline' }}>
+                    {q.questionText}
+                  </Paragraph>
+                  <br />
+                  <Text strong>A:</Text>{' '}
+                  <Paragraph style={{ display: 'inline' }}>
+                    {q.responseText}
+                  </Paragraph>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Asked at:{' '}
+                    <Tooltip
+                      title={formatDateAndTimeForExcel(new Date(q.timestamp))}
+                    >
+                      {dayjs(q.timestamp).fromNow()}
+                    </Tooltip>
+                  </Text>
+                </Card>
+              ),
+            )}
+          </Space>
+        ),
+      }
+    },
+  )
+
   return (
     <div className="mx-auto max-w-3xl">
       <h2 className="mb-4 text-2xl font-bold">Your Chatbot Conversations</h2>
@@ -53,63 +114,10 @@ const UserChatbotHistory: React.FC = () => {
         <CenteredSpinner tip="Loading..." />
       ) : error ? (
         <div className="py-8 text-red-500">{error}</div>
+      ) : sortedHistory.length === 0 ? (
+        <div className="text-gray-500">No chatbot history found.</div>
       ) : (
-        <Collapse accordion>
-          {history.length === 0 && (
-            <div className="text-gray-500">No chatbot history found.</div>
-          )}
-          {history.map((interaction) => (
-            <Panel
-              header={
-                <Tooltip
-                  title={formatDateAndTimeForExcel(
-                    new Date(interaction.timestamp),
-                  )}
-                >
-                  <span>
-                    Conversation started:{' '}
-                    {dayjs(interaction.timestamp).fromNow()}
-                  </span>
-                </Tooltip>
-              }
-              key={interaction.id}
-            >
-              <Space direction="vertical" style={{ width: '100%' }}>
-                {(interaction.questions ?? []).map(
-                  (q: ChatbotQuestionResponseHelpMeDB) => (
-                    <Card
-                      key={q.id}
-                      size="small"
-                      style={{ marginBottom: 12 }}
-                      styles={{ body: { padding: 12 } }}
-                    >
-                      <Text strong>Q:</Text>{' '}
-                      <Paragraph style={{ display: 'inline' }}>
-                        {q.questionText}
-                      </Paragraph>
-                      <br />
-                      <Text strong>A:</Text>{' '}
-                      <Paragraph style={{ display: 'inline' }}>
-                        {q.responseText}
-                      </Paragraph>
-                      <br />
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        Asked at:{' '}
-                        <Tooltip
-                          title={formatDateAndTimeForExcel(
-                            new Date(q.timestamp),
-                          )}
-                        >
-                          {dayjs(q.timestamp).fromNow()}
-                        </Tooltip>
-                      </Text>
-                    </Card>
-                  ),
-                )}
-              </Space>
-            </Panel>
-          ))}
-        </Collapse>
+        <Collapse accordion items={collapseItems} />
       )}
     </div>
   )

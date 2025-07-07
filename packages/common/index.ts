@@ -3,7 +3,6 @@ import {
   IsArray,
   IsBoolean,
   IsDate,
-  IsDefined,
   IsEnum,
   IsHexColor,
   IsIn,
@@ -168,8 +167,67 @@ export type UserTiny = {
 export type CoursePartial = {
   id: number
   name: string
+  sectionGroupName?: string
   semesterId?: number
   enabled?: boolean
+  favourited?: boolean
+}
+
+/**
+ * Represents a partial course data used for cloning a course.
+ */
+export type CourseCloneAttributes = {
+  professorIds: number[]
+  newSemesterId?: number
+  newSection?: string
+  associateWithOriginalCourse?: boolean
+  toClone: {
+    coordinator_email?: boolean
+    zoomLink?: boolean
+    courseInviteCode?: boolean
+    courseFeatureConfig?: boolean
+    asyncCentreQuestionTypes?: boolean
+    queues?: boolean
+    queueInvites?: boolean
+    chatbot?: {
+      settings?: boolean
+      documents?: boolean
+      manuallyCreatedChunks?: boolean
+      insertedQuestions?: boolean
+      insertedLMSData?: boolean
+    }
+  }
+}
+
+export const defaultCourseCloneAttributes: CourseCloneAttributes = {
+  professorIds: [],
+  associateWithOriginalCourse: true,
+  newSemesterId: -1,
+  newSection: '',
+  toClone: {
+    coordinator_email: true,
+    zoomLink: false,
+    courseInviteCode: false,
+    courseFeatureConfig: true,
+    asyncCentreQuestionTypes: true,
+    queues: true,
+    queueInvites: true,
+    chatbot: {
+      settings: true,
+      documents: true,
+      manuallyCreatedChunks: true,
+      insertedQuestions: true,
+      insertedLMSData: false,
+    },
+  },
+}
+
+// The key to the records is the course ids
+export type BatchCourseCloneAttributes = Record<number, CourseCloneAttributes>
+
+export type BatchCourseCloneResponse = {
+  success: boolean
+  message: string
 }
 
 export class RegistrationTokenDetails {
@@ -204,6 +262,7 @@ export class PasswordRequestResetWithTokenBody {
 export type UserCourse = {
   course: CoursePartial
   role: Role
+  favourited: boolean
   unreadCount?: number
 }
 
@@ -229,6 +288,7 @@ export enum MailServiceType {
   ASYNC_QUESTION_UPVOTED = 'async_question_upvoted',
   ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST = 'async_question_new_comment_on_my_post',
   ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
+  COURSE_CLONE_SUMMARY = 'course_clone_summary',
 }
 /**
  * Represents one of three possible user roles in a course.
@@ -306,6 +366,8 @@ export interface SourceDocument {
     type?: string
     source?: string
     courseId?: string
+    fromLMS?: boolean
+    apiDocId?: number
   }
   type?: string
   // TODO: is it content or pageContent? since this file uses both. EDIT: It seems to be both/either. Gross.
@@ -365,6 +427,21 @@ export interface AddDocumentChunkParams {
     id?: string
     courseId?: number
   }
+  prefix?: string
+}
+
+export interface AddDocumentAggregateParams {
+  name: string
+  source: string
+  documentText: string
+  metadata?: any
+  prefix?: string
+}
+
+export interface UpdateDocumentAggregateParams {
+  documentText: string
+  metadata?: any
+  prefix?: string
 }
 
 export interface UpdateChatbotQuestionParams {
@@ -421,6 +498,13 @@ export interface ChatbotSettingsMetadata {
   similarityThresholdDocuments: number
   temperature: number
   topK: number
+}
+export interface ChatbotSettingsUpdateParams {
+  modelName?: string
+  prompt?: string
+  similarityThresholdDocuments?: number
+  temperature?: number
+  topK?: number
 }
 
 export interface InteractionResponse {
@@ -1232,6 +1316,7 @@ export class LMSCourseIntegrationPartial {
   apiKeyExpiry!: Date
   lmsSynchronize!: boolean
   isExpired!: boolean
+  selectedResourceTypes?: LMSResourceType[]
 }
 
 export type LMSCourseAPIResponse = {
@@ -1260,10 +1345,15 @@ export type LMSAnnouncement = {
   uploaded?: Date
 }
 
+export type LMSErrorType = {
+  deleteError: "Couldn't remove pre-existing documents"
+}
+
 export type LMSFileUploadResponse = {
   id: number
   success: boolean
   documentId?: string
+  reason?: LMSErrorType
 }
 
 export enum LMSApiResponseStatus {
@@ -1276,10 +1366,18 @@ export enum LMSApiResponseStatus {
   Success = 'Successfully contacted LMS API.',
 }
 
+export enum LMSResourceType {
+  ASSIGNMENTS = 'assignments',
+  ANNOUNCEMENTS = 'announcements',
+}
+
 export interface CourseResponse {
   courseId: number
   courseName: string
   isEnabled: boolean
+  sectionGroupName?: string
+  semesterId?: number
+  semester: SemesterPartial
 }
 
 export class GetCourseResponse {
@@ -1292,14 +1390,11 @@ export class GetCourseResponse {
   // The heatmap is false when there havent been any questions asked yet or there havent been any office hours
   heatmap!: Heatmap | false
 
-  coordinator_email!: string
-
-  @Type(() => Number)
-  crns!: number[]
+  coordinator_email?: string
 
   icalURL?: string
 
-  zoomLink!: string
+  zoomLink?: string
 
   selfEnroll!: boolean
 
@@ -1316,7 +1411,7 @@ export class GetCourseResponse {
   @Type(() => OrganizationPartial)
   organizationCourse?: OrganizationPartial
 
-  courseInviteCode!: string | null
+  courseInviteCode?: string
 }
 
 export class GetLimitedCourseResponse {
@@ -1783,14 +1878,41 @@ export class EditCourseInfoParams {
   @IsOptional()
   asyncQuestionDisplayTypes?: string[]
 
-  @IsArray()
-  @IsOptional()
-  @Type(() => Number)
-  crns?: number[]
-
   @IsString()
   @IsOptional()
   courseInviteCode?: string | null
+}
+
+export enum antdTagColor {
+  blue = 'blue',
+  gold = 'gold',
+  green = 'green',
+  purple = 'purple',
+  red = 'red',
+  orange = 'orange',
+  yellow = 'yellow',
+  lime = 'lime',
+  cyan = 'cyan',
+  geekblue = 'geekblue',
+  magenta = 'magenta',
+  volcano = 'volcano',
+  blueInverse = 'blue-inverse',
+  goldInverse = 'gold-inverse',
+  greenInverse = 'green-inverse',
+  purpleInverse = 'purple-inverse',
+  redInverse = 'red-inverse',
+  orangeInverse = 'orange-inverse',
+  yellowInverse = 'yellow-inverse',
+  limeInverse = 'lime-inverse',
+  cyanInverse = 'cyan-inverse',
+  geekblueInverse = 'geekblue-inverse',
+  magentaInverse = 'magenta-inverse',
+  volcanoInverse = 'volcano-inverse',
+  success = 'success',
+  processing = 'processing',
+  error = 'error',
+  default = 'default',
+  warning = 'warning',
 }
 
 export class SemesterPartial {
@@ -1815,6 +1937,9 @@ export class SemesterPartial {
   @IsOptional()
   @IsString()
   description?: string
+
+  @IsEnum(antdTagColor)
+  color!: antdTagColor
 }
 
 export class SSEQueueResponse {
@@ -1940,6 +2065,7 @@ export type ChartOutputType = {
   label: string
   xType?: 'numeric' | 'category'
   yType?: 'numeric' | 'category'
+  yFills?: StringMap<string>
 }
 
 export type GanttChartOutputType = {
@@ -2049,6 +2175,107 @@ export class CourseSettingsRequestBody {
   static isValidFeature(feature: string): boolean {
     return validFeatures.includes(feature)
   }
+}
+
+export class OrganizationSettingsResponse {
+  @IsInt()
+  organizationId!: number
+
+  @IsBoolean()
+  allowProfCourseCreate!: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  settingsFound?: boolean
+
+  constructor(init?: Partial<OrganizationSettingsResponse>) {
+    Object.assign(this, init)
+  }
+}
+
+export const validOrganizationSettings = ['allowProfCourseCreate']
+
+export const OrganizationSettingsDefaults = {
+  allowProfCourseCreate: true,
+}
+
+export class OrganizationSettingsRequestBody {
+  @IsBoolean()
+  value!: boolean
+
+  @IsIn(validOrganizationSettings)
+  setting!: string
+
+  static isValidSetting(setting: string): boolean {
+    return validOrganizationSettings.includes(setting)
+  }
+}
+
+export enum OrgRoleChangeReason {
+  manualModification = 'manualModification',
+  joinedOrganizationMember = 'joinedOrganizationMember',
+  joinedOrganizationProfessor = 'joinedOrganizationProfessor',
+  unknown = 'unknown',
+}
+
+export enum OrgRoleChangeReasonMap {
+  manualModification = 'Role was manually modified by an organization member with sufficient permissions.',
+  joinedOrganizationMember = 'User joined the organization and gained the member role.',
+  joinedOrganizationProfessor = 'User joined the organization and gained the professor role.',
+  unknown = '',
+}
+
+export class OrgRoleHistory {
+  @IsNumber()
+  id!: number
+
+  @IsDate()
+  timestamp!: Date
+
+  @IsEnum(OrganizationRole)
+  fromRole!: OrganizationRole
+
+  @IsEnum(OrganizationRole)
+  toRole!: OrganizationRole
+
+  @IsObject()
+  byUser!: OrgUser
+
+  @IsObject()
+  toUser!: OrgUser
+
+  changeReason!: string
+}
+
+export class OrganizationRoleHistoryFilter {
+  @IsString()
+  @IsOptional()
+  search?: string
+
+  @IsEnum(OrganizationRole)
+  @IsOptional()
+  fromRole?: OrganizationRole
+
+  @IsEnum(OrganizationRole)
+  @IsOptional()
+  toRole?: OrganizationRole
+
+  @IsDate()
+  @IsOptional()
+  minDate?: Date
+
+  @IsDate()
+  @IsOptional()
+  maxDate?: Date
+
+  constructor(init?: Partial<OrganizationRoleHistoryFilter>) {
+    Object.assign(this, init)
+  }
+}
+
+export type OrganizationRoleHistoryResponse = {
+  totalHistory: number
+  history: OrgRoleHistory[]
 }
 
 /**
@@ -2750,6 +2977,12 @@ export const ERROR_MESSAGES = {
     userNotFoundInOrganization: 'User not found in organization',
     cannotRemoveAdminRole: 'Cannot remove admin role from user',
     cannotGetAdminUser: 'Information about this user account is restricted',
+    notAllowedToCreateCourse: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to create courses`,
+  },
+  organizationService: {
+    cannotCreateOrgNotFound:
+      'Organization settings could not be created; organization not found.',
   },
   courseController: {
     checkIn: {
@@ -2772,7 +3005,6 @@ export const ERROR_MESSAGES = {
     sectionGroupNotFound: 'One or more of the section groups was not found',
     courseOfficeHourError: "Unable to find a course's office hours",
     courseHeatMapError: "Unable to get course's cached heatmap",
-    courseCrnsError: "Unable to get course's crn numbers",
     courseModelError: 'User not in course',
     noUserFound: 'No user found with given email',
     noSemesterFound: 'No semester exists for the submitted course',
@@ -2799,6 +3031,12 @@ export const ERROR_MESSAGES = {
     organizationNotFound: 'Course has no related organization',
     orgIntegrationNotFound: 'Course organization has no LMS integrations',
     lmsIntegrationNotFound: 'Course has no related LMS integrations',
+    newSectionOrSemesterMissing:
+      'One of semester or section fields must be set',
+    sectionSame:
+      'The section you set for the clone is the same as the original course. Clone process aborted.',
+    semesterSame:
+      'The semester you set for the clone is the same as the original course. Clone process aborted.',
   },
   asyncQuestionController: {
     comments: {
@@ -2902,7 +3140,7 @@ export const ERROR_MESSAGES = {
   },
   roleGuard: {
     notLoggedIn: 'Must be logged in',
-    noCourseIdFound: 'No courseid found',
+    noCourseIdFound: 'No courseId found',
     notInCourse: 'Not In This Course',
     notAuthorized: "You don't have permissions to perform this action",
     userNotInOrganization: 'User not in organization',
@@ -2929,7 +3167,8 @@ export const ERROR_MESSAGES = {
     emailAlreadyInDb: 'Email already in database',
     sidAlreadyInDb: 'Student ID already in database',
     cannotUpdateEmail: 'Email cannot be updated',
-    accountNotAvailable: 'The user account is undefined',
+    accountNotAvailable:
+      'The user either does not exist or does not have a chat token',
     userResponseNotFound: 'The user response was not found',
     accountDeactivated: 'The user account is deactivated',
     firstNameTooShort: 'First name must be at least 1 characters',
@@ -2996,5 +3235,15 @@ export const ERROR_MESSAGES = {
     lmsDocumentNotFound: 'Document was not found.',
     cannotSyncDocumentWhenSyncDisabled:
       'Cannot synchronize a document when synchronization is disabled.',
+    resourceDisabled:
+      "The resource type of the document you're trying to operate on is disabled.",
+  },
+  semesterController: {
+    notAllowedToCreateSemester: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to create semesters`,
+    notAllowedToUpdateSemester: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to alter semesters`,
+    notAllowedToDeleteSemester: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to delete semesters`,
   },
 }

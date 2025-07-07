@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   HttpException,
@@ -11,22 +13,29 @@ import {
   Post,
   Query,
   Res,
+  UnauthorizedException,
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  ForbiddenException,
 } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
 import {
+  BatchCourseCloneAttributes,
   COURSE_TIMEZONES,
   CourseResponse,
   CourseSettingsRequestBody,
   ERROR_MESSAGES,
+  GetOrganizationResponse,
   GetOrganizationUserResponse,
   OrganizationProfessor,
   OrganizationResponse,
   OrganizationRole,
+  OrganizationRoleHistoryFilter,
+  OrganizationRoleHistoryResponse,
+  OrganizationSettingsRequestBody,
+  OrganizationSettingsResponse,
+  OrgRoleChangeReason,
   OrgUser,
   Role,
   UpdateOrganizationCourseDetailsParams,
@@ -34,7 +43,6 @@ import {
   UpdateOrganizationUserRole,
   UpdateProfileParams,
   UserRole,
-  GetOrganizationResponse,
 } from '@koh/common';
 import * as fs from 'fs';
 import { OrganizationUserModel } from './organization-user.entity';
@@ -54,21 +62,22 @@ import * as path from 'path';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SemesterModel } from '../semester/semester.entity';
-import { DataSource, DeepPartial, In } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import * as sharp from 'sharp';
-import { UserId } from '../decorators/user.decorator';
 import { User } from 'decorators/user.decorator';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { CourseRoles } from 'decorators/course-roles.decorator';
+import { CourseService } from 'course/course.service';
+import { ParseDatePipe } from '@nestjs/common/pipes/parse-date.pipe';
+import { OrgRole } from '../decorators/org-role.decorator';
 
 // TODO: put the error messages in ERROR_MESSAGES object
 
@@ -76,7 +85,7 @@ import { CourseRoles } from 'decorators/course-roles.decorator';
 export class OrganizationController {
   constructor(
     private organizationService: OrganizationService,
-    private redisProfileService: RedisProfileService,
+    private courseService: CourseService,
     private schedulerRegistry: SchedulerRegistry,
     private dataSource: DataSource,
   ) {}
@@ -286,9 +295,21 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async createCourse(
     @Param('oid', ParseIntPipe) oid: number,
+    @OrgRole() orgRole: OrganizationRole,
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
     @Res() res: Response,
   ): Promise<Response<void>> {
+    const orgSettings =
+      await this.organizationService.getOrganizationSettings(oid);
+    if (
+      !orgSettings.allowProfCourseCreate &&
+      orgRole == OrganizationRole.PROFESSOR
+    ) {
+      throw new UnauthorizedException(
+        ERROR_MESSAGES.organizationController.notAllowedToCreateCourse(orgRole),
+      );
+    }
+
     if (!courseDetails.name || courseDetails.name.trim().length < 1) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: ERROR_MESSAGES.courseController.courseNameTooShort,
@@ -357,8 +378,6 @@ export class OrganizationController {
             expires: false,
           });
           await manager.save(userCourse);
-
-          await this.redisProfileService.deleteProfile(`u:${profId}`);
         }
       }
 
@@ -370,12 +389,7 @@ export class OrganizationController {
       await manager.save(orgCourse);
 
       // Check semester (-1 signifies that no semester was set)
-      if (courseDetails.semesterId && isNaN(courseDetails.semesterId)) {
-        throw new HttpException(
-          `Semester ID is invalid`,
-          HttpStatus.BAD_REQUEST,
-        );
-      } else if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
+      if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
         const semester = await manager.findOne(SemesterModel, {
           where: { id: courseDetails.semesterId },
           relations: ['courses'],
@@ -491,19 +505,7 @@ export class OrganizationController {
         );
       }
 
-      // Check semester (-1 signifies that no semester was set)
-      /*
-        semester should be required but to not break production, it will temporarily be optional
-        (hence the extra check to see if its already set and not allowing it to be null again)
-      */
-      if (courseDetails.semesterId && isNaN(courseDetails.semesterId)) {
-        throw new HttpException(
-          `Semester ID is invalid`,
-          HttpStatus.BAD_REQUEST,
-        );
-      } else if (courseDetails.semesterId && courseDetails.semesterId == -1) {
-        throw new HttpException(`Semester must be set`, HttpStatus.BAD_REQUEST);
-      } else if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
+      if (courseDetails.semesterId && courseDetails.semesterId !== -1) {
         const semester = await manager.findOne(SemesterModel, {
           where: { id: courseDetails.semesterId },
           relations: ['courses'],
@@ -513,6 +515,8 @@ export class OrganizationController {
         }
 
         courseInfo.course.semester = semester;
+      } else if (courseDetails.semesterId && courseDetails.semesterId === -1) {
+        courseInfo.course.semester = null;
       }
 
       courseInfo.course.name = courseDetails.name;
@@ -575,19 +579,6 @@ export class OrganizationController {
           }
         }
       }
-
-      const members = await UserCourseModel.find({
-        where: {
-          courseId: cid,
-        },
-      });
-
-      // Clear cache of all members of the course
-      await Promise.all(
-        members.map((m) =>
-          this.redisProfileService.deleteProfile(`u:${m.userId}`),
-        ),
-      );
     });
 
     return res.status(HttpStatus.OK).send({
@@ -622,24 +613,6 @@ export class OrganizationController {
 
     await courseInfo.course
       .save()
-      .then(async () => {
-        const userCourses = (
-          await CourseModel.findOne({
-            where: {
-              id: cid,
-            },
-            relations: {
-              userCourses: true,
-            },
-          })
-        ).userCourses;
-
-        await Promise.all(
-          userCourses.map((userCourse) =>
-            this.redisProfileService.deleteProfile(`u:${userCourse.userId}`),
-          ),
-        );
-      })
       .then(() => {
         return res.status(HttpStatus.OK).send({
           message: 'Course access updated',
@@ -697,8 +670,6 @@ export class OrganizationController {
             },
           });
 
-          organization.bannerUrl = null;
-          await organization.save();
           return res.status(HttpStatus.NOT_FOUND).send({
             message: `Banner image for ${organization.name} not found`,
           });
@@ -733,8 +704,6 @@ export class OrganizationController {
               message: `Organization not found`,
             });
           }
-          organization.logoUrl = null;
-          await organization.save();
           return res.status(HttpStatus.NOT_FOUND).send({
             message: `Logo image for ${organization.name} not found`,
           });
@@ -1009,6 +978,7 @@ export class OrganizationController {
   async updateUserOrganizationRole(
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
+    @User({ organizationUser: true }) user: UserModel,
     @Body() organizationUserRolePatch: UpdateOrganizationUserRole,
   ): Promise<void> {
     await OrganizationModel.findOne({
@@ -1047,11 +1017,38 @@ export class OrganizationController {
               });
             }
 
+            const prevRole = organizationUser.role;
             organizationUser.role = organizationUserRolePatch.organizationRole;
 
             await organizationUser
               .save()
-              .then((_) => {
+              .then(async (_) => {
+                const maxUses = [
+                  OrganizationRole.ADMIN,
+                  OrganizationRole.PROFESSOR,
+                ].includes(organizationUser.role)
+                  ? 300
+                  : 30;
+
+                await this.dataSource.query(
+                  `
+                UPDATE chat_token_model
+                SET max_uses = $1
+                WHERE "user" = $2
+                `,
+                  [maxUses, organizationUser.userId],
+                );
+
+                // add role change entry
+                await this.organizationService.addRoleHistory(
+                  oid,
+                  prevRole,
+                  organizationUser.role,
+                  user.organizationUser.id,
+                  organizationUser.id,
+                  OrgRoleChangeReason.manualModification,
+                );
+
                 res.status(HttpStatus.OK).send({
                   message: 'Organization user role updated',
                 });
@@ -1222,28 +1219,8 @@ export class OrganizationController {
       }
     }
 
-    const userInfo = await OrganizationUserModel.findOne({
-      where: {
-        userId: uid,
-      },
-      relations: ['organizationUser'],
-    });
-
-    if (
-      userInfo.role === OrganizationRole.ADMIN ||
-      userInfo.organizationUser.userRole === UserRole.ADMIN
-    ) {
-      return res.status(HttpStatus.FORBIDDEN).send({
-        message: ERROR_MESSAGES.roleGuard.notAuthorized,
-      });
-    }
-
     await this.organizationService
       .deleteUserCourses(uid, userCourses)
-      .then(async () => {
-        // Delete the user's old profile data from redis
-        await this.redisProfileService.deleteProfile(`u:${uid}`);
-      })
       .then(() => {
         return res.status(HttpStatus.OK).send({
           message: 'User courses deleted',
@@ -1304,8 +1281,6 @@ export class OrganizationController {
         } else {
           userInfo.organizationUser.photoURL = null;
           await userInfo.organizationUser.save();
-
-          await this.redisProfileService.deleteProfile(`u:${uid}`);
 
           return res.status(HttpStatus.OK).send({
             message: 'Profile picture deleted',
@@ -1392,10 +1367,6 @@ export class OrganizationController {
 
     await userInfo.organizationUser
       .save()
-      .then(async () => {
-        // Delete the user's old profile data from redis
-        await this.redisProfileService.deleteProfile(`u:${uid}`);
-      })
       .then(() => {
         return res.status(HttpStatus.OK).send({
           message: 'User info updated',
@@ -1456,7 +1427,7 @@ export class OrganizationController {
   @Roles(OrganizationRole.ADMIN)
   async getCourses(
     @Param('oid', ParseIntPipe) oid: number,
-    @Param('page', ParseIntPipe) page: number,
+    @Param('page', new DefaultValuePipe(-1), ParseIntPipe) page: number,
     @Query('search') search: string,
   ): Promise<CourseResponse[]> {
     const pageSize = 50;
@@ -1529,6 +1500,7 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async addUserToOrganization(
     @Res() res: Response,
+    @User({ organizationUser: true }) caller: UserModel,
     @Param('oid', ParseIntPipe) oid: number,
     @Param('uid', ParseIntPipe) uid: number,
   ): Promise<void> {
@@ -1562,19 +1534,136 @@ export class OrganizationController {
             organizationUserModel
               .save()
               .then((_) => {
-                res.status(200).send({ message: 'User added to organization' });
+                // add role change entry
+                this.organizationService
+                  .addRoleHistory(
+                    oid,
+                    null,
+                    OrganizationRole.MEMBER,
+                    caller.organizationUser?.id ?? null,
+                    organizationUserModel.id,
+                    OrgRoleChangeReason.joinedOrganizationMember,
+                  )
+                  .then(() =>
+                    res
+                      .status(200)
+                      .send({ message: 'User added to organization' }),
+                  );
               })
               .catch((err) => {
+                console.log(err);
                 res.status(500).send({ message: err });
               });
           })
           .catch((err) => {
+            console.log(err);
             res.status(500).send({ message: err });
           });
       })
       .catch((err) => {
+        console.log(err);
         res.status(500).send({ message: err });
       });
+  }
+
+  @Post(':oid/clone_courses')
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
+  @Roles(OrganizationRole.ADMIN)
+  async batchCloneCourses(
+    @Param('oid', ParseIntPipe) oid: number, // unused for now, only for the guard
+    @User({ chat_token: true }) user: UserModel,
+    @Body() body: BatchCourseCloneAttributes,
+  ): Promise<string> {
+    if (!user || !user.chat_token) {
+      console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
+      throw new HttpException(
+        ERROR_MESSAGES.profileController.accountNotAvailable,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    this.courseService.performBatchClone(user, body);
+    return 'Batch Cloning Operation Successfully Queued!';
+  }
+
+  @Get(':oid/settings')
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard)
+  @OrgRoles(
+    OrganizationRole.ADMIN,
+    OrganizationRole.PROFESSOR,
+    OrganizationRole.MEMBER,
+  )
+  async getSettings(
+    @Param('oid', ParseIntPipe) organizationId: number,
+  ): Promise<OrganizationSettingsResponse> {
+    const organizationSettings =
+      await this.organizationService.getOrganizationSettings(organizationId);
+
+    const settingsResponse: Partial<OrganizationSettingsResponse> = {
+      organizationId,
+      ...(organizationSettings ?? {}),
+      settingsFound: !!organizationSettings, // !! converts truthy/falsy into true/false
+    };
+
+    return new OrganizationSettingsResponse(settingsResponse);
+  }
+
+  @Patch(':oid/settings')
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
+  @OrgRoles(OrganizationRole.ADMIN)
+  async enableDisableSetting(
+    @Param('oid', ParseIntPipe) organizationId: number,
+    @Body() body: OrganizationSettingsRequestBody,
+  ): Promise<void> {
+    // fetch existing organization settings
+    const organizationSettings =
+      await this.organizationService.getOrganizationSettings(organizationId);
+
+    // then, toggle the requested feature
+    try {
+      organizationSettings[body.setting] = body.value;
+    } catch (err) {
+      throw new BadRequestException('Invalid feature');
+    }
+
+    try {
+      await organizationSettings.save();
+    } catch (err) {
+      throw new HttpException(
+        'Error while saving course settings',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get(':oid/role_history/:page?')
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
+  @Roles(OrganizationRole.ADMIN)
+  async getRoleHistory(
+    @Param('oid', ParseIntPipe) oid: number,
+    @Param('page', ParseIntPipe) page: number,
+    @Query('search') search?: string,
+    @Query('fromRole') fromRole?: OrganizationRole,
+    @Query('toRole') toRole?: OrganizationRole,
+    @Query('minDate', new ParseDatePipe({ optional: true })) minDate?: Date,
+    @Query('maxDate', new ParseDatePipe({ optional: true })) maxDate?: Date,
+  ): Promise<OrganizationRoleHistoryResponse> {
+    const pageSize = 50;
+
+    const searchFilters = new OrganizationRoleHistoryFilter({
+      search: search ?? '',
+      fromRole,
+      toRole,
+      minDate,
+      maxDate,
+    });
+
+    return await this.organizationService.getRoleHistory(
+      oid,
+      page,
+      pageSize,
+      searchFilters,
+    );
   }
 
   private isValidUrl = (url: string): boolean => {

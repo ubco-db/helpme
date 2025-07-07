@@ -15,6 +15,7 @@ import {
   message,
   Modal,
   Pagination,
+  Skeleton,
   Spin,
   Statistic,
   Tag,
@@ -299,50 +300,58 @@ const LMSRosterTable: React.FC<LMSRosterTableProps> = ({
             {view || lmsUsers.length <= 0 ? (
               <div className={'flex flex-col gap-4'}>
                 <Card>
-                  <Statistic
-                    title={<span className={'text-xl'}>Missing Students</span>}
-                    value={noMatchHelpMe}
-                    formatter={(value) => (
-                      <span>
-                        <span className={'font-bold'}>
-                          {value}{' '}
+                  <Skeleton loading={loadingLMSData} active>
+                    <Statistic
+                      title={
+                        <span className={'text-xl'}>Missing Students</span>
+                      }
+                      value={noMatchHelpMe}
+                      formatter={(value) => (
+                        <span>
+                          <span className={'font-bold'}>
+                            {value}{' '}
+                            {(value as number) > 1 || (value as number) == 0
+                              ? 'students'
+                              : 'student'}
+                          </span>
                           {(value as number) > 1 || (value as number) == 0
-                            ? 'students'
-                            : 'student'}
+                            ? ' were'
+                            : ' was'}
+                          <span className={'text-red-500'}> not found </span>
+                          in {lmsPlatform ?? 'LMS'} course.
                         </span>
-                        {(value as number) > 1 || (value as number) == 0
-                          ? ' were'
-                          : ' was'}
-                        <span className={'text-red-500'}> not found </span>
-                        in {lmsPlatform ?? 'LMS'} course.
-                      </span>
-                    )}
-                  />
+                      )}
+                    />
+                  </Skeleton>
                 </Card>
                 <LMSUserList items={paginatedUsers} />
               </div>
             ) : (
               <div className={'flex flex-col gap-4'}>
                 <Card>
-                  <Statistic
-                    title={<span className={'text-xl'}>Missing Students</span>}
-                    value={lmsUsers.length}
-                    formatter={(value) => (
-                      <span>
-                        <span className={'font-bold'}>
-                          {value}{' '}
+                  <Skeleton loading={loadingLMSData} active>
+                    <Statistic
+                      title={
+                        <span className={'text-xl'}>Missing Students</span>
+                      }
+                      value={lmsUsers.length}
+                      formatter={(value) => (
+                        <span>
+                          <span className={'font-bold'}>
+                            {value}{' '}
+                            {(value as number) > 1 || (value as number) == 0
+                              ? 'students'
+                              : 'student'}
+                          </span>
                           {(value as number) > 1 || (value as number) == 0
-                            ? 'students'
-                            : 'student'}
+                            ? ' were'
+                            : ' was'}
+                          <span className={'text-red-500'}> not found </span>
+                          in HelpMe course.
                         </span>
-                        {(value as number) > 1 || (value as number) == 0
-                          ? ' were'
-                          : ' was'}
-                        <span className={'text-red-500'}> not found </span>
-                        in HelpMe course.
-                      </span>
-                    )}
-                  />
+                      )}
+                    />
+                  </Skeleton>
                 </Card>
                 <LMSUserList items={paginatedLMSUsers} />
               </div>

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -17,6 +18,7 @@ import {
   LMSCourseIntegrationPartial,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
+  LMSResourceType,
   OrganizationRole,
   RemoveLMSOrganizationParams,
   Role,
@@ -500,15 +502,28 @@ export class LMSIntegrationController {
         uploadType = LMSUpload.Announcements;
         break;
       default:
-        throw new HttpException(
+        throw new BadRequestException(
           ERROR_MESSAGES.lmsController.invalidDocumentType,
-          HttpStatus.BAD_REQUEST,
         );
+    }
+
+    const selectedResources: LMSResourceType[] =
+      integration.selectedResourceTypes;
+    if (
+      !selectedResources.includes(
+        this.integrationService.LMSUploadToResourceType[uploadType],
+      )
+    ) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsController.resourceDisabled,
+      );
     }
 
     const model = await this.integrationService.getDocumentModel(uploadType);
     let item = await (model as any).findOne({
-      id: itemId,
+      where: {
+        id: itemId,
+      },
     });
     let didNotExist = false;
 
@@ -554,6 +569,7 @@ export class LMSIntegrationController {
         throw new Error();
       }
     } catch (err) {
+      console.error(err);
       throw new HttpException(
         newState
           ? ERROR_MESSAGES.lmsController.failedToSyncOne
@@ -563,5 +579,42 @@ export class LMSIntegrationController {
     }
 
     return `Successfully ${newState ? 'synced' : 'cleared'} document from ${integration.orgIntegration.apiPlatform ?? 'LMS'} in HelpMe.`;
+  }
+
+  @Post('course/:courseId/resources')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async updateSelectedResourceTypes(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() body: { selectedResourceTypes: string[] },
+  ): Promise<string> {
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: { courseId },
+      relations: { orgIntegration: true },
+    });
+
+    if (!integration) {
+      throw new HttpException(
+        LMSApiResponseStatus.InvalidConfiguration,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const validTypes = Object.values(LMSResourceType);
+    const filteredTypes = (body.selectedResourceTypes || []).filter((t) =>
+      validTypes.includes(t as LMSResourceType),
+    );
+
+    if (filteredTypes.length === 0) {
+      throw new HttpException(
+        'No valid resource types provided.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    integration.selectedResourceTypes = filteredTypes as LMSResourceType[];
+    await LMSCourseIntegrationModel.save(integration);
+
+    return `Successfully updated selected resource types for course ${courseId}.`;
   }
 }

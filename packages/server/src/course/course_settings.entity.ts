@@ -27,7 +27,7 @@ export class CourseSettingsModel extends BaseEntity {
   asyncQueueEnabled: boolean;
 
   @Column('boolean', { default: true })
-  adsEnabled: boolean;
+  adsEnabled: boolean; // Not in use
 
   @Column('boolean', { default: true })
   queueEnabled: boolean;

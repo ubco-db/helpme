@@ -4,10 +4,12 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from 'login/jwt.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MailService } from 'mail/mail.service';
 import { MailModule } from 'mail/mail.module';
 import { CourseService } from 'course/course.service';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
+import { ChatbotApiService } from 'chatbot/chatbot-api.service';
+import { OrganizationService } from '../organization/organization.service';
+import { OrganizationModule } from '../organization/organization.module';
 
 @Module({
   imports: [
@@ -19,14 +21,16 @@ import { RedisProfileService } from 'redisProfile/redis-profile.service';
       }),
     }),
     MailModule,
+    OrganizationModule,
   ],
   controllers: [AuthController],
   providers: [
     JwtStrategy,
     AuthService,
-    MailService,
     CourseService,
     RedisProfileService,
+    ChatbotApiService,
+    OrganizationService,
   ],
   exports: [AuthService],
 })
