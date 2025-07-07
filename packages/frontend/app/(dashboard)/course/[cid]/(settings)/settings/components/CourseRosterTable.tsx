@@ -266,6 +266,21 @@ const RosterItem: React.FC<{
                     <span className="font-bold">{e.key.toUpperCase()}</span>
                     .
                     <br />
+                    {userInfo.id === item.id && (
+                      <>
+                        <br />
+                        <span className="text-red-500">
+                          You are about to change your own role. This will lock
+                          you out of being able to modify your course.
+                        </span>
+                        <br />
+                        <span className="text-red-500">
+                          Only proceed if you were mistakenly given a professor
+                          role.
+                        </span>
+                        <br />
+                      </>
+                    )}
                     <br />
                     Are you sure you want to proceed?
                   </div>
