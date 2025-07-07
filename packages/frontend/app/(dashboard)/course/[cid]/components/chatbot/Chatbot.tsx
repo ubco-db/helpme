@@ -480,19 +480,25 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                             part={0}
                                           />
                                         )}
-                                      {sourceDocument.pageNumbers &&
-                                        sourceDocument.pageNumbers.map(
-                                          (part) => (
-                                            <SourceLinkButton
-                                              key={`${sourceDocument.docName}-${part}`}
-                                              docName={sourceDocument.docName}
-                                              sourceLink={
-                                                sourceDocument.sourceLink
-                                              }
-                                              part={part}
-                                            />
-                                          ),
-                                        )}
+                                      {
+                                        // for some reason pageNumbers isn't always an array. This might be worth investigating.
+                                        sourceDocument.pageNumbers &&
+                                          Array.isArray(
+                                            sourceDocument.pageNumbers,
+                                          ) &&
+                                          sourceDocument.pageNumbers.map(
+                                            (part) => (
+                                              <SourceLinkButton
+                                                key={`${sourceDocument.docName}-${part}`}
+                                                docName={sourceDocument.docName}
+                                                sourceLink={
+                                                  sourceDocument.sourceLink
+                                                }
+                                                part={part}
+                                              />
+                                            ),
+                                          )
+                                      }
                                     </div>
                                   </Tooltip>
                                 ),
