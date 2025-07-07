@@ -5,6 +5,7 @@ import { getBrightness, getErrorMessage } from '@/app/utils/generalUtils'
 import {
   AlertType,
   ClosedQuestionStatus,
+  QuestionType,
   QuestionTypeParams,
   asyncQuestionStatus,
   nameToRGB,
@@ -28,8 +29,42 @@ const ConvertQueueQToAnytimeQModal: React.FC<
 > = ({ isOpen, handleClose, cid, qid, onCancel }) => {
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
-  const [questionTypes] = useQuestionTypes(cid, qid)
+  const [mergedQuestionTypes, setMergedQuestionTypes] = useState<
+    QuestionType[]
+  >([])
   const router = useRouter()
+
+  // Fetch both anytime question tags and queue tags
+  const [anytimeQuestionTypes] = useQuestionTypes(cid, null)
+  const [queueQuestionTypes] = useQuestionTypes(cid, qid)
+
+  // anytime tags taking priority
+  useEffect(() => {
+    if (anytimeQuestionTypes && queueQuestionTypes) {
+      const merged: QuestionType[] = []
+      const seenNames = new Set<string>()
+
+      // anytime question tags (they have priority)
+      anytimeQuestionTypes.forEach((tag) => {
+        merged.push(tag)
+        seenNames.add(tag.name.toLowerCase())
+      })
+
+      // queue tags that dont have duplicates (case-insensitive)
+      queueQuestionTypes.forEach((tag) => {
+        if (!seenNames.has(tag.name.toLowerCase())) {
+          merged.push(tag)
+          seenNames.add(tag.name.toLowerCase())
+        }
+      })
+
+      setMergedQuestionTypes(merged)
+    } else if (anytimeQuestionTypes) {
+      setMergedQuestionTypes(anytimeQuestionTypes)
+    } else if (queueQuestionTypes) {
+      setMergedQuestionTypes(queueQuestionTypes)
+    }
+  }, [anytimeQuestionTypes, queueQuestionTypes])
 
   const tagRender = (props: {
     label: React.ReactNode
@@ -43,7 +78,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
       event.stopPropagation()
     }
 
-    const existingTag = (questionTypes || []).find((qt) => qt.name === label)
+    const existingTag = mergedQuestionTypes.find((qt) => qt.name === label)
     const tagColor = existingTag
       ? existingTag.color
       : nameToRGB(label as string)
@@ -100,7 +135,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
   }) => {
     setIsLoading(true)
 
-    const selectedQuestionTypes = (questionTypes || []).filter((qt) =>
+    const selectedQuestionTypes = (mergedQuestionTypes || []).filter((qt) =>
       (values.questionTypesInput || []).includes(qt.id),
     )
 
@@ -244,7 +279,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
         name="questionTypesInput"
         label="What categories does your question fall under?"
       >
-        <QuestionTagSelector questionTags={questionTypes || []} />
+        <QuestionTagSelector questionTags={mergedQuestionTypes || []} />
       </Form.Item>
       <Tooltip title="An AI answer is automatically requested when converting a queue question.">
         <Form.Item
