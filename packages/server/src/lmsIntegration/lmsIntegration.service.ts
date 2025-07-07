@@ -477,7 +477,7 @@ export class LMSIntegrationService {
               return (model as typeof LMSAnnouncementModel).create({
                 id: ann.id,
                 title: ann.title,
-                message: ann.message,
+                message: ann.message ?? '',
                 posted: ann.posted,
                 chatbotDocumentId,
                 uploaded: new Date(),
