@@ -10,13 +10,11 @@ import { deleteAsyncQuestion } from '../utils/commonAsyncFunctions'
 type TAAsyncQuestionCardButtonsProps = {
   question: AsyncQuestion
   onAsyncQuestionUpdate: () => void
-  asyncCentreAllowPublic: boolean
 }
 
 const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
   question,
   onAsyncQuestionUpdate,
-  asyncCentreAllowPublic,
 }) => {
   const [postResponseModalOpen, setPostResponseModalOpen] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -59,7 +57,6 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
           onAsyncQuestionUpdate()
           setPostResponseModalOpen(false)
         }}
-        asyncCentreAllowPublic={asyncCentreAllowPublic}
       />
     </>
   )

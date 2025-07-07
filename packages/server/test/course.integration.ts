@@ -517,7 +517,7 @@ describe('Course Integration', () => {
         course: ucp.course,
       });
 
-      const response = await supertest({ userId: ucp.user.id })
+      await supertest({ userId: ucp.user.id })
         .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
         .send({ notes: 'example note 1', isProfessorQueue: false })
         .expect(201);
@@ -1749,7 +1749,6 @@ describe('Course Integration', () => {
         adsEnabled: true,
         queueEnabled: true,
         asyncCentreAIAnswers: true,
-        asyncCentreAllowPublic: true,
         asyncCentreDefaultAnonymous: true,
         scheduleOnFrontPage: false,
         settingsFound: false,
@@ -1769,7 +1768,6 @@ describe('Course Integration', () => {
         adsEnabled: false,
         queueEnabled: false,
         asyncCentreAIAnswers: false,
-        asyncCentreAllowPublic: false,
         asyncCentreDefaultAnonymous: false,
         scheduleOnFrontPage: true,
       });
@@ -1785,7 +1783,6 @@ describe('Course Integration', () => {
         adsEnabled: false,
         queueEnabled: false,
         asyncCentreAIAnswers: false,
-        asyncCentreAllowPublic: false,
         asyncCentreDefaultAnonymous: false,
         scheduleOnFrontPage: true,
         settingsFound: true,
@@ -2407,8 +2404,7 @@ describe('Course Integration', () => {
 
     it('should return 201 when organization admin calls the endpoint', async () => {
       const adminUser = await UserFactory.create();
-      const chatToken = await ChatTokenFactory.create({ user: adminUser });
-      adminUser.chat_token = chatToken;
+      adminUser.chat_token = await ChatTokenFactory.create({ user: adminUser });
       await adminUser.save();
 
       const organization = await OrganizationFactory.create();

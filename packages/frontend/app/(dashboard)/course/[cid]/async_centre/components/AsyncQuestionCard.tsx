@@ -157,11 +157,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     userId === question.creatorId ? 'you' : Role.STUDENT,
   )
 
-  const questionIsPublic =
-    (question.staffSetVisible && !courseFeatures?.asyncCentreAllowPublic) ||
-    (question.staffSetVisible &&
-      courseFeatures?.asyncCentreAllowPublic &&
-      question.authorSetVisible)
+  const questionIsPublic = question.staffSetVisible
   const { thinkText, cleanAnswer } = parseThinkBlock(question.answerText ?? '')
 
   return (
@@ -293,11 +289,11 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                           title={
                             isStaff
                               ? questionIsPublic
-                                ? 'This question is visible to all members of the course, both author and staff members have toggled its visibility.'
-                                : `This question is only visible to staff members and the author.${!question.staffSetVisible ? ' Staff members have not toggled its visibility.' : ''}${courseFeatures?.asyncCentreAllowPublic && !question.authorSetVisible ? ' The author has not toggled its visiblity.' : ''}`
+                                ? 'This question is visible to all members of the course.'
+                                : `This question is only visible to staff members and the author.`
                               : questionIsPublic
-                                ? 'Your question is visible to all members of the course. A staff member allowed your question to be public, and you opted for it to be public as well.'
-                                : `This question is only visible to yourself and staff members.${!question.staffSetVisible ? ' No staff members have made it public.' : ''}${courseFeatures?.asyncCentreAllowPublic && !question.authorSetVisible ? ' You have not opted to make it public.' : ''}`
+                                ? "A staff member set your question to be public. It's visible to other students."
+                                : `This question is only visible to yourself and staff members.`
                           }
                         >
                           <Tag
@@ -347,9 +343,6 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   <TAAsyncQuestionCardButtons
                     question={question}
                     onAsyncQuestionUpdate={mutateAsyncQuestions}
-                    asyncCentreAllowPublic={
-                      courseFeatures?.asyncCentreAllowPublic ?? true
-                    }
                   />
                 ) : userId === question.creatorId ? (
                   <StudentAsyncQuestionCardButtons

@@ -65,7 +65,6 @@ import { ApplicationConfigService } from '../config/application_config.service';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { CourseRole } from 'decorators/course-role.decorator';
-import { DataSource } from 'typeorm';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { OrgRoles } from 'decorators/org-roles.decorator';
@@ -82,7 +81,6 @@ export class CourseController {
     private queueCleanService: QueueCleanService,
     private organizationService: OrganizationService,
     private readonly appConfig: ApplicationConfigService,
-    private dataSource: DataSource,
   ) {}
 
   @Get(':oid/organization_courses')
@@ -919,7 +917,6 @@ export class CourseController {
       asyncCentreAIAnswers: courseSettings?.asyncCentreAIAnswers ?? true,
       asyncCentreDefaultAnonymous:
         courseSettings?.asyncCentreDefaultAnonymous ?? true,
-      asyncCentreAllowPublic: courseSettings?.asyncCentreAllowPublic ?? true,
       settingsFound: !!courseSettings, // !! converts truthy/falsy into true/false
     });
 

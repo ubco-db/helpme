@@ -85,14 +85,6 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
           description="By default, Anytime Question authors are anonymous when viewed by students. Toggling this will make new Anytime Questions be anonymous or non-anonymous by default. It will not change the anonymity of previously posted questions. Question authors decide whether their profile will be visible or not when editing or creating the question."
           courseId={courseId}
         />
-
-        <CourseFeatureSwitch
-          featureName="asyncCentreAllowPublic"
-          defaultChecked={courseFeatures.asyncCentreAllowPublic}
-          title="Require Author Permission to make Anytime Questions Public"
-          description="When toggled, requires both the author of an Anytime Question and a staff member to toggle the question's visibility. If not toggled, only a staff member's permission is required to make an Anytime Question visible to all members of the course."
-          courseId={courseId}
-        />
       </Form>
     )
   )

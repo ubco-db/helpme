@@ -136,7 +136,6 @@ export class FactoryService {
       .attr('asyncQueueEnabled', true)
       .attr('adsEnabled', true)
       .attr('queueEnabled', true)
-      .attr('asyncCentreAllowPublic', false)
       .attr('asyncCentreDefaultAnonymous', true);
 
     this.UserCourseFactory = new Factory(UserCourseModel, dataSource)

@@ -2166,9 +2166,6 @@ export class CourseSettingsResponse {
   @IsBoolean()
   asyncCentreDefaultAnonymous!: boolean
 
-  @IsBoolean()
-  asyncCentreAllowPublic!: boolean
-
   @IsOptional()
   @IsBoolean()
   settingsFound?: boolean = true //this is mostly just for debugging purposes by viewing network responses
@@ -2186,7 +2183,6 @@ export const validFeatures = [
   'scheduleOnFrontPage',
   'asyncCentreAIAnswers',
   'asyncCentreDefaultAnonymous',
-  'asyncCentreAllowPublic',
 ]
 
 export class CourseSettingsRequestBody {

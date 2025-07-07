@@ -125,9 +125,9 @@ export default function AsyncCentrePage(
       applyStatusFilter.filter((question) => {
         switch (visibleFilter) {
           case 'visible':
-            return question.authorSetVisible && question.staffSetVisible
+            return question.staffSetVisible
           case 'hidden':
-            return !question.authorSetVisible || !question.staffSetVisible
+            return !question.staffSetVisible
           default:
             return true
         }

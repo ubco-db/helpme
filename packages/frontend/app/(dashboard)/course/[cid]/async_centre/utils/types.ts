@@ -16,4 +16,5 @@ export interface CommentProps {
   IAmStaff: boolean
   showStudents: boolean
   datetime: React.ReactNode
+  numOtherComments: number
 }

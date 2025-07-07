@@ -16,6 +16,7 @@ import { AsyncQuestion, AsyncQuestionComment, Role } from '@koh/common'
 import { CommentProps } from '../utils/types'
 import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
 import { Action } from './AsyncQuestionCardUIReducer'
+import { CheckCircleOutlined, WarningOutlined } from '@ant-design/icons'
 
 const { TextArea } = Input
 
@@ -47,6 +48,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
   const [postCommentCancelPopoverOpen, setPostCommentCancelPopoverOpen] =
     useState(false)
+  const [postCommentPopoverOpen, setPostCommentPopoverOpen] = useState(false)
   const [regenerateCommentsFlag, regenerateComments] = useState(false)
   const isStaff =
     userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
@@ -72,6 +74,17 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     regenerateCommentsFlag,
   ])
 
+  const anonymityOverwriteCount = useMemo(
+    () =>
+      question.comments.filter(
+        (c) =>
+          c.creator.id != undefined &&
+          c.creator.id == userId &&
+          c.isAnonymous != commentAnonymous,
+      ).length,
+    [commentAnonymous, question.comments, question, regenerateCommentsFlag],
+  )
+
   const handleCommentOnPost = async (
     questionId: number,
     commentText: string,
@@ -81,17 +94,23 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     await API.asyncQuestions
       .comment(questionId, {
         commentText,
-        isAnonymous: isStaff
-          ? false
-          : question.creatorId == userId
-            ? question.isAnonymous
-            : isAnonymous,
+        isAnonymous:
+          question.creatorId === userId ? question.isAnonymous : isAnonymous,
       })
-      .then((newComment) => {
+      .then((comments) => {
         dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
         message.success('Comment posted successfully')
-        newComment.creator.courseRole = userCourseRole
-        question.comments.push(newComment)
+        comments.forEach((c) => {
+          if (c.creator) {
+            c.creator.courseRole = userCourseRole
+          }
+        })
+        const ids = comments.map((c) => c.id)
+        question.comments.forEach((c) => {
+          if (!ids.includes(c.id)) return
+          c.isAnonymous = comments[0].isAnonymous
+        })
+        question.comments.push(comments[0])
         setIsPostCommentLoading(false)
         regenerateComments(!regenerateCommentsFlag)
       })
@@ -177,6 +196,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 } else {
                   setPostCommentCancelPopoverOpen(open)
                 }
+                setPostCommentPopoverOpen(false)
               }}
               onCancel={(e) => e?.stopPropagation()}
             >
@@ -189,38 +209,111 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 Cancel
               </Button>
             </Popconfirm>
-            <Button
-              htmlType="submit"
-              className="px-6"
-              disabled={!commentInputValue}
-              loading={isPostCommentLoading}
-              onClick={async (e) => {
-                e.stopPropagation()
-                if (commentInputValue) {
-                  await handleCommentOnPost(
-                    question.id,
-                    commentInputValue,
-                    commentAnonymous,
-                  )
-                  dispatchUIStateChange({
-                    type: 'SET_IS_POSTING_COMMENT',
-                    isPostingComment: false,
-                  })
-                  setCommentInputValue('')
+            {anonymityOverwriteCount > 0 ? (
+              <Popconfirm
+                open={postCommentPopoverOpen}
+                title={'Are you sure?'}
+                description={
+                  <div className={'max-w-60 p-1'}>
+                    <div>
+                      By posting this,{' '}
+                      <span className={'font-semibold text-red-500'}>
+                        {anonymityOverwriteCount} previous comments
+                      </span>{' '}
+                      will be made{' '}
+                      <span className={'font-semibold text-red-500'}>
+                        {commentAnonymous ? 'anonymous' : 'non-anonymous'}.
+                      </span>
+                    </div>
+                  </div>
                 }
-              }}
-              type="primary"
-            >
-              Post
-            </Button>
-            {!isStaff && question.creatorId != userId && (
-              <Checkbox
-                className={'mx-2'}
-                checked={commentAnonymous}
-                onChange={() => setCommentAnonymous(!commentAnonymous)}
+                onOpenChange={(open) => {
+                  if (open) setPostCommentPopoverOpen(open)
+                }}
+                onCancel={(e) => {
+                  e?.stopPropagation()
+                  setPostCommentPopoverOpen(false)
+                }}
+                onConfirm={async (e) => {
+                  e?.stopPropagation()
+                  if (commentInputValue) {
+                    await handleCommentOnPost(
+                      question.id,
+                      commentInputValue,
+                      commentAnonymous,
+                    )
+                    dispatchUIStateChange({
+                      type: 'SET_IS_POSTING_COMMENT',
+                      isPostingComment: false,
+                    })
+                    setCommentInputValue('')
+                    setPostCommentPopoverOpen(false)
+                  }
+                }}
               >
-                Post Anonymously?
-              </Checkbox>
+                <Button
+                  htmlType="submit"
+                  className="px-6"
+                  disabled={!commentInputValue}
+                  loading={isPostCommentLoading}
+                  type="primary"
+                >
+                  Post
+                </Button>
+              </Popconfirm>
+            ) : (
+              <Button
+                htmlType="submit"
+                className="px-6"
+                disabled={!commentInputValue}
+                loading={isPostCommentLoading}
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  if (commentInputValue) {
+                    await handleCommentOnPost(
+                      question.id,
+                      commentInputValue,
+                      commentAnonymous,
+                    )
+                    dispatchUIStateChange({
+                      type: 'SET_IS_POSTING_COMMENT',
+                      isPostingComment: false,
+                    })
+                    setCommentInputValue('')
+                  }
+                }}
+                type="primary"
+              >
+                Post
+              </Button>
+            )}
+            {question.creatorId !== userId && (
+              <span className={'mb-4 ml-5 inline-flex flex-row gap-1'}>
+                <Tooltip
+                  title={`Set whether you will appear anonymous to other students. Staff will still see who you are.\n 
+                                ${anonymityOverwriteCount > 0 ? `Previous comments have a different anonymity setting. ${anonymityOverwriteCount} comments will be made ${commentAnonymous ? 'anonymous' : 'non-anonymous'}!` : 'Anonymity setting is the same as any previous comments.'}`}
+                >
+                  <Checkbox
+                    checked={commentAnonymous}
+                    onChange={() => setCommentAnonymous(!commentAnonymous)}
+                  >
+                    <div className={'inline-flex flex-row gap-1'}>
+                      <div>Post Anonymously</div>
+                      <div className={'ml-1'}>
+                        {anonymityOverwriteCount > 0 ? (
+                          <WarningOutlined className="animate-pulse text-lg text-red-500 hover:text-red-800" />
+                        ) : (
+                          <CheckCircleOutlined
+                            className={
+                              'text-lg text-green-500 hover:text-green-800'
+                            }
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </Checkbox>
+                </Tooltip>
+              </span>
             )}
           </>
         )}
@@ -244,6 +337,9 @@ function generateCommentProps(
 
   const newComments: CommentProps[] = []
   for (const comment of comments) {
+    const otherUserComments = comments.filter(
+      (c) => c.creator.id != undefined && c.creator.id == comment.creator.id,
+    )
     newComments.push({
       commentId: comment.id,
       questionId,
@@ -261,6 +357,9 @@ function generateCommentProps(
         // update the comment content
         comment.commentText = newCommentText
         comment.isAnonymous = newCommentAnonymous
+        otherUserComments.forEach((c) => {
+          c.isAnonymous = comment.isAnonymous
+        })
         regenerateComments(!regenerateCommentsFlag)
       },
       datetime: (
@@ -271,6 +370,7 @@ function generateCommentProps(
       IAmStaff,
       showStudents,
       dispatchUIStateChange,
+      numOtherComments: otherUserComments.length,
     })
   }
 
