@@ -1,4 +1,4 @@
-import { MailServiceType, Role } from '@koh/common';
+import { MailServiceType, parseThinkBlock, Role } from '@koh/common';
 import { Injectable } from '@nestjs/common';
 import { MailService } from 'mail/mail.service';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
@@ -178,13 +178,14 @@ export class AsyncQuestionService {
 
     if (subscription) {
       const service = subscription.service;
+      const { cleanAnswer } = parseThinkBlock(question.answerText);
       await this.mailService
         .sendEmail({
           receiver: question.creator.email,
           type: service.serviceType,
           subject: 'HelpMe - Your Anytime Question Has Been Answered',
           content: `<br> <b>Your question on the Anytime Question Hub has been answered or verified by staff.</b> 
-              <br> <b>Answer Text:</b> ${question.answerText}
+              <br> <b>Answer Text:</b> ${cleanAnswer}
               <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
         })
         .catch((err) => {
