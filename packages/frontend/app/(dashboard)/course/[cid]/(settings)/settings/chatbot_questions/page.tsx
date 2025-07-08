@@ -3,14 +3,14 @@
 import { Button, Divider, Input, message, Table, Tooltip } from 'antd'
 import {
   ReactElement,
+  use,
   useCallback,
   useEffect,
   useMemo,
   useState,
-  use,
 } from 'react'
 import ExpandableText from '@/app/components/ExpandableText'
-import { getErrorMessage, parseThinkBlock } from '@/app/utils/generalUtils'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
 import EditChatbotQuestionModal from './components/EditChatbotQuestionModal'
 import { EditOutlined } from '@ant-design/icons'
@@ -22,6 +22,7 @@ import {
   ChatbotQuestionResponseChatbotDB,
   ChatbotQuestionResponseHelpMeDB,
   InteractionResponse,
+  parseThinkBlock,
   SourceDocument,
 } from '@koh/common'
 import { ThumbsDown, ThumbsUp } from 'lucide-react'
