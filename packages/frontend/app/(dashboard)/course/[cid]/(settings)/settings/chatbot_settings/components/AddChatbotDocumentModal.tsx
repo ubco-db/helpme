@@ -150,7 +150,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                     that time.
                   </p>
                   <p>
-                    Any errors that occur during processing will be shown here.
+                    You will be notified when the document is processed
                   </p>
                   <p>Would you like to continue?</p>
                 </div>
@@ -264,7 +264,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
               <Form.Item
                 name="isSlideDeck"
                 label="Parse document as slides"
-                tooltip="By default images/graphics embedded in your uploaded files will not be detected by the chatbot. Ticking this will transform pages of the document into images and automatically generate AI summaries of said images. This is useful for any document that isn't just text. Warning that it will take a lot longer to process."
+                tooltip="By default images/graphics embedded in your uploaded files will not be detected by the chatbot. Ticking this will transform pages of the document into images and automatically generate AI detailed descriptions of said images (using a UBC-hosted AI model). This is useful for any document that isn't just text. Warning that it will take a lot longer to process."
               >
                 <Switch
                   defaultChecked={isSlideDeck}
