@@ -38,6 +38,7 @@ export const useAsyncToaster = () => useContext(AsyncToasterContext)
 const toastOptions: ExternalToast = {
   richColors: true,
   dismissible: true,
+  duration: Infinity,
   closeButton: true,
 }
 
@@ -91,7 +92,6 @@ export const AsyncToasterProvider: React.FC<PropsWithChildren> = ({
         position="bottom-left"
         toastOptions={{
           className: 'rounded p-4 text-md font-semibold min-h-18 w-96',
-          duration: 5000,
         }}
       />
       {children}
