@@ -150,7 +150,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                   <Tooltip
                     title={
                       <ModelTooltipInfo
-                        speed={100}
+                        speed={80}
                         quality={65}
                         additionalNotes={['Runs on OpenAI servers']}
                       />
@@ -171,7 +171,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                   <Tooltip
                     title={
                       <ModelTooltipInfo
-                        speed={90}
+                        speed={70}
                         quality={75}
                         additionalNotes={['Runs on OpenAI servers']}
                       />
@@ -217,7 +217,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                   <Tooltip
                     title={
                       <ModelTooltipInfo
-                        speed={75}
+                        speed={100}
                         quality={85}
                         additionalNotes={[
                           'Runs on UBC servers - Safe for student data',
