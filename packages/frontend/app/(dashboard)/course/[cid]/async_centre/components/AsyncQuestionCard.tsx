@@ -1,6 +1,11 @@
 import { useEffect, useReducer, useState } from 'react'
 import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
-import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common'
+import {
+  AsyncQuestion,
+  asyncQuestionStatus,
+  parseThinkBlock,
+  Role,
+} from '@koh/common'
 import {
   CheckCircleOutlined,
   DownOutlined,
@@ -9,7 +14,7 @@ import {
 } from '@ant-design/icons'
 import { API } from '@/app/api'
 import UserAvatar from '@/app/components/UserAvatar'
-import { cn, getErrorMessage, parseThinkBlock } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { QuestionTagElement } from '../../components/QuestionTagElement'
 import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
 import TAAsyncQuestionCardButtons from './TAAsyncQuestionCardButtons'

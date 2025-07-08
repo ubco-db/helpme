@@ -23,7 +23,6 @@ import {
   cn,
   convertPathnameToPageName,
   getRoleInCourse,
-  parseThinkBlock,
 } from '@/app/utils/generalUtils'
 import { Feedback } from './Feedback'
 import {
@@ -35,7 +34,12 @@ import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Message, PreDeterminedQuestion, Role } from '@koh/common'
+import {
+  Message,
+  parseThinkBlock,
+  PreDeterminedQuestion,
+  Role,
+} from '@koh/common'
 import { Bot } from 'lucide-react'
 
 const { TextArea } = Input
