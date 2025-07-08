@@ -109,7 +109,7 @@ describe('AsyncQuestion Integration', () => {
           expect(response.body).toHaveProperty('closedAt', null);
           expect(response.body).toHaveProperty('questionText', 'text');
           expect(response.body).toHaveProperty('isAnonymous', true);
-          expect(response.body).toHaveProperty('staffSetVisible', false);
+          expect(response.body).toHaveProperty('staffSetVisible', null);
           expect(response.body.status).toBe('AIAnswered');
           expect(response.body.closedAt).toBeNull();
         });
@@ -130,7 +130,7 @@ describe('AsyncQuestion Integration', () => {
           expect(response.body).toHaveProperty('questionText', 'text');
           expect(response.body).toHaveProperty('isAnonymous', false);
           expect(response.body).toHaveProperty('authorSetVisible', false);
-          expect(response.body).toHaveProperty('staffSetVisible', false);
+          expect(response.body).toHaveProperty('staffSetVisible', null);
           expect(response.body.status).toBe('AIAnswered');
           expect(response.body.closedAt).toBeNull();
         });

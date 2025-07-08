@@ -10,11 +10,13 @@ import { deleteAsyncQuestion } from '../utils/commonAsyncFunctions'
 type TAAsyncQuestionCardButtonsProps = {
   question: AsyncQuestion
   onAsyncQuestionUpdate: () => void
+  courseId: number
 }
 
 const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
   question,
   onAsyncQuestionUpdate,
+  courseId,
 }) => {
   const [postResponseModalOpen, setPostResponseModalOpen] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -57,6 +59,7 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
           onAsyncQuestionUpdate()
           setPostResponseModalOpen(false)
         }}
+        courseId={courseId}
       />
     </>
   )

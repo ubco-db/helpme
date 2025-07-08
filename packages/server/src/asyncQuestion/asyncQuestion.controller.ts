@@ -155,8 +155,11 @@ export class asyncQuestionController {
         aiAnswerText: body.aiAnswerText,
         questionTypes: body.questionTypes,
         status: body.status || asyncQuestionStatus.AIAnswered,
-        staffSetVisible: false,
-        authorSetVisible: body.authorSetVisible || false,
+        staffSetVisible: null,
+        authorSetVisible:
+          ((courseSettings?.asyncCentreAuthorPublic ?? false) &&
+            body.authorSetVisible) ||
+          false,
         isAnonymous:
           body.isAnonymous ??
           courseSettings?.asyncCentreDefaultAnonymous ??
@@ -203,7 +206,6 @@ export class asyncQuestionController {
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
     @UserId() userId: number,
-    @CourseRole() courseRole: Role,
   ): Promise<AsyncQuestionParams> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
@@ -214,6 +216,10 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
       ],
+    });
+
+    const courseSettings = await CourseSettingsModel.findOne({
+      where: { courseId: question.courseId },
     });
 
     // deep copy question since it changes
@@ -246,6 +252,12 @@ export class asyncQuestionController {
 
     // Update allowed fields
     Object.keys(body).forEach((key) => {
+      if (
+        key == 'authorSetVisible' &&
+        !(courseSettings?.asyncCentreAuthorPublic ?? false)
+      ) {
+        body[key] = false;
+      }
       if (body[key] !== undefined && body[key] !== null) {
         question[key] = body[key];
       }
@@ -277,7 +289,7 @@ export class asyncQuestionController {
     }
     // if the question is visible and they rewrote their question and got a new answer text, mark it as unread for everyone
     if (
-      updatedQuestion.staffSetVisible &&
+      (await this.asyncQuestionService.isVisible(updatedQuestion)) &&
       body.aiAnswerText !== oldQuestion.aiAnswerText &&
       body.questionText !== oldQuestion.questionText
     ) {
@@ -375,7 +387,18 @@ export class asyncQuestionController {
     const updatedQuestion = await question.save();
 
     // Mark as new unread for all students if the question is marked as visible
-    if (body.staffSetVisible && !oldQuestion.staffSetVisible) {
+    const courseSettings = await CourseSettingsModel.findOne({
+      where: { courseId: courseId },
+    });
+    const oldVisible = await this.asyncQuestionService.isVisible(
+      oldQuestion,
+      courseSettings,
+    );
+    const newVisible = await this.asyncQuestionService.isVisible(
+      updatedQuestion,
+      courseSettings,
+    );
+    if (newVisible && !oldVisible) {
       await this.asyncQuestionService.markUnreadForRoles(
         updatedQuestion,
         [Role.STUDENT],
@@ -501,7 +524,9 @@ export class asyncQuestionController {
     );
 
     // new comment: if visible, mark question as unread for everyone (except the creator of the comment)
-    if (updatedQuestion.staffSetVisible) {
+    if (
+      await this.asyncQuestionService.isVisible(updatedQuestion, courseSettings)
+    ) {
       await this.asyncQuestionService.markUnreadForAll(
         updatedQuestion,
         user.id,
@@ -756,6 +781,9 @@ export class asyncQuestionController {
 
     const isStaff: boolean =
       userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
+    const courseSettings = await CourseSettingsModel.findOne({
+      where: { courseId: courseId },
+    });
 
     if (isStaff) {
       // Staff sees all questions except the ones deleted
@@ -764,9 +792,23 @@ export class asyncQuestionController {
       );
     } else {
       // Students see their own questions and questions that are visible
-      questions = all.filter(
-        (question) => question.creatorId === userId || question.staffSetVisible,
-      );
+      questions = (
+        await Promise.all(
+          all.map(async (question) => {
+            if (
+              question.creatorId === userId ||
+              (await this.asyncQuestionService.isVisible(
+                question,
+                courseSettings,
+              ))
+            ) {
+              return question;
+            } else {
+              return undefined;
+            }
+          }),
+        )
+      ).filter((s) => s != undefined);
     }
 
     questions = questions.map((question: AsyncQuestionModel) => {

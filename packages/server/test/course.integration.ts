@@ -1749,6 +1749,7 @@ describe('Course Integration', () => {
         adsEnabled: true,
         queueEnabled: true,
         asyncCentreAIAnswers: true,
+        asyncCentreAuthorPublic: false,
         asyncCentreDefaultAnonymous: true,
         scheduleOnFrontPage: false,
         settingsFound: false,
@@ -1784,6 +1785,7 @@ describe('Course Integration', () => {
         queueEnabled: false,
         asyncCentreAIAnswers: false,
         asyncCentreDefaultAnonymous: false,
+        asyncCentreAuthorPublic: false,
         scheduleOnFrontPage: true,
         settingsFound: true,
       });

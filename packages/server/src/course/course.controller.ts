@@ -917,6 +917,7 @@ export class CourseController {
       asyncCentreAIAnswers: courseSettings?.asyncCentreAIAnswers ?? true,
       asyncCentreDefaultAnonymous:
         courseSettings?.asyncCentreDefaultAnonymous ?? true,
+      asyncCentreAuthorPublic: courseSettings?.asyncCentreAuthorPublic ?? false,
       settingsFound: !!courseSettings, // !! converts truthy/falsy into true/false
     });
 

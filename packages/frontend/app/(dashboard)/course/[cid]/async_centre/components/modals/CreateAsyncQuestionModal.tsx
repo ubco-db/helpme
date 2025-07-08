@@ -49,6 +49,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const courseFeatures = useCourseFeatures(courseId)
+  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false
 
   const getAiAnswer = async (question: string) => {
     if (!courseFeatures?.asyncCentreAIAnswers) {
@@ -98,7 +99,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
               questionTypes: newQuestionTypeInput,
               questionText: values.questionText,
               questionAbstract: values.QuestionAbstract,
-              authorSetVisible: values.setVisible,
+              authorSetVisible: authorCanSetVisible ? values.setVisible : false,
               isAnonymous: values.setAnonymous,
               aiAnswerText: aiAnswer,
             })
@@ -120,7 +121,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
             questionText: values.questionText,
             questionAbstract: values.QuestionAbstract,
             isAnonymous: values.setAnonymous,
-            authorSetVisible: values.setVisible,
+            authorSetVisible: authorCanSetVisible ? values.setVisible : false,
           })
           .then(() => {
             message.success('Question Updated')
@@ -155,7 +156,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
                 ? asyncQuestionStatus.AIAnswered
                 : asyncQuestionStatus.AIAnsweredNeedsAttention,
               isAnonymous: values.setAnonymous,
-              authorSetVisible: values.setVisible,
+              authorSetVisible: authorCanSetVisible ? values.setVisible : false,
             },
             courseId,
           )
@@ -291,17 +292,19 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           <QuestionTagSelector questionTags={questionTypes} />
         </Form.Item>
       )}
-      <Form.Item
-        name="setVisible"
-        label="Show Publicly?"
-        tooltip={
-          'Let staff know whether you want your question to be visible to other students. Staff can make questions public regardless of this setting.'
-        }
-        valuePropName="checked"
-        layout="horizontal"
-      >
-        <Checkbox />
-      </Form.Item>
+      {authorCanSetVisible && (
+        <Form.Item
+          name="setVisible"
+          label="Show Publicly?"
+          tooltip={
+            'Let staff know whether you want your question to be visible to other students. Staff can make questions public regardless of this setting.'
+          }
+          valuePropName="checked"
+          layout="horizontal"
+        >
+          <Checkbox />
+        </Form.Item>
+      )}
       <Form.Item
         name="setAnonymous"
         label="Appear Anonymous?"

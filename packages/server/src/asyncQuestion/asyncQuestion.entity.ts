@@ -82,7 +82,7 @@ export class AsyncQuestionModel extends BaseEntity {
   @Column('boolean', { default: false })
   authorSetVisible: boolean;
 
-  @Column('boolean', { default: false })
+  @Column('boolean', { nullable: true })
   staffSetVisible: boolean;
 
   @Column('boolean', { default: true })

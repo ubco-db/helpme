@@ -8,6 +8,7 @@ import { UserModel } from 'profile/user.entity';
 import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
 import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
+import { CourseSettingsModel } from '../course/course_settings.entity';
 
 @Injectable()
 export class AsyncQuestionService {
@@ -354,5 +355,21 @@ export class AsyncQuestionService {
   getAnonId(userId: number, questionId: number) {
     const hash = userId + questionId;
     return hash % 70;
+  }
+
+  async isVisible(
+    asyncQuestion: AsyncQuestionModel,
+    courseSettings?: CourseSettingsModel,
+  ) {
+    if (!courseSettings) {
+      courseSettings = await CourseSettingsModel.findOne({
+        where: { courseId: asyncQuestion.id },
+      });
+    }
+    return (courseSettings?.asyncCentreAuthorPublic ?? false)
+      ? (asyncQuestion.staffSetVisible == null &&
+          asyncQuestion.authorSetVisible) ||
+          asyncQuestion.staffSetVisible
+      : asyncQuestion.staffSetVisible;
   }
 }

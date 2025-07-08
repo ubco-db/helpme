@@ -82,10 +82,12 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
 
   // note: it is assumed that only students are creating questions. Staff creating questions will appear as anonymous (but their comments are not)
   const [isUserShown, setIsUserShown] = useState(
-    (isStaff && showStudents) || !question.isAnonymous,
+    (isStaff && showStudents) || !(question?.isAnonymous ?? true),
   )
   useEffect(() => {
-    setIsUserShown((isStaff && showStudents) || !question.isAnonymous)
+    setIsUserShown(
+      (isStaff && showStudents) || !(question?.isAnonymous ?? true),
+    )
   }, [isStaff, question.isAnonymous, showStudents])
 
   const anonId = question.creator.anonId
@@ -157,7 +159,12 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     userId === question.creatorId ? 'you' : Role.STUDENT,
   )
 
-  const questionIsPublic = question.staffSetVisible
+  const questionIsPublic =
+    (courseFeatures?.asyncCentreAuthorPublic ?? false)
+      ? (question.staffSetVisible == null && question.authorSetVisible) ||
+        question.staffSetVisible
+      : question.staffSetVisible
+
   const { thinkText, cleanAnswer } = parseThinkBlock(question.answerText ?? '')
 
   return (
@@ -292,7 +299,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                                 ? 'This question is visible to all members of the course.'
                                 : `This question is only visible to staff members and the author.`
                               : questionIsPublic
-                                ? "A staff member set your question to be public. It's visible to other students."
+                                ? "Your question is public. It's visible to other students."
                                 : `This question is only visible to yourself and staff members.`
                           }
                         >
@@ -343,6 +350,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   <TAAsyncQuestionCardButtons
                     question={question}
                     onAsyncQuestionUpdate={mutateAsyncQuestions}
+                    courseId={courseId}
                   />
                 ) : userId === question.creatorId ? (
                   <StudentAsyncQuestionCardButtons

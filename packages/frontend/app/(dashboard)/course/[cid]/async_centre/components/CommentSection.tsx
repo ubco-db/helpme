@@ -72,6 +72,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     showStudents,
     dispatchUIStateChange,
     regenerateCommentsFlag,
+    defaultAnonymousSetting,
   ])
 
   const anonymityOverwriteCount = useMemo(
@@ -82,7 +83,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({
           c.creator.id == userId &&
           c.isAnonymous != commentAnonymous,
       ).length,
-    [commentAnonymous, question.comments, question, regenerateCommentsFlag],
+    [
+      commentAnonymous,
+      question.comments,
+      question,
+      regenerateCommentsFlag,
+      userId,
+    ],
   )
 
   const handleCommentOnPost = async (
@@ -345,7 +352,7 @@ function generateCommentProps(
       questionId,
       author: comment.creator,
       content: comment.commentText,
-      isAnonymous: comment.isAnonymous,
+      isAnonymous: comment?.isAnonymous ?? true,
       questionIsAnonymous,
       onDeleteSuccess: () => {
         // remove the comment from the question object
