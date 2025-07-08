@@ -36,7 +36,8 @@ export class AsyncQuestionService {
       const commenterIsStaff =
         commenterRole === Role.TA || commenterRole === Role.PROFESSOR;
       const service = subscription.service;
-      await this.mailService
+      // note: not awaiting since it can take a moment to send emails
+      this.mailService
         .sendEmail({
           receiver: question.creator.email,
           type: service.serviceType,
@@ -91,7 +92,8 @@ export class AsyncQuestionService {
     // Send emails in parallel
     const commenterIsStaff =
       commenterRole === Role.TA || commenterRole === Role.PROFESSOR;
-    const sendEmailResults = await Promise.allSettled(
+    // note: not awaiting since it can take a moment to send emails
+    Promise.allSettled(
       subscriptions.map((sub) =>
         this.mailService.sendEmail({
           receiver: sub.user.email,
@@ -103,12 +105,13 @@ export class AsyncQuestionService {
                     <br> Note: Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${updatedQuestion.courseId}/async_centre">View and Reply Here</a> <br>`,
         }),
       ),
-    );
-    // Capture any email failures in Sentry
-    sendEmailResults.forEach((result) => {
-      if (result.status === 'rejected') {
-        Sentry.captureException(result.reason);
-      }
+    ).then((sendEmailResults) => {
+      // Capture any email failures in Sentry
+      sendEmailResults.forEach((result) => {
+        if (result.status === 'rejected') {
+          Sentry.captureException(result.reason);
+        }
+      });
     });
   }
 
@@ -141,7 +144,8 @@ export class AsyncQuestionService {
       .getMany();
 
     // Send emails in parallel
-    const sendEmailResults = await Promise.allSettled(
+    // note: not awaiting since it can take a moment to send emails
+    Promise.allSettled(
       subscriptions.map((sub) =>
         this.mailService.sendEmail({
           receiver: sub.user.email,
@@ -155,12 +159,13 @@ export class AsyncQuestionService {
                     <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
         }),
       ),
-    );
-    // Capture any email failures in Sentry
-    sendEmailResults.forEach((result) => {
-      if (result.status === 'rejected') {
-        Sentry.captureException(result.reason);
-      }
+    ).then((sendEmailResults) => {
+      // Capture any email failures in Sentry
+      sendEmailResults.forEach((result) => {
+        if (result.status === 'rejected') {
+          Sentry.captureException(result.reason);
+        }
+      });
     });
   }
 
@@ -178,8 +183,9 @@ export class AsyncQuestionService {
 
     if (subscription) {
       const service = subscription.service;
+
       const { cleanAnswer } = parseThinkBlock(question.answerText);
-      await this.mailService
+      this.mailService
         .sendEmail({
           receiver: question.creator.email,
           type: service.serviceType,
@@ -214,7 +220,8 @@ export class AsyncQuestionService {
 
     if (statusChangeSubscription) {
       const service = statusChangeSubscription.service;
-      await this.mailService
+      // note: not awaiting since it can take a moment to send emails
+      this.mailService
         .sendEmail({
           receiver: question.creator.email,
           type: service.serviceType,
@@ -244,7 +251,8 @@ export class AsyncQuestionService {
 
     if (subscription) {
       const service = subscription.service;
-      await this.mailService
+      // note: not awaiting since it can take a moment to send emails
+      this.mailService
         .sendEmail({
           receiver: updatedQuestion.creator.email,
           type: service.serviceType,
