@@ -139,6 +139,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
             <CancelBtn />
             <OkBtn />
             <Popconfirm
+              className={'max-w-32 md:max-w-48'}
               title="Are you sure you want to override visibility?"
               description={
                 question.authorSetVisible
