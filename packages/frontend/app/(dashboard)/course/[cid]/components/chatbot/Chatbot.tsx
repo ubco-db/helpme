@@ -23,7 +23,6 @@ import {
   cn,
   convertPathnameToPageName,
   getRoleInCourse,
-  parseThinkBlock,
 } from '@/app/utils/generalUtils'
 import { Feedback } from './Feedback'
 import {
@@ -35,7 +34,12 @@ import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Message, PreDeterminedQuestion, Role } from '@koh/common'
+import {
+  Message,
+  parseThinkBlock,
+  PreDeterminedQuestion,
+  Role,
+} from '@koh/common'
 import { Bot } from 'lucide-react'
 
 const { TextArea } = Input
@@ -241,13 +245,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setInteractionId(undefined)
     setHelpmeQuestionId(undefined)
     setInput('')
-  }
-
-  const extractLMSLink = (content?: string) => {
-    if (!content) return undefined
-    const idx = content.indexOf('Page Link:')
-    if (idx < 0) return undefined
-    return content.substring(idx + 'Page Link:'.length).trim()
   }
 
   if (!cid || !courseFeatures?.chatBotEnabled) {
@@ -478,32 +475,34 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                       </p>
                                       {sourceDocument.type ==
                                         'inserted_lms_document' &&
-                                        extractLMSLink(
-                                          sourceDocument.content,
-                                        ) && (
+                                        sourceDocument.sourceLink && (
                                           <SourceLinkButton
                                             docName={sourceDocument.docName}
                                             sourceLink={
-                                              extractLMSLink(
-                                                sourceDocument.content,
-                                              ) ?? ''
+                                              sourceDocument.sourceLink
                                             }
                                             part={0}
                                           />
                                         )}
-                                      {sourceDocument.pageNumbers &&
-                                        sourceDocument.pageNumbers.map(
-                                          (part) => (
-                                            <SourceLinkButton
-                                              key={`${sourceDocument.docName}-${part}`}
-                                              docName={sourceDocument.docName}
-                                              sourceLink={
-                                                sourceDocument.sourceLink
-                                              }
-                                              part={part}
-                                            />
-                                          ),
-                                        )}
+                                      {
+                                        // for some reason pageNumbers isn't always an array. This might be worth investigating.
+                                        sourceDocument.pageNumbers &&
+                                          Array.isArray(
+                                            sourceDocument.pageNumbers,
+                                          ) &&
+                                          sourceDocument.pageNumbers.map(
+                                            (part) => (
+                                              <SourceLinkButton
+                                                key={`${sourceDocument.docName}-${part}`}
+                                                docName={sourceDocument.docName}
+                                                sourceLink={
+                                                  sourceDocument.sourceLink
+                                                }
+                                                part={part}
+                                              />
+                                            ),
+                                          )
+                                      }
                                     </div>
                                   </Tooltip>
                                 ),
@@ -567,10 +566,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
               <Space.Compact block size="large">
                 <TextArea
                   id="chatbot-input"
-                  autoSize={{ minRows: 1.35, maxRows: 20 }}
+                  autoSize={{ minRows: 1.22, maxRows: 20 }}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  className="rounded-r-none"
+                  className="rounded-r-none text-sm"
                   placeholder="Ask something... (Shift+Enter for new line)"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {

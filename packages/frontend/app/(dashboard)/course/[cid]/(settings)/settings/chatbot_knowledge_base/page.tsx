@@ -1,7 +1,16 @@
 'use client'
 
 import { useState, useEffect, ReactElement, useCallback, use } from 'react'
-import { Table, Button, Modal, Input, Form, message, InputNumber } from 'antd'
+import {
+  Table,
+  Button,
+  Modal,
+  Input,
+  Form,
+  message,
+  InputNumber,
+  Empty,
+} from 'antd'
 import Link from 'next/link'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import Highlighter from 'react-highlight-words'
@@ -52,8 +61,15 @@ export default function ChatbotDocuments(
     }
     await API.chatbot.staffOnly
       .addDocumentChunk(courseId, body)
-      .then(() => {
-        message.success('Document added successfully.')
+      .then((addedDocs) => {
+        message.success(
+          `Document${addedDocs.length > 1 ? 's' : ''} added successfully.`,
+        )
+        if (addedDocs.length > 1) {
+          message.info(
+            `Document was too large to fit into one chunk. It was split into ${addedDocs.length} document chunks.`,
+          )
+        }
         fetchDocuments()
       })
       .catch((e) => {
@@ -199,32 +215,15 @@ export default function ChatbotDocuments(
     setFilteredDocuments(filtered)
   }
 
-  const updateDocumentInState = (updatedDoc: SourceDocument) => {
-    const updatedDocuments = documents.map((doc) =>
-      doc.id === updatedDoc.id ? updatedDoc : doc,
-    )
-    setDocuments(updatedDocuments)
-
-    const searchTerm = search.toLowerCase()
-    const filtered = updatedDocuments.filter((doc) => {
-      const isNameMatch = doc.pageContent
-        ? doc.pageContent.toLowerCase().includes(searchTerm)
-        : false
-      return isNameMatch
-    })
-
-    setFilteredDocuments(filtered)
-  }
-
   return (
-    <div className="my-5 ml-0 mr-auto max-w-[1000px]">
+    <div className="m-auto my-5">
       <div className="flex w-full items-center justify-between">
         <div>
           <h3 className="m-0 p-0 text-4xl font-bold text-gray-900">
             View Chatbot Document Chunks
           </h3>
           <p className="text-[16px] font-medium text-gray-600">
-            View and manage the document chunks from your documents
+            These chunks are what the chatbot uses to answer questions.
           </p>
         </div>
         <div className="flex flex-col items-end gap-y-2">
@@ -232,9 +231,7 @@ export default function ChatbotDocuments(
             type={addDocChunkPopupVisible ? 'default' : 'primary'}
             onClick={() => setAddDocChunkPopupVisible(!addDocChunkPopupVisible)}
           >
-            {addDocChunkPopupVisible
-              ? 'Close Add Document Chunk'
-              : 'Add Document Chunk'}
+            {addDocChunkPopupVisible ? 'Close Add New Chunk' : 'Add New Chunk'}
           </Button>
           <ChunkHelpTooltip />
         </div>
@@ -243,7 +240,7 @@ export default function ChatbotDocuments(
         <div className="h-70 top-50 fixed right-1 z-50 w-[360px] bg-white p-4 shadow-lg">
           <Form form={form} onFinish={addDocument}>
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">New Document Chunk</h2>
+              <h2 className="text-2xl font-bold">Add New Chunk</h2>
               <ChunkHelpTooltip />
             </div>
             <div className="mt-4">
@@ -319,9 +316,28 @@ export default function ChatbotDocuments(
         onChange={handleSearch}
         onPressEnter={fetchDocuments}
       />
-      <div className="flex justify-between">
-        <Table columns={columns} dataSource={filteredDocuments} size="small" />
-      </div>
+      <Table
+        columns={columns}
+        dataSource={filteredDocuments}
+        size="small"
+        className="w-full"
+        locale={{
+          emptyText: (
+            <Empty
+              description={
+                <div>
+                  No chunks added yet. <br /> Head to{' '}
+                  <Link href={`/course/${courseId}/settings/chatbot_settings`}>
+                    Chatbot Settings
+                  </Link>{' '}
+                  and add some course documents so your chatbot can start citing
+                  things!
+                </div>
+              }
+            />
+          ),
+        }}
+      />
       {editingRecord && (
         <EditDocumentChunkModal
           open={editRecordModalOpen}
@@ -331,8 +347,14 @@ export default function ChatbotDocuments(
             setEditingRecord(null)
             setEditRecordModalOpen(false)
           }}
-          onSuccessfulUpdate={(updatedDoc) => {
-            updateDocumentInState(updatedDoc)
+          onSuccessfulUpdate={async (updatedDocs) => {
+            if (updatedDocs.length > 1) {
+              message.info(
+                `The text content was too large and it was split into ${updatedDocs.length} new document chunks.`,
+                6,
+              )
+            }
+            await fetchDocuments()
             setEditingRecord(null)
             setEditRecordModalOpen(false)
           }}

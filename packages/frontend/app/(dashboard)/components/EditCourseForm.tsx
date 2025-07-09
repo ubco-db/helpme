@@ -11,7 +11,7 @@ import {
   OrganizationRole,
   User,
 } from '@koh/common'
-import { Button, Form, Input, message, Select, Tag, Tooltip } from 'antd'
+import { Alert, Button, Form, Input, message, Select, Tag, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
 
 type EditCourseFormProps = {
@@ -29,6 +29,9 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
 }) => {
   const [formGeneral] = Form.useForm()
   const [professors, setProfessors] = useState<OrganizationProfessor[]>()
+  const [isCourseNameTooLong, setIsCourseNameTooLong] = useState(
+    courseData?.course?.name?.length && courseData.course.name.length > 14,
+  )
 
   const isAdmin =
     user && user.organization?.organizationRole === OrganizationRole.ADMIN
@@ -134,21 +137,39 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         sectionGroupName: courseData.course?.sectionGroupName,
         zoomLink: courseData.course?.zoomLink,
         courseTimezone: courseData.course?.timezone,
-        semesterId: courseData.course?.semester?.id,
+        semesterId: courseData.course?.semester?.id ?? -1,
         professorsUserId: courseData.profIds,
+      }}
+      onValuesChange={(changedValues, allValues) => {
+        if (changedValues.courseName) {
+          if (changedValues.courseName.length > 14) {
+            setIsCourseNameTooLong(true)
+          } else {
+            setIsCourseNameTooLong(false)
+          }
+        }
       }}
       onFinish={() => updateGeneral()}
     >
       <div className="flex flex-col md:flex-row md:space-x-3">
-        <Form.Item
-          label="Course Name"
-          name="courseName"
-          tooltip="Name of the course"
-          className="flex-1"
-          rules={[{ required: true, message: 'Please input a course name' }]}
-        >
-          <Input allowClear={true} />
-        </Form.Item>
+        <div className="flex w-1/2 flex-col">
+          <Form.Item
+            label="Course Name"
+            name="courseName"
+            tooltip="Name of the course (e.g. COSC 111). Please try to keep this short as long course names look bad on various UI elements."
+            className="mb-1 flex-1"
+            rules={[{ required: true, message: 'Please input a course name' }]}
+          >
+            <Input allowClear={true} placeholder="COSC 111" />
+          </Form.Item>
+          {isCourseNameTooLong && (
+            <Alert
+              type="warning"
+              showIcon
+              message="Long course names are not recommended as they look bad on various UI elements. Please consider shortening this (can you shorten it to just the course code? E.g. COSC 111 001 Computer Programming 1 -&gt; COSC 111)"
+            />
+          )}
+        </div>
 
         <Form.Item
           label="Coordinator Email"
@@ -162,12 +183,12 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
 
       <div className="flex flex-col md:flex-row md:space-x-3">
         <Form.Item
-          label="Section Group Name"
+          label="Section"
           name="sectionGroupName"
           tooltip="Name of the section group (E.g. if you're in COSC 111 001, the section group is 001)"
           className="flex-1"
         >
-          <Input allowClear={true} />
+          <Input allowClear={true} placeholder="001" />
         </Form.Item>
 
         <Form.Item
@@ -208,7 +229,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
           label="Semester"
           name="semesterId"
           className="flex-1"
-          rules={[{ required: true, message: 'Please select a semester' }]}
+          rules={[{ required: false }]}
         >
           <Select
             placeholder="Select Semester"
@@ -222,6 +243,9 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
                 </span>
               </Select.Option>
             ))}
+            <Select.Option key={'none'} value={-1}>
+              <span>No semester</span>
+            </Select.Option>
           </Select>
         </Form.Item>
       </div>

@@ -3,7 +3,6 @@ import {
   IsArray,
   IsBoolean,
   IsDate,
-  IsDefined,
   IsEnum,
   IsHexColor,
   IsIn,
@@ -168,7 +167,7 @@ export type UserTiny = {
 export type CoursePartial = {
   id: number
   name: string
-  sectionGroupName: string
+  sectionGroupName?: string
   semesterId?: number
   enabled?: boolean
   favourited?: boolean
@@ -179,7 +178,6 @@ export type CoursePartial = {
  */
 export type CourseCloneAttributes = {
   professorIds: number[]
-  useSection: boolean
   newSemesterId?: number
   newSection?: string
   associateWithOriginalCourse?: boolean
@@ -203,8 +201,9 @@ export type CourseCloneAttributes = {
 
 export const defaultCourseCloneAttributes: CourseCloneAttributes = {
   professorIds: [],
-  useSection: false,
   associateWithOriginalCourse: true,
+  newSemesterId: -1,
+  newSection: '',
   toClone: {
     coordinator_email: true,
     zoomLink: false,
@@ -367,6 +366,8 @@ export interface SourceDocument {
     type?: string
     source?: string
     courseId?: string
+    fromLMS?: boolean
+    apiDocId?: number
   }
   type?: string
   // TODO: is it content or pageContent? since this file uses both. EDIT: It seems to be both/either. Gross.
@@ -426,6 +427,21 @@ export interface AddDocumentChunkParams {
     id?: string
     courseId?: number
   }
+  prefix?: string
+}
+
+export interface AddDocumentAggregateParams {
+  name: string
+  source: string
+  documentText: string
+  metadata?: any
+  prefix?: string
+}
+
+export interface UpdateDocumentAggregateParams {
+  documentText: string
+  metadata?: any
+  prefix?: string
 }
 
 export interface UpdateChatbotQuestionParams {
@@ -1339,11 +1355,15 @@ export type LMSPage = {
   modified?: Date
   uploaded?: Date
 }
+export type LMSErrorType = {
+  deleteError: "Couldn't remove pre-existing documents"
+}
 
 export type LMSFileUploadResponse = {
   id: number
   success: boolean
   documentId?: string
+  reason?: LMSErrorType
 }
 
 export enum LMSApiResponseStatus {
@@ -1366,8 +1386,8 @@ export interface CourseResponse {
   courseId: number
   courseName: string
   isEnabled: boolean
-  sectionGroupName: string
-  semesterId: number
+  sectionGroupName?: string
+  semesterId?: number
   semester: SemesterPartial
 }
 
@@ -1381,14 +1401,11 @@ export class GetCourseResponse {
   // The heatmap is false when there havent been any questions asked yet or there havent been any office hours
   heatmap!: Heatmap | false
 
-  coordinator_email!: string
-
-  @Type(() => Number)
-  crns!: number[]
+  coordinator_email?: string
 
   icalURL?: string
 
-  zoomLink!: string
+  zoomLink?: string
 
   selfEnroll!: boolean
 
@@ -1405,7 +1422,7 @@ export class GetCourseResponse {
   @Type(() => OrganizationPartial)
   organizationCourse?: OrganizationPartial
 
-  courseInviteCode!: string | null
+  courseInviteCode?: string
 }
 
 export class GetLimitedCourseResponse {
@@ -1872,11 +1889,6 @@ export class EditCourseInfoParams {
   @IsOptional()
   asyncQuestionDisplayTypes?: string[]
 
-  @IsArray()
-  @IsOptional()
-  @Type(() => Number)
-  crns?: number[]
-
   @IsString()
   @IsOptional()
   courseInviteCode?: string | null
@@ -2174,6 +2186,107 @@ export class CourseSettingsRequestBody {
   static isValidFeature(feature: string): boolean {
     return validFeatures.includes(feature)
   }
+}
+
+export class OrganizationSettingsResponse {
+  @IsInt()
+  organizationId!: number
+
+  @IsBoolean()
+  allowProfCourseCreate!: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  settingsFound?: boolean
+
+  constructor(init?: Partial<OrganizationSettingsResponse>) {
+    Object.assign(this, init)
+  }
+}
+
+export const validOrganizationSettings = ['allowProfCourseCreate']
+
+export const OrganizationSettingsDefaults = {
+  allowProfCourseCreate: true,
+}
+
+export class OrganizationSettingsRequestBody {
+  @IsBoolean()
+  value!: boolean
+
+  @IsIn(validOrganizationSettings)
+  setting!: string
+
+  static isValidSetting(setting: string): boolean {
+    return validOrganizationSettings.includes(setting)
+  }
+}
+
+export enum OrgRoleChangeReason {
+  manualModification = 'manualModification',
+  joinedOrganizationMember = 'joinedOrganizationMember',
+  joinedOrganizationProfessor = 'joinedOrganizationProfessor',
+  unknown = 'unknown',
+}
+
+export enum OrgRoleChangeReasonMap {
+  manualModification = 'Role was manually modified by an organization member with sufficient permissions.',
+  joinedOrganizationMember = 'User joined the organization and gained the member role.',
+  joinedOrganizationProfessor = 'User joined the organization and gained the professor role.',
+  unknown = '',
+}
+
+export class OrgRoleHistory {
+  @IsNumber()
+  id!: number
+
+  @IsDate()
+  timestamp!: Date
+
+  @IsEnum(OrganizationRole)
+  fromRole!: OrganizationRole
+
+  @IsEnum(OrganizationRole)
+  toRole!: OrganizationRole
+
+  @IsObject()
+  byUser!: OrgUser
+
+  @IsObject()
+  toUser!: OrgUser
+
+  changeReason!: string
+}
+
+export class OrganizationRoleHistoryFilter {
+  @IsString()
+  @IsOptional()
+  search?: string
+
+  @IsEnum(OrganizationRole)
+  @IsOptional()
+  fromRole?: OrganizationRole
+
+  @IsEnum(OrganizationRole)
+  @IsOptional()
+  toRole?: OrganizationRole
+
+  @IsDate()
+  @IsOptional()
+  minDate?: Date
+
+  @IsDate()
+  @IsOptional()
+  maxDate?: Date
+
+  constructor(init?: Partial<OrganizationRoleHistoryFilter>) {
+    Object.assign(this, init)
+  }
+}
+
+export type OrganizationRoleHistoryResponse = {
+  totalHistory: number
+  history: OrgRoleHistory[]
 }
 
 /**
@@ -2846,6 +2959,22 @@ export enum LMSIntegrationPlatform {
   Canvas = 'Canvas',
 }
 
+export function parseThinkBlock(answer: string) {
+  // Look for <think>...</think> (the "s" flag lets it match across multiple lines)
+  const thinkRegex = /<think>([\s\S]*?)<\/think>/
+  const match = answer.match(thinkRegex)
+
+  if (!match) {
+    // No <think> block, return the text unchanged
+    return { thinkText: null, cleanAnswer: answer }
+  }
+
+  const thinkText = match[1].trim()
+  const cleanAnswer = answer.replace(thinkRegex, '').trim()
+
+  return { thinkText, cleanAnswer }
+}
+
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
@@ -2875,6 +3004,12 @@ export const ERROR_MESSAGES = {
     userNotFoundInOrganization: 'User not found in organization',
     cannotRemoveAdminRole: 'Cannot remove admin role from user',
     cannotGetAdminUser: 'Information about this user account is restricted',
+    notAllowedToCreateCourse: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to create courses`,
+  },
+  organizationService: {
+    cannotCreateOrgNotFound:
+      'Organization settings could not be created; organization not found.',
   },
   courseController: {
     checkIn: {
@@ -2897,7 +3032,6 @@ export const ERROR_MESSAGES = {
     sectionGroupNotFound: 'One or more of the section groups was not found',
     courseOfficeHourError: "Unable to find a course's office hours",
     courseHeatMapError: "Unable to get course's cached heatmap",
-    courseCrnsError: "Unable to get course's crn numbers",
     courseModelError: 'User not in course',
     noUserFound: 'No user found with given email',
     noSemesterFound: 'No semester exists for the submitted course',
@@ -3128,5 +3262,15 @@ export const ERROR_MESSAGES = {
     lmsDocumentNotFound: 'Document was not found.',
     cannotSyncDocumentWhenSyncDisabled:
       'Cannot synchronize a document when synchronization is disabled.',
+    resourceDisabled:
+      "The resource type of the document you're trying to operate on is disabled.",
+  },
+  semesterController: {
+    notAllowedToCreateSemester: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to create semesters`,
+    notAllowedToUpdateSemester: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to alter semesters`,
+    notAllowedToDeleteSemester: (role: OrganizationRole) =>
+      `Members with role ${role} are not allowed to delete semesters`,
   },
 }

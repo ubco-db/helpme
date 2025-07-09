@@ -2,7 +2,6 @@
 
 import { ReactElement, useEffect, useState } from 'react'
 import { Alert, Button, Empty, message, Segmented } from 'antd'
-import { OrganizationRole } from '@/app/typings/user'
 import { useUserInfo } from '@/app/contexts/userContext'
 import CoursesSection from '../components/coursesSection'
 import OrganizationCard from '../components/organizationCard'
@@ -12,11 +11,16 @@ import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons'
 import ArchivedCoursesSection from '../components/ArchivedCoursesSection'
 import { API } from '@/app/api'
 import { SemesterPartial } from '@koh/common'
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
+import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
 
 export default function CoursesPage(): ReactElement {
   const { userInfo } = useUserInfo()
   const searchParams = useSearchParams()
   const error = searchParams.get('err')
+  const organizationSettings = useOrganizationSettings(
+    userInfo?.organization?.orgId ?? -1,
+  )
 
   // Initialize enabledTableView from localStorage
   const [enabledTableView, setEnabledTableView] = useState(() => {
@@ -85,10 +89,7 @@ export default function CoursesPage(): ReactElement {
       <div className="mt-5 flex items-center justify-between align-middle">
         <h1 className="mt-0">My Courses</h1>
         <div className="flex flex-col items-end justify-between gap-2 md:flex-row md:items-center">
-          {(userInfo?.organization?.organizationRole ===
-            OrganizationRole.PROFESSOR ||
-            userInfo?.organization?.organizationRole ===
-              OrganizationRole.ADMIN) && (
+          {checkCourseCreatePermissions(userInfo, organizationSettings) && (
             <Button type="primary" href={`organization/course/add`}>
               Add New Course
             </Button>
@@ -108,7 +109,7 @@ export default function CoursesPage(): ReactElement {
           />
         </div>
       </div>
-      <div className="flex min-h-96 items-center justify-center">
+      <div className="flex min-h-96 items-start justify-center">
         {userInfo?.courses?.filter((userCourse) => userCourse.course.enabled)
           .length === 0 ? (
           <Empty

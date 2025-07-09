@@ -1,17 +1,18 @@
 'use client'
 
 import {
+  Alert,
   Button,
   Card,
   Checkbox,
   Col,
   Form,
   Input,
+  message,
   Row,
   Select,
-  message,
 } from 'antd'
-import { ReactElement, useState, useEffect } from 'react'
+import { ReactElement, useEffect, useState } from 'react'
 import {
   COURSE_TIMEZONES,
   GetOrganizationResponse,
@@ -24,9 +25,13 @@ import { API } from '@/app/api'
 import { useRouter } from 'next/navigation'
 import { organizationApi } from '@/app/api/organizationApi'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import {
+  checkCourseCreatePermissions,
+  getErrorMessage,
+} from '@/app/utils/generalUtils'
 import { userApi } from '@/app/api/userApi'
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 
 interface FormValues {
   courseName: string
@@ -34,7 +39,7 @@ interface FormValues {
   sectionGroupName?: string
   zoomLink?: string
   courseTimezone: string
-  semesterId: number
+  semesterId?: number
   professorsUserId: number[]
   chatBotEnabled: boolean
   queueEnabled: boolean
@@ -53,10 +58,19 @@ export default function AddCoursePage(): ReactElement {
   const [isAuthorized, setIsAuthorized] = useState<boolean | undefined>(
     undefined,
   )
+  const organizationSettings = useOrganizationSettings(
+    userInfo.organization?.orgId ?? -1,
+  )
+  const [isCourseNameTooLong, setIsCourseNameTooLong] = useState(false)
+
   const isAdmin =
     userInfo &&
     userInfo.organization?.organizationRole === OrganizationRole.ADMIN
   const [form] = Form.useForm()
+
+  useEffect(() => {
+    form.setFieldsValue({ semesterId: -1 })
+  }, [])
 
   useEffect(() => {
     const getOrganization = async () => {
@@ -74,18 +88,18 @@ export default function AddCoursePage(): ReactElement {
       .then((semesters) => {
         setOrganizationSemesters(semesters)
       })
-      .catch((error) => {
+      .catch((_) => {
         message.error('Failed to fetch semesters for organization')
       })
   }, [])
 
   useEffect(() => {
-    if (userInfo && organization) {
-      const isProfessor =
-        userInfo.organization?.organizationRole === OrganizationRole.PROFESSOR
-      setIsAuthorized(isAdmin || isProfessor)
+    if (userInfo && organizationSettings) {
+      setIsAuthorized(
+        checkCourseCreatePermissions(userInfo, organizationSettings),
+      )
     }
-  }, [userInfo, organization, isAdmin])
+  }, [userInfo, organizationSettings])
 
   useEffect(() => {
     const fetchProfessors = async () => {
@@ -168,22 +182,40 @@ export default function AddCoursePage(): ReactElement {
                   if (changedValues.asyncQueueEnabled === false) {
                     form.setFieldsValue({ asyncCentreAIAnswers: false })
                   }
+                  if (changedValues.courseName) {
+                    if (changedValues.courseName.length > 14) {
+                      setIsCourseNameTooLong(true)
+                    } else {
+                      setIsCourseNameTooLong(false)
+                    }
+                  }
                 }}
               >
                 <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                    <Form.Item
-                      label="Course Name"
-                      name="courseName"
-                      rules={[
-                        {
-                          required: true,
-                          message: 'Please input a course name',
-                        },
-                      ]}
-                    >
-                      <Input allowClear={true} placeholder="COSC 111" />
-                    </Form.Item>
+                    <div className="flex flex-col">
+                      <Form.Item
+                        label="Course Name"
+                        name="courseName"
+                        tooltip="Name of the course (e.g. COSC 111). Please try to keep this short as long course names look bad on various UI elements."
+                        className="mb-1"
+                        rules={[
+                          {
+                            required: true,
+                            message: 'Please input a course name',
+                          },
+                        ]}
+                      >
+                        <Input allowClear={true} placeholder="COSC 111" />
+                      </Form.Item>
+                      {isCourseNameTooLong && (
+                        <Alert
+                          type="warning"
+                          showIcon
+                          message="Long course names are not recommended as they look bad on various UI elements. Please consider shortening this (can you shorten it to just the course code? E.g. COSC 111 001 Computer Programming 1 -&gt; COSC 111)"
+                        />
+                      )}
+                    </div>
                   </Col>
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                     <Form.Item
@@ -240,9 +272,7 @@ export default function AddCoursePage(): ReactElement {
                       label="Semester"
                       name="semesterId"
                       className="flex-1"
-                      rules={[
-                        { required: true, message: 'Please select a semester' },
-                      ]}
+                      rules={[{ required: false }]}
                     >
                       <Select
                         placeholder="Select Semester"
@@ -260,39 +290,40 @@ export default function AddCoursePage(): ReactElement {
                               </span>
                             </Select.Option>
                           ))}
+                        <Select.Option key={'none'} value={-1}>
+                          <span>No semester</span>
+                        </Select.Option>
                       </Select>
                     </Form.Item>
                   </Col>
 
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                    {userInfo.organization?.organizationRole ===
-                      OrganizationRole.ADMIN &&
-                      professors && (
-                        <Form.Item
-                          label="Professors"
-                          name="professorsUserId"
-                          tooltip="Professors teaching the course"
-                        >
-                          <Select
-                            mode="multiple"
-                            placeholder="Select professors"
-                            filterSort={(optionA, optionB) =>
-                              (optionA?.label ?? '')
-                                .toLowerCase()
-                                .localeCompare(
-                                  (optionB?.label ?? '').toLowerCase(),
-                                )
-                            }
-                            showSearch
-                            optionFilterProp="label"
-                            options={professors.map((prof) => ({
-                              key: prof.organizationUser.id,
-                              label: prof.organizationUser.name,
-                              value: prof.organizationUser.id,
-                            }))}
-                          />
-                        </Form.Item>
-                      )}
+                    {isAdmin && professors && (
+                      <Form.Item
+                        label="Professors"
+                        name="professorsUserId"
+                        tooltip="Professors teaching the course"
+                      >
+                        <Select
+                          mode="multiple"
+                          placeholder="Select professors"
+                          filterSort={(optionA, optionB) =>
+                            (optionA?.label ?? '')
+                              .toLowerCase()
+                              .localeCompare(
+                                (optionB?.label ?? '').toLowerCase(),
+                              )
+                          }
+                          showSearch
+                          optionFilterProp="label"
+                          options={professors.map((prof) => ({
+                            key: prof.organizationUser.id,
+                            label: prof.organizationUser.name,
+                            value: prof.organizationUser.id,
+                          }))}
+                        />
+                      </Form.Item>
+                    )}
                   </Col>
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                     <div className="flex flex-wrap gap-x-4 md:gap-x-8">

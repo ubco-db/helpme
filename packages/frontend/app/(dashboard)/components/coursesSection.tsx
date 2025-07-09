@@ -1,4 +1,4 @@
-import { Role, SemesterPartial } from '@koh/common'
+import { OrganizationRole, Role, SemesterPartial } from '@koh/common'
 import { Button, Card, Tag, Tooltip } from 'antd'
 import React, { useMemo } from 'react'
 import Meta from 'antd/es/card/Meta'
@@ -7,8 +7,6 @@ import stringToHexColor from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
 import SemesterInfoPopover from './SemesterInfoPopover'
 import CoursesSectionTableView from './CoursesSectionTableView'
-
-// TODO: remove all code for unassigned semesters when all production courses have new semesters set
 
 interface CoursesSectionProps {
   semesters: SemesterPartial[]
@@ -36,6 +34,9 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
     },
   })
   const { userInfo } = useUserInfo()
+  const isStaff = useMemo(() => {
+    return userInfo?.organization?.organizationRole === OrganizationRole.ADMIN
+  }, [userInfo.organization])
 
   const sortedCoursesInCardView = useMemo(() => {
     return [...userInfo.courses]
@@ -49,8 +50,14 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         const semesterB = semesters?.find(
           (semester) => semester.id === b.course.semesterId,
         )
+        // Show courses with defined semesters first
+        if (semesterA && !semesterB) return -1
+        if (semesterB && !semesterA) return 1
+
         if (semesterA && semesterB) {
-          const diff = semesterB.endDate.valueOf() - semesterA.endDate.valueOf()
+          const diff =
+            new Date(semesterB.endDate).getTime() -
+            new Date(semesterA.endDate).getTime()
           if (diff === 0) {
             return a.course.name.localeCompare(b.course.name)
           } else {
@@ -155,7 +162,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                         {courseSemester.name}
                       </Tag>
                     </SemesterInfoPopover>
-                  ) : (
+                  ) : isStaff || course.role == Role.PROFESSOR ? (
                     <Tooltip title="This course is not assigned to a semester">
                       <Tag
                         color="blue"
@@ -165,7 +172,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                         No Semester
                       </Tag>
                     </Tooltip>
-                  )}
+                  ) : null}
                 </div>
 
                 <Link

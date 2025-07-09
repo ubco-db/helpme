@@ -4,19 +4,20 @@ import {
   Badge,
   Button,
   Card,
+  Checkbox,
+  Col,
   Divider,
+  GetProp,
   List,
   message,
   Modal,
+  Row,
+  Skeleton,
   Statistic,
   Tabs,
   Tooltip,
-  Checkbox,
-  Row,
-  Col,
 } from 'antd'
-import type { CheckboxOptionType, GetProp } from 'antd'
-import { useCallback, useEffect, useMemo, useState, use } from 'react'
+import { use, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   LMSAnnouncement,
   LMSApiResponseStatus,
@@ -49,6 +50,7 @@ export default function CourseLMSIntegrationPage(props: {
     students,
     pages,
     isLoading,
+    isLoadingIntegration,
   } = useCourseLmsIntegration(courseId, updateFlag)
 
   const [lmsIntegrations, setLmsIntegrations] = useState<
@@ -293,7 +295,7 @@ export default function CourseLMSIntegrationPage(props: {
     [ableToSync],
   )
 
-  if (isLoading) {
+  if (isLoadingIntegration) {
     return <CenteredSpinner tip={'Loading...'} />
   }
 
@@ -407,6 +409,7 @@ export default function CourseLMSIntegrationPage(props: {
             loadingLMSData={isLoading}
             lmsSynchronize={integration.lmsSynchronize}
             onUpdateCallback={() => setUpdateFlag(!updateFlag)}
+            selectedResourceTypes={integration.selectedResourceTypes}
           />
         ),
       })
@@ -443,6 +446,7 @@ export default function CourseLMSIntegrationPage(props: {
             loadingLMSData={isLoading}
             lmsSynchronize={integration.lmsSynchronize}
             onUpdateCallback={() => setUpdateFlag(!updateFlag)}
+            selectedResourceTypes={integration.selectedResourceTypes}
           />
         ),
       })
@@ -487,259 +491,257 @@ export default function CourseLMSIntegrationPage(props: {
               </Button>
             </div>
           </div>
-          {!integration.isExpired && course != undefined && (
-            <>
-              <div className={'grid grid-cols-4 gap-2'}>
-                <div className={'col-span-2'}>
-                  <Card title={'Course Details'}>
-                    <div className={'flex flex-col gap-4'}>
-                      <Statistic
-                        title={'API Course ID'}
-                        groupSeparator={''}
-                        value={integration.apiCourseId}
-                      />
-                      <Statistic title={'Course Name'} value={course.name} />
-                      <Statistic
-                        title={'Student Count'}
-                        value={course.studentCount}
-                        suffix={
-                          course.studentCount > 1 ? 'students' : 'student'
-                        }
-                      />
-                    </div>
-                  </Card>
-                </div>
-                <div className={'col-span-2'}>
-                  <Card>
-                    <Tabs
-                      defaultActiveKey="1"
-                      items={[
-                        {
-                          label: 'Synchronization Options',
-                          key: '1',
-                          children: (
-                            <div className={'flex flex-col items-center gap-2'}>
-                              <div className={'flex flex-row gap-2'}>
-                                <Button
-                                  size={'large'}
-                                  variant={'outlined'}
-                                  color={
-                                    integration.lmsSynchronize
-                                      ? 'danger'
-                                      : 'default'
-                                  }
-                                  className={cn(
-                                    integration.lmsSynchronize
-                                      ? ''
-                                      : 'border-green-700 text-green-700 hover:border-green-500 hover:text-green-500',
-                                  )}
-                                  onClick={toggleSync}
-                                  loading={syncing}
-                                >
-                                  {integration.lmsSynchronize
-                                    ? 'Disable'
-                                    : 'Enable'}{' '}
-                                  {integration.apiPlatform} Synchronization
-                                </Button>
-                              </div>
-                              <div className={'mt-2'}>
-                                <Badge
-                                  count={
-                                    integration.lmsSynchronize
-                                      ? outOfDateDocumentsCount +
-                                        failedToSync.length
-                                      : 0
-                                  }
-                                  showZero={false}
-                                >
-                                  <Tooltip
-                                    title={`Force synchronization of data with ${integration.apiPlatform}. If visible, the red badge indicates how many documents are observed to be out-of-date and how many documents are unsynchronized.`}
-                                  >
-                                    <Button
-                                      size={'large'}
-                                      shape={'round'}
-                                      variant={
-                                        integration.lmsSynchronize
-                                          ? 'outlined'
-                                          : 'dashed'
-                                      }
-                                      color={
-                                        integration.lmsSynchronize
-                                          ? 'blue'
-                                          : 'default'
-                                      }
-                                      icon={<SyncOutlined />}
-                                      disabled={!integration.lmsSynchronize}
-                                      onClick={forceSync}
-                                      loading={
-                                        syncing && integration.lmsSynchronize
-                                      }
-                                    >
-                                      Force Synchronization
-                                    </Button>
-                                  </Tooltip>
-                                </Badge>
-                              </div>
-                              {integration.lmsSynchronize && (
-                                <div
-                                  className={'flex flex-row items-center gap-1'}
-                                >
-                                  {ableToSync.length - failedToSync.length >
-                                    0 && (
-                                    <Badge
-                                      color={'green'}
-                                      count={`${
-                                        ableToSync.length -
-                                          failedToSync.length <
-                                        10
-                                          ? ableToSync.length -
-                                            failedToSync.length
-                                          : '9+'
-                                      } Synced`}
-                                    />
-                                  )}
-                                  {unableToSync.length > 0 && (
-                                    <Badge
-                                      color={'yellow'}
-                                      count={`${
-                                        unableToSync.length < 10
-                                          ? unableToSync.length
-                                          : '9+'
-                                      } Cannot Be Synced`}
-                                    />
-                                  )}
-                                  {failedToSync.length > 0 && (
-                                    <Badge
-                                      color={'red'}
-                                      count={`${
-                                        failedToSync.length < 10
-                                          ? failedToSync.length
-                                          : '9+'
-                                      } Not Synced`}
-                                    />
-                                  )}
-                                </div>
-                              )}
-                              <div
-                                className={
-                                  'mt-4 flex flex-col gap-2 text-gray-500'
+          <Skeleton
+            active
+            loading={course == undefined || integration.isExpired}
+          >
+            <div className={'grid grid-cols-4 gap-2'}>
+              <div className={'col-span-2 flex flex-col'}>
+                <Card title={'Course Details'} className={'h-full'}>
+                  <div className={'flex flex-col gap-4'}>
+                    <Statistic
+                      title={'API Course ID'}
+                      groupSeparator={''}
+                      value={integration.apiCourseId}
+                    />
+                    <Statistic title={'Course Name'} value={course?.name} />
+                    <Statistic
+                      title={'Student Count'}
+                      value={course?.studentCount}
+                      suffix={
+                        (course?.studentCount ?? 0) > 1 ? 'students' : 'student'
+                      }
+                    />
+                  </div>
+                </Card>
+              </div>
+              <div className={'col-span-2 flex flex-col'}>
+                <Card className={'h-full'}>
+                  <Tabs
+                    defaultActiveKey="1"
+                    items={[
+                      {
+                        label: 'Synchronization Options',
+                        key: '1',
+                        children: (
+                          <div className={'flex flex-col items-center gap-2'}>
+                            <div className={'flex flex-row gap-2'}>
+                              <Button
+                                size={'large'}
+                                variant={'outlined'}
+                                color={
+                                  integration.lmsSynchronize
+                                    ? 'danger'
+                                    : 'default'
                                 }
+                                className={cn(
+                                  integration.lmsSynchronize
+                                    ? ''
+                                    : 'border-green-700 text-green-700 hover:border-green-500 hover:text-green-500',
+                                )}
+                                onClick={toggleSync}
+                                loading={syncing}
                               >
-                                <p>
-                                  By enabling synchronization with{' '}
-                                  {integration.apiPlatform}, documents will be
-                                  imported and used to tune Chatbot responses to
-                                  student questions.
-                                </p>
-                                <p>
-                                  By default, the documents will be updated once
-                                  a day. You can force synchronization at any
-                                  time to update documents at will.
-                                </p>
-                              </div>
-                              <Tooltip
-                                title={`Clear any documents imported from ${integration.apiPlatform}.`}
-                              >
-                                <Button
-                                  size={'large'}
-                                  shape={'round'}
-                                  variant={'outlined'}
-                                  color={'danger'}
-                                  icon={<DeleteOutlined />}
-                                  onClick={clearDocuments}
-                                  loading={syncing}
-                                  disabled={savedDocumentsCount < 1}
-                                >
-                                  Clear Documents
-                                </Button>
-                              </Tooltip>
+                                {integration.lmsSynchronize
+                                  ? 'Disable'
+                                  : 'Enable'}{' '}
+                                {integration.apiPlatform} Synchronization
+                              </Button>
                             </div>
-                          ),
-                        },
-
-                        {
-                          label: 'Resource Selector',
-                          key: '2',
-                          children: (
-                            <div className={'flex flex-col items-center gap-2'}>
-                              <Checkbox.Group
-                                style={{ width: '100%' }}
-                                onChange={onSelectedResourcesChange}
-                                value={selectedResources}
+                            <div className={'mt-2'}>
+                              <Badge
+                                count={
+                                  integration.lmsSynchronize
+                                    ? outOfDateDocumentsCount +
+                                      failedToSync.length
+                                    : 0
+                                }
+                                showZero={false}
                               >
-                                <Row gutter={[16, 16]}>
-                                  <Col xs={24} sm={12} md={8}>
-                                    <Checkbox value="assignments">
-                                      Assignments
-                                    </Checkbox>
-                                  </Col>
-                                  <Col xs={24} sm={12} md={8}>
-                                    <Checkbox value="announcements">
-                                      Announcements
-                                    </Checkbox>
-                                  </Col>
-                                  <Col xs={24} sm={12} md={8}>
-                                    <Checkbox value="files" disabled={true}>
-                                      <Tooltip title="Coming Soon!">
-                                        <span className="text-gray-400 line-through">
-                                          Files
-                                        </span>
-                                      </Tooltip>
-                                    </Checkbox>
-                                  </Col>
-                                  <Col xs={24} sm={12} md={8}>
-                                    <Checkbox value="pages">Pages</Checkbox>
-                                  </Col>
-                                  <Col xs={24} sm={12} md={8}>
-                                    <Checkbox value="Syllabus" disabled={true}>
-                                      <Tooltip title="Coming Soon!">
-                                        <span className="text-gray-400 line-through">
-                                          Syllabus
-                                        </span>
-                                      </Tooltip>
-                                    </Checkbox>
-                                  </Col>
-                                </Row>
-                              </Checkbox.Group>
+                                <Tooltip
+                                  title={`Force synchronization of data with ${integration.apiPlatform}. If visible, the red badge indicates how many documents are observed to be out-of-date and how many documents are unsynchronized.`}
+                                >
+                                  <Button
+                                    size={'large'}
+                                    shape={'round'}
+                                    variant={
+                                      integration.lmsSynchronize
+                                        ? 'outlined'
+                                        : 'dashed'
+                                    }
+                                    color={
+                                      integration.lmsSynchronize
+                                        ? 'blue'
+                                        : 'default'
+                                    }
+                                    icon={<SyncOutlined />}
+                                    disabled={!integration.lmsSynchronize}
+                                    onClick={forceSync}
+                                    loading={
+                                      syncing && integration.lmsSynchronize
+                                    }
+                                  >
+                                    Force Synchronization
+                                  </Button>
+                                </Tooltip>
+                              </Badge>
+                            </div>
+                            {integration.lmsSynchronize && (
+                              <div
+                                className={'flex flex-row items-center gap-1'}
+                              >
+                                {ableToSync.length - failedToSync.length >
+                                  0 && (
+                                  <Badge
+                                    color={'green'}
+                                    count={`${
+                                      ableToSync.length - failedToSync.length <
+                                      10
+                                        ? ableToSync.length -
+                                          failedToSync.length
+                                        : '9+'
+                                    } Synced`}
+                                  />
+                                )}
+                                {unableToSync.length > 0 && (
+                                  <Badge
+                                    color={'yellow'}
+                                    count={`${
+                                      unableToSync.length < 10
+                                        ? unableToSync.length
+                                        : '9+'
+                                    } Cannot Be Synced`}
+                                  />
+                                )}
+                                {failedToSync.length > 0 && (
+                                  <Badge
+                                    color={'red'}
+                                    count={`${
+                                      failedToSync.length < 10
+                                        ? failedToSync.length
+                                        : '9+'
+                                    } Not Synced`}
+                                  />
+                                )}
+                              </div>
+                            )}
+                            <div
+                              className={
+                                'mt-4 flex flex-col gap-2 text-gray-500'
+                              }
+                            >
+                              <p>
+                                By enabling synchronization with{' '}
+                                {integration.apiPlatform}, documents will be
+                                imported and used to tune Chatbot responses to
+                                student questions.
+                              </p>
+                              <p>
+                                By default, the documents will be updated once a
+                                day. You can force synchronization at any time
+                                to update documents at will.
+                              </p>
+                            </div>
+                            <Tooltip
+                              title={`Clear any documents imported from ${integration.apiPlatform}.`}
+                            >
                               <Button
                                 size={'large'}
                                 shape={'round'}
-                                variant={
-                                  integration.lmsSynchronize
-                                    ? 'outlined'
-                                    : 'dashed'
-                                }
-                                color={
-                                  integration.lmsSynchronize
-                                    ? 'blue'
-                                    : 'default'
-                                }
-                                icon={<SyncOutlined />}
-                                disabled={
-                                  !integration.lmsSynchronize ||
-                                  !hasSelectionChanged
-                                }
-                                style={{ marginTop: '30px' }}
-                                onClick={handleSaveAndResync}
-                                loading={syncing && integration.lmsSynchronize}
-                                className="w-full sm:w-auto"
+                                variant={'outlined'}
+                                color={'danger'}
+                                icon={<DeleteOutlined />}
+                                onClick={clearDocuments}
+                                loading={syncing}
+                                disabled={savedDocumentsCount < 1}
                               >
-                                <span className="hidden sm:inline">
-                                  Save and Re-Sync Documents
-                                </span>
-                                <span className="sm:hidden">Save & Sync</span>
+                                Clear Documents
                               </Button>
-                            </div>
-                          ),
-                        },
-                      ]}
-                    />
-                  </Card>
-                </div>
+                            </Tooltip>
+                          </div>
+                        ),
+                      },
+
+                      {
+                        label: 'Resource Selector',
+                        key: '2',
+                        children: (
+                          <div className={'flex flex-col items-center gap-2'}>
+                            <Checkbox.Group
+                              style={{ width: '100%' }}
+                              onChange={onSelectedResourcesChange}
+                              value={selectedResources}
+                            >
+                              <Row gutter={[16, 16]}>
+                                <Col xs={24} sm={12} md={8}>
+                                  <Checkbox value="assignments">
+                                    Assignments
+                                  </Checkbox>
+                                </Col>
+                                <Col xs={24} sm={12} md={8}>
+                                  <Checkbox value="announcements">
+                                    Announcements
+                                  </Checkbox>
+                                </Col>
+                                <Col xs={24} sm={12} md={8}>
+                                  <Checkbox value="files" disabled={true}>
+                                    <Tooltip title="Coming Soon!">
+                                      <span className="text-gray-400 line-through">
+                                        Files
+                                      </span>
+                                    </Tooltip>
+                                  </Checkbox>
+                                </Col>
+                                <Col xs={24} sm={12} md={8}>
+                                  <Checkbox value="pages">Pages</Checkbox>
+                                </Col>
+                                <Col xs={24} sm={12} md={8}>
+                                  <Checkbox value="Syllabus" disabled={true}>
+                                    <Tooltip title="Coming Soon!">
+                                      <span className="text-gray-400 line-through">
+                                        Syllabus
+                                      </span>
+                                    </Tooltip>
+                                  </Checkbox>
+                                </Col>
+                              </Row>
+                            </Checkbox.Group>
+                            <Button
+                              size={'large'}
+                              shape={'round'}
+                              variant={
+                                integration.lmsSynchronize
+                                  ? 'outlined'
+                                  : 'dashed'
+                              }
+                              color={
+                                integration.lmsSynchronize ? 'blue' : 'default'
+                              }
+                              icon={<SyncOutlined />}
+                              disabled={
+                                !integration.lmsSynchronize ||
+                                !hasSelectionChanged
+                              }
+                              style={{ marginTop: '30px' }}
+                              onClick={handleSaveAndResync}
+                              loading={syncing && integration.lmsSynchronize}
+                              className="w-full sm:w-auto"
+                            >
+                              <span className="hidden sm:inline">
+                                Save and Re-Sync Documents
+                              </span>
+                              <span className="sm:hidden">Save & Sync</span>
+                            </Button>
+                          </div>
+                        ),
+                      },
+                    ]}
+                  />
+                </Card>
               </div>
-              <Tabs defaultActiveKey={'roster'} items={tabItems} />
-            </>
-          )}
+            </div>
+            <Tabs defaultActiveKey={'roster'} items={tabItems} />
+          </Skeleton>
           <UpsertIntegrationModal
             isOpen={modalOpen}
             setIsOpen={setModalOpen}

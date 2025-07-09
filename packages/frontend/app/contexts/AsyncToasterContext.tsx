@@ -13,6 +13,8 @@ type NotifyOptions = {
   successMsg: string
   errorMsg: string
   appendApiError: boolean
+  successDuration?: number
+  errorDuration?: number
 }
 
 interface AsyncToasterContextProps {
@@ -35,8 +37,8 @@ export const useAsyncToaster = () => useContext(AsyncToasterContext)
 
 const toastOptions: ExternalToast = {
   richColors: true,
-  duration: Infinity,
   dismissible: true,
+  duration: Infinity,
   closeButton: true,
 }
 
@@ -51,7 +53,10 @@ export const AsyncToasterProvider: React.FC<PropsWithChildren> = ({
     apiCall()
       .then((result) => {
         if (notifyOptions) {
-          toast.success(notifyOptions.successMsg, toastOptions)
+          toast.success(notifyOptions.successMsg, {
+            ...toastOptions,
+            duration: notifyOptions.successDuration ?? Infinity,
+          })
         }
         callback(result)
       })
@@ -72,7 +77,10 @@ export const AsyncToasterProvider: React.FC<PropsWithChildren> = ({
             toastOptions,
           )
         } else {
-          toast.error(notifyOptions.errorMsg, toastOptions)
+          toast.error(notifyOptions.errorMsg, {
+            ...toastOptions,
+            duration: notifyOptions.errorDuration ?? Infinity,
+          })
         }
         callback(null, error)
       })
@@ -81,10 +89,9 @@ export const AsyncToasterProvider: React.FC<PropsWithChildren> = ({
   return (
     <AsyncToasterContext.Provider value={{ runAsyncToast }}>
       <Toaster
-        position="bottom-right"
+        position="bottom-left"
         toastOptions={{
           className: 'rounded p-4 text-md font-semibold min-h-18 w-96',
-          duration: 5000,
         }}
       />
       {children}

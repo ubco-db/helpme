@@ -142,7 +142,7 @@ const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
         htmlType: 'submit',
       }}
       onCancel={onCancel}
-      destroyOnClose
+      destroyOnHidden
       modalRender={(dom) => (
         <Form
           layout="vertical"

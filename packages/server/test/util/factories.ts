@@ -8,7 +8,6 @@ export let TACourseFactory: FactoryService['TACourseFactory'];
 export let SemesterFactory: FactoryService['SemesterFactory'];
 export let CourseFactory: FactoryService['CourseFactory'];
 export let CourseSettingsFactory: FactoryService['CourseSettingsFactory'];
-export let CourseSectionFactory: FactoryService['CourseSectionFactory'];
 export let UserCourseFactory: FactoryService['UserCourseFactory'];
 export let QueueFactory: FactoryService['QueueFactory'];
 export let QueueInviteFactory: FactoryService['QueueInviteFactory'];
@@ -16,7 +15,6 @@ export let QuestionTypeFactory: FactoryService['QuestionTypeFactory'];
 export let QuestionFactory: FactoryService['QuestionFactory'];
 export let QuestionGroupFactory: FactoryService['QuestionGroupFactory'];
 export let EventFactory: FactoryService['EventFactory'];
-export let LastRegistrationFactory: FactoryService['LastRegistrationFactory'];
 export let AlertFactory: FactoryService['AlertFactory'];
 export let VotesFactory: FactoryService['VotesFactory'];
 export let AsyncQuestionFactory: FactoryService['AsyncQuestionFactory'];
@@ -36,7 +34,7 @@ export let lmsOrgIntFactory: FactoryService['lmsOrgIntFactory'];
 export let lmsCourseIntFactory: FactoryService['lmsCourseIntFactory'];
 export let lmsAssignmentFactory: FactoryService['lmsAssignmentFactory'];
 export let queueChatsFactory: FactoryService['queueChatsFactory'];
-
+export let OrganizationSettingsFactory: FactoryService['OrganizationSettingsFactory'];
 // We keep a helper so that in the test setup, once we have the real service,
 // we can “wire up” these variables.
 export function initFactoriesFromService(service: FactoryService) {
@@ -46,7 +44,6 @@ export function initFactoriesFromService(service: FactoryService) {
   SemesterFactory = service.SemesterFactory;
   CourseFactory = service.CourseFactory;
   CourseSettingsFactory = service.CourseSettingsFactory;
-  CourseSectionFactory = service.CourseSectionFactory;
   UserCourseFactory = service.UserCourseFactory;
   QueueFactory = service.QueueFactory;
   QueueInviteFactory = service.QueueInviteFactory;
@@ -54,7 +51,6 @@ export function initFactoriesFromService(service: FactoryService) {
   QuestionFactory = service.QuestionFactory;
   QuestionGroupFactory = service.QuestionGroupFactory;
   EventFactory = service.EventFactory;
-  LastRegistrationFactory = service.LastRegistrationFactory;
   AlertFactory = service.AlertFactory;
   VotesFactory = service.VotesFactory;
   AsyncQuestionFactory = service.AsyncQuestionFactory;
@@ -74,4 +70,5 @@ export function initFactoriesFromService(service: FactoryService) {
   lmsCourseIntFactory = service.lmsCourseIntFactory;
   lmsAssignmentFactory = service.lmsAssignmentFactory;
   queueChatsFactory = service.queueChatsFactory;
+  OrganizationSettingsFactory = service.OrganizationSettingsFactory;
 }
