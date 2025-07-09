@@ -249,21 +249,22 @@ export default function CourseLMSIntegrationPage(props: {
 
   const outOfDateDocumentsCount = useMemo(
     () =>
-      [...assignments, ...announcements].filter((a) => {
+      [...assignments, ...announcements, ...pages].filter((a) => {
         return (
           a.uploaded &&
           a.modified &&
           new Date(a.uploaded).getTime() < new Date(a.modified).getTime()
         )
       }).length,
-    [announcements, assignments],
+    [announcements, assignments, pages],
   )
 
   const savedDocumentsCount = useMemo(
     () =>
-      [...assignments, ...announcements].filter((a) => a.uploaded != undefined)
-        .length,
-    [announcements, assignments],
+      [...assignments, ...announcements, ...pages].filter(
+        (a) => a.uploaded != undefined,
+      ).length,
+    [announcements, assignments, pages],
   )
 
   const ableToSync = useMemo(
@@ -274,8 +275,9 @@ export default function CourseLMSIntegrationPage(props: {
           a.due != undefined,
       ),
       ...announcements,
+      ...pages,
     ],
-    [announcements, assignments],
+    [announcements, assignments, pages],
   )
 
   const unableToSync = useMemo(
@@ -286,8 +288,9 @@ export default function CourseLMSIntegrationPage(props: {
           a.due == undefined,
       ),
       ...announcements.filter((a) => !a),
+      ...pages.filter((a) => !a),
     ],
-    [assignments, announcements],
+    [assignments, announcements, pages],
   )
 
   const failedToSync = useMemo(
@@ -426,6 +429,7 @@ export default function CourseLMSIntegrationPage(props: {
             loadingLMSData={isLoading}
             lmsSynchronize={integration.lmsSynchronize}
             onUpdateCallback={() => setUpdateFlag(!updateFlag)}
+            selectedResourceTypes={integration.selectedResourceTypes}
           />
         ),
       })

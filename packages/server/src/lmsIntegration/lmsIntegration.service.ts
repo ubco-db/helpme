@@ -649,7 +649,7 @@ export class LMSIntegrationService {
 
   async singleDocOperation(
     courseId: number,
-    item: LMSAnnouncementModel | LMSAssignmentModel,
+    item: LMSAnnouncementModel | LMSAssignmentModel | LMSPageModel,
     type: LMSUpload,
     action: 'Sync' | 'Clear',
   ) {
@@ -663,7 +663,7 @@ export class LMSIntegrationService {
 
   private async syncDocument(
     courseId: number,
-    item: LMSAnnouncementModel | LMSAssignmentModel,
+    item: LMSAnnouncementModel | LMSAssignmentModel | LMSPageModel,
     type: LMSUpload,
   ) {
     const adapter = await this.getAdapter(courseId);
@@ -708,7 +708,7 @@ export class LMSIntegrationService {
 
   private async clearDocument(
     courseId: number,
-    item: LMSAnnouncementModel | LMSAssignmentModel,
+    item: LMSAnnouncementModel | LMSAssignmentModel | LMSPageModel,
     type: LMSUpload,
   ) {
     const model = await this.getDocumentModel(type);
@@ -743,6 +743,8 @@ export class LMSIntegrationService {
         return 'Announcement';
       case LMSUpload.Assignments:
         return 'Assignment';
+      case LMSUpload.Pages:
+        return 'Page';
       default:
         return 'Resource';
     }
@@ -795,7 +797,15 @@ export class LMSIntegrationService {
       }
       case LMSUpload.Pages: {
         const p = item as LMSPage;
-        documentText = `(Course Page)\n Title: ${p.title}\nContent: ${p.body}\n${p.frontPage ? 'Front Page: Yes' : 'Front Page: No'}\n${!isNaN(new Date(p.modified).valueOf()) ? `Modified: ${new Date(p.modified).getTime()}` : ''}`;
+        prefix = `(Course Page)\nTitle: ${p.title}${!isNaN(new Date(p.modified).valueOf()) ? `\nModified: ${new Date(p.modified).toLocaleDateString()}` : ''}`;
+        name = `${p.title}`;
+        documentText = `\nContent:\n${convert(p.body)}`;
+        if (p.url) {
+          prefix += `\nURL: ${p.url}`;
+        }
+        if (p.frontPage) {
+          prefix += `\nFront Page: ${p.frontPage}`;
+        }
         break;
       }
       default:

@@ -482,7 +482,7 @@ export class LMSIntegrationController {
   async toggleSyncDocument(
     @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Param('docType') docType: 'assignment' | 'announcement',
+    @Param('docType') docType: 'assignment' | 'announcement' | 'page',
     @Param('itemId', ParseIntPipe) itemId: number,
     @Body() params?: LMSAssignment,
   ): Promise<string> {
@@ -509,6 +509,9 @@ export class LMSIntegrationController {
         break;
       case 'announcement':
         uploadType = LMSUpload.Announcements;
+        break;
+      case 'page':
+        uploadType = LMSUpload.Pages;
         break;
       default:
         throw new BadRequestException(
