@@ -11,6 +11,7 @@
 - Improved performance of various actions around Anytime Questions by sending emails asynchronously
 - Fixed an issue where "think" text from the AI would appear and clutter emails for Anytime Questions 
 
+***
 
 ## Version 1.5.0 - Semesters, Course Cloning, View Your Chatbot Conversations
 
