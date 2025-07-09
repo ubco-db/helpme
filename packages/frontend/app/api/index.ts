@@ -572,11 +572,11 @@ class APIClient {
     comment: async (
       questionId: number,
       body: AsyncQuestionCommentParams,
-    ): Promise<AsyncQuestionComment> =>
+    ): Promise<AsyncQuestionComment[]> =>
       this.req(
         'POST',
         `/api/v1/asyncQuestions/comment/${questionId}`,
-        AsyncQuestionComment,
+        undefined,
         body,
       ),
     deleteComment: async (
@@ -592,11 +592,11 @@ class APIClient {
       questionId: number,
       commentId: number,
       body: AsyncQuestionCommentParams,
-    ): Promise<AsyncQuestionComment> =>
+    ): Promise<AsyncQuestionComment[]> =>
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/comment/${questionId}/${commentId}`,
-        AsyncQuestionComment,
+        undefined,
         body,
       ),
     getUnreadAsyncCount: async (

@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import Modal from 'antd/lib/modal/Modal'
 import {
-  Input,
-  Form,
-  message,
-  Switch,
-  Checkbox,
   Button,
+  Checkbox,
+  Form,
+  Input,
+  message,
   Popconfirm,
+  Switch,
   Tooltip,
 } from 'antd'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
@@ -15,10 +15,11 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
 import { DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 
 interface FormValues {
   answerText: string
-  visible: boolean
+  staffSetVisible: boolean
   verified: boolean
 }
 
@@ -27,6 +28,7 @@ interface PostResponseModalProps {
   onCancel: () => void
   onPostResponse: () => void
   question: AsyncQuestion
+  courseId: number
 }
 
 const PostResponseModal: React.FC<PostResponseModalProps> = ({
@@ -34,12 +36,26 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
   question,
   onCancel,
   onPostResponse,
+  courseId,
 }) => {
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [staffSetVisible, setStaffSetVisible] = useState<boolean>(
+    !!question.staffSetVisible,
+  )
+  const [visiblePopConfirmVisible, setVisiblePopConfirmVisible] =
+    useState<boolean>(false)
+  const courseFeatures = useCourseFeatures(courseId)
+  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false
 
-  const onFinish = async (values: FormValues) => {
+  const [hasCheckedPopconfirm, setHasCheckedPopconfirm] =
+    useState<boolean>(!authorCanSetVisible)
+  const [confirmPopoverOpen, setConfirmPopoverOpen] = useState(false)
+
+  const onFinish = async () => {
+    setHasCheckedPopconfirm(false)
+    const values: FormValues = await form.validateFields()
     setIsLoading(true)
     // if the answer text is the same as the current answer text and the status is AIAnswered, AIAnsweredNeedsAttention, or AIAnsweredResolved, then the status should remain the same
     // unless the TA changes the verified status to true, then it will always be HumanAnswered (displayed as Human Verified)
@@ -56,7 +72,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
     await API.asyncQuestions
       .facultyUpdate(question.id, {
         answerText: values.answerText,
-        visible: values.visible,
+        staffSetVisible: staffSetVisible,
         status: newStatus,
         verified: values.verified,
       })
@@ -83,6 +99,19 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
         autoFocus: true,
         htmlType: 'submit',
         loading: isLoading,
+        onClick: async () => {
+          await form.validateFields().then(() => {
+            if (
+              authorCanSetVisible &&
+              !hasCheckedPopconfirm &&
+              question.authorSetVisible != staffSetVisible
+            ) {
+              setConfirmPopoverOpen(true)
+            } else {
+              onFinish()
+            }
+          })
+        },
       }}
       onCancel={onCancel}
       // display delete button for mobile in footer
@@ -109,6 +138,24 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
           <div className="flex gap-2">
             <CancelBtn />
             <OkBtn />
+            <Popconfirm
+              className={'max-w-32 md:max-w-48'}
+              title="Are you sure you want to override visibility?"
+              description={
+                question.authorSetVisible
+                  ? 'The student who created this question wanted it to be visible to other students.'
+                  : 'The student who created this question did not want for it to be visible to other students.'
+              }
+              open={confirmPopoverOpen}
+              arrow={false}
+              okText="Yes"
+              cancelText="No"
+              onConfirm={() => {
+                onFinish().then()
+                setConfirmPopoverOpen(false)
+              }}
+              onCancel={() => setConfirmPopoverOpen(false)}
+            ></Popconfirm>
           </div>
         </div>
       )}
@@ -120,11 +167,9 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
           name="form_in_modal"
           initialValues={{
             answerText: question.answerText,
-            visible: question.visible,
             verified: question.verified,
           }}
           clearOnDestroy
-          onFinish={(values) => onFinish(values)}
         >
           {dom}
         </Form>
@@ -142,18 +187,60 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
         />
       </Form.Item>
       <Form.Item
-        name="visible"
         label={
           <div className="flex flex-row items-center gap-1">
             Set question visible to all students
-            <Tooltip title="Questions can normally only be seen by staff and the student who asked it. This will make it visible to all students (the student themselves will appear anonymous to other students)">
+            <Tooltip title="Questions can normally only be seen by staff and the student who asked it. This will make it visible to all students.">
               <QuestionCircleOutlined style={{ color: 'gray' }} />
             </Tooltip>
           </div>
         }
+        layout="horizontal"
         valuePropName="checked"
       >
-        <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />
+        {authorCanSetVisible ? (
+          <Popconfirm
+            title="Are you sure you want to override visibility?"
+            description={
+              question.authorSetVisible
+                ? 'The student who created this question wanted it to be visible to other students.'
+                : 'The student who created this question did not want for it to be visible to other students.'
+            }
+            okText="Override"
+            cancelText="Leave as is"
+            onConfirm={() => {
+              setStaffSetVisible(!staffSetVisible)
+              setVisiblePopConfirmVisible(false)
+              setHasCheckedPopconfirm(true)
+            }}
+            onCancel={() => {
+              setVisiblePopConfirmVisible(false)
+              setHasCheckedPopconfirm(true)
+            }}
+            open={visiblePopConfirmVisible}
+          >
+            <Switch
+              onClick={() => {
+                if (
+                  (question.authorSetVisible && staffSetVisible) ||
+                  (!question.authorSetVisible && !staffSetVisible)
+                )
+                  setVisiblePopConfirmVisible(true)
+                else setStaffSetVisible(!staffSetVisible)
+              }}
+              checked={staffSetVisible}
+              checkedChildren="Visible"
+              unCheckedChildren="Hidden"
+            />
+          </Popconfirm>
+        ) : (
+          <Switch
+            onClick={() => setStaffSetVisible((prev) => !prev)}
+            checked={staffSetVisible}
+            checkedChildren="Visible"
+            unCheckedChildren="Hidden"
+          />
+        )}
       </Form.Item>
       <Form.Item name="verified" valuePropName="checked">
         <Checkbox>Mark as verified by faculty</Checkbox>

@@ -77,6 +77,22 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
           description="Displays non-intrusive advertisements to help keep the servers running"
           courseId={courseId}
         /> */}
+
+        <CourseFeatureSwitch
+          featureName="asyncCentreDefaultAnonymous"
+          defaultChecked={courseFeatures.asyncCentreDefaultAnonymous}
+          title="Anytime Questions Anonymous by Default"
+          description="By default, Anytime Question authors are anonymous when viewed by students. Toggling this will make new Anytime Questions be anonymous or non-anonymous by default. It will not change the anonymity of previously posted questions. Question authors decide whether their profile will be visible or not when editing or creating the question."
+          courseId={courseId}
+        />
+
+        <CourseFeatureSwitch
+          featureName="asyncCentreAuthorPublic"
+          defaultChecked={courseFeatures.asyncCentreAuthorPublic}
+          title="Allow Anytime Question Authors to make their Questions Public"
+          description="By default, staff members have to make anytime questions public themselves. This allows authors of anytime questions to make their own questions visible to all members of the course. Staff can override this."
+          courseId={courseId}
+        />
       </Form>
     )
   )

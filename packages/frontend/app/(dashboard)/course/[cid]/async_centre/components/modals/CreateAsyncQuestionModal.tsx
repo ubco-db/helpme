@@ -1,13 +1,13 @@
 import React, { useState } from 'react'
 import {
-  Modal,
-  Input,
-  Form,
-  message,
-  Checkbox,
-  Tooltip,
   Button,
+  Checkbox,
+  Form,
+  Input,
+  message,
+  Modal,
   Popconfirm,
+  Tooltip,
 } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
@@ -24,6 +24,8 @@ interface FormValues {
   questionText: string
   questionTypesInput: number[]
   refreshAIAnswer: boolean
+  setVisible: boolean
+  setAnonymous: boolean
 }
 
 interface CreateAsyncQuestionModalProps {
@@ -47,6 +49,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const courseFeatures = useCourseFeatures(courseId)
+  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false
 
   const getAiAnswer = async (question: string) => {
     if (!courseFeatures?.asyncCentreAIAnswers) {
@@ -96,8 +99,9 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
               questionTypes: newQuestionTypeInput,
               questionText: values.questionText,
               questionAbstract: values.QuestionAbstract,
+              authorSetVisible: authorCanSetVisible ? values.setVisible : false,
+              isAnonymous: values.setAnonymous,
               aiAnswerText: aiAnswer,
-              answerText: aiAnswer,
             })
             .then(() => {
               message.success('Question Updated')
@@ -116,6 +120,8 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
             questionTypes: newQuestionTypeInput,
             questionText: values.questionText,
             questionAbstract: values.QuestionAbstract,
+            isAnonymous: values.setAnonymous,
+            authorSetVisible: authorCanSetVisible ? values.setVisible : false,
           })
           .then(() => {
             message.success('Question Updated')
@@ -149,6 +155,8 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
               status: courseFeatures?.asyncCentreAIAnswers
                 ? asyncQuestionStatus.AIAnswered
                 : asyncQuestionStatus.AIAnsweredNeedsAttention,
+              isAnonymous: values.setAnonymous,
+              authorSetVisible: authorCanSetVisible ? values.setVisible : false,
             },
             courseId,
           )
@@ -231,6 +239,11 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
                     (questionType) => questionType.id,
                   )
                 : [],
+            setVisible: question?.authorSetVisible || false,
+            setAnonymous:
+              question?.isAnonymous ??
+              courseFeatures?.asyncCentreDefaultAnonymous ??
+              true,
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
@@ -279,6 +292,30 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           <QuestionTagSelector questionTags={questionTypes} />
         </Form.Item>
       )}
+      {authorCanSetVisible && (
+        <Form.Item
+          name="setVisible"
+          label="Show Publicly?"
+          tooltip={
+            'Let staff know whether you want your question to be visible to other students. Staff can make questions public regardless of this setting.'
+          }
+          valuePropName="checked"
+          layout="horizontal"
+        >
+          <Checkbox />
+        </Form.Item>
+      )}
+      <Form.Item
+        name="setAnonymous"
+        label="Appear Anonymous?"
+        tooltip={
+          'If toggled, your name and avatar will not be shown with the question. Staff members will still see who you are.'
+        }
+        layout="horizontal"
+        valuePropName="checked"
+      >
+        <Checkbox />
+      </Form.Item>
       {question && courseFeatures?.asyncCentreAIAnswers && (
         <Tooltip
           placement="topLeft"
@@ -299,11 +336,6 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           </Form.Item>
         </Tooltip>
       )}
-      <div className="text-gray-500">
-        Only you and faculty will be able to see your question unless a faculty
-        member chooses to mark it public, in which case it will appear fully
-        anonymous to other students.
-      </div>
     </Modal>
   )
 }

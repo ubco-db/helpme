@@ -1,5 +1,13 @@
 import { useMemo, useState } from 'react'
-import { List, Button, Tooltip, message, Input, Popconfirm } from 'antd'
+import {
+  Button,
+  Checkbox,
+  Input,
+  List,
+  message,
+  Popconfirm,
+  Tooltip,
+} from 'antd'
 import Comment from './Comment'
 import moment from 'moment'
 import { API } from '@/app/api'
@@ -8,30 +16,39 @@ import { AsyncQuestion, AsyncQuestionComment, Role } from '@koh/common'
 import { CommentProps } from '../utils/types'
 import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
 import { Action } from './AsyncQuestionCardUIReducer'
+import { CheckCircleOutlined, WarningOutlined } from '@ant-design/icons'
 
 const { TextArea } = Input
 
 interface CommentSectionProps {
+  userId: number
   userCourseRole: Role
   question: AsyncQuestion
   dispatchUIStateChange: (action: Action) => void
   isPostingComment: boolean
   showStudents: boolean
   className?: string
+  defaultAnonymousSetting: boolean
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({
+  userId,
   userCourseRole,
   question,
   dispatchUIStateChange,
   isPostingComment,
   showStudents,
   className,
+  defaultAnonymousSetting,
 }) => {
   const [commentInputValue, setCommentInputValue] = useState('')
+  const [commentAnonymous, setCommentAnonymous] = useState<boolean>(
+    defaultAnonymousSetting,
+  )
   const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
   const [postCommentCancelPopoverOpen, setPostCommentCancelPopoverOpen] =
     useState(false)
+  const [postCommentPopoverOpen, setPostCommentPopoverOpen] = useState(false)
   const [regenerateCommentsFlag, regenerateComments] = useState(false)
   const isStaff =
     userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
@@ -39,6 +56,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   const comments = useMemo(() => {
     return generateCommentProps(
       question.id,
+      question.isAnonymous ?? defaultAnonymousSetting,
       question.comments,
       isStaff,
       showStudents,
@@ -49,24 +67,57 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   }, [
     question.id,
     question.comments,
+    question.isAnonymous,
     isStaff,
     showStudents,
     dispatchUIStateChange,
     regenerateCommentsFlag,
+    defaultAnonymousSetting,
   ])
+
+  const anonymityOverwriteCount = useMemo(
+    () =>
+      question.comments.filter(
+        (c) =>
+          c.creator.id != undefined &&
+          c.creator.id == userId &&
+          c.isAnonymous != commentAnonymous,
+      ).length,
+    [
+      commentAnonymous,
+      question.comments,
+      question,
+      regenerateCommentsFlag,
+      userId,
+    ],
+  )
 
   const handleCommentOnPost = async (
     questionId: number,
     commentText: string,
+    isAnonymous: boolean,
   ) => {
     setIsPostCommentLoading(true)
     await API.asyncQuestions
-      .comment(questionId, { commentText })
-      .then((newComment) => {
+      .comment(questionId, {
+        commentText,
+        isAnonymous:
+          question.creatorId === userId ? question.isAnonymous : isAnonymous,
+      })
+      .then((comments) => {
         dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
         message.success('Comment posted successfully')
-        newComment.creator.courseRole = userCourseRole
-        question.comments.push(newComment)
+        comments.forEach((c) => {
+          if (c.creator) {
+            c.creator.courseRole = userCourseRole
+          }
+        })
+        const ids = comments.map((c) => c.id)
+        question.comments.forEach((c) => {
+          if (!ids.includes(c.id)) return
+          c.isAnonymous = comments[0].isAnonymous
+        })
+        question.comments.push(comments[0])
         setIsPostCommentLoading(false)
         regenerateComments(!regenerateCommentsFlag)
       })
@@ -152,6 +203,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 } else {
                   setPostCommentCancelPopoverOpen(open)
                 }
+                setPostCommentPopoverOpen(false)
               }}
               onCancel={(e) => e?.stopPropagation()}
             >
@@ -164,26 +216,112 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 Cancel
               </Button>
             </Popconfirm>
-            <Button
-              htmlType="submit"
-              className="px-6"
-              disabled={!commentInputValue}
-              loading={isPostCommentLoading}
-              onClick={async (e) => {
-                e.stopPropagation()
-                if (commentInputValue) {
-                  await handleCommentOnPost(question.id, commentInputValue)
-                  dispatchUIStateChange({
-                    type: 'SET_IS_POSTING_COMMENT',
-                    isPostingComment: false,
-                  })
-                  setCommentInputValue('')
+            {anonymityOverwriteCount > 0 ? (
+              <Popconfirm
+                open={postCommentPopoverOpen}
+                title={'Are you sure?'}
+                description={
+                  <div className={'max-w-60 p-1'}>
+                    <div>
+                      By posting this,{' '}
+                      <span className={'font-semibold text-red-500'}>
+                        {anonymityOverwriteCount} previous comments
+                      </span>{' '}
+                      will be made{' '}
+                      <span className={'font-semibold text-red-500'}>
+                        {commentAnonymous ? 'anonymous' : 'non-anonymous'}.
+                      </span>
+                    </div>
+                  </div>
                 }
-              }}
-              type="primary"
-            >
-              Post
-            </Button>
+                onOpenChange={(open) => {
+                  if (open) setPostCommentPopoverOpen(open)
+                }}
+                onCancel={(e) => {
+                  e?.stopPropagation()
+                  setPostCommentPopoverOpen(false)
+                }}
+                onConfirm={async (e) => {
+                  e?.stopPropagation()
+                  if (commentInputValue) {
+                    await handleCommentOnPost(
+                      question.id,
+                      commentInputValue,
+                      commentAnonymous,
+                    )
+                    dispatchUIStateChange({
+                      type: 'SET_IS_POSTING_COMMENT',
+                      isPostingComment: false,
+                    })
+                    setCommentInputValue('')
+                    setPostCommentPopoverOpen(false)
+                  }
+                }}
+              >
+                <Button
+                  htmlType="submit"
+                  className="px-6"
+                  disabled={!commentInputValue}
+                  loading={isPostCommentLoading}
+                  type="primary"
+                >
+                  Post
+                </Button>
+              </Popconfirm>
+            ) : (
+              <Button
+                htmlType="submit"
+                className="px-6"
+                disabled={!commentInputValue}
+                loading={isPostCommentLoading}
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  if (commentInputValue) {
+                    await handleCommentOnPost(
+                      question.id,
+                      commentInputValue,
+                      commentAnonymous,
+                    )
+                    dispatchUIStateChange({
+                      type: 'SET_IS_POSTING_COMMENT',
+                      isPostingComment: false,
+                    })
+                    setCommentInputValue('')
+                  }
+                }}
+                type="primary"
+              >
+                Post
+              </Button>
+            )}
+            {question.creatorId !== userId && (
+              <span className={'mb-4 ml-5 inline-flex flex-row gap-1'}>
+                <Tooltip
+                  title={`Set whether you will appear anonymous to other students. Staff will still see who you are.\n 
+                                ${anonymityOverwriteCount > 0 ? `Previous comments have a different anonymity setting. ${anonymityOverwriteCount} comments will be made ${commentAnonymous ? 'anonymous' : 'non-anonymous'}!` : 'Anonymity setting is the same as any previous comments.'}`}
+                >
+                  <Checkbox
+                    checked={commentAnonymous}
+                    onChange={() => setCommentAnonymous(!commentAnonymous)}
+                  >
+                    <div className={'inline-flex flex-row gap-1'}>
+                      <div>Post Anonymously</div>
+                      <div className={'ml-1'}>
+                        {anonymityOverwriteCount > 0 ? (
+                          <WarningOutlined className="animate-pulse text-lg text-red-500 hover:text-red-800" />
+                        ) : (
+                          <CheckCircleOutlined
+                            className={
+                              'text-lg text-green-500 hover:text-green-800'
+                            }
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </Checkbox>
+                </Tooltip>
+              </span>
+            )}
           </>
         )}
       </div>
@@ -193,6 +331,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
 function generateCommentProps(
   questionId: number,
+  questionIsAnonymous: boolean,
   comments: AsyncQuestionComment[],
   IAmStaff: boolean,
   showStudents: boolean,
@@ -205,20 +344,29 @@ function generateCommentProps(
 
   const newComments: CommentProps[] = []
   for (const comment of comments) {
+    const otherUserComments = comments.filter(
+      (c) => c.creator.id != undefined && c.creator.id == comment.creator.id,
+    )
     newComments.push({
       commentId: comment.id,
       questionId,
       author: comment.creator,
       content: comment.commentText,
+      isAnonymous: comment?.isAnonymous ?? true,
+      questionIsAnonymous,
       onDeleteSuccess: () => {
         // remove the comment from the question object
         const commentIndex = comments.findIndex((c) => c.id === comment.id)
         comments.splice(commentIndex, 1)
         regenerateComments(!regenerateCommentsFlag)
       },
-      onEditSuccess: (newCommentText) => {
+      onEditSuccess: (newCommentText, newCommentAnonymous) => {
         // update the comment content
         comment.commentText = newCommentText
+        comment.isAnonymous = newCommentAnonymous
+        otherUserComments.forEach((c) => {
+          c.isAnonymous = comment.isAnonymous
+        })
         regenerateComments(!regenerateCommentsFlag)
       },
       datetime: (
@@ -229,6 +377,7 @@ function generateCommentProps(
       IAmStaff,
       showStudents,
       dispatchUIStateChange,
+      numOtherComments: otherUserComments.length,
     })
   }
 
