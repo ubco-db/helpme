@@ -1,3 +1,17 @@
+## Version 1.5.1 
+
+*July 8th, 2025*
+
+#### Improvements
+
+- Fixed an issue where "Parse document as slides" option was summarizing way too much. It should be *a lot* better now!
+- Improved the UX when uploading documents to the chatbot (you are no longer stuck waiting in the modal until it completes and can look at other pages on the site in the meantime)
+- Professors can no longer demote themselves
+- Adjusted the "speed" rating on the tooltips for the AI models now that Qwen's speed far surpasses the OpenAI models
+- Improved performance of various actions around Anytime Questions by sending emails asynchronously
+- Fixed an issue where "think" text from the AI would appear and clutter emails for Anytime Questions 
+
+
 ## Version 1.5.0 - Semesters, Course Cloning, View Your Chatbot Conversations
 
 *July 5th, 2025*
