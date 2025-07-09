@@ -6,6 +6,7 @@ import {
   LMSAssignment,
   LMSCourseAPIResponse,
   LMSIntegrationPlatform,
+  LMSPage,
 } from '@koh/common';
 import { LMSUpload } from './lmsIntegration.service';
 
@@ -62,6 +63,13 @@ export abstract class AbstractLMSAdapter {
   async getAssignments(): Promise<{
     status: LMSApiResponseStatus;
     assignments: LMSAssignment[];
+  }> {
+    return null;
+  }
+
+  async getPages(): Promise<{
+    status: LMSApiResponseStatus;
+    pages: LMSPage[];
   }> {
     return null;
   }
@@ -305,12 +313,49 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     };
   }
 
+  async getPages(): Promise<{
+    status: LMSApiResponseStatus;
+    pages: LMSPage[];
+  }> {
+    const { status, data } = await this.GetPaginated(
+      `courses/${this.integration.apiCourseId}/pages`,
+    );
+
+    if (status != LMSApiResponseStatus.Success) return { status, pages: [] };
+
+    const pages: LMSPage[] = [];
+
+    for (const page of data) {
+      const pageResult = await this.Get(
+        `courses/${this.integration.apiCourseId}/pages/${page.url}`,
+      );
+
+      if (pageResult.status === LMSApiResponseStatus.Success) {
+        pages.push({
+          id: pageResult.data.page_id,
+          title: pageResult.data.title,
+          body: pageResult.data.body,
+          url: page.url,
+          frontPage: page.front_page,
+          modified: new Date(pageResult.data.updated_at),
+        });
+      }
+    }
+
+    return {
+      status: LMSApiResponseStatus.Success,
+      pages,
+    };
+  }
+
   getDocumentLink(documentId: number, documentType: LMSUpload): string {
     switch (documentType) {
       case LMSUpload.Announcements:
         return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/discussion_topics/${documentId}/`;
       case LMSUpload.Assignments:
         return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/assignments/${documentId}/`;
+      case LMSUpload.Pages:
+        return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/pages/${documentId}/`;
       default:
         return '';
     }

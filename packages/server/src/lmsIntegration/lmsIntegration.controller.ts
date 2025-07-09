@@ -15,9 +15,11 @@ import {
   ERROR_MESSAGES,
   LMSApiResponseStatus,
   LMSAssignment,
+  LMSAnnouncement,
   LMSCourseIntegrationPartial,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
+  LMSPage,
   LMSResourceType,
   OrganizationRole,
   RemoveLMSOrganizationParams,
@@ -314,6 +316,13 @@ export class LMSIntegrationController {
     );
   }
 
+  @Get(':courseId/pages')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async getPages(@Param('courseId', ParseIntPipe) courseId: number) {
+    return await this.integrationService.getItems(courseId, LMSGet.Pages);
+  }
+
   @Post(':courseId/test')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
@@ -473,7 +482,7 @@ export class LMSIntegrationController {
   async toggleSyncDocument(
     @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Param('docType') docType: 'assignment' | 'announcement',
+    @Param('docType') docType: 'assignment' | 'announcement' | 'page',
     @Param('itemId', ParseIntPipe) itemId: number,
     @Body() params?: LMSAssignment,
   ): Promise<string> {
@@ -500,6 +509,9 @@ export class LMSIntegrationController {
         break;
       case 'announcement':
         uploadType = LMSUpload.Announcements;
+        break;
+      case 'page':
+        uploadType = LMSUpload.Pages;
         break;
       default:
         throw new BadRequestException(

@@ -4,6 +4,7 @@ import {
   LMSAssignment,
   LMSCourseAPIResponse,
   LMSCourseIntegrationPartial,
+  LMSPage,
 } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -14,6 +15,7 @@ export type CourseLmsIntegration = {
   course?: LMSCourseAPIResponse
   assignments: LMSAssignment[]
   announcements: LMSAnnouncement[]
+  pages: LMSPage[]
   students: string[]
   isLoading: boolean
   isLoadingIntegration: boolean
@@ -27,6 +29,7 @@ export function useCourseLmsIntegration(
   const [course, setCourse] = useState<LMSCourseAPIResponse>()
   const [assignments, setAssignments] = useState<LMSAssignment[]>([])
   const [announcements, setAnnouncements] = useState<LMSAnnouncement[]>([])
+  const [pages, setPages] = useState<LMSPage[]>([])
   const [students, setStudents] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isLoadingIntegration, setIsLoadingIntegration] =
@@ -65,6 +68,14 @@ export function useCourseLmsIntegration(
             })
             .catch(errorFx)
           await API.lmsIntegration
+            .getPages(courseId)
+            .then((response) => {
+              if (response) {
+                setPages(response)
+              }
+            })
+            .catch(errorFx)
+          await API.lmsIntegration
             .getStudents(courseId)
             .then((response) => {
               if (response) {
@@ -83,6 +94,7 @@ export function useCourseLmsIntegration(
     setCourse(undefined)
     setAssignments([])
     setAnnouncements([])
+    setPages([])
     setStudents([])
     setIsLoading(true)
     setIsLoadingIntegration(true)
@@ -114,6 +126,7 @@ export function useCourseLmsIntegration(
     course,
     assignments,
     announcements,
+    pages,
     students,
     isLoading,
     isLoadingIntegration,
