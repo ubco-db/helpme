@@ -7,6 +7,7 @@ import {
 import {
   LMSAnnouncement,
   LMSAssignment,
+  LMSFile,
   LMSPage,
   LMSResourceType,
 } from '@koh/common'
@@ -26,7 +27,7 @@ import { API } from '@/app/api'
 
 type LMSDocumentListProps<T> = {
   courseId: number
-  type: 'Assignment' | 'Announcement' | 'Page'
+  type: 'Assignment' | 'Announcement' | 'Page' | 'File'
   documents: T[]
   loadingLMSData?: boolean
   lmsSynchronize?: boolean
@@ -44,7 +45,7 @@ type LMSDocumentListColumn = {
 }
 
 export default function LMSDocumentList<
-  T extends LMSAssignment | LMSAnnouncement | LMSPage,
+  T extends LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
 >({
   courseId,
   type,
@@ -56,6 +57,7 @@ export default function LMSDocumentList<
     LMSResourceType.ANNOUNCEMENTS,
     LMSResourceType.ASSIGNMENTS,
     LMSResourceType.PAGES,
+    LMSResourceType.FILES,
   ],
 }: LMSDocumentListProps<T>) {
   const [page, setPage] = useState(1)
@@ -71,6 +73,8 @@ export default function LMSDocumentList<
         return LMSResourceType.ANNOUNCEMENTS
       case 'Page':
         return LMSResourceType.PAGES
+      case 'File':
+        return LMSResourceType.FILES
     }
   }, [type])
 
@@ -79,8 +83,8 @@ export default function LMSDocumentList<
   }
 
   const toggleSyncDocument = async (
-    doc: LMSAssignment | LMSAnnouncement | LMSPage,
-    type: 'Assignment' | 'Announcement' | 'Page',
+    doc: LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
+    type: 'Assignment' | 'Announcement' | 'Page' | 'File',
   ) => {
     const docIdStr = doc.id.toString()
 
@@ -125,6 +129,12 @@ export default function LMSDocumentList<
       case 'Page':
         return await API.lmsIntegration
           .toggleSyncPage(courseId, doc.id, doc as LMSPage)
+          .then(thenFx)
+          .catch(errFx)
+          .finally(finallyFx)
+      case 'File':
+        return await API.lmsIntegration
+          .toggleSyncFile(courseId, doc.id, doc as LMSFile)
           .then(thenFx)
           .catch(errFx)
           .finally(finallyFx)
@@ -306,6 +316,67 @@ export default function LMSDocumentList<
             colSpan: 1,
           },
         ] as LMSDocumentListColumn[]
+      case 'File':
+        return [
+          {
+            dataIndex: 'name',
+            header: 'Name',
+            cellFormat: (item: T) => (
+              <NameCell
+                item={item}
+                type={'File'}
+                lmsSynchronize={lmsSynchronize}
+              />
+            ),
+            colSpan: 2,
+          },
+          {
+            dataIndex: 'modified',
+            header: 'Last Modified',
+            cellFormat: (item: string | undefined) =>
+              item != undefined && item.trim() != ''
+                ? new Date(item).toLocaleDateString()
+                : '',
+            colSpan: 1,
+          },
+          {
+            dataIndex: 'contentType',
+            header: 'File Type',
+            cellFormat: (item: string) => item || 'Unknown',
+            colSpan: 1,
+          },
+          {
+            dataIndex: 'size',
+            header: 'Size',
+            cellFormat: (item: number) => {
+              if (!item) return 'Unknown'
+              if (item < 1024) return `${item} B`
+              if (item < 1024 * 1024) return `${(item / 1024).toFixed(1)} KB`
+              if (item < 1024 * 1024 * 1024)
+                return `${(item / (1024 * 1024)).toFixed(1)} MB`
+              return `${(item / (1024 * 1024 * 1024)).toFixed(1)} GB`
+            },
+            colSpan: 1,
+          },
+          {
+            dataIndex: 'sync',
+            header: 'Actions',
+            cellFormat: (item: T) => {
+              if (selectedResourceTypes?.includes(typeToResource)) {
+                return (
+                  <SyncCell
+                    item={item}
+                    type={type}
+                    toggleSyncDocument={toggleSyncDocument}
+                    isItemSyncing={isItemSyncing(item.id.toString())}
+                    lmsSynchronize={lmsSynchronize}
+                  />
+                )
+              } else return null
+            },
+            colSpan: 1,
+          },
+        ] as LMSDocumentListColumn[]
       default:
         return []
     }
@@ -357,6 +428,15 @@ export default function LMSDocumentList<
                 .toLowerCase()
                 .includes(search.toLowerCase()) ||
               (d as LMSPage).body.toLowerCase().includes(search.toLowerCase())
+            )
+          case 'File':
+            return (
+              (d as LMSFile).name
+                .toLowerCase()
+                .includes(search.toLowerCase()) ||
+              (d as LMSFile).contentType
+                .toLowerCase()
+                .includes(search.toLowerCase())
             )
           default:
             return false
@@ -413,7 +493,9 @@ export default function LMSDocumentList<
   }
 }
 
-function DocumentList<T extends LMSAssignment | LMSAnnouncement | LMSPage>({
+function DocumentList<
+  T extends LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
+>({
   documents,
   loadingLMSData,
   ncols,
@@ -490,13 +572,15 @@ function DocumentList<T extends LMSAssignment | LMSAnnouncement | LMSPage>({
   )
 }
 
-function NameCell<T extends LMSAssignment | LMSAnnouncement | LMSPage>({
+function NameCell<
+  T extends LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
+>({
   item,
   type,
   lmsSynchronize,
 }: {
   item: T
-  type: 'Assignment' | 'Announcement' | 'Page'
+  type: 'Assignment' | 'Announcement' | 'Page' | 'File'
   lmsSynchronize?: boolean
 }) {
   const isOutOfDate =
@@ -544,7 +628,9 @@ function NameCell<T extends LMSAssignment | LMSAnnouncement | LMSPage>({
   )
 }
 
-function SyncCell<T extends LMSAssignment | LMSAnnouncement | LMSPage>({
+function SyncCell<
+  T extends LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
+>({
   item,
   type,
   isItemSyncing,
@@ -552,11 +638,11 @@ function SyncCell<T extends LMSAssignment | LMSAnnouncement | LMSPage>({
   lmsSynchronize,
 }: {
   item: T
-  type: 'Assignment' | 'Announcement' | 'Page'
+  type: 'Assignment' | 'Announcement' | 'Page' | 'File'
   isItemSyncing: boolean
   toggleSyncDocument: (
     item: T,
-    type: 'Assignment' | 'Announcement' | 'Page',
+    type: 'Assignment' | 'Announcement' | 'Page' | 'File',
   ) => void
   lmsSynchronize?: boolean
 }) {

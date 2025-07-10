@@ -5,6 +5,7 @@ import {
   LMSApiResponseStatus,
   LMSAssignment,
   LMSCourseAPIResponse,
+  LMSFile,
   LMSIntegrationPlatform,
   LMSPage,
 } from '@koh/common';
@@ -70,6 +71,13 @@ export abstract class AbstractLMSAdapter {
   async getPages(): Promise<{
     status: LMSApiResponseStatus;
     pages: LMSPage[];
+  }> {
+    return null;
+  }
+
+  async getFiles(): Promise<{
+    status: LMSApiResponseStatus;
+    files: LMSFile[];
   }> {
     return null;
   }
@@ -348,6 +356,39 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     };
   }
 
+  async getFiles(): Promise<{
+    status: LMSApiResponseStatus;
+    files: LMSFile[];
+  }> {
+    const { status, data } = await this.GetPaginated(
+      `courses/${this.integration.apiCourseId}/files`,
+    );
+
+    if (status != LMSApiResponseStatus.Success) return { status, files: [] };
+
+    const files: LMSFile[] = data
+      .filter((file: any) => !file.locked && !file.hidden)
+      .map((file: any) => {
+        return {
+          id: file.id,
+          name: file.display_name || file.filename,
+          url: file.url,
+          contentType: file['content-type'] || 'application/octet-stream',
+          size: file.size || 0,
+          modified: file.modified_at ? new Date(file.modified_at) : new Date(),
+          // Parent context - Canvas files can be associated with folders but we'll set as standalone for now
+          parentType: 'standalone' as const,
+          parentId: undefined,
+          parentName: undefined,
+        } as LMSFile;
+      });
+
+    return {
+      status: LMSApiResponseStatus.Success,
+      files,
+    };
+  }
+
   getDocumentLink(documentId: number, documentType: LMSUpload): string {
     switch (documentType) {
       case LMSUpload.Announcements:
@@ -356,6 +397,8 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
         return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/assignments/${documentId}/`;
       case LMSUpload.Pages:
         return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/pages/${documentId}/`;
+      case LMSUpload.Files:
+        return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/files/${documentId}/`;
       default:
         return '';
     }

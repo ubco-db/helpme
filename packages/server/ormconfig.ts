@@ -39,6 +39,7 @@ import { LMSCourseIntegrationModel } from './src/lmsIntegration/lmsCourseIntegra
 import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';
 import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entity';
 import { LMSPageModel } from './src/lmsIntegration/lmsPage.entity';
+import { LMSFileModel } from './src/lmsIntegration/lmsFile.entity';
 import { UnreadAsyncQuestionModel } from './src/asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from './src/asyncQuestion/asyncQuestionComment.entity';
 import { ChatbotDocPdfModel } from './src/chatbot/chatbot-doc-pdf.entity';
@@ -112,6 +113,7 @@ const typeorm: DataSourceOptions = {
     UnreadAsyncQuestionModel,
     LMSAnnouncementModel,
     LMSPageModel,
+    LMSFileModel,
     ChatbotDocPdfModel,
     SuperCourseModel,
     OrganizationSettingsModel,

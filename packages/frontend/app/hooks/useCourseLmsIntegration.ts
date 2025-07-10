@@ -4,6 +4,7 @@ import {
   LMSAssignment,
   LMSCourseAPIResponse,
   LMSCourseIntegrationPartial,
+  LMSFile,
   LMSPage,
 } from '@koh/common'
 import { API } from '@/app/api'
@@ -16,6 +17,7 @@ export type CourseLmsIntegration = {
   assignments: LMSAssignment[]
   announcements: LMSAnnouncement[]
   pages: LMSPage[]
+  files: LMSFile[]
   students: string[]
   isLoading: boolean
   isLoadingIntegration: boolean
@@ -30,6 +32,7 @@ export function useCourseLmsIntegration(
   const [assignments, setAssignments] = useState<LMSAssignment[]>([])
   const [announcements, setAnnouncements] = useState<LMSAnnouncement[]>([])
   const [pages, setPages] = useState<LMSPage[]>([])
+  const [files, setFiles] = useState<LMSFile[]>([])
   const [students, setStudents] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isLoadingIntegration, setIsLoadingIntegration] =
@@ -76,6 +79,14 @@ export function useCourseLmsIntegration(
             })
             .catch(errorFx)
           await API.lmsIntegration
+            .getFiles(courseId)
+            .then((response) => {
+              if (response) {
+                setFiles(response)
+              }
+            })
+            .catch(errorFx)
+          await API.lmsIntegration
             .getStudents(courseId)
             .then((response) => {
               if (response) {
@@ -95,6 +106,7 @@ export function useCourseLmsIntegration(
     setAssignments([])
     setAnnouncements([])
     setPages([])
+    setFiles([])
     setStudents([])
     setIsLoading(true)
     setIsLoadingIntegration(true)
@@ -127,6 +139,7 @@ export function useCourseLmsIntegration(
     assignments,
     announcements,
     pages,
+    files,
     students,
     isLoading,
     isLoadingIntegration,
