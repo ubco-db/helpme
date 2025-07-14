@@ -21,6 +21,7 @@ import { RcFile } from 'antd/lib/upload'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useAsyncToaster } from '@/app/contexts/AsyncToasterContext'
+import ChatbotHelpTooltip from '../../components/ChatbotHelpTooltip'
 
 interface AddChatbotDocumentModalProps {
   courseId: number
@@ -137,7 +138,18 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
 
   return (
     <Modal
-      title="Add a new document for your chatbot to use."
+      title={
+        <div className="flex items-center gap-2">
+          <FileAddOutlined />
+          <p className="w-full md:flex">
+            Add a New Document to the Chatbot
+            <ChatbotHelpTooltip
+              forPage="add_chatbot_document"
+              className="mr-6 inline-block md:ml-auto md:block"
+            />
+          </p>
+        </div>
+      }
       open={open}
       onCancel={() => !loading && onClose()}
       closable={!loading}

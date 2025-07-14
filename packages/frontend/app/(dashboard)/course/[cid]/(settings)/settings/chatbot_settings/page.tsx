@@ -18,6 +18,7 @@ import { SourceDocument } from '@koh/common'
 import { FileAddOutlined, SettingOutlined } from '@ant-design/icons'
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
+import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip'
 
 interface ChatbotPanelProps {
   params: Promise<{ cid: string }>
@@ -218,7 +219,8 @@ export default function ChatbotSettings(
             chatbot will have access to.
           </p>
         </div>
-        <div className="flex flex-col gap-2 md:flex-row">
+        <div className="flex flex-col items-center gap-2 lg:flex-row">
+          <ChatbotHelpTooltip forPage="chatbot_settings" />
           <Button
             onClick={() => setChatbotParameterModalOpen(true)}
             icon={<SettingOutlined />}

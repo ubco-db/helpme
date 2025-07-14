@@ -6,7 +6,6 @@ import TextArea from 'antd/es/input/TextArea'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { SourceDocument } from '@koh/common'
 import { API } from '@/app/api'
-import ChunkHelpTooltip from './ChunkHelpTooltip'
 
 interface FormValues {
   documentName: string
@@ -56,7 +55,6 @@ const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
       title={
         <div className="flex items-center justify-start gap-x-3">
           <div>Edit Document Chunk</div>
-          <ChunkHelpTooltip />
         </div>
       }
       okText="Save Changes"
