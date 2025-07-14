@@ -124,7 +124,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
           if (myQuestion?.text) {
             setQueueQuestionText(myQuestion.text)
 
-            // Generate abstract using chatbot service
+            // Generating abstract using chatbot
             const data = {
               question: `Create a concise title (max 100 chars) for this question. Return ONLY the title, no explanations: ${myQuestion.text}`,
               history: [],
@@ -136,28 +136,27 @@ const ConvertQueueQToAnytimeQModal: React.FC<
             )
             let generatedAbstract = response.chatbotRepoVersion.answer.trim()
 
-            // In order to clean up the response - remove quotes, extra text, etc.
+            //  in order to clean up the response - remove quotes, extra text, etc.
             generatedAbstract = generatedAbstract
-              .replace(/^["']|["']$/g, '') // Remove surrounding quotes
-              .replace(/^Title:?\s*/i, '') // Remove "Title:" prefix
-              .replace(/^Abstract:?\s*/i, '') // Remove "Abstract:" prefix
-              .replace(/^Question:?\s*/i, '') // Remove "Question:" prefix
-              .replace(/^Here's?\s*a\s*title:?\s*/i, '') // Remove "Here's a title:" prefix
-              .replace(/^The\s*title\s*is:?\s*/i, '') // Remove "The title is:" prefix
-              .replace(/^I\s*would\s*suggest:?\s*/i, '') // Remove "I would suggest:" prefix
-              .replace(/^A\s*concise\s*title\s*would\s*be:?\s*/i, '') // Remove explanatory text
-              .replace(/^This\s*question\s*is\s*about:?\s*/i, '') // Remove "This question is about:" prefix
-              .replace(/^Based\s*on\s*the\s*question:?\s*/i, '') // Remove "Based on the question:" prefix
-              .replace(/^For\s*this\s*question:?\s*/i, '') // Remove "For this question:" prefix
+              .replace(/^["']|["']$/g, '')
+              .replace(/^Title:?\s*/i, '')
+              .replace(/^Abstract:?\s*/i, '')
+              .replace(/^Question:?\s*/i, '')
+              .replace(/^Here's?\s*a\s*title:?\s*/i, '')
+              .replace(/^The\s*title\s*is:?\s*/i, '')
+              .replace(/^I\s*would\s*suggest:?\s*/i, '')
+              .replace(/^A\s*concise\s*title\s*would\s*be:?\s*/i, '')
+              .replace(/^This\s*question\s*is\s*about:?\s*/i, '')
+              .replace(/^Based\s*on\s*the\s*question:?\s*/i, '')
+              .replace(/^For\s*this\s*question:?\s*/i, '')
               .trim()
 
-            // If the response is still too long or contains \n, fallback to first 8 words
+            // If the response is still too long or contains \n, keep the first 8 words
             if (
               generatedAbstract.length > 100 ||
               generatedAbstract.includes('\n')
             ) {
-              // Create a simple fallback title
-              const words = myQuestion.text.split(' ').slice(0, 8) // Take first 8 words
+              const words = myQuestion.text.split(' ').slice(0, 8)
               const fallbackTitle = words.join(' ')
               generatedAbstract =
                 fallbackTitle.length > 100
