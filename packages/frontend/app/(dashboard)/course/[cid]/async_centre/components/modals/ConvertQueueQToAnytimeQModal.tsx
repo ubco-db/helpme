@@ -26,7 +26,7 @@ interface FormValues {
 
 interface ConvertQueueQToAnytimeQModalProps {
   courseId: number
-  questionId: number
+  queueId: number
   open: boolean
   onCancel: () => void
   onCreateOrUpdateQuestion: () => void
@@ -34,7 +34,7 @@ interface ConvertQueueQToAnytimeQModalProps {
 
 const ConvertQueueQToAnytimeQModal: React.FC<
   ConvertQueueQToAnytimeQModalProps
-> = ({ courseId, questionId, open, onCancel, onCreateOrUpdateQuestion }) => {
+> = ({ courseId, queueId, open, onCancel, onCreateOrUpdateQuestion }) => {
   const { userInfo } = useUserInfo()
   const courseFeatures = useCourseFeatures(courseId)
   const [form] = Form.useForm()
@@ -46,7 +46,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
   const [questionAbstract, setQuestionAbstract] = useState('')
   // Get both anytime question tags and queue tags
   const [anytimeQuestionTypes] = useQuestionTypes(courseId, null)
-  const [queueQuestionTypes] = useQuestionTypes(courseId, questionId)
+  const [queueQuestionTypes] = useQuestionTypes(courseId, queueId)
 
   // anytime tags taking priority
   useEffect(() => {
@@ -117,45 +117,60 @@ const ConvertQueueQToAnytimeQModal: React.FC<
 
   useEffect(() => {
     const fetchQuestion = async () => {
-      if (questionId) {
+      if (queueId) {
         try {
-          const questions = await API.questions.index(questionId)
+          const questions = await API.questions.index(queueId)
           const myQuestion = questions.yourQuestions?.[0]
           if (myQuestion?.text) {
             setQueueQuestionText(myQuestion.text)
 
             // Generating abstract using chatbot
-            const data = {
-              question: `Create a concise title (max 100 chars) for this question. Return ONLY the title, no explanations: ${myQuestion.text}`,
-              history: [],
-              onlySaveInChatbotDB: true,
-            }
-            const response = await API.chatbot.studentsOrStaff.askQuestion(
-              courseId,
-              data,
-            )
-            let generatedAbstract = response.chatbotRepoVersion.answer.trim()
+            let generatedAbstract = ''
+            try {
+              const data = {
+                question: `Create a concise title (max 100 chars) for this question. Return ONLY the title, no explanations: ${myQuestion.text}`,
+                history: [],
+                onlySaveInChatbotDB: true,
+              }
+              const response = await API.chatbot.studentsOrStaff.askQuestion(
+                courseId,
+                data,
+              )
+              generatedAbstract = response.chatbotRepoVersion.answer.trim()
 
-            //  in order to clean up the response - remove quotes, extra text, etc.
-            generatedAbstract = generatedAbstract
-              .replace(/^["']|["']$/g, '')
-              .replace(/^Title:?\s*/i, '')
-              .replace(/^Abstract:?\s*/i, '')
-              .replace(/^Question:?\s*/i, '')
-              .replace(/^Here's?\s*a\s*title:?\s*/i, '')
-              .replace(/^The\s*title\s*is:?\s*/i, '')
-              .replace(/^I\s*would\s*suggest:?\s*/i, '')
-              .replace(/^A\s*concise\s*title\s*would\s*be:?\s*/i, '')
-              .replace(/^This\s*question\s*is\s*about:?\s*/i, '')
-              .replace(/^Based\s*on\s*the\s*question:?\s*/i, '')
-              .replace(/^For\s*this\s*question:?\s*/i, '')
-              .trim()
+              //  in order to clean up the response - remove quotes, extra text, etc.
+              generatedAbstract = generatedAbstract
+                .replace(/^["']|["']$/g, '')
+                .replace(/^Title:?\s*/i, '')
+                .replace(/^Abstract:?\s*/i, '')
+                .replace(/^Question:?\s*/i, '')
+                .replace(/^Here's?\s*a\s*title:?\s*/i, '')
+                .replace(/^The\s*title\s*is:?\s*/i, '')
+                .replace(/^I\s*would\s*suggest:?\s*/i, '')
+                .replace(/^A\s*concise\s*title\s*would\s*be:?\s*/i, '')
+                .replace(/^This\s*question\s*is\s*about:?\s*/i, '')
+                .replace(/^Based\s*on\s*the\s*question:?\s*/i, '')
+                .replace(/^For\s*this\s*question:?\s*/i, '')
+                .trim()
 
-            // If the response is still too long or contains \n, keep the first 8 words
-            if (
-              generatedAbstract.length > 100 ||
-              generatedAbstract.includes('\n')
-            ) {
+              // If the response is still too long or contains \n, keep the first 8 words
+              if (
+                generatedAbstract.length > 100 ||
+                generatedAbstract.includes('\n')
+              ) {
+                const words = myQuestion.text.split(' ').slice(0, 8)
+                const fallbackTitle = words.join(' ')
+                generatedAbstract =
+                  fallbackTitle.length > 100
+                    ? fallbackTitle.substring(0, 97) + '...'
+                    : fallbackTitle
+              }
+            } catch (chatbotError) {
+              console.warn(
+                'Chatbot service unavailable, using fallback abstract generation:',
+                chatbotError,
+              )
+
               const words = myQuestion.text.split(' ').slice(0, 8)
               const fallbackTitle = words.join(' ')
               generatedAbstract =
@@ -172,14 +187,14 @@ const ConvertQueueQToAnytimeQModal: React.FC<
             })
           }
         } catch (e) {
-          message.error('Failed to fetch queue question text.')
+          console.error('Failed to fetch queue question text:', e)
         }
       }
     }
     if (open) {
       fetchQuestion()
     }
-  }, [open, questionId, form, courseId, questionId])
+  }, [open, queueId, form, courseId, queueId])
   const getAiAnswer = async (question: string) => {
     if (!courseFeatures?.asyncCentreAIAnswers) {
       return ''
@@ -200,7 +215,8 @@ const ConvertQueueQToAnytimeQModal: React.FC<
         return 'All AI uses have been used up for today. Please try again tomorrow.'
       }
     } catch (e) {
-      return ''
+      console.warn('Chatbot service unavailable for AI answer generation:', e)
+      return 'AI service is currently unavailable. Please try again later.'
     }
   }
 
@@ -239,7 +255,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
         courseId,
       )
 
-      const questions = await API.questions.index(questionId)
+      const questions = await API.questions.index(queueId)
       const myQuestion = questions.yourQuestions?.[0]
       if (myQuestion) {
         await API.questions.update(myQuestion.id, {
@@ -252,7 +268,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
         const queueAlert = alerts.alerts?.find(
           (alert) =>
             alert.alertType === AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE &&
-            (alert.payload as any)?.queueId === questionId,
+            (alert.payload as any)?.queueId === queueId,
         )
         if (queueAlert) {
           await API.alerts.close(queueAlert.id)

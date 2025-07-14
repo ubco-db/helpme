@@ -441,7 +441,7 @@ export default function AsyncCentrePage(
         />
         <ConvertQueueQToAnytimeQModal
           courseId={courseId}
-          questionId={questionId}
+          queueId={questionId}
           open={convertQueueQModalOpen}
           onCancel={() => {
             router.replace(pathname)
@@ -450,7 +450,7 @@ export default function AsyncCentrePage(
           onCreateOrUpdateQuestion={() => {
             mutateAsyncQuestions()
             router.replace(pathname)
-            setConvertChatbotQModalOpen(false)
+            setConvertQueueQModalOpen(false)
           }}
         />
         {isStaff && (
