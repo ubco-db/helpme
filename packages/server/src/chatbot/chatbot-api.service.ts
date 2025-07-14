@@ -101,6 +101,21 @@ export class ChatbotApiService {
     });
   }
 
+  async generateAbstract(
+    question: string,
+    userToken: string, // Passing UserToken to the chatbot, but should be ignored for this endpoint.
+    courseId: number,
+  ) {
+    return this.request(
+      'POST',
+      `chatbot/${courseId}/generate-abstract`,
+      userToken,
+      {
+        question,
+      },
+    );
+  }
+
   async getModels(userToken: string) {
     return this.request('GET', `chatbot/models`, userToken);
   }
