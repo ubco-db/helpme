@@ -2,16 +2,16 @@
 
 import {
   AsyncQuestion,
+  asyncQuestionStatus,
   QuestionType,
   Role,
-  asyncQuestionStatus,
 } from '@koh/common'
 import React, {
   ReactElement,
+  use,
   useCallback,
   useEffect,
   useState,
-  use,
 } from 'react'
 import { Button, Checkbox, Popover, Segmented, Select, Tooltip } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -82,6 +82,7 @@ export default function AsyncCentrePage(
   const convertChatbotQSearchParam = searchParams.get('convertChatbotQ')
   const convertQueueQSearchParam = searchParams.get('convertQueueQ')
   const questionId = Number(searchParams.get('qid'))
+
   useEffect(() => {
     if (convertChatbotQSearchParam && messages.length > 1) {
       setConvertChatbotQModalOpen(true)

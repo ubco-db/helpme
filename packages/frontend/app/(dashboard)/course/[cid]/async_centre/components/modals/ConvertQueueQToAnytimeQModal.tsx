@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect } from 'react'
-import { Modal, Input, Form, message, Checkbox, Tooltip } from 'antd'
+import { useEffect, useState } from 'react'
+import { Checkbox, Form, Input, message, Modal, Tooltip } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../components/QuestionTagElement'
@@ -7,11 +7,10 @@ import { API } from '@/app/api'
 import { getBrightness, getErrorMessage } from '@/app/utils/generalUtils'
 import {
   AlertType,
-  ClosedQuestionStatus,
-  QuestionType,
-  QuestionTypeParams,
   asyncQuestionStatus,
+  ClosedQuestionStatus,
   nameToRGB,
+  QuestionType,
 } from '@koh/common'
 import { QuestionCircleOutlined } from '@ant-design/icons'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
@@ -115,86 +114,88 @@ const ConvertQueueQToAnytimeQModal: React.FC<
     )
   }
 
+  const fallbackGenerateAbstract = (question: string) => {
+    const words = question.split(' ').slice(0, 8)
+    const fallbackTitle = words.join(' ')
+    return fallbackTitle.length > 100
+      ? fallbackTitle.substring(0, 97) + '...'
+      : fallbackTitle
+  }
+
   useEffect(() => {
-    const fetchQuestion = async () => {
-      if (queueId) {
-        try {
-          const questions = await API.questions.index(queueId)
-          const myQuestion = questions.yourQuestions?.[0]
-          if (myQuestion?.text) {
-            setQueueQuestionText(myQuestion.text)
+    if (open) {
+      const fetchQuestion = async () => {
+        if (queueId) {
+          try {
+            const questions = await API.questions.index(queueId)
+            const myQuestion = questions.yourQuestions?.[0]
+            if (myQuestion?.text) {
+              setQueueQuestionText(myQuestion.text)
 
-            // Generating abstract using chatbot
-            let generatedAbstract = ''
-            try {
-              const data = {
-                question: `Create a concise title (max 100 chars) for this question. Return ONLY the title, no explanations: ${myQuestion.text}`,
-                history: [],
-                onlySaveInChatbotDB: true,
+              // Generating abstract using chatbot
+              let generatedAbstract = ''
+              try {
+                const response = await API.chatbot.studentsOrStaff.queryChatbot(
+                  courseId,
+                  {
+                    query: myQuestion.text,
+                    type: 'abstract',
+                  },
+                )
+
+                //  in order to clean up the response - remove quotes, extra text, etc.
+                // generatedAbstract = generatedAbstract
+                //   .replace(/^["']|["']$/g, '')
+                //   .replace(/^Title:?\s*/i, '')
+                //   .replace(/^Abstract:?\s*/i, '')
+                //   .replace(/^Question:?\s*/i, '')
+                //   .replace(/^Here's?\s*a\s*title:?\s*/i, '')
+                //   .replace(/^The\s*title\s*is:?\s*/i, '')
+                //   .replace(/^I\s*would\s*suggest:?\s*/i, '')
+                //   .replace(/^A\s*concise\s*title\s*would\s*be:?\s*/i, '')
+                //   .replace(/^This\s*question\s*is\s*about:?\s*/i, '')
+                //   .replace(/^Based\s*on\s*the\s*question:?\s*/i, '')
+                //   .replace(/^For\s*this\s*question:?\s*/i, '')
+                //   .trim()
+
+                // TODO: DELETE COMMENT; this is a simpler way to go about this:
+                const idx = response.indexOf(':')
+                generatedAbstract = response.substring(idx + 1)
+                generatedAbstract = response.replace(/^["']|["']$/g, '')
+                generatedAbstract = generatedAbstract.trim()
+
+                // If the response is still too long or contains \n, keep the first 8 words
+                if (
+                  generatedAbstract.length > 100 ||
+                  generatedAbstract.includes('\n')
+                ) {
+                  generatedAbstract =
+                    fallbackGenerateAbstract(generatedAbstract)
+                }
+              } catch (chatbotError) {
+                console.warn(
+                  'Chatbot service unavailable, using fallback abstract generation:',
+                  chatbotError,
+                )
+                generatedAbstract = fallbackGenerateAbstract(myQuestion.text)
               }
-              const response = await API.chatbot.studentsOrStaff.askQuestion(
-                courseId,
-                data,
-              )
-              generatedAbstract = response.chatbotRepoVersion.answer.trim()
 
-              //  in order to clean up the response - remove quotes, extra text, etc.
-              generatedAbstract = generatedAbstract
-                .replace(/^["']|["']$/g, '')
-                .replace(/^Title:?\s*/i, '')
-                .replace(/^Abstract:?\s*/i, '')
-                .replace(/^Question:?\s*/i, '')
-                .replace(/^Here's?\s*a\s*title:?\s*/i, '')
-                .replace(/^The\s*title\s*is:?\s*/i, '')
-                .replace(/^I\s*would\s*suggest:?\s*/i, '')
-                .replace(/^A\s*concise\s*title\s*would\s*be:?\s*/i, '')
-                .replace(/^This\s*question\s*is\s*about:?\s*/i, '')
-                .replace(/^Based\s*on\s*the\s*question:?\s*/i, '')
-                .replace(/^For\s*this\s*question:?\s*/i, '')
-                .trim()
+              setQuestionAbstract(generatedAbstract)
 
-              // If the response is still too long or contains \n, keep the first 8 words
-              if (
-                generatedAbstract.length > 100 ||
-                generatedAbstract.includes('\n')
-              ) {
-                const words = myQuestion.text.split(' ').slice(0, 8)
-                const fallbackTitle = words.join(' ')
-                generatedAbstract =
-                  fallbackTitle.length > 100
-                    ? fallbackTitle.substring(0, 97) + '...'
-                    : fallbackTitle
-              }
-            } catch (chatbotError) {
-              console.warn(
-                'Chatbot service unavailable, using fallback abstract generation:',
-                chatbotError,
-              )
-
-              const words = myQuestion.text.split(' ').slice(0, 8)
-              const fallbackTitle = words.join(' ')
-              generatedAbstract =
-                fallbackTitle.length > 100
-                  ? fallbackTitle.substring(0, 97) + '...'
-                  : fallbackTitle
+              form.setFieldsValue({
+                QuestionAbstract: generatedAbstract,
+                questionText: myQuestion.text,
+              })
             }
-
-            setQuestionAbstract(generatedAbstract)
-
-            form.setFieldsValue({
-              QuestionAbstract: generatedAbstract,
-              questionText: myQuestion.text,
-            })
+          } catch (e) {
+            console.error('Failed to fetch queue question text:', e)
           }
-        } catch (e) {
-          console.error('Failed to fetch queue question text:', e)
         }
       }
+      fetchQuestion().then()
     }
-    if (open) {
-      fetchQuestion()
-    }
-  }, [open, queueId, form, courseId, queueId])
+  }, [queueId, courseId, open, form])
+
   const getAiAnswer = async (question: string) => {
     if (!courseFeatures?.asyncCentreAIAnswers) {
       return ''

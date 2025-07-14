@@ -101,19 +101,21 @@ export class ChatbotApiService {
     });
   }
 
-  async generateAbstract(
-    question: string,
+  async queryChatbot(
+    query: string,
     userToken: string, // Passing UserToken to the chatbot, but should be ignored for this endpoint.
-    courseId: number,
-  ) {
-    return this.request(
+    type: 'default' | 'abstract' = 'default',
+  ): Promise<string> {
+    const resp: { answer: string } = await this.request(
       'POST',
-      `chatbot/${courseId}/generate-abstract`,
+      `chatbot/query`,
       userToken,
       {
-        question,
+        query,
+        type,
       },
     );
+    return resp.answer;
   }
 
   async getModels(userToken: string) {

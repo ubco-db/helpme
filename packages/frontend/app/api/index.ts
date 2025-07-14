@@ -11,6 +11,7 @@ import {
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
+  ChatbotQueryParams,
   ChatbotQuestionResponseChatbotDB,
   ChatbotQuestionResponseHelpMeDB,
   ChatbotSettings,
@@ -172,6 +173,11 @@ class APIClient {
   chatbot = {
     studentsOrStaff: {
       // these endpoints are the main endpoints that students and staff use
+      queryChatbot: async (
+        courseId: number,
+        body: ChatbotQueryParams,
+      ): Promise<string> =>
+        this.req('POST', `/api/v1/chatbot/query/${courseId}`, undefined, body),
       askQuestion: async (
         courseId: number,
         body: ChatbotAskParams,
