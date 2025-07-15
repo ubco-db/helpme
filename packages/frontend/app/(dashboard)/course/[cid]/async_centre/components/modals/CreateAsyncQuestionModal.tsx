@@ -317,26 +317,28 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
       >
         <Checkbox />
       </Form.Item>
-      {question && courseFeatures?.asyncCentreAIAnswers && (
-        <Tooltip
-          placement="topLeft"
-          title={
-            userInfo.chat_token.used >= userInfo.chat_token.max_uses
-              ? 'You are out of AI answers for today. Please try again tomorrow.'
-              : null
-          }
-        >
-          <Form.Item name="refreshAIAnswer" valuePropName="checked">
-            <Checkbox
-              disabled={
-                userInfo.chat_token.used >= userInfo.chat_token.max_uses
-              }
-            >
-              Get a new AI answer?
-            </Checkbox>
-          </Form.Item>
-        </Tooltip>
-      )}
+      {question &&
+        courseFeatures?.asyncCentreAIAnswers &&
+        question.status !== asyncQuestionStatus.HumanAnswered && (
+          <Tooltip
+            placement="topLeft"
+            title={
+              userInfo.chat_token.used >= userInfo.chat_token.max_uses
+                ? 'You are out of AI answers for today. Please try again tomorrow.'
+                : null
+            }
+          >
+            <Form.Item name="refreshAIAnswer" valuePropName="checked">
+              <Checkbox
+                disabled={
+                  userInfo.chat_token.used >= userInfo.chat_token.max_uses
+                }
+              >
+                Get a new AI answer?
+              </Checkbox>
+            </Form.Item>
+          </Tooltip>
+        )}
     </Modal>
   )
 }
