@@ -102,6 +102,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
               authorSetVisible: authorCanSetVisible ? values.setVisible : false,
               isAnonymous: values.setAnonymous,
               aiAnswerText: aiAnswer,
+              answerText: aiAnswer,
             })
             .then(() => {
               message.success('Question Updated')
