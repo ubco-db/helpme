@@ -904,38 +904,98 @@ export class LMSIntegrationService {
       }
       case LMSUpload.Files: {
         const f = item as LMSFile;
+
         prefix = `(Course File)\nName: ${f.name}${!isNaN(new Date(f.modified).valueOf()) ? `\nModified: ${new Date(f.modified).toLocaleDateString()}` : ''}`;
         name = `${f.name}`;
-
-        // Try to extract text content from the file
-        if (f.url && this.isSupportedFileType(f.contentType)) {
-          try {
-            const fileContent = await this.extractFileContent(
-              f.url,
-              f.contentType,
-              adapter,
-            );
-            documentText = `\nFile Content:\n${fileContent}`;
-          } catch (error) {
-            console.error(
-              `Failed to extract content from file ${f.name}:`,
-              error,
-            );
-            // Fallback to metadata-only approach
-            documentText = `\nFile Information:\n- File Type: ${f.contentType}\n- File Size: ${f.size} bytes\n- File Name: ${f.name}\n\nThis file is available in the course but content could not be extracted.`;
-          }
-        } else {
-          // Unsupported file type - use metadata only
-          documentText = `\nFile Information:\n- File Type: ${f.contentType}\n- File Size: ${f.size} bytes\n- File Name: ${f.name}\n\nThis file is available in the course (content extraction not supported for this file type).`;
-        }
 
         if (f.url) {
           prefix += `\nURL: ${f.url}`;
         }
+        // TODO: Add support for parent linking
         if (f.parentType && f.parentName) {
           prefix += `\nParent: ${f.parentType} - ${f.parentName}`;
         }
-        break;
+
+        if (f.url && this.isSupportedFileTypeForBuffer(f.contentType)) {
+          try {
+            const isUpdate =
+              'chatbotDocumentId' in f && f.chatbotDocumentId != undefined;
+
+            if (isUpdate) {
+              try {
+                await this.chatbotApiService.deleteDocument(
+                  f.chatbotDocumentId as string,
+                  courseId,
+                  token.token,
+                );
+              } catch (error) {
+                console.warn(
+                  `Failed to delete old LMS file document ${f.chatbotDocumentId}, proceeding with new upload:`,
+                  error,
+                );
+              }
+            }
+
+            const fileBuffer = await this.downloadFileAsBuffer(f.url, adapter);
+
+            // mock file object
+            const mockLMSFile: Express.Multer.File = {
+              buffer: fileBuffer,
+              originalname: f.name,
+              fieldname: 'file',
+              mimetype: f.contentType,
+              size: f.size,
+              encoding: '7bit',
+              destination: '',
+              filename: f.name,
+              path: '',
+              stream: null,
+            } as Express.Multer.File;
+
+            const computedDocLink = adapter.getDocumentLink(item.id, type);
+            const sourceWithPrefix = `${prefix}${computedDocLink ? `\nPage Link: ${computedDocLink}` : ''}`;
+
+            const uploadResult =
+              await this.chatbotApiService.uploadLMSFileFromBuffer(
+                mockLMSFile,
+                courseId,
+                token.token,
+                {
+                  source: sourceWithPrefix,
+                  metadata: {
+                    type: 'inserted_lms_document',
+                    apiDocId: f.id,
+                    platform: adapter.getPlatform(),
+                    parentType: f.parentType, //currently not being used
+                    parentId: f.parentId, //currently not being used
+                    parentName: f.parentName, //currently not being used
+                  },
+                  parseAsPng: false,
+                },
+              );
+
+            return {
+              id: item.id,
+              success: true,
+              documentId: uploadResult.docId,
+            } as LMSFileUploadResponse;
+          } catch (error) {
+            console.error(
+              `Failed to upload LMS file ${f.name} to chatbot:`,
+              error,
+            );
+            return {
+              id: item.id,
+              success: false,
+            } as LMSFileUploadResponse;
+          }
+        } else {
+          // Skip unsupported file types for now
+          return {
+            id: item.id,
+            success: false,
+          } as LMSFileUploadResponse;
+        }
       }
       default:
         return {
@@ -1102,22 +1162,20 @@ export class LMSIntegrationService {
     } satisfies LMSCourseIntegrationPartial;
   }
 
-  private isSupportedFileType(contentType: string): boolean {
+  private isSupportedFileTypeForBuffer(contentType: string): boolean {
     const supportedTypes = [
-      'text/plain', // .txt
-      'text/csv', // .csv
-      // Start with simple text-based files
-      // Can add PDF/DOCX extraction later if needed
+      // have to test with more file types, but these ones should be the most prevalent
+      'application/pdf', // .pdf files
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx files
     ];
     return supportedTypes.includes(contentType);
   }
 
-  private async extractFileContent(
+  private async downloadFileAsBuffer(
     url: string,
-    contentType: string,
     adapter: AbstractLMSAdapter,
-  ): Promise<string> {
-    // Download the file content
+  ): Promise<Buffer> {
+    // Download the file as a buffer using the same approach as the chatbot service
     const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${adapter['integration'].apiKey}`,
@@ -1130,13 +1188,25 @@ export class LMSIntegrationService {
       );
     }
 
-    // For text files, just return the content directly
-    if (contentType === 'text/plain' || contentType === 'text/csv') {
-      return await response.text();
-    }
+    // Use the same buffer conversion approach as the chatbot service
+    return await this.bodyToBuffer(response.body);
+  }
 
-    // For other file types, we'd need to add specific extraction logic
-    // For now, throw an error to fall back to metadata-only
-    throw new Error(`Content extraction not implemented for ${contentType}`);
+  // same as the one in the chatbot repository
+  private async bodyToBuffer(body: any): Promise<Buffer> {
+    const stream = body as ReadableStream;
+    const reader = stream.getReader();
+    const chunks: any[] = [];
+    let last: ReadableStreamReadResult<any> = {
+      value: undefined,
+      done: false,
+    };
+    while (!last.done) {
+      last = await reader.read();
+      if (last.value) {
+        chunks.push(last.value);
+      }
+    }
+    return Buffer.concat(chunks);
   }
 }
