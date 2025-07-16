@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Button,
   Checkbox,
@@ -83,14 +83,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({
           c.creator.id == userId &&
           c.isAnonymous != commentAnonymous,
       ).length,
-    [
-      commentAnonymous,
-      question.comments,
-      question,
-      regenerateCommentsFlag,
-      userId,
-    ],
+    [commentAnonymous, question, userId],
   )
+
+  useEffect(() => {
+    if (question.creator.id == userId) {
+      setCommentAnonymous(question?.isAnonymous ?? defaultAnonymousSetting)
+    }
+  }, [defaultAnonymousSetting, question, userId])
 
   const handleCommentOnPost = async (
     questionId: number,

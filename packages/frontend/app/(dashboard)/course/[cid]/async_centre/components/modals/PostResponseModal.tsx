@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Modal from 'antd/lib/modal/Modal'
 import {
   Button,
@@ -42,7 +42,8 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [staffSetVisible, setStaffSetVisible] = useState<boolean>(
-    !!question.staffSetVisible,
+    (question.staffSetVisible == null && question.authorSetVisible) ||
+      !!question.staffSetVisible,
   )
   const [visiblePopConfirmVisible, setVisiblePopConfirmVisible] =
     useState<boolean>(false)
@@ -52,6 +53,13 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
   const [hasCheckedPopconfirm, setHasCheckedPopconfirm] =
     useState<boolean>(!authorCanSetVisible)
   const [confirmPopoverOpen, setConfirmPopoverOpen] = useState(false)
+
+  useEffect(() => {
+    setStaffSetVisible(
+      (question.staffSetVisible == null && question.authorSetVisible) ||
+        !!question.staffSetVisible,
+    )
+  }, [question.authorSetVisible, question.staffSetVisible])
 
   const onFinish = async () => {
     setHasCheckedPopconfirm(false)
