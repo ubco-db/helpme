@@ -234,5 +234,16 @@ describe('Lms Integration Integrations', () => {
         );
       },
     );
+
+    it.each([Role.STUDENT, Role.TA])(
+      'should return 403 when non-professor accesses route',
+      async (courseRole) => {
+        await failedPermsCheck(
+          (id) => `/lms/${id}/sync/page/0/toggle`,
+          courseRole,
+          'POST',
+        );
+      },
+    );
   });
 });

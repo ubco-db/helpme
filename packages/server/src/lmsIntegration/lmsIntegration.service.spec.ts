@@ -5,6 +5,7 @@ import {
   LMSUpload,
 } from './lmsIntegration.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import {
   AbstractLMSAdapter,
@@ -37,6 +38,13 @@ import { FactoryService } from 'factory/factory.service';
 import { ChatbotModule } from '../chatbot/chatbot.module';
 import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 
+const mockCacheManager = {
+  get: jest.fn(),
+  set: jest.fn(),
+  del: jest.fn(),
+  reset: jest.fn(),
+};
+
 /*
 Note:
   The majority of methods in the LMSIntegrationService require external API calls.
@@ -58,6 +66,10 @@ describe('LMSIntegrationService', () => {
         LMSIntegrationService,
         LMSIntegrationAdapter,
         ChatbotApiService,
+        {
+          provide: CACHE_MANAGER,
+          useValue: mockCacheManager,
+        },
       ],
     }).compile();
 
