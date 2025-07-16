@@ -17,6 +17,7 @@ import {
   LMSResourceType,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
@@ -29,6 +30,7 @@ import * as Sentry from '@sentry/browser';
 import { ConfigService } from '@nestjs/config';
 import { convert } from 'html-to-text';
 import { ChatbotApiService } from '../chatbot/chatbot-api.service';
+import { Cache } from 'cache-manager';
 
 export enum LMSGet {
   Course,
@@ -53,6 +55,7 @@ export class LMSIntegrationService {
     private configService: ConfigService,
     @Inject(ChatbotApiService)
     private chatbotApiService: ChatbotApiService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -181,7 +184,10 @@ export class LMSIntegrationService {
     if (integration?.orgIntegration == undefined) {
       throw new HttpException(LMSApiResponseStatus.InvalidConfiguration, 404);
     }
-    return await this.integrationAdapter.getAdapter(integration);
+    return await this.integrationAdapter.getAdapter(
+      integration,
+      this.cacheManager,
+    );
   }
 
   async testConnection(
@@ -194,7 +200,10 @@ export class LMSIntegrationService {
     tempIntegration.apiCourseId = apiCourseId;
     tempIntegration.orgIntegration = orgIntegration;
 
-    const adapter = await this.integrationAdapter.getAdapter(tempIntegration);
+    const adapter = await this.integrationAdapter.getAdapter(
+      tempIntegration,
+      this.cacheManager,
+    );
     if (!adapter.isImplemented())
       throw new HttpException(
         LMSApiResponseStatus.InvalidPlatform,
