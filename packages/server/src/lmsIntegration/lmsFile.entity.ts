@@ -47,16 +47,6 @@ export class LMSFileModel extends BaseEntity {
   @Column({ type: 'boolean', default: true })
   syncEnabled: boolean;
 
-  // Parent context for linking back to assignments/announcements
-  @Column({ type: 'text', nullable: true })
-  parentType?: 'assignment' | 'announcement' | 'standalone';
-
-  @Column({ type: 'integer', nullable: true })
-  parentId?: number;
-
-  @Column({ type: 'text', nullable: true })
-  parentName?: string;
-
   @ManyToOne(
     (type) => LMSCourseIntegrationModel,
     (integration) => integration.files,

@@ -339,9 +339,6 @@ export class LMSIntegrationService {
               modified: files[idx].modified ?? found.modified,
               uploaded: found.uploaded,
               syncEnabled: found.syncEnabled,
-              parentType: found.parentType,
-              parentId: found.parentId,
-              parentName: found.parentName,
             };
           }
         }
@@ -635,9 +632,6 @@ export class LMSIntegrationService {
                 url: file.url,
                 contentType: file.contentType,
                 size: file.size,
-                parentType: file.parentType,
-                parentId: file.parentId,
-                parentName: file.parentName,
                 chatbotDocumentId: chatbotDocumentId,
                 uploaded: new Date(),
                 courseId: courseId,

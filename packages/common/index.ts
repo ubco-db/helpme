@@ -1365,10 +1365,6 @@ export type LMSFile = {
   syncEnabled?: boolean
   modified?: Date
   uploaded?: Date
-  // Parent context for linking back to assignments/announcements
-  parentType?: 'assignment' | 'announcement' | 'standalone'
-  parentId?: number
-  parentName?: string
 }
 export type LMSErrorType = {
   deleteError: "Couldn't remove pre-existing documents"

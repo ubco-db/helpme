@@ -424,10 +424,6 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
           contentType: file['content-type'] || 'application/octet-stream',
           size: file.size || 0,
           modified: file.modified_at ? new Date(file.modified_at) : new Date(),
-          // Parent context - Canvas files can be associated with folders but we'll set as standalone for now
-          parentType: 'standalone' as const,
-          parentId: undefined,
-          parentName: undefined,
         } as LMSFile;
       });
 
