@@ -1,20 +1,11 @@
 'use client'
 
 import {
-  ExclamationCircleFilled,
   FileAddOutlined,
   GithubOutlined,
   UploadOutlined,
 } from '@ant-design/icons'
-import {
-  Form,
-  Input,
-  message,
-  Modal,
-  Popconfirm,
-  Segmented,
-  Switch,
-} from 'antd'
+import { Form, Input, message, Modal, Segmented, Switch } from 'antd'
 import Dragger from 'antd/es/upload/Dragger'
 import { useState } from 'react'
 import { RcFile } from 'antd/lib/upload'
@@ -39,6 +30,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
   const [loading, setLoading] = useState(false)
   const [form] = Form.useForm()
   const [isSlideDeck, setIsSlideDeck] = useState(false)
+  const [useSemanticSplitting, setUseSemanticSplitting] = useState(false)
   const [fileList, setFileList] = useState<any[]>([])
   const { runAsyncToast } = useAsyncToaster()
 
@@ -79,6 +71,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
       const formData = new FormData()
       formData.append('file', file)
       formData.append('parseAsPng', isSlideDeck.toString())
+      formData.append('semanticSplit', useSemanticSplitting.toString())
 
       setFileList((prevFileList) =>
         prevFileList.map((f) =>
@@ -254,19 +247,45 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                   </p>
                 </Dragger>
               </Form.Item>
-              <Form.Item
-                name="isSlideDeck"
-                label="Parse document(s) as slides"
-                tooltip="By default images/graphics embedded in your uploaded files will not be detected by the chatbot. Ticking this will transform pages of the document into images and automatically generate AI detailed descriptions of said images (using a UBC-hosted AI model). This is useful for any document that isn't just text. Warning that it will take a lot longer to process."
-              >
-                <Switch
-                  defaultChecked={isSlideDeck}
-                  disabled={false}
-                  onChange={(checked) => setIsSlideDeck(checked)}
-                />
-              </Form.Item>
             </>
           )}
+          <Form.Item
+            name="isSlideDeck"
+            label="Parse document(s) as slides"
+            tooltip="By default images/graphics embedded in your uploaded files will not be detected by the chatbot. Ticking this will transform pages of the document into images and automatically generate AI detailed descriptions of said images (using a UBC-hosted AI model). This is useful for any document that isn't just text. Warning that it will take a lot longer to process."
+          >
+            <Switch
+              defaultChecked={isSlideDeck}
+              disabled={useSemanticSplitting}
+              onChange={(checked) => {
+                setIsSlideDeck(checked)
+                if (useSemanticSplitting && checked) {
+                  setUseSemanticSplitting(false)
+                }
+              }}
+            />
+          </Form.Item>
+          <Form.Item
+            name="useSemanticSplitting"
+            label={
+              <span>
+                Use semantic text splitting
+                <span className={'italic text-red-500'}>(Experimental)</span>
+              </span>
+            }
+            tooltip="Uses text embedding and a sliding window algorithm to split the document in optimal places based on 'semantic difference' between adjacent windows. This is not recommended for documents with well-defined structures such as slide decks. Warning that it will take a lot longer to process."
+          >
+            <Switch
+              defaultChecked={useSemanticSplitting}
+              disabled={isSlideDeck}
+              onChange={(checked) => {
+                setUseSemanticSplitting(checked)
+                if (isSlideDeck && checked) {
+                  setIsSlideDeck(false)
+                }
+              }}
+            />
+          </Form.Item>
         </Form>
       </>
     </Modal>

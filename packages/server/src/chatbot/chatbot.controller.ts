@@ -567,7 +567,11 @@ export class ChatbotController {
   async uploadDocument(
     @Param('courseId', ParseIntPipe) courseId: number,
     @UploadedFile() file: Express.Multer.File,
-    @Body() { parseAsPng }: { parseAsPng: boolean | string },
+    @Body()
+    {
+      parseAsPng,
+      semanticSplit,
+    }: { parseAsPng: boolean | string; semanticSplit: boolean | string },
     @User({ chat_token: true }) user: UserModel,
   ) {
     handleChatbotTokenCheck(user);
@@ -589,11 +593,8 @@ export class ChatbotController {
       }
     }
 
-    if (parseAsPng === 'true') {
-      parseAsPng = true;
-    } else {
-      parseAsPng = false;
-    }
+    parseAsPng = parseAsPng == 'true';
+    semanticSplit = semanticSplit == 'true';
 
     // if it's an image, make parseAsPng true
     if (file.mimetype.startsWith('image/')) {
@@ -687,9 +688,10 @@ export class ChatbotController {
       this.chatbotApiService.uploadDocument(
         file,
         docUrl,
-        parseAsPng,
         courseId,
         user.chat_token.token,
+        parseAsPng,
+        semanticSplit,
       ),
     ]);
 

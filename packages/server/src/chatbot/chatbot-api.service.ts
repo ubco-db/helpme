@@ -256,9 +256,10 @@ export class ChatbotApiService {
   async uploadDocument(
     file: Express.Multer.File,
     source: string,
-    parseAsPng: boolean,
     courseId: number,
     userToken: string,
+    parseAsPng = false,
+    semanticSplit = false,
   ): Promise<{ docId: string }> {
     try {
       // re-upload the file to the chatbot server while the file is still in memory here
@@ -273,7 +274,8 @@ export class ChatbotApiService {
 
       // Add the JSON data as a separate file with fieldname "source"
       formData.append('source', source);
-      formData.append('parseAsPng', String(parseAsPng));
+      formData.append('parseAsPng', String(parseAsPng ?? false));
+      formData.append('semanticSplit', String(semanticSplit ?? false));
 
       // Make sure the request method handles FormData correctly
       const url = new URL(`${this.chatbotApiUrl}/document/${courseId}/file`);
@@ -310,9 +312,17 @@ export class ChatbotApiService {
     }
   }
 
-  async uploadURLDocument(url: string, courseId: number, userToken: string) {
+  async uploadURLDocument(
+    url: string,
+    courseId: number,
+    userToken: string,
+    parseAsPng = false,
+    semanticSplit = false,
+  ) {
     return this.request('POST', `document/${courseId}/url`, userToken, {
       url,
+      parseAsPng: parseAsPng ?? false,
+      semanticSplit: semanticSplit ?? false,
     });
   }
 
