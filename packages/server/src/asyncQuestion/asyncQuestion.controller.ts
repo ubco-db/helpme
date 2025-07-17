@@ -470,16 +470,20 @@ export class asyncQuestionController {
       },
     });
 
+    const isStaff = courseRole == Role.TA || courseRole == Role.PROFESSOR;
+    const isAuthor = user.id == question.creatorId;
     const comment = await AsyncQuestionCommentModel.create({
       commentText: body.commentText,
       creator: user, // do NOT change this to userId since by putting user here it will pass the full creator when sending back the comment
       question,
       isAnonymous:
-        user.id == question.creatorId
-          ? question.isAnonymous
-          : (body.isAnonymous ??
-            courseSettings?.asyncCentreDefaultAnonymous ??
-            true),
+        isStaff && !isAuthor
+          ? false
+          : isAuthor
+            ? question.isAnonymous
+            : (body.isAnonymous ??
+              courseSettings?.asyncCentreDefaultAnonymous ??
+              true),
       createdAt: new Date(),
     }).save();
 
@@ -566,6 +570,7 @@ export class asyncQuestionController {
     @Param('commentId', ParseIntPipe) commentId: number,
     @Body() body: AsyncQuestionCommentParams,
     @UserId() userId: number,
+    @CourseRole() courseRole: Role,
     @Res() res: Response,
   ): Promise<Response> {
     const question = await AsyncQuestionModel.findOne({
@@ -604,12 +609,17 @@ export class asyncQuestionController {
     }
 
     comment.commentText = body.commentText;
+
+    const isStaff = courseRole == Role.TA || courseRole == Role.PROFESSOR;
+    const isAuthor = userId == question.creatorId;
     comment.isAnonymous =
-      userId == question.creatorId
-        ? question.isAnonymous
-        : (body.isAnonymous ??
-          courseSettings?.asyncCentreDefaultAnonymous ??
-          true);
+      isStaff && !isAuthor
+        ? false
+        : isAuthor
+          ? question.isAnonymous
+          : (body.isAnonymous ??
+            courseSettings?.asyncCentreDefaultAnonymous ??
+            true);
 
     const otherComments = await AsyncQuestionCommentModel.find({
       where: {

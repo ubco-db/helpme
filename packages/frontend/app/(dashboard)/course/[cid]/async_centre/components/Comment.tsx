@@ -8,6 +8,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   MoreOutlined,
+  StopOutlined,
   WarningOutlined,
 } from '@ant-design/icons'
 import {
@@ -19,7 +20,7 @@ import {
   Popconfirm,
   Tooltip,
 } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { API } from '@/app/api'
 import { getAnonAnimal, getAvatarTooltip } from '../utils/commonAsyncFunctions'
 import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
@@ -66,9 +67,6 @@ const Comment: React.FC<CommentProps> = ({
   // Form state that stores the edited comment content
   const [newContent, setNewContent] = useState(content)
   const [editLoading, setEditLoading] = useState(false)
-  // Form state that allows the user to specify whether or not they would like their comment to be anonymous
-  const [newAnonymous, setNewAnonymous] = useState<boolean>(isAnonymous)
-  useEffect(() => setNewAnonymous(isAnonymous), [isAnonymous])
 
   const [isUserShown, setIsUserShown] = useState(
     (IAmStaff && showStudents) || !isAnonymous,
@@ -80,6 +78,27 @@ const Comment: React.FC<CommentProps> = ({
     : author.isAuthor
       ? 'author'
       : author.courseRole
+
+  const IAmAuthor = useMemo(() => author.isAuthor && isSelf, [author, isSelf])
+  // Form state that allows the user to specify whether or not they would like their comment to be anonymous
+  const [newAnonymous, setNewAnonymous] = useState<boolean>(
+    IAmStaff && !IAmAuthor
+      ? false
+      : IAmAuthor
+        ? questionIsAnonymous
+        : isAnonymous,
+  )
+  useEffect(
+    () =>
+      setNewAnonymous(
+        IAmStaff && !IAmAuthor
+          ? false
+          : IAmAuthor
+            ? questionIsAnonymous
+            : isAnonymous,
+      ),
+    [IAmStaff, IAmAuthor, isAnonymous, questionIsAnonymous],
+  )
 
   useEffect(() => {
     setIsUserShown((IAmStaff && showStudents) || !isAnonymous)
@@ -397,17 +416,39 @@ const Comment: React.FC<CommentProps> = ({
           {!author.isAuthor && (
             <span className={'mb-4 ml-5 inline-flex flex-row gap-1'}>
               <Tooltip
-                title={`Set whether you will appear anonymous to other students. Staff will still see who you are.\n 
-                                ${newAnonymous != isAnonymous && numOtherComments > 0 ? `Previous comments have a different anonymity setting. ${numOtherComments} comments will be made ${newAnonymous ? 'anonymous' : 'non-anonymous'}!` : 'Anonymity setting is the same as any previous comments.'}`}
+                title={
+                  IAmStaff
+                    ? 'You cannot post anonymous comments as a staff member.'
+                    : `Set whether you will appear anonymous to other students. Staff will still see who you are.\n${newAnonymous != isAnonymous && numOtherComments > 0 ? `Previous comments have a different anonymity setting. ${numOtherComments} comments will be made ${newAnonymous ? 'anonymous' : 'non-anonymous'}!` : 'Anonymity setting is the same as any previous comments.'}`
+                }
               >
                 <Checkbox
                   checked={newAnonymous}
+                  disabled={IAmStaff}
                   onChange={() => setNewAnonymous(!newAnonymous)}
                 >
                   <div className={'inline-flex flex-row gap-1'}>
-                    <div>Post Anonymously</div>
+                    <div
+                      className={cn(
+                        IAmStaff ? 'text-decoration-line text-gray-500' : '',
+                        'inline-flex md:hidden',
+                      )}
+                    >
+                      Anonymous
+                    </div>
+                    <div
+                      className={cn(
+                        IAmStaff ? 'text-decoration-line text-gray-500' : '',
+                        'hidden md:inline-flex',
+                      )}
+                    >
+                      Post Anonymously
+                    </div>
                     <div className={'ml-1'}>
-                      {newAnonymous != isAnonymous && numOtherComments > 0 ? (
+                      {IAmStaff ? (
+                        <StopOutlined className="text-gray-500" />
+                      ) : newAnonymous != isAnonymous &&
+                        numOtherComments > 0 ? (
                         <WarningOutlined className="animate-pulse text-lg text-red-500 hover:text-red-800" />
                       ) : (
                         <CheckCircleOutlined

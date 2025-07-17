@@ -11,12 +11,16 @@ import {
 import Comment from './Comment'
 import moment from 'moment'
 import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { AsyncQuestion, AsyncQuestionComment, Role } from '@koh/common'
 import { CommentProps } from '../utils/types'
 import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
 import { Action } from './AsyncQuestionCardUIReducer'
-import { CheckCircleOutlined, WarningOutlined } from '@ant-design/icons'
+import {
+  CheckCircleOutlined,
+  StopOutlined,
+  WarningOutlined,
+} from '@ant-design/icons'
 
 const { TextArea } = Input
 
@@ -42,9 +46,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   defaultAnonymousSetting,
 }) => {
   const [commentInputValue, setCommentInputValue] = useState('')
-  const [commentAnonymous, setCommentAnonymous] = useState<boolean>(
-    defaultAnonymousSetting,
-  )
   const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
   const [postCommentCancelPopoverOpen, setPostCommentCancelPopoverOpen] =
     useState(false)
@@ -52,6 +53,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   const [regenerateCommentsFlag, regenerateComments] = useState(false)
   const isStaff =
     userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
+
+  const [commentAnonymous, setCommentAnonymous] = useState<boolean>(
+    isStaff && question.creator.id != userId
+      ? false
+      : question.creator.id == userId
+        ? (question.isAnonymous ?? defaultAnonymousSetting)
+        : defaultAnonymousSetting,
+  )
 
   const comments = useMemo(() => {
     return generateCommentProps(
@@ -102,7 +111,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       .comment(questionId, {
         commentText,
         isAnonymous:
-          question.creatorId === userId ? question.isAnonymous : isAnonymous,
+          isStaff && question.creator.id != userId
+            ? false
+            : question.creator.id == userId
+              ? (question.isAnonymous ?? defaultAnonymousSetting)
+              : isAnonymous,
       })
       .then((comments) => {
         dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
@@ -247,7 +260,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                     await handleCommentOnPost(
                       question.id,
                       commentInputValue,
-                      commentAnonymous,
+                      isStaff && question.creator.id != userId
+                        ? false
+                        : question.creator.id == userId
+                          ? (question.isAnonymous ?? defaultAnonymousSetting)
+                          : commentAnonymous,
                     )
                     dispatchUIStateChange({
                       type: 'SET_IS_POSTING_COMMENT',
@@ -280,7 +297,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                     await handleCommentOnPost(
                       question.id,
                       commentInputValue,
-                      commentAnonymous,
+                      isStaff && question.creator.id != userId
+                        ? false
+                        : question.creator.id == userId
+                          ? (question.isAnonymous ?? defaultAnonymousSetting)
+                          : commentAnonymous,
                     )
                     dispatchUIStateChange({
                       type: 'SET_IS_POSTING_COMMENT',
@@ -297,17 +318,38 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             {question.creatorId !== userId && (
               <span className={'mb-4 ml-5 inline-flex flex-row gap-1'}>
                 <Tooltip
-                  title={`Set whether you will appear anonymous to other students. Staff will still see who you are.\n 
-                                ${anonymityOverwriteCount > 0 ? `Previous comments have a different anonymity setting. ${anonymityOverwriteCount} comments will be made ${commentAnonymous ? 'anonymous' : 'non-anonymous'}!` : 'Anonymity setting is the same as any previous comments.'}`}
+                  title={
+                    isStaff
+                      ? 'You cannot post anonymous comments as a staff member.'
+                      : `Set whether you will appear anonymous to other students. Staff will still see who you are.\n${anonymityOverwriteCount > 0 ? `Previous comments have a different anonymity setting. ${anonymityOverwriteCount} comments will be made ${commentAnonymous ? 'anonymous' : 'non-anonymous'}!` : 'Anonymity setting is the same as any previous comments.'}`
+                  }
                 >
                   <Checkbox
                     checked={commentAnonymous}
+                    disabled={isStaff}
                     onChange={() => setCommentAnonymous(!commentAnonymous)}
                   >
                     <div className={'inline-flex flex-row gap-1'}>
-                      <div>Post Anonymously</div>
+                      <div
+                        className={cn(
+                          isStaff ? 'text-gray-500 line-through' : '',
+                          'inline-flex md:hidden',
+                        )}
+                      >
+                        Anonymous
+                      </div>
+                      <div
+                        className={cn(
+                          isStaff ? 'text-gray-500 line-through' : '',
+                          'hidden md:inline-flex',
+                        )}
+                      >
+                        Post Anonymously
+                      </div>
                       <div className={'ml-1'}>
-                        {anonymityOverwriteCount > 0 ? (
+                        {isStaff ? (
+                          <StopOutlined className="text-gray-500" />
+                        ) : anonymityOverwriteCount > 0 ? (
                           <WarningOutlined className="animate-pulse text-lg text-red-500 hover:text-red-800" />
                         ) : (
                           <CheckCircleOutlined
@@ -363,7 +405,12 @@ function generateCommentProps(
       onEditSuccess: (newCommentText, newCommentAnonymous) => {
         // update the comment content
         comment.commentText = newCommentText
-        comment.isAnonymous = newCommentAnonymous
+        comment.isAnonymous =
+          IAmStaff && !comment.creator.isAuthor
+            ? false
+            : comment.creator.isAuthor
+              ? questionIsAnonymous
+              : newCommentAnonymous
         otherUserComments.forEach((c) => {
           c.isAnonymous = comment.isAnonymous
         })

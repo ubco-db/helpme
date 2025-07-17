@@ -3,6 +3,7 @@ import Modal from 'antd/lib/modal/Modal'
 import {
   Button,
   Checkbox,
+  Divider,
   Form,
   Input,
   message,
@@ -13,9 +14,14 @@ import {
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
-import { DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons'
+import {
+  DeleteOutlined,
+  EditOutlined,
+  QuestionCircleOutlined,
+} from '@ant-design/icons'
 import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 interface FormValues {
   answerText: string
@@ -29,6 +35,7 @@ interface PostResponseModalProps {
   onPostResponse: () => void
   question: AsyncQuestion
   courseId: number
+  setCreateAsyncQuestionModalOpen: (val: boolean) => void
 }
 
 const PostResponseModal: React.FC<PostResponseModalProps> = ({
@@ -37,7 +44,9 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
   onCancel,
   onPostResponse,
   courseId,
+  setCreateAsyncQuestionModalOpen,
 }) => {
+  const { userInfo } = useUserInfo()
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -124,46 +133,71 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
       onCancel={onCancel}
       // display delete button for mobile in footer
       footer={(_, { OkBtn, CancelBtn }) => (
-        <div className="flex justify-between md:justify-end">
-          <Popconfirm
-            className="inline-flex md:hidden"
-            title="Are you sure you want to delete the question?"
-            okText="Yes"
-            cancelText="No"
-            getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
-            okButtonProps={{ loading: deleteLoading }}
-            onConfirm={async () => {
-              setDeleteLoading(true)
-              await deleteAsyncQuestion(question.id, true, onPostResponse)
-              setDeleteLoading(false)
-            }}
-          >
-            <Button danger type="primary" icon={<DeleteOutlined />}>
-              {' '}
-              Delete Question{' '}
-            </Button>
-          </Popconfirm>
-          <div className="flex gap-2">
-            <CancelBtn />
-            <OkBtn />
-            <Popconfirm
-              className={'max-w-32 md:max-w-48'}
-              title="Are you sure you want to override visibility?"
-              description={
-                question.authorSetVisible
-                  ? 'The student who created this question wanted it to be visible to other students.'
-                  : 'The student who created this question did not want for it to be visible to other students.'
-              }
-              open={confirmPopoverOpen}
-              arrow={false}
-              okText="Yes"
-              cancelText="No"
-              onConfirm={() => {
-                onFinish().then()
-                setConfirmPopoverOpen(false)
-              }}
-              onCancel={() => setConfirmPopoverOpen(false)}
-            ></Popconfirm>
+        <div className={'flex flex-col gap-1'}>
+          {question.creator.id == userInfo.id && (
+            <div className={'flex flex-col gap-1 md:hidden'}>
+              <Divider className={'text-gray-500'}>Actions</Divider>
+              <div className={'flex flex-row justify-between gap-1'}>
+                <DeleteButton
+                  question={question}
+                  deleteLoading={deleteLoading}
+                  setDeleteLoading={setDeleteLoading}
+                  deleteAsyncQuestion={deleteAsyncQuestion}
+                  onPostResponse={onPostResponse}
+                />
+                {question.creator.id == userInfo.id && (
+                  <Button
+                    className="inline-flex flex-auto md:hidden"
+                    type="primary"
+                    icon={<EditOutlined />}
+                    onClick={() => setCreateAsyncQuestionModalOpen(true)}
+                  >
+                    {' '}
+                    Edit
+                  </Button>
+                )}
+              </div>
+              <Divider className={'text-gray-500'} orientation={'right'}>
+                Post Response
+              </Divider>
+            </div>
+          )}
+          <div className={'flex justify-between gap-2'}>
+            {question.creator.id != userInfo.id ? (
+              <div className={'w-min'}>
+                <DeleteButton
+                  question={question}
+                  deleteLoading={deleteLoading}
+                  setDeleteLoading={setDeleteLoading}
+                  deleteAsyncQuestion={deleteAsyncQuestion}
+                  onPostResponse={onPostResponse}
+                />
+              </div>
+            ) : (
+              <div></div>
+            )}
+            <div className="flex justify-end gap-2">
+              <CancelBtn />
+              <OkBtn />
+              <Popconfirm
+                className={'max-w-32 md:max-w-48'}
+                title="Are you sure you want to override visibility?"
+                description={
+                  question.authorSetVisible
+                    ? 'The student who created this question wanted it to be visible to other students.'
+                    : 'The student who created this question did not want for it to be visible to other students.'
+                }
+                open={confirmPopoverOpen}
+                arrow={false}
+                okText="Yes"
+                cancelText="No"
+                onConfirm={() => {
+                  onFinish().then()
+                  setConfirmPopoverOpen(false)
+                }}
+                onCancel={() => setConfirmPopoverOpen(false)}
+              ></Popconfirm>
+            </div>
           </div>
         </div>
       )}
@@ -258,3 +292,44 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
 }
 
 export default PostResponseModal
+
+type DeleteButtonProps = {
+  question: AsyncQuestion
+  deleteLoading: boolean
+  setDeleteLoading: (val: boolean) => void
+  deleteAsyncQuestion: (
+    id: number,
+    isStaff: boolean,
+    successFunction: () => void,
+  ) => Promise<void>
+  onPostResponse: () => void
+}
+
+const DeleteButton: React.FC<DeleteButtonProps> = ({
+  question,
+  deleteLoading,
+  setDeleteLoading,
+  deleteAsyncQuestion,
+  onPostResponse,
+}) => {
+  return (
+    <Popconfirm
+      className={'inline-flex flex-auto md:hidden'}
+      title="Are you sure you want to delete the question?"
+      okText="Yes"
+      cancelText="No"
+      getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
+      okButtonProps={{ loading: deleteLoading }}
+      onConfirm={async () => {
+        setDeleteLoading(true)
+        await deleteAsyncQuestion(question.id, true, onPostResponse)
+        setDeleteLoading(false)
+      }}
+    >
+      <Button danger type="primary" icon={<DeleteOutlined />}>
+        {' '}
+        Delete
+      </Button>
+    </Popconfirm>
+  )
+}
