@@ -17,10 +17,12 @@ import {
 import {
   ExclamationCircleOutlined,
   InfoCircleOutlined,
+  SettingOutlined,
 } from '@ant-design/icons'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { ChatbotSettingsMetadata } from '@koh/common'
+import ChatbotHelpTooltip from '../../components/ChatbotHelpTooltip'
 
 interface ChatbotSettingsModalProps {
   open: boolean
@@ -244,7 +246,18 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
 
   return (
     <Modal
-      title="Chatbot Settings"
+      title={
+        <div className="flex items-center gap-2">
+          <SettingOutlined />
+          <p className="w-full md:flex">
+            Chatbot Settings
+            <ChatbotHelpTooltip
+              forPage="chatbot_settings_modal"
+              className="mr-6 inline-block md:ml-auto md:block"
+            />
+          </p>
+        </div>
+      }
       open={open}
       onCancel={onClose}
       footer={null}
@@ -253,7 +266,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         <Form.Item
           name="modelName"
           label={
-            <Tooltip title="Select the base large language model you want to use for the chatbot.">
+            <Tooltip title="Set the base large language model (LLM) you want to use for the chatbot. Any recommended models run entirely on UBC hardware and are safe for student data">
               Model <InfoCircleOutlined />
             </Tooltip>
           }
@@ -268,7 +281,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         <Form.Item
           name="prompt"
           label={
-            <Tooltip title="Input the default prompt that the model will use to initiate conversations.">
+            <Tooltip title="Set the prompt that is attached with any chatbot question. You can specify what the course is, what the goals of your course are, how you want the chatbot to answer questions, etc.">
               Prompt <InfoCircleOutlined />
             </Tooltip>
           }

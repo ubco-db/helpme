@@ -1,3 +1,17 @@
+## Version 1.5.2 - Chatbot Configuration Tutorial
+
+*July 14th, 2025*
+
+#### Improvements
+
+- Created a Chatbot Configuration Tutorial, which you can view here: [https://youtu.be/Y8v8HfEpkqo](https://youtu.be/Y8v8HfEpkqo)
+- Updated and added new Help tooltips on the chatbot settings pages with links to the video at various timestamps 
+- Freshened up the landing page with a better description of the site
+- Adjusted the search on Chatbot Knowledge Base page to allow for searching of both chunk name and content (previously it just searched content)
+- Adjusted the search on Edit Chatbot Questions page to allow for searching of both answers and questions (previously it just searched questions)
+
+***
+
 ## Version 1.5.1 
 
 *July 8th, 2025*

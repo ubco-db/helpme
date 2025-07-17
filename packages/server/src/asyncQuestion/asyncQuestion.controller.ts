@@ -173,6 +173,10 @@ export class asyncQuestionController {
         newQuestion,
       );
 
+      if (body.status === asyncQuestionStatus.AIAnsweredNeedsAttention) {
+        await this.asyncQuestionService.sendNeedsAttentionEmail(question);
+      }
+
       res.status(HttpStatus.CREATED).send(newQuestion);
       return;
     } catch (err) {

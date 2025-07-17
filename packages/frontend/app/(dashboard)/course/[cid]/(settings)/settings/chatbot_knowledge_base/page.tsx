@@ -18,7 +18,7 @@ import ExpandableText from '@/app/components/ExpandableText'
 import EditDocumentChunkModal from './components/EditChatbotDocumentChunkModal'
 import { AddDocumentChunkParams, SourceDocument } from '@koh/common'
 import { API } from '@/app/api'
-import ChunkHelpTooltip from './components/ChunkHelpTooltip'
+import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip'
 
 interface FormValues {
   content: string
@@ -122,13 +122,18 @@ export default function ChatbotDocuments(
             prefetch={false}
             rel="noopener noreferrer"
           >
-            {text}
+            <Highlighter
+              highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+              searchWords={[search]}
+              autoEscape
+              textToHighlight={text ? text.toString() : ''}
+            />
           </Link>
         </ExpandableText>
       ),
     },
     {
-      title: 'Document Content',
+      title: 'Chunk Content',
       dataIndex: ['pageContent'],
       key: 'pageContent',
       render: (text: string) => (
@@ -206,10 +211,13 @@ export default function ChatbotDocuments(
     setSearch(e.target.value)
     const searchTerm = e.target.value.toLowerCase()
     const filtered = documents.filter((doc) => {
-      const isNameMatch = doc.pageContent
+      const isNameMatch = doc.metadata?.name
+        ? doc.metadata.name.toLowerCase().includes(searchTerm)
+        : false
+      const isContentMatch = doc.pageContent
         ? doc.pageContent.toLowerCase().includes(searchTerm)
         : false
-      return isNameMatch
+      return isNameMatch || isContentMatch
     })
 
     setFilteredDocuments(filtered)
@@ -226,14 +234,14 @@ export default function ChatbotDocuments(
             These chunks are what the chatbot uses to answer questions.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-y-2">
+        <div className="flex flex-col items-center gap-2 md:flex-row">
+          <ChatbotHelpTooltip forPage="chatbot_knowledge_base" />
           <Button
             type={addDocChunkPopupVisible ? 'default' : 'primary'}
             onClick={() => setAddDocChunkPopupVisible(!addDocChunkPopupVisible)}
           >
             {addDocChunkPopupVisible ? 'Close Add New Chunk' : 'Add New Chunk'}
           </Button>
-          <ChunkHelpTooltip />
         </div>
       </div>
       {addDocChunkPopupVisible && (
@@ -241,7 +249,6 @@ export default function ChatbotDocuments(
           <Form form={form} onFinish={addDocument}>
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">Add New Chunk</h2>
-              <ChunkHelpTooltip />
             </div>
             <div className="mt-4">
               <Form.Item
@@ -311,7 +318,7 @@ export default function ChatbotDocuments(
       )}
       <hr className="my-5 w-full"></hr>
       <Input
-        placeholder={'Search document content...'}
+        placeholder={'Search chunk name or content...'}
         value={search}
         onChange={handleSearch}
         onPressEnter={fetchDocuments}
