@@ -911,10 +911,6 @@ export class LMSIntegrationService {
         if (f.url) {
           prefix += `\nURL: ${f.url}`;
         }
-        // TODO: Add support for parent linking
-        if (f.parentType && f.parentName) {
-          prefix += `\nParent: ${f.parentType} - ${f.parentName}`;
-        }
 
         if (f.url && this.isSupportedFileTypeForBuffer(f.contentType)) {
           try {
@@ -966,9 +962,6 @@ export class LMSIntegrationService {
                     type: 'inserted_lms_document',
                     apiDocId: f.id,
                     platform: adapter.getPlatform(),
-                    parentType: f.parentType, //currently not being used
-                    parentId: f.parentId, //currently not being used
-                    parentName: f.parentName, //currently not being used
                   },
                   parseAsPng: false,
                 },

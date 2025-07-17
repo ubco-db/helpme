@@ -337,7 +337,7 @@ export class ChatbotApiService {
       );
 
       if (options.source) {
-        formData.append('source', options.source);
+        formData.append('prefix', options.source);
       }
       if (options.metadata) {
         formData.append('metadata', JSON.stringify(options.metadata));
