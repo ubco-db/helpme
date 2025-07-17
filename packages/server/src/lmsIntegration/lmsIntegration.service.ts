@@ -908,15 +908,15 @@ export class LMSIntegrationService {
       case LMSUpload.Files: {
         const f = item as LMSFile;
 
-        prefix = `(Course File)\nName: ${f.name}${!isNaN(new Date(f.modified).valueOf()) ? `\nModified: ${new Date(f.modified).toLocaleDateString()}` : ''}`;
-        name = `${f.name}`;
-
-        if (f.url) {
-          prefix += `\nURL: ${f.url}`;
-        }
-
         if (f.url && this.isSupportedFileTypeForBuffer(f.contentType)) {
           try {
+            prefix = `(Course File)\nName: ${f.name}${!isNaN(new Date(f.modified).valueOf()) ? `\nModified: ${new Date(f.modified).toLocaleDateString()}` : ''}`;
+            name = `${f.name}`;
+
+            if (f.url) {
+              prefix += `\nURL: ${f.url}`;
+            }
+
             const isUpdate =
               'chatbotDocumentId' in f && f.chatbotDocumentId != undefined;
 
