@@ -463,13 +463,6 @@ export class asyncQuestionController {
       where: { courseId: question.courseId },
     });
 
-    const otherComments = await AsyncQuestionCommentModel.find({
-      where: {
-        creatorId: user.id,
-        questionId: qid,
-      },
-    });
-
     const isStaff = courseRole == Role.TA || courseRole == Role.PROFESSOR;
     const isAuthor = user.id == question.creatorId;
     const comment = await AsyncQuestionCommentModel.create({
@@ -487,10 +480,30 @@ export class asyncQuestionController {
       createdAt: new Date(),
     }).save();
 
-    for (const other of otherComments) {
-      other.isAnonymous = comment.isAnonymous;
-      await other.save();
+    const otherComments = await AsyncQuestionCommentModel.find({
+      where: {
+        creatorId: user.id,
+        questionId: qid,
+      },
+    });
+
+    if (
+      otherComments.length > 0 &&
+      otherComments[0].isAnonymous != comment.isAnonymous
+    ) {
+      await AsyncQuestionCommentModel.createQueryBuilder()
+        .update()
+        .set({
+          isAnonymous: comment.isAnonymous,
+        })
+        .where({
+          creatorId: user.id,
+          questionId: qid,
+        })
+        .execute();
     }
+
+    otherComments.forEach((oc) => (oc.isAnonymous = comment.isAnonymous));
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
       where: { id: qid },
@@ -612,6 +625,7 @@ export class asyncQuestionController {
 
     const isStaff = courseRole == Role.TA || courseRole == Role.PROFESSOR;
     const isAuthor = userId == question.creatorId;
+    const originalAnonymous = comment.isAnonymous;
     comment.isAnonymous =
       isStaff && !isAuthor
         ? false
@@ -621,15 +635,17 @@ export class asyncQuestionController {
             courseSettings?.asyncCentreDefaultAnonymous ??
             true);
 
-    const otherComments = await AsyncQuestionCommentModel.find({
-      where: {
-        creatorId: userId,
-        questionId: qid,
-      },
-    });
-    for (const other of otherComments) {
-      other.isAnonymous = comment.isAnonymous;
-      await other.save();
+    if (originalAnonymous != comment.isAnonymous) {
+      await AsyncQuestionCommentModel.createQueryBuilder()
+        .update()
+        .set({
+          isAnonymous: comment.isAnonymous,
+        })
+        .where({
+          creatorId: userId,
+          questionId: qid,
+        })
+        .execute();
     }
     await comment.save();
 
@@ -649,6 +665,13 @@ export class asyncQuestionController {
       `c:${question.courseId}:aq`,
       updatedQuestion,
     );
+
+    const otherComments = await AsyncQuestionCommentModel.find({
+      where: {
+        creatorId: userId,
+        questionId: qid,
+      },
+    });
 
     res.status(HttpStatus.OK).send([comment, otherComments]);
   }
