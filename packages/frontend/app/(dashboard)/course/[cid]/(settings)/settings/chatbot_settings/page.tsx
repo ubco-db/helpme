@@ -1,6 +1,14 @@
 'use client'
 
-import { Button, Input, message, Pagination, Progress, Table } from 'antd'
+import {
+  Alert,
+  Button,
+  Input,
+  message,
+  Pagination,
+  Progress,
+  Table,
+} from 'antd'
 import {
   ReactElement,
   use,
@@ -217,6 +225,11 @@ export default function ChatbotSettings(
             Configure the chatbot&apos;s parameters and documents that your
             chatbot will have access to.
           </p>
+          <Alert
+            className="max-w-[700px]"
+            message="Warning: As of July 15th-16th, an issue occurred where chatbot documents have disappeared. We have fixed this, but unfortunately had to load a backup from the 15th for the documents. Any uploaded documents during those two days will need to be re-uploaded, and we sincerely apologize for any inconvenience this may cause."
+            type="warning"
+          />
         </div>
         <div className="flex flex-col gap-2 md:flex-row">
           <Button
