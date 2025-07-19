@@ -26,6 +26,7 @@ import {
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
+  ChatbotQueryParams,
   ChatbotQuestionResponseChatbotDB,
   ChatbotQuestionResponseHelpMeDB,
   ChatbotSettings,
@@ -62,6 +63,23 @@ export class ChatbotController {
   //
   // Endpoints for both students and staff
   //
+
+  @Post('query/:courseId')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+  async queryChatbot(
+    @Body() { query, type }: ChatbotQueryParams,
+    @User({ chat_token: true }) user: UserModel,
+  ) {
+    handleChatbotTokenCheck(user);
+
+    return await this.chatbotApiService.queryChatbot(
+      query,
+      user.chat_token.token,
+      type,
+    );
+  }
+
   @Post('ask/:courseId')
   @UseGuards(CourseRolesBypassHelpMeCourseGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
