@@ -1355,6 +1355,17 @@ export type LMSPage = {
   modified?: Date
   uploaded?: Date
 }
+
+export type LMSFile = {
+  id: number
+  name: string
+  url: string
+  contentType: string
+  size: number
+  syncEnabled?: boolean
+  modified?: Date
+  uploaded?: Date
+}
 export type LMSErrorType = {
   deleteError: "Couldn't remove pre-existing documents"
 }
@@ -1380,6 +1391,7 @@ export enum LMSResourceType {
   ASSIGNMENTS = 'assignments',
   ANNOUNCEMENTS = 'announcements',
   PAGES = 'pages',
+  FILES = 'files',
 }
 
 export interface CourseResponse {

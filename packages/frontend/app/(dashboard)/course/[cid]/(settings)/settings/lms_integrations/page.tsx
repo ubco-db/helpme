@@ -22,6 +22,7 @@ import {
   LMSAnnouncement,
   LMSApiResponseStatus,
   LMSAssignment,
+  LMSFile,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
@@ -49,6 +50,7 @@ export default function CourseLMSIntegrationPage(props: {
     announcements,
     students,
     pages,
+    files,
     isLoading,
     isLoadingIntegration,
   } = useCourseLmsIntegration(courseId, updateFlag)
@@ -249,22 +251,22 @@ export default function CourseLMSIntegrationPage(props: {
 
   const outOfDateDocumentsCount = useMemo(
     () =>
-      [...assignments, ...announcements, ...pages].filter((a) => {
+      [...assignments, ...announcements, ...pages, ...files].filter((a) => {
         return (
           a.uploaded &&
           a.modified &&
           new Date(a.uploaded).getTime() < new Date(a.modified).getTime()
         )
       }).length,
-    [announcements, assignments, pages],
+    [announcements, assignments, pages, files],
   )
 
   const savedDocumentsCount = useMemo(
     () =>
-      [...assignments, ...announcements, ...pages].filter(
+      [...assignments, ...announcements, ...pages, ...files].filter(
         (a) => a.uploaded != undefined,
       ).length,
-    [announcements, assignments, pages],
+    [announcements, assignments, pages, files],
   )
 
   const ableToSync = useMemo(
@@ -276,8 +278,9 @@ export default function CourseLMSIntegrationPage(props: {
       ),
       ...announcements,
       ...pages,
+      ...files,
     ],
-    [announcements, assignments, pages],
+    [announcements, assignments, pages, files],
   )
 
   const unableToSync = useMemo(
@@ -289,8 +292,9 @@ export default function CourseLMSIntegrationPage(props: {
       ),
       ...announcements.filter((a) => !a),
       ...pages.filter((a) => !a),
+      ...files.filter((a) => !a),
     ],
-    [assignments, announcements, pages],
+    [assignments, announcements, pages, files],
   )
 
   const failedToSync = useMemo(
@@ -426,6 +430,23 @@ export default function CourseLMSIntegrationPage(props: {
             courseId={courseId}
             type={'Page'}
             documents={pages}
+            loadingLMSData={isLoading}
+            lmsSynchronize={integration.lmsSynchronize}
+            onUpdateCallback={() => setUpdateFlag(!updateFlag)}
+            selectedResourceTypes={integration.selectedResourceTypes}
+          />
+        ),
+      })
+    }
+    if (files.length > 0) {
+      tabItems.push({
+        key: 'files',
+        label: 'Course Files',
+        children: (
+          <LMSDocumentList<LMSFile>
+            courseId={courseId}
+            type={'File'}
+            documents={files}
             loadingLMSData={isLoading}
             lmsSynchronize={integration.lmsSynchronize}
             onUpdateCallback={() => setUpdateFlag(!updateFlag)}
@@ -688,13 +709,7 @@ export default function CourseLMSIntegrationPage(props: {
                                   </Checkbox>
                                 </Col>
                                 <Col xs={24} sm={12} md={8}>
-                                  <Checkbox value="files" disabled={true}>
-                                    <Tooltip title="Coming Soon!">
-                                      <span className="text-gray-400 line-through">
-                                        Files
-                                      </span>
-                                    </Tooltip>
-                                  </Checkbox>
+                                  <Checkbox value="files">Files</Checkbox>
                                 </Col>
                                 <Col xs={24} sm={12} md={8}>
                                   <Checkbox value="pages">Pages</Checkbox>
