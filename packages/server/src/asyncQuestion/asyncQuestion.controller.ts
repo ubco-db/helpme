@@ -1,15 +1,15 @@
 import {
-  CreateAsyncQuestions,
-  ERROR_MESSAGES,
-  Role,
+  AsyncCreator,
+  AsyncQuestion,
+  AsyncQuestionCommentParams,
   AsyncQuestionParams,
   asyncQuestionStatus,
-  UpdateAsyncQuestions,
-  AsyncQuestionCommentParams,
-  AsyncQuestion,
+  CreateAsyncQuestions,
+  ERROR_MESSAGES,
   nameToRGB,
-  AsyncCreator,
+  Role,
   UnreadAsyncQuestionResponse,
+  UpdateAsyncQuestions,
 } from '@koh/common';
 import {
   Body,
@@ -44,6 +44,8 @@ import { Not } from 'typeorm';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { AsyncQuestionService } from './asyncQuestion.service';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
+import { CourseSettingsModel } from '../course/course_settings.entity';
+import { CourseRole } from '../decorators/course-role.decorator';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -136,9 +138,14 @@ export class asyncQuestionController {
     @Body() body: CreateAsyncQuestions,
     @Param('cid', ParseIntPipe) cid: number,
     @UserId() userId: number,
+    @CourseRole() courseRole: Role,
     @Res() res: Response,
   ): Promise<any> {
     try {
+      const courseSettings = await CourseSettingsModel.findOne({
+        where: { courseId: cid },
+      });
+
       const question = await AsyncQuestionModel.create({
         courseId: cid,
         creatorId: userId,
@@ -148,7 +155,15 @@ export class asyncQuestionController {
         aiAnswerText: body.aiAnswerText,
         questionTypes: body.questionTypes,
         status: body.status || asyncQuestionStatus.AIAnswered,
-        visible: false,
+        staffSetVisible: null,
+        authorSetVisible:
+          ((courseSettings?.asyncCentreAuthorPublic ?? false) &&
+            body.authorSetVisible) ||
+          false,
+        isAnonymous:
+          body.isAnonymous ??
+          courseSettings?.asyncCentreDefaultAnonymous ??
+          true,
         verified: false,
         createdAt: new Date(),
       }).save();
@@ -206,6 +221,11 @@ export class asyncQuestionController {
         'comments.creator.courses',
       ],
     });
+
+    const courseSettings = await CourseSettingsModel.findOne({
+      where: { courseId: question.courseId },
+    });
+
     // deep copy question since it changes
     const oldQuestion: AsyncQuestionModel = JSON.parse(
       JSON.stringify(question),
@@ -236,12 +256,29 @@ export class asyncQuestionController {
 
     // Update allowed fields
     Object.keys(body).forEach((key) => {
+      if (
+        key == 'authorSetVisible' &&
+        !(courseSettings?.asyncCentreAuthorPublic ?? false)
+      ) {
+        body[key] = false;
+      }
       if (body[key] !== undefined && body[key] !== null) {
         question[key] = body[key];
       }
     });
 
     const updatedQuestion = await question.save();
+
+    // If anonymity setting changed, update anonymity of any comments by the author
+    if (oldQuestion.isAnonymous != updatedQuestion.isAnonymous) {
+      const authorComments = updatedQuestion.comments.filter(
+        (c) => c.creatorId == userId,
+      );
+      for (const comment of authorComments) {
+        comment.isAnonymous = updatedQuestion.isAnonymous;
+        await comment.save();
+      }
+    }
 
     // Mark as new unread for all staff if the question needs attention
     if (
@@ -256,7 +293,7 @@ export class asyncQuestionController {
     }
     // if the question is visible and they rewrote their question and got a new answer text, mark it as unread for everyone
     if (
-      updatedQuestion.visible &&
+      (await this.asyncQuestionService.isVisible(updatedQuestion)) &&
       body.aiAnswerText !== oldQuestion.aiAnswerText &&
       body.questionText !== oldQuestion.questionText
     ) {
@@ -302,6 +339,7 @@ export class asyncQuestionController {
         'comments.creator.courses',
       ],
     });
+
     // deep copy question since it changes
     const oldQuestion: AsyncQuestionModel = JSON.parse(
       JSON.stringify(question),
@@ -353,7 +391,18 @@ export class asyncQuestionController {
     const updatedQuestion = await question.save();
 
     // Mark as new unread for all students if the question is marked as visible
-    if (body.visible && !oldQuestion.visible) {
+    const courseSettings = await CourseSettingsModel.findOne({
+      where: { courseId: courseId },
+    });
+    const oldVisible = await this.asyncQuestionService.isVisible(
+      oldQuestion,
+      courseSettings,
+    );
+    const newVisible = await this.asyncQuestionService.isVisible(
+      updatedQuestion,
+      courseSettings,
+    );
+    if (newVisible && !oldVisible) {
       await this.asyncQuestionService.markUnreadForRoles(
         updatedQuestion,
         [Role.STUDENT],
@@ -400,9 +449,9 @@ export class asyncQuestionController {
     @Param('qid', ParseIntPipe) qid: number,
     @Body() body: AsyncQuestionCommentParams,
     @User() user: UserModel,
+    @CourseRole() courseRole: Role,
     @Res() res: Response,
   ): Promise<Response> {
-    const { commentText } = body;
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
     });
@@ -414,12 +463,39 @@ export class asyncQuestionController {
       return;
     }
 
+    const courseSettings = await CourseSettingsModel.findOne({
+      where: { courseId: question.courseId },
+    });
+
+    const isStaff = courseRole == Role.TA || courseRole == Role.PROFESSOR;
+    const isAuthor = user.id == question.creatorId;
     const comment = await AsyncQuestionCommentModel.create({
-      commentText,
+      commentText: body.commentText,
       creator: user, // do NOT change this to userId since by putting user here it will pass the full creator when sending back the comment
       question,
+      isAnonymous:
+        isStaff && !isAuthor
+          ? false
+          : isAuthor
+            ? question.isAnonymous
+            : (body.isAnonymous ??
+              courseSettings?.asyncCentreDefaultAnonymous ??
+              true),
       createdAt: new Date(),
     }).save();
+
+    const otherComments = await AsyncQuestionCommentModel.find({
+      where: {
+        creatorId: user.id,
+        questionId: qid,
+        id: Not(comment.id),
+      },
+    });
+    const originalAnons = otherComments.map((c) => c.isAnonymous);
+    otherComments.forEach((oc) => (oc.isAnonymous = comment.isAnonymous));
+    await AsyncQuestionCommentModel.save(
+      otherComments.filter((v, i) => originalAnons[i] != v.isAnonymous),
+    );
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
       where: { id: qid },
@@ -438,19 +514,11 @@ export class asyncQuestionController {
       updatedQuestion,
     );
 
-    const myUserCourse = await UserCourseModel.findOne({
-      where: {
-        userId: user.id,
-        courseId: question.courseId,
-      },
-    });
-    const myRole = myUserCourse.role;
-
     // don't send email if its a comment on your own post
     if (question.creatorId !== user.id) {
       await this.asyncQuestionService.sendNewCommentOnMyQuestionEmail(
         user,
-        myRole,
+        courseRole,
         updatedQuestion,
         comment,
       );
@@ -458,22 +526,24 @@ export class asyncQuestionController {
     // send emails out to all users that have posted a comment on this question (it also performs checks)
     await this.asyncQuestionService.sendNewCommentOnOtherQuestionEmail(
       user,
-      myRole,
+      courseRole,
       question.creatorId,
       updatedQuestion,
       comment,
     );
 
     // new comment: if visible, mark question as unread for everyone (except the creator of the comment)
-    if (updatedQuestion.visible) {
+    if (
+      await this.asyncQuestionService.isVisible(updatedQuestion, courseSettings)
+    ) {
       await this.asyncQuestionService.markUnreadForAll(
         updatedQuestion,
         user.id,
       );
-    } else if (myRole === Role.TA || myRole === Role.PROFESSOR) {
+    } else if (courseRole === Role.TA || courseRole === Role.PROFESSOR) {
       // if the question is not visible, and poster is staff, mark it as unread for the creator
       await this.asyncQuestionService.markUnreadForCreator(updatedQuestion);
-    } else if (myRole === Role.STUDENT) {
+    } else if (courseRole === Role.STUDENT) {
       // if the question is not visible, and poster is student, mark it as unread for staff
       await this.asyncQuestionService.markUnreadForRoles(
         updatedQuestion,
@@ -483,15 +553,18 @@ export class asyncQuestionController {
     }
 
     // only put necessary info for the response's creator (otherwise it would send the password hash and a bunch of other unnecessary info)
-    comment.creator = {
-      id: user.id,
-      name: user.name,
-      colour: nameToRGB(Math.abs(user.id - qid).toString()),
-      anonId: this.asyncQuestionService.getAnonId(user.id, qid),
-      photoURL: user.photoURL,
-    } as AsyncCreator as unknown as UserModel;
-
-    res.status(HttpStatus.CREATED).send(comment);
+    const comments = [comment, ...otherComments];
+    for (const c of comments) {
+      c.creator = {
+        id: user.id,
+        name: user.name,
+        colour: nameToRGB(Math.abs(user.id - qid).toString()),
+        anonId: this.asyncQuestionService.getAnonId(user.id, qid),
+        photoURL: user.photoURL,
+        isAuthor: comment.creator.id === question.creatorId,
+      } as AsyncCreator as unknown as UserModel;
+    }
+    res.status(HttpStatus.CREATED).send(comments);
   }
 
   @Patch('comment/:qid/:commentId')
@@ -502,11 +575,15 @@ export class asyncQuestionController {
     @Param('commentId', ParseIntPipe) commentId: number,
     @Body() body: AsyncQuestionCommentParams,
     @UserId() userId: number,
+    @CourseRole() courseRole: Role,
     @Res() res: Response,
   ): Promise<Response> {
-    const { commentText } = body;
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
+    });
+
+    const courseSettings = await CourseSettingsModel.findOne({
+      where: { courseId: question.courseId },
     });
 
     if (!question) {
@@ -536,7 +613,18 @@ export class asyncQuestionController {
       return;
     }
 
-    comment.commentText = commentText;
+    comment.commentText = body.commentText;
+
+    const isStaff = courseRole == Role.TA || courseRole == Role.PROFESSOR;
+    const isAuthor = userId == question.creatorId;
+    comment.isAnonymous =
+      isStaff && !isAuthor
+        ? false
+        : isAuthor
+          ? question.isAnonymous
+          : (body.isAnonymous ??
+            courseSettings?.asyncCentreDefaultAnonymous ??
+            true);
     await comment.save();
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
@@ -556,7 +644,20 @@ export class asyncQuestionController {
       updatedQuestion,
     );
 
-    res.status(HttpStatus.OK).send(comment);
+    const otherComments = await AsyncQuestionCommentModel.find({
+      where: {
+        creatorId: userId,
+        questionId: qid,
+        id: Not(comment.id),
+      },
+    });
+    const originalAnons = otherComments.map((c) => c.isAnonymous);
+    otherComments.forEach((oc) => (oc.isAnonymous = comment.isAnonymous));
+    await AsyncQuestionCommentModel.save(
+      otherComments.filter((v, i) => originalAnons[i] != v.isAnonymous),
+    );
+
+    res.status(HttpStatus.OK).send([comment, otherComments]);
   }
 
   @Delete('comment/:qid/:commentId')
@@ -657,7 +758,7 @@ export class asyncQuestionController {
     const asyncQuestionKeys = await this.redisQueueService.getKey(
       `c:${courseId}:aq`,
     );
-    let all: AsyncQuestionModel[] = [];
+    let all: AsyncQuestionModel[];
 
     if (!asyncQuestionKeys || Object.keys(asyncQuestionKeys).length === 0) {
       console.log('Fetching from Database');
@@ -693,10 +794,13 @@ export class asyncQuestionController {
       throw new NotFoundException('No questions found');
     }
 
-    let questions;
+    let questions: Partial<AsyncQuestionModel>[];
 
     const isStaff: boolean =
       userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
+    const courseSettings = await CourseSettingsModel.findOne({
+      where: { courseId: courseId },
+    });
 
     if (isStaff) {
       // Staff sees all questions except the ones deleted
@@ -705,9 +809,23 @@ export class asyncQuestionController {
       );
     } else {
       // Students see their own questions and questions that are visible
-      questions = all.filter(
-        (question) => question.creatorId === userId || question.visible,
-      );
+      questions = (
+        await Promise.all(
+          all.map(async (question) => {
+            if (
+              question.creatorId === userId ||
+              (await this.asyncQuestionService.isVisible(
+                question,
+                courseSettings,
+              ))
+            ) {
+              return question;
+            } else {
+              return undefined;
+            }
+          }),
+        )
+      ).filter((s) => s != undefined);
     }
 
     questions = questions.map((question: AsyncQuestionModel) => {
@@ -723,7 +841,9 @@ export class asyncQuestionController {
         'createdAt',
         'closedAt',
         'status',
-        'visible',
+        'isAnonymous',
+        'staffSetVisible',
+        'authorSetVisible',
         'verified',
         'votes',
         'comments',
@@ -735,7 +855,7 @@ export class asyncQuestionController {
       if (!question.comments) {
         temp.comments = [];
       } else {
-        const filteredComments = question.comments.map((comment) => {
+        temp.comments = question.comments.map((comment) => {
           const temp = { ...comment };
           // TODO: maybe find a more performant way of doing this (ideally in the query itself, and maybe try to include a SELECT to eliminate the pick() above. Though this may be difficult due to some of these use functions like nameToRGB or getAnonId)
           const commenterRole =
@@ -744,9 +864,7 @@ export class asyncQuestionController {
             )?.role || Role.STUDENT;
 
           temp.creator =
-            isStaff ||
-            comment.creator.id === userId ||
-            commenterRole !== Role.STUDENT
+            isStaff || comment.creator.id === userId || !comment.isAnonymous
               ? ({
                   id: comment.creator.id,
                   anonId: this.asyncQuestionService.getAnonId(
@@ -780,12 +898,11 @@ export class asyncQuestionController {
 
           return temp as unknown as AsyncQuestionCommentModel;
         });
-        temp.comments = filteredComments;
       }
 
       Object.assign(temp, {
         creator:
-          isStaff || question.creator.id == userId
+          isStaff || question.creator.id == userId || !question.isAnonymous
             ? {
                 id: question.creator.id,
                 anonId: this.asyncQuestionService.getAnonId(

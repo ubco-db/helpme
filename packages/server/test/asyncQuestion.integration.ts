@@ -2,19 +2,21 @@ import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { CourseModel } from 'course/course.entity';
 import { UserModel } from 'profile/user.entity';
 import {
-  UserFactory,
-  CourseFactory,
-  UserCourseFactory,
-  AsyncQuestionFactory,
-  VotesFactory,
-  QuestionTypeFactory,
   AsyncQuestionCommentFactory,
+  AsyncQuestionFactory,
+  CourseFactory,
+  CourseSettingsFactory,
+  QuestionTypeFactory,
+  UserCourseFactory,
+  UserFactory,
+  VotesFactory,
 } from './util/factories';
 import { overrideRedisQueue, setupIntegrationTest } from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
 import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common';
 import { AsyncQuestionVotesModel } from 'asyncQuestion/asyncQuestionVotes.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
+import { AsyncQuestionCommentModel } from '../src/asyncQuestion/asyncQuestionComment.entity';
 
 describe('AsyncQuestion Integration', () => {
   const { supertest } = setupIntegrationTest(
@@ -26,6 +28,7 @@ describe('AsyncQuestion Integration', () => {
   let TAuser: UserModel;
   let studentUser: UserModel;
   let studentUser2: UserModel;
+  let studentUser3: UserModel;
   let asyncQuestion: AsyncQuestionModel;
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -42,6 +45,11 @@ describe('AsyncQuestion Integration', () => {
     studentUser2 = await UserFactory.create({
       email: 'tom@ubc.ca',
       firstName: 'tom',
+      lastName: 'oh',
+    });
+    studentUser3 = await UserFactory.create({
+      email: 'steve@ubc.ca',
+      firstName: 'steve',
       lastName: 'oh',
     });
     course = await CourseFactory.create({
@@ -100,6 +108,29 @@ describe('AsyncQuestion Integration', () => {
           expect(response.body).toHaveProperty('status', 'AIAnswered');
           expect(response.body).toHaveProperty('closedAt', null);
           expect(response.body).toHaveProperty('questionText', 'text');
+          expect(response.body).toHaveProperty('isAnonymous', true);
+          expect(response.body).toHaveProperty('staffSetVisible', null);
+          expect(response.body.status).toBe('AIAnswered');
+          expect(response.body.closedAt).toBeNull();
+        });
+    });
+    it('Staff can create question', async () => {
+      await supertest({ userId: TAuser.id })
+        .post(`/asyncQuestions/${course.id}`)
+        .send({
+          questionAbstract: 'abstract',
+          questionText: 'text',
+          isAnonymous: false,
+          authorSetVisible: false,
+        })
+        .expect(201)
+        .then(async (response) => {
+          expect(response.body).toHaveProperty('status', 'AIAnswered');
+          expect(response.body).toHaveProperty('closedAt', null);
+          expect(response.body).toHaveProperty('questionText', 'text');
+          expect(response.body).toHaveProperty('isAnonymous', false);
+          expect(response.body).toHaveProperty('authorSetVisible', false);
+          expect(response.body).toHaveProperty('staffSetVisible', null);
           expect(response.body.status).toBe('AIAnswered');
           expect(response.body.closedAt).toBeNull();
         });
@@ -238,6 +269,25 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(404);
     });
+    it('students comments on their own question have anonymity setting changed to match question anonymity', async () => {
+      const comment = await AsyncQuestionCommentFactory.create({
+        creator: studentUser,
+        question: asyncQuestion,
+        isAnonymous: true,
+      });
+      await supertest({ userId: studentUser.id })
+        .patch(`/asyncQuestions/student/${asyncQuestion.id}`)
+        .send({
+          isAnonymous: false,
+        })
+        .expect(200)
+        .then((response) => {
+          expect(response.body).toHaveProperty('isAnonymous');
+          expect(response.body.isAnonymous).toBe(false);
+        });
+      await comment.reload();
+      expect(comment.isAnonymous).toBe(false);
+    });
   });
 
   describe('POST /asyncQuestions/vote/:qid/:vote', () => {
@@ -319,12 +369,15 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(201)
         .then((response) => {
-          expect(response.body).toHaveProperty(
-            'commentText',
-            'Student comment 1',
+          expect(response.body).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                questionId: asyncQuestion.id,
+                commentText: 'Student comment 1',
+                creator: expect.any(Object),
+              }),
+            ]),
           );
-          expect(response.body).toHaveProperty('creator');
-          expect(response.body.questionId).toBe(asyncQuestion.id);
         });
     });
     it('TA can comment on a question', async () => {
@@ -335,9 +388,15 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(201)
         .then((response) => {
-          expect(response.body).toHaveProperty('commentText', 'TA Comment 1');
-          expect(response.body).toHaveProperty('creator');
-          expect(response.body.questionId).toBe(asyncQuestion.id);
+          expect(response.body).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                questionId: asyncQuestion.id,
+                commentText: 'TA Comment 1',
+                creator: expect.any(Object),
+              }),
+            ]),
+          );
         });
     });
     it('allows students and staff to comment on other students questions', async () => {
@@ -348,9 +407,14 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(201)
         .then((response) => {
-          expect(response.body).toHaveProperty(
-            'commentText',
-            'Student comment 2',
+          expect(response.body).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                questionId: asyncQuestion.id,
+                commentText: 'Student comment 2',
+                creator: expect.any(Object),
+              }),
+            ]),
           );
         });
       await supertest({ userId: TAuser.id })
@@ -360,8 +424,15 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(201)
         .then((response) => {
-          expect(response.body).toHaveProperty('commentText', 'TA Comment 2');
-          expect(response.body).toHaveProperty('creator');
+          expect(response.body).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                questionId: asyncQuestion.id,
+                commentText: 'TA Comment 2',
+                creator: expect.any(Object),
+              }),
+            ]),
+          );
         });
     });
     it('prevents users outside this course from posting comments', async () => {
@@ -425,7 +496,7 @@ describe('AsyncQuestion Integration', () => {
           id: asyncQuestionFromResponse.id,
         },
       });
-      asyncQuestion.visible = true;
+      asyncQuestion.staffSetVisible = true;
       await asyncQuestion.save();
 
       // mark it as has been read by TA
@@ -634,6 +705,52 @@ describe('AsyncQuestion Integration', () => {
         ]),
       );
     });
+    it('prevents author of question from setting anonymity of their comments to be different from their question', async () => {
+      const expectedBool = asyncQuestion.isAnonymous;
+      await supertest({ userId: studentUser.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({
+          commentText: 'comment',
+          isAnonymous: !expectedBool,
+        })
+        .expect(201)
+        .then((response) => {
+          expect(response.body).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                commentText: 'comment',
+                isAnonymous: expectedBool,
+              }),
+            ]),
+          );
+        });
+    });
+    it('should make any previous comments by user have matching anonymity', async () => {
+      const comments: AsyncQuestionCommentModel[] = [];
+      for (let i = 0; i < 4; i++) {
+        comments.push(
+          await AsyncQuestionCommentFactory.create({
+            question: asyncQuestion,
+            creator: studentUser2,
+            commentText: `Student comment ${i + 1}`,
+            isAnonymous: true,
+          }),
+        );
+      }
+      await supertest({ userId: studentUser2.id })
+        .post(`/asyncQuestions/comment/${asyncQuestion.id}`)
+        .send({
+          commentText: 'comment',
+          isAnonymous: false,
+        })
+        .expect(201);
+      for (const c of comments) {
+        const retrieve = await AsyncQuestionCommentModel.findOne({
+          where: { id: c.id },
+        });
+        expect(retrieve.isAnonymous).toBe(false);
+      }
+    });
   });
 
   describe('PATCH /asyncQuestions/comment/:qid/:commentId', () => {
@@ -644,15 +761,20 @@ describe('AsyncQuestion Integration', () => {
           commentText: 'Student comment 1',
         });
       await supertest({ userId: studentUser.id })
-        .patch(`/asyncQuestions/comment/${asyncQuestion.id}/${comment.body.id}`)
+        .patch(
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.body[0].id}`,
+        )
         .send({
           commentText: 'Student comment 1 updated',
         })
         .expect(200)
         .then((response) => {
-          expect(response.body).toHaveProperty(
-            'commentText',
-            'Student comment 1 updated',
+          expect(response.body).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                commentText: 'Student comment 1 updated',
+              }),
+            ]),
           );
         });
     });
@@ -663,15 +785,20 @@ describe('AsyncQuestion Integration', () => {
           commentText: 'TA Comment 1',
         });
       await supertest({ userId: TAuser.id })
-        .patch(`/asyncQuestions/comment/${asyncQuestion.id}/${comment.body.id}`)
+        .patch(
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.body[0].id}`,
+        )
         .send({
           commentText: 'TA Comment 1 updated',
         })
         .expect(200)
         .then((response) => {
-          expect(response.body).toHaveProperty(
-            'commentText',
-            'TA Comment 1 updated',
+          expect(response.body).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                commentText: 'TA Comment 1 updated',
+              }),
+            ]),
           );
         });
     });
@@ -682,7 +809,9 @@ describe('AsyncQuestion Integration', () => {
           commentText: 'Student comment 1',
         });
       await supertest({ userId: studentUser2.id })
-        .patch(`/asyncQuestions/comment/${asyncQuestion.id}/${comment.body.id}`)
+        .patch(
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.body[0].id}`,
+        )
         .send({
           commentText: 'Student comment 1 updated',
         })
@@ -696,11 +825,40 @@ describe('AsyncQuestion Integration', () => {
           commentText: 'Student comment 1',
         });
       await supertest({ userId: TAuser.id })
-        .patch(`/asyncQuestions/comment/${asyncQuestion.id}/${comment.body.id}`)
+        .patch(
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.body[0].id}`,
+        )
         .send({
           commentText: 'Student comment 1 updated',
         })
         .expect(403);
+    });
+    it('prevents author of question from setting anonymity of their comments', async () => {
+      const expectedBool = asyncQuestion.isAnonymous;
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        isAnonymous: expectedBool,
+      });
+      await supertest({ userId: studentUser.id })
+        .patch(`/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}`)
+        .send({
+          commentText: 'comment',
+          isAnonymous: !expectedBool,
+        })
+        .expect(200)
+        .then((response) => {
+          expect(response.body).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                commentText: 'comment',
+                isAnonymous: expectedBool,
+              }),
+            ]),
+          );
+        });
+      await comment.reload();
+      expect(comment.isAnonymous).toBe(expectedBool);
     });
     it('prevents users outside this course from modifying comments', async () => {
       const otherCourse = await CourseFactory.create();
@@ -722,6 +880,32 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(404);
     });
+    it('should make any previous comments by user have matching anonymity', async () => {
+      const comments: AsyncQuestionCommentModel[] = [];
+      for (let i = 0; i < 4; i++) {
+        comments.push(
+          await AsyncQuestionCommentFactory.create({
+            question: asyncQuestion,
+            creator: studentUser2,
+            commentText: `Student comment ${i + 1}`,
+            isAnonymous: true,
+          }),
+        );
+      }
+      await supertest({ userId: studentUser2.id })
+        .patch(`/asyncQuestions/comment/${asyncQuestion.id}/${comments[0].id}`)
+        .send({
+          commentText: comments[0].commentText,
+          isAnonymous: false,
+        })
+        .expect(200);
+      for (const c of comments) {
+        const retrieve = await AsyncQuestionCommentModel.findOne({
+          where: { id: c.id },
+        });
+        expect(retrieve.isAnonymous).toBe(false);
+      }
+    });
   });
 
   describe('DELETE /asyncQuestions/comment/:qid/:commentId', () => {
@@ -733,7 +917,7 @@ describe('AsyncQuestion Integration', () => {
         });
       await supertest({ userId: studentUser.id }) // me (student)
         .delete(
-          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.body.id}`,
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.body[0].id}`,
         )
         .expect(200);
     });
@@ -745,7 +929,7 @@ describe('AsyncQuestion Integration', () => {
         });
       await supertest({ userId: TAuser.id }) // me (staff)
         .delete(
-          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.body.id}`,
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.body[0].id}`,
         )
         .expect(200);
     });
@@ -757,7 +941,7 @@ describe('AsyncQuestion Integration', () => {
         });
       await supertest({ userId: TAuser.id }) // staff
         .delete(
-          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.body.id}`,
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.body[0].id}`,
         )
         .expect(200);
     });
@@ -769,7 +953,7 @@ describe('AsyncQuestion Integration', () => {
         });
       await supertest({ userId: studentUser2.id }) // other student
         .delete(
-          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.body.id}`,
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.body[0].id}`,
         )
         .expect(403);
     });
@@ -795,12 +979,13 @@ describe('AsyncQuestion Integration', () => {
   describe('GET /asyncQuestions/:courseId', () => {
     let asyncQuestion2: AsyncQuestionModel;
     let asyncQuestion3: AsyncQuestionModel;
+
     beforeEach(async () => {
       //create some more questions
       asyncQuestion2 = await AsyncQuestionFactory.create({
         creator: studentUser,
         course: course,
-        visible: true,
+        staffSetVisible: true,
         aiAnswerText: 'q2',
       });
       asyncQuestion3 = await AsyncQuestionFactory.create({
@@ -809,6 +994,7 @@ describe('AsyncQuestion Integration', () => {
         aiAnswerText: 'q3',
       });
     });
+
     it('allows students to view their questions in their course', async () => {
       const response = await supertest({ userId: studentUser.id }).get(
         `/asyncQuestions/${course.id}`,
@@ -822,12 +1008,12 @@ describe('AsyncQuestion Integration', () => {
           expect.objectContaining({
             id: asyncQuestion.id,
             creator: expect.objectContaining({ id: studentUser.id }),
-            visible: false,
+            staffSetVisible: false,
           }),
           expect.objectContaining({
             id: asyncQuestion2.id,
             creator: expect.objectContaining({ id: studentUser.id }),
-            visible: true,
+            staffSetVisible: true,
           }),
         ]),
       );
@@ -944,7 +1130,7 @@ describe('AsyncQuestion Integration', () => {
           }),
           expect.objectContaining({
             id: asyncQuestion2.id,
-            visible: true,
+            staffSetVisible: true,
             creator: expect.objectContaining({
               anonId: expect.any(Number),
               colour: expect.any(String),
@@ -957,7 +1143,7 @@ describe('AsyncQuestion Integration', () => {
           }),
           expect.objectContaining({
             id: asyncQuestion3.id,
-            visible: false,
+            staffSetVisible: false,
             creator: expect.objectContaining({
               anonId: expect.any(Number),
               colour: expect.any(String),
@@ -1005,7 +1191,7 @@ describe('AsyncQuestion Integration', () => {
         ]),
       );
     });
-    it('does not show sensitive information for comments on questions unless they are the creator or staff', async () => {
+    it('does not show sensitive information for anonymous comments on questions unless they are the creator or staff', async () => {
       const comment1 = await AsyncQuestionCommentFactory.create({
         question: asyncQuestion2,
         creator: studentUser,
@@ -1111,6 +1297,45 @@ describe('AsyncQuestion Integration', () => {
       };
       expect(allQuestions).toMatchSnapshot();
     });
+    it('will show user information on non-anonymous comments even if viewer is not the creator or staff', async () => {
+      const asyncQuestion5 = await AsyncQuestionFactory.create({
+        creator: studentUser,
+        course: course,
+        aiAnswerText: 'q5',
+        staffSetVisible: true,
+      });
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion5,
+        creator: studentUser3,
+        isAnonymous: false,
+        commentText: 'comment',
+      });
+      const response = await supertest({ userId: studentUser2.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      const questions: AsyncQuestion[] = response.body;
+      expect(questions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: asyncQuestion5.id,
+            comments: expect.arrayContaining([
+              expect.objectContaining({
+                commentText: comment.commentText,
+                isAnonymous: false,
+                creator: expect.objectContaining({
+                  anonId: expect.any(Number),
+                  colour: expect.any(String),
+                  id: studentUser3.id,
+                  name: `${studentUser3.firstName} ${studentUser3.lastName}`,
+                  photoURL: studentUser3.photoURL,
+                }),
+              }),
+            ]),
+          }),
+        ]),
+      );
+    });
     it('prevents users outside this course from viewing questions', async () => {
       const otherCourse = await CourseFactory.create();
       const otherUser = await UserFactory.create();
@@ -1123,6 +1348,153 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(404);
+    });
+    it('prevents students from seeing questions without staff setting them public with author approval required set true, but staff can see either way', async () => {
+      await CourseSettingsFactory.create({
+        courseId: course.id,
+        course,
+      });
+      const asyncQuestion6 = await AsyncQuestionFactory.create({
+        creator: studentUser,
+        course: course,
+        aiAnswerText: 'q6',
+        staffSetVisible: true,
+        authorSetVisible: true,
+      });
+      const asyncQuestion7 = await AsyncQuestionFactory.create({
+        creator: studentUser,
+        course: course,
+        aiAnswerText: 'q7',
+        staffSetVisible: false,
+        authorSetVisible: true,
+      });
+      const asyncQuestion8 = await AsyncQuestionFactory.create({
+        creator: studentUser,
+        course: course,
+        aiAnswerText: 'q8',
+        staffSetVisible: false,
+        authorSetVisible: true,
+      });
+      const response = await supertest({ userId: studentUser2.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      const response2 = await supertest({ userId: TAuser.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      expect(response2.status).toBe(200);
+      const questions: AsyncQuestion[] = response.body;
+      const questions2: AsyncQuestion[] = response2.body;
+      expect(questions).toHaveLength(3);
+      expect(questions).toEqual(
+        expect.arrayContaining([
+          expect.not.objectContaining({ id: asyncQuestion2.id }), // Cannot see when only staff makes it public
+          expect.not.objectContaining({ id: asyncQuestion7.id }), // Cannot see when only author makes it public
+          expect.not.objectContaining({ id: asyncQuestion8.id }), // Cannot see when neither make it public
+          expect.objectContaining({ id: asyncQuestion3.id }), // Can see own question
+          expect.objectContaining({ id: asyncQuestion6.id }), // Can see question when both make it public
+        ]),
+      );
+      expect(questions2).toHaveLength(6);
+      expect(questions2).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: asyncQuestion.id }),
+          expect.objectContaining({ id: asyncQuestion2.id }),
+          expect.objectContaining({ id: asyncQuestion3.id }),
+          expect.objectContaining({ id: asyncQuestion6.id }),
+          expect.objectContaining({ id: asyncQuestion7.id }),
+          expect.objectContaining({ id: asyncQuestion8.id }),
+        ]),
+      );
+      const allQuestions = {
+        student: questions,
+        staff: questions2,
+      };
+      expect(allQuestions).toMatchSnapshot();
+    });
+    it('does not show user information when question is anonymous except if the viewer is the creator or staff', async () => {
+      const asyncQuestion9 = await AsyncQuestionFactory.create({
+        creator: studentUser,
+        course: course,
+        aiAnswerText: 'q9',
+        staffSetVisible: true,
+        isAnonymous: true,
+      });
+      const response = await supertest({ userId: studentUser.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      const response2 = await supertest({ userId: studentUser2.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      const response3 = await supertest({ userId: TAuser.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      const questions: AsyncQuestion[] = response.body;
+      const questions2: AsyncQuestion[] = response2.body;
+      const questions3: AsyncQuestion[] = response3.body;
+      const fullInfo = {
+        id: asyncQuestion9.id,
+        isAnonymous: true,
+        creator: {
+          anonId: expect.any(Number),
+          colour: expect.any(String),
+          id: studentUser.id,
+          name: `${studentUser.firstName} ${studentUser.lastName}`,
+          photoURL: studentUser.photoURL,
+        },
+      };
+      const anonInfo = { ...fullInfo };
+      anonInfo.creator = {
+        ...fullInfo.creator,
+        id: undefined,
+        name: 'Anonymous',
+        photoURL: null,
+      };
+      expect(questions).toEqual(
+        expect.arrayContaining([expect.objectContaining(fullInfo)]),
+      );
+      expect(questions2).toEqual(
+        expect.arrayContaining([expect.objectContaining(anonInfo)]),
+      );
+      expect(questions3).toEqual(
+        expect.arrayContaining([expect.objectContaining(fullInfo)]),
+      );
+      const allQuestions = {
+        author: questions,
+        student: questions2,
+        staff: questions3,
+      };
+      expect(allQuestions).toMatchSnapshot();
+    });
+    it('shows user information when question is not anonymous even if the viewer is not the creator or staff', async () => {
+      const asyncQuestion9 = await AsyncQuestionFactory.create({
+        creator: studentUser,
+        course: course,
+        aiAnswerText: 'q9',
+        staffSetVisible: true,
+        isAnonymous: false,
+      });
+      const response = await supertest({ userId: studentUser2.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      const questions: AsyncQuestion[] = response.body;
+      expect(questions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: asyncQuestion9.id,
+            isAnonymous: false,
+            creator: {
+              anonId: expect.any(Number),
+              colour: expect.any(String),
+              id: studentUser.id,
+              name: `${studentUser.firstName} ${studentUser.lastName}`,
+              photoURL: studentUser.photoURL,
+            },
+          }),
+        ]),
+      );
     });
   });
 

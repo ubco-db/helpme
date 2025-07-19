@@ -1,24 +1,31 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Modal from 'antd/lib/modal/Modal'
 import {
-  Input,
-  Form,
-  message,
-  Switch,
-  Checkbox,
   Button,
+  Checkbox,
+  Divider,
+  Form,
+  Input,
+  message,
   Popconfirm,
+  Switch,
   Tooltip,
 } from 'antd'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
-import { DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons'
+import {
+  DeleteOutlined,
+  EditOutlined,
+  QuestionCircleOutlined,
+} from '@ant-design/icons'
 import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 interface FormValues {
   answerText: string
-  visible: boolean
+  staffSetVisible: boolean
   verified: boolean
 }
 
@@ -27,6 +34,8 @@ interface PostResponseModalProps {
   onCancel: () => void
   onPostResponse: () => void
   question: AsyncQuestion
+  courseId: number
+  setCreateAsyncQuestionModalOpen: (val: boolean) => void
 }
 
 const PostResponseModal: React.FC<PostResponseModalProps> = ({
@@ -34,12 +43,36 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
   question,
   onCancel,
   onPostResponse,
+  courseId,
+  setCreateAsyncQuestionModalOpen,
 }) => {
+  const { userInfo } = useUserInfo()
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [staffSetVisible, setStaffSetVisible] = useState<boolean>(
+    (question.staffSetVisible == null && question.authorSetVisible) ||
+      (question.staffSetVisible ?? true),
+  )
+  const [visiblePopConfirmVisible, setVisiblePopConfirmVisible] =
+    useState<boolean>(false)
+  const courseFeatures = useCourseFeatures(courseId)
+  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false
 
-  const onFinish = async (values: FormValues) => {
+  const [hasCheckedPopconfirm, setHasCheckedPopconfirm] =
+    useState<boolean>(!authorCanSetVisible)
+  const [confirmPopoverOpen, setConfirmPopoverOpen] = useState(false)
+
+  useEffect(() => {
+    setStaffSetVisible(
+      (question.staffSetVisible == null && question.authorSetVisible) ||
+        (question.staffSetVisible ?? true),
+    )
+  }, [question.authorSetVisible, question.staffSetVisible])
+
+  const onFinish = async () => {
+    setHasCheckedPopconfirm(false)
+    const values: FormValues = await form.validateFields()
     setIsLoading(true)
     // if the answer text is the same as the current answer text and the status is AIAnswered, AIAnsweredNeedsAttention, or AIAnsweredResolved, then the status should remain the same
     // unless the TA changes the verified status to true, then it will always be HumanAnswered (displayed as Human Verified)
@@ -56,7 +89,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
     await API.asyncQuestions
       .facultyUpdate(question.id, {
         answerText: values.answerText,
-        visible: values.visible,
+        staffSetVisible: staffSetVisible,
         status: newStatus,
         verified: values.verified,
       })
@@ -83,32 +116,88 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
         autoFocus: true,
         htmlType: 'submit',
         loading: isLoading,
+        onClick: async () => {
+          await form.validateFields().then(() => {
+            if (
+              authorCanSetVisible &&
+              !hasCheckedPopconfirm &&
+              question.authorSetVisible != staffSetVisible
+            ) {
+              setConfirmPopoverOpen(true)
+            } else {
+              onFinish()
+            }
+          })
+        },
       }}
       onCancel={onCancel}
       // display delete button for mobile in footer
       footer={(_, { OkBtn, CancelBtn }) => (
-        <div className="flex justify-between md:justify-end">
-          <Popconfirm
-            className="inline-flex md:hidden"
-            title="Are you sure you want to delete the question?"
-            okText="Yes"
-            cancelText="No"
-            getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
-            okButtonProps={{ loading: deleteLoading }}
-            onConfirm={async () => {
-              setDeleteLoading(true)
-              await deleteAsyncQuestion(question.id, true, onPostResponse)
-              setDeleteLoading(false)
-            }}
-          >
-            <Button danger type="primary" icon={<DeleteOutlined />}>
-              {' '}
-              Delete Question{' '}
-            </Button>
-          </Popconfirm>
-          <div className="flex gap-2">
-            <CancelBtn />
-            <OkBtn />
+        <div className={'flex flex-col gap-1'}>
+          {question.creator.id == userInfo.id && (
+            <div className={'flex flex-col gap-1 md:hidden'}>
+              <Divider className={'text-gray-500'}>Actions</Divider>
+              <div className={'flex flex-row justify-between gap-1'}>
+                <DeleteButton
+                  question={question}
+                  deleteLoading={deleteLoading}
+                  setDeleteLoading={setDeleteLoading}
+                  deleteAsyncQuestion={deleteAsyncQuestion}
+                  onPostResponse={onPostResponse}
+                />
+                {question.creator.id == userInfo.id && (
+                  <Button
+                    className="inline-flex flex-auto md:hidden"
+                    type="primary"
+                    icon={<EditOutlined />}
+                    onClick={() => setCreateAsyncQuestionModalOpen(true)}
+                  >
+                    {' '}
+                    Edit
+                  </Button>
+                )}
+              </div>
+              <Divider className={'text-gray-500'} orientation={'right'}>
+                Post Response
+              </Divider>
+            </div>
+          )}
+          <div className={'flex justify-between gap-2'}>
+            {question.creator.id != userInfo.id ? (
+              <div className={'w-min'}>
+                <DeleteButton
+                  question={question}
+                  deleteLoading={deleteLoading}
+                  setDeleteLoading={setDeleteLoading}
+                  deleteAsyncQuestion={deleteAsyncQuestion}
+                  onPostResponse={onPostResponse}
+                />
+              </div>
+            ) : (
+              <div></div>
+            )}
+            <div className="flex justify-end gap-2">
+              <CancelBtn />
+              <OkBtn />
+              <Popconfirm
+                className={'max-w-32 md:max-w-48'}
+                title="Are you sure you want to override visibility?"
+                description={
+                  question.authorSetVisible
+                    ? 'The student who created this question wanted it to be visible to other students.'
+                    : 'The student who created this question did not want for it to be visible to other students.'
+                }
+                open={confirmPopoverOpen}
+                arrow={false}
+                okText="Yes"
+                cancelText="No"
+                onConfirm={() => {
+                  onFinish().then()
+                  setConfirmPopoverOpen(false)
+                }}
+                onCancel={() => setConfirmPopoverOpen(false)}
+              ></Popconfirm>
+            </div>
           </div>
         </div>
       )}
@@ -120,11 +209,9 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
           name="form_in_modal"
           initialValues={{
             answerText: question.answerText,
-            visible: question.visible,
             verified: question.verified,
           }}
           clearOnDestroy
-          onFinish={(values) => onFinish(values)}
         >
           {dom}
         </Form>
@@ -142,18 +229,60 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
         />
       </Form.Item>
       <Form.Item
-        name="visible"
         label={
           <div className="flex flex-row items-center gap-1">
             Set question visible to all students
-            <Tooltip title="Questions can normally only be seen by staff and the student who asked it. This will make it visible to all students (the student themselves will appear anonymous to other students)">
+            <Tooltip title="Questions can normally only be seen by staff and the student who asked it. This will make it visible to all students.">
               <QuestionCircleOutlined style={{ color: 'gray' }} />
             </Tooltip>
           </div>
         }
+        layout="horizontal"
         valuePropName="checked"
       >
-        <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />
+        {authorCanSetVisible ? (
+          <Popconfirm
+            title="Are you sure you want to override visibility?"
+            description={
+              question.authorSetVisible
+                ? 'The student who created this question wanted it to be visible to other students.'
+                : 'The student who created this question did not want for it to be visible to other students.'
+            }
+            okText="Override"
+            cancelText="Leave as is"
+            onConfirm={() => {
+              setStaffSetVisible(!staffSetVisible)
+              setVisiblePopConfirmVisible(false)
+              setHasCheckedPopconfirm(true)
+            }}
+            onCancel={() => {
+              setVisiblePopConfirmVisible(false)
+              setHasCheckedPopconfirm(true)
+            }}
+            open={visiblePopConfirmVisible}
+          >
+            <Switch
+              onClick={() => {
+                if (
+                  (question.authorSetVisible && staffSetVisible) ||
+                  (!question.authorSetVisible && !staffSetVisible)
+                )
+                  setVisiblePopConfirmVisible(true)
+                else setStaffSetVisible(!staffSetVisible)
+              }}
+              checked={staffSetVisible}
+              checkedChildren="Visible"
+              unCheckedChildren="Hidden"
+            />
+          </Popconfirm>
+        ) : (
+          <Switch
+            onClick={() => setStaffSetVisible((prev) => !prev)}
+            checked={staffSetVisible}
+            checkedChildren="Visible"
+            unCheckedChildren="Hidden"
+          />
+        )}
       </Form.Item>
       <Form.Item name="verified" valuePropName="checked">
         <Checkbox>Mark as verified by faculty</Checkbox>
@@ -163,3 +292,44 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
 }
 
 export default PostResponseModal
+
+type DeleteButtonProps = {
+  question: AsyncQuestion
+  deleteLoading: boolean
+  setDeleteLoading: (val: boolean) => void
+  deleteAsyncQuestion: (
+    id: number,
+    isStaff: boolean,
+    successFunction: () => void,
+  ) => Promise<void>
+  onPostResponse: () => void
+}
+
+const DeleteButton: React.FC<DeleteButtonProps> = ({
+  question,
+  deleteLoading,
+  setDeleteLoading,
+  deleteAsyncQuestion,
+  onPostResponse,
+}) => {
+  return (
+    <Popconfirm
+      className={'inline-flex flex-auto md:hidden'}
+      title="Are you sure you want to delete the question?"
+      okText="Yes"
+      cancelText="No"
+      getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
+      okButtonProps={{ loading: deleteLoading }}
+      onConfirm={async () => {
+        setDeleteLoading(true)
+        await deleteAsyncQuestion(question.id, true, onPostResponse)
+        setDeleteLoading(false)
+      }}
+    >
+      <Button danger type="primary" icon={<DeleteOutlined />}>
+        {' '}
+        Delete
+      </Button>
+    </Popconfirm>
+  )
+}

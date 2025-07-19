@@ -3,9 +3,24 @@ import UserAvatar from '@/app/components/UserAvatar'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { Role } from '@koh/common'
 import { CommentProps } from '../utils/types'
-import { DeleteOutlined, EditOutlined, MoreOutlined } from '@ant-design/icons'
-import { Button, Dropdown, Input, message, Popconfirm, Tooltip } from 'antd'
-import { useEffect, useState } from 'react'
+import {
+  CheckCircleOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  MoreOutlined,
+  StopOutlined,
+  WarningOutlined,
+} from '@ant-design/icons'
+import {
+  Button,
+  Checkbox,
+  Dropdown,
+  Input,
+  message,
+  Popconfirm,
+  Tooltip,
+} from 'antd'
+import { useEffect, useMemo, useState } from 'react'
 import { API } from '@/app/api'
 import { getAnonAnimal, getAvatarTooltip } from '../utils/commonAsyncFunctions'
 import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
@@ -35,23 +50,28 @@ const Comment: React.FC<CommentProps> = ({
   questionId,
   author,
   content,
+  isAnonymous,
+  questionIsAnonymous,
   onDeleteSuccess,
   onEditSuccess,
   dispatchUIStateChange,
   datetime,
   IAmStaff,
   showStudents,
+  numOtherComments,
 }) => {
   const { userInfo } = useUserInfo()
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [savePopoverOpen, setSavePopoverOpen] = useState(false)
+  // Form state that stores the edited comment content
   const [newContent, setNewContent] = useState(content)
   const [editLoading, setEditLoading] = useState(false)
+
   const [isUserShown, setIsUserShown] = useState(
-    (IAmStaff && showStudents) ||
-      author.courseRole === Role.PROFESSOR ||
-      author.courseRole === Role.TA,
+    (IAmStaff && showStudents) || !isAnonymous,
   )
+
   const isSelf = userInfo.id === author.id // comment.creator.id is only defined if they're staff or if its you (or if you are staff)
   const authorType = isSelf
     ? 'you'
@@ -59,13 +79,30 @@ const Comment: React.FC<CommentProps> = ({
       ? 'author'
       : author.courseRole
 
+  const IAmAuthor = useMemo(() => author.isAuthor && isSelf, [author, isSelf])
+  // Form state that allows the user to specify whether or not they would like their comment to be anonymous
+  const [newAnonymous, setNewAnonymous] = useState<boolean>(
+    IAmStaff && !IAmAuthor
+      ? false
+      : IAmAuthor
+        ? questionIsAnonymous
+        : isAnonymous,
+  )
+  useEffect(
+    () =>
+      setNewAnonymous(
+        IAmStaff && !IAmAuthor
+          ? false
+          : IAmAuthor
+            ? questionIsAnonymous
+            : isAnonymous,
+      ),
+    [IAmStaff, IAmAuthor, isAnonymous, questionIsAnonymous],
+  )
+
   useEffect(() => {
-    setIsUserShown(
-      (IAmStaff && showStudents) ||
-        author.courseRole === Role.PROFESSOR ||
-        author.courseRole === Role.TA,
-    )
-  }, [IAmStaff, author.courseRole, showStudents])
+    setIsUserShown((IAmStaff && showStudents) || !isAnonymous)
+  }, [IAmStaff, isAnonymous, author.courseRole, showStudents])
 
   const avatarTooltipTitle = getAvatarTooltip(
     IAmStaff,
@@ -267,7 +304,9 @@ const Comment: React.FC<CommentProps> = ({
             onClick={(e) => {
               e.stopPropagation()
               setNewContent(content)
+              setNewAnonymous(isAnonymous)
               setIsEditing(false)
+              setSavePopoverOpen(false)
               dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
             }}
             danger
@@ -275,36 +314,155 @@ const Comment: React.FC<CommentProps> = ({
           >
             Cancel
           </Button>
-          <Button
-            className="ml-2 px-6"
-            type="primary"
-            loading={editLoading}
-            disabled={newContent === content}
-            onClick={async (e) => {
-              e.stopPropagation()
-              setEditLoading(true)
-              await API.asyncQuestions
-                .updateComment(questionId, commentId, {
-                  commentText: newContent,
-                })
-                .then(() => {
-                  message.success('Comment Updated')
-                  onEditSuccess(newContent)
-                  setIsEditing(false)
-                  dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
-                })
-                .catch((e) => {
-                  message.error(
-                    'Failed to update comment: ' + getErrorMessage(e),
-                  )
-                })
-                .finally(() => {
-                  setEditLoading(false)
-                })
-            }}
-          >
-            Save
-          </Button>
+          {newAnonymous != isAnonymous && numOtherComments > 0 ? (
+            <Popconfirm
+              open={savePopoverOpen}
+              title={'Are you sure?'}
+              description={
+                <div className={'max-w-60 p-1'}>
+                  <div>
+                    By posting this,{' '}
+                    <span className={'font-semibold text-red-500'}>
+                      {numOtherComments} previous comments
+                    </span>{' '}
+                    will be made{' '}
+                    <span className={'font-semibold text-red-500'}>
+                      {newAnonymous ? 'anonymous' : 'non-anonymous'}.
+                    </span>
+                  </div>
+                </div>
+              }
+              onOpenChange={(open) => {
+                if (open) setSavePopoverOpen(open)
+              }}
+              onCancel={(e) => {
+                e?.stopPropagation()
+                setSavePopoverOpen(false)
+              }}
+              onConfirm={async (e) => {
+                e?.stopPropagation()
+                setEditLoading(true)
+                const anonValue =
+                  author.isAuthor && isSelf ? questionIsAnonymous : newAnonymous
+                await API.asyncQuestions
+                  .updateComment(questionId, commentId, {
+                    commentText: newContent,
+                    isAnonymous: anonValue,
+                  })
+                  .then(() => {
+                    message.success('Comment Updated')
+                    onEditSuccess(newContent, anonValue)
+                    setIsEditing(false)
+                    dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
+                  })
+                  .catch((e) => {
+                    message.error(
+                      'Failed to update comment: ' + getErrorMessage(e),
+                    )
+                  })
+                  .finally(() => {
+                    setEditLoading(false)
+                    setSavePopoverOpen(false)
+                  })
+              }}
+            >
+              <Button
+                htmlType="submit"
+                className="ml-2 px-6"
+                disabled={
+                  newContent === content && newAnonymous === isAnonymous
+                }
+                loading={editLoading}
+                type="primary"
+              >
+                Save
+              </Button>
+            </Popconfirm>
+          ) : (
+            <Button
+              className="ml-2 px-6"
+              type="primary"
+              loading={editLoading}
+              disabled={newContent === content && newAnonymous === isAnonymous}
+              onClick={async (e) => {
+                e.stopPropagation()
+                setEditLoading(true)
+                const anonValue =
+                  author.isAuthor && isSelf ? questionIsAnonymous : newAnonymous
+                await API.asyncQuestions
+                  .updateComment(questionId, commentId, {
+                    commentText: newContent,
+                    isAnonymous: anonValue,
+                  })
+                  .then(() => {
+                    message.success('Comment Updated')
+                    onEditSuccess(newContent, anonValue)
+                    setIsEditing(false)
+                    dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
+                  })
+                  .catch((e) => {
+                    message.error(
+                      'Failed to update comment: ' + getErrorMessage(e),
+                    )
+                  })
+                  .finally(() => {
+                    setEditLoading(false)
+                  })
+              }}
+            >
+              Save
+            </Button>
+          )}
+          {!author.isAuthor && (
+            <span className={'mb-4 ml-5 inline-flex flex-row gap-1'}>
+              <Tooltip
+                title={
+                  IAmStaff
+                    ? 'You cannot post anonymous comments as a staff member.'
+                    : `Set whether you will appear anonymous to other students. Staff will still see who you are.\n${newAnonymous != isAnonymous && numOtherComments > 0 ? `Previous comments have a different anonymity setting. ${numOtherComments} comments will be made ${newAnonymous ? 'anonymous' : 'non-anonymous'}!` : 'Anonymity setting is the same as any previous comments.'}`
+                }
+              >
+                <Checkbox
+                  checked={newAnonymous}
+                  disabled={IAmStaff}
+                  onChange={() => setNewAnonymous(!newAnonymous)}
+                >
+                  <div className={'inline-flex flex-row gap-1'}>
+                    <div
+                      className={cn(
+                        IAmStaff ? 'text-decoration-line text-gray-500' : '',
+                        'inline-flex md:hidden',
+                      )}
+                    >
+                      Anonymous
+                    </div>
+                    <div
+                      className={cn(
+                        IAmStaff ? 'text-decoration-line text-gray-500' : '',
+                        'hidden md:inline-flex',
+                      )}
+                    >
+                      Post Anonymously
+                    </div>
+                    <div className={'ml-1'}>
+                      {IAmStaff ? (
+                        <StopOutlined className="text-gray-500" />
+                      ) : newAnonymous != isAnonymous &&
+                        numOtherComments > 0 ? (
+                        <WarningOutlined className="animate-pulse text-lg text-red-500 hover:text-red-800" />
+                      ) : (
+                        <CheckCircleOutlined
+                          className={
+                            'text-lg text-green-500 hover:text-green-800'
+                          }
+                        />
+                      )}
+                    </div>
+                  </div>
+                </Checkbox>
+              </Tooltip>
+            </span>
+          )}
         </div>
       )}
     </div>
