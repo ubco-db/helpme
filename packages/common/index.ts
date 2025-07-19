@@ -856,7 +856,9 @@ export type AsyncQuestion = {
   answerText?: string
   aiAnswerText?: string
   closedAt?: Date
-  visible?: boolean
+  isAnonymous?: boolean
+  staffSetVisible?: boolean
+  authorSetVisible?: boolean
   verified: boolean
   votes?: AsyncQuestionVotes[]
   comments: AsyncQuestionComment[]
@@ -912,7 +914,15 @@ export class AsyncQuestionParams {
 
   @IsOptional()
   @IsBoolean()
-  visible?: boolean
+  staffSetVisible?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  authorSetVisible?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean
 
   @IsOptional()
   @IsBoolean()
@@ -948,6 +958,8 @@ export class AsyncQuestionComment {
 
   commentText!: string
 
+  isAnonymous!: boolean
+
   @Type(() => Date)
   createdAt!: Date
 }
@@ -955,6 +967,10 @@ export class AsyncQuestionComment {
 export class AsyncQuestionCommentParams {
   @IsString()
   commentText!: string
+
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean
 }
 
 export class QueueChatPartial {
@@ -2158,6 +2174,12 @@ export class CourseSettingsResponse {
   @IsBoolean()
   asyncCentreAIAnswers!: boolean
 
+  @IsBoolean()
+  asyncCentreDefaultAnonymous!: boolean
+
+  @IsBoolean()
+  asyncCentreAuthorPublic!: boolean
+
   @IsOptional()
   @IsBoolean()
   settingsFound?: boolean = true //this is mostly just for debugging purposes by viewing network responses
@@ -2167,13 +2189,15 @@ export class CourseSettingsResponse {
   }
 }
 
-const validFeatures = [
+export const validFeatures = [
   'chatBotEnabled',
   'asyncQueueEnabled',
   'adsEnabled',
   'queueEnabled',
   'scheduleOnFrontPage',
   'asyncCentreAIAnswers',
+  'asyncCentreDefaultAnonymous',
+  'asyncCentreAuthorPublic',
 ]
 
 export class CourseSettingsRequestBody {

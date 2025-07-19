@@ -9,6 +9,7 @@ type CourseFeatureSwitchProps = {
   description: string
   courseId: number
   disabled?: boolean
+  className?: string
 }
 
 const CourseFeatureSwitch: React.FC<CourseFeatureSwitchProps> = ({
@@ -18,9 +19,12 @@ const CourseFeatureSwitch: React.FC<CourseFeatureSwitchProps> = ({
   description,
   courseId,
   disabled = false,
+  className = '',
 }) => {
   return (
-    <div className="flex items-center justify-between p-2 align-middle">
+    <div
+      className={`flex items-center justify-between p-2 align-middle ${className}`}
+    >
       <span className="block">
         {title}&nbsp;
         <Tooltip title={description}>
