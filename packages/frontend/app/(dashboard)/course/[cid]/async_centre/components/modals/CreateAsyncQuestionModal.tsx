@@ -16,7 +16,10 @@ import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { DeleteOutlined } from '@ant-design/icons'
-import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
+import {
+  deleteAsyncQuestion,
+  formatQuestionForChatbot,
+} from '../../utils/commonAsyncFunctions'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 
 interface FormValues {
@@ -85,11 +88,11 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
     if (question) {
       if (values.refreshAIAnswer) {
         await getAiAnswer(
-          `
-            Question Abstract: ${values.QuestionAbstract}
-            Question Text: ${values.questionText}
-            Question Types: ${newQuestionTypeInput.map((questionType) => questionType.name).join(', ')}
-          `,
+          formatQuestionForChatbot(
+            values.QuestionAbstract,
+            values.questionText,
+            newQuestionTypeInput,
+          ),
         ).then(async (aiAnswer) => {
           await API.asyncQuestions
             .studentUpdate(question.id, {
@@ -132,11 +135,11 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
     } else {
       // since the ai chatbot may not be running, we don't have a catch statement if it fails and instead we just give it a question text of ''
       await getAiAnswer(
-        `
-          Question Abstract: ${values.QuestionAbstract}
-          Question Text: ${values.questionText}
-          Question Types: ${newQuestionTypeInput.map((questionType) => questionType.name).join(', ')}
-        `,
+        formatQuestionForChatbot(
+          values.QuestionAbstract,
+          values.questionText,
+          newQuestionTypeInput,
+        ),
       ).then(async (aiAnswer) => {
         await API.asyncQuestions
           .create(

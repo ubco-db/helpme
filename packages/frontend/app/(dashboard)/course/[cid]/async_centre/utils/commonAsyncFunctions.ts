@@ -1,6 +1,6 @@
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { asyncQuestionStatus, Role } from '@koh/common'
+import { asyncQuestionStatus, QuestionType, Role } from '@koh/common'
 import { message } from 'antd'
 import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
 import { CommentAuthorType } from './types'
@@ -81,4 +81,27 @@ export function getAvatarTooltip(
   } else {
     return ''
   }
+}
+
+export function formatQuestionForChatbot(
+  questionAbstract: string,
+  questionText?: string,
+  questionTypes?: QuestionType[],
+): string {
+  // If neither questionText nor questionTypes are provided, just return the abstract
+  if (!questionText && (!questionTypes || questionTypes.length === 0)) {
+    return questionAbstract
+  }
+
+  let result = `Question Abstract: ${questionAbstract}`
+
+  if (questionText) {
+    result += `\nQuestion Text: ${questionText}`
+  }
+
+  if (questionTypes && questionTypes.length > 0) {
+    result += `\nQuestion Types: ${questionTypes.map((qt) => qt.name).join(', ')}`
+  }
+
+  return result
 }
