@@ -404,6 +404,11 @@ export interface Message {
   thinkText?: string | null // used on frontend only
 }
 
+export interface ChatbotQueryParams {
+  query: string
+  type: 'default' | 'abstract'
+}
+
 export interface ChatbotAskParams {
   question: string
   history: Message[]

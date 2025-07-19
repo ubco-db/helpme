@@ -101,6 +101,23 @@ export class ChatbotApiService {
     });
   }
 
+  async queryChatbot(
+    query: string,
+    userToken: string, // Passing UserToken to the chatbot, but should be ignored for this endpoint.
+    type: 'default' | 'abstract' = 'default',
+  ): Promise<string> {
+    const resp: { answer: string } = await this.request(
+      'POST',
+      `chatbot/query`,
+      userToken,
+      {
+        query,
+        type,
+      },
+    );
+    return resp.answer;
+  }
+
   async getModels(userToken: string) {
     return this.request('GET', `chatbot/models`, userToken);
   }
