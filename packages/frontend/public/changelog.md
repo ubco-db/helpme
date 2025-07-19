@@ -1,14 +1,34 @@
-## Version 1.5.2 - Chatbot Configuration Tutorial
+## Version 1.5.2 - Chatbot Configuration Tutorial, Canvas Pages Synchronization, More Anytime Options 
 
-*July 14th, 2025*
+*July 19th, 2025*
+
+#### New Features
+
+- ***General***
+  - Students now have the option to "Appear Anonymous?" and "Show Publicly?" when creating Anytime Questions
+    - Previously, students *always* appeared anonymous and whether or not it was public was entirely controlled by the professor
+    - Includes the following course settings to customize:
+      - Anytime Questions Anonymous by Default: Whether or not "Appear Anonymous?" is default to true or false (default is true)
+      - Allow Anytime Question Authors to make their Questions Public: Whether or not the "Show Publicly?" option is available to students (default is **false**, meaning that the "Show Publicly" option will not show up for students in your course until you toggle this) 
+    - Staff also have the power to override whatever the student sets for Show Publicly (with a warning)
+  - Students also have the option of whether or not their comments are anonymous (previously, they were always anonymous)
+- ***Faculty-only***
+  - Created a Chatbot Configuration Tutorial, which you can view here: [https://youtu.be/Y8v8HfEpkqo](https://youtu.be/Y8v8HfEpkqo)
+  - Canvas Pages are now a resource that can be synchronized into the chatbot knowledge base
+
 
 #### Improvements
 
-- Created a Chatbot Configuration Tutorial, which you can view here: [https://youtu.be/Y8v8HfEpkqo](https://youtu.be/Y8v8HfEpkqo)
-- Updated and added new Help tooltips on the chatbot settings pages with links to the video at various timestamps 
+- Updated and added new Help tooltips on the chatbot settings pages with links to the new tutorial video at various timestamps 
 - Freshened up the landing page with a better description of the site
+- Changed the default document threshold for the chatbot to 0.55 (from 0.6), as from some testing 0.6 was too high a threshold to meet for many chunks
+- Fixed some issues with the sorting on the Anytime Question Hub page
+- Fixed an issue where students could technically overwrite a human-given response with a new AI answer when editing their Anytime Question
+- Modified the UI to allow staff members to also edit their Anytime Questions, and not just limited to posting a response
 - Adjusted the search on Chatbot Knowledge Base page to allow for searching of both chunk name and content (previously it just searched content)
 - Adjusted the search on Edit Chatbot Questions page to allow for searching of both answers and questions (previously it just searched questions)
+- Fixed small issue where Anytime Questions to the Chatbot always included the words "Question Abstract", "Question Text", and "Question Types" even if those fields were empty
+- Fixed an issue where requests that took longer than 60s would appear to fail (happens when uploading big chatbot documents, it would still succeed just tell the user it failed)
 
 ***
 
