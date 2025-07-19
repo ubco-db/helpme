@@ -237,6 +237,20 @@ export class ChatbotApiService {
     );
   }
 
+  async updateDocumentKeywords(
+    docId: string,
+    courseId: number,
+    userToken: string,
+    body: { keywords: string[] },
+  ) {
+    return this.request(
+      'PATCH',
+      `document/aggregate/${courseId}/${docId}/keywords`,
+      userToken,
+      body,
+    );
+  }
+
   // Updates a document aggregate with raw text - generally only used for LMS documents
   // Only changes the chunks for the aggregate, no changes to the aggregate itself are made aside from metadata
   async updateDocument(

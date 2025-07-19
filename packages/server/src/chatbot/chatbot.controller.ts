@@ -414,6 +414,24 @@ export class ChatbotController {
     );
   }
 
+  @Patch('document/:courseId/:docId/keywords')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async updateDocumentKeywords(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('docId') docId: string,
+    @Body() body: { keywords: string[] },
+    @User({ chat_token: true }) user: UserModel,
+  ) {
+    handleChatbotTokenCheck(user);
+    return await this.chatbotApiService.updateDocumentKeywords(
+      docId,
+      courseId,
+      user.chat_token.token,
+      body,
+    );
+  }
+
   @Delete('document/:courseId/:docId')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)

@@ -47,10 +47,10 @@ import {
   LMSAnnouncement,
   LMSApiResponseStatus,
   LMSAssignment,
-  LMSPage,
   LMSCourseAPIResponse,
   LMSCourseIntegrationPartial,
   LMSOrganizationIntegrationPartial,
+  LMSPage,
   MailServiceWithSubscription,
   OrganizationCourseResponse,
   OrganizationProfessor,
@@ -280,6 +280,19 @@ class APIClient {
         this.req(
           'DELETE',
           `/api/v1/chatbot/documentChunks/${courseId}/${docId}`,
+        ),
+      updateDocumentKeywords: async (
+        courseId: number,
+        docId: string,
+        keywords: string[],
+      ): Promise<SourceDocument> =>
+        this.req(
+          'PATCH',
+          `/api/v1/chatbot/document/${courseId}/${docId}/keywords`,
+          undefined,
+          {
+            keywords,
+          },
         ),
       deleteDocument: async (
         courseId: number,

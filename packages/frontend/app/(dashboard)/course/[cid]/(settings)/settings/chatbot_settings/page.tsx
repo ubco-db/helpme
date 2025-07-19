@@ -1,6 +1,15 @@
 'use client'
 
-import { Button, Input, message, Pagination, Progress, Table } from 'antd'
+import {
+  Button,
+  Input,
+  message,
+  Pagination,
+  Progress,
+  Table,
+  TableColumnProps,
+  Tag,
+} from 'antd'
 import {
   ReactElement,
   use,
@@ -15,13 +24,61 @@ import ChatbotSettingsModal from './components/ChatbotSettingsModal'
 import Highlighter from 'react-highlight-words'
 import AddChatbotDocumentModal from './components/AddChatbotDocumentModal'
 import { SourceDocument } from '@koh/common'
-import { FileAddOutlined, SettingOutlined } from '@ant-design/icons'
+import {
+  CloseOutlined,
+  FileAddOutlined,
+  LoadingOutlined,
+  PlusOutlined,
+  SettingOutlined,
+} from '@ant-design/icons'
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
+import {
+  blue,
+  cyan,
+  gold,
+  green,
+  magenta,
+  orange,
+  purple,
+  red,
+  volcano,
+  yellow,
+} from '@ant-design/colors'
+
+const colors = [
+  blue,
+  gold,
+  green,
+  purple,
+  red,
+  orange,
+  yellow,
+  cyan,
+  magenta,
+  volcano,
+]
 
 interface ChatbotPanelProps {
   params: Promise<{ cid: string }>
 }
+
+const tagColors: { c0: string; c1: string; c2: string }[] = colors.map((c) => ({
+  c0: c[0],
+  c1: c[5],
+  c2: c[9],
+}))
+
+type FormattedDocument = {
+  key: string
+  docId: string
+  docName: string
+  pageContent: string // idk what's going on here why is there both a docName and pageContent
+  sourceLink: string
+  keywords: string[]
+  pageNumbers: number[]
+}
+
 export default function ChatbotSettings(
   props: ChatbotPanelProps,
 ): ReactElement {
@@ -34,13 +91,20 @@ export default function ChatbotSettings(
   const [search, setSearch] = useState('')
   const [selectViewEnabled, setSelectViewEnabled] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
-  const [chatbotDocuments, setChatbotDocuments] = useState<SourceDocument[]>([])
+  const [chatbotDocuments, setChatbotDocuments] = useState<FormattedDocument[]>(
+    [],
+  )
   const [loading, setLoading] = useState(false)
   const [countProcessed, setCountProcessed] = useState(0)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [isCreating, setIsCreating] = useState<string[]>([])
+  const [editingFieldValue, setEditingFieldValue] = useState<
+    Record<string, string>
+  >({})
+  const [isUpdatingKeywords, setIsUpdatingKeywords] = useState(false)
 
-  const rowSelection: TableRowSelection<SourceDocument> = {
+  const rowSelection: TableRowSelection<FormattedDocument> = {
     type: 'checkbox',
     onChange: (newSelectedRowKeys: React.Key[]) => {
       setSelectedRowKeys(newSelectedRowKeys)
@@ -82,7 +146,40 @@ export default function ChatbotSettings(
       })
   }
 
-  const columns = [
+  const updateDocumentKeywords = async (
+    record: FormattedDocument,
+    keyword: string,
+    index?: number,
+    del = false,
+  ) => {
+    if (isUpdatingKeywords) return
+    setIsUpdatingKeywords(true)
+
+    const newKeywords = del
+      ? record.keywords.filter((_, i) => i != index)
+      : [...record.keywords, keyword]
+    await API.chatbot.staffOnly
+      .updateDocumentKeywords(courseId, record.docId.toString(), newKeywords)
+      .then((updated) => {
+        const temp = [...chatbotDocuments]
+        const match = temp.findIndex((c) => c.docId == updated.id)
+        if (temp[match] != undefined) {
+          temp[match].keywords =
+            updated.metadata?.keywords
+              ?.split(', ')
+              .map((k) => k.trim())
+              .filter((k) => k != '') ?? []
+        }
+        setChatbotDocuments(temp)
+      })
+      .catch((e) => {
+        console.error(e)
+        message.error(`Failed to ${del ? 'remove' : 'create'} document keyword`)
+      })
+      .finally(() => setIsUpdatingKeywords(false))
+  }
+
+  const columns: TableColumnProps<FormattedDocument>[] = [
     {
       title: 'Name',
       dataIndex: 'docName',
@@ -94,6 +191,154 @@ export default function ChatbotSettings(
           autoEscape
           textToHighlight={text ? text.toString() : ''}
         />
+      ),
+    },
+    {
+      title: 'Keywords',
+      dataIndex: 'keywords',
+      key: 'keywords',
+      render: (keywords: string[], record: any, index) => (
+        <div className={'flex flex-wrap gap-1'}>
+          {keywords.length > 0 &&
+            keywords.map((k, i) => {
+              let colorIndex = 0
+              for (let j = 0; j < k.length; j++) {
+                colorIndex += k.charCodeAt(j)
+              }
+              colorIndex %= tagColors.length
+              const colours = tagColors[colorIndex]
+              return (
+                <Tag
+                  className={'flex items-center justify-center gap-1'}
+                  style={{
+                    borderColor: colours.c1,
+                    color: colours.c1,
+                  }}
+                  key={`kw-${index}-${i}`}
+                  color={colours.c0}
+                >
+                  <span>{k}</span>
+                  <button
+                    className={'bg-transparent p-0 hover:bg-transparent'}
+                    disabled={isUpdatingKeywords}
+                    onClick={async () =>
+                      await updateDocumentKeywords(record, k, i, true)
+                    }
+                  >
+                    {isUpdatingKeywords ? (
+                      <LoadingOutlined
+                        style={{
+                          color: colours.c1,
+                        }}
+                        spin
+                      />
+                    ) : (
+                      <CloseOutlined
+                        style={{
+                          color: colours.c1,
+                        }}
+                        onMouseEnter={(e) =>
+                          e.currentTarget.style.setProperty('color', colours.c2)
+                        }
+                        onMouseLeave={(e) =>
+                          e.currentTarget.style.setProperty('color', colours.c1)
+                        }
+                      />
+                    )}
+                  </button>
+                </Tag>
+              )
+            })}
+          <Tag
+            className={
+              'flex items-center justify-center gap-1 border-dashed border-gray-500 bg-white text-gray-500 focus-within:border-2 focus-within:border-solid focus-within:border-blue-300 hover:border-gray-800 hover:bg-gray-100 hover:text-gray-800 focus-within:hover:border-blue-300 focus-within:hover:bg-white focus-within:hover:text-gray-500'
+            }
+            key={`kw-${index}-add`}
+            onClick={() =>
+              !isCreating.some((c) => c == record.docId)
+                ? setIsCreating((prev) => [...prev, record.docId])
+                : undefined
+            }
+          >
+            {isCreating.some((c) => c == record.docId) ? (
+              <span className={'flex'}>
+                <input
+                  type={'text'}
+                  className={
+                    'm-0 w-min rounded-none border-none bg-transparent p-0 text-xs outline-none'
+                  }
+                  placeholder={'Enter keyword'}
+                  size={Math.max(
+                    10,
+                    (editingFieldValue[record.docId] ?? '').length,
+                  )}
+                  maxLength={20}
+                  value={editingFieldValue[record.docId] ?? ''}
+                  onChange={(event) =>
+                    setEditingFieldValue((prev) => ({
+                      ...prev,
+                      [record.docId]:
+                        event.target?.value
+                          .replace(/[^a-zA-Z0-9-_]/g, '')
+                          .trim()
+                          .slice(0, 20) ?? editingFieldValue[record.docId],
+                    }))
+                  }
+                  onKeyDown={async (key) => {
+                    if (key.key == 'Enter') {
+                      if (
+                        !editingFieldValue[record.docId] ||
+                        editingFieldValue[record.docId].trim() == ''
+                      )
+                        return
+                      await updateDocumentKeywords(
+                        record,
+                        editingFieldValue[record.docId],
+                        undefined,
+                      )
+                      setEditingFieldValue((prev) => ({
+                        ...prev,
+                        [record.docId]: '',
+                      }))
+                      setIsCreating((prev) =>
+                        prev.filter((r) => r != record.docId),
+                      )
+                    }
+                  }}
+                />
+                <button
+                  className={'bg-transparent p-0 hover:bg-transparent'}
+                  disabled={isUpdatingKeywords}
+                  onClick={() => {
+                    setIsCreating((prev) =>
+                      prev.filter((r) => r != record.docId),
+                    )
+                    setEditingFieldValue((prev) => ({
+                      ...prev,
+                      [record.docId]: '',
+                    }))
+                  }}
+                >
+                  {isUpdatingKeywords ? (
+                    <LoadingOutlined
+                      className={'border-gray-500 text-gray-500'}
+                    />
+                  ) : (
+                    <CloseOutlined
+                      className={
+                        'border-gray-500 text-gray-500 hover:border-gray-800 hover:text-gray-800'
+                      }
+                    />
+                  )}
+                </button>
+              </span>
+            ) : (
+              <>
+                <PlusOutlined /> Add
+              </>
+            )}
+          </Tag>
+        </div>
       ),
     },
     {
@@ -159,12 +404,17 @@ export default function ChatbotSettings(
     await API.chatbot.staffOnly
       .getAllAggregateDocuments(courseId)
       .then((response) => {
-        const formattedDocuments = response.map((doc) => ({
-          key: doc.id,
-          docId: doc.id,
+        const formattedDocuments: FormattedDocument[] = response.map((doc) => ({
+          key: doc.id!,
+          docId: doc.id!,
           docName: doc.pageContent,
           pageContent: doc.pageContent, // idk what's going on here why is there both a docName and pageContent
           sourceLink: doc.metadata?.source ?? '',
+          keywords:
+            doc.metadata?.keywords
+              ?.split(', ')
+              .map((k) => k.trim())
+              .filter((k) => k != '') ?? [],
           pageNumbers: [],
         }))
         setChatbotDocuments(formattedDocuments)

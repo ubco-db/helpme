@@ -368,6 +368,7 @@ export interface SourceDocument {
     courseId?: string
     fromLMS?: boolean
     apiDocId?: number
+    keywords?: string
   }
   type?: string
   // TODO: is it content or pageContent? since this file uses both. EDIT: It seems to be both/either. Gross.

@@ -4,8 +4,9 @@ import {
   FileAddOutlined,
   GithubOutlined,
   UploadOutlined,
+  WarningOutlined,
 } from '@ant-design/icons'
-import { Form, Input, message, Modal, Segmented, Switch } from 'antd'
+import { Form, Input, message, Modal, Segmented, Switch, Tooltip } from 'antd'
 import Dragger from 'antd/es/upload/Dragger'
 import { useState } from 'react'
 import { RcFile } from 'antd/lib/upload'
@@ -269,8 +270,10 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
             name="useSemanticSplitting"
             label={
               <span>
-                Use semantic text splitting
-                <span className={'italic text-red-500'}>(Experimental)</span>
+                Use semantic text splitting{' '}
+                <Tooltip title={'This is an experimental feature.'}>
+                  <WarningOutlined className={'text-red-500'} />
+                </Tooltip>
               </span>
             }
             tooltip="Uses text embedding and a sliding window algorithm to split the document in optimal places based on 'semantic difference' between adjacent windows. This is not recommended for documents with well-defined structures such as slide decks. Warning that it will take a lot longer to process."
