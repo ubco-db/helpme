@@ -484,26 +484,14 @@ export class asyncQuestionController {
       where: {
         creatorId: user.id,
         questionId: qid,
+        id: Not(comment.id),
       },
     });
-
-    if (
-      otherComments.length > 0 &&
-      otherComments[0].isAnonymous != comment.isAnonymous
-    ) {
-      await AsyncQuestionCommentModel.createQueryBuilder()
-        .update()
-        .set({
-          isAnonymous: comment.isAnonymous,
-        })
-        .where({
-          creatorId: user.id,
-          questionId: qid,
-        })
-        .execute();
-    }
-
+    const originalAnons = otherComments.map((c) => c.isAnonymous);
     otherComments.forEach((oc) => (oc.isAnonymous = comment.isAnonymous));
+    await AsyncQuestionCommentModel.save(
+      otherComments.filter((v, i) => originalAnons[i] != v.isAnonymous),
+    );
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
       where: { id: qid },
@@ -625,7 +613,6 @@ export class asyncQuestionController {
 
     const isStaff = courseRole == Role.TA || courseRole == Role.PROFESSOR;
     const isAuthor = userId == question.creatorId;
-    const originalAnonymous = comment.isAnonymous;
     comment.isAnonymous =
       isStaff && !isAuthor
         ? false
@@ -634,19 +621,6 @@ export class asyncQuestionController {
           : (body.isAnonymous ??
             courseSettings?.asyncCentreDefaultAnonymous ??
             true);
-
-    if (originalAnonymous != comment.isAnonymous) {
-      await AsyncQuestionCommentModel.createQueryBuilder()
-        .update()
-        .set({
-          isAnonymous: comment.isAnonymous,
-        })
-        .where({
-          creatorId: userId,
-          questionId: qid,
-        })
-        .execute();
-    }
     await comment.save();
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
@@ -670,8 +644,14 @@ export class asyncQuestionController {
       where: {
         creatorId: userId,
         questionId: qid,
+        id: Not(comment.id),
       },
     });
+    const originalAnons = otherComments.map((c) => c.isAnonymous);
+    otherComments.forEach((oc) => (oc.isAnonymous = comment.isAnonymous));
+    await AsyncQuestionCommentModel.save(
+      otherComments.filter((v, i) => originalAnons[i] != v.isAnonymous),
+    );
 
     res.status(HttpStatus.OK).send([comment, otherComments]);
   }
