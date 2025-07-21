@@ -81,7 +81,8 @@ export default function AsyncCentrePage(
   const [convertQueueQModalOpen, setConvertQueueQModalOpen] = useState(false)
   const convertChatbotQSearchParam = searchParams.get('convertChatbotQ')
   const convertQueueQSearchParam = searchParams.get('convertQueueQ')
-  const questionId = Number(searchParams.get('qid'))
+  const queueQuestionId = Number(searchParams.get('queueQuestionId'))
+  const queueId = Number(searchParams.get('queueId'))
 
   useEffect(() => {
     if (convertChatbotQSearchParam && messages.length > 1) {
@@ -442,7 +443,8 @@ export default function AsyncCentrePage(
         />
         <ConvertQueueQToAnytimeQModal
           courseId={courseId}
-          queueId={questionId}
+          queueId={queueId}
+          queueQuestionId={queueQuestionId}
           open={convertQueueQModalOpen}
           onCancel={() => {
             router.replace(pathname)
