@@ -46,6 +46,7 @@ export class ChatbotApiService {
     userToken: string,
     data?: any,
     params?: any,
+    timeoutMs?: number,
   ) {
     try {
       const url = new URL(`${this.chatbotApiUrl}/${endpoint}`);
@@ -66,6 +67,7 @@ export class ChatbotApiService {
         method,
         headers,
         body: data ? JSON.stringify(data) : undefined,
+        signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined, // abort signal is available as of node 17
       });
 
       if (!response.ok) {
@@ -114,6 +116,8 @@ export class ChatbotApiService {
         query,
         type,
       },
+      undefined,
+      type === 'abstract' ? 5000 : undefined, // 5s timeout for abstract queries
     );
     return resp.answer;
   }
