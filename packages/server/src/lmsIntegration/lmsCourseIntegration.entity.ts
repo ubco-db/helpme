@@ -13,6 +13,7 @@ import { CourseModel } from '../course/course.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { LMSPageModel } from './lmsPage.entity';
+import { LMSFileModel } from './lmsFile.entity';
 import { LMSResourceType } from '@koh/common';
 
 @Entity('lms_course_integration_model')
@@ -66,4 +67,7 @@ export class LMSCourseIntegrationModel extends BaseEntity {
 
   @OneToMany((type) => LMSPageModel, (page) => page.course)
   pages: LMSPageModel[];
+
+  @OneToMany((type) => LMSFileModel, (file) => file.course)
+  files: LMSFileModel[];
 }

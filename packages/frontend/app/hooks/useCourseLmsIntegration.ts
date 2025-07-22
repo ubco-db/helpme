@@ -4,6 +4,7 @@ import {
   LMSAssignment,
   LMSCourseAPIResponse,
   LMSCourseIntegrationPartial,
+  LMSFile,
   LMSPage,
 } from '@koh/common'
 import { API } from '@/app/api'
@@ -16,9 +17,11 @@ export type CourseLmsIntegration = {
   assignments: LMSAssignment[]
   announcements: LMSAnnouncement[]
   pages: LMSPage[]
+  files: LMSFile[]
   students: string[]
   isLoading: boolean
   isLoadingIntegration: boolean
+  isLoadingPages: boolean
 }
 
 export function useCourseLmsIntegration(
@@ -30,10 +33,12 @@ export function useCourseLmsIntegration(
   const [assignments, setAssignments] = useState<LMSAssignment[]>([])
   const [announcements, setAnnouncements] = useState<LMSAnnouncement[]>([])
   const [pages, setPages] = useState<LMSPage[]>([])
+  const [files, setFiles] = useState<LMSFile[]>([])
   const [students, setStudents] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isLoadingIntegration, setIsLoadingIntegration] =
     useState<boolean>(true)
+  const [isLoadingPages, setIsLoadingPages] = useState<boolean>(false)
 
   const errorFx = (error: any) => {
     message.error(getErrorMessage(error))
@@ -68,10 +73,10 @@ export function useCourseLmsIntegration(
             })
             .catch(errorFx)
           await API.lmsIntegration
-            .getPages(courseId)
+            .getFiles(courseId)
             .then((response) => {
               if (response) {
-                setPages(response)
+                setFiles(response)
               }
             })
             .catch(errorFx)
@@ -83,9 +88,26 @@ export function useCourseLmsIntegration(
               }
             })
             .catch(errorFx)
+
+          setIsLoading(false)
+
+          setIsLoadingPages(true)
+          API.lmsIntegration
+            .getPages(courseId)
+            .then((response) => {
+              if (response) {
+                setPages(response)
+              }
+            })
+            .catch(errorFx)
+            .finally(() => {
+              setIsLoadingPages(false)
+            })
         }
-        setIsLoading(false)
-      } else setIsLoading(true)
+      } else {
+        setIsLoading(true)
+        setIsLoadingPages(false)
+      }
     })()
   }, [courseId, integration])
 
@@ -95,9 +117,11 @@ export function useCourseLmsIntegration(
     setAssignments([])
     setAnnouncements([])
     setPages([])
+    setFiles([])
     setStudents([])
     setIsLoading(true)
     setIsLoadingIntegration(true)
+    setIsLoadingPages(false)
   }
 
   useEffect(() => {
@@ -127,8 +151,10 @@ export function useCourseLmsIntegration(
     assignments,
     announcements,
     pages,
+    files,
     students,
     isLoading,
     isLoadingIntegration,
+    isLoadingPages,
   }
 }
