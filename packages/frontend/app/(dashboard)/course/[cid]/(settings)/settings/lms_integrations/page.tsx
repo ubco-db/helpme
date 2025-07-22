@@ -53,6 +53,7 @@ export default function CourseLMSIntegrationPage(props: {
     files,
     isLoading,
     isLoadingIntegration,
+    isLoadingPages,
   } = useCourseLmsIntegration(courseId, updateFlag)
 
   const [lmsIntegrations, setLmsIntegrations] = useState<
@@ -421,7 +422,7 @@ export default function CourseLMSIntegrationPage(props: {
         ),
       })
     }
-    if (pages.length > 0) {
+    if (pages.length > 0 || isLoadingPages) {
       tabItems.push({
         key: 'pages',
         label: 'Course Pages',
@@ -430,7 +431,7 @@ export default function CourseLMSIntegrationPage(props: {
             courseId={courseId}
             type={'Page'}
             documents={pages}
-            loadingLMSData={isLoading}
+            loadingLMSData={isLoadingPages}
             lmsSynchronize={integration.lmsSynchronize}
             onUpdateCallback={() => setUpdateFlag(!updateFlag)}
             selectedResourceTypes={integration.selectedResourceTypes}

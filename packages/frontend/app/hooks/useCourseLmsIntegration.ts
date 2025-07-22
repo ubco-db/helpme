@@ -21,6 +21,7 @@ export type CourseLmsIntegration = {
   students: string[]
   isLoading: boolean
   isLoadingIntegration: boolean
+  isLoadingPages: boolean
 }
 
 export function useCourseLmsIntegration(
@@ -37,6 +38,7 @@ export function useCourseLmsIntegration(
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isLoadingIntegration, setIsLoadingIntegration] =
     useState<boolean>(true)
+  const [isLoadingPages, setIsLoadingPages] = useState<boolean>(false)
 
   const errorFx = (error: any) => {
     message.error(getErrorMessage(error))
@@ -71,14 +73,6 @@ export function useCourseLmsIntegration(
             })
             .catch(errorFx)
           await API.lmsIntegration
-            .getPages(courseId)
-            .then((response) => {
-              if (response) {
-                setPages(response)
-              }
-            })
-            .catch(errorFx)
-          await API.lmsIntegration
             .getFiles(courseId)
             .then((response) => {
               if (response) {
@@ -94,9 +88,26 @@ export function useCourseLmsIntegration(
               }
             })
             .catch(errorFx)
+
+          setIsLoading(false)
+
+          setIsLoadingPages(true)
+          API.lmsIntegration
+            .getPages(courseId)
+            .then((response) => {
+              if (response) {
+                setPages(response)
+              }
+            })
+            .catch(errorFx)
+            .finally(() => {
+              setIsLoadingPages(false)
+            })
         }
-        setIsLoading(false)
-      } else setIsLoading(true)
+      } else {
+        setIsLoading(true)
+        setIsLoadingPages(false)
+      }
     })()
   }, [courseId, integration])
 
@@ -110,6 +121,7 @@ export function useCourseLmsIntegration(
     setStudents([])
     setIsLoading(true)
     setIsLoadingIntegration(true)
+    setIsLoadingPages(false)
   }
 
   useEffect(() => {
@@ -143,5 +155,6 @@ export function useCourseLmsIntegration(
     students,
     isLoading,
     isLoadingIntegration,
+    isLoadingPages,
   }
 }
