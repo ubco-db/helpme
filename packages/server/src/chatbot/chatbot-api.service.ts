@@ -336,6 +336,8 @@ export class ChatbotApiService {
         file.originalname,
       );
 
+      formData.append('source', options.source || 'LMS Integration');
+
       if (options.source) {
         formData.append('prefix', options.source);
       }
@@ -344,9 +346,7 @@ export class ChatbotApiService {
       }
       formData.append('parseAsPng', String(options.parseAsPng || false));
 
-      const url = new URL(
-        `${this.chatbotApiUrl}/document/lms/${courseId}/file-buffer`,
-      );
+      const url = new URL(`${this.chatbotApiUrl}/document/${courseId}/file`);
 
       const headers: Record<string, string> = {
         'HMS-API-KEY': this.chatbotApiKey,
