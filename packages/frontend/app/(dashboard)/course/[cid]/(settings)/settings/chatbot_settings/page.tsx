@@ -11,7 +11,7 @@ import {
 } from 'react'
 import Link from 'next/link'
 import { TableRowSelection } from 'antd/es/table/interface'
-import ChatbotSettingsModal from './components/ChatbotSettingsModal'
+import LegacyChatbotSettingsModal from './components/LegacyChatbotSettingsModal'
 import Highlighter from 'react-highlight-words'
 import AddChatbotDocumentModal from './components/AddChatbotDocumentModal'
 import { SourceDocument } from '@koh/common'
@@ -57,7 +57,7 @@ export default function ChatbotSettings(
       }
       message.success('Documents deleted.')
       getDocuments()
-    } catch (e) {
+    } catch (_e) {
       message.error('Failed to delete documents.')
     } finally {
       setSelectViewEnabled(false)
@@ -267,7 +267,7 @@ export default function ChatbotSettings(
         }}
       />
       {chatbotParameterModalOpen && (
-        <ChatbotSettingsModal
+        <LegacyChatbotSettingsModal
           open={chatbotParameterModalOpen}
           courseId={courseId}
           onClose={() => setChatbotParameterModalOpen(false)}

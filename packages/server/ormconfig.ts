@@ -45,6 +45,10 @@ import { ChatbotDocPdfModel } from './src/chatbot/chatbot-doc-pdf.entity';
 import { SuperCourseModel } from './src/course/super-course.entity';
 import { OrganizationSettingsModel } from './src/organization/organization_settings.entity';
 import { OrganizationRoleHistory } from './src/organization/organization_role_history.entity';
+import { ChatbotProviderModel } from './src/chatbot/chatbot-infrastructure-models/chatbot-provider.entity';
+import { CourseChatbotSettingsModel } from './src/chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
+import { OrganizationChatbotSettingsModel } from './src/chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
+import { LLMTypeModel } from './src/chatbot/chatbot-infrastructure-models/llm-type.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -116,6 +120,10 @@ const typeorm: DataSourceOptions = {
     SuperCourseModel,
     OrganizationSettingsModel,
     OrganizationRoleHistory,
+    ChatbotProviderModel,
+    CourseChatbotSettingsModel,
+    OrganizationChatbotSettingsModel,
+    LLMTypeModel,
   ],
   logging:
     process.env.NODE_ENV !== 'production'

@@ -24,6 +24,7 @@ import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegratio
 import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question.entity';
 import { ChatbotDocPdfModel } from '../chatbot/chatbot-doc-pdf.entity';
 import { SuperCourseModel } from './super-course.entity';
+import { CourseChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 
 @Entity('course_model')
 export class CourseModel extends BaseEntity {
@@ -152,4 +153,12 @@ export class CourseModel extends BaseEntity {
 
   @Column({ nullable: true })
   superCourseId?: number;
+
+  @Exclude()
+  @JoinColumn({ name: 'organizationId' })
+  @OneToOne(
+    (type) => CourseChatbotSettingsModel,
+    (courseChatbotSettings) => courseChatbotSettings.course,
+  )
+  chatbotSettings: CourseChatbotSettingsModel;
 }

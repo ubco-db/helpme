@@ -4,6 +4,7 @@ import {
   AddDocumentChunkParams,
   ChatbotQuestionResponseChatbotDB,
   ChatbotSettings,
+  ChatbotSettingsMetadata,
   ChatbotSettingsUpdateParams,
   UpdateChatbotQuestionParams,
   UpdateDocumentAggregateParams,
@@ -158,6 +159,19 @@ export class ChatbotApiService {
     return this.request('GET', `course-setting/${courseId}`, userToken);
   }
 
+  async createChatbotSettings(
+    settings: ChatbotSettingsMetadata,
+    courseId: number,
+    userToken: string,
+  ) {
+    return this.request(
+      'POST',
+      `course-setting/${courseId}`,
+      userToken,
+      settings,
+    );
+  }
+
   async updateChatbotSettings(
     settings: ChatbotSettingsUpdateParams,
     courseId: number,
@@ -173,6 +187,10 @@ export class ChatbotApiService {
 
   async resetChatbotSettings(courseId: number, userToken: string) {
     return this.request('PATCH', `course-setting/${courseId}/reset`, userToken);
+  }
+
+  async deleteChatbotSettings(courseId: number, userToken: string) {
+    return this.request('DELETE', `course-setting/${courseId}`, userToken);
   }
 
   // Document endpoints
