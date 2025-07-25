@@ -319,6 +319,12 @@ It is used for displaying markdown nicely inside any <Markdown> components
   margin-bottom: inherit;
 }
 
+.childrenMarkdownFormatted .katex-display {
+  overflow-x: auto;
+  height: fit-content;
+  margin: 0;
+  padding: 1em 0;
+}
 .no-scrollbar::-webkit-scrollbar {
   display: none;
   width: 0px;
