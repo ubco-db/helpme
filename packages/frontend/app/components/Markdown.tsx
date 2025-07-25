@@ -21,7 +21,7 @@ import 'katex/dist/katex.min.css'
  */
 const preprocessText = (text: string): string => {
   return text
-    .replace(/\\\((.*?)\\\)/g, (_, expr) => `$${expr}$`) // Inline LaTeX expressions
+    .replace(/\\\((.*?)\\\)/g, (_, expr) => `$$${expr}$$`) // Inline LaTeX expressions
     .replace(/\\\[(.*?)\\\]/gs, (_, expr) => `$$${expr}$$`) // Block LaTeX expressions
 }
 
@@ -44,7 +44,7 @@ const MarkdownCustom: React.FC<MarkdownCustomProps> = ({
     <Markdown
       remarkPlugins={[
         // parses LaTeX math expressions in markdown
-        remarkMath,
+        [remarkMath, { singleDollarTextMath: false }],
         remarkBreaks, // parses line breaks in markdown (used for turning \n into <br> instead of spaces)
         remarkGfm, // parses GitHub Flavored Markdown (used for autolinks, footnotes, strikethrough, tables, and tasklist)
       ]}
