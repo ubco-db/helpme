@@ -14,6 +14,7 @@ import {
   ChatbotProvider,
   ChatbotQuestionResponseChatbotDB,
   ChatbotQuestionResponseHelpMeDB,
+  ChatbotServiceProvider,
   ChatbotServiceType,
   ChatbotSettings,
   ChatbotSettingsUpdateParams,
@@ -35,13 +36,13 @@ import {
   DesktopNotifPartial,
   EditCourseInfoParams,
   GetAlertsResponse,
+  GetAvailableModelsBody,
   GetChatbotHistoryResponse,
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetInsightOutputResponse,
   GetInteractionsAndQuestionsResponse,
   GetLimitedCourseResponse,
-  GetOllamaAvailableModelsBody,
   GetOrganizationUserResponse,
   GetProfileResponse,
   GetQueueChatResponse,
@@ -334,19 +335,24 @@ class APIClient {
       ): Promise<ChatbotServiceType> =>
         this.req('GET', `/api/v1/chatbot/course/${courseId}/service`),
       upsertCourseSettings: async (
+        organizationId: number,
         courseId: number,
         params: UpsertCourseChatbotSettings,
       ): Promise<CourseChatbotSettings> =>
         this.req(
           'POST',
-          `/api/v1/chatbot/course/${courseId}`,
+          `/api/v1/chatbot/organization/${organizationId}/course/${courseId}`,
           undefined,
           params,
         ),
       resetCourseSettings: async (
+        organizationId: number,
         courseId: number,
       ): Promise<CourseChatbotSettings> =>
-        this.req('PATCH', `/api/v1/chatbot/course/${courseId}/reset`),
+        this.req(
+          'PATCH',
+          `/api/v1/chatbot/organization/${organizationId}/course/${courseId}/reset`,
+        ),
       getCourseSettingsDefaults: async (
         courseId: number,
       ): Promise<CourseChatbotSettingsForm> =>
@@ -473,20 +479,21 @@ class APIClient {
           'DELETE',
           `/api/v1/chatbot/organization/${organizationId}/model/${modelId}`,
         ),
-      getOllamaAvailableModels: async (
+      getAvailableModels: async <T extends LLMType>(
+        providerType: ChatbotServiceProvider,
         organizationId: number,
-        params: GetOllamaAvailableModelsBody,
-      ): Promise<OllamaLLMType[]> =>
+        params: GetAvailableModelsBody,
+      ): Promise<T[]> =>
         this.req(
           'POST',
-          `/api/v1/chatbot/organization/${organizationId}/ollama`,
+          `/api/v1/chatbot/organization/${organizationId}/${providerType}`,
           undefined,
           params,
         ),
-      getProviderAvailableModels: async (
+      getProviderAvailableModels: async <T extends LLMType>(
         organizationId: number,
         providerId: number,
-      ): Promise<OllamaLLMType[]> =>
+      ): Promise<T[]> =>
         this.req(
           'GET',
           `/api/v1/chatbot/organization/${organizationId}/provider/${providerId}/models`,

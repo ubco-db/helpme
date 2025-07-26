@@ -7,10 +7,16 @@ import {
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
+  VirtualColumn,
 } from 'typeorm';
 import { OrganizationChatbotSettingsModel } from './organization-chatbot-settings.entity';
 import { LLMTypeModel } from './llm-type.entity';
-import { ChatbotAllowedHeaders, ChatbotServiceProvider } from '@koh/common';
+import {
+  ChatbotAllowedHeaders,
+  ChatbotServiceProvider,
+  ProviderMetadata,
+} from '@koh/common';
+import { Exclude } from 'class-transformer';
 
 @Entity('chatbot_provider_model')
 export class ChatbotProviderModel extends BaseEntity {
@@ -37,6 +43,16 @@ export class ChatbotProviderModel extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   baseUrl?: string;
 
+  @Exclude()
+  @Column({ type: 'text', nullable: true })
+  apiKey?: string;
+
+  @Column({
+    generatedType: 'STORED',
+    asExpression: `"apiKey" IS NOT NULL`,
+  })
+  hasApiKey: boolean;
+
   @Column({ type: 'jsonb', default: '{}' })
   headers: ChatbotAllowedHeaders;
 
@@ -62,4 +78,15 @@ export class ChatbotProviderModel extends BaseEntity {
   })
   @JoinColumn({ name: 'defaultVisionModelId' })
   defaultVisionModel: LLMTypeModel;
+
+  getMetadata(): ProviderMetadata {
+    return {
+      type: this.providerType,
+      baseUrl: this.baseUrl,
+      apiKey: this.apiKey,
+      defaultModelName: this.defaultModel?.modelName,
+      defaultVisionModelName: this.defaultVisionModel?.modelName,
+      headers: this.headers,
+    };
+  }
 }

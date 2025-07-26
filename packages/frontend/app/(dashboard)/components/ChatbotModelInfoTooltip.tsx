@@ -14,7 +14,7 @@ const ChatbotModelInfoTooltip: React.FC<{
   return (
     <div>
       <div className="mr-2 flex w-full items-center justify-between gap-x-2">
-        <div>Estimated Response Quality</div>
+        <div>Estimated Quality</div>
         <Progress
           percent={quality}
           size="small"

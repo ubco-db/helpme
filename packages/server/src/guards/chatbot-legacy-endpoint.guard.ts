@@ -51,7 +51,7 @@ export class ChatbotLegacyEndpointGuard implements CanActivate {
       },
     );
 
-    if (!organizationSettings) {
+    if (organizationSettings) {
       throw new BadRequestException(
         ERROR_MESSAGES.chatbotEndpointGuard.legacyEndpointIncompatible(
           endpoint,

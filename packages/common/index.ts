@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer'
+import { Exclude, Type } from 'class-transformer'
 import {
   IsArray,
   IsBoolean,
@@ -506,12 +506,20 @@ export interface OrganizationChatbotSettings {
 
 export interface CourseChatbotSettings {
   id: number
+  course: CoursePartial
+  courseId: number
   llmModel: LLMType
   prompt: string
   temperature: number
   topK: number
   similarityThresholdDocuments: number
   // similarityThresholdQuestions: number;
+  usingDefaultModel: boolean
+  usingDefaultPrompt: boolean
+  usingDefaultTemperature: boolean
+  usingDefaultTopK: boolean
+  usingDefaultSimilarityThresholdDocuments: boolean
+  // usingDefaultSimilarityThresholdQuestions: boolean;
 }
 
 export interface CourseChatbotSettingsForm {
@@ -522,15 +530,33 @@ export interface CourseChatbotSettingsForm {
   similarityThresholdDocuments: number
 }
 
-export interface ChatbotProvider {
-  id: number
+export class ChatbotProvider {
+  id!: number
+
+  @Exclude()
+  @IsOptional()
   nickname?: string
+
+  @Exclude()
+  @IsOptional()
   baseUrl?: string
-  providerType: ChatbotServiceProvider
-  headers: ChatbotAllowedHeaders
-  availableModels: LLMType[]
-  defaultModel: LLMType
-  defaultVisionModel: LLMType
+
+  @Exclude()
+  @IsOptional()
+  apiKey?: string
+
+  @IsBoolean()
+  hasApiKey!: boolean
+
+  providerType!: ChatbotServiceProvider
+
+  headers!: ChatbotAllowedHeaders
+
+  availableModels!: LLMType[]
+
+  defaultModel!: LLMType
+
+  defaultVisionModel!: LLMType
 }
 
 export interface LLMType {
@@ -547,6 +573,10 @@ export interface OllamaLLMType extends LLMType {
   families: string[]
 }
 
+export interface OpenAILLMType extends LLMType {
+  families: string[]
+}
+
 export class OrganizationChatbotSettingsDefaults {
   @IsInt()
   @IsOptional()
@@ -554,23 +584,23 @@ export class OrganizationChatbotSettingsDefaults {
 
   @IsString()
   @IsOptional()
-  default_prompt?: string
+  default_prompt?: string | null
 
   @IsNumber()
   @IsOptional()
-  default_temperature?: number
+  default_temperature?: number | null
 
   @IsInt()
   @IsOptional()
-  default_topK?: number
+  default_topK?: number | null
 
   @IsNumber()
   @IsOptional()
-  default_similarityThresholdDocuments?: number
+  default_similarityThresholdDocuments?: number | null
 
   @IsNumber()
   @IsOptional()
-  default_similarityThresholdQuestions?: number
+  default_similarityThresholdQuestions?: number | null
 }
 
 export class CreateOrganizationChatbotSettingsBody extends OrganizationChatbotSettingsDefaults {
@@ -580,7 +610,7 @@ export class CreateOrganizationChatbotSettingsBody extends OrganizationChatbotSe
 }
 
 export class ChatbotAllowedHeaders {
-  'Authorization-Bearer'?: string
+  Authorization?: string
 }
 
 export type ChatbotAllowedHeadersType = {
@@ -634,9 +664,28 @@ export class OllamaModelDescription {
   details!: OllamaModelDetails
 }
 
-export class GetOllamaAvailableModelsBody {
+export class OpenAIModelDescription {
   @IsString()
-  baseUrl!: string
+  id!: string
+
+  @IsString()
+  object!: string
+
+  @IsString()
+  created!: string
+
+  @IsString()
+  owned_by!: string
+}
+
+export class GetAvailableModelsBody {
+  @IsString()
+  @IsOptional()
+  baseUrl?: string
+
+  @IsString()
+  @IsOptional()
+  apiKey?: string
 
   @IsObject()
   headers!: ChatbotAllowedHeaders
@@ -657,6 +706,10 @@ export class CreateChatbotProviderBody {
   @IsString()
   @IsOptional()
   baseUrl?: string
+
+  @IsString()
+  @IsOptional()
+  apiKey?: string
 
   @IsArray()
   models!: CreateLLMTypeBody[]
@@ -684,6 +737,10 @@ export class UpdateChatbotProviderBody {
   @IsString()
   @IsOptional()
   baseUrl?: string
+
+  @IsString()
+  @IsOptional()
+  apiKey?: string
 
   @IsString()
   @IsOptional()
@@ -753,18 +810,31 @@ export interface ChatbotSettings {
   metadata: ChatbotSettingsMetadata
 }
 
+export interface ProviderMetadata {
+  type: ChatbotServiceProvider
+  baseUrl: string
+  apiKey: string
+  defaultModelName: string
+  defaultVisionModelName: string
+  headers: ChatbotAllowedHeaders
+}
+
+export interface ModelMetadata {
+  provider: ProviderMetadata
+  modelName: string
+}
+
+export interface OrganizationChatbotSettingsMetadata {
+  defaultProvider: ProviderMetadata
+}
+
 export interface ChatbotSettingsMetadata {
-  model?: {
-    type: ChatbotServiceProvider
-    headers: ChatbotAllowedHeaders
-    defaultModelName: string
-    defaultVisionModelName: string
-    baseUrl: string
-    modelName: string
-  }
+  organizationSettings?: OrganizationChatbotSettingsMetadata
+  model?: ModelMetadata
   modelName?: string
   prompt: string
   similarityThresholdDocuments: number
+  similarityThresholdQuestions: number
   temperature: number
   topK: number
 }
@@ -778,15 +848,15 @@ export class UpsertCourseChatbotSettings {
   @IsOptional()
   prompt?: string
 
-  @IsString()
+  @IsNumber()
   @IsOptional()
   similarityThresholdDocuments?: number
 
-  @IsString()
+  @IsNumber()
   @IsOptional()
   temperature?: number
 
-  @IsString()
+  @IsNumber()
   @IsOptional()
   topK?: number
 }
@@ -3346,6 +3416,9 @@ export const ERROR_MESSAGES = {
     modelNotFound: 'Specified LLM type not found.',
     courseSettingsNotFound:
       'Chatbot settings for this course could not be found.',
+    invalidProvider: 'Specified provider type was invalid.',
+    invalidProviderParams: (params: string[]) =>
+      `Missing necessary parameters ${params.join(', ')} to invoke provider.`,
     incompatibleProvider: (provider: ChatbotServiceProvider) =>
       `Specified chatbot provider is not an ${provider} provider.`,
   },

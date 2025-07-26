@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { CourseChatbotSettingsModel } from './course-chatbot-settings.entity';
 import { ChatbotProviderModel } from './chatbot-provider.entity';
+import { ModelMetadata } from '@koh/common';
 
 @Entity('llm_type_model')
 export class LLMTypeModel extends BaseEntity {
@@ -40,4 +41,11 @@ export class LLMTypeModel extends BaseEntity {
 
   @OneToMany((type) => CourseChatbotSettingsModel, (course) => course.llmModel)
   courses: CourseChatbotSettingsModel[];
+
+  getMetadata(): ModelMetadata {
+    return {
+      provider: this.provider.getMetadata(),
+      modelName: this.modelName,
+    };
+  }
 }

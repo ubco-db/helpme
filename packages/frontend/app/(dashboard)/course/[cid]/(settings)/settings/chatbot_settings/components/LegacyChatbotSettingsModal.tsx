@@ -249,13 +249,13 @@ const LegacyChatbotSettingsModal: React.FC<LegacyChatbotSettingsModalProps> = ({
       title={
         <div className="flex items-center gap-2">
           <SettingOutlined />
-          <p className="w-full md:flex">
-            Chatbot Settings
+          <div className="w-full md:flex">
+            <p>Chatbot Settings</p>
             <ChatbotHelpTooltip
               forPage="chatbot_settings_modal"
               className="mr-6 inline-block md:ml-auto md:block"
             />
-          </p>
+          </div>
         </div>
       }
       open={open}

@@ -11,6 +11,7 @@ import { ChatbotProviderModel } from './chatbot-provider.entity';
 import { OrganizationModel } from '../../organization/organization.entity';
 import { CourseChatbotSettingsModel } from './course-chatbot-settings.entity';
 import { pick } from 'lodash';
+import { OrganizationChatbotSettingsMetadata } from '@koh/common';
 
 @Entity('organization_chatbot_settings_model')
 export class OrganizationChatbotSettingsModel extends BaseEntity {
@@ -66,19 +67,31 @@ export class OrganizationChatbotSettingsModel extends BaseEntity {
 
   transformDefaults() {
     const defaultProps = pick(this, [
+      'defaultProviderId',
       'default_prompt',
       'default_temperature',
       'default_topK',
       'default_similarityThresholdDocuments',
       'default_similarityThresholdQuestions',
     ]);
+
     const mappedDefaultProps: Record<string, any> = {};
     Object.keys(defaultProps).forEach((key) => {
       if (defaultProps[key] != undefined) {
-        mappedDefaultProps[key.substring('default_'.length)] =
-          defaultProps[key];
+        if (key == 'defaultProviderId') {
+          mappedDefaultProps['llmId'] = this.defaultProvider?.defaultModelId;
+        } else if (key != 'defaultProviderId') {
+          mappedDefaultProps[key.substring('default_'.length)] =
+            defaultProps[key];
+        }
       }
     });
     return mappedDefaultProps;
+  }
+
+  getMetadata(): OrganizationChatbotSettingsMetadata {
+    return {
+      defaultProvider: this.defaultProvider?.getMetadata(),
+    };
   }
 }

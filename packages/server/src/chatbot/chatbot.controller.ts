@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Delete,
   Get,
@@ -9,6 +10,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   Patch,
   Post,
@@ -42,10 +44,11 @@ import {
   ERROR_MESSAGES,
   GetChatbotHistoryResponse,
   GetInteractionsAndQuestionsResponse,
-  GetOllamaAvailableModelsBody,
+  GetAvailableModelsBody,
   InteractionResponse,
   LLMType,
   OllamaLLMType,
+  OpenAILLMType,
   OrganizationChatbotSettings,
   OrganizationChatbotSettingsDefaults,
   OrganizationRole,
@@ -83,6 +86,7 @@ import { OrganizationCourseModel } from '../organization/organization-course.ent
 
 @Controller('chatbot')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class ChatbotController {
   constructor(
     private readonly chatbotService: ChatbotService,
@@ -844,6 +848,13 @@ export class ChatbotController {
   ): Promise<OrganizationChatbotSettings> {
     const original = await OrganizationChatbotSettingsModel.findOne({
       where: { organizationId },
+      relations: {
+        providers: {
+          defaultModel: true,
+          defaultVisionModel: true,
+          availableModels: true,
+        },
+      },
     });
     if (!original) {
       throw new NotFoundException(
@@ -879,6 +890,7 @@ export class ChatbotController {
     return await CourseChatbotSettingsModel.find({
       where: { course: { organizationCourse: { organizationId } } },
       relations: {
+        course: true,
         llmModel: {
           provider: true,
         },
@@ -999,9 +1011,14 @@ export class ChatbotController {
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<CourseChatbotSettings> {
     return await CourseChatbotSettingsModel.findOneOrFail({
-      where: { id: courseId },
+      where: { courseId },
       relations: {
-        llmModel: true,
+        llmModel: {
+          provider: {
+            defaultModel: true,
+            defaultVisionModel: true,
+          },
+        },
       },
     }).catch(() => {
       throw new NotFoundException(
@@ -1054,7 +1071,6 @@ export class ChatbotController {
   @UseGuards(OrgOrCourseRolesGuard)
   @OrgRoles(OrganizationRole.ADMIN)
   @CourseRoles(Role.PROFESSOR, Role.TA)
-  @Post('course/:courseId')
   async resetCourseSettings(
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<CourseChatbotSettings> {
@@ -1062,6 +1078,8 @@ export class ChatbotController {
   }
 
   @Get('course/:courseId/default')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
   async getCourseSettingsDefaults(
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<CourseChatbotSettingsForm> {
@@ -1107,7 +1125,7 @@ export class ChatbotController {
   @UseGuards(OrganizationRolesGuard, OrganizationGuard)
   @Roles(OrganizationRole.ADMIN)
   async getOllamaAvailableModels(
-    @Body() body: GetOllamaAvailableModelsBody,
+    @Body() body: GetAvailableModelsBody,
   ): Promise<OllamaLLMType[]> {
     return await this.chatbotService.getOllamaAvailableModels(
       body.baseUrl,
@@ -1115,12 +1133,42 @@ export class ChatbotController {
     );
   }
 
+  @Post('organization/:oid/ollama')
+  @UseGuards(OrganizationRolesGuard, OrganizationGuard)
+  @Roles(OrganizationRole.ADMIN)
+  async getAvailableOllamaModels(
+    @Body() body: GetAvailableModelsBody,
+  ): Promise<OllamaLLMType[]> {
+    const { baseUrl, headers } = body;
+    if (!baseUrl) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.chatbotController.invalidProviderParams(['Base URL']),
+      );
+    }
+    return await this.chatbotService.getOllamaAvailableModels(baseUrl, headers);
+  }
+
+  @Post('organization/:oid/openai')
+  @UseGuards(OrganizationRolesGuard, OrganizationGuard)
+  @Roles(OrganizationRole.ADMIN)
+  async getAvailableOpenAIModels(
+    @Body() body: GetAvailableModelsBody,
+  ): Promise<OpenAILLMType[]> {
+    const { apiKey, headers } = body;
+    if (!apiKey) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.chatbotController.invalidProviderParams(['API Key']),
+      );
+    }
+    return await this.chatbotService.getOpenAIAvailableModels(apiKey, headers);
+  }
+
   @Get('organization/:oid/provider/:providerId/available')
   @UseGuards(OrganizationRolesGuard, OrganizationGuard)
   @Roles(OrganizationRole.ADMIN)
   async getProviderAvailableModels(
     @Param('providerId', ParseIntPipe) providerId: number,
-  ): Promise<OllamaLLMType[]> {
+  ): Promise<(OllamaLLMType | OpenAILLMType)[]> {
     const provider = await ChatbotProviderModel.findOne({
       where: {
         id: providerId,
@@ -1138,8 +1186,15 @@ export class ChatbotController {
           provider.baseUrl,
           provider.headers,
         );
+      case ChatbotServiceProvider.OpenAI:
+        return await this.chatbotService.getOpenAIAvailableModels(
+          provider.apiKey,
+          provider.headers,
+        );
       default:
-        return [];
+        throw new BadRequestException(
+          ERROR_MESSAGES.chatbotController.invalidProvider,
+        );
     }
   }
 }

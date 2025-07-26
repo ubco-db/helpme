@@ -7,11 +7,15 @@ import {
   Input,
   List,
   message,
+  Popconfirm,
   Select,
   Tooltip,
 } from 'antd'
 import {
+  CloseOutlined,
   DeleteOutlined,
+  EditOutlined,
+  FrownOutlined,
   InfoCircleOutlined,
   PlusOutlined,
 } from '@ant-design/icons'
@@ -26,7 +30,7 @@ import {
 } from '@koh/common'
 import { useEffect, useMemo, useState } from 'react'
 import LLMTypeDisplay from './LLMTypeDisplay'
-import AddOllamaModelModal from '@/app/(dashboard)/organization/ai/components/AddOllamaModelModal'
+import AddModelModal from '@/app/(dashboard)/organization/ai/components/AddModelModal'
 import ChatbotHeadersTable from '@/app/(dashboard)/organization/ai/components/ChatbotHeadersTable'
 import { API } from '@/app/api'
 
@@ -63,25 +67,26 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
   )
   const [isLoading, setIsLoading] = useState(false)
   const [addModelModalOpen, setAddModelModalOpen] = useState(false)
-  const [errorMessages, setErrorMessages] = useState<string[]>([])
 
   const [providerType, setProviderType] = useState<ChatbotServiceProvider>()
   const [baseUrl, setBaseUrl] = useState<string>()
+  const [apiKey, setApiKey] = useState<string>()
   const [defaultModelName, setDefaultModelName] = useState<string>()
   const [defaultVisionModelName, setDefaultVisionModelName] = useState<string>()
 
+  const [editingApiKey, setEditingApiKey] = useState(false)
+
   useEffect(() => {
-    if (errorMessages.length > 0) {
-      message.error(errorMessages[0])
-      setErrorMessages((prev) => prev.slice(1))
-    }
-  }, [errorMessages])
+    window.scrollTo({ top: 0 })
+  }, [])
 
   useEffect(() => {
     if (provider) {
       form.setFieldsValue({
         ...provider,
       })
+      setProviderType(provider.providerType)
+      setBaseUrl(provider.baseUrl)
       setDefaultModelName(provider.defaultModel.modelName)
       setDefaultVisionModelName(provider.defaultVisionModel.modelName)
       setModels(provider.availableModels)
@@ -93,6 +98,9 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
       form.setFieldsValue({
         ...props,
       })
+      setProviderType(props.providerType)
+      setDefaultModelName(props.defaultModelName)
+      setDefaultVisionModelName(props.defaultVisionModelName)
       setModels(
         props.models.map(
           (m, i) =>
@@ -104,7 +112,7 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
         ),
       )
     }
-  }, [props])
+  }, [form, props])
 
   const changeProviderType = (newType: ChatbotServiceProvider) => {
     if (newType != providerType) {
@@ -151,8 +159,8 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
     setModels((prev) => prev.filter((m) => m.modelName != modelName))
   }
 
-  const handleHeaderUpdate = (headers: ChatbotAllowedHeaders) => {
-    setHeaders(headers)
+  const handleHeaderUpdate = (h: ChatbotAllowedHeaders) => {
+    setHeaders(h)
   }
 
   const handleFinish = () => {
@@ -195,7 +203,6 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
             message.error(getErrorMessage(err))
           }
           return
-        } else {
         }
 
         if (provider != undefined) {
@@ -209,10 +216,16 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
             .filter((m0) => !models.find((m1) => m1.modelName == m0.modelName))
             .map((m) => m.id)
 
+          if (!editingApiKey) {
+            values = { ...values, apiKey: undefined }
+          }
+
           API.chatbot.adminOnly
             .updateChatbotProvider(organizationId, provider.id, {
               ...values,
               headers,
+              defaultModelName,
+              defaultVisionModelName,
               addedModels,
               deletedModels,
             })
@@ -234,6 +247,8 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
             .createChatbotProvider(organizationId, {
               ...(values as CreateChatbotProviderBody),
               headers,
+              defaultModelName,
+              defaultVisionModelName,
               models,
             })
             .then((provider) => {
@@ -260,183 +275,307 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
   )
 
   return (
-    <Card
-      title={
-        provider != undefined
-          ? 'Editing Chatbot Provider'
-          : 'Creating Chatbot Provider'
-      }
-    >
-      <Form
-        form={form}
-        initialValues={
-          (provider && {
-            ...provider,
-          }) ||
-          (props && {
-            ...props,
-          })
+    <div className={'flex flex-col gap-8'}>
+      <Card
+        title={
+          provider != undefined
+            ? 'Editing Chatbot Provider'
+            : 'Creating Chatbot Provider'
         }
-        onValuesChange={(changedValues) => {
-          for (const key in changedValues) {
-            switch (key) {
-              case 'providerType':
-                changeProviderType(changedValues[key])
-                setProviderType(changedValues[key])
-                break
-              case 'baseUrl':
-                setBaseUrl(changedValues[key])
-                break
-            }
-          }
-        }}
       >
-        <Form.Item
-          name="providerType"
-          label={
-            <Tooltip
-              title={`The service provider for this provider configuration. Can be any of: ${providerNames}.`}
-            >
-              Chatbot Service Provider <InfoCircleOutlined />
-            </Tooltip>
+        <Form
+          form={form}
+          initialValues={
+            (provider && {
+              ...provider,
+            }) ||
+            (props && {
+              ...props,
+            })
           }
-          rules={[{ required: true, message: 'Please select a provider type' }]}
+          onValuesChange={(changedValues) => {
+            for (const key in changedValues) {
+              switch (key) {
+                case 'providerType':
+                  changeProviderType(changedValues[key])
+                  setProviderType(changedValues[key])
+                  break
+                case 'baseUrl':
+                  setBaseUrl(changedValues[key])
+                  break
+                case 'apiKey':
+                  setApiKey(changedValues[key])
+                  break
+              }
+            }
+          }}
         >
-          <Select>
-            {Object.keys(ChatbotServiceProvider).map((key) => (
-              <Select.Option
-                key={`provider-option-${key}`}
-                value={
-                  ChatbotServiceProvider[
-                    key as keyof typeof ChatbotServiceProvider
-                  ]
-                }
+          <Form.Item
+            name="providerType"
+            label={
+              <Tooltip
+                title={`The service provider for this provider configuration. Can be any of: ${providerNames}.`}
               >
-                {key}
-              </Select.Option>
-            ))}
-          </Select>
-        </Form.Item>
+                Chatbot Service Provider <InfoCircleOutlined />
+              </Tooltip>
+            }
+            rules={[
+              { required: true, message: 'Please select a provider type' },
+            ]}
+          >
+            <Select>
+              {Object.keys(ChatbotServiceProvider).map((key) => (
+                <Select.Option
+                  key={`provider-option-${key}`}
+                  value={
+                    ChatbotServiceProvider[
+                      key as keyof typeof ChatbotServiceProvider
+                    ]
+                  }
+                >
+                  {key}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
 
-        <Form.Item
-          name="nickname"
-          label={
-            <Tooltip
-              title={`Set a nickname that is used purely for organizational/appearance purposes.`}
-            >
-              Nickname <InfoCircleOutlined />
-            </Tooltip>
-          }
-          rules={[
-            {
-              required: false,
-              type: 'string',
-              max: 16,
-              message: 'Nickname cannot exceed 16 characters in length.',
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-
-        {providerType && (
-          <>
-            {providerType !== ChatbotServiceProvider.OpenAI && (
-              <Form.Item
-                label={
-                  <Tooltip
-                    title={`The base URL which the service can be reached at.`}
-                  >
-                    Base URL <InfoCircleOutlined />
-                  </Tooltip>
-                }
-                name="baseUrl"
-                rules={[
-                  {
-                    required: true,
-                    type: 'string',
-                    message: 'Base URL is required for this provider.',
-                  },
-                ]}
+          <Form.Item
+            name="nickname"
+            label={
+              <Tooltip
+                title={`Set a nickname that is used purely for organizational/appearance purposes.`}
               >
-                <Input addonBefore={'https://'} />
-              </Form.Item>
-            )}
-            <Divider>Large Language Models</Divider>
+                Nickname <InfoCircleOutlined />
+              </Tooltip>
+            }
+            rules={[
+              {
+                required: false,
+                type: 'string',
+                max: 16,
+                message: 'Nickname cannot exceed 16 characters in length.',
+              },
+            ]}
+          >
+            <Input />
+          </Form.Item>
 
-            <List
-              dataSource={models}
-              renderItem={(item: CreateLLMTypeBody) => {
-                const isDefaultModel = defaultModelName == item.modelName
-                const isDefaultVisionModel =
-                  defaultVisionModelName == item.modelName
-                return (
-                  <List.Item>
-                    <LLMTypeDisplay
-                      model={item}
-                      isDefault={isDefaultModel}
-                      isDefaultVision={isDefaultVisionModel}
-                      setDefault={(modelName: string, vision?: boolean) =>
-                        setProviderDefaultModel(modelName, vision)
-                      }
-                    />
-                    <Button
-                      icon={<DeleteOutlined />}
-                      danger
-                      onClick={() => handleRemoveModel(item.modelName)}
+          {providerType && (
+            <>
+              {providerType !== ChatbotServiceProvider.OpenAI && (
+                <Form.Item
+                  label={
+                    <Tooltip
+                      title={`The base URL which the service can be reached at.`}
                     >
-                      Remove
-                    </Button>
-                  </List.Item>
-                )
-              }}
-              footer={
-                <div className={'flex justify-end'}>
-                  <Button
-                    icon={<PlusOutlined />}
-                    onClick={() => setAddModelModalOpen(true)}
+                      Base URL <InfoCircleOutlined />
+                    </Tooltip>
+                  }
+                  name="baseUrl"
+                  rules={[
+                    {
+                      required: true,
+                      type: 'string',
+                      message: 'Base URL is required for this provider.',
+                    },
+                  ]}
+                >
+                  <Input addonBefore={'https://'} />
+                </Form.Item>
+              )}
+              {providerType == ChatbotServiceProvider.OpenAI &&
+                (provider != undefined &&
+                provider.hasApiKey &&
+                !editingApiKey ? (
+                  <Form.Item
+                    label={
+                      <Tooltip
+                        title={`The API key necessary to access the service. Stored securely and never returned.`}
+                      >
+                        API Key <InfoCircleOutlined />
+                      </Tooltip>
+                    }
                   >
-                    Add Model
-                  </Button>
-                  {providerType == ChatbotServiceProvider.Ollama && (
-                    <AddOllamaModelModal
-                      organizationId={organizationId}
-                      inUseModels={models}
-                      baseUrl={baseUrl}
-                      onAdd={(llmType) => handleAddModel(llmType)}
-                      open={addModelModalOpen}
-                      onClose={() => setAddModelModalOpen(false)}
-                    />
-                  )}
-                </div>
-              }
-            />
-
-            <Divider>Request Headers</Divider>
-
-            <ChatbotHeadersTable
-              initialHeaders={provider?.headers}
-              setUpdatedHeaders={(headers: ChatbotAllowedHeaders) =>
-                handleHeaderUpdate(headers)
-              }
-            />
-          </>
+                    <div className="flex flex-row gap-2">
+                      <Input
+                        className={'w-full'}
+                        value={'*******************************************'}
+                        disabled={true}
+                      />
+                      <Popconfirm
+                        title={
+                          "Are you sure? You'll overwrite the existing API key."
+                        }
+                        okText={'Edit API Key'}
+                        onConfirm={() => setEditingApiKey(true)}
+                      >
+                        <Button icon={<EditOutlined />} />
+                      </Popconfirm>
+                    </div>
+                  </Form.Item>
+                ) : (
+                  <Form.Item
+                    label={
+                      <Tooltip
+                        title={`The API key necessary to access the service. Stored securely and never returned.`}
+                      >
+                        API Key <InfoCircleOutlined />
+                      </Tooltip>
+                    }
+                    name="apiKey"
+                    rules={[
+                      {
+                        required: true,
+                        type: 'string',
+                        message: 'API Key is required for this provider.',
+                      },
+                    ]}
+                  >
+                    <div className="flex flex-row gap-2">
+                      <Input.Password className={'w-full'} />
+                      {provider != undefined && provider.hasApiKey && (
+                        <Popconfirm
+                          title={
+                            "Are you sure? Any changes already to the API key won't be saved."
+                          }
+                          okText={'Cancel API Key Edit'}
+                          onConfirm={() => setEditingApiKey(false)}
+                        >
+                          <Button icon={<CloseOutlined />} />
+                        </Popconfirm>
+                      )}
+                    </div>
+                  </Form.Item>
+                ))}
+            </>
+          )}
+        </Form>
+      </Card>
+      <Card title={'Available Models'}>
+        {!providerType && (
+          <div
+            className={
+              'flex flex-col items-center justify-center gap-1 text-gray-400'
+            }
+          >
+            <FrownOutlined className={'text-xl'} />
+            <p>A provider type is required to add models.</p>
+            <p className={'w-full md:w-1/2'}>
+              Once you select a provider, you will be given the option to add
+              models to this provider. Depending on the provider, you will need
+              to have an accurate base URL and headers for the list of available
+              models to be successfully retrieved.
+            </p>
+          </div>
         )}
-      </Form>
-      <span className={'flex justify-end gap-2 p-2'}>
-        <Button type={'default'} disabled={isLoading} onClick={onClose}>
-          Cancel
-        </Button>
-        <Button
-          type={'primary'}
-          htmlType={'submit'}
-          loading={isLoading}
-          onClick={handleFinish}
-        >
-          {provider != undefined ? 'Confirm Edits' : 'Create Provider'}
-        </Button>
-      </span>
-    </Card>
+        {providerType && (
+          <List
+            locale={{
+              emptyText: (
+                <div
+                  className={
+                    'flex flex-col items-center justify-center gap-1 text-gray-400'
+                  }
+                >
+                  <FrownOutlined className={'text-xl'} />
+                  <p>No models added.</p>
+                  <p className={'w-full md:w-1/2'}>
+                    Click &#39;Add Model&#39; to open the interface where you
+                    can add them. You&#39;ll be provided with a list of models
+                    from this provider automatically. If your configuration is
+                    invalid, the list of models won&#39;t be able to be
+                    retrieved.
+                  </p>
+                </div>
+              ),
+            }}
+            dataSource={models}
+            renderItem={(item: CreateLLMTypeBody) => {
+              const isDefaultModel = defaultModelName == item.modelName
+              const isDefaultVisionModel =
+                defaultVisionModelName == item.modelName
+              return (
+                <List.Item>
+                  <LLMTypeDisplay
+                    model={item}
+                    isDefault={isDefaultModel}
+                    isDefaultVision={isDefaultVisionModel}
+                    setDefault={(modelName: string, vision?: boolean) =>
+                      setProviderDefaultModel(modelName, vision)
+                    }
+                  />
+                  <Button
+                    icon={<DeleteOutlined />}
+                    danger
+                    onClick={() => handleRemoveModel(item.modelName)}
+                  >
+                    Remove
+                  </Button>
+                </List.Item>
+              )
+            }}
+            footer={
+              <div className={'flex justify-end'}>
+                <Button
+                  icon={<PlusOutlined />}
+                  onClick={() => setAddModelModalOpen(true)}
+                >
+                  Add Model
+                </Button>
+                <AddModelModal
+                  providerType={providerType}
+                  organizationId={organizationId}
+                  inUseModels={models}
+                  baseUrl={baseUrl}
+                  apiKey={apiKey}
+                  onAdd={(llmType) => handleAddModel(llmType)}
+                  open={addModelModalOpen}
+                  onClose={() => setAddModelModalOpen(false)}
+                />
+              </div>
+            }
+          />
+        )}
+      </Card>
+      {providerType && providerType != ChatbotServiceProvider.OpenAI && (
+        <Card title={'Request Headers'}>
+          <ChatbotHeadersTable
+            initialHeaders={provider?.headers ?? props?.headers}
+            setUpdatedHeaders={(headers: ChatbotAllowedHeaders) =>
+              handleHeaderUpdate(headers)
+            }
+          />
+        </Card>
+      )}
+      <div className={'sticky bottom-2'}>
+        <div className={'flex w-full justify-end'}>
+          <Card
+            variant={'borderless'}
+            className={
+              'w-full border-2 border-solid border-gray-200 drop-shadow-2xl md:w-1/3'
+            }
+            classNames={{ body: 'flex flex-col-reverse gap-2 justify-center' }}
+            title={
+              <span className={'text-center text-xl font-semibold'}>
+                Actions
+              </span>
+            }
+          >
+            <Button type={'default'} disabled={isLoading} onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type={'primary'}
+              htmlType={'submit'}
+              loading={isLoading}
+              onClick={handleFinish}
+            >
+              {provider != undefined ? 'Confirm Edits' : 'Create Provider'}
+            </Button>
+          </Card>
+        </div>
+      </div>
+    </div>
   )
 }
 

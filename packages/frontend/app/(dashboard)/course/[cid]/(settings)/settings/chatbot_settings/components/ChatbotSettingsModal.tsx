@@ -11,24 +11,33 @@ import {
   Space,
   Tooltip,
 } from 'antd'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import {
+  getErrorMessage,
+  getModelSpeedAndQualityEstimate,
+} from '@/app/utils/generalUtils'
 import {
   ChatbotProvider,
+  ChatbotServiceProvider,
   CourseChatbotSettings,
   CourseChatbotSettingsForm,
   LLMType,
 } from '@koh/common'
 import { InfoCircleOutlined, SettingOutlined } from '@ant-design/icons'
 import ChatbotHelpTooltip from '@/app/(dashboard)/course/[cid]/(settings)/settings/components/ChatbotHelpTooltip'
+import ChatbotModelInfoTooltip from '@/app/(dashboard)/components/ChatbotModelInfoTooltip'
+import LLMTypeDisplay from '@/app/(dashboard)/organization/ai/components/LLMTypeDisplay'
+import LLMSelect from '@/app/(dashboard)/organization/ai/components/LLMSelect'
 
 interface ChatbotSettingsModalProps {
   open: boolean
+  organizationId: number
   courseId: number
   onClose: () => void
 }
 
 const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
   open,
+  organizationId,
   courseId,
   onClose,
 }) => {
@@ -41,8 +50,8 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
   const [defaults, setDefaults] = useState<CourseChatbotSettingsForm>()
 
   useEffect(() => {
-    const getDefaults = async () => {
-      await API.chatbot.staffOnly
+    const getDefaults = () => {
+      return API.chatbot.staffOnly
         .getCourseSettingsDefaults(courseId)
         .then((response) => {
           setDefaults(response)
@@ -52,8 +61,8 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         })
     }
 
-    const getProviders = async () => {
-      await API.chatbot.staffOnly
+    const getProviders = () => {
+      return API.chatbot.staffOnly
         .getCourseOrganizationProviders(courseId)
         .then((response) => {
           setProviders(response)
@@ -65,8 +74,8 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         })
     }
 
-    const getSettings = async () => {
-      await API.chatbot.staffOnly
+    const getSettings = () => {
+      return API.chatbot.staffOnly
         .getCourseSettings(courseId)
         .then((response) => {
           setCourseSettings(response)
@@ -80,62 +89,57 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
 
     const fetchData = async () => {
       setLoadingData(true)
-      Promise.allSettled([
-        getProviders(),
-        getSettings(),
-        getDefaults(),
+      await Promise.all([
+        await getSettings(),
+        await getDefaults(),
+        await getProviders(),
       ]).finally(() => {
         setLoadingData(false)
-        form.setFieldsValue({
-          ...defaults,
-          ...courseSettings,
-        })
       })
     }
+
     fetchData().then()
-  }, [courseId, courseSettings, defaults, form])
+  }, [courseId])
 
-  const llmSelectOptions = useMemo(() => {
-    return providers.map((provider, index) => {
-      const title = `${provider.nickname ? provider.nickname : `Provider ${index}`} ${provider.providerType.toUpperCase()}`
-      return {
-        label: <span>{title}</span>,
-        title,
-        options: provider.availableModels.map((model: LLMType) => ({
-          label: (
-            <span className={'flex justify-between gap-1'}>
-              <div>{model.modelName}</div>
-              {model.isThinking && (
-                <Tooltip
-                  title={
-                    "This model attempts to give better responses by 'thinking'. It will probably take longer to respond to questions."
-                  }
-                >
-                  <div>🧠</div>
-                </Tooltip>
-              )}
-            </span>
-          ),
-          value: model.id,
-        })),
-      }
-    })
-  }, [providers])
+  useEffect(() => {
+    if (courseSettings) {
+      form.setFieldsValue({
+        ...defaults,
+        ...courseSettings,
+      })
+    }
+  }, [courseSettings, defaults, form])
 
-  // TODO: Implementation
-  const handleUpdate = async (_values: CourseChatbotSettingsForm) => {
-    message.error('Not implemented')
+  const handleUpsert = (values: CourseChatbotSettingsForm) => {
+    API.chatbot.staffOnly
+      .upsertCourseSettings(organizationId, courseId, {
+        ...values,
+      })
+      .then((response) => {
+        message.success(
+          `Successfully ${courseSettings == undefined ? 'created' : 'updated'} course chatbot settings!`,
+        )
+        setCourseSettings(response)
+      })
+      .catch((err) =>
+        message.error(
+          `Failed to update course chatbot settings: ${getErrorMessage(err)}`,
+        ),
+      )
   }
 
-  const handleReset = async () => {
-    try {
-      const resp = await API.chatbot.staffOnly.resetCourseSettings(courseId)
-      setCourseSettings(resp)
-    } catch (err) {
-      message.error(
-        `Failed to reset course chatbot settings: ${getErrorMessage(err)}`,
+  const handleReset = () => {
+    API.chatbot.staffOnly
+      .resetCourseSettings(organizationId, courseId)
+      .then((response) => {
+        message.success(`Successfully reset course chatbot settings!`)
+        setCourseSettings(response)
+      })
+      .catch((err) =>
+        message.error(
+          `Failed to reset course chatbot settings: ${getErrorMessage(err)}`,
+        ),
       )
-    }
   }
 
   return (
@@ -143,20 +147,29 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
       title={
         <div className="flex items-center gap-2">
           <SettingOutlined />
-          <p className="w-full md:flex">
-            Chatbot Settings
+          <div className="w-full md:flex">
+            <p>Chatbot Settings</p>
             <ChatbotHelpTooltip
               forPage="chatbot_settings_modal"
               className="mr-6 inline-block md:ml-auto md:block"
             />
-          </p>
+          </div>
         </div>
       }
       open={open}
       onCancel={onClose}
       footer={null}
     >
-      <Form form={form} layout="vertical" onFinish={handleUpdate}>
+      <Form
+        form={form}
+        initialValues={
+          defaults != undefined && courseSettings != undefined
+            ? { ...defaults, ...courseSettings }
+            : undefined
+        }
+        layout="vertical"
+        onFinish={handleUpsert}
+      >
         <Form.Item
           name="llmId"
           label={
@@ -166,10 +179,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
           }
           rules={[{ required: true, message: 'Please select a model' }]}
         >
-          <Select
-            options={llmSelectOptions}
-            loading={llmSelectOptions.length == 0}
-          ></Select>
+          <LLMSelect providers={providers} />
         </Form.Item>
 
         <Form.Item
